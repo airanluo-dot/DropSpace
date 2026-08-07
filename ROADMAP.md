@@ -1,0 +1,376 @@
+# DropSpace Roadmap
+
+## Delivery rule
+
+Every phase ends with a buildable, runnable application and a recorded acceptance review. A phase may contain a disposable technical spike, but production behavior is not claimed until its tests pass.
+
+## Phase 0 — Decisions and feasibility spikes
+
+### Goal
+
+Lock supported OS/SDK versions and prove the three risky Windows boundaries before feature construction.
+
+### Features
+
+- Minimal WinUI 3 packaged sample only.
+- Spikes: clipboard event/read, external file drag-out, tray icon lifecycle.
+- Record target-app compatibility and API limitations.
+
+### Files/modules
+
+Solution skeleton, `spikes/` or short-lived branch artifacts, `DECISIONS.md`, `WINDOWS_INTEGRATION.md`.
+
+### Dependencies
+
+Visual Studio workload, verified supported .NET/Windows App SDK, Windows 11 test machine.
+
+### Tests
+
+Manual matrix for Explorer/Desktop and at least two other drag targets; 1,000 clipboard-event burst harness; Explorer restart tray test.
+
+### Acceptance criteria
+
+- SDK/package builds cleanly on a fresh documented environment.
+- Real drag-out succeeds to Explorer or risk is re-scoped before Phase 3.
+- Clipboard event pipeline can read text/image without polling.
+- Tray icon can add, activate, survive Explorer restart, and remove cleanly.
+
+## Phase 1 — Application foundation
+
+### Goal
+
+Create production solution boundaries without business features.
+
+### Features
+
+App startup, DI composition, logging/redaction, single-instance redirect, theme resources, test projects, CI build command.
+
+### Files/modules
+
+All three production projects and test projects; app manifest/package config.
+
+### Dependencies
+
+Phase 0 version decisions.
+
+### Tests
+
+Core test boot, packaged debug launch, second-instance redirect, log redaction unit tests.
+
+### Acceptance criteria
+
+Clean build with warnings reviewed; launch/close works; no placeholder feature is presented as implemented.
+
+## Phase 2 — Persistence and item core
+
+### Goal
+
+Establish the canonical item model before UI workflows depend on it.
+
+### Features
+
+SQLite v1 schema, repositories, migrations, payload store, settings versioning, recovery shell.
+
+### Files/modules
+
+Core models/policies; Infrastructure database, migrations, payload storage.
+
+### Dependencies
+
+Phase 1.
+
+### Tests
+
+CRUD, transaction rollback, migration from empty/previous fixture, corruption/read-only/disk-full simulation, payload containment.
+
+### Acceptance criteria
+
+Restart preserves fixtures; failed migration preserves original; no raw payload in logs.
+
+## Phase 3 — Space vertical slice
+
+### Goal
+
+Deliver the first genuinely useful file staging workflow.
+
+### Features
+
+Space page, multi-file/folder drag-in, metadata, open/copy path, pin, remove record, empty/error states.
+
+### Files/modules
+
+Space View/ViewModel, drag-in adapter, file service, item row components.
+
+### Dependencies
+
+Phase 2.
+
+### Tests
+
+Core capability tests, mixed-batch integration, manual accessibility/keyboard, restart persistence.
+
+### Acceptance criteria
+
+Dropped references reappear after restart; remove never touches source; partial failures are clear.
+
+## Phase 4 — External drag-out and file resilience
+
+### Goal
+
+Complete Space's defining cross-window workflow.
+
+### Features
+
+External drag-out, missing/unavailable states, Locate/Replace, async thumbnails, network/removable safeguards.
+
+### Files/modules
+
+Drag-out adapter, FileReferenceService, ThumbnailService/cache, details pane.
+
+### Dependencies
+
+Phase 0 drag proof and Phase 3.
+
+### Tests
+
+Target compatibility matrix, missing/move/delete, long path, OneDrive/offline, USB/network timeout, DPI thumbnail tests.
+
+### Acceptance criteria
+
+Explorer/Desktop drag-out passes; failure leaves record/source safe; UI never blocks on remote thumbnail.
+
+## Phase 5 — Clipboard text vertical slice
+
+### Goal
+
+Add event-driven history with privacy controls before images increase risk.
+
+### Features
+
+Recording status, text capture, duplicate/self-loop protection, URL/color hints, pause/resume, retention, clear ranges.
+
+### Files/modules
+
+Clipboard services/pipeline, Clipboard View/ViewModel, classifiers, RetentionService.
+
+### Dependencies
+
+Phase 2 and Phase 0 clipboard proof.
+
+### Tests
+
+Burst, locked clipboard, delayed/stale content, self-copy loop, pause race, retention/clear integration.
+
+### Acceptance criteria
+
+No polling; bounded memory; pause prevents post-completion commits; clear removes search/canonical data.
+
+## Phase 6 — Clipboard images
+
+### Goal
+
+Capture and reuse images within explicit resource limits.
+
+### Features
+
+Image payload storage, thumbnail/preview, copy again, export, byte/pixel/disk budgets.
+
+### Files/modules
+
+Image capture/codec adapter, payload store, preview/export UI.
+
+### Dependencies
+
+Phase 5 pipeline and Phase 4 thumbnail foundation.
+
+### Tests
+
+Large/corrupt/alpha images, memory profiling, disk full, export/copy round trip, deletion cleanup.
+
+### Acceptance criteria
+
+Oversized images are skipped safely; scrolling does not decode full images; clear removes originals and thumbnails.
+
+## Phase 7 — Unified search and Pinned
+
+### Goal
+
+Make the fusion useful without blurring its sources.
+
+### Features
+
+Global search, source/type/status filters, Pinned view, ranking, no-result/loading/error states.
+
+### Files/modules
+
+Search repository/service, search UI, shared item projection, index migration if justified.
+
+### Dependencies
+
+Phases 3–6.
+
+### Tests
+
+Ranking/normalization, performance fixtures, deletion during result, pinned retention, accessibility labels.
+
+### Acceptance criteria
+
+P95 search under 100 ms for 10,000 metadata/text test items on reference device; every result displays source.
+
+## Phase 8 — Tray, close behavior, and privacy polish
+
+### Goal
+
+Support trustworthy long-running operation.
+
+### Features
+
+Tray menu, hide/exit choice, one-time close explanation, listener lifecycle, storage-size view, payload-free diagnostics.
+
+### Files/modules
+
+TrayService, WindowService, settings/privacy pages, lifecycle coordinator.
+
+### Dependencies
+
+Phases 5–7 and tray spike.
+
+### Tests
+
+Explorer restart, hide/open/exit loops, shutdown, recording state sync, no stranded process if tray fails.
+
+### Acceptance criteria
+
+Exit always stops recording; hidden state remains accessible; tray state matches Clipboard header.
+
+## Phase 9 — Accessibility, reliability, and performance
+
+### Goal
+
+Turn the complete feature set into release-quality MVP.
+
+### Features
+
+Keyboard completion, UI Automation, high contrast/reduced motion, crash recovery, cache budgets, localization readiness.
+
+### Files/modules
+
+All UI, resource dictionaries, diagnostics/recovery, performance harness.
+
+### Dependencies
+
+Phases 1–8.
+
+### Tests
+
+Accessibility Insights/manual screen reader, mixed DPI/displays, soak, startup/search/scroll profiling, crash injection.
+
+### Acceptance criteria
+
+All MVP flows pass keyboard-only; no critical accessibility findings; resource budgets documented and met or revised openly.
+
+## Phase 10 — Packaging and release candidate
+
+### Goal
+
+Produce an installable, upgradable, recoverable MVP.
+
+### Features
+
+MSIX identity/signing plan, installer assets, upgrade/uninstall behavior, privacy statement, release diagnostics.
+
+### Files/modules
+
+Packaging project/manifest, release scripts/config, release checklist.
+
+### Dependencies
+
+Phase 9.
+
+### Tests
+
+Clean install, upgrade over prior schema, repair/uninstall, standard user, offline launch, Windows restart.
+
+### Acceptance criteria
+
+Signed candidate installs and upgrades on supported Windows 11 versions; data migration passes; uninstall behavior is documented.
+
+## V1.1 phases
+
+### Phase 11 — Quick Panel and global hotkey
+
+#### Goal
+
+Provide instant keyboard access without destabilizing the main-window lifecycle.
+
+#### Features
+
+Separate window, active-display placement, configurable `RegisterHotKey`, recent/pinned default results, keyboard actions.
+
+#### Files/modules
+
+HotkeyService, QuickPanel window/ViewModel, WindowService placement/focus extensions.
+
+#### Dependencies
+
+Released MVP search/repositories and performance baseline.
+
+#### Tests
+
+Conflict, IME, rapid invocation, full-screen/elevated app, mixed-DPI/multi-display, focus restore, invocation latency.
+
+#### Acceptance criteria
+
+One panel instance opens on the active work area, reports hotkey conflicts, dismisses reliably, and meets the measured latency target without duplicating storage/search logic.
+
+### Phase 12 — Clipboard file formats and best-effort exclusions
+
+#### Goal
+
+Expand clipboard compatibility without turning attribution into a privacy promise.
+
+#### Features
+
+Storage-item clipboard capture, source labels when known, exclusion settings, Unknown-source behavior, manual Space intake for text/URLs.
+
+#### Files/modules
+
+Clipboard format adapters, attribution adapter, exclusion policy/settings UI, Space intake commands.
+
+#### Dependencies
+
+MVP clipboard pipeline and completed attribution experiments.
+
+#### Tests
+
+Explorer file copy, virtual/mixed formats, false attribution, password-manager and remote-session limitations, exclusion race, text/URL intake ambiguity.
+
+#### Acceptance criteria
+
+Unsupported/unknown sources remain safe and clearly labeled; exclusions never claim guaranteed protection; file/text/URL records preserve correct source and retention semantics.
+
+### Phase 13 — Startup and integration refinements
+
+#### Goal
+
+Improve launch and shell integration only after the utility is stable.
+
+#### Features
+
+Startup preference, update channel decision/implementation, richer tray flyout; Explorer integration remains behind a separate decision.
+
+#### Files/modules
+
+Activation/startup adapter, packaging/update configuration, tray UI, decision and integration documents.
+
+#### Dependencies
+
+Stable packaged release and real user evidence.
+
+#### Tests
+
+Startup enabled/disabled by Windows, update/rollback, offline launch, Explorer restart, upgrade migration.
+
+#### Acceptance criteria
+
+Actual Windows startup state matches UI, update failure preserves the working install/data, and no Explorer extension ships without a new accepted decision and performance validation.
