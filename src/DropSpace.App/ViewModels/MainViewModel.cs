@@ -540,6 +540,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
+            if (card.Item.File is not null)
+            {
+                await RefreshFileAvailabilityAsync(card, cancellationToken);
+            }
+
             if (card.Item.File is not null && card.Item.Status == ItemStatus.Available)
             {
                 card.DragStorageItem = await _dragStorageItems.ResolveAsync(card.Item, cancellationToken);

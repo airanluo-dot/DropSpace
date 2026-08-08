@@ -5,18 +5,40 @@ namespace DropSpace.Infrastructure.Storage;
 
 public sealed class LocalFileReferenceService : IFileReferenceService
 {
-    public Task<FileCandidate> InspectAsync(string path, CancellationToken cancellationToken = default)
+    private readonly SemaphoreSlim _gate = new(8, 8);
+
+    public async Task<FileCandidate> InspectAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Task.Run(() => Inspect(path), cancellationToken);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var result = await Task.Run(() => Inspect(path), cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return result;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
-    public Task<FileAvailabilityCheck> CheckAvailabilityAsync(
+    public async Task<FileAvailabilityCheck> CheckAvailabilityAsync(
         FileReference reference,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(reference);
-        return Task.Run(() => CheckAvailability(reference), cancellationToken);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var result = await Task.Run(() => CheckAvailability(reference), cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return result;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private static FileCandidate Inspect(string path)
