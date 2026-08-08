@@ -63,7 +63,10 @@ if (-not (Test-Path $publishedExe -PathType Leaf))
 }
 
 $versionInfo = (Get-Item $publishedExe).VersionInfo
-if ($versionInfo.ProductName -ne "DropSpace" -or $versionInfo.FileDescription -notlike "DropSpace*")
+if ($versionInfo.ProductName -ne "DropSpace" -or
+    $versionInfo.FileDescription -notlike "DropSpace*" -or
+    $versionInfo.InternalName -notlike "DropSpace*" -or
+    $versionInfo.OriginalFilename -notlike "DropSpace*")
 {
     throw "DropSpace.exe version metadata is incomplete."
 }
@@ -76,3 +79,9 @@ $length = (Get-Item $releaseExe).Length
 Write-Host "Portable EXE: $releaseExe"
 Write-Host "Bytes: $length"
 Write-Host "SHA256: $hash"
+Write-Host "ProductName: $($versionInfo.ProductName)"
+Write-Host "FileDescription: $($versionInfo.FileDescription)"
+Write-Host "InternalName: $($versionInfo.InternalName)"
+Write-Host "OriginalFilename: $($versionInfo.OriginalFilename)"
+Write-Host "FileVersion: $($versionInfo.FileVersion)"
+Write-Host "ProductVersion: $($versionInfo.ProductVersion)"
