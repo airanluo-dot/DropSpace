@@ -62,9 +62,11 @@ public sealed class StorageAndRepositoryTests
         await using var source = new MemoryStream(bytes);
 
         var record = await store.WriteAsync("images", source, 1_024);
-        await using var read = await store.OpenReadAsync(record.RelativePath);
         using var copy = new MemoryStream();
-        await read.CopyToAsync(copy);
+        await using (var read = await store.OpenReadAsync(record.RelativePath))
+        {
+            await read.CopyToAsync(copy);
+        }
 
         CollectionAssert.AreEqual(bytes, copy.ToArray());
         Assert.AreEqual(FingerprintService.ForBytes(bytes), record.ContentHash);
@@ -101,6 +103,19 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(1, results.Count);
         Assert.AreEqual(ItemKind.Url, results[0].Kind);
         Assert.AreEqual("example.com", results[0].Url?.Host);
+    }
+
+    [TestMethod]
+    public async Task Database_LoadsAPatchedSQLiteRuntime()
+    {
+        var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
+        await using var connection = await database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT sqlite_version();";
+
+        var value = (string)(await command.ExecuteScalarAsync())!;
+
+        Assert.IsTrue(Version.Parse(value) >= new Version(3, 50, 2), $"SQLite {value} is below the patched baseline.");
     }
 
     [TestMethod]
