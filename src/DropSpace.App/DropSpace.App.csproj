@@ -72,4 +72,11 @@
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1&quot; -SourcePath &quot;$(MSBuildProjectDirectory)\DropSpace.rc&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(Win32Resource)&quot;" />
   </Target>
+  <Target Name="UseConsolidatedDropSpaceWin32Resource" BeforeTargets="CoreCompile" Condition="'$(OS)' == 'Windows_NT'">
+    <PropertyGroup>
+      <ApplicationManifest />
+      <Win32Manifest />
+      <NoWin32Manifest>true</NoWin32Manifest>
+    </PropertyGroup>
+  </Target>
 </Project>
