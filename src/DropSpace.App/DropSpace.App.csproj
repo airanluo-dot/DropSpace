@@ -1,6 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <AssemblyName>DropSpace</AssemblyName>
+    <Product>DropSpace</Product>
+    <Description>DropSpace temporary file and clipboard workspace for Windows 11.</Description>
+    <AssemblyTitle>DropSpace</AssemblyTitle>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion>0.1.0-preview.1</InformationalVersion>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
     <RootNamespace>DropSpace.App</RootNamespace>
@@ -11,8 +20,14 @@
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' != 'ARM64'">win-x64</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
+    <DropSpaceDeployment Condition="'$(DropSpaceDeployment)' == ''">Packaged</DropSpaceDeployment>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <WindowsPackageType>MSIX</WindowsPackageType>
+    <WindowsPackageType Condition="'$(DropSpaceDeployment)' == 'Packaged'">MSIX</WindowsPackageType>
+    <WindowsPackageType Condition="'$(DropSpaceDeployment)' == 'Portable'">None</WindowsPackageType>
+    <WindowsAppSDKSelfContained Condition="'$(DropSpaceDeployment)' == 'Portable'">true</WindowsAppSDKSelfContained>
+    <SelfContained Condition="'$(DropSpaceDeployment)' == 'Portable'">true</SelfContained>
+    <PublishSingleFile Condition="'$(DropSpaceDeployment)' == 'Portable'">true</PublishSingleFile>
+    <IncludeAllContentForSelfExtract Condition="'$(DropSpaceDeployment)' == 'Portable'">true</IncludeAllContentForSelfExtract>
     <PublishReadyToRun>false</PublishReadyToRun>
     <PublishTrimmed>false</PublishTrimmed>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -42,7 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
-    <ProjectCapability Include="Msix" />
+    <ProjectCapability Include="Msix" Condition="'$(DropSpaceDeployment)' == 'Packaged'" />
   </ItemGroup>
   <PropertyGroup>
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>

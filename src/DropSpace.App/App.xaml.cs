@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
-using Windows.Storage;
 
 namespace DropSpace.App;
 
@@ -55,6 +54,12 @@ public partial class App : Application
                 await viewModel.InitializeAsync();
                 _window.ApplyTheme(viewModel.Settings.Theme);
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
+                if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                {
+                    WriteSmokeMarker(_services.GetRequiredService<AppStoragePaths>());
+                    await ShutdownAsync();
+                    Environment.Exit(0);
+                }
             }
             catch (Exception exception)
             {
@@ -87,8 +92,7 @@ public partial class App : Application
 
     private ServiceProvider BuildServices()
     {
-        var root = Path.Combine(ApplicationData.Current.LocalFolder.Path, "DropSpace");
-        var paths = new AppStoragePaths(root);
+        var paths = AppStoragePaths.CreateForCurrentUser();
         var fileLogger = new RedactingFileLoggerProvider(paths);
         var services = new ServiceCollection();
         services.AddSingleton(paths);
@@ -146,13 +150,23 @@ public partial class App : Application
     {
         try
         {
-            var root = Path.Combine(ApplicationData.Current.LocalFolder.Path, "DropSpace", "logs");
-            Directory.CreateDirectory(root);
+            var paths = AppStoragePaths.CreateForCurrentUser();
+            Directory.CreateDirectory(paths.Logs);
             var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={exception.GetType().Name}";
-            File.WriteAllText(Path.Combine(root, "crash.marker"), marker);
+            File.WriteAllText(Path.Combine(paths.Logs, "crash.marker"), marker);
         }
         catch (Exception markerException) when (markerException is IOException or UnauthorizedAccessException)
         {
+            Debug.WriteLine(markerException.GetType().Name);
         }
+    }
+
+    private static void WriteSmokeMarker(AppStoragePaths paths)
+    {
+        var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
+        var marker = $$"""
+            {"ready":true,"schemaVersion":{{SqliteDatabase.CurrentSchemaVersion}},"storageWritable":{{Directory.Exists(paths.Data).ToString().ToLowerInvariant()}}}
+            """;
+        File.WriteAllText(markerPath, marker);
     }
 }
