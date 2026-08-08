@@ -11,7 +11,7 @@
 ## Technology baseline
 
 - C# and current supported .NET for the chosen Windows App SDK release.
-- WinUI 3 / Windows App SDK, packaged with MSIX.
+- WinUI 3 / Windows App SDK with two deployment targets: recommended unpackaged self-contained single-file EXE and retained MSIX package.
 - MVVM with `CommunityToolkit.Mvvm` for observable state and commands.
 - `Microsoft.Data.Sqlite` with explicit SQL and repository mappings.
 - Microsoft.Extensions dependency injection and logging abstractions only if compatible with the final template.
@@ -119,8 +119,17 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 
 ### WindowService
 
-- Owns main and future Quick Panel windows, activation, bounds validation, DPI/display placement, and foreground behavior.
+- Owns the main window and top Overlay windows, activation, bounds validation, per-monitor DPI/display placement, and foreground behavior.
 - Coordinates single-instance activation redirection.
+
+### Overlay services and state
+
+- `OverlayStateMachine` in Core is the single lifecycle authority: `Hidden`, `DragApproaching`, `DragReady`, `Compact`, `Expanded`, `Dismissing`, and `ModeTransition`.
+- `OverlayViewModel` projects that state over the existing `MainViewModel`/repository; it does not create a second Temporary Space store.
+- `OverlayWindowService` creates one no-taskbar tool window per startup monitor, selects the active monitor, and applies one snapshot to all surfaces.
+- `MonitorLayoutService` converts physical monitor bounds and effective DPI; `OverlayWindowInterop` contains all HWND styles, topmost/no-activate behavior, and shaped regions.
+- The top activation zone is a transparent 280 × 3 DIP-equivalent edge surface registered through normal WinUI/OLE drag/drop. It is event-driven; there is no mouse polling or global low-level hook.
+- Composition spring/keyframe animations run only while a target changes. The only rendering subscription is the bounded mode-geometry morph and it is removed on completion or interruption.
 
 ### TrayService
 
@@ -153,7 +162,7 @@ Use short-lived connections and explicit transactions. Serialize writes through 
 ## Database and storage
 
 ```text
-LocalAppData/DropSpace/
+%LOCALAPPDATA%/DropSpace/
   data/dropspace.db
   payloads/images/<sharded-id>.bin
   payloads/text/<sharded-id>.txt   only above inline threshold
@@ -218,5 +227,6 @@ Define an `IItemAction` discovery model only when a second non-core action provi
 - Record removal cannot invoke source-file deletion through any interface.
 - Clipboard capture is event-driven and bounded.
 - Every schema change has forward migration and failure test.
-- Main window and future Quick Panel share repositories/search, not duplicate stores.
+- Main window and Overlay share repositories and use cases, not duplicate stores.
+- Hidden idle owns only an invisible event-driven activation surface and has no continuous frame timer.
 - Logs contain no raw clipboard payload in automated redaction tests.

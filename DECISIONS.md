@@ -58,12 +58,44 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 ## D-007 — MSIX packaged application
 
-- Status: Accepted and implemented
+- Status: Superseded by D-019; retained as the alternative deployment
 - Context: App needs installation, identity, lifecycle, and future startup/update behavior.
-- Decision: Prefer packaged WinUI 3/MSIX.
+- Decision: Retain packaged WinUI 3/MSIX, but it is no longer the preferred ordinary-user download.
 - Reason: Predictable deployment and app-local storage/identity.
 - Alternatives: Unpackaged self-contained installer.
 - Trade-offs: Packaging/signing complexity and some shell integration constraints.
+
+## D-019 — Portable EXE is the preferred Preview deployment
+
+- Status: Accepted and implemented
+- Context: Ordinary users must be able to download one file and run without installing .NET, Windows App SDK Runtime, a certificate, or an MSIX package.
+- Decision: Publish win-x64 with `WindowsPackageType=None`, .NET and Windows App SDK self-contained, single-file bundling, and content self-extraction. Keep MSIX as an alternative build.
+- Reason: The Preview's lowest-friction path is `DropSpace.exe` while one codebase and deployment abstraction preserve package support.
+- Trade-offs: Larger executable, first-run extraction, and unsigned Preview SmartScreen reputation.
+
+## D-020 — Overlay is a state projection, not another item system
+
+- Status: Accepted and implemented
+- Context: The top interaction must not duplicate Temporary Space or clipboard logic.
+- Decision: Keep lifecycle in a pure Core state machine and project the existing repository/use cases through one Overlay ViewModel.
+- Reason: Interruptible transitions are testable and every surface observes the same item count/data.
+- Trade-offs: Window/animation adapters must carefully ignore stale completions.
+
+## D-021 — Hidden drag reveal uses event-driven tool windows
+
+- Status: Accepted and implemented
+- Context: A destroyed/fully absent HWND cannot receive drag entry, while global cursor polling and low-level hooks are inappropriate for an idle resident utility.
+- Decision: Maintain a transparent 3-DIP top-center `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE` drop zone per enabled monitor, registered with WinUI/OLE standard file drag/drop.
+- Reason: It is invisible, focus-safe, monitor-specific, and dormant until Windows sends a drag event.
+- Trade-offs: A deliberately tiny top-edge region still owns hit testing and requires real Explorer/DPI compatibility validation.
+
+## D-022 — WinIsland is behavioral research only
+
+- Status: Accepted
+- Context: WinIsland demonstrates fluid island geometry but is GPL-3.0 and uses a Rust/winit/Skia/D3D architecture unlike DropSpace.
+- Decision: Reference only public interaction ideas: continuous spring targets, compact/expanded lifecycle, frame scheduling only while active, edge placement, and fullscreen suppression. No WinIsland source, translated code, assets, algorithms, or runtime are copied into DropSpace.
+- Reason: Independent C#/WinUI/Composition implementation preserves DropSpace's architecture and avoids creating a GPL-derived work.
+- Trade-offs: Equivalent behavior must be designed and tested independently; WinIsland's implementation details are not reusable.
 
 ## D-008 — Event-driven clipboard capture
 

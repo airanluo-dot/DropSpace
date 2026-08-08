@@ -38,6 +38,8 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Empty/loading/error/missing states.
 - Focus/selection preservation after item removal.
 - Settings validation/revert on failure.
+- Overlay state transitions for empty/drag/compact/expanded/dismiss/mode-transition paths, including interruption and count preservation.
+- One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
 
 ## Integration tests
 
@@ -89,6 +91,7 @@ Automate only stable critical flows:
 5. Pause/resume and clear history.
 6. Missing-item Locate/Replace with controlled picker abstraction where automation allows.
 7. Theme change and core automation properties.
+8. Dynamic Island/Notch setting persistence and immediate state-preserving transition.
 
 External drag-out remains a manual/adapter-assisted compatibility test because end-to-end pointer automation across processes can be brittle.
 
@@ -118,7 +121,9 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 - 100%, 125%, 150%, 200%; mixed scale.
 - Move window between displays; disconnect the last-used display.
 - Taskbar on each edge and auto-hide.
-- Quick Panel cases are V1.1.
+- Drag into each monitor's top activation zone; verify the receiving monitor becomes active in Automatic mode.
+- Switch Dynamic Island/Notch at every scale and migrate between mixed-scale displays without blur, offset, or crash.
+- Verify ordinary fullscreen suppresses passive presentation while an explicit file drag may reveal the target.
 
 ### Accessibility
 
@@ -135,10 +140,14 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 ### Packaging
 
-- Clean install as standard user.
+- Download only `DropSpace.exe` to Desktop/Downloads and launch as a standard user with no .NET/Windows App SDK runtime prerequisite.
+- Confirm file icon and Product Name/File Description/Internal Name/Original Filename/version metadata.
+- Replace `DropSpace.exe` and confirm `%LOCALAPPDATA%\DropSpace` database/settings/payload state remains.
+- Clean MSIX install as standard user.
 - Upgrade from previous released package/schema.
 - Offline start, repair, uninstall/reinstall.
 - Verify documented data retention on uninstall.
+- Confirm unsigned Preview SmartScreen behavior is documented; never disable or bypass Defender policy.
 
 ## Performance tests
 
@@ -151,7 +160,8 @@ Reference device specifications are recorded with results.
 - Scroll with 500 image/text rows and thumbnail cancellation.
 - Large image peak decoded memory.
 - Database/payload size after retention cleanup.
-- Quick Panel invocation latency in V1.1.
+- 100 Overlay reveal/dismiss and compact/expanded cycles with window count, working set, handlers, and Composition resource observations.
+- Hidden/idle CPU and GPU observation: no continuous `CompositionTarget.Rendering`, DispatcherTimer, global input hook, or high-frequency loop.
 
 No performance number is accepted without hardware, build configuration, dataset, and measurement method.
 
@@ -175,4 +185,6 @@ For each phase/release retain:
 - Migration fixture results.
 - Performance measurements.
 - Accessibility and privacy review notes.
+- Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
 
+The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
