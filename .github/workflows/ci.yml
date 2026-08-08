@@ -53,6 +53,10 @@ jobs:
           path: artifacts/release/DropSpace.exe
           if-no-files-found: error
 
+      - name: Smoke test portable EXE
+        shell: pwsh
+        run: ./scripts/Test-PortableSmoke.ps1
+
       - name: Build unsigned MSIX package
         shell: pwsh
         run: ./scripts/Build-UnsignedPackage.ps1 -NoRestore
