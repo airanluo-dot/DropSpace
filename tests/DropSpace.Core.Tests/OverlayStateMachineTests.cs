@@ -103,12 +103,46 @@ public sealed class OverlayStateMachineTests
     }
 
     [TestMethod]
+    public void DragCanInterruptModeTransitionAtItsLatestTarget()
+    {
+        var machine = Create(0);
+        machine.RequestDisplayMode(OverlayDisplayMode.Notch);
+        machine.BeginDragApproach();
+
+        Assert.AreEqual(OverlayState.DragApproaching, machine.Snapshot.State);
+        Assert.AreEqual(OverlayDisplayMode.Notch, machine.Snapshot.DisplayMode);
+        Assert.AreEqual(OverlayDisplayMode.Notch, machine.Snapshot.TargetDisplayMode);
+    }
+
+    [TestMethod]
     public void NewItemInterruptsDismissalAndReturnsCompact()
     {
         var machine = Create(1);
         machine.SetTemporaryItemCount(0);
         machine.SetTemporaryItemCount(1);
         Assert.AreEqual(OverlayState.Compact, machine.Snapshot.State);
+    }
+
+    [TestMethod]
+    public void OneHundredRevealAndExpandCyclesReturnToIdleWithoutAFrameLoop()
+    {
+        var machine = Create(0);
+        var notifications = 0;
+        machine.Changed += (_, _) => notifications++;
+
+        for (var index = 0; index < 100; index++)
+        {
+            machine.BeginDragApproach();
+            machine.SetDragReady(true);
+            machine.CompleteDrop(1);
+            machine.Expand();
+            machine.Collapse();
+            machine.SetTemporaryItemCount(0);
+            machine.CompleteDismissal();
+        }
+
+        Assert.AreEqual(OverlayState.Hidden, machine.Snapshot.State);
+        Assert.AreEqual(700, notifications);
     }
 
     private static OverlayStateMachine Create(

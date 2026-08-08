@@ -71,6 +71,11 @@ public sealed class OverlayStateMachine
 
     public void BeginDragApproach()
     {
+        if (_state == OverlayState.ModeTransition)
+        {
+            _displayMode = _targetDisplayMode;
+        }
+
         _state = OverlayState.DragApproaching;
         Publish();
     }
