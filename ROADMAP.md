@@ -1,5 +1,11 @@
 # DropSpace Roadmap
 
+## Current implementation snapshot
+
+The MVP production slice now covers Phases 1–8 in code: application composition, persistence, Space, external drag-out, text/image Clipboard, unified search/Pinned, and tray/privacy lifecycle. Phase 9 reliability foundations (keyboard paths, automation names, redacted recovery diagnostics, resource limits) are present, while the full manual accessibility/performance/compatibility matrix remains an explicit release gate. Phase 10 has MSIX identity and assets configured; production signing, install/upgrade/uninstall validation, and store/release-channel decisions remain release engineering work.
+
+Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially Explorer/Desktop drag-out and tray recreation after Explorer restart—must still be run on supported Windows 11 hardware before calling the candidate released.
+
 ## Delivery rule
 
 Every phase ends with a buildable, runnable application and a recorded acceptance review. A phase may contain a disposable technical spike, but production behavior is not claimed until its tests pass.

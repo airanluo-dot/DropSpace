@@ -143,7 +143,9 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 - `IItemRepository`: CRUD, page queries, pin/status updates, clear ranges.
 - `ISearchRepository`: search projections only.
 - `IMigrationRunner`: ordered transactional schema migrations.
-- `IPayloadStore`: atomic write/read/delete for image or large-text payload files.
+- `IPayloadStore`: atomic write/read/delete/export for image or large-text payload files.
+- `IFileReferenceService`: asynchronous local file inspection and availability checks behind the platform boundary.
+- `ILocalStorageMetrics`: user-scoped storage location and asynchronous byte accounting without filesystem access from ViewModels.
 - `IThumbnailCache`: replaceable derived cache.
 
 Use short-lived connections and explicit transactions. Serialize writes through one application-owned queue to reduce lock contention; reads can use separate connections under WAL mode if verified.
@@ -218,4 +220,3 @@ Define an `IItemAction` discovery model only when a second non-core action provi
 - Every schema change has forward migration and failure test.
 - Main window and future Quick Panel share repositories/search, not duplicate stores.
 - Logs contain no raw clipboard payload in automated redaction tests.
-

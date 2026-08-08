@@ -15,6 +15,7 @@ TestResults/
 *.coveragexml
 coverage*.xml
 coverage*.json
+Generated Files/
 
 # Windows packaging and signing
 AppPackages/
