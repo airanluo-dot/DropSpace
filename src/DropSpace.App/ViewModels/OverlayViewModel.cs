@@ -165,6 +165,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {

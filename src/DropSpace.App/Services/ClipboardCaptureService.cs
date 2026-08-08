@@ -221,9 +221,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
             catch (TimeoutException)
             {
+                _logger.LogInformation("Clipboard worker shutdown exceeded the bounded wait.");
             }
             catch (OperationCanceledException)
             {
+                _logger.LogInformation("Clipboard worker shutdown was cancelled.");
             }
         }
 
@@ -361,6 +363,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {

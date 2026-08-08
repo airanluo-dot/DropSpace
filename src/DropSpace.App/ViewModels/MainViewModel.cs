@@ -573,6 +573,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {
@@ -599,6 +600,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {
@@ -688,6 +690,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

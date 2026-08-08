@@ -156,11 +156,13 @@ public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
                 File.Delete(path);
             }
         }
-        catch (IOException)
+        catch (IOException exception)
         {
+            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException exception)
         {
+            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
         }
     }
 }

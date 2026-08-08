@@ -601,6 +601,7 @@ public sealed partial class MainPage : Page
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {
