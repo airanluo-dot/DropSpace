@@ -66,7 +66,7 @@
     Name="CompileDropSpaceWin32Resource"
     BeforeTargets="PrepareForBuild"
     Condition="'$(OS)' == 'Windows_NT'"
-    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(MSBuildProjectDirectory)\Assets\AppIcon.ico;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1"
+    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(MSBuildProjectDirectory)\app.manifest;$(MSBuildProjectDirectory)\Assets\AppIcon.ico;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1"
     Outputs="$(Win32Resource)">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
