@@ -64,12 +64,20 @@
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
   <Target
+    Name="CompileDropSpaceBootstrapWin32Resource"
+    BeforeTargets="PrepareForBuild"
+    Condition="'$(OS)' == 'Windows_NT'"
+    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(MSBuildProjectDirectory)\app.manifest;$(MSBuildProjectDirectory)\Assets\AppIcon.ico;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1"
+    Outputs="$(MSBuildProjectDirectory)\$(Win32Resource)">
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1&quot; -SourcePath &quot;$(MSBuildProjectDirectory)\DropSpace.rc&quot; -ManifestPath &quot;$(MSBuildProjectDirectory)\app.manifest&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(Win32Resource)&quot;" />
+  </Target>
+  <Target
     Name="CompileDropSpaceWin32Resource"
     BeforeTargets="CoreCompile"
     DependsOnTargets="$(DropSpaceWin32ResourceDependsOn)"
-    Condition="'$(OS)' == 'Windows_NT'"
-    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(ApplicationManifest);$(MSBuildProjectDirectory)\Assets\AppIcon.ico;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1"
-    Outputs="$(MSBuildProjectDirectory)\$(Win32Resource)">
+    Condition="'$(OS)' == 'Windows_NT'">
     <Error Condition="!Exists('$(ApplicationManifest)')" Text="The application manifest was not generated before Win32 resource compilation: $(ApplicationManifest)" />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
