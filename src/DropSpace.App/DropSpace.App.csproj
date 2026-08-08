@@ -66,16 +66,10 @@
     Name="CompileDropSpaceWin32Resource"
     BeforeTargets="PrepareForBuild"
     Condition="'$(OS)' == 'Windows_NT'"
-    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(MSBuildProjectDirectory)\Assets\AppIcon.ico"
+    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(MSBuildProjectDirectory)\Assets\AppIcon.ico;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1"
     Outputs="$(Win32Resource)">
-    <PropertyGroup>
-      <_DropSpaceResourceCompiler>$(WindowsSdkVerBinPath)x64\rc.exe</_DropSpaceResourceCompiler>
-      <_DropSpaceResourceCompiler Condition="!Exists('$(_DropSpaceResourceCompiler)')">$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\rc.exe</_DropSpaceResourceCompiler>
-    </PropertyGroup>
-    <Error Condition="!Exists('$(_DropSpaceResourceCompiler)')" Text="Windows SDK resource compiler was not found." />
-    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(Win32Resource)'))" />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Command="&quot;$(_DropSpaceResourceCompiler)&quot; /nologo /fo &quot;$(Win32Resource)&quot; &quot;$(MSBuildProjectDirectory)\DropSpace.rc&quot;" />
+      Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Compile-Win32Resource.ps1&quot; -SourcePath &quot;$(MSBuildProjectDirectory)\DropSpace.rc&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(Win32Resource)&quot;" />
   </Target>
 </Project>
