@@ -1,9 +1,5 @@
 101 ICON "Assets\\AppIcon.ico"
 
-// The C# compiler cannot accept /win32manifest together with /win32res.
-// Embed the same application manifest in the consolidated native resource.
-1 24 "app.manifest"
-
 1 VERSIONINFO
  FILEVERSION 0,1,0,0
  PRODUCTVERSION 0,1,0,0

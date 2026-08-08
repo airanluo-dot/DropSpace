@@ -3,6 +3,9 @@ param(
     [string]$SourcePath,
 
     [Parameter(Mandatory = $true)]
+    [string]$ManifestPath,
+
+    [Parameter(Mandatory = $true)]
     [string]$OutputPath
 )
 
@@ -10,10 +13,15 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $source = [System.IO.Path]::GetFullPath($SourcePath)
+$manifest = [System.IO.Path]::GetFullPath($ManifestPath)
 $output = [System.IO.Path]::GetFullPath($OutputPath)
 if (-not (Test-Path $source -PathType Leaf))
 {
     throw "Win32 resource source does not exist: $source"
+}
+if (-not (Test-Path $manifest -PathType Leaf))
+{
+    throw "Application manifest does not exist: $manifest"
 }
 
 $programFilesX86 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFilesX86)
@@ -34,8 +42,17 @@ if ($null -eq $resourceCompiler)
 
 $outputDirectory = [System.IO.Path]::GetDirectoryName($output)
 [System.IO.Directory]::CreateDirectory($outputDirectory) | Out-Null
+$generatedSource = "$output.rc"
+$backslash = [string][char]92
+$escapedManifest = $manifest.Replace($backslash, $backslash + $backslash).Replace('"', '\"')
+$resourceSource = [System.IO.File]::ReadAllText($source) +
+    [Environment]::NewLine +
+    "1 24 `"$escapedManifest`"" +
+    [Environment]::NewLine
+[System.IO.File]::WriteAllText($generatedSource, $resourceSource, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Win32 resource compiler: $($resourceCompiler.FullName)"
-& $resourceCompiler.FullName /nologo /fo $output $source
+Write-Host "Embedded application manifest: $manifest"
+& $resourceCompiler.FullName /nologo /fo $output $generatedSource
 if ($LASTEXITCODE -ne 0)
 {
     throw "rc.exe failed with exit code $LASTEXITCODE."
