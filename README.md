@@ -16,7 +16,7 @@ The implemented vertical slice includes:
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
 
-Windows CI builds the x64 app and runs the policy/persistence test suites. Explorer/Desktop drag compatibility, tray recovery after Explorer restart, accessibility, mixed-DPI, and signed install/upgrade remain manual release-candidate validation gates and are not claimed by the automated build.
+Windows CI audits direct and transitive NuGet dependencies, builds the x64 app and unsigned MSIX, and runs the policy/persistence test suites. Explorer/Desktop drag compatibility, tray recovery after Explorer restart, accessibility, mixed-DPI, and signed install/upgrade remain manual release-candidate validation gates and are not claimed by the automated build.
 
 ## Product boundaries
 
