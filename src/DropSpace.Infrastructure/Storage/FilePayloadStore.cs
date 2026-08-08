@@ -19,7 +19,7 @@ public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
 
         paths.EnsureCreated();
         var id = Guid.NewGuid();
-        var extension = string.Equals(kind, "images", StringComparison.OrdinalIgnoreCase) ? ".bin" : ".txt";
+        var extension = string.Equals(kind, "images", StringComparison.OrdinalIgnoreCase) ? ".png" : ".txt";
         var relativePath = PayloadPathPolicy.CreateRelativePath(kind, id, extension);
         var destinationPath = ResolvePath(relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);

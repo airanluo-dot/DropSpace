@@ -6,6 +6,7 @@ using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DropSpace.Infrastructure.Tests;
 

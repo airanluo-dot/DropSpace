@@ -36,7 +36,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         SingleReader = true,
         SingleWriter = false,
-        FullMode = BoundedChannelFullMode.DropWrite,
+        FullMode = BoundedChannelFullMode.Wait,
     });
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _stateGate = new(1, 1);
@@ -52,6 +52,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private string? _selfFingerprint;
     private DateTimeOffset _selfWriteExpiresUtc;
     private DateTimeOffset _lastRetentionUtc = DateTimeOffset.MinValue;
+    private int _disposeStarted;
 
     public ClipboardCaptureService(
         IItemRepository repository,
@@ -200,6 +201,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
+        {
+            return;
+        }
+
         if (_initialized)
         {
             Clipboard.ContentChanged -= OnClipboardContentChanged;
@@ -385,8 +391,20 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     return null;
                 }
 
-                var bytes = new byte[checked((int)stream.Size)];
-                using var reader = new DataReader(stream.GetInputStreamAt(0));
+                using var bitmap = await decoder.GetSoftwareBitmapAsync(
+                    BitmapPixelFormat.Bgra8,
+                    BitmapAlphaMode.Premultiplied);
+                using var encodedStream = new InMemoryRandomAccessStream();
+                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, encodedStream);
+                encoder.SetSoftwareBitmap(bitmap);
+                await encoder.FlushAsync();
+                if (encodedStream.Size == 0 || encodedStream.Size > (ulong)_settings.MaxImageBytes)
+                {
+                    return null;
+                }
+
+                var bytes = new byte[checked((int)encodedStream.Size)];
+                using var reader = new DataReader(encodedStream.GetInputStreamAt(0));
                 await reader.LoadAsync((uint)bytes.Length);
                 reader.ReadBytes(bytes);
                 return new ClipboardSnapshot(
@@ -396,7 +414,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     checked((int)decoder.PixelWidth),
                     checked((int)decoder.PixelHeight),
                     decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore,
-                    decoder.DecoderInformation.CodecId == BitmapDecoder.JpegDecoderId ? "image/jpeg" : "image/png");
+                    "image/png");
             }
 
             if (view.Contains(StandardDataFormats.Text))

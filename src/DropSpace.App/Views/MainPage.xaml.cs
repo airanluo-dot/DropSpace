@@ -400,12 +400,12 @@ public sealed partial class MainPage : Page
         await RunAsync(() => SelectSectionAsync("Pinned"));
     }
 
-    private void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    private async void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
         if (_viewModel.IsSettingsVisible)
         {
-            _ = SelectSectionAsync("Space");
+            await RunAsync(() => SelectSectionAsync("Space"));
         }
 
         SearchBox.Focus(FocusState.Keyboard);

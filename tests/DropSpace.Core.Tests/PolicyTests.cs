@@ -1,5 +1,6 @@
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DropSpace.Core.Tests;
 
@@ -72,10 +73,10 @@ public sealed class PolicyTests
         var redacted = LogRedactor.Redact(
             "open C:\\Users\\Airan\\secret.txt at https://example.com/a?token=abc api_key=hunter2 Bearer abc.def");
 
-        StringAssert.DoesNotContain(redacted, "Airan");
-        StringAssert.DoesNotContain(redacted, "token=abc");
-        StringAssert.DoesNotContain(redacted, "hunter2");
-        StringAssert.DoesNotContain(redacted, "abc.def");
+        Assert.IsFalse(redacted.Contains("Airan", StringComparison.Ordinal));
+        Assert.IsFalse(redacted.Contains("token=abc", StringComparison.Ordinal));
+        Assert.IsFalse(redacted.Contains("hunter2", StringComparison.Ordinal));
+        Assert.IsFalse(redacted.Contains("abc.def", StringComparison.Ordinal));
     }
 
     private static DropItem CreateItem(ItemSource source, DateTimeOffset createdAt, bool isPinned = false) => new(

@@ -76,21 +76,13 @@ public partial class App : Application
             return;
         }
 
-        if (_services is not null)
-        {
-            try
-            {
-                await _services.GetRequiredService<ClipboardCaptureService>().DisposeAsync();
-            }
-            catch (Exception exception)
-            {
-                _services.GetRequiredService<ILogger<App>>().LogWarning(exception, "Clipboard shutdown did not finish cleanly.");
-            }
-        }
-
-        _window?.AllowCloseAndClose();
-        _services?.Dispose();
+        var services = _services;
         _services = null;
+        _window?.AllowCloseAndClose();
+        if (services is not null)
+        {
+            await services.DisposeAsync();
+        }
     }
 
     private ServiceProvider BuildServices()

@@ -27,6 +27,7 @@ public sealed class SqliteItemRepository(
                 .ConfigureAwait(false);
             if (duplicateId is Guid existingId)
             {
+                logger.LogInformation("An existing Space reference was reused instead of creating a duplicate.");
                 return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
             }
 
@@ -88,6 +89,7 @@ public sealed class SqliteItemRepository(
                 .ConfigureAwait(false);
             if (duplicateId is Guid existingId)
             {
+                logger.LogInformation("A recent duplicate clipboard text item was collapsed.");
                 await TouchDuplicateAsync(connection, existingId, cancellationToken).ConfigureAwait(false);
                 return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
             }
@@ -162,6 +164,7 @@ public sealed class SqliteItemRepository(
                 .ConfigureAwait(false);
             if (duplicateId is Guid existingId)
             {
+                logger.LogInformation("A recent duplicate clipboard image item was collapsed.");
                 await TouchDuplicateAsync(connection, existingId, cancellationToken).ConfigureAwait(false);
                 return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
             }
