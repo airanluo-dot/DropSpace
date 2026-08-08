@@ -2,17 +2,21 @@
 
 DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content, so it can be found, reused, and moved later without forcing immediate organization.
 
+[![Windows CI](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml/badge.svg)](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml)
+
 ## Status
 
-DropSpace is currently in **Phase 0: decisions and Windows feasibility validation**. The repository contains the product, UX, architecture, data, privacy, testing, and delivery specifications. Production application code has not been started yet.
+DropSpace is now a native **MVP release candidate**. The repository contains the production WinUI 3 application, Core and Infrastructure layers, automated tests, Windows CI, MSIX configuration, and the product/engineering specifications that define its safety boundaries.
 
-The Phase 0 gates are:
+The implemented vertical slice includes:
 
-- Event-driven clipboard monitoring for text and images.
-- Real external file and folder drag-out.
-- Reliable notification-area icon and hidden-window lifecycle.
+- Space file/folder reference staging with drag-in, picker intake, external drag-out, open, copy path, pin, remove, and Locate/Replace.
+- Event-driven, bounded Clipboard history for text, URLs, colors, code-like text, and resource-limited images.
+- Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, theme, and close behavior.
+- SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
+- Deterministic branded Windows assets and x64/ARM64 project configurations.
 
-The project does not advance to the production architecture until these Windows integration risks are validated.
+Windows CI builds the x64 app and runs the policy/persistence test suites. Explorer/Desktop drag compatibility, tray recovery after Explorer restart, accessibility, mixed-DPI, and signed install/upgrade remain manual release-candidate validation gates and are not claimed by the automated build.
 
 ## Product boundaries
 
@@ -41,9 +45,27 @@ The project does not advance to the production architecture until these Windows 
 
 ## Development workflow
 
-Work is implemented on task branches. Each meaningful, verified change is committed and pushed; `main` remains buildable. A phase is merged only after its acceptance criteria pass and the related documentation is updated.
+### Requirements
 
-Build instructions will be added after the Phase 0 toolchain and packaged WinUI template are validated.
+- Windows 11 build 26100 or later.
+- Visual Studio 2026 with the WinUI application development workload, or the .NET 10 SDK for command-line build/test.
+
+### Build and test
+
+```powershell
+dotnet restore DropSpace.sln -p:Configuration=Release
+dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release
+dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release
+dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
+```
+
+Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 11 build 26100 and includes x64 and ARM64 configurations.
+
+### Local data
+
+The packaged app stores its database, payloads, thumbnails, backups, settings, and redacted logs below its user-scoped `ApplicationData.LocalFolder/DropSpace` directory. It does not require a server or account. Clipboard contents and file paths are never intentionally written to diagnostics.
+
+Work is implemented on task branches. Each meaningful, verified change is committed and pushed; `main` remains buildable. A phase is merged only after its acceptance criteria pass and the related documentation is updated.
 
 ## License
 

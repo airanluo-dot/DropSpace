@@ -58,7 +58,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 ## D-007 — MSIX packaged application
 
-- Status: Proposed pending Phase 0 tooling validation
+- Status: Accepted and implemented
 - Context: App needs installation, identity, lifecycle, and future startup/update behavior.
 - Decision: Prefer packaged WinUI 3/MSIX.
 - Reason: Predictable deployment and app-local storage/identity.
@@ -155,3 +155,11 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Alternatives: Background AI classification; build plugin framework now.
 - Trade-offs: Later integration work, lower current complexity/risk.
 
+## D-018 — Windows 11 24H2 and current stable toolchain baseline
+
+- Status: Accepted
+- Context: WinUI packaging and Windows integration behavior require one reproducible target rather than an open-ended SDK range.
+- Decision: Target `net10.0-windows10.0.26100.0` and Windows 11 build 26100 or later; use .NET 10, Windows App SDK 2.3.1, Windows SDK Build Tools 10.0.26100.8249, CommunityToolkit.Mvvm 8.4.2, Microsoft.Data.Sqlite 10.0.10, and SQLitePCLRaw bundle 2.1.12 to replace its vulnerable 2.1.11 native transitive dependency. CI builds x64; the solution also defines ARM64.
+- Reason: These are stable servicing releases aligned with the supported Windows 11 24H2 SDK baseline and the repository's WinUI 3 requirements.
+- Alternatives: Older .NET/Windows App SDK LTS baseline; unpackaged deployment; floating package versions.
+- Trade-offs: Windows 10 and pre-24H2 Windows 11 builds are unsupported; explicit package pins require deliberate servicing updates.

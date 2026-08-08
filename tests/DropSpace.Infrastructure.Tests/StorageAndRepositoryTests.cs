@@ -4,6 +4,7 @@ using DropSpace.Core.Policies;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DropSpace.Infrastructure.Tests;
@@ -24,6 +25,7 @@ public sealed class StorageAndRepositoryTests
     [TestCleanup]
     public void Cleanup()
     {
+        SqliteConnection.ClearAllPools();
         if (Directory.Exists(_root))
         {
             Directory.Delete(_root, recursive: true);
