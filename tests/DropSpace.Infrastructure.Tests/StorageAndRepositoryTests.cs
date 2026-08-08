@@ -1,0 +1,156 @@
+using System.Text;
+using DropSpace.Core.Models;
+using DropSpace.Core.Policies;
+using DropSpace.Infrastructure.Data;
+using DropSpace.Infrastructure.Settings;
+using DropSpace.Infrastructure.Storage;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace DropSpace.Infrastructure.Tests;
+
+[TestClass]
+public sealed class StorageAndRepositoryTests
+{
+    private string _root = null!;
+    private AppStoragePaths _paths = null!;
+
+    [TestInitialize]
+    public void Initialize()
+    {
+        _root = Path.Combine(Path.GetTempPath(), "DropSpace-tests", Guid.NewGuid().ToString("N"));
+        _paths = new AppStoragePaths(_root);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task Settings_RoundTripTypedValuesAtomically()
+    {
+        var service = new JsonSettingsService(_paths);
+        var expected = new AppSettings
+        {
+            ClipboardPaused = true,
+            CaptureImages = false,
+            RetentionDays = 14,
+            RetentionItemCount = 250,
+            Theme = ThemePreference.Dark,
+            CloseBehavior = CloseBehavior.Exit,
+        };
+
+        await service.SaveAsync(expected);
+        var actual = await service.LoadAsync();
+
+        Assert.AreEqual(expected, actual);
+        Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
+    }
+
+    [TestMethod]
+    public async Task PayloadStore_WritesHashesReadsAndDeletes()
+    {
+        var store = new FilePayloadStore(_paths);
+        var bytes = Encoding.UTF8.GetBytes("local payload");
+        await using var source = new MemoryStream(bytes);
+
+        var record = await store.WriteAsync("images", source, 1_024);
+        await using var read = await store.OpenReadAsync(record.RelativePath);
+        using var copy = new MemoryStream();
+        await read.CopyToAsync(copy);
+
+        CollectionAssert.AreEqual(bytes, copy.ToArray());
+        Assert.AreEqual(FingerprintService.ForBytes(bytes), record.ContentHash);
+        await store.DeleteAsync(record.RelativePath);
+        Assert.IsFalse(File.Exists(store.ResolvePath(record.RelativePath)));
+    }
+
+    [TestMethod]
+    public async Task PayloadStore_DeletesPartialFileWhenLimitIsExceeded()
+    {
+        var store = new FilePayloadStore(_paths);
+        await using var source = new MemoryStream(new byte[256]);
+
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => store.WriteAsync("images", source, 32));
+
+        var files = Directory.Exists(_paths.Payloads)
+            ? Directory.EnumerateFiles(_paths.Payloads, "*", SearchOption.AllDirectories).ToArray()
+            : [];
+        Assert.AreEqual(0, files.Length);
+    }
+
+    [TestMethod]
+    public async Task Repository_DeduplicatesRecentClipboardTextAndSupportsSearch()
+    {
+        var repository = CreateRepository();
+        var candidate = ContentClassifier.CreateTextCandidate("https://example.com/docs?q=drop");
+
+        var first = await repository.AddTextAsync(candidate);
+        var duplicate = await repository.AddTextAsync(candidate);
+        var results = await repository.QueryAsync(new ItemQuery(Search: "EXAMPLE"));
+
+        Assert.AreEqual(first.Id, duplicate.Id);
+        Assert.AreEqual(2, duplicate.Revision);
+        Assert.AreEqual(1, results.Count);
+        Assert.AreEqual(ItemKind.Url, results[0].Kind);
+        Assert.AreEqual("example.com", results[0].Url?.Host);
+    }
+
+    [TestMethod]
+    public async Task Repository_FileRemovalNeverDeletesSourceFile()
+    {
+        Directory.CreateDirectory(_root);
+        var sourcePath = Path.Combine(_root, "source.txt");
+        await File.WriteAllTextAsync(sourcePath, "keep me");
+        var repository = CreateRepository();
+
+        var item = await repository.AddFileAsync(FileReferencePolicy.CreateCandidate(sourcePath));
+        var duplicate = await repository.AddFileAsync(FileReferencePolicy.CreateCandidate(sourcePath));
+        await repository.RemoveAsync(item.Id);
+
+        Assert.AreEqual(item.Id, duplicate.Id);
+        Assert.IsTrue(File.Exists(sourcePath));
+        Assert.IsNull(await repository.GetAsync(item.Id));
+    }
+
+    [TestMethod]
+    public async Task Repository_ClearClipboardPreservesPinnedItemsAndReturnsPayloads()
+    {
+        var repository = CreateRepository();
+        var text = await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("ordinary text"));
+        await repository.SetPinnedAsync(text.Id, true);
+        var payload = new PayloadRecord(
+            Guid.NewGuid(),
+            "images",
+            Path.Combine("images", "aa", "image.bin"),
+            4,
+            FingerprintService.ForBytes([1, 2, 3, 4]),
+            DateTimeOffset.UtcNow,
+            1);
+        await repository.AddImageAsync(new ImageCandidate(
+            payload.ContentHash,
+            1,
+            1,
+            4,
+            "image/png",
+            true,
+            payload));
+
+        var result = await repository.ClearClipboardAsync(fromUtc: null, includePinned: false);
+
+        Assert.AreEqual(1, result.RemovedCount);
+        CollectionAssert.Contains(result.PayloadPaths.ToArray(), payload.RelativePath);
+        Assert.IsNotNull(await repository.GetAsync(text.Id));
+        Assert.AreEqual(1, await repository.CountAsync(ItemSource.Clipboard, pinnedOnly: true));
+    }
+
+    private SqliteItemRepository CreateRepository()
+    {
+        var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
+        return new SqliteItemRepository(database, NullLogger<SqliteItemRepository>.Instance);
+    }
+}
