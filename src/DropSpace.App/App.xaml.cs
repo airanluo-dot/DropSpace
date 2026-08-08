@@ -61,6 +61,11 @@ public partial class App : Application
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     WriteSmokeMarker(_services.GetRequiredService<AppStoragePaths>());
+                    if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(10));
+                    }
+
                     await ShutdownAsync();
                     Environment.Exit(0);
                 }
@@ -121,6 +126,7 @@ public partial class App : Application
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
+        services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();

@@ -10,6 +10,7 @@ public sealed class OverlayWindowService : IDisposable
 {
     private readonly OverlayViewModel _viewModel;
     private readonly MonitorLayoutService _monitorLayout;
+    private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly ILoggerFactory _loggerFactory;
     private readonly List<OverlayWindow> _windows = [];
     private MonitorDescriptor? _primaryMonitor;
@@ -18,10 +19,12 @@ public sealed class OverlayWindowService : IDisposable
     public OverlayWindowService(
         OverlayViewModel viewModel,
         MonitorLayoutService monitorLayout,
+        ForegroundWindowMonitor foregroundWindowMonitor,
         ILoggerFactory loggerFactory)
     {
         _viewModel = viewModel;
         _monitorLayout = monitorLayout;
+        _foregroundWindowMonitor = foregroundWindowMonitor;
         _loggerFactory = loggerFactory;
     }
 
@@ -48,6 +51,8 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
+        _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(_primaryMonitor.Id, cancellationToken);
         ApplySnapshot(_viewModel.Snapshot);
     }
@@ -61,6 +66,8 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
+        _foregroundWindowMonitor.Dispose();
         foreach (var window in _windows)
         {
             window.CloseForShutdown();
@@ -72,6 +79,8 @@ public sealed class OverlayWindowService : IDisposable
     }
 
     private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot) => ApplySnapshot(snapshot);
+
+    private void OnForegroundChanged(object? sender, EventArgs args) => ApplySnapshot(_viewModel.Snapshot);
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {

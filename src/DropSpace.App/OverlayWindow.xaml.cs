@@ -78,11 +78,16 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        if (!isActiveWindow || snapshot.State == OverlayState.Hidden ||
-            (snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
-             _monitorLayout.IsForegroundFullscreen(_monitor)))
+        var suppressedForFullscreen = snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
+                                      _monitorLayout.IsForegroundFullscreen(_monitor);
+        if (!isActiveWindow || snapshot.State == OverlayState.Hidden || suppressedForFullscreen)
         {
             ConfigureActivationZone();
+            if (isActiveWindow && snapshot.State == OverlayState.ModeTransition && suppressedForFullscreen)
+            {
+                DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
+            }
+
             return;
         }
 
