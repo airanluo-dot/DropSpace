@@ -143,6 +143,7 @@ public sealed partial class OverlayWindow : Window
         var revision = ++_animationRevision;
         var previous = _currentGeometry;
         _currentGeometry = target;
+        Surface.Opacity = 1;
         var reducedMotion = IsReducedMotion();
         var targetWidth = ToPixels(target.Width);
         var targetHeight = ToPixels(target.Height + target.TopOffset);
