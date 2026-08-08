@@ -52,7 +52,7 @@ public sealed partial class OverlayWindow : Window
         _openMainWindow = openMainWindow;
         _logger = logger;
         InitializeComponent();
-        DataContext = viewModel;
+        Root.DataContext = viewModel;
 
         var presenter = OverlappedPresenter.Create();
         presenter.SetBorderAndTitleBar(false, false);
