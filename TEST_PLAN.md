@@ -187,4 +187,4 @@ For each phase/release retain:
 - Accessibility and privacy review notes.
 - Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
 
-The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
+The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, executes 100 real Overlay lifecycle/animation cycles within bounded HWND/GDI/USER/private-byte deltas with no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.

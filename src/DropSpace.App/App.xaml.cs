@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
@@ -60,7 +61,8 @@ public partial class App : Application
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
-                    WriteSmokeMarker(_services.GetRequiredService<AppStoragePaths>());
+                    var metrics = await _overlayWindows.RunLifecycleSmokeAsync(100);
+                    WriteSmokeMarker(_services.GetRequiredService<AppStoragePaths>(), metrics);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -177,12 +179,22 @@ public partial class App : Application
         }
     }
 
-    private static void WriteSmokeMarker(AppStoragePaths paths)
+    private static void WriteSmokeMarker(AppStoragePaths paths, OverlayLifecycleMetrics metrics)
     {
         var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
-        var marker = $$"""
-            {"ready":true,"schemaVersion":{{SqliteDatabase.CurrentSchemaVersion}},"storageWritable":{{Directory.Exists(paths.Data).ToString().ToLowerInvariant()}}}
-            """;
+        var marker = JsonSerializer.Serialize(new
+        {
+            ready = true,
+            schemaVersion = SqliteDatabase.CurrentSchemaVersion,
+            storageWritable = Directory.Exists(paths.Data),
+            overlayCycles = metrics.Cycles,
+            overlayWindowCount = metrics.WindowCount,
+            overlayHandleDelta = metrics.HandleDelta,
+            overlayGdiObjectDelta = metrics.GdiObjectDelta,
+            overlayUserObjectDelta = metrics.UserObjectDelta,
+            overlayPrivateBytesDelta = metrics.PrivateBytesDelta,
+            noContinuousFrameLoop = metrics.NoContinuousFrameSubscription,
+        });
         File.WriteAllText(markerPath, marker);
     }
 }

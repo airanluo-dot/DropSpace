@@ -69,6 +69,8 @@ public sealed partial class OverlayWindow : Window
 
     public string MonitorId => _monitor.Id;
 
+    internal bool HasActiveFrameSubscription => _isModeMorphRunning;
+
     public void ApplySnapshot(OverlaySnapshot snapshot, bool isActiveWindow, bool activationEnabled)
     {
         _isActiveWindow = isActiveWindow;

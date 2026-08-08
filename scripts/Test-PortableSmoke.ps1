@@ -47,7 +47,12 @@ try
     }
 
     $marker = Get-Content -Path $markerPath -Raw | ConvertFrom-Json
-    if ($marker.ready -ne $true -or $marker.storageWritable -ne $true -or [int]$marker.schemaVersion -lt 1)
+    if ($marker.ready -ne $true -or
+        $marker.storageWritable -ne $true -or
+        [int]$marker.schemaVersion -lt 1 -or
+        [int]$marker.overlayCycles -ne 100 -or
+        [int]$marker.overlayWindowCount -lt 1 -or
+        $marker.noContinuousFrameLoop -ne $true)
     {
         throw "DropSpace.exe produced an invalid startup marker."
     }
@@ -74,6 +79,7 @@ try
     }
 
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, single instance, clean exit."
+    Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
 }
 finally
 {
