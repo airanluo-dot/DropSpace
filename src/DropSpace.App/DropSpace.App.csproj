@@ -14,7 +14,6 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
     <RootNamespace>DropSpace.App</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64;ARM64</Platforms>
     <PlatformTarget Condition="'$(Platform)' == ''">x64</PlatformTarget>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
@@ -57,7 +56,7 @@
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="$(ApplicationManifest)" />
+    <Manifest Include="app.manifest" />
     <ProjectCapability Include="Msix" Condition="'$(DropSpaceDeployment)' == 'Packaged'" />
   </ItemGroup>
   <PropertyGroup>
