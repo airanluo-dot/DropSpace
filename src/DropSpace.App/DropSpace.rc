@@ -1,0 +1,35 @@
+#include <windows.h>
+
+101 ICON "Assets\\AppIcon.ico"
+
+1 VERSIONINFO
+ FILEVERSION 0,1,0,0
+ PRODUCTVERSION 0,1,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "DropSpace"
+            VALUE "FileDescription", "DropSpace"
+            VALUE "FileVersion", "0.1.0.0"
+            VALUE "InternalName", "DropSpace"
+            VALUE "OriginalFilename", "DropSpace.exe"
+            VALUE "ProductName", "DropSpace"
+            VALUE "ProductVersion", "0.1.0-preview.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

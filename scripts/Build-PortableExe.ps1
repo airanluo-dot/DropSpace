@@ -65,8 +65,10 @@ if (-not (Test-Path $publishedExe -PathType Leaf))
 $versionInfo = (Get-Item $publishedExe).VersionInfo
 if ($versionInfo.ProductName -ne "DropSpace" -or
     $versionInfo.FileDescription -notlike "DropSpace*" -or
-    $versionInfo.InternalName -notlike "DropSpace*" -or
-    $versionInfo.OriginalFilename -notlike "DropSpace*")
+    $versionInfo.InternalName -ne "DropSpace" -or
+    $versionInfo.OriginalFilename -ne "DropSpace.exe" -or
+    $versionInfo.FileVersion -ne "0.1.0.0" -or
+    $versionInfo.ProductVersion -ne $Version)
 {
     throw "DropSpace.exe version metadata is incomplete."
 }

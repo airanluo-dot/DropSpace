@@ -9,7 +9,7 @@
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
     <InformationalVersion>0.1.0-preview.1</InformationalVersion>
-    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Win32Resource Condition="'$(OS)' == 'Windows_NT'">$(IntermediateOutputPath)DropSpace.res</Win32Resource>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
     <RootNamespace>DropSpace.App</RootNamespace>
@@ -62,4 +62,20 @@
   <PropertyGroup>
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
+  <Target
+    Name="CompileDropSpaceWin32Resource"
+    BeforeTargets="CoreCompile"
+    Condition="'$(OS)' == 'Windows_NT'"
+    Inputs="$(MSBuildProjectDirectory)\DropSpace.rc;$(MSBuildProjectDirectory)\Assets\AppIcon.ico"
+    Outputs="$(Win32Resource)">
+    <PropertyGroup>
+      <_DropSpaceResourceCompiler>$(WindowsSdkVerBinPath)x64\rc.exe</_DropSpaceResourceCompiler>
+      <_DropSpaceResourceCompiler Condition="!Exists('$(_DropSpaceResourceCompiler)')">$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\rc.exe</_DropSpaceResourceCompiler>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_DropSpaceResourceCompiler)')" Text="Windows SDK resource compiler was not found." />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(Win32Resource)'))" />
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Command="&quot;$(_DropSpaceResourceCompiler)&quot; /nologo /fo &quot;$(Win32Resource)&quot; &quot;$(MSBuildProjectDirectory)\DropSpace.rc&quot;" />
+  </Target>
 </Project>
