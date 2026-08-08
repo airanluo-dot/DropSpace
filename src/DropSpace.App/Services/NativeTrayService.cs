@@ -188,6 +188,7 @@ public sealed class NativeTrayService : IDisposable
             GetCursorPos(out var point);
             SetForegroundWindow(_windowHandle);
             var selected = TrackPopupMenuEx(menu, TpmRightButton | TpmReturnCmd | TpmNonotify, point.X, point.Y, _windowHandle, IntPtr.Zero);
+            PostMessage(_windowHandle, 0, IntPtr.Zero, IntPtr.Zero);
             switch (selected)
             {
                 case MenuOpen:
@@ -317,4 +318,8 @@ public sealed class NativeTrayService : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 }
