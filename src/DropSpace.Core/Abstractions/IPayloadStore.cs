@@ -14,5 +14,10 @@ public interface IPayloadStore
 
     Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default);
 
+    Task ExportAsync(
+        string relativePath,
+        string destinationPath,
+        CancellationToken cancellationToken = default);
+
     string ResolvePath(string relativePath);
 }

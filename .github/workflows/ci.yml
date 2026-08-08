@@ -42,6 +42,17 @@ jobs:
       - name: Build WinUI application
         run: dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false
 
+      - name: Build unsigned MSIX package
+        shell: pwsh
+        run: ./scripts/Build-UnsignedPackage.ps1 -NoRestore
+
+      - name: Upload unsigned MSIX package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dropspace-msix-unsigned-x64
+          path: artifacts/msix/**
+          if-no-files-found: error
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

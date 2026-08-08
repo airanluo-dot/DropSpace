@@ -106,6 +106,45 @@ public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
         return Task.CompletedTask;
     }
 
+    public async Task ExportAsync(
+        string relativePath,
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        var sourcePath = ResolvePath(relativePath);
+        var fullDestinationPath = Path.GetFullPath(destinationPath);
+        var temporaryPath = string.Concat(fullDestinationPath, ".", Guid.NewGuid().ToString("N"), ".tmp");
+        try
+        {
+            await using (var source = new FileStream(
+                             sourcePath,
+                             FileMode.Open,
+                             FileAccess.Read,
+                             FileShare.Read,
+                             81_920,
+                             FileOptions.Asynchronous | FileOptions.SequentialScan))
+            await using (var destination = new FileStream(
+                             temporaryPath,
+                             FileMode.CreateNew,
+                             FileAccess.Write,
+                             FileShare.None,
+                             81_920,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await source.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            File.Move(temporaryPath, fullDestinationPath, true);
+        }
+        catch
+        {
+            TryDelete(temporaryPath);
+            throw;
+        }
+    }
+
     public string ResolvePath(string relativePath) => PayloadPathPolicy.ResolveContainedPath(paths.Payloads, relativePath);
 
     private static void TryDelete(string path)

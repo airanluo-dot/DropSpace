@@ -3,11 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
-using DropSpace.Core.Policies;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
-using DropSpace.Infrastructure.Storage;
-using Windows.Storage;
 
 namespace DropSpace.App.ViewModels;
 
@@ -16,12 +13,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IItemRepository _repository;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
+    private readonly IFileReferenceService _fileReferences;
+    private readonly ILocalStorageMetrics _storageMetrics;
     private readonly ClipboardCaptureService _clipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
+    private readonly DragStorageItemService _dragStorageItems;
     private readonly DispatcherQueue _dispatcher;
     private readonly ILogger<MainViewModel> _logger;
-    private readonly AppStoragePaths _paths;
     private CancellationTokenSource? _queryCancellation;
     private string _currentSection = "Space";
     private string _searchText = string.Empty;
@@ -42,20 +41,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IItemRepository repository,
         ISettingsService settingsService,
         IPayloadStore payloadStore,
+        IFileReferenceService fileReferences,
+        ILocalStorageMetrics storageMetrics,
         ClipboardCaptureService clipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
-        AppStoragePaths paths,
+        DragStorageItemService dragStorageItems,
         DispatcherQueue dispatcher,
         ILogger<MainViewModel> logger)
     {
         _repository = repository;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
+        _fileReferences = fileReferences;
+        _storageMetrics = storageMetrics;
         _clipboard = clipboard;
         _shell = shell;
         _thumbnails = thumbnails;
-        _paths = paths;
+        _dragStorageItems = dragStorageItems;
         _dispatcher = dispatcher;
         _logger = logger;
         _clipboard.ItemCaptured += OnItemCaptured;
@@ -189,7 +192,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public CloseBehavior CloseBehavior => Settings.CloseBehavior;
 
-    public string StoragePath => _paths.Root;
+    public string StoragePath => _storageMetrics.RootPath;
 
     public string StorageSummary
     {
@@ -289,7 +292,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             try
             {
-                var candidate = FileReferencePolicy.CreateCandidate(path);
+                var candidate = await _fileReferences.InspectAsync(path, cancellationToken);
                 await _repository.AddFileAsync(candidate, cancellationToken);
                 accepted++;
             }
@@ -385,7 +388,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        var candidate = FileReferencePolicy.CreateCandidate(replacementPath);
+        var candidate = await _fileReferences.InspectAsync(replacementPath, cancellationToken);
         await _repository.ReplaceFileReferenceAsync(card.Id, candidate, cancellationToken);
         var refreshed = await _repository.GetAsync(card.Id, cancellationToken);
         if (refreshed is not null)
@@ -467,16 +470,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             throw new InvalidOperationException("Only clipboard images can be exported.");
         }
 
-        await using var source = await _payloadStore.OpenReadAsync(card.Item.Payload.RelativePath, cancellationToken);
-        await using var destination = new FileStream(
-            destinationPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            81_920,
-            FileOptions.Asynchronous);
-        await source.CopyToAsync(destination, cancellationToken);
-        await destination.FlushAsync(cancellationToken);
+        await _payloadStore.ExportAsync(card.Item.Payload.RelativePath, destinationPath, cancellationToken);
         StatusMessage = "图片已导出。";
     }
 
@@ -502,16 +496,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return item;
         }
 
-        var exists = item.File.EntryKind == FileEntryKind.Folder
-            ? Directory.Exists(item.File.OriginalPath)
-            : File.Exists(item.File.OriginalPath);
-        var status = exists ? ItemStatus.Available : ItemStatus.Missing;
-        if (status != item.Status)
+        var availability = await _fileReferences.CheckAvailabilityAsync(item.File, cancellationToken);
+        if (availability.Status != item.Status ||
+            !string.Equals(availability.Reason, item.File.AvailabilityReason, StringComparison.Ordinal))
         {
             await _repository.UpdateFileStatusAsync(
                 item.Id,
-                status,
-                exists ? null : "File no longer exists",
+                availability.Status,
+                availability.Reason,
                 cancellationToken);
             item = (await _repository.GetAsync(item.Id, cancellationToken))!;
             card.Update(item);
@@ -550,9 +542,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (card.Item.File is not null && card.Item.Status == ItemStatus.Available)
             {
-                card.DragStorageItem = card.Item.File.EntryKind == FileEntryKind.Folder
-                    ? await StorageFolder.GetFolderFromPathAsync(card.Item.File.OriginalPath)
-                    : await StorageFile.GetFileFromPathAsync(card.Item.File.OriginalPath);
+                card.DragStorageItem = await _dragStorageItems.ResolveAsync(card.Item, cancellationToken);
             }
 
             card.Thumbnail = await _thumbnails.LoadAsync(card.Item, cancellationToken: cancellationToken);
@@ -624,27 +614,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
-            var bytes = await Task.Run(
-                () => Directory.EnumerateFiles(_paths.Root, "*", SearchOption.AllDirectories)
-                    .Sum(path =>
-                    {
-                        try
-                        {
-                            return new FileInfo(path).Length;
-                        }
-                        catch (IOException)
-                        {
-                            return 0L;
-                        }
-                    }),
-                cancellationToken);
-            StorageSummary = bytes switch
+            var bytes = await _storageMetrics.GetByteLengthAsync(cancellationToken);
+            if (bytes is null)
             {
-                < 1024 => $"{bytes} B",
-                < 1024 * 1024 => $"{bytes / 1024d:0.0} KB",
-                < 1024L * 1024 * 1024 => $"{bytes / (1024d * 1024):0.0} MB",
-                _ => $"{bytes / (1024d * 1024 * 1024):0.00} GB",
+                StorageSummary = "暂时无法计算";
+                return;
+            }
+
+            StorageSummary = bytes.Value switch
+            {
+                < 1024 => $"{bytes.Value} B",
+                < 1024 * 1024 => $"{bytes.Value / 1024d:0.0} KB",
+                < 1024L * 1024 * 1024 => $"{bytes.Value / (1024d * 1024):0.0} MB",
+                _ => $"{bytes.Value / (1024d * 1024 * 1024):0.00} GB",
             };
+        }
+        catch (OperationCanceledException)
+        {
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

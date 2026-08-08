@@ -123,6 +123,8 @@ public sealed record FileCandidate(
     ItemStatus Status,
     string? AvailabilityReason);
 
+public sealed record FileAvailabilityCheck(ItemStatus Status, string? Reason);
+
 public sealed record TextCandidate(
     string Text,
     string Fingerprint,

@@ -70,6 +70,11 @@ public sealed class StorageAndRepositoryTests
 
         CollectionAssert.AreEqual(bytes, copy.ToArray());
         Assert.AreEqual(FingerprintService.ForBytes(bytes), record.ContentHash);
+
+        var exportPath = Path.Combine(_root, "export.png");
+        await store.ExportAsync(record.RelativePath, exportPath);
+        CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(exportPath));
+
         await store.DeleteAsync(record.RelativePath);
         Assert.IsFalse(File.Exists(store.ResolvePath(record.RelativePath)));
     }
@@ -119,15 +124,43 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
+    public async Task FileReferenceService_ReportsAvailableThenMissing()
+    {
+        Directory.CreateDirectory(_root);
+        var sourcePath = Path.Combine(_root, "availability.txt");
+        await File.WriteAllTextAsync(sourcePath, "source");
+        var service = new LocalFileReferenceService();
+
+        var candidate = await service.InspectAsync(sourcePath);
+        var reference = new FileReference(
+            candidate.OriginalPath,
+            candidate.NormalizedPath,
+            candidate.EntryKind,
+            candidate.Extension,
+            candidate.KnownSize,
+            candidate.KnownModifiedAtUtc,
+            DateTimeOffset.UtcNow,
+            candidate.AvailabilityReason);
+        var available = await service.CheckAvailabilityAsync(reference);
+        File.Delete(sourcePath);
+        var missing = await service.CheckAvailabilityAsync(reference);
+
+        Assert.AreEqual(ItemStatus.Available, candidate.Status);
+        Assert.AreEqual(ItemStatus.Available, available.Status);
+        Assert.AreEqual(ItemStatus.Missing, missing.Status);
+    }
+
+    [TestMethod]
     public async Task Repository_FileRemovalNeverDeletesSourceFile()
     {
         Directory.CreateDirectory(_root);
         var sourcePath = Path.Combine(_root, "source.txt");
         await File.WriteAllTextAsync(sourcePath, "keep me");
         var repository = CreateRepository();
+        var fileReferences = new LocalFileReferenceService();
 
-        var item = await repository.AddFileAsync(FileReferencePolicy.CreateCandidate(sourcePath));
-        var duplicate = await repository.AddFileAsync(FileReferencePolicy.CreateCandidate(sourcePath));
+        var item = await repository.AddFileAsync(await fileReferences.InspectAsync(sourcePath));
+        var duplicate = await repository.AddFileAsync(await fileReferences.InspectAsync(sourcePath));
         await repository.RemoveAsync(item.Id);
 
         Assert.AreEqual(item.Id, duplicate.Id);

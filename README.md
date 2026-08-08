@@ -61,6 +61,14 @@ dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -
 
 Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 11 build 26100 and includes x64 and ARM64 configurations.
 
+To validate package generation from PowerShell, run:
+
+```powershell
+./scripts/Build-UnsignedPackage.ps1 -Platform x64
+```
+
+The output under `artifacts/msix` is deliberately unsigned. MSIX installation requires a certificate whose subject matches the manifest publisher; production signing credentials are never committed to this repository. Windows CI publishes the unsigned package as a build artifact for downstream signing and release validation.
+
 ### Local data
 
 The packaged app stores its database, payloads, thumbnails, backups, settings, and redacted logs below its user-scoped `ApplicationData.LocalFolder/DropSpace` directory. It does not require a server or account. Clipboard contents and file paths are never intentionally written to diagnostics.

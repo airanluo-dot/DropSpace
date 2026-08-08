@@ -106,6 +106,9 @@ public partial class App : Application
         services.AddSingleton<ClipboardCaptureService>();
         services.AddSingleton<ShellActionService>();
         services.AddSingleton<ThumbnailService>();
+        services.AddSingleton<DragStorageItemService>();
+        services.AddSingleton<IFileReferenceService, LocalFileReferenceService>();
+        services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
         services.AddSingleton<MainViewModel>();
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
