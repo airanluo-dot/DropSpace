@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Overlay;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Logging;
 using DropSpace.Infrastructure.Settings;
@@ -11,7 +13,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
-using Windows.Storage;
 
 namespace DropSpace.App;
 
@@ -19,6 +20,7 @@ public partial class App : Application
 {
     private ServiceProvider? _services;
     private MainWindow? _window;
+    private OverlayWindowService? _overlayWindows;
     private AppInstance? _mainInstance;
     private int _shuttingDown;
 
@@ -55,6 +57,20 @@ public partial class App : Application
                 await viewModel.InitializeAsync();
                 _window.ApplyTheme(viewModel.Settings.Theme);
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
+                _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
+                await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
+                if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                {
+                    var metrics = await _overlayWindows.RunLifecycleSmokeAsync(100);
+                    WriteSmokeMarker(_services.GetRequiredService<AppStoragePaths>(), metrics);
+                    if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(10));
+                    }
+
+                    await ShutdownAsync();
+                    Environment.Exit(0);
+                }
             }
             catch (Exception exception)
             {
@@ -78,6 +94,8 @@ public partial class App : Application
 
         var services = _services;
         _services = null;
+        _overlayWindows?.Dispose();
+        _overlayWindows = null;
         _window?.AllowCloseAndClose();
         if (services is not null)
         {
@@ -87,8 +105,7 @@ public partial class App : Application
 
     private ServiceProvider BuildServices()
     {
-        var root = Path.Combine(ApplicationData.Current.LocalFolder.Path, "DropSpace");
-        var paths = new AppStoragePaths(root);
+        var paths = AppStoragePaths.CreateForCurrentUser();
         var fileLogger = new RedactingFileLoggerProvider(paths);
         var services = new ServiceCollection();
         services.AddSingleton(paths);
@@ -109,7 +126,12 @@ public partial class App : Application
         services.AddSingleton<DragStorageItemService>();
         services.AddSingleton<IFileReferenceService, LocalFileReferenceService>();
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
+        services.AddSingleton<OverlayStateMachine>();
+        services.AddSingleton<MonitorLayoutService>();
+        services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<MainViewModel>();
+        services.AddSingleton<OverlayViewModel>();
+        services.AddSingleton<OverlayWindowService>();
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,
@@ -146,13 +168,33 @@ public partial class App : Application
     {
         try
         {
-            var root = Path.Combine(ApplicationData.Current.LocalFolder.Path, "DropSpace", "logs");
-            Directory.CreateDirectory(root);
+            var paths = AppStoragePaths.CreateForCurrentUser();
+            Directory.CreateDirectory(paths.Logs);
             var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={exception.GetType().Name}";
-            File.WriteAllText(Path.Combine(root, "crash.marker"), marker);
+            File.WriteAllText(Path.Combine(paths.Logs, "crash.marker"), marker);
         }
         catch (Exception markerException) when (markerException is IOException or UnauthorizedAccessException)
         {
+            Debug.WriteLine(markerException.GetType().Name);
         }
+    }
+
+    private static void WriteSmokeMarker(AppStoragePaths paths, OverlayLifecycleMetrics metrics)
+    {
+        var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
+        var marker = JsonSerializer.Serialize(new
+        {
+            ready = true,
+            schemaVersion = SqliteDatabase.CurrentSchemaVersion,
+            storageWritable = Directory.Exists(paths.Data),
+            overlayCycles = metrics.Cycles,
+            overlayWindowCount = metrics.WindowCount,
+            overlayHandleDelta = metrics.HandleDelta,
+            overlayGdiObjectDelta = metrics.GdiObjectDelta,
+            overlayUserObjectDelta = metrics.UserObjectDelta,
+            overlayPrivateBytesDelta = metrics.PrivateBytesDelta,
+            noContinuousFrameLoop = metrics.NoContinuousFrameSubscription,
+        });
+        File.WriteAllText(markerPath, marker);
     }
 }

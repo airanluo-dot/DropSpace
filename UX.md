@@ -11,9 +11,9 @@ DropSpace should feel like a compact system utility, not a content dashboard. Th
 - **Pinned**: saved filter spanning both sources.
 - **Settings**: behavior, retention, appearance, and privacy.
 - **Global search**: searches all collections while preserving source identity.
-- **Quick Panel (V1.1)**: a second access surface over the same repository/search service.
+- **Top Overlay**: a Dynamic Island or top-attached Notch over the same Temporary Space state and actions.
 
-Pinned is not a store and Quick Panel is not a page. This prevents four competing mental models.
+Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist in this Preview.
 
 ## Main window
 
@@ -62,14 +62,14 @@ Pinned is not a store and Quick Panel is not a page. This prevents four competin
 - Filters: All, Space, Clipboard; type; pinned; available/missing.
 - Search never indexes bytes inside arbitrary files in MVP.
 
-## Quick Panel (V1.1)
+## Top Overlay
 
-- Opens centered in the active monitor work area, not under the pointer.
-- Width 640, maximum height 520 effective pixels; adapts to small work areas.
-- Search field receives focus; recent/pinned items appear before typing.
-- Enter performs context-aware primary action; Ctrl+Enter opens details in main window.
-- Esc dismisses without changing selection in the main window.
-- Hotkey default is not `Alt+Space` because PowerToys Run commonly uses it. Recommended default: `Win+Shift+V`, configurable and conflict-tested.
+- With zero Temporary Space items and no drag, the visible Overlay is absent; a 3-pixel top-center activation strip remains transparent and no-activate so standard file drag events can reveal it.
+- A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
+- A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
+- Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
+- Removing the last Temporary item enters an interruptible dismissal and returns to Hidden. A new drag or item can reverse the target before dismissal completes.
+- Dynamic Island has an 8-DIP top gap and full corners. Notch attaches to the top edge with square upper corners and rounded lower corners. Settings transitions morph offset and corners without recreating business state.
 
 ## Settings
 
@@ -77,6 +77,7 @@ Pinned is not a store and Quick Panel is not a page. This prevents four competin
 - Dangerous clear actions live in Privacy, separated from ordinary toggles.
 - “Exclude apps” (V1.1) includes the copy: “Best effort. Some clipboard changes cannot be attributed to an app.”
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
+- Top interface settings provide Dynamic Island/Notch, System/Full/Reduced motion, and Automatic/Primary monitor. System motion follows Windows `UISettings.AnimationsEnabled`.
 
 ## System tray
 
@@ -97,6 +98,8 @@ Order: primary action; Copy/Open variants; Pin; Locate/Replace when relevant; Re
 2. Show a page-level target and action wording.
 3. On drop, read storage items, normalize references, and create one batch.
 4. Report accepted and rejected counts without blocking successful items.
+
+The main Space well and the hidden top activation zone both use standard `StorageItems`. On multiple displays, the zone receiving the drag becomes the active Overlay display unless Primary is selected.
 
 ### Drag out
 
@@ -136,6 +139,8 @@ Copy is the advertised operation. DropSpace never claims the target moved the so
 - Hidden-to-tray is distinct from minimized.
 - Modal dialogs are limited to destructive clear operations, unrecoverable migration recovery, and file replacement confirmation.
 - Theme, scale, display changes update without requiring relaunch where supported.
+- Closing the main window may hide it to the tray; it does not stop the Overlay or clipboard listener. Only Exit DropSpace ends the process.
+- Ordinary fullscreen foreground windows suppress non-drag Overlay presentation. An explicit storage-item drag into the activation zone is allowed to reveal the target.
 
 ## Primary user flows
 
@@ -166,4 +171,3 @@ Privacy/Clipboard menu → select range → show affected unpinned count → con
 - Paused recording state is visible in main window and tray menu.
 - Removing a record never uses wording that implies deleting the source file.
 - All primary flows work at 125%, 150%, and 200% scale with keyboard only.
-

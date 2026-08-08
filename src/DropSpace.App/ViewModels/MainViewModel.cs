@@ -32,6 +32,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _isEmpty = true;
     private bool _isSettingsVisible;
     private int _itemCount;
+    private int _spaceItemCount;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
     private string _storageSummary = "正在计算…";
@@ -157,6 +158,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ItemCountText => $"{ItemCount} 项";
 
+    public int SpaceItemCount
+    {
+        get => _spaceItemCount;
+        private set => SetProperty(ref _spaceItemCount, value);
+    }
+
     public ItemCardViewModel? SelectedItem
     {
         get => _selectedItem;
@@ -176,6 +183,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(RetentionItemCount));
                 OnPropertyChanged(nameof(Theme));
                 OnPropertyChanged(nameof(CloseBehavior));
+                OnPropertyChanged(nameof(OverlayDisplayMode));
+                OnPropertyChanged(nameof(OverlayMotion));
+                OnPropertyChanged(nameof(OverlayMonitor));
             }
         }
     }
@@ -191,6 +201,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ThemePreference Theme => Settings.Theme;
 
     public CloseBehavior CloseBehavior => Settings.CloseBehavior;
+
+    public OverlayDisplayMode OverlayDisplayMode => Settings.OverlayDisplayMode;
+
+    public OverlayMotionPreference OverlayMotion => Settings.OverlayMotion;
+
+    public OverlayMonitorPreference OverlayMonitor => Settings.OverlayMonitor;
 
     public string StoragePath => _storageMetrics.RootPath;
 
@@ -212,6 +228,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         Settings = await _settingsService.LoadAsync(cancellationToken);
         await _repository.InitializeAsync(cancellationToken);
+        await RefreshSpaceItemCountAsync(cancellationToken);
         await _clipboard.InitializeAsync(cancellationToken);
         ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
         _ = RefreshStorageSummaryAsync(cancellationToken);
@@ -275,6 +292,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
+            if (!hasGlobalSearch && CurrentSection == "Space")
+            {
+                SpaceItemCount = Items.Count;
+            }
+
             StatusMessage = hasGlobalSearch && Items.Count == 0 ? "没有找到匹配项目。" : string.Empty;
         }
         finally
@@ -305,6 +327,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         StatusMessage = rejected == 0 ? $"已添加 {accepted} 项。" : $"已添加 {accepted} 项，另有 {rejected} 项无法加入。";
         await ReloadAsync(cancellationToken);
+        await RefreshSpaceItemCountAsync(cancellationToken);
         return accepted;
     }
 
@@ -345,7 +368,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Items.Remove(card);
         ItemCount = Items.Count;
         IsEmpty = Items.Count == 0;
+        if (card.Item.Source == ItemSource.Space)
+        {
+            await RefreshSpaceItemCountAsync(cancellationToken);
+        }
+
         StatusMessage = "已从 DropSpace 移除；原始文件未被修改。";
+    }
+
+    public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSpaceItemsAsync(
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 20)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        }
+
+        var items = await _repository.QueryAsync(
+            new ItemQuery(Source: ItemSource.Space, Limit: limit),
+            cancellationToken);
+        var cards = items.Select(item => new ItemCardViewModel(item)).ToArray();
+        await Task.WhenAll(cards.Select(card => LoadThumbnailSafelyAsync(card, cancellationToken)));
+        return cards;
     }
 
     public async Task<bool> OpenAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -528,6 +573,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {
@@ -554,11 +600,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {
             _logger.LogInformation(exception, "Thumbnail load failed for item {ItemId}.", card.Id);
         }
+    }
+
+    private async Task RefreshSpaceItemCountAsync(CancellationToken cancellationToken)
+    {
+        SpaceItemCount = await _repository.CountAsync(
+            ItemSource.Space,
+            cancellationToken: cancellationToken);
     }
 
     private void OnItemCaptured(object? sender, DropItem item)
@@ -636,6 +690,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

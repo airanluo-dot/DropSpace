@@ -1,12 +1,12 @@
 # DropSpace
 
-DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content, so it can be found, reused, and moved later without forcing immediate organization.
+DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island/Notch provides a fast file drop surface over the same Temporary Space.
 
 [![Windows CI](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml/badge.svg)](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml)
 
 ## Status
 
-DropSpace is now a native **MVP release candidate**. The repository contains the production WinUI 3 application, Core and Infrastructure layers, automated tests, Windows CI, MSIX configuration, and the product/engineering specifications that define its safety boundaries.
+DropSpace is a native **Preview release candidate**. The repository contains the WinUI 3 application, portable and MSIX deployment paths, automated tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
 The implemented vertical slice includes:
 
@@ -15,8 +15,26 @@ The implemented vertical slice includes:
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
+- An event-driven top-edge drag activation zone, formal Overlay state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
+- A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 
-Windows CI audits direct and transitive NuGet dependencies, builds the x64 app and unsigned MSIX, and runs the policy/persistence test suites. Explorer/Desktop drag compatibility, tray recovery after Explorer restart, accessibility, mixed-DPI, and signed install/upgrade remain manual release-candidate validation gates and are not claimed by the automated build.
+Windows CI audits dependencies, builds the x64 app and unsigned MSIX, publishes the portable EXE, and runs policy/persistence tests. The release workflow also starts the built EXE and verifies Windows App SDK/SQLite/AppData initialization, second-instance redirection, and clean exit. Explorer/Desktop drag compatibility, tray recovery after Explorer restart, accessibility, mixed-DPI geometry, and animation feel remain manual release-candidate validation gates and are not claimed by automation.
+
+## Download and run
+
+### 1. Direct / Portable EXE — recommended
+
+Download `DropSpace.exe` from the official [GitHub Releases](https://github.com/airanluo-dot/DropSpace/releases) page and double-click it. It is self-contained and requires no Visual Studio, separate .NET runtime, Windows App SDK runtime installation, PowerShell, certificate installation, or administrator rights.
+
+This Preview is not commercially code-signed. SmartScreen may show an unknown-app warning on first launch; obtain the file only from the official release and compare it with `SHA256SUMS.txt`.
+
+### 2. MSIX — alternative package
+
+`DropSpace-x64.msix` remains an alternate Windows package. The Preview package is unsigned, so ordinary users should prefer `DropSpace.exe`; MSIX certificate/signing policy is intentionally not bypassed.
+
+### 3. Developer build
+
+Only contributors building from source need Visual Studio or the .NET/Windows SDK toolchain described below. These tools are not runtime prerequisites for the downloaded `DropSpace.exe`.
 
 ## Product boundaries
 
@@ -71,7 +89,7 @@ The output under `artifacts/msix` is deliberately unsigned. MSIX installation re
 
 ### Local data
 
-The packaged app stores its database, payloads, thumbnails, backups, settings, and redacted logs below its user-scoped `ApplicationData.LocalFolder/DropSpace` directory. It does not require a server or account. Clipboard contents and file paths are never intentionally written to diagnostics.
+Both the portable EXE and MSIX build use `%LOCALAPPDATA%\DropSpace` for the database, payloads, thumbnails, backups, settings, and redacted logs. Replacing `DropSpace.exe` does not replace this data. DropSpace does not require a server or account, and clipboard contents and full file paths are never intentionally written to diagnostics.
 
 Work is implemented on task branches. Each meaningful, verified change is committed and pushed; `main` remains buildable. A phase is merged only after its acceptance criteria pass and the related documentation is updated.
 

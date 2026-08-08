@@ -13,9 +13,28 @@ public enum CloseBehavior
     Exit,
 }
 
+public enum OverlayDisplayMode
+{
+    DynamicIsland,
+    Notch,
+}
+
+public enum OverlayMotionPreference
+{
+    System,
+    Full,
+    Reduced,
+}
+
+public enum OverlayMonitorPreference
+{
+    Automatic,
+    Primary,
+}
+
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -40,6 +59,12 @@ public sealed record AppSettings
     public bool CloseExplanationShown { get; init; }
 
     public string LaunchPage { get; init; } = "Space";
+
+    public OverlayDisplayMode OverlayDisplayMode { get; init; } = OverlayDisplayMode.DynamicIsland;
+
+    public OverlayMotionPreference OverlayMotion { get; init; } = OverlayMotionPreference.System;
+
+    public OverlayMonitorPreference OverlayMonitor { get; init; } = OverlayMonitorPreference.Automatic;
 
     public AppSettings Validate()
     {
@@ -71,6 +96,21 @@ public sealed record AppSettings
         if (MaxTextCharacters is < 1_024 or > 16_777_216)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
+        }
+
+        if (!Enum.IsDefined(OverlayDisplayMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(OverlayDisplayMode));
+        }
+
+        if (!Enum.IsDefined(OverlayMotion))
+        {
+            throw new ArgumentOutOfRangeException(nameof(OverlayMotion));
+        }
+
+        if (!Enum.IsDefined(OverlayMonitor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(OverlayMonitor));
         }
 
         return this;

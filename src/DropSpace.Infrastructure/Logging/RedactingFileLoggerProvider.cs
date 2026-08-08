@@ -43,8 +43,9 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider
         {
             _writer.Wait(TimeSpan.FromSeconds(2));
         }
-        catch (AggregateException)
+        catch (AggregateException exception)
         {
+            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
         }
         finally
         {
@@ -66,12 +67,15 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider
         }
         catch (OperationCanceledException)
         {
+            return;
         }
-        catch (IOException)
+        catch (IOException exception)
         {
+            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException exception)
         {
+            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
         }
     }
 

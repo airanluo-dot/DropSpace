@@ -4,7 +4,7 @@ Status labels: **Supported**, **Supported with Win32 interop**, **Complex/valida
 
 ## Platform baseline
 
-WinUI 3 is the native UI layer shipped with the Windows App SDK and is a good match for a Windows 11 utility. Packaging with MSIX is recommended for identity, installer behavior, local app data, startup integration options, and predictable deployment.
+WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace supports both an unpackaged self-contained single-file x64 EXE (recommended) and an MSIX package (alternative). Neither deployment path stores runtime data beside the executable.
 
 ## Capability matrix
 
@@ -23,6 +23,10 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK and is a good ma
 | Hide-to-tray background operation | Supported | Keep desktop process alive; not an OS background task |
 | Startup at sign-in | Supported/packaging-dependent | Activation/startup registration; V1.1 preference |
 | Single instance | Supported | Windows App SDK AppInstance redirection |
+| Hidden top-edge file-drag reveal | Supported with HWND/WinUI interop | Transparent no-activate tool-window zones plus standard `StorageItems` drag events |
+| Dynamic Island / Notch | Supported with WinUI Composition and shaped HWND | Shared state/data; visual geometry only differs |
+| Per-monitor DPI placement | Supported with Win32 interop | Physical monitor bounds + effective DPI; DIP-to-pixel conversion at window boundary |
+| Portable single-file EXE | Supported on Windows App SDK 1.5+ | Unpackaged, Windows App SDK self-contained, .NET self-contained, content extraction enabled |
 | SQLite | Supported via library | `Microsoft.Data.Sqlite`, local database |
 | File picker | Supported | WinRT picker initialized with HWND where required |
 | System file thumbnails | Supported, async | Storage/Shell thumbnail APIs; bounded cache |
@@ -52,6 +56,12 @@ Therefore app exclusions are **best effort**, deferred to V1.1, and never market
 Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboardowner).
 
 ## File drag and drop
+
+### Hidden Overlay activation
+
+DropSpace keeps one fully transparent top-center tool-window region per enabled display. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`, stays out of taskbar/Alt+Tab, and is 3 DIP-equivalent pixels high when idle. WinUI registers the root surface as an OLE-compatible drop target. This is deliberately not implemented with global hooks, mouse-button inspection, or a high-frequency cursor loop.
+
+When a `StorageItems` drag enters, the known zone identifies the monitor, the Core state machine changes targets, and the surface is resized/re-shaped into the visible drop target. Non-active monitors retain only their zones. Monitor coordinates are physical pixels; UI dimensions are DIPs scaled with each monitor's effective DPI.
 
 ### Drag in
 
@@ -84,7 +94,9 @@ Official reference: [Shell_NotifyIcon](https://learn.microsoft.com/en-us/windows
 
 ## Background operation and lifecycle
 
-MVP “background” means the packaged desktop process remains alive with no visible window and a tray icon. It is not a suspended UWP-style background task or Windows service. Choosing Exit stops capture.
+“Background” means the desktop process remains alive with no main window and a tray icon. It is not a suspended UWP-style background task or Windows service. Choosing Exit stops capture and closes every Overlay window.
+
+The main window, tray, clipboard service, and Overlay share the same process and single-instance key. Overlay windows are always-on-top only while their surfaces are enabled, never request elevation, and are no-activate except while the user explicitly expands one for controls.
 
 Use Windows App SDK application lifecycle APIs for activation and single-instance redirection. A second launch redirects to the existing process and activates the window. Shutdown and logoff allow only bounded flushing.
 
@@ -135,6 +147,6 @@ Shell context-menu extensions increase packaging, registration, performance, and
 3. Tray/window lifecycle and clean single-instance activation.
 4. Source-app attribution giving users a false privacy guarantee.
 5. Image memory/disk growth and thumbnail providers on remote locations.
+6. Real Explorer/Desktop drag semantics and mixed-DPI geometry across GPU/display-driver combinations.
 
 Each risk has a dedicated vertical-spike phase before the affected feature is declared committed.
-

@@ -35,7 +35,13 @@ public sealed class JsonSettingsService(AppStoragePaths paths) : ISettingsServic
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
             var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
                 .ConfigureAwait(false);
-            return (settings ?? new AppSettings()).Validate();
+            settings ??= new AppSettings();
+            if (settings.Version == 1)
+            {
+                settings = settings with { Version = AppSettings.CurrentVersion };
+            }
+
+            return settings.Validate();
         }
         finally
         {

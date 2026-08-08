@@ -45,6 +45,9 @@ public sealed class StorageAndRepositoryTests
             RetentionItemCount = 250,
             Theme = ThemePreference.Dark,
             CloseBehavior = CloseBehavior.Exit,
+            OverlayDisplayMode = OverlayDisplayMode.Notch,
+            OverlayMotion = OverlayMotionPreference.Reduced,
+            OverlayMonitor = OverlayMonitorPreference.Primary,
         };
 
         await service.SaveAsync(expected);
@@ -52,6 +55,30 @@ public sealed class StorageAndRepositoryTests
 
         Assert.AreEqual(expected, actual);
         Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
+    }
+
+    [TestMethod]
+    public async Task Settings_VersionOneMigratesWithSafeOverlayDefaults()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 1,
+              "ClipboardPaused": true,
+              "RetentionDays": 21,
+              "RetentionItemCount": 300
+            }
+            """);
+
+        var actual = await new JsonSettingsService(_paths).LoadAsync();
+
+        Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
+        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
+        Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
+        Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
+        Assert.IsTrue(actual.ClipboardPaused);
     }
 
     [TestMethod]

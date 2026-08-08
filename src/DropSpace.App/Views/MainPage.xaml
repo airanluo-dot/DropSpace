@@ -354,6 +354,49 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
+                <TextBlock Text="顶部界面" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="切换会立即以连续动画生效。" />
+              </StackPanel>
+              <ComboBox x:Name="OverlayDisplayModeCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayDisplayModeChanged">
+                <ComboBoxItem Content="灵动岛" Tag="DynamicIsland" />
+                <ComboBoxItem Content="刘海" Tag="Notch" />
+              </ComboBox>
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="动画" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="跟随系统会尊重 Windows 减少动态效果。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ComboBox x:Name="OverlayMotionCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayMotionChanged">
+                <ComboBoxItem Content="跟随系统" Tag="System" />
+                <ComboBoxItem Content="完整" Tag="Full" />
+                <ComboBoxItem Content="减少动态效果" Tag="Reduced" />
+              </ComboBox>
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="显示器" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="自动模式会在文件拖拽所在屏幕出现。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ComboBox x:Name="OverlayMonitorCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayMonitorChanged">
+                <ComboBoxItem Content="自动" Tag="Automatic" />
+                <ComboBoxItem Content="主显示器" Tag="Primary" />
+              </ComboBox>
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
                 <TextBlock Text="关闭窗口时" />
                 <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="隐藏到托盘时会继续记录剪贴板。" />
               </StackPanel>

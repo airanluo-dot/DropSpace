@@ -2,9 +2,9 @@
 
 ## Current implementation snapshot
 
-The MVP production slice now covers Phases 1–8 in code: application composition, persistence, Space, external drag-out, text/image Clipboard, unified search/Pinned, and tray/privacy lifecycle. Phase 9 reliability foundations (keyboard paths, automation names, redacted recovery diagnostics, resource limits) are present, while the full manual accessibility/performance/compatibility matrix remains an explicit release gate. Phase 10 has MSIX identity and assets configured; production signing, install/upgrade/uninstall validation, and store/release-channel decisions remain release engineering work.
+The Preview production slice covers Phases 1–10 in code: application composition, persistence, Space, external drag-out, text/image Clipboard, unified search/Pinned, tray/privacy lifecycle, the top Dynamic Island/Notch Overlay, a retained MSIX path, and a recommended unpackaged self-contained single-file x64 EXE. CI and release automation run tests, build both artifacts, smoke-test the EXE, calculate SHA-256, and create the GitHub Preview Release. Commercial signing remains optional and automatically activates only when Artifact Signing credentials are configured.
 
-Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially Explorer/Desktop drag-out and tray recreation after Explorer restart—must still be run on supported Windows 11 hardware before calling the candidate released.
+Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
 
 ## Delivery rule
 
@@ -279,11 +279,11 @@ All MVP flows pass keyboard-only; no critical accessibility findings; resource b
 
 ### Goal
 
-Produce an installable, upgradable, recoverable MVP.
+Produce a directly runnable, installable, upgradable, recoverable Preview.
 
 ### Features
 
-MSIX identity/signing plan, installer assets, upgrade/uninstall behavior, privacy statement, release diagnostics.
+Portable EXE, MSIX identity/signing plan, installer assets, AppData durability, upgrade/uninstall behavior, privacy statement, release diagnostics, and GitHub Release automation.
 
 ### Files/modules
 
@@ -299,23 +299,41 @@ Clean install, upgrade over prior schema, repair/uninstall, standard user, offli
 
 ### Acceptance criteria
 
-Signed candidate installs and upgrades on supported Windows 11 versions; data migration passes; uninstall behavior is documented.
+Unsigned portable Preview starts without external runtimes/elevation, MSIX remains buildable, data migration passes, release hashes are published, and future signing is credential-gated without repository secrets.
+
+## Phase 10A — Top Overlay delivery
+
+### Goal
+
+Make Temporary Space available as a low-idle, top-edge file drop interaction without replacing the full main window.
+
+### Features
+
+Formal interruptible Overlay state machine; hidden drag activation zone; Dynamic Island/Notch modes; Compact/Expanded actions; external drag-out; Reduced Motion; per-monitor DPI placement; fullscreen suppression.
+
+### Tests
+
+State transition matrix, settings migration/round trip, 100-cycle lifecycle test, WinUI Release build, portable smoke test, and real Windows 11 drag/display/manual matrix.
+
+### Acceptance criteria
+
+Empty idle is visually hidden without a frame loop; standard file drag reveals a valid drop target; item presence controls Compact lifetime; mode changes preserve data/state; all existing main-window/tray/clipboard functions remain shared and available.
 
 ## V1.1 phases
 
-### Phase 11 — Quick Panel and global hotkey
+### Phase 11 — Global hotkey and Overlay refinements
 
 #### Goal
 
-Provide instant keyboard access without destabilizing the main-window lifecycle.
+Provide optional keyboard access and field-driven refinements without creating a duplicate quick-panel product.
 
 #### Features
 
-Separate window, active-display placement, configurable `RegisterHotKey`, recent/pinned default results, keyboard actions.
+Configurable `RegisterHotKey`, keyboard-first Overlay expansion, focus restoration, and measured animation/placement refinements.
 
 #### Files/modules
 
-HotkeyService, QuickPanel window/ViewModel, WindowService placement/focus extensions.
+HotkeyService and existing Overlay/WindowService placement/focus extensions.
 
 #### Dependencies
 

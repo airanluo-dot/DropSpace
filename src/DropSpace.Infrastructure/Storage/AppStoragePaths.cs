@@ -2,6 +2,19 @@ namespace DropSpace.Infrastructure.Storage;
 
 public sealed class AppStoragePaths
 {
+    public static AppStoragePaths CreateForCurrentUser()
+    {
+        var localAppData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData,
+            Environment.SpecialFolderOption.Create);
+        if (string.IsNullOrWhiteSpace(localAppData))
+        {
+            throw new InvalidOperationException("The current user's local application data folder is unavailable.");
+        }
+
+        return new AppStoragePaths(Path.Combine(localAppData, "DropSpace"));
+    }
+
     public AppStoragePaths(string rootPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootPath);

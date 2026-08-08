@@ -139,19 +139,19 @@ Debounce briefly, query indexed normalized fields, rank exact title/domain match
 
 Unicode, case folding, paths, punctuation, very long text, stale index after migration, and deleted items during results display.
 
-## Quick Panel (V1.1)
+## Top Overlay
 
 ### User behavior
 
-Invoke hotkey, type, navigate with arrows, Enter primary action, Ctrl+C copy, Esc dismiss.
+Drag files/folders to the top-center activation zone, drop them into Temporary Space, click Compact to expand recent items, or switch between Dynamic Island and Notch in Settings.
 
 ### App behavior
 
-Show a lightweight separate window near the active display work area. Do not steal focus permanently. Report hotkey conflicts and allow reconfiguration.
+Keep the surface hidden when Temporary Space is empty, reveal from standard file drag events, remain Compact while items exist, and expose at most five recent items with Open, Pin, Remove Reference, drag-out, and Open DropSpace. It shares repository/use-case state with the main window and does not react to Clipboard item count.
 
 ### Edge cases
 
-Full-screen apps, elevated foreground apps, multiple displays/DPI, taskbar on any edge, IME input, remote desktop, and a second invocation while open.
+Cancelled drag, last-item dismissal interrupted by a new drag, rapid mode retargeting, full-screen apps, elevated integrity boundaries, multiple displays/DPI, display removal, remote desktop, and system Reduced Motion.
 
 ## Settings
 
@@ -165,7 +165,7 @@ Master toggle, retention age/count, image capture, size limits, duplicate policy
 
 ### Appearance
 
-System/light/dark, reduced motion behavior, material fallback. Mica is automatic preference, not a user performance promise.
+System/light/dark, Dynamic Island/Notch, System/Full/Reduced Overlay motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
 
 ### Privacy
 

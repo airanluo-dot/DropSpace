@@ -376,6 +376,36 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnOverlayDisplayModeChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && OverlayDisplayModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<OverlayDisplayMode>(value, out var displayMode))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { OverlayDisplayMode = displayMode }));
+        }
+    }
+
+    private async void OnOverlayMotionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && OverlayMotionCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<OverlayMotionPreference>(value, out var motion))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { OverlayMotion = motion }));
+        }
+    }
+
+    private async void OnOverlayMonitorChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && OverlayMonitorCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<OverlayMonitorPreference>(value, out var monitor))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { OverlayMonitor = monitor }));
+        }
+    }
+
     private async void OnClearLastHourClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.LastHour);
 
     private async void OnClearTodayClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.Today);
@@ -462,6 +492,9 @@ public sealed partial class MainPage : Page
             RetentionCountNumber.Value = _viewModel.RetentionItemCount;
             SelectComboItem(ThemeCombo, _viewModel.Theme.ToString());
             SelectComboItem(CloseBehaviorCombo, _viewModel.CloseBehavior.ToString());
+            SelectComboItem(OverlayDisplayModeCombo, _viewModel.OverlayDisplayMode.ToString());
+            SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
+            SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
         }
         finally
         {
@@ -568,6 +601,7 @@ public sealed partial class MainPage : Page
         }
         catch (OperationCanceledException)
         {
+            return;
         }
         catch (Exception exception)
         {
