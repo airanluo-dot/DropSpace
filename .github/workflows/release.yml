@@ -9,6 +9,7 @@ on:
       - .github/release-notes/**
       - scripts/Build-PortableExe.ps1
       - scripts/Build-UnsignedPackage.ps1
+      - scripts/Compile-Win32Resource.ps1
       - scripts/Test-PortableSmoke.ps1
       - src/**
       - tests/**
