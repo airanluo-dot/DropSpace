@@ -96,7 +96,7 @@ public sealed class SqliteDatabase(
             }
 
             await using var versionCommand = connection.CreateCommand();
-            versionCommand.Transaction = transaction;
+            versionCommand.Transaction = (SqliteTransaction)transaction;
             versionCommand.CommandText = $"PRAGMA user_version = {CurrentSchemaVersion};";
             await versionCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);

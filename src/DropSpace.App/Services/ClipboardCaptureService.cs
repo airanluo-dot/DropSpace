@@ -94,7 +94,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             Clipboard.ContentChanged += OnClipboardContentChanged;
             _worker = Task.Run(ProcessSignalsAsync, CancellationToken.None);
             _initialized = true;
-            PublishStatus(_paused ? "Recording remains paused from the previous session." : null);
+            PublishStatus(_paused ? "仍保持上次退出时的暂停状态。" : null);
         }
         finally
         {
@@ -118,7 +118,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _commitGate.Release();
             _settings = _settings with { ClipboardPaused = true };
             await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
-            PublishStatus("Clipboard recording paused.");
+            PublishStatus("已暂停剪贴板记录。");
         }
         finally
         {
@@ -140,7 +140,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
             _paused = false;
             Interlocked.Increment(ref _pauseGeneration);
-            PublishStatus("Clipboard recording resumed.");
+            PublishStatus("已恢复剪贴板记录。");
         }
         finally
         {
@@ -245,7 +245,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         if (!_signals.Writer.TryWrite(signal))
         {
             Interlocked.Increment(ref _droppedEvents);
-            PublishStatus("Clipboard activity exceeded the bounded capture queue; an event was skipped.");
+            PublishStatus("剪贴板活动过于频繁，已跳过一个事件。");
         }
     }
 
@@ -355,7 +355,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 catch (Exception exception)
                 {
                     _logger.LogWarning(exception, "Clipboard event could not be captured.");
-                    PublishStatus("A clipboard item could not be captured; recording remains active.");
+                    PublishStatus("一个剪贴板项目未能记录；记录功能仍在运行。");
                 }
             }
         }
@@ -365,7 +365,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         catch (Exception exception)
         {
             _logger.LogError(exception, "Clipboard capture worker stopped unexpectedly.");
-            PublishStatus("Clipboard recording stopped after an internal error.", ClipboardRecordingState.Error);
+            PublishStatus("剪贴板记录因内部错误停止。", ClipboardRecordingState.Error);
         }
     }
 

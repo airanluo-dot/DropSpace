@@ -180,11 +180,11 @@ public sealed class NativeTrayService : IDisposable
 
         try
         {
-            AppendMenu(menu, MfString, MenuOpen, "Open DropSpace");
-            AppendMenu(menu, MfString | (_paused ? MfChecked : 0), MenuPause, _paused ? "Resume Clipboard" : "Pause Clipboard");
-            AppendMenu(menu, MfString, MenuClear, "Clear Clipboard History…");
+            AppendMenu(menu, MfString, MenuOpen, "打开 DropSpace");
+            AppendMenu(menu, MfString | (_paused ? MfChecked : 0), MenuPause, _paused ? "恢复剪贴板记录" : "暂停剪贴板记录");
+            AppendMenu(menu, MfString, MenuClear, "清除剪贴板历史…");
             AppendMenu(menu, MfSeparator, 0, null);
-            AppendMenu(menu, MfString, MenuExit, "Exit");
+            AppendMenu(menu, MfString, MenuExit, "退出");
             GetCursorPos(out var point);
             SetForegroundWindow(_windowHandle);
             var selected = TrackPopupMenuEx(menu, TpmRightButton | TpmReturnCmd | TpmNonotify, point.X, point.Y, _windowHandle, IntPtr.Zero);
@@ -218,7 +218,7 @@ public sealed class NativeTrayService : IDisposable
         Flags = NifMessage | NifIcon | NifTip,
         CallbackMessage = CallbackMessage,
         IconHandle = _iconHandle,
-        Tip = _paused ? "DropSpace — Clipboard paused" : "DropSpace — Clipboard recording",
+        Tip = _paused ? "DropSpace — 剪贴板记录已暂停" : "DropSpace — 正在记录剪贴板",
         Info = string.Empty,
         InfoTitle = string.Empty,
     };
