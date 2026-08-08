@@ -10,6 +10,7 @@
     <FileVersion>0.1.0.0</FileVersion>
     <InformationalVersion>0.1.0-preview.1</InformationalVersion>
     <Win32Resource Condition="'$(OS)' == 'Windows_NT'">$(BaseIntermediateOutputPath)DropSpace.res</Win32Resource>
+    <NoWin32Manifest Condition="'$(OS)' == 'Windows_NT'">true</NoWin32Manifest>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
     <RootNamespace>DropSpace.App</RootNamespace>
