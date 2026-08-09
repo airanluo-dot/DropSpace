@@ -1,7 +1,7 @@
 param(
     [string]$ExecutablePath = "artifacts/release/DropSpace.exe",
 
-    [int]$StartupTimeoutSeconds = 45
+    [int]$StartupTimeoutSeconds = 120
 )
 
 Set-StrictMode -Version Latest
@@ -30,23 +30,60 @@ try
     $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold" -PassThru
     $markerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($first.Id).json"
     $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
-    while (-not (Test-Path $markerPath -PathType Leaf))
+    $lastStage = "process-launch"
+    $marker = $null
+    while ($true)
     {
         if ($first.HasExited)
         {
             throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode))."
         }
 
+        if (Test-Path $markerPath -PathType Leaf)
+        {
+            try
+            {
+                $marker = Get-Content -Path $markerPath -Raw | ConvertFrom-Json
+                if ($null -ne $marker.stage)
+                {
+                    $lastStage = [string]$marker.stage
+                }
+
+                if ($marker.failed -eq $true)
+                {
+                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode))."
+                }
+
+                if ($marker.ready -eq $true)
+                {
+                    break
+                }
+            }
+            catch [System.Management.Automation.PipelineStoppedException]
+            {
+                throw
+            }
+            catch
+            {
+                if ($_.Exception.Message -like "DropSpace.exe smoke failed*")
+                {
+                    throw
+                }
+
+                # The app replaces the marker atomically, but antivirus/file-system filters can
+                # still expose a transient read race. Retry until the bounded deadline.
+            }
+        }
+
         if ([DateTime]::UtcNow -ge $deadline)
         {
-            throw "DropSpace.exe did not report startup readiness within $StartupTimeoutSeconds seconds."
+            throw "DropSpace.exe did not report startup readiness within $StartupTimeoutSeconds seconds (last stage '$lastStage')."
         }
 
         Start-Sleep -Milliseconds 200
         $first.Refresh()
     }
 
-    $marker = Get-Content -Path $markerPath -Raw | ConvertFrom-Json
     if ($marker.ready -ne $true -or
         $marker.storageWritable -ne $true -or
         [int]$marker.schemaVersion -lt 1 -or

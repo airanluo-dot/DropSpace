@@ -71,10 +71,6 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
-      - name: Smoke test portable EXE
-        shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1
-
       - name: Build pinned Inno Setup installer
         shell: pwsh
         run: ./scripts/Build-Installer.ps1
@@ -82,6 +78,10 @@ jobs:
       - name: Test installer lifecycle
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+
+      - name: Smoke test portable EXE
+        shell: pwsh
+        run: ./scripts/Test-PortableSmoke.ps1
 
       - name: Build unsigned MSIX
         shell: pwsh

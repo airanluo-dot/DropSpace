@@ -88,8 +88,10 @@ public partial class App : Application
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
+                    WriteSmokeProgressMarker("clipboard-integration");
                     var clipboardMetrics = await _services.GetRequiredService<ClipboardIntegrationSmoke>()
                         .RunAsync();
+                    WriteSmokeProgressMarker("overlay-lifecycle");
                     var metrics = await _overlayWindows.RunLifecycleSmokeAsync(100);
                     WriteSmokeMarker(
                         _services.GetRequiredService<AppStoragePaths>(),
@@ -107,12 +109,22 @@ public partial class App : Application
             catch (Exception exception)
             {
                 WriteCrashMarker("startup", exception);
+                if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                {
+                    WriteSmokeFailureMarker("startup", exception);
+                }
+
                 await _window.ShowRecoveryAsync(exception.GetType().Name);
             }
         }
         catch (Exception exception)
         {
             WriteCrashMarker("launch", exception);
+            if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+            {
+                WriteSmokeFailureMarker("launch", exception);
+            }
+
             Debug.WriteLine(exception);
         }
     }
@@ -224,6 +236,8 @@ public partial class App : Application
         var marker = JsonSerializer.Serialize(new
         {
             ready = true,
+            failed = false,
+            stage = "complete",
             schemaVersion = SqliteDatabase.CurrentSchemaVersion,
             storageWritable = Directory.Exists(paths.Data),
             overlayCycles = metrics.Cycles,
@@ -248,5 +262,35 @@ public partial class App : Application
             clipboardSelfWriteSuppressionVerified = clipboard.SelfWriteSuppressionVerified,
         });
         File.WriteAllText(markerPath, marker);
+    }
+
+    private static void WriteSmokeProgressMarker(string stage)
+    {
+        WriteSmokeDiagnosticMarker(new
+        {
+            ready = false,
+            failed = false,
+            stage,
+        });
+    }
+
+    private static void WriteSmokeFailureMarker(string stage, Exception exception)
+    {
+        WriteSmokeDiagnosticMarker(new
+        {
+            ready = false,
+            failed = true,
+            stage,
+            exceptionType = exception.GetType().Name,
+            errorCode = exception.HResult,
+        });
+    }
+
+    private static void WriteSmokeDiagnosticMarker<T>(T marker)
+    {
+        var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
+        var temporaryPath = markerPath + ".tmp";
+        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(marker));
+        File.Move(temporaryPath, markerPath, true);
     }
 }

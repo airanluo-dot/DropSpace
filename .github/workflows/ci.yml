@@ -53,10 +53,6 @@ jobs:
           path: artifacts/release/DropSpace.exe
           if-no-files-found: error
 
-      - name: Smoke test portable EXE
-        shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1
-
       - name: Build pinned Inno Setup installer
         shell: pwsh
         run: ./scripts/Build-Installer.ps1
@@ -64,6 +60,10 @@ jobs:
       - name: Test install, in-place upgrade, and both uninstall modes
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+
+      - name: Smoke test portable EXE
+        shell: pwsh
+        run: ./scripts/Test-PortableSmoke.ps1
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
