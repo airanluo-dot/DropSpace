@@ -83,6 +83,21 @@ public sealed class OverlayWindowService : IDisposable
             ExerciseLifecycle(original.DisplayMode);
         }
 
+        var geometryStressCycles = 1_000;
+        var regionFailures = _windows[0].RunNotchGeometryStress(geometryStressCycles);
+        if (regionFailures != 0)
+        {
+            throw new InvalidOperationException(
+                $"Overlay geometry stress encountered {regionFailures} HRGN application failures.");
+        }
+
+        var activationTargetsDiscoverable = _activationHosts.All(host => host.IsIdleTargetDiscoverable());
+        if (!activationTargetsDiscoverable)
+        {
+            throw new InvalidOperationException(
+                "At least one idle drag-activation HWND was not discoverable by WindowFromPoint.");
+        }
+
         await Task.Delay(300, cancellationToken);
         CollectReleasedResources();
         var before = CaptureResources();
@@ -109,7 +124,10 @@ public sealed class OverlayWindowService : IDisposable
             (long)after.GdiObjects - before.GdiObjects,
             (long)after.UserObjects - before.UserObjects,
             after.PrivateBytes - before.PrivateBytes,
-            _windows.All(window => !window.HasActiveFrameSubscription));
+            _windows.All(window => !window.HasActiveFrameSubscription),
+            geometryStressCycles,
+            regionFailures,
+            activationTargetsDiscoverable);
 
         if (metrics.HandleDelta > 96 || metrics.GdiObjectDelta > 48 || metrics.UserObjectDelta > 48 ||
             metrics.PrivateBytesDelta > 192L * 1024 * 1024 || !metrics.NoContinuousFrameSubscription)
@@ -374,4 +392,7 @@ public sealed record OverlayLifecycleMetrics(
     long GdiObjectDelta,
     long UserObjectDelta,
     long PrivateBytesDelta,
-    bool NoContinuousFrameSubscription);
+    bool NoContinuousFrameSubscription,
+    int GeometryStressCycles,
+    long RegionFailureCount,
+    bool ActivationTargetsDiscoverable);

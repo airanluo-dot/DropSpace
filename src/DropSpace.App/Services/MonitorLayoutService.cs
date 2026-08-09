@@ -1,4 +1,7 @@
 using System.Runtime.InteropServices;
+using System.Text;
+using DropSpace.Core.Overlay;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
 
@@ -15,11 +18,14 @@ public sealed record MonitorDescriptor(
     public double Scale => Dpi / 96d;
 }
 
-public sealed class MonitorLayoutService
+public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
 {
     private const uint MonitorInfoPrimary = 0x00000001;
     private const uint MonitorDefaultToNearest = 0x00000002;
     private const int DpiEffective = 0;
+    private const int StyleIndex = -16;
+    private const int ExtendedStyleIndex = -20;
+    private const int DwmWindowAttributeCloaked = 14;
 
     public IReadOnlyList<MonitorDescriptor> GetMonitors()
     {
@@ -65,18 +71,53 @@ public sealed class MonitorLayoutService
     public bool IsForegroundFullscreen(MonitorDescriptor monitor)
     {
         var foreground = GetForegroundWindow();
-        if (foreground == nint.Zero || !GetWindowRect(foreground, out var bounds))
+        if (foreground == nint.Zero ||
+            !GetWindowRect(foreground, out var bounds))
         {
             return false;
         }
 
         var foregroundMonitor = MonitorFromWindow(foreground, MonitorDefaultToNearest);
-        return foregroundMonitor == monitor.Handle &&
-               bounds.Left <= monitor.Left &&
-               bounds.Top <= monitor.Top &&
-               bounds.Right >= monitor.Left + monitor.Width &&
-               bounds.Bottom >= monitor.Top + monitor.Height;
+        var classNameBuffer = new StringBuilder(256);
+        _ = GetClassName(foreground, classNameBuffer, classNameBuffer.Capacity);
+        var className = classNameBuffer.ToString();
+        var cloaked = 0;
+        var cloakedResult = DwmGetWindowAttribute(
+            foreground,
+            DwmWindowAttributeCloaked,
+            out cloaked,
+            sizeof(int));
+        _ = GetWindowThreadProcessId(foreground, out var processId);
+        var facts = new ForegroundWindowFacts(
+            IsWindowVisible(foreground),
+            cloakedResult >= 0 && cloaked != 0,
+            IsIconic(foreground),
+            foreground == GetDesktopWindow() || foreground == GetShellWindow(),
+            foregroundMonitor == monitor.Handle,
+            bounds.Left <= monitor.Left &&
+            bounds.Top <= monitor.Top &&
+            bounds.Right >= monitor.Left + monitor.Width &&
+            bounds.Bottom >= monitor.Top + monitor.Height,
+            GetWindowLongPointer(foreground, StyleIndex).ToInt64(),
+            GetWindowLongPointer(foreground, ExtendedStyleIndex).ToInt64(),
+            className);
+        var fullscreen = FullscreenWindowClassifier.IsFullscreenApplication(facts);
+        if (fullscreen)
+        {
+            logger.LogDebug(
+                "Foreground HWND {WindowHandle}, PID {ProcessId}, class {ClassName} is a visible uncloaked full-screen application on monitor {MonitorId}.",
+                foreground,
+                processId,
+                className,
+                monitor.Id);
+        }
+
+        return fullscreen;
     }
+
+    private static nint GetWindowLongPointer(nint window, int index) => IntPtr.Size == 8
+        ? GetWindowLongPtr64(window, index)
+        : new nint(GetWindowLong32(window, index));
 
     private static uint GetMonitorDpi(nint monitor)
     {
@@ -144,4 +185,37 @@ public sealed class MonitorLayoutService
 
     [DllImport("user32.dll")]
     private static extern nint MonitorFromWindow(nint window, uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(nint window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsIconic(nint window);
+
+    [DllImport("user32.dll")]
+    private static extern nint GetDesktopWindow();
+
+    [DllImport("user32.dll")]
+    private static extern nint GetShellWindow();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(nint window, StringBuilder className, int maximumCount);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(nint window, out uint processId);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern nint GetWindowLongPtr64(nint window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
+    private static extern int GetWindowLong32(nint window, int index);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(
+        nint window,
+        int attribute,
+        out int value,
+        int valueSize);
 }

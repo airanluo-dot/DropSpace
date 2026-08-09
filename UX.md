@@ -64,7 +64,7 @@ Pinned is not a store and the Overlay is not a second product or page. Clipboard
 
 ## Top Overlay
 
-- With zero Temporary Space items and no drag, the visual Overlay HWND is actually hidden and has an empty window region. A separate zero-alpha 680 × 72 DIP native OLE activation host receives shell file drags without drawing XAML, chrome, borders, shadows, or backdrop pixels.
+- With zero Temporary Space items and no drag, the visual Overlay HWND is actually hidden and has an empty window region. A separate unpainted 1/255-alpha native OLE host exposes a wide one-physical-pixel top hot edge; nonzero uniform alpha is required for Windows target discovery but is visually imperceptible. A real `CF_HDROP` entry expands that same owner to a forgiving 760 × 112 DIP capture area through Drop/Leave without drawing XAML, chrome, borders, shadows, or backdrop pixels.
 - A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
@@ -140,7 +140,7 @@ Copy is the advertised operation. DropSpace never claims the target moved the so
 - Modal dialogs are limited to destructive clear operations, unrecoverable migration recovery, and file replacement confirmation.
 - Theme, scale, display changes update without requiring relaunch where supported.
 - Closing the main window may hide it to the tray; it does not stop the Overlay or clipboard listener. Only Exit DropSpace ends the process.
-- Ordinary fullscreen foreground windows suppress non-drag Overlay presentation. An explicit storage-item drag into the activation zone is allowed to reveal the target.
+- Ordinary visible, uncloaked fullscreen application windows suppress non-drag Overlay presentation. Desktop/Shell classes (`Progman`, `WorkerW`, taskbars), shell identity, hidden/cloaked/iconic/tool windows never count as fullscreen. An explicit storage-item drag into the activation zone is allowed to reveal the target.
 
 ## Primary user flows
 

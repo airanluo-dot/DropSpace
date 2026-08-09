@@ -12,6 +12,10 @@ public readonly record struct OverlayMotionValues(
     double ExpandedContent,
     double DropTargetScale)
 {
+    public const double MinimumDimension = 1;
+    public const double MinimumDropTargetScale = 0.75;
+    public const double MaximumDropTargetScale = 1.25;
+
     public static OverlayMotionValues Hidden { get; } = new(
         120,
         12,
@@ -23,6 +27,63 @@ public readonly record struct OverlayMotionValues(
         0,
         0,
         0.92);
+
+    /// <summary>
+    /// Projects spring output into the semantic range accepted by WinUI and Win32 geometry APIs.
+    /// The spring channels intentionally retain their unconstrained velocity so a target reversal
+    /// remains fluid; only the values exposed to rendering are clamped.
+    /// </summary>
+    public OverlayMotionValues ProjectToSafeRange()
+    {
+        var width = Math.Max(MinimumDimension, FiniteOr(Width, Hidden.Width));
+        var height = Math.Max(MinimumDimension, FiniteOr(Height, Hidden.Height));
+        var maximumRadius = Math.Min(width, height) / 2;
+        return new OverlayMotionValues(
+            width,
+            height,
+            Math.Max(0, FiniteOr(TopOffset, Hidden.TopOffset)),
+            Math.Clamp(FiniteOr(TopRadius, 0), 0, maximumRadius),
+            Math.Clamp(FiniteOr(BottomRadius, 0), 0, maximumRadius),
+            Math.Clamp(FiniteOr(Opacity, 0), 0, 1),
+            Math.Clamp(FiniteOr(CompactContent, 0), 0, 1),
+            Math.Clamp(FiniteOr(DragContent, 0), 0, 1),
+            Math.Clamp(FiniteOr(ExpandedContent, 0), 0, 1),
+            Math.Clamp(
+                FiniteOr(DropTargetScale, 1),
+                MinimumDropTargetScale,
+                MaximumDropTargetScale));
+    }
+
+    public bool IsApiSafe()
+    {
+        var values = new[]
+        {
+            Width,
+            Height,
+            TopOffset,
+            TopRadius,
+            BottomRadius,
+            Opacity,
+            CompactContent,
+            DragContent,
+            ExpandedContent,
+            DropTargetScale,
+        };
+        var maximumRadius = Math.Min(Width, Height) / 2;
+        return values.All(double.IsFinite) &&
+               Width >= MinimumDimension &&
+               Height >= MinimumDimension &&
+               TopOffset >= 0 &&
+               TopRadius is >= 0 && TopRadius <= maximumRadius &&
+               BottomRadius is >= 0 && BottomRadius <= maximumRadius &&
+               Opacity is >= 0 and <= 1 &&
+               CompactContent is >= 0 and <= 1 &&
+               DragContent is >= 0 and <= 1 &&
+               ExpandedContent is >= 0 and <= 1 &&
+               DropTargetScale is >= MinimumDropTargetScale and <= MaximumDropTargetScale;
+    }
+
+    private static double FiniteOr(double value, double fallback) => double.IsFinite(value) ? value : fallback;
 }
 
 /// <summary>
@@ -38,9 +99,10 @@ public sealed class OverlayMotionController
 
     public OverlayMotionController(OverlayMotionValues initial)
     {
-        Current = initial;
-        _target = initial;
-        _channels = CreateChannels(initial);
+        Validate(initial);
+        Current = initial.ProjectToSafeRange();
+        _target = Current;
+        _channels = CreateChannels(Current);
     }
 
     public OverlayMotionValues Current { get; private set; }
@@ -69,7 +131,7 @@ public sealed class OverlayMotionController
             channel.Step(seconds);
         }
 
-        Current = FromChannels(_channels);
+        Current = FromChannels(_channels).ProjectToSafeRange();
         return IsAnimating;
     }
 
@@ -85,12 +147,13 @@ public sealed class OverlayMotionController
             _channels[index].Velocity = 0;
         }
 
-        Current = values;
+        Current = values.ProjectToSafeRange();
     }
 
     public void PulseDropTarget(double scale)
     {
-        if (!double.IsFinite(scale) || scale is < 0.75 or > 1.25)
+        if (!double.IsFinite(scale) ||
+            scale is < OverlayMotionValues.MinimumDropTargetScale or > OverlayMotionValues.MaximumDropTargetScale)
         {
             throw new ArgumentOutOfRangeException(nameof(scale));
         }
@@ -141,7 +204,9 @@ public sealed class OverlayMotionController
             values.CompactContent is < 0 or > 1 ||
             values.DragContent is < 0 or > 1 ||
             values.ExpandedContent is < 0 or > 1 ||
-            values.DropTargetScale is < 0.75 or > 1.25)
+            values.DropTargetScale is < OverlayMotionValues.MinimumDropTargetScale or > OverlayMotionValues.MaximumDropTargetScale ||
+            values.TopRadius > Math.Min(values.Width, values.Height) / 2 ||
+            values.BottomRadius > Math.Min(values.Width, values.Height) / 2)
         {
             throw new ArgumentOutOfRangeException(nameof(values));
         }

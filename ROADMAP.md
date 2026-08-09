@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The Preview production slice covers Phases 1–10 in code: application composition, persistence, Space, external drag-out, text/image Clipboard, unified search/Pinned, tray/privacy lifecycle, the top Dynamic Island/Notch Overlay, a retained MSIX path, and a recommended unpackaged self-contained single-file x64 EXE. CI and release automation run tests, build both artifacts, smoke-test the EXE, calculate SHA-256, and create the GitHub Preview Release. Commercial signing remains optional and automatically activates only when Artifact Signing credentials are configured.
+The Preview production slice covers Phases 1–10 in code: application composition, persistence, Space, external drag-out, text/image Clipboard, unified search/Pinned, tray/privacy lifecycle, the top Dynamic Island/Notch Overlay, a retained MSIX path, a portable self-contained x64 EXE, and a recommended Inno Setup per-user installer. CI and release automation test portable, installed, upgrade and uninstall lifecycles, calculate SHA-256, and create the GitHub Preview Release. Commercial signing remains optional and automatically activates only when Artifact Signing credentials are configured.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
 
@@ -295,11 +295,11 @@ Phase 9.
 
 ### Tests
 
-Clean install, upgrade over prior schema, repair/uninstall, standard user, offline launch, Windows restart.
+Silent per-user install, custom path inheritance, running-app graceful upgrade, installed smoke, normal uninstall preserving data, complete uninstall, external sentinel protection, MSIX regression, plus manual installer wizard/Installed Apps review.
 
 ### Acceptance criteria
 
-Unsigned portable Preview starts without external runtimes/elevation, MSIX remains buildable, data migration passes, release hashes are published, and future signing is credential-gated without repository secrets.
+Unsigned Setup and portable Preview start without external runtimes/elevation, stable AppId upgrades preserve data/path, independent uninstall works even when the app cannot launch, complete uninstall is root-confined, MSIX remains buildable, release hashes are published, and future signing is credential-gated without repository secrets.
 
 ## Phase 10A — Top Overlay delivery
 

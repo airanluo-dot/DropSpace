@@ -75,6 +75,69 @@ public sealed class OverlayMotionControllerTests
         Assert.IsFalse(controller.IsAnimating);
     }
 
+    [TestMethod]
+    public void OneThousandNotchModeReversalsAlwaysProduceApiSafeFrames()
+    {
+        var controller = new OverlayMotionController(IslandCompact());
+        var island = IslandCompact();
+        var notch = NotchCompact();
+        for (var cycle = 0; cycle < 1_000; cycle++)
+        {
+            controller.SetTarget(notch, reducedMotion: false);
+            StepAndAssertSafe(controller, 4 + cycle % 7);
+            controller.SetTarget(island, reducedMotion: false);
+            StepAndAssertSafe(controller, 2 + cycle % 5);
+            controller.SetTarget(notch, reducedMotion: false);
+            StepAndAssertSafe(controller, 1 + cycle % 3);
+            controller.SetTarget(island, reducedMotion: false);
+            StepAndAssertSafe(controller, 3 + cycle % 6);
+        }
+
+        for (var frame = 0; frame < 600 && controller.IsAnimating; frame++)
+        {
+            StepAndAssertSafe(controller, 1);
+        }
+
+        Assert.IsFalse(controller.IsAnimating);
+        Assert.AreEqual(island, controller.Current);
+    }
+
+    [TestMethod]
+    public void SafeProjectionClampsNegativeOvershootAndNonFiniteValues()
+    {
+        var projected = new OverlayMotionValues(
+            double.NaN,
+            -1,
+            -0.5,
+            -0.2,
+            double.PositiveInfinity,
+            1.2,
+            -0.1,
+            1.1,
+            double.NegativeInfinity,
+            1.8).ProjectToSafeRange();
+
+        Assert.IsTrue(projected.IsApiSafe());
+        Assert.AreEqual(0, projected.TopRadius);
+        Assert.AreEqual(1, projected.Opacity);
+        Assert.AreEqual(OverlayMotionValues.MaximumDropTargetScale, projected.DropTargetScale);
+    }
+
+    private static void StepAndAssertSafe(OverlayMotionController controller, int frames)
+    {
+        for (var frame = 0; frame < frames; frame++)
+        {
+            controller.Step(TimeSpan.FromMilliseconds(16));
+            Assert.IsTrue(controller.Current.IsApiSafe(), $"Unsafe frame: {controller.Current}");
+        }
+    }
+
+    private static OverlayMotionValues IslandCompact() =>
+        new(340, 64, 8, 32, 32, 1, 1, 0, 0, 1);
+
+    private static OverlayMotionValues NotchCompact() =>
+        new(340, 64, 0, 0, 32, 1, 1, 0, 0, 1);
+
     private static OverlayMotionValues Visible(
         double width,
         double height,

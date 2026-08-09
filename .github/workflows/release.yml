@@ -11,6 +11,10 @@ on:
       - scripts/Build-UnsignedPackage.ps1
       - scripts/Compile-Win32Resource.ps1
       - scripts/Test-PortableSmoke.ps1
+      - scripts/Install-InnoSetup.ps1
+      - scripts/Build-Installer.ps1
+      - scripts/Test-InstallerLifecycle.ps1
+      - installer/**
       - src/**
       - tests/**
   push:
@@ -27,7 +31,7 @@ jobs:
   validate-release:
     name: Build and validate release bundle
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: 70
     permissions:
       contents: read
       id-token: write
@@ -49,7 +53,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content RELEASE_VERSION -Raw).Trim()
-          if ($version -ne "v0.1.0-preview.2") { throw "Unexpected release version: $version" }
+          if ($version -ne "v0.1.0-preview.3") { throw "Unexpected release version: $version" }
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
@@ -67,6 +71,14 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
+      - name: Build pinned Inno Setup installer
+        shell: pwsh
+        run: ./scripts/Build-Installer.ps1
+
+      - name: Test installer lifecycle
+        shell: pwsh
+        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+
       - name: Smoke test portable EXE
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1
@@ -81,6 +93,7 @@ jobs:
           $package = Get-ChildItem artifacts/msix -Recurse -File -Filter *.msix | Select-Object -First 1
           if ($null -eq $package) { throw "MSIX build did not produce an .msix file." }
           Copy-Item $package.FullName artifacts/release/DropSpace-x64.msix -Force
+          Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
       - name: Sign in to Azure for Artifact Signing
         if: env.SIGNING_ENABLED == 'true'
@@ -107,6 +120,7 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
+            "artifacts/release/DropSpaceSetup.exe",
             "artifacts/release/DropSpace.exe",
             "artifacts/release/DropSpace-x64.msix"
           )
@@ -128,8 +142,9 @@ jobs:
       - name: Upload validated release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.2
+          name: DropSpace-v0.1.0-preview.3
           path: |
+            artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
@@ -158,21 +173,22 @@ jobs:
       - name: Download validated release bundle
         uses: actions/download-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.2
+          name: DropSpace-v0.1.0-preview.3
           path: artifacts/release
 
       - name: Create GitHub Preview Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-preview.2
+          tag_name: v0.1.0-preview.3
           target_commitish: ${{ github.sha }}
-          name: DropSpace v0.1.0-preview.2
-          body_path: .github/release-notes/v0.1.0-preview.2.md
+          name: DropSpace v0.1.0-preview.3
+          body_path: .github/release-notes/v0.1.0-preview.3.md
           prerelease: true
           draft: false
           make_latest: false
           fail_on_unmatched_files: true
           files: |
+            artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt

@@ -68,6 +68,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
 
+    /// <summary>
+    /// The visual overlay registers this transaction hook. UI preferences are preflighted and
+    /// successfully applied before settings.json is replaced, preventing a bad visual mode from
+    /// becoming a persistent startup crash loop.
+    /// </summary>
+    public Func<AppSettings, CancellationToken, Task>? UiSettingsPreflightAsync { get; set; }
+
     public string CurrentSection
     {
         get => _currentSection;
@@ -463,10 +470,37 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         settings.Validate();
-        await _settingsService.SaveAsync(settings, cancellationToken);
-        await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
-        Settings = settings;
-        StatusMessage = "设置已保存。";
+        var previous = Settings;
+        var preflight = UiSettingsPreflightAsync;
+        try
+        {
+            if (preflight is not null)
+            {
+                await preflight(settings, cancellationToken);
+            }
+
+            await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
+            await _settingsService.SaveAsync(settings, cancellationToken);
+            Settings = settings;
+            StatusMessage = "设置已验证并保存。";
+        }
+        catch
+        {
+            await _clipboard.UpdateSettingsAsync(previous, CancellationToken.None);
+            if (preflight is not null)
+            {
+                try
+                {
+                    await preflight(previous, CancellationToken.None);
+                }
+                catch (Exception rollbackException)
+                {
+                    _logger.LogError(rollbackException, "UI settings rollback failed; the safe startup recovery remains available.");
+                }
+            }
+
+            throw;
+        }
     }
 
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)

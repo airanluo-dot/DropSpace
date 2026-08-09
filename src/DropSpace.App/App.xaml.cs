@@ -4,6 +4,7 @@ using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Overlay;
+using DropSpace.Core.Policies;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Logging;
 using DropSpace.Infrastructure.Settings;
@@ -36,6 +37,14 @@ public partial class App : Application
     {
         try
         {
+            var commandLine = Environment.GetCommandLineArgs();
+            if (commandLine.Contains("--shutdown-for-maintenance", StringComparer.OrdinalIgnoreCase))
+            {
+                var result = await MaintenanceShutdownService.RequestRunningInstanceAsync(TimeSpan.FromSeconds(15));
+                Environment.Exit(result);
+                return;
+            }
+
             var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
             _mainInstance = AppInstance.FindOrRegisterForKey("DropSpace.Main");
             if (!_mainInstance.IsCurrent)
@@ -47,9 +56,17 @@ public partial class App : Application
 
             _mainInstance.Activated += OnInstanceActivated;
             _services = BuildServices();
+            var settingsService = _services.GetRequiredService<ISettingsService>();
+            if (commandLine.Contains("--reset-ui-settings", StringComparer.OrdinalIgnoreCase) ||
+                commandLine.Contains("--safe-mode", StringComparer.OrdinalIgnoreCase))
+            {
+                await settingsService.ResetUiSettingsAsync();
+            }
+
             var viewModel = _services.GetRequiredService<MainViewModel>();
             _window = new MainWindow(viewModel, _services.GetRequiredService<ILogger<MainWindow>>());
             _window.ExitRequested += OnExitRequested;
+            _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             _window.Activate();
             _services.GetRequiredService<ClipboardNotificationService>().Initialize(
                 WinRT.Interop.WindowNative.GetWindowHandle(_window));
@@ -57,14 +74,25 @@ public partial class App : Application
             try
             {
                 await viewModel.InitializeAsync();
+                if (settingsService.LastLoadRecovery is { Recovered: true } recovery)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(
+                        "UI settings recovery completed after {ErrorCategory}; quarantine file {QuarantineFileName}; non-UI preferences preserved={PreservedNonUi}.",
+                        recovery.ErrorCategory,
+                        recovery.QuarantineFileName,
+                        recovery.PreservedNonUiPreferences);
+                }
+
                 _window.ApplyTheme(viewModel.Settings.Theme);
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
+                    WriteSmokeProgressMarker("clipboard-integration");
                     var clipboardMetrics = await _services.GetRequiredService<ClipboardIntegrationSmoke>()
                         .RunAsync();
+                    WriteSmokeProgressMarker("overlay-lifecycle");
                     var metrics = await _overlayWindows.RunLifecycleSmokeAsync(100);
                     WriteSmokeMarker(
                         _services.GetRequiredService<AppStoragePaths>(),
@@ -82,12 +110,22 @@ public partial class App : Application
             catch (Exception exception)
             {
                 WriteCrashMarker("startup", exception);
+                if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                {
+                    WriteSmokeFailureMarker("startup", exception);
+                }
+
                 await _window.ShowRecoveryAsync(exception.GetType().Name);
             }
         }
         catch (Exception exception)
         {
             WriteCrashMarker("launch", exception);
+            if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+            {
+                WriteSmokeFailureMarker("launch", exception);
+            }
+
             Debug.WriteLine(exception);
         }
     }
@@ -130,6 +168,7 @@ public partial class App : Application
         services.AddSingleton<ClipboardNotificationService>();
         services.AddSingleton<ClipboardCaptureService>();
         services.AddSingleton<ClipboardIntegrationSmoke>();
+        services.AddSingleton<MaintenanceShutdownService>();
         services.AddSingleton<ShellActionService>();
         services.AddSingleton<ThumbnailService>();
         services.AddSingleton<DragStorageItemService>();
@@ -198,6 +237,8 @@ public partial class App : Application
         var marker = JsonSerializer.Serialize(new
         {
             ready = true,
+            failed = false,
+            stage = "complete",
             schemaVersion = SqliteDatabase.CurrentSchemaVersion,
             storageWritable = Directory.Exists(paths.Data),
             overlayCycles = metrics.Cycles,
@@ -208,6 +249,9 @@ public partial class App : Application
             overlayUserObjectDelta = metrics.UserObjectDelta,
             overlayPrivateBytesDelta = metrics.PrivateBytesDelta,
             noContinuousFrameLoop = metrics.NoContinuousFrameSubscription,
+            notchGeometryStressCycles = metrics.GeometryStressCycles,
+            overlayRegionFailureCount = metrics.RegionFailureCount,
+            dragActivationTargetsDiscoverable = metrics.ActivationTargetsDiscoverable,
             clipboardListenerRegistered = clipboard.ListenerRegistered,
             clipboardObservedUpdateDelta = clipboard.ObservedUpdateDelta,
             clipboardSuccessfulCaptureDelta = clipboard.SuccessfulCaptureDelta,
@@ -219,5 +263,36 @@ public partial class App : Application
             clipboardSelfWriteSuppressionVerified = clipboard.SelfWriteSuppressionVerified,
         });
         File.WriteAllText(markerPath, marker);
+    }
+
+    private static void WriteSmokeProgressMarker(string stage)
+    {
+        WriteSmokeDiagnosticMarker(new
+        {
+            ready = false,
+            failed = false,
+            stage,
+        });
+    }
+
+    private static void WriteSmokeFailureMarker(string stage, Exception exception)
+    {
+        WriteSmokeDiagnosticMarker(new
+        {
+            ready = false,
+            failed = true,
+            stage,
+            exceptionType = exception.GetType().Name,
+            errorCode = exception.HResult,
+            error = LogRedactor.Redact(exception.Message),
+        });
+    }
+
+    private static void WriteSmokeDiagnosticMarker<T>(T marker)
+    {
+        var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
+        var temporaryPath = markerPath + ".tmp";
+        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(marker));
+        File.Move(temporaryPath, markerPath, true);
     }
 }

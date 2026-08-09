@@ -2,7 +2,7 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
 
-    [string]$Version = "0.1.0-preview.2",
+    [string]$Version = "",
 
     [switch]$NoRestore
 )
@@ -14,6 +14,21 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $projectPath = Join-Path $repositoryRoot "src/DropSpace.App/DropSpace.App.csproj"
 $publishDirectory = Join-Path $repositoryRoot "artifacts/portable/win-x64"
 $releaseDirectory = Join-Path $repositoryRoot "artifacts/release"
+$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
+if ($releaseTag -notmatch '^v(?<prefix>[0-9]+\.[0-9]+\.[0-9]+)-preview\.(?<preview>[0-9]+)$')
+{
+    throw "RELEASE_VERSION is not a supported preview version: $releaseTag"
+}
+$repositoryVersion = $releaseTag.Substring(1)
+if ([string]::IsNullOrWhiteSpace($Version))
+{
+    $Version = $repositoryVersion
+}
+elseif ($Version -ne $repositoryVersion)
+{
+    throw "Requested version $Version does not match RELEASE_VERSION $repositoryVersion."
+}
+$fileVersion = "$($Matches.prefix).$($Matches.preview)"
 
 if (Test-Path $publishDirectory)
 {
@@ -67,7 +82,7 @@ if ($versionInfo.ProductName -ne "DropSpace" -or
     $versionInfo.FileDescription -notlike "DropSpace*" -or
     $versionInfo.InternalName -ne "DropSpace" -or
     $versionInfo.OriginalFilename -ne "DropSpace.exe" -or
-    $versionInfo.FileVersion -ne "0.1.0.0" -or
+    $versionInfo.FileVersion -ne $fileVersion -or
     $versionInfo.ProductVersion -ne $Version)
 {
     throw "DropSpace.exe version metadata is incomplete."

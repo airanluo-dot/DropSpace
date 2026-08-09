@@ -11,7 +11,7 @@
 ## Technology baseline
 
 - C# and current supported .NET for the chosen Windows App SDK release.
-- WinUI 3 / Windows App SDK with two deployment targets: recommended unpackaged self-contained single-file EXE and retained MSIX package.
+- WinUI 3 / Windows App SDK with one unpackaged self-contained single-file payload delivered by the recommended Inno Setup installer or as a portable EXE, plus a retained MSIX package.
 - MVVM with `CommunityToolkit.Mvvm` for observable state and commands.
 - `Microsoft.Data.Sqlite` with explicit SQL and repository mappings.
 - Microsoft.Extensions dependency injection and logging abstractions only if compatible with the final template.
@@ -128,8 +128,8 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 - `OverlayViewModel` projects that state over the existing `MainViewModel`/repository; it does not create a second Temporary Space store.
 - `OverlayWindowService` creates one no-taskbar visual window and one independent native activation host per monitor, selects the active monitor, and rebuilds both after display-topology changes.
 - `MonitorLayoutService` converts physical monitor bounds and effective DPI; `OverlayWindowInterop` contains all HWND styles, topmost/no-activate behavior, and shaped regions.
-- `OleDragDropService` creates a zero-alpha 680 × 72 DIP native activation HWND and registers a managed `IDropTarget` with `RegisterDragDrop`; both activation and visual HWNDs accept `CF_HDROP` and converge on `MainViewModel.AddPathsAsync`.
-- The activation host uses tool-window/no-activate/layered styles and transparent non-client hit testing. It has no XAML, backdrop, DWM border, shadow, paint loop, taskbar entry, or Alt+Tab entry.
+- `OleDragDropService` creates a visually imperceptible 1/255-uniform-alpha native activation HWND and registers a managed `IDropTarget` with `RegisterDragDrop`. Uniform alpha zero is deliberately avoided because Windows target discovery omits a fully transparent layered HWND. Idle it exposes only a 960-DIP-wide, one-physical-pixel top hot edge with `HTCLIENT`; after `DragEnter` the same HWND expands to 760 × 112 DIP, remains topmost and owns that OLE operation through `Drop`/`DragLeave`, then contracts. The visible Overlay has a separate target for direct drops while Compact/Expanded. Both converge on `MainViewModel.AddPathsAsync`.
+- The activation host uses tool-window/no-activate/layered styles and no `HTTRANSPARENT`/`WS_EX_TRANSPARENT`. It has no XAML, backdrop, DWM border, shadow, paint loop, taskbar entry, or Alt+Tab entry. The one-pixel idle edge is the deliberate reliability trade-off required for cross-process OLE target discovery without polling or hooks.
 - The visual Overlay HWND is genuinely hidden and assigned an empty region in `Hidden`; it is never reused as the activation strip.
 - `OverlayMotionController` continuously integrates width, height, offset, both radii, opacity, content reveal, and drop feedback toward replaceable spring targets. `CompositionTarget.Rendering` is attached only while a target is unsettled and removed at rest.
 
@@ -147,8 +147,16 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 ### SettingsService
 
 - Typed validated settings with defaults and versioned migration.
+- UI candidates are preflighted through the running Overlay before atomic persistence. Invalid/malformed UI preferences quarantine only `settings.json`, preserve valid non-UI preferences when possible, fall back to Dynamic Island/System motion/Automatic monitor, and never delete the SQLite database or payloads.
+- `--reset-ui-settings` and `--safe-mode` reset only UI/Overlay preferences.
 - Small preferences use app-local settings; complex policies can live in SQLite.
 - Never stores clipboard payloads in settings.
+
+### Installation and maintenance
+
+- `DropSpaceSetup.exe` is produced by pinned Inno Setup 7.0.2 from the exact portable `DropSpace.exe` payload. Stable AppId `E11EC281-BCE7-4F98-8EEF-2387E202CF0F` and `UsePreviousAppDir` make later installers the same per-user application and preserve a custom path.
+- A named maintenance event requests the normal disposal path; Setup/uninstall wait for Overlay, clipboard, tray, settings, SQLite and logging teardown instead of using forced process termination.
+- Program files live below the selected install root; mutable state remains below `%LOCALAPPDATA%\DropSpace`. Normal uninstall preserves that data. Complete uninstall deletes only this exact app-owned root, install files, shortcuts and DropSpace registry keys; it never opens the database to discover paths.
 
 ### RetentionService
 
