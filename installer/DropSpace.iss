@@ -177,10 +177,9 @@ begin
   DeleteDataCheckBox.Left := UninstallProgressForm.StatusLabel.Left;
   DeleteDataCheckBox.Top := UninstallProgressForm.StatusLabel.Top + UninstallProgressForm.StatusLabel.Height + ScaleY(16);
   DeleteDataCheckBox.Width := UninstallProgressForm.StatusLabel.Width;
-  DeleteDataCheckBox.Height := ScaleY(42);
-  DeleteDataCheckBox.Caption := 'Also delete all DropSpace local data and settings (%LOCALAPPDATA%\DropSpace). Original files referenced by Temporary Space are never deleted.';
+  DeleteDataCheckBox.Height := ScaleY(24);
+  DeleteDataCheckBox.Caption := 'Also delete all DropSpace local data and settings (original files are kept).';
   DeleteDataCheckBox.Checked := HasParameter('/PURGEDATA=1');
-  DeleteDataCheckBox.WordWrap := True;
 end;
 
 function ShouldPurgeData(Param: String): Boolean;
