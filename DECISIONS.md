@@ -96,6 +96,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Decision: Reference only public interaction ideas: continuous spring targets, compact/expanded lifecycle, frame scheduling only while active, edge placement, and fullscreen suppression. No WinIsland source, translated code, assets, algorithms, or runtime are copied into DropSpace.
 - Reason: Independent C#/WinUI/Composition implementation preserves DropSpace's architecture and avoids creating a GPL-derived work.
 - Trade-offs: Equivalent behavior must be designed and tested independently; WinIsland's implementation details are not reusable.
+- Preview.2 review record: public commit `6b5745bdce434a33753e4c328479d5bb35834f6d` was inspected, especially `window/app/startup.rs`, `layout.rs`, `frame.rs`, `events.rs`, `utils/physics.rs`, and the rounded background renderer. The independent design lessons were: keep a transparent undecorated maximum host around a separately drawn rounded surface; drive width/height/radius/view/hide as replaceable spring targets; restrict pointer hit testing to visible geometry; use event-loop wait deadlines and request redraw only for animation/playback/interaction; and keep monitor placement in physical coordinates. No GPL implementation text, constants, control flow, renderer code, assets, or dependencies were copied.
 
 ## D-023 — Desktop clipboard notification uses the Win32 listener list
 
