@@ -182,7 +182,7 @@ begin
   DeleteDataCheckBox.Checked := HasParameter('/PURGEDATA=1');
 end;
 
-function ShouldPurgeData(Param: String): Boolean;
+function ShouldPurgeData(): Boolean;
 begin
   Result := HasParameter('/PURGEDATA=1') or
             ((DeleteDataCheckBox <> nil) and DeleteDataCheckBox.Checked);
