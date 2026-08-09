@@ -162,3 +162,22 @@ Shell context-menu extensions increase packaging, registration, performance, and
 6. Real Explorer/Desktop drag semantics and mixed-DPI geometry across GPU/display-driver combinations.
 
 Each risk has a dedicated vertical-spike phase before the affected feature is declared committed.
+
+## Windows 11 Drop Tray and Share Target
+
+Drop Tray is Windows Shell UI at the same top-center edge as DropSpace's passive reveal host. When Shell owns that area it can win `WindowFromPoint`/OLE discovery before DropSpace; DropSpace deliberately does not fight it with larger transparent topmost windows, hooks, polling, registry feature flags or repeated `SetWindowPos`.
+
+Two public paths coexist:
+
+- Drop Tray off/not owning the edge: the existing 12-physical-pixel passive host receives `CF_HDROP`, expands while retaining OLE ownership and reveals the Dynamic Island/Notch.
+- Drop Tray on: a trusted identity build declares `windows.shareTarget` for `StorageItems`. The Share operation uses `ReportStarted`, adds accessible files/folders through `MainViewModel.AddPathsAsync`, then calls `ReportCompleted` or `ReportError`. Redirection through `AppInstance` keeps one database writer.
+
+Microsoft's public Drop Tray description says its **More…** action opens Windows Share. A registered DropSpace target is therefore reachable in the full Share UI. No public contract guarantees that DropSpace is directly pinned in the compact Drop Tray suggestion row; that is Windows version/relevance dependent. No stable public API is documented for querying the Drop Tray toggle. Settings therefore explains the conflict and launches `ms-settings:multitasking` without claiming current state.
+
+The external-location identity is `AiranLuo.DropSpace.Identity`, Publisher `CN=airanluo-dot`, Application Id `DropSpace`. The sparse package contains identity/Share metadata and assets; Inno continues to own the self-contained EXE. Trusted signing is mandatory. Unsigned Preview Setup and Portable omit registration and never install certificates. A signed CI build signs EXE, MSIX and identity, verifies the identity, builds Setup with the signed identity, signs Setup, and unregisters identity on uninstall.
+
+Official references: [Receive content with the Share Target contract](https://learn.microsoft.com/en-us/windows/apps/develop/windows-integration/integrate-sharesheet-receive), [grant package identity to an external-location desktop app](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/grant-identity-to-nonpackaged-apps), and [Microsoft's Drop Tray Release Preview description](https://blogs.windows.com/windows-insider/2026/04/17/releasing-windows-11-builds-26100-8313-and-26200-8313-to-the-release-preview-channel/).
+
+## Visible Overlay file drop
+
+Compact/Expanded visible pixels are direct targets. The XAML Surface accepts `StorageItems`; the root HWND retains a native `CF_HDROP` adapter as a second compatible route for Shell sources that select the root. The passive top-edge HWND is hidden while stable visible geometry owns input, so targets never overlap. A selected OLE owner is retained through Drop/Leave even if animation changes geometry. Diagnostics record root/descendant `WindowFromPoint`, format availability, target kind and accepted counts, never paths.

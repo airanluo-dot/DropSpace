@@ -9,6 +9,8 @@ param(
 
     [string]$OutputBaseFilename = "DropSpaceSetup",
 
+    [string]$IdentityPackage = "",
+
     [string]$InnoCompiler = ""
 )
 
@@ -80,6 +82,29 @@ $compilerArguments = @(
     "/DOutputBaseFilename=$OutputBaseFilename",
     $scriptPath
 )
+if (-not [string]::IsNullOrWhiteSpace($IdentityPackage))
+{
+    $identityPath = if ([System.IO.Path]::IsPathRooted($IdentityPackage))
+    {
+        [System.IO.Path]::GetFullPath($IdentityPackage)
+    }
+    else
+    {
+        [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $IdentityPackage))
+    }
+    if (-not (Test-Path $identityPath -PathType Leaf))
+    {
+        throw "Identity package does not exist: $identityPath"
+    }
+    $identitySignature = Get-AuthenticodeSignature $identityPath
+    if ($identitySignature.Status -ne "Valid")
+    {
+        throw "External-location identity packages may only be embedded after trusted signing. Signature status: $($identitySignature.Status)."
+    }
+    $compilerArguments = $compilerArguments[0..($compilerArguments.Count - 2)] +
+        "/DIdentityPackage=$identityPath" +
+        $compilerArguments[-1]
+}
 & $InnoCompiler @compilerArguments
 if ($LASTEXITCODE -ne 0)
 {

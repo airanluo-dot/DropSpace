@@ -73,6 +73,50 @@ public sealed class OverlayStateMachineTests
     }
 
     [TestMethod]
+    public void CompactVisibleDragUsesDragReadyAndReturnsCompact()
+    {
+        var machine = Create(1);
+
+        machine.BeginVisibleDrag();
+        machine.SetDragReady(true);
+        Assert.AreEqual(OverlayState.DragReady, machine.Snapshot.State);
+        machine.CompleteVisibleDrop(2);
+
+        Assert.AreEqual(OverlayState.Compact, machine.Snapshot.State);
+        Assert.AreEqual(2, machine.Snapshot.TemporaryItemCount);
+    }
+
+    [TestMethod]
+    public void ExpandedVisibleDragKeepsGeometryAndReturnsExpandedAfterDrop()
+    {
+        var machine = Create(1);
+        machine.Expand();
+
+        machine.BeginVisibleDrag();
+        machine.SetDragReady(true);
+        Assert.AreEqual(OverlayState.Expanded, machine.Snapshot.State);
+        Assert.IsTrue(machine.Snapshot.ExpandedDropActive);
+        machine.CompleteVisibleDrop(2);
+
+        Assert.AreEqual(OverlayState.Expanded, machine.Snapshot.State);
+        Assert.IsFalse(machine.Snapshot.ExpandedDropActive);
+        Assert.AreEqual(2, machine.Snapshot.TemporaryItemCount);
+    }
+
+    [TestMethod]
+    public void ExpandedVisibleDragLeaveRestoresExpandedWithoutChangingCount()
+    {
+        var machine = Create(3);
+        machine.Expand();
+        machine.BeginVisibleDrag();
+        machine.CancelDrag();
+
+        Assert.AreEqual(OverlayState.Expanded, machine.Snapshot.State);
+        Assert.IsFalse(machine.Snapshot.ExpandedDropActive);
+        Assert.AreEqual(3, machine.Snapshot.TemporaryItemCount);
+    }
+
+    [TestMethod]
     public void DismissalCanBeInterruptedByDrag()
     {
         var machine = Create(1);

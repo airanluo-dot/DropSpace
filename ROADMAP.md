@@ -398,3 +398,10 @@ Startup enabled/disabled by Windows, update/rollback, offline launch, Explorer r
 #### Acceptance criteria
 
 Actual Windows startup state matches UI, update failure preserves the working install/data, and no Explorer extension ships without a new accepted decision and performance validation.
+
+### Preview.5
+
+- Windows 11 Drop Tray compatibility guidance and official Share Target contract.
+- Stable, signing-ready external-location identity package integrated with optional Artifact Signing and Inno uninstall.
+- Direct Compact/Expanded Overlay drop with exclusive activation/visual ownership.
+- Serialized Temporary Space projections and Main + Expanded deletion crash stress coverage.

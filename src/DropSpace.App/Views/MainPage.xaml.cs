@@ -368,6 +368,19 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnOpenDropTraySettingsClicked(object sender, RoutedEventArgs args)
+    {
+        await RunAsync(async () =>
+        {
+            if (!await _viewModel.OpenDropTraySettingsAsync())
+            {
+                await ShowMessageAsync(
+                    "无法打开系统设置",
+                    "请手动打开 Windows 设置 → 系统 → 多任务处理，查看 Drop Tray 选项。");
+            }
+        });
+    }
+
     private async void OnClipboardLimitsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (_syncingSettings ||

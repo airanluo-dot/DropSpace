@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
+using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     private readonly OverlayStateMachine _stateMachine;
     private readonly DispatcherQueue _dispatcher;
     private readonly ILogger<OverlayViewModel> _logger;
+    private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
     private TaskCompletionSource? _modeTransitionCompletion;
@@ -33,6 +35,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _logger = logger;
         _snapshot = stateMachine.Snapshot;
+        _projectionRefresh = new SerializedProjectionRefreshCoordinator<ItemCardViewModel>(
+            cancellationToken => _mainViewModel.GetRecentSpaceItemsAsync(5, cancellationToken),
+            ApplyRecentItemsAsync);
         _mainViewModel.UiSettingsPreflightAsync = ApplyUiSettingsAsync;
     }
 
@@ -53,6 +58,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(CompactTitle));
                 OnPropertyChanged(nameof(DragTitle));
                 OnPropertyChanged(nameof(DragSubtitle));
+                OnPropertyChanged(nameof(IsExpandedDropTargetActive));
             }
         }
     }
@@ -75,6 +81,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public bool IsExpandedVisible => Snapshot.State == OverlayState.Expanded;
 
+    public bool IsExpandedDropTargetActive => Snapshot.ExpandedDropActive;
+
     public string CompactTitle => Snapshot.TemporaryItemCount switch
     {
         0 => "DropSpace",
@@ -96,6 +104,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(initialMonitorId);
         ActiveMonitorId = initialMonitorId;
         _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
+        _mainViewModel.SpaceProjectionChanged += OnSpaceProjectionChanged;
         _stateMachine.Changed += OnStateChanged;
         _stateMachine.Restore(_mainViewModel.SpaceItemCount, _mainViewModel.OverlayDisplayMode);
         await RefreshRecentItemsAsync(cancellationToken);
@@ -105,6 +114,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     {
         ActiveMonitorId = monitorId;
         _stateMachine.BeginDragApproach();
+    }
+
+    public void BeginVisibleDragApproach(string monitorId)
+    {
+        ActiveMonitorId = monitorId;
+        _stateMachine.BeginVisibleDrag();
     }
 
     public void SetActiveMonitor(string monitorId)
@@ -126,6 +141,18 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
+        return accepted;
+    }
+
+    public async Task<int> CompleteVisibleDropAsync(
+        string monitorId,
+        IEnumerable<string> paths,
+        CancellationToken cancellationToken = default)
+    {
+        ActiveMonitorId = monitorId;
+        var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
+        await RefreshRecentItemsAsync(cancellationToken);
+        _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
         return accepted;
     }
 
@@ -191,25 +218,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public async Task RefreshRecentItemsAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var items = await _mainViewModel.GetRecentSpaceItemsAsync(5, cancellationToken);
-            RecentItems.Clear();
-            foreach (var item in items)
-            {
-                RecentItems.Add(item);
-            }
-
-            OnPropertyChanged(nameof(CompactTitle));
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-        catch (Exception exception)
-        {
-            _logger.LogInformation(exception, "Overlay recent-items refresh failed.");
-        }
+        await _projectionRefresh.RequestAsync(_mainViewModel.SpaceRevision, cancellationToken);
     }
 
     public void Dispose()
@@ -220,6 +229,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
 
         _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+        _mainViewModel.SpaceProjectionChanged -= OnSpaceProjectionChanged;
         _stateMachine.Changed -= OnStateChanged;
         if (_mainViewModel.UiSettingsPreflightAsync == ApplyUiSettingsAsync)
         {
@@ -227,7 +237,61 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
 
         _modeTransitionCompletion?.TrySetCanceled();
+        _projectionRefresh.Dispose();
         _disposed = true;
+    }
+
+    private Task ApplyRecentItemsAsync(
+        IReadOnlyList<ItemCardViewModel> items,
+        long revision,
+        CancellationToken cancellationToken)
+    {
+        return _dispatcher.HasThreadAccess
+            ? ApplyOnDispatcherAsync()
+            : _dispatcher.EnqueueAsync(ApplyOnDispatcherAsync);
+
+        Task ApplyOnDispatcherAsync()
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ProjectionCollection.SynchronizeById(
+                RecentItems,
+                items,
+                static item => item.Id,
+                static (existing, incoming) =>
+                {
+                    existing.Update(incoming.Item);
+                    existing.Thumbnail = incoming.Thumbnail;
+                    existing.DragStorageItem = incoming.DragStorageItem;
+                });
+            _stateMachine.SetTemporaryItemCount(_mainViewModel.SpaceItemCount);
+            OnPropertyChanged(nameof(CompactTitle));
+            _logger.LogInformation(
+                "Overlay projection applied serialized Temporary Space revision {Revision}, item count {ItemCount}, recent count {RecentCount}.",
+                revision,
+                _mainViewModel.SpaceItemCount,
+                RecentItems.Count);
+            return Task.CompletedTask;
+        }
+    }
+
+    private void OnSpaceProjectionChanged(object? sender, SpaceProjectionChangedEventArgs args)
+    {
+        _ = ObserveProjectionRefreshAsync(_projectionRefresh.RequestAsync(args.Revision), args.Revision);
+    }
+
+    private async Task ObserveProjectionRefreshAsync(Task refresh, long revision)
+    {
+        try
+        {
+            await refresh;
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Serialized Overlay projection refresh failed for revision {Revision}.", revision);
+        }
     }
 
     private void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
@@ -240,8 +304,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
         if (args.PropertyName == nameof(MainViewModel.SpaceItemCount))
         {
-            _stateMachine.SetTemporaryItemCount(_mainViewModel.SpaceItemCount);
-            _ = RefreshRecentItemsAsync();
+            // SpaceProjectionChanged owns data refresh and state-count publication. Keeping the
+            // property notification passive prevents the old duplicate Clear/Add reentrancy.
+            return;
         }
         else if (args.PropertyName == nameof(MainViewModel.Settings))
         {

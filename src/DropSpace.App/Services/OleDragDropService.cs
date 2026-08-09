@@ -45,7 +45,7 @@ public sealed class OleDragDropService : IDisposable
         return host;
     }
 
-    public IDisposable RegisterVisualTarget(
+    internal OleDropTargetRegistration RegisterVisualTarget(
         nint windowHandle,
         string monitorId,
         DragActivationCallbacks callbacks)
@@ -275,6 +275,13 @@ public sealed class DragActivationHost : IDisposable
         }
 
         _enabled = enabled;
+        if (_dragActive)
+        {
+            // OLE selected this HWND before the visual state changed. Keep the owner alive through
+            // Drop/Leave; the requested passive state is applied when that operation finishes.
+            return;
+        }
+
         if (!enabled)
         {
             ShowWindow(WindowHandle, HideWindow);
@@ -345,7 +352,7 @@ public sealed class DragActivationHost : IDisposable
 
     private void BringToTop()
     {
-        if (_dragActive && _enabled)
+        if (_dragActive)
         {
             PositionWindow(_activeBounds);
         }
@@ -579,6 +586,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private bool _canAccept;
     private bool _lastReady;
     private long _dragOverCount;
+    private Task? _lastDropCompletion;
     private bool _disposed;
 
     public OleDropTargetRegistration(
@@ -697,7 +705,8 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 Interlocked.Read(ref _dragOverCount));
             if (effect == DropEffectCopy)
             {
-                _ = CompleteDropAsync(paths);
+                _lastDropCompletion = CompleteDropAsync(paths);
+                _ = _lastDropCompletion;
             }
             else
             {
@@ -717,6 +726,29 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         }
 
         return Success;
+    }
+
+    internal async Task RunSyntheticCfHDropAsync(
+        IReadOnlyList<string> paths,
+        NativePoint point,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        using var dataObject = new CfHDropDataObject(paths);
+        uint effect = DropEffectCopy;
+        DragEnter(dataObject, 0, point, ref effect);
+        if (effect != DropEffectCopy)
+        {
+            throw new InvalidOperationException("Synthetic CF_HDROP DragEnter was rejected by the visible target.");
+        }
+
+        Drop(dataObject, 0, point, ref effect);
+        if (effect != DropEffectCopy || _lastDropCompletion is null)
+        {
+            throw new InvalidOperationException("Synthetic CF_HDROP Drop was rejected by the visible target.");
+        }
+
+        await _lastDropCompletion.WaitAsync(cancellationToken);
     }
 
     public void Dispose()
@@ -827,4 +859,123 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     [DllImport("user32.dll")]
     private static extern nint WindowFromPoint(NativePoint point);
+}
+
+internal sealed class CfHDropDataObject : IDataObject, IDisposable
+{
+    private const short ClipboardFormatHDrop = 15;
+    private const int FormatNotSupported = unchecked((int)0x80040064);
+    private const uint GlobalMemoryMoveable = 0x0002;
+    private const uint GlobalMemoryZeroInitialize = 0x0040;
+    private readonly string[] _paths;
+
+    public CfHDropDataObject(IEnumerable<string> paths)
+    {
+        _paths = paths
+            .Where(static path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (_paths.Length == 0)
+        {
+            throw new ArgumentException("At least one path is required.", nameof(paths));
+        }
+    }
+
+    public void GetData(ref FORMATETC format, out STGMEDIUM medium)
+    {
+        if (QueryGetData(ref format) != 0)
+        {
+            Marshal.ThrowExceptionForHR(FormatNotSupported);
+        }
+
+        var payload = string.Join('\0', _paths) + "\0\0";
+        var payloadBytes = System.Text.Encoding.Unicode.GetBytes(payload);
+        const int dropFilesHeaderBytes = 20;
+        var memory = GlobalAlloc(
+            GlobalMemoryMoveable | GlobalMemoryZeroInitialize,
+            (nuint)(dropFilesHeaderBytes + payloadBytes.Length));
+        if (memory == nint.Zero)
+        {
+            throw new OutOfMemoryException("CF_HDROP HGLOBAL allocation failed.");
+        }
+
+        var pointer = GlobalLock(memory);
+        if (pointer == nint.Zero)
+        {
+            GlobalFree(memory);
+            throw new OutOfMemoryException("CF_HDROP HGLOBAL lock failed.");
+        }
+
+        try
+        {
+            Marshal.WriteInt32(pointer, 0, dropFilesHeaderBytes);
+            Marshal.WriteInt32(pointer, 16, 1); // DROPFILES.fWide
+            Marshal.Copy(payloadBytes, 0, pointer + dropFilesHeaderBytes, payloadBytes.Length);
+        }
+        finally
+        {
+            GlobalUnlock(memory);
+        }
+
+        medium = new STGMEDIUM
+        {
+            tymed = TYMED.TYMED_HGLOBAL,
+            unionmember = memory,
+            pUnkForRelease = null!,
+        };
+    }
+
+    public int QueryGetData(ref FORMATETC format) =>
+        format.cfFormat == ClipboardFormatHDrop &&
+        format.dwAspect == DVASPECT.DVASPECT_CONTENT &&
+        (format.tymed & TYMED.TYMED_HGLOBAL) != 0
+            ? 0
+            : FormatNotSupported;
+
+    public void GetDataHere(ref FORMATETC format, ref STGMEDIUM medium) =>
+        throw new NotSupportedException();
+
+    public int GetCanonicalFormatEtc(ref FORMATETC formatIn, out FORMATETC formatOut)
+    {
+        formatOut = formatIn;
+        formatOut.ptd = nint.Zero;
+        return unchecked((int)0x80004001);
+    }
+
+    public void SetData(ref FORMATETC formatIn, ref STGMEDIUM medium, bool release) =>
+        throw new NotSupportedException();
+
+    public IEnumFORMATETC EnumFormatEtc(DATADIR direction) =>
+        throw new NotSupportedException();
+
+    public int DAdvise(ref FORMATETC pFormatetc, ADVF advf, IAdviseSink adviseSink, out int connection)
+    {
+        connection = 0;
+        return unchecked((int)0x80004001);
+    }
+
+    public void DUnadvise(int connection) => throw new NotSupportedException();
+
+    public int EnumDAdvise(out IEnumSTATDATA enumAdvise)
+    {
+        enumAdvise = null!;
+        return unchecked((int)0x80004001);
+    }
+
+    public void Dispose()
+    {
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern nint GlobalAlloc(uint flags, nuint bytes);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern nint GlobalLock(nint memory);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GlobalUnlock(nint memory);
+
+    [DllImport("kernel32.dll")]
+    private static extern nint GlobalFree(nint memory);
 }

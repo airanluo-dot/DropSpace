@@ -56,6 +56,8 @@ public partial class App : Application
 
             _mainInstance.Activated += OnInstanceActivated;
             _services = BuildServices();
+            var isShareActivation = activation.Kind == ExtendedActivationKind.ShareTarget;
+            _services.GetRequiredService<CrashDiagnosticsService>().Start();
             var settingsService = _services.GetRequiredService<ISettingsService>();
             if (commandLine.Contains("--reset-ui-settings", StringComparer.OrdinalIgnoreCase) ||
                 commandLine.Contains("--safe-mode", StringComparer.OrdinalIgnoreCase))
@@ -68,6 +70,10 @@ public partial class App : Application
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             _window.Activate();
+            if (isShareActivation)
+            {
+                _window.Hide();
+            }
             _services.GetRequiredService<ClipboardNotificationService>().Initialize(
                 WinRT.Interop.WindowNative.GetWindowHandle(_window));
 
@@ -87,6 +93,11 @@ public partial class App : Application
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
+                if (isShareActivation)
+                {
+                    await _services.GetRequiredService<ShareTargetActivationService>()
+                        .HandleAsync(activation);
+                }
                 if (commandLine.Contains("--startup", StringComparer.OrdinalIgnoreCase))
                 {
                     _window.Hide();
@@ -99,9 +110,15 @@ public partial class App : Application
                         .RunAsync();
                     WriteSmokeProgressMarker("overlay-lifecycle");
                     var metrics = await _overlayWindows.RunLifecycleSmokeAsync(100);
+                    WriteSmokeProgressMarker("visible-overlay-cf-hdrop");
+                    var visibleDropMetrics = await _overlayWindows.RunVisibleOverlayDropSmokeAsync();
+                    WriteSmokeProgressMarker("projection-deletion-stress");
+                    var projectionMetrics = await _overlayWindows.RunProjectionDeletionStressAsync(200);
                     WriteSmokeMarker(
                         _services.GetRequiredService<AppStoragePaths>(),
                         metrics,
+                        visibleDropMetrics,
+                        projectionMetrics,
                         clipboardMetrics,
                         _services.GetRequiredService<IStartupRegistrationService>().IsEnabled);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
@@ -175,12 +192,15 @@ public partial class App : Application
         services.AddSingleton<ClipboardCaptureService>();
         services.AddSingleton<ClipboardIntegrationSmoke>();
         services.AddSingleton<MaintenanceShutdownService>();
+        services.AddSingleton<CrashDiagnosticsService>();
         services.AddSingleton<ShellActionService>();
         services.AddSingleton<ThumbnailService>();
         services.AddSingleton<DragStorageItemService>();
         services.AddSingleton<IFileReferenceService, LocalFileReferenceService>();
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
         services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
+        services.AddSingleton<WindowsShareIntegrationService>();
+        services.AddSingleton<ShareTargetActivationService>();
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
@@ -198,7 +218,25 @@ public partial class App : Application
     private void OnInstanceActivated(object? sender, AppActivationArguments args)
     {
         var dispatcher = _window?.DispatcherQueue;
-        dispatcher?.TryEnqueue(() => _window?.ShowAndActivate());
+        dispatcher?.TryEnqueue(async () =>
+        {
+            try
+            {
+                var shareTarget = _services?.GetService<ShareTargetActivationService>();
+                if (shareTarget?.CanHandle(args) == true)
+                {
+                    await shareTarget.HandleAsync(args);
+                    return;
+                }
+
+                _window?.ShowAndActivate();
+            }
+            catch (Exception exception)
+            {
+                WriteCrashMarker("redirected-activation", exception);
+                _services?.GetService<ILogger<App>>()?.LogError(exception, "Redirected activation failed.");
+            }
+        });
     }
 
     private async void OnExitRequested(object? sender, EventArgs args)
@@ -238,6 +276,8 @@ public partial class App : Application
     private static void WriteSmokeMarker(
         AppStoragePaths paths,
         OverlayLifecycleMetrics metrics,
+        VisibleOverlayDropSmokeMetrics visibleDrop,
+        ProjectionDeletionStressMetrics projection,
         ClipboardIntegrationMetrics clipboard,
         bool startupRegistrationEnabled)
     {
@@ -260,6 +300,18 @@ public partial class App : Application
             notchGeometryStressCycles = metrics.GeometryStressCycles,
             overlayRegionFailureCount = metrics.RegionFailureCount,
             dragActivationTargetsDiscoverable = metrics.ActivationTargetsDiscoverable,
+            compactVisualTargetDiscoverable = metrics.CompactVisualTargetDiscoverable,
+            expandedVisualTargetDiscoverable = metrics.ExpandedVisualTargetDiscoverable,
+            compactSyntheticCfHDropAccepted = visibleDrop.CompactDropAccepted,
+            expandedSyntheticCfHDropAccepted = visibleDrop.ExpandedDropAccepted,
+            expandedDropStayedOpen = visibleDrop.ExpandedStayedOpen,
+            visibleDropAddedItemCount = visibleDrop.AddedItemCount,
+            projectionDeletionStressCycles = projection.Cycles,
+            projectionFinalSpaceItemCount = projection.FinalSpaceItemCount,
+            projectionFinalRecentItemCount = projection.FinalRecentItemCount,
+            projectionUnhandledExceptionDelta = projection.UnhandledExceptionDelta,
+            projectionUnobservedTaskExceptionDelta = projection.UnobservedTaskExceptionDelta,
+            projectionExternalSentinelPreserved = projection.ExternalSentinelPreserved,
             clipboardListenerRegistered = clipboard.ListenerRegistered,
             clipboardObservedUpdateDelta = clipboard.ObservedUpdateDelta,
             clipboardSuccessfulCaptureDelta = clipboard.SuccessfulCaptureDelta,

@@ -94,6 +94,16 @@ internal static class OverlayWindowInterop
 
     public static void Hide(nint window) => ShowWindow(window, ShowHide);
 
+    public static VisibleWindowProbe ProbeWindowAtPoint(nint rootWindow, int x, int y)
+    {
+        var discovered = WindowFromPoint(new NativePoint(x, y));
+        return new VisibleWindowProbe(
+            rootWindow,
+            discovered,
+            discovered == rootWindow || discovered != nint.Zero && IsChild(rootWindow, discovered),
+            GetWindowClassName(discovered));
+    }
+
     public static void SetNoActivate(nint window, bool noActivate)
     {
         var style = GetWindowLongPointer(window, ExtendedStyleIndex).ToInt64();
@@ -222,6 +232,17 @@ internal static class OverlayWindowInterop
         ? SetWindowLongPtr64(window, index, value)
         : new nint(SetWindowLong32(window, index, value.ToInt32()));
 
+    private static string GetWindowClassName(nint window)
+    {
+        if (window == nint.Zero)
+        {
+            return "<none>";
+        }
+
+        var value = new System.Text.StringBuilder(256);
+        return GetClassName(window, value, value.Capacity) > 0 ? value.ToString() : "<unknown>";
+    }
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
     private static extern nint GetWindowLongPtr64(nint window, int index);
 
@@ -284,4 +305,20 @@ internal static class OverlayWindowInterop
         int attribute,
         ref uint value,
         int valueSize);
+
+    [DllImport("user32.dll")]
+    private static extern nint WindowFromPoint(NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsChild(nint parent, nint window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(nint window, System.Text.StringBuilder className, int maximumCount);
 }
+
+internal sealed record VisibleWindowProbe(
+    nint RootWindow,
+    nint DiscoveredWindow,
+    bool IsRootOrDescendant,
+    string WindowClassName);

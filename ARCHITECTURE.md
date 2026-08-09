@@ -247,3 +247,11 @@ Define an `IItemAction` discovery model only when a second non-core action provi
 - Main window and Overlay share repositories and use cases, not duplicate stores.
 - Hidden idle owns only an invisible event-driven activation surface and has no continuous frame timer.
 - Logs contain no raw clipboard payload in automated redaction tests.
+
+## Preview.5 drag ownership and projection serialization
+
+The visual Overlay and passive activation host have exclusive input ownership. Hidden/Dismissing uses the bounded top-edge `DragActivationHost`. Stable Compact/Expanded hides that host and exposes the XAML `Surface` (`AllowDrop`) plus the root native OLE registration. This matters because WinUI content can be hosted by a descendant HWND: a successful `RegisterDragDrop` on the top-level HWND alone did not prove that `WindowFromPoint` over visible pixels reached that target. Compact uses the common DragReady geometry; Expanded preserves its geometry and projects `ExpandedDropActive` as an in-place highlight. Both call `MainViewModel.AddPathsAsync`.
+
+Temporary Space mutations are authoritative in `MainViewModel`. After a repository mutation it increments `SpaceRevision` and publishes `SpaceProjectionChanged`. `OverlayViewModel` owns one `SerializedProjectionRefreshCoordinator`: concurrent requests are coalesced, repository load/apply pairs never overlap, stale results are discarded, and collection mutations run on the UI Dispatcher. `ProjectionCollection.SynchronizeById` performs identity-based incremental updates instead of concurrent `Clear/Add`. No view queries the repository as an independent mutation owner.
+
+Windows Share activation is a separate input contract, not Clipboard capture. `ShareTargetActivationService` receives `StorageItems`, reports the Share lifecycle, dispatches to the existing main instance and calls the same `AddPathsAsync`. It never writes Clipboard History.

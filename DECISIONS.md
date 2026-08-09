@@ -269,3 +269,15 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Reason: These are stable servicing releases aligned with the supported Windows 11 24H2 SDK baseline and the repository's WinUI 3 requirements.
 - Alternatives: Older .NET/Windows App SDK LTS baseline; unpackaged deployment; floating package versions.
 - Trade-offs: Windows 10 and pre-24H2 Windows 11 builds are unsupported; explicit package pins require deliberate servicing updates.
+
+## D-032 — Treat Windows Drop Tray as a cooperating Shell owner, not a window to defeat
+
+**Decision:** Preserve the native top-edge host when available, add honest Settings guidance, and implement the public Windows Share Target contract behind a trusted external-location identity. Never poll, hook, probe undocumented flags, import certificates or fight Shell z-order. A Share Target is guaranteed in the Share UI; direct placement in Drop Tray suggestions is not guaranteed.
+
+**Rationale:** Drop Tray and DropSpace intentionally occupy the same user gesture. Windows Shell can acquire OLE ownership first, and no application-local HWND style can reliably override that without harming the desktop. Package identity/signature is the supported integration boundary.
+
+## D-033 — Visible input follows visible pixels; Temporary Space projections are serialized
+
+**Decision:** Stable Compact/Expanded disables the passive host, applies WinUI `AllowDrop` to the visible surface and retains a native root `CF_HDROP` adapter. Repository mutation publishes one monotonically increasing Space revision. Overlay refresh is serialized/coalesced and synchronizes cards by identity on the UI Dispatcher.
+
+**Rationale:** Preview.4 registered the root HWND but visible WinUI pixels could resolve to a child HWND, while the passive topmost host could compete. The deletion crash path separately allowed one removal to start two repository refreshes and overlapping `ObservableCollection.Clear/Add` during Dismissing. Exclusive target ownership and a single projection coordinator remove both races without duplicating storage logic.

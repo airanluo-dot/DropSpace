@@ -9,6 +9,7 @@ on:
       - .github/release-notes/**
       - scripts/Build-PortableExe.ps1
       - scripts/Build-UnsignedPackage.ps1
+      - scripts/Build-IdentityPackage.ps1
       - scripts/Compile-Win32Resource.ps1
       - scripts/Test-BrandAssets.ps1
       - scripts/Test-PortableSmoke.ps1
@@ -16,6 +17,7 @@ on:
       - scripts/Build-Installer.ps1
       - scripts/Test-InstallerLifecycle.ps1
       - installer/**
+      - identity/**
       - src/**
       - tests/**
   push:
@@ -54,7 +56,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content RELEASE_VERSION -Raw).Trim()
-          if ($version -ne "v0.1.0-preview.4") { throw "Unexpected release version: $version" }
+          if ($version -ne "v0.1.0-preview.5") { throw "Unexpected release version: $version" }
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
@@ -72,9 +74,88 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
+      - name: Build unsigned MSIX
+        shell: pwsh
+        run: ./scripts/Build-UnsignedPackage.ps1 -Platform x64 -NoRestore
+
+      - name: Build external-location identity package
+        shell: pwsh
+        run: ./scripts/Build-IdentityPackage.ps1
+
+      - name: Stage application payloads
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem artifacts/msix -Recurse -File -Filter *.msix | Select-Object -First 1
+          if ($null -eq $package) { throw "MSIX build did not produce an .msix file." }
+          Copy-Item $package.FullName artifacts/release/DropSpace-x64.msix -Force
+
+      - name: Sign in to Azure for Artifact Signing
+        if: env.SIGNING_ENABLED == 'true'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Stage signable application payloads
+        if: env.SIGNING_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          New-Item artifacts/signing -ItemType Directory -Force | Out-Null
+          Copy-Item artifacts/release/DropSpace.exe artifacts/signing/DropSpace.exe -Force
+          Copy-Item artifacts/release/DropSpace-x64.msix artifacts/signing/DropSpace-x64.msix -Force
+          Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/signing/DropSpace.Identity.msix -Force
+
+      - name: Sign application and identity payloads
+        if: env.SIGNING_ENABLED == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\artifacts\signing
+          files-folder-filter: exe,msix
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Restore signed payloads
+        if: env.SIGNING_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          Copy-Item artifacts/signing/DropSpace.exe artifacts/release/DropSpace.exe -Force
+          Copy-Item artifacts/signing/DropSpace-x64.msix artifacts/release/DropSpace-x64.msix -Force
+          Copy-Item artifacts/signing/DropSpace.Identity.msix artifacts/identity/DropSpace.Identity.msix -Force
+          $identitySignature = Get-AuthenticodeSignature artifacts/identity/DropSpace.Identity.msix
+          if ($identitySignature.Status -ne 'Valid') { throw "Signed identity package is not trusted: $($identitySignature.Status)" }
+
       - name: Build pinned Inno Setup installer
         shell: pwsh
-        run: ./scripts/Build-Installer.ps1
+        run: |
+          if ($env:SIGNING_ENABLED -eq 'true') {
+            ./scripts/Build-Installer.ps1 -IdentityPackage artifacts/identity/DropSpace.Identity.msix
+          } else {
+            ./scripts/Build-Installer.ps1
+          }
+          Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
+
+      - name: Sign installer
+        if: env.SIGNING_ENABLED == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\artifacts\installer
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Restore signed installer
+        if: env.SIGNING_ENABLED == 'true'
+        shell: pwsh
+        run: Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
       - name: Validate icon and brand asset chain
         shell: pwsh
@@ -87,39 +168,6 @@ jobs:
       - name: Smoke test portable EXE
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1
-
-      - name: Build unsigned MSIX
-        shell: pwsh
-        run: ./scripts/Build-UnsignedPackage.ps1 -Platform x64 -NoRestore
-
-      - name: Stage release files
-        shell: pwsh
-        run: |
-          $package = Get-ChildItem artifacts/msix -Recurse -File -Filter *.msix | Select-Object -First 1
-          if ($null -eq $package) { throw "MSIX build did not produce an .msix file." }
-          Copy-Item $package.FullName artifacts/release/DropSpace-x64.msix -Force
-          Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
-
-      - name: Sign in to Azure for Artifact Signing
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/login@v3
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Sign release files with Microsoft Artifact Signing
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@v2
-        with:
-          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
-          files-folder: ${{ github.workspace }}\artifacts\release
-          files-folder-filter: exe,msix
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
 
       - name: Verify signatures and generate SHA-256 manifest
         shell: pwsh
@@ -147,12 +195,19 @@ jobs:
       - name: Upload validated release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.4
+          name: DropSpace-v0.1.0-preview.5
           path: |
             artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Upload identity registration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DropSpace-identity-v0.1.0-preview.5
+          path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
 
       - name: Upload release test results
@@ -178,16 +233,16 @@ jobs:
       - name: Download validated release bundle
         uses: actions/download-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.4
+          name: DropSpace-v0.1.0-preview.5
           path: artifacts/release
 
       - name: Create GitHub Preview Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-preview.4
+          tag_name: v0.1.0-preview.5
           target_commitish: ${{ github.sha }}
-          name: DropSpace v0.1.0-preview.4
-          body_path: .github/release-notes/v0.1.0-preview.4.md
+          name: DropSpace v0.1.0-preview.5
+          body_path: .github/release-notes/v0.1.0-preview.5.md
           prerelease: true
           draft: false
           make_latest: false
