@@ -295,7 +295,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     {
                         if (snapshot is not null)
                         {
-                            _logger.LogDebug(
+                            _logger.LogInformation(
                                 "Clipboard self-write suppressed for sequence {SequenceNumber}.",
                                 signal.ClipboardSequenceNumber);
                         }
@@ -329,7 +329,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                                     ContentClassifier.CreateTextCandidate(snapshot.Text),
                                     _shutdown.Token)
                                 .ConfigureAwait(false);
-                            _logger.LogDebug(
+                            _logger.LogInformation(
                                 "Clipboard text committed for sequence {SequenceNumber}.",
                                 signal.ClipboardSequenceNumber);
                         }
@@ -365,7 +365,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                                     await _payloadStore.DeleteAsync(payload.RelativePath, _shutdown.Token).ConfigureAwait(false);
                                 }
 
-                                _logger.LogDebug(
+                                _logger.LogInformation(
                                     "Clipboard image committed for sequence {SequenceNumber}.",
                                     signal.ClipboardSequenceNumber);
                             }
@@ -436,7 +436,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     currentSequence != 0 &&
                     currentSequence != signal.ClipboardSequenceNumber)
                 {
-                    _logger.LogDebug(
+                    _logger.LogInformation(
                         "Clipboard retry abandoned because sequence advanced from {OriginalSequence} to {CurrentSequence}.",
                         signal.ClipboardSequenceNumber,
                         currentSequence);
@@ -446,12 +446,12 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
             try
             {
-                _logger.LogDebug(
+                _logger.LogInformation(
                     "Clipboard snapshot read started for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,
                     attempt + 1);
                 var snapshot = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
-                _logger.LogDebug(
+                _logger.LogInformation(
                     "Clipboard snapshot read completed for sequence {SequenceNumber}; format {Format}.",
                     signal.ClipboardSequenceNumber,
                     snapshot?.Text is not null ? "text" : snapshot?.ImageBytes is not null ? "image" : "unsupported");
@@ -462,7 +462,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 lastException = exception;
                 Interlocked.Increment(ref _failedReads);
                 PublishStatus("剪贴板暂时被其他程序占用，正在重试。");
-                _logger.LogDebug(
+                _logger.LogWarning(
                     exception,
                     "Transient clipboard read failure for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,

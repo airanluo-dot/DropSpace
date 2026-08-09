@@ -153,7 +153,16 @@ public sealed class OverlayWindowService : IDisposable
         _disposed = true;
     }
 
-    private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot) => ApplySnapshot(snapshot);
+    private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot)
+    {
+        _logger.LogInformation(
+            "Overlay state transition: {State}, temporary item count {TemporaryItemCount}, monitor {MonitorId}, revision {Revision}.",
+            snapshot.State,
+            snapshot.TemporaryItemCount,
+            _viewModel.ActiveMonitorId ?? "unselected",
+            snapshot.Revision);
+        ApplySnapshot(snapshot);
+    }
 
     private void OnForegroundChanged(object? sender, EventArgs args) => ApplySnapshot(_viewModel.Snapshot);
 

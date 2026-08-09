@@ -14,10 +14,10 @@ public sealed class OverlayMotionControllerTests
 
         controller.Step(TimeSpan.FromMilliseconds(16));
 
-        Assert.IsGreaterThan(controller.Current.Width, OverlayMotionValues.Hidden.Width);
-        Assert.IsLessThan(controller.Current.Width, target.Width);
-        Assert.IsGreaterThan(controller.Current.Height, OverlayMotionValues.Hidden.Height);
-        Assert.IsLessThan(controller.Current.Height, target.Height);
+        Assert.IsTrue(controller.Current.Width > OverlayMotionValues.Hidden.Width);
+        Assert.IsTrue(controller.Current.Width < target.Width);
+        Assert.IsTrue(controller.Current.Height > OverlayMotionValues.Hidden.Height);
+        Assert.IsTrue(controller.Current.Height < target.Height);
     }
 
     [TestMethod]

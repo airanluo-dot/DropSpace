@@ -428,6 +428,8 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private readonly string _surfaceKind;
     private IDataObject? _currentDataObject;
     private bool _canAccept;
+    private bool _lastReady;
+    private long _dragOverCount;
     private bool _disposed;
 
     public OleDropTargetRegistration(
@@ -480,7 +482,9 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         if (_canAccept)
         {
             _callbacks.DragApproaching(_monitorId);
-            _callbacks.DragReadyChanged(_monitorId, _isReady(point));
+            _lastReady = _isReady(point);
+            _dragOverCount = 0;
+            _callbacks.DragReadyChanged(_monitorId, _lastReady);
         }
 
         return Success;
@@ -492,12 +496,18 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         if (_canAccept)
         {
             var ready = _isReady(point);
+            var count = Interlocked.Increment(ref _dragOverCount);
             _callbacks.DragReadyChanged(_monitorId, ready);
-            _logger.LogDebug(
-                "OLE DragOver received by {SurfaceKind} on monitor {MonitorId}: ready={Ready}.",
-                _surfaceKind,
-                _monitorId,
-                ready);
+            if (count == 1 || ready != _lastReady)
+            {
+                _logger.LogInformation(
+                    "OLE DragOver received by {SurfaceKind} on monitor {MonitorId}: ready={Ready}, event count {DragOverCount}.",
+                    _surfaceKind,
+                    _monitorId,
+                    ready,
+                    count);
+                _lastReady = ready;
+            }
         }
 
         return Success;
@@ -506,9 +516,10 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     public int DragLeave()
     {
         _logger.LogInformation(
-            "OLE DragLeave received by {SurfaceKind} on monitor {MonitorId}.",
+            "OLE DragLeave received by {SurfaceKind} on monitor {MonitorId} after {DragOverCount} DragOver events.",
             _surfaceKind,
-            _monitorId);
+            _monitorId,
+            Interlocked.Read(ref _dragOverCount));
         _currentDataObject = null;
         _canAccept = false;
         _callbacks.DragLeft(_monitorId);
@@ -523,11 +534,12 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             var ready = _canAccept && _isReady(point);
             effect = ready && paths.Count > 0 ? DropEffectCopy : DropEffectNone;
             _logger.LogInformation(
-                "OLE Drop received by {SurfaceKind} on monitor {MonitorId}: item count {ItemCount}, accepted={Accepted}.",
+                "OLE Drop received by {SurfaceKind} on monitor {MonitorId}: item count {ItemCount}, accepted={Accepted}, DragOver count {DragOverCount}.",
                 _surfaceKind,
                 _monitorId,
                 paths.Count,
-                effect == DropEffectCopy);
+                effect == DropEffectCopy,
+                Interlocked.Read(ref _dragOverCount));
             if (effect == DropEffectCopy)
             {
                 _ = CompleteDropAsync(paths);

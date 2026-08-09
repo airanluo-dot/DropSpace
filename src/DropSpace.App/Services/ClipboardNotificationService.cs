@@ -126,7 +126,7 @@ public sealed class ClipboardNotificationService : IDisposable
         var sequence = GetClipboardSequenceNumber();
         _lastNotificationUtc = observedAt;
         var observed = Interlocked.Increment(ref _observedUpdateCount);
-        _logger.LogDebug(
+        _logger.LogInformation(
             "WM_CLIPBOARDUPDATE received; sequence {SequenceNumber}, observed count {ObservedCount}.",
             sequence,
             observed);
