@@ -132,6 +132,35 @@ function Get-UninstallerPath
     return $path
 }
 
+function Wait-ForMaintenanceEndpoint
+{
+    param(
+        [Parameter(Mandatory = $true)][System.Diagnostics.Process]$Process,
+        [int]$TimeoutSeconds = 45
+    )
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    while ([DateTime]::UtcNow -lt $deadline)
+    {
+        $Process.Refresh()
+        if ($Process.HasExited)
+        {
+            throw "Installed baseline app exited before its maintenance endpoint became ready."
+        }
+
+        $mutex = $null
+        if ([System.Threading.Mutex]::TryOpenExisting("Local\DropSpace.Running.v1", [ref]$mutex))
+        {
+            $mutex.Dispose()
+            return
+        }
+
+        Start-Sleep -Milliseconds 200
+    }
+
+    throw "Installed baseline app did not expose its maintenance endpoint within $TimeoutSeconds seconds."
+}
+
 if (Test-Path $dataRoot)
 {
     throw "The isolated runner already contains $dataRoot; refusing to risk pre-existing user data."
@@ -184,9 +213,7 @@ try
     }
 
     $runningProcess = Start-Process -FilePath $installedExe -PassThru
-    Start-Sleep -Seconds 4
-    $runningProcess.Refresh()
-    if ($runningProcess.HasExited) { throw "Installed baseline app exited before maintenance upgrade." }
+    Wait-ForMaintenanceEndpoint $runningProcess
 
     Invoke-CheckedProcess $currentInstallerPath @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
