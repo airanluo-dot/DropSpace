@@ -1,1 +1,274 @@
-I2lmbmRlZiBBcHBWZXJzaW9uCiAgI2Vycm9yIEFwcFZlcnNpb24gbXVzdCBiZSBzdXBwbGllZCBieSBzY3JpcHRzL0J1aWxkLUluc3RhbGxlci5wczEKI2VuZGlmCiNpZm5kZWYgVmVyc2lvbkluZm9WZXJzaW9uCiAgI2Vycm9yIFZlcnNpb25JbmZvVmVyc2lvbiBtdXN0IGJlIHN1cHBsaWVkIGJ5IHNjcmlwdHMvQnVpbGQtSW5zdGFsbGVyLnBzMQojZW5kaWYKI2lmbmRlZiBWZXJzaW9uQ29kZQogICNlcnJvciBWZXJzaW9uQ29kZSBtdXN0IGJlIHN1cHBsaWVkIGJ5IHNjcmlwdHMvQnVpbGQtSW5zdGFsbGVyLnBzMQojZW5kaWYKI2lmbmRlZiBTb3VyY2VFeGUKICAjZXJyb3IgU291cmNlRXhlIG11c3QgYmUgc3VwcGxpZWQgYnkgc2NyaXB0cy9CdWlsZC1JbnN0YWxsZXIucHMxCiNlbmRpZgojaWZuZGVmIE91dHB1dERpcgogICNlcnJvciBPdXRwdXREaXIgbXVzdCBiZSBzdXBwbGllZCBieSBzY3JpcHRzL0J1aWxkLUluc3RhbGxlci5wczEKI2VuZGlmCiNpZm5kZWYgT3V0cHV0QmFzZUZpbGVuYW1lCiAgI2RlZmluZSBPdXRwdXRCYXNlRmlsZW5hbWUgIkRyb3BTcGFjZVNldHVwIgojZW5kaWYKCltTZXR1cF0KQXBwSWQ9e3tFMTFFQzI4MS1CQ0U3LTRGOTgtOEVFRi0yMzg3RTIwMkNGMEZ9CkFwcE5hbWU9RHJvcFNwYWNlCkFwcFZlcnNpb249eyNBcHBWZXJzaW9ufQpBcHBWZXJOYW1lPURyb3BTcGFjZSB7I0FwcFZlcnNpb259CkFwcFB1Ymxpc2hlcj1Ecm9wU3BhY2UKQXBwUHVibGlzaGVyVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9haXJhbmx1by1kb3QvRHJvcFNwYWNlCkFwcFN1cHBvcnRVUkw9aHR0cHM6Ly9naXRodWIuY29tL2FpcmFubHVvLWRvdC9Ecm9wU3BhY2UvaXNzdWVzCkFwcFVwZGF0ZXNVUkw9aHR0cHM6Ly9naXRodWIuY29tL2FpcmFubHVvLWRvdC9Ecm9wU3BhY2UvcmVsZWFzZXMKRGVmYXVsdERpck5hbWU9e2xvY2FsYXBwZGF0YX1cUHJvZ3JhbXNcRHJvcFNwYWNlCkRlZmF1bHRHcm91cE5hbWU9RHJvcFNwYWNlCkRpc2FibGVQcm9ncmFtR3JvdXBQYWdlPWF1dG8KQWxsb3dOb0ljb25zPXllcwpPdXRwdXREaXI9eyNPdXRwdXREaXJ9Ck91dHB1dEJhc2VGaWxlbmFtZT17I091dHB1dEJhc2VGaWxlbmFtZX0KU2V0dXBJY29uRmlsZT0uLlxzcmNcRHJvcFNwYWNlLkFwcFxBc3NldHNcQXBwSWNvbi5pY28KVW5pbnN0YWxsRGlzcGxheUljb249e2FwcH1cRHJvcFNwYWNlLmV4ZQpVbmluc3RhbGxEaXNwbGF5TmFtZT1Ecm9wU3BhY2UKVW5pbnN0YWxsYWJsZT15ZXMKQ3JlYXRlVW5pbnN0YWxsUmVnS2V5PXllcwpVbmluc3RhbGxGaWxlc0Rpcj17YXBwfVx1bmluc3RhbGwKVXNlUHJldmlvdXNBcHBEaXI9eWVzClVzZVByZXZpb3VzR3JvdXA9eWVzClVzZVByZXZpb3VzVGFza3M9eWVzClVuaW5zdGFsbExvZ01vZGU9YXBwZW5kClByaXZpbGVnZXNSZXF1aXJlZD1sb3dlc3QKU2V0dXBBcmNoaXRlY3R1cmU9eDY0CkFyY2hpdGVjdHVyZXNBbGxvd2VkPXg2NGNvbXBhdGlibGUKQXJjaGl0ZWN0dXJlc0luc3RhbGxJbjY0Qml0TW9kZT14NjRjb21wYXRpYmxlCk1pblZlcnNpb249MTAuMC4yMjAwMApDbG9zZUFwcGxpY2F0aW9ucz1ubwpSZXN0YXJ0QXBwbGljYXRpb25zPW5vCkNoYW5nZXNBc3NvY2lhdGlvbnM9bm8KQ2hhbmdlc0Vudmlyb25tZW50PW5vCkNvbXByZXNzaW9uPWx6bWEyL3VsdHJhNjQKU29saWRDb21wcmVzc2lvbj15ZXMKV2l6YXJkU3R5bGU9bW9kZXJuIGR5bmFtaWMKVmVyc2lvbkluZm9WZXJzaW9uPXsjVmVyc2lvbkluZm9WZXJzaW9ufQpWZXJzaW9uSW5mb1RleHRWZXJzaW9uPXsjQXBwVmVyc2lvbn0KVmVyc2lvbkluZm9Db21wYW55PURyb3BTcGFjZQpWZXJzaW9uSW5mb0Rlc2NyaXB0aW9uPURyb3BTcGFjZSBTZXR1cApWZXJzaW9uSW5mb1Byb2R1Y3ROYW1lPURyb3BTcGFjZQpWZXJzaW9uSW5mb1Byb2R1Y3RWZXJzaW9uPXsjVmVyc2lvbkluZm9WZXJzaW9ufQpWZXJzaW9uSW5mb1Byb2R1Y3RUZXh0VmVyc2lvbj17I0FwcFZlcnNpb259ClNpZ25lZFVuaW5zdGFsbGVyPW5vCgpbTGFuZ3VhZ2VzXQpOYW1lOiAiZW5nbGlzaCI7IE1lc3NhZ2VzRmlsZTogImNvbXBpbGVyOkRlZmF1bHQuaXNsIgpOYW1lOiAiY2hpbmVzZXNpbXBsaWZpZWQiOyBNZXNzYWdlc0ZpbGU6ICJjb21waWxlcjpMYW5ndWFnZXNcQ2hpbmVzZVNpbXBsaWZpZWQuaXNsIgoKW1Rhc2tzXQpOYW1lOiAiZGVza3RvcGljb24iOyBEZXNjcmlwdGlvbjogIntjbTpDcmVhdGVEZXNrdG9wSWNvbn0iOyBHcm91cERlc2NyaXB0aW9uOiAie2NtOkFkZGl0aW9uYWxJY29uc30iOyBGbGFnczogdW5jaGVja2VkCgpbRmlsZXNdClNvdXJjZTogInsjU291cmNlRXhlfSI7IERlc3REaXI6ICJ7YXBwfSI7IERlc3ROYW1lOiAiRHJvcFNwYWNlLmV4ZSI7IEZsYWdzOiBpZ25vcmV2ZXJzaW9uCgpbSWNvbnNdCk5hbWU6ICJ7YXV0b3Byb2dyYW1zfVxEcm9wU3BhY2UiOyBGaWxlbmFtZTogInthcHB9XERyb3BTcGFjZS5leGUiOyBXb3JraW5nRGlyOiAie2FwcH0iCk5hbWU6ICJ7YXV0b2Rlc2t0b3B9XERyb3BTcGFjZSI7IEZpbGVuYW1lOiAie2FwcH1cRHJvcFNwYWNlLmV4ZSI7IFdvcmtpbmdEaXI6ICJ7YXBwfSI7IFRhc2tzOiBkZXNrdG9waWNvbgoKW1JlZ2lzdHJ5XQpSb290OiBIS0NVNjQ7IFN1YmtleTogIlNvZnR3YXJlXERyb3BTcGFjZVxJbnN0YWxsIjsgVmFsdWVUeXBlOiBzdHJpbmc7IFZhbHVlTmFtZTogIkluc3RhbGxQYXRoIjsgVmFsdWVEYXRhOiAie2FwcH0iOyBGbGFnczogdW5pbnNkZWxldGVrZXkKUm9vdDogSEtDVTY0OyBTdWJrZXk6ICJTb2Z0d2FyZVxEcm9wU3BhY2VcSW5zdGFsbCI7IFZhbHVlVHlwZTogc3RyaW5nOyBWYWx1ZU5hbWU6ICJEaXNwbGF5VmVyc2lvbiI7IFZhbHVlRGF0YTogInsjQXBwVmVyc2lvbn0iOyBGbGFnczogdW5pbnNkZWxldGVrZXkKUm9vdDogSEtDVTY0OyBTdWJrZXk6ICJTb2Z0d2FyZVxEcm9wU3BhY2VcSW5zdGFsbCI7IFZhbHVlVHlwZTogZHdvcmQ7IFZhbHVlTmFtZTogIlZlcnNpb25Db2RlIjsgVmFsdWVEYXRhOiAieyNWZXJzaW9uQ29kZX0iOyBGbGFnczogdW5pbnNkZWxldGVrZXkKCltSdW5dCkZpbGVuYW1lOiAie2FwcH1cRHJvcFNwYWNlLmV4ZSI7IERlc2NyaXB0aW9uOiAie2NtOkxhdW5jaFByb2dyYW0sRHJvcFNwYWNlfSI7IEZsYWdzOiBub3dhaXQgcG9zdGluc3RhbGwgc2tpcGlmc2lsZW50CgpbVW5pbnN0YWxsRGVsZXRlXQpUeXBlOiBmaWxlczsgTmFtZTogInthcHB9XGluc3RhbGwudmVyc2lvbiIKVHlwZTogZmlsZXNhbmRvcmRpcnM7IE5hbWU6ICJ7bG9jYWxhcHBkYXRhfVxEcm9wU3BhY2UiOyBDaGVjazogU2hvdWxkUHVyZ2VEYXRhCgpbQ29kZV0KY29uc3QKICBFdmVudE1vZGlmeVN0YXRlID0gJDAwMDI7CiAgU3luY2hyb25pemVBY2Nlc3MgPSAkMDAxMDAwMDA7CiAgV2FpdE9iamVjdDAgPSAwOwogIE1haW50ZW5hbmNlV2FpdE1pbGxpc2Vjb25kcyA9IDE1MDAwOwoKdmFyCiAgRGVsZXRlRGF0YUNoZWNrQm94OiBUTmV3Q2hlY2tCb3g7CiAgUHVyZ2VEYXRhUmVxdWVzdGVkOiBCb29sZWFuOwoKZnVuY3Rpb24gT3BlbkV2ZW50KERlc2lyZWRBY2Nlc3M6IERXT1JEOyBJbmhlcml0SGFuZGxlOiBCT09MOyBOYW1lOiBTdHJpbmcpOiBIQU5ETEU7CmV4dGVybmFsICdPcGVuRXZlbnRXQGtlcm5lbDMyLmRsbCBzdGRjYWxsJzsKCmZ1bmN0aW9uIFNpZ25hbEV2ZW50KEV2ZW50SGFuZGxlOiBIQU5ETEUpOiBCT09MOwpleHRlcm5hbCAnU2V0RXZlbnRAa2VybmVsMzIuZGxsIHN0ZGNhbGwnOwoKZnVuY3Rpb24gV2FpdEZvclNpbmdsZU9iamVjdChFdmVudEhhbmRsZTogSEFORExFOyBNaWxsaXNlY29uZHM6IERXT1JEKTogRFdPUkQ7CmV4dGVybmFsICdXYWl0Rm9yU2luZ2xlT2JqZWN0QGtlcm5lbDMyLmRsbCBzdGRjYWxsJzsKCmZ1bmN0aW9uIENsb3NlS2VybmVsSGFuZGxlKEhhbmRsZTogSEFORExFKTogQk9PTDsKZXh0ZXJuYWwgJ0Nsb3NlSGFuZGxlQGtlcm5lbDMyLmRsbCBzdGRjYWxsJzsKCmZ1bmN0aW9uIEhhc1BhcmFtZXRlcihjb25zdCBOYW1lOiBTdHJpbmcpOiBCb29sZWFuOwp2YXIKICBJbmRleDogSW50ZWdlcjsKYmVnaW4KICBSZXN1bHQgOj0gRmFsc2U7CiAgZm9yIEluZGV4IDo9IDEgdG8gUGFyYW1Db3VudCBkbwogIGJlZ2luCiAgICBpZiBDb21wYXJlVGV4dChQYXJhbVN0cihJbmRleCksIE5hbWUpID0gMCB0aGVuCiAgICBiZWdpbgogICAgICBSZXN1bHQgOj0gVHJ1ZTsKICAgICAgRXhpdDsKICAgIGVuZDsKICBlbmQ7CmVuZDsKCmZ1bmN0aW9uIEluaXRpYWxpemVTZXR1cDogQm9vbGVhbjsKdmFyCiAgSW5zdGFsbGVkVmVyc2lvbkNvZGU6IENhcmRpbmFsOwpiZWdpbgogIFJlc3VsdCA6PSBUcnVlOwogIGlmIFJlZ1F1ZXJ5RFdvcmRWYWx1ZShIS0NVNjQsICdTb2Z0d2FyZVxEcm9wU3BhY2VcSW5zdGFsbCcsICdWZXJzaW9uQ29kZScsIEluc3RhbGxlZFZlcnNpb25Db2RlKSBhbmQKICAgICAoSW5zdGFsbGVkVmVyc2lvbkNvZGUgPiB7I1ZlcnNpb25Db2RlfSkgYW5kCiAgICAgKG5vdCBIYXNQYXJhbWV0ZXIoJy9BTExPV0RPV05HUkFERT0xJykpIHRoZW4KICBiZWdpbgogICAgTXNnQm94KAogICAgICAnQSBuZXdlciBEcm9wU3BhY2UgdmVyc2lvbiBpcyBhbHJlYWR5IGluc3RhbGxlZC4gU2V0dXAgYmxvY2tlZCB0aGlzIGRvd25ncmFkZSB0byBwcm90ZWN0IHRoZSBpbnN0YWxsYXRpb24uICcgKwogICAgICAnVXNlIGEgbmV3ZXIgaW5zdGFsbGVyLCBvciBleHBsaWNpdGx5IHBhc3MgL0FMTE9XRE9XTkdSQURFPTEgaWYgeW91IGludGVudGlvbmFsbHkgbmVlZCB0byB0ZXN0IGEgZG93bmdyYWRlLicsCiAgICAgIG1iRXJyb3IsCiAgICAgIE1CX09LKTsKICAgIFJlc3VsdCA6PSBGYWxzZTsKICBlbmQ7CmVuZDsKCmZ1bmN0aW9uIFJlcXVlc3RNYWludGVuYW5jZVNodXRkb3duKCk6IEJvb2xlYW47CnZhcgogIFJlcXVlc3RFdmVudDogSEFORExFOwogIFN0b3BwZWRFdmVudDogSEFORExFOwogIFdhaXRSZXN1bHQ6IERXT1JEOwogIEF0dGVtcHQ6IEludGVnZXI7CmJlZ2luCiAgUmVzdWx0IDo9IFRydWU7CiAgaWYgbm90IENoZWNrRm9yTXV0ZXhlcygnTG9jYWxcRHJvcFNwYWNlLlJ1bm5pbmcudjEnKSB0aGVuCiAgICBFeGl0OwoKICBMb2coJ0Ryb3BTcGFjZSBpcyBydW5uaW5nOyByZXF1ZXN0aW5nIGdyYWNlZnVsIG1haW50ZW5hbmNlIHNodXRkb3duIHRocm91Z2ggbmFtZWQgZXZlbnRzLicpOwogIFJlcXVlc3RFdmVudCA6PSBPcGVuRXZlbnQoRXZlbnRNb2RpZnlTdGF0ZSwgRmFsc2UsICdMb2NhbFxEcm9wU3BhY2UuTWFpbnRlbmFuY2VTaHV0ZG93bi52MScpOwogIFN0b3BwZWRFdmVudCA6PSBPcGVuRXZlbnQoU3luY2hyb25pemVBY2Nlc3MsIEZhbHNlLCAnTG9jYWxcRHJvcFNwYWNlLk1haW50ZW5hbmNlU3RvcHBlZC52MScpOwogIGlmIChSZXF1ZXN0RXZlbnQgPSAwKSBvciAoU3RvcHBlZEV2ZW50ID0gMCkgdGhlbgogIGJlZ2luCiAgICBpZiBSZXF1ZXN0RXZlbnQgPD4gMCB0aGVuCiAgICAgIENsb3NlS2VybmVsSGFuZGxlKFJlcXVlc3RFdmVudCk7CiAgICBpZiBTdG9wcGVkRXZlbnQgPD4gMCB0aGVuCiAgICAgIENsb3NlS2VybmVsSGFuZGxlKFN0b3BwZWRFdmVudCk7CiAgICBMb2coRm9ybWF0KCdNYWludGVuYW5jZSBldmVudHMgd2VyZSB1bmF2YWlsYWJsZSAoV2luMzIgZXJyb3IgJWQpLicsIFtETExHZXRMYXN0RXJyb3JdKSk7CiAgICBSZXN1bHQgOj0gRmFsc2U7CiAgICBFeGl0OwogIGVuZDsKCiAgaWYgbm90IFNpZ25hbEV2ZW50KFJlcXVlc3RFdmVudCkgdGhlbgogIGJlZ2luCiAgICBMb2coRm9ybWF0KCdDb3VsZCBub3Qgc2lnbmFsIHRoZSBtYWludGVuYW5jZSByZXF1ZXN0IChXaW4zMiBlcnJvciAlZCkuJywgW0RMTEdldExhc3RFcnJvcl0pKTsKICAgIENsb3NlS2VybmVsSGFuZGxlKFJlcXVlc3RFdmVudCk7CiAgICBDbG9zZUtlcm5lbEhhbmRsZShTdG9wcGVkRXZlbnQpOwogICAgUmVzdWx0IDo9IEZhbHNlOwogICAgRXhpdDsKICBlbmQ7CgogIFdhaXRSZXN1bHQgOj0gV2FpdEZvclNpbmdsZU9iamVjdChTdG9wcGVkRXZlbnQsIE1haW50ZW5hbmNlV2FpdE1pbGxpc2Vjb25kcyk7CiAgQ2xvc2VLZXJuZWxIYW5kbGUoUmVxdWVzdEV2ZW50KTsKICBDbG9zZUtlcm5lbEhhbmRsZShTdG9wcGVkRXZlbnQpOwogIGlmIFdhaXRSZXN1bHQgPD4gV2FpdE9iamVjdDAgdGhlbgogIGJlZ2luCiAgICBMb2coRm9ybWF0KCdUaW1lZCBvdXQgd2FpdGluZyBmb3IgZ3JhY2VmdWwgbWFpbnRlbmFuY2Ugc2h1dGRvd24gKHdhaXQgcmVzdWx0ICVkKS4nLCBbV2FpdFJlc3VsdF0pKTsKICAgIFJlc3VsdCA6PSBGYWxzZTsKICAgIEV4aXQ7CiAgZW5kOwoKICB7IFRoZSBzdG9wcGVkIGV2ZW50IGlzIHNpZ25hbGVkIGFmdGVyIG1hbmFnZWQgZGlzcG9zYWwgY29tcGxldGVzIGFuZCBpbW1lZGlhdGVseSBiZWZvcmUKICAgIHByb2Nlc3MgZXhpdC4gR2l2ZSB0aGUga2VybmVsIGEgYm91bmRlZCBtb21lbnQgdG8gcmVsZWFzZSB0aGUgcHJvY2Vzcy1vd25lZCBtdXRleC4gfQogIGZvciBBdHRlbXB0IDo9IDEgdG8gNTAgZG8KICBiZWdpbgogICAgaWYgbm90IENoZWNrRm9yTXV0ZXhlcygnTG9jYWxcRHJvcFNwYWNlLlJ1bm5pbmcudjEnKSB0aGVuCiAgICAgIEJyZWFrOwogICAgU2xlZXAoMTAwKTsKICBlbmQ7CiAgUmVzdWx0IDo9IG5vdCBDaGVja0Zvck11dGV4ZXMoJ0xvY2FsXERyb3BTcGFjZS5SdW5uaW5nLnYxJyk7CiAgaWYgUmVzdWx0IHRoZW4KICAgIExvZygnRHJvcFNwYWNlIGNvbXBsZXRlZCBncmFjZWZ1bCBtYWludGVuYW5jZSBzaHV0ZG93bi4nKQogIGVsc2UKICAgIExvZygnRHJvcFNwYWNlIGFja25vd2xlZGdlZCBzaHV0ZG93biBidXQgaXRzIHByb2Nlc3MgbXV0ZXggcmVtYWluZWQgcHJlc2VudC4nKTsKZW5kOwoKZnVuY3Rpb24gUHJlcGFyZVRvSW5zdGFsbCh2YXIgTmVlZHNSZXN0YXJ0OiBCb29sZWFuKTogU3RyaW5nOwpiZWdpbgogIFJlc3VsdCA6PSAnJzsKICBpZiBub3QgUmVxdWVzdE1haW50ZW5hbmNlU2h1dGRvd24oKSB0aGVuCiAgICBSZXN1bHQgOj0gJ0Ryb3BTcGFjZSBpcyBzdGlsbCBydW5uaW5nIGFuZCBjb3VsZCBub3QgY2xvc2UgZ3JhY2VmdWxseS4gQ2hvb3NlIEV4aXQgRHJvcFNwYWNlLCB0aGVuIHJ1biBTZXR1cCBhZ2Fpbi4nOwplbmQ7Cgpwcm9jZWR1cmUgQ3VyU3RlcENoYW5nZWQoQ3VyU3RlcDogVFNldHVwU3RlcCk7CmJlZ2luCiAgaWYgQ3VyU3RlcCA9IHNzUG9zdEluc3RhbGwgdGhlbgogICAgU2F2ZVN0cmluZ1RvRmlsZShFeHBhbmRDb25zdGFudCgne2FwcH1caW5zdGFsbC52ZXJzaW9uJyksICd7I0FwcFZlcnNpb259JywgRmFsc2UpOwplbmQ7CgpmdW5jdGlvbiBJbml0aWFsaXplVW5pbnN0YWxsOiBCb29sZWFuOwpiZWdpbgogIHsgU25hcHNob3QgdGhlIGNvbW1hbmQtbGluZSBjaG9pY2UgYmVmb3JlIHRoZSBwcm9ncmVzcyBVSSBpcyBjcmVhdGVkLiAgSW5ubwogICAgZXZhbHVhdGVzIHVuaW5zdGFsbCBzZWN0aW9uIGNoZWNrcyBsYXRlIGluIHRoZSB0cmFuc2FjdGlvbiwgd2hlbiB3aXphcmQKICAgIGNvbnRyb2xzIGFyZSBub3QgYSByZWxpYWJsZSBzb3VyY2Ugb2Ygc2lsZW50LW1vZGUgc3RhdGUuIH0KICBQdXJnZURhdGFSZXF1ZXN0ZWQgOj0gSGFzUGFyYW1ldGVyKCcvUFVSR0VEQVRBPTEnKTsKICBSZXN1bHQgOj0gUmVxdWVzdE1haW50ZW5hbmNlU2h1dGRvd24oKTsKICBpZiBub3QgUmVzdWx0IGFuZCBub3QgVW5pbnN0YWxsU2lsZW50IHRoZW4KICAgIE1zZ0JveCgKICAgICAgJ0Ryb3BTcGFjZSBpcyBzdGlsbCBydW5uaW5nIGFuZCBjb3VsZCBub3QgY2xvc2UgZ3JhY2VmdWxseS4gQ2hvb3NlIEV4aXQgRHJvcFNwYWNlLCB0aGVuIHN0YXJ0IHVuaW5zdGFsbCBhZ2Fpbi4nLAogICAgICBtYkVycm9yLAogICAgICBNQl9PSyk7CmVuZDsKCnByb2NlZHVyZSBJbml0aWFsaXplVW5pbnN0YWxsUHJvZ3Jlc3NGb3JtOwpiZWdpbgogIERlbGV0ZURhdGFDaGVja0JveCA6PSBUTmV3Q2hlY2tCb3guQ3JlYXRlKFVuaW5zdGFsbFByb2dyZXNzRm9ybSk7CiAgRGVsZXRlRGF0YUNoZWNrQm94LlBhcmVudCA6PSBVbmluc3RhbGxQcm9ncmVzc0Zvcm07CiAgRGVsZXRlRGF0YUNoZWNrQm94LkxlZnQgOj0gVW5pbnN0YWxsUHJvZ3Jlc3NGb3JtLlN0YXR1c0xhYmVsLkxlZnQ7CiAgRGVsZXRlRGF0YUNoZWNrQm94LlRvcCA6PSBVbmluc3RhbGxQcm9ncmVzc0Zvcm0uU3RhdHVzTGFiZWwuVG9wICsgVW5pbnN0YWxsUHJvZ3Jlc3NGb3JtLlN0YXR1c0xhYmVsLkhlaWdodCArIFNjYWxlWSgxNik7CiAgRGVsZXRlRGF0YUNoZWNrQm94LldpZHRoIDo9IFVuaW5zdGFsbFByb2dyZXNzRm9ybS5TdGF0dXNMYWJlbC5XaWR0aDsKICBEZWxldGVEYXRhQ2hlY2tCb3guSGVpZ2h0IDo9IFNjYWxlWSgyNCk7CiAgRGVsZXRlRGF0YUNoZWNrQm94LkNhcHRpb24gOj0gJ0Fsc28gZGVsZXRlIGFsbCBEcm9wU3BhY2UgbG9jYWwgZGF0YSBhbmQgc2V0dGluZ3MgKG9yaWdpbmFsIGZpbGVzIGFyZSBrZXB0KS4nOwogIERlbGV0ZURhdGFDaGVja0JveC5DaGVja2VkIDo9IFB1cmdlRGF0YVJlcXVlc3RlZDsKZW5kOwoKZnVuY3Rpb24gU2hvdWxkUHVyZ2VEYXRhKCk6IEJvb2xlYW47CmJlZ2luCiAgUmVzdWx0IDo9IFB1cmdlRGF0YVJlcXVlc3RlZCBvcgogICAgICAgICAgICAoKERlbGV0ZURhdGFDaGVja0JveCA8PiBuaWwpIGFuZCBEZWxldGVEYXRhQ2hlY2tCb3guQ2hlY2tlZCk7CmVuZDsKCnByb2NlZHVyZSBDdXJVbmluc3RhbGxTdGVwQ2hhbmdlZChDdXJVbmluc3RhbGxTdGVwOiBUVW5pbnN0YWxsU3RlcCk7CnZhcgogIERhdGFSb290OiBTdHJpbmc7CmJlZ2luCiAgaWYgQ3VyVW5pbnN0YWxsU3RlcCA8PiB1c1VuaW5zdGFsbCB0aGVuCiAgICBFeGl0OwoKICB7IENhcHR1cmUgdGhlIGludGVyYWN0aXZlIGNob2ljZSB3aGlsZSBpdHMgY29udHJvbCBpcyBzdGlsbCBhbGl2ZS4gfQogIGlmIChEZWxldGVEYXRhQ2hlY2tCb3ggPD4gbmlsKSBhbmQgRGVsZXRlRGF0YUNoZWNrQm94LkNoZWNrZWQgdGhlbgogICAgUHVyZ2VEYXRhUmVxdWVzdGVkIDo9IFRydWU7CgogIGlmIG5vdCBQdXJnZURhdGFSZXF1ZXN0ZWQgdGhlbgogICAgRXhpdDsKCiAgeyBEZWxUcmVlIGlzIGRlbGliZXJhdGVseSBjb25zdHJhaW5lZCB0byBEcm9wU3BhY2UncyBvd25lZCBMb2NhbEFwcERhdGEKICAgIHJvb3QuICBJdCBuZXZlciByZWFkcyB0aGUgZGF0YWJhc2UgYW5kIHRoZXJlZm9yZSBjYW5ub3QgZm9sbG93IG9yIGRlbGV0ZQogICAgZXh0ZXJuYWwgZmlsZSByZWZlcmVuY2VzIHN0b3JlZCBieSBUZW1wb3JhcnkgU3BhY2UuICBbVW5pbnN0YWxsRGVsZXRlXQogICAgcmVtYWlucyBhcyBhIGZpbmFsIGlkZW1wb3RlbnQgY2xlYW51cCBwYXNzLiB9CiAgRGF0YVJvb3QgOj0gRXhwYW5kQ29uc3RhbnQoJ3tsb2NhbGFwcGRhdGF9XERyb3BTcGFjZScpOwogIExvZygnQ29tcGxldGUgdW5pbnN0YWxsOiByZW1vdmluZyBEcm9wU3BhY2Utb3duZWQgZGF0YSByb290ICcgKyBEYXRhUm9vdCk7CiAgaWYgRGlyRXhpc3RzKERhdGFSb290KSBhbmQgbm90IERlbFRyZWUoRGF0YVJvb3QsIFRydWUsIFRydWUsIFRydWUpIHRoZW4KICAgIFJhaXNlRXhjZXB0aW9uKCdDb21wbGV0ZSB1bmluc3RhbGwgY291bGQgbm90IHJlbW92ZSB0aGUgRHJvcFNwYWNlIGxvY2FsIGRhdGEgZGlyZWN0b3J5LicpOwplbmQ7Cg==
+#ifndef AppVersion
+  #error AppVersion must be supplied by scripts/Build-Installer.ps1
+#endif
+#ifndef VersionInfoVersion
+  #error VersionInfoVersion must be supplied by scripts/Build-Installer.ps1
+#endif
+#ifndef VersionCode
+  #error VersionCode must be supplied by scripts/Build-Installer.ps1
+#endif
+#ifndef SourceExe
+  #error SourceExe must be supplied by scripts/Build-Installer.ps1
+#endif
+#ifndef OutputDir
+  #error OutputDir must be supplied by scripts/Build-Installer.ps1
+#endif
+#ifndef OutputBaseFilename
+  #define OutputBaseFilename "DropSpaceSetup"
+#endif
+
+[Setup]
+AppId={{E11EC281-BCE7-4F98-8EEF-2387E202CF0F}
+AppName=DropSpace
+AppVersion={#AppVersion}
+AppVerName=DropSpace {#AppVersion}
+AppPublisher=DropSpace
+AppPublisherURL=https://github.com/airanluo-dot/DropSpace
+AppSupportURL=https://github.com/airanluo-dot/DropSpace/issues
+AppUpdatesURL=https://github.com/airanluo-dot/DropSpace/releases
+DefaultDirName={localappdata}\Programs\DropSpace
+DefaultGroupName=DropSpace
+DisableProgramGroupPage=auto
+AllowNoIcons=yes
+OutputDir={#OutputDir}
+OutputBaseFilename={#OutputBaseFilename}
+SetupIconFile=..\src\DropSpace.App\Assets\AppIcon.ico
+UninstallDisplayIcon={app}\DropSpace.exe
+UninstallDisplayName=DropSpace
+Uninstallable=yes
+CreateUninstallRegKey=yes
+UninstallFilesDir={app}\uninstall
+UsePreviousAppDir=yes
+UsePreviousGroup=yes
+UsePreviousTasks=yes
+UninstallLogMode=append
+PrivilegesRequired=lowest
+SetupArchitecture=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+MinVersion=10.0.22000
+CloseApplications=no
+RestartApplications=no
+ChangesAssociations=no
+ChangesEnvironment=no
+Compression=lzma2/ultra64
+SolidCompression=yes
+WizardStyle=modern dynamic
+VersionInfoVersion={#VersionInfoVersion}
+VersionInfoTextVersion={#AppVersion}
+VersionInfoCompany=DropSpace
+VersionInfoDescription=DropSpace Setup
+VersionInfoProductName=DropSpace
+VersionInfoProductVersion={#VersionInfoVersion}
+VersionInfoProductTextVersion={#AppVersion}
+SignedUninstaller=no
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Files]
+Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "DropSpace.exe"; Flags: ignoreversion
+
+[Icons]
+Name: "{autoprograms}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+
+[Registry]
+Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
+Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"; Flags: uninsdeletekey
+Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: dword; ValueName: "VersionCode"; ValueData: "{#VersionCode}"; Flags: uninsdeletekey
+
+[Run]
+Filename: "{app}\DropSpace.exe"; Description: "{cm:LaunchProgram,DropSpace}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+Type: files; Name: "{app}\install.version"
+Type: filesandordirs; Name: "{localappdata}\DropSpace"; Check: ShouldPurgeData
+
+[Code]
+const
+  EventModifyState = $0002;
+  SynchronizeAccess = $00100000;
+  WaitObject0 = 0;
+  MaintenanceWaitMilliseconds = 15000;
+
+var
+  DeleteDataCheckBox: TNewCheckBox;
+  PurgeDataRequested: Boolean;
+
+function OpenEvent(DesiredAccess: DWORD; InheritHandle: BOOL; Name: String): HANDLE;
+external 'OpenEventW@kernel32.dll stdcall';
+
+function SignalEvent(EventHandle: HANDLE): BOOL;
+external 'SetEvent@kernel32.dll stdcall';
+
+function WaitForSingleObject(EventHandle: HANDLE; Milliseconds: DWORD): DWORD;
+external 'WaitForSingleObject@kernel32.dll stdcall';
+
+function CloseKernelHandle(Handle: HANDLE): BOOL;
+external 'CloseHandle@kernel32.dll stdcall';
+
+function HasParameter(const Name: String): Boolean;
+var
+  Index: Integer;
+begin
+  Result := False;
+  for Index := 1 to ParamCount do
+  begin
+    if CompareText(ParamStr(Index), Name) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function InitializeSetup: Boolean;
+var
+  InstalledVersionCode: Cardinal;
+begin
+  Result := True;
+  if RegQueryDWordValue(HKCU64, 'Software\DropSpace\Install', 'VersionCode', InstalledVersionCode) and
+     (InstalledVersionCode > {#VersionCode}) and
+     (not HasParameter('/ALLOWDOWNGRADE=1')) then
+  begin
+    MsgBox(
+      'A newer DropSpace version is already installed. Setup blocked this downgrade to protect the installation. ' +
+      'Use a newer installer, or explicitly pass /ALLOWDOWNGRADE=1 if you intentionally need to test a downgrade.',
+      mbError,
+      MB_OK);
+    Result := False;
+  end;
+end;
+
+function RequestMaintenanceShutdown(): Boolean;
+var
+  RequestEvent: HANDLE;
+  StoppedEvent: HANDLE;
+  WaitResult: DWORD;
+  Attempt: Integer;
+begin
+  Result := True;
+  if not CheckForMutexes('Local\DropSpace.Running.v1') then
+    Exit;
+
+  Log('DropSpace is running; requesting graceful maintenance shutdown through named events.');
+  RequestEvent := OpenEvent(EventModifyState, False, 'Local\DropSpace.MaintenanceShutdown.v1');
+  StoppedEvent := OpenEvent(SynchronizeAccess, False, 'Local\DropSpace.MaintenanceStopped.v1');
+  if (RequestEvent = 0) or (StoppedEvent = 0) then
+  begin
+    if RequestEvent <> 0 then
+      CloseKernelHandle(RequestEvent);
+    if StoppedEvent <> 0 then
+      CloseKernelHandle(StoppedEvent);
+    Log(Format('Maintenance events were unavailable (Win32 error %d).', [DLLGetLastError]));
+    Result := False;
+    Exit;
+  end;
+
+  if not SignalEvent(RequestEvent) then
+  begin
+    Log(Format('Could not signal the maintenance request (Win32 error %d).', [DLLGetLastError]));
+    CloseKernelHandle(RequestEvent);
+    CloseKernelHandle(StoppedEvent);
+    Result := False;
+    Exit;
+  end;
+
+  WaitResult := WaitForSingleObject(StoppedEvent, MaintenanceWaitMilliseconds);
+  CloseKernelHandle(RequestEvent);
+  CloseKernelHandle(StoppedEvent);
+  if WaitResult <> WaitObject0 then
+  begin
+    Log(Format('Timed out waiting for graceful maintenance shutdown (wait result %d).', [WaitResult]));
+    Result := False;
+    Exit;
+  end;
+
+  { The stopped event is signaled after managed disposal completes and immediately before
+    process exit. Give the kernel a bounded moment to release the process-owned mutex. }
+  for Attempt := 1 to 50 do
+  begin
+    if not CheckForMutexes('Local\DropSpace.Running.v1') then
+      Break;
+    Sleep(100);
+  end;
+  Result := not CheckForMutexes('Local\DropSpace.Running.v1');
+  if Result then
+    Log('DropSpace completed graceful maintenance shutdown.')
+  else
+    Log('DropSpace acknowledged shutdown but its process mutex remained present.');
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if not RequestMaintenanceShutdown() then
+    Result := 'DropSpace is still running and could not close gracefully. Choose Exit DropSpace, then run Setup again.';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    SaveStringToFile(ExpandConstant('{app}\install.version'), '{#AppVersion}', False);
+end;
+
+function InitializeUninstall: Boolean;
+begin
+  { Snapshot the command-line choice before the progress UI is created.  Inno
+    evaluates uninstall section checks late in the transaction, when wizard
+    controls are not a reliable source of silent-mode state. }
+  PurgeDataRequested := HasParameter('/PURGEDATA=1');
+  Result := RequestMaintenanceShutdown();
+  if not Result and not UninstallSilent then
+    MsgBox(
+      'DropSpace is still running and could not close gracefully. Choose Exit DropSpace, then start uninstall again.',
+      mbError,
+      MB_OK);
+end;
+
+procedure InitializeUninstallProgressForm;
+begin
+  DeleteDataCheckBox := TNewCheckBox.Create(UninstallProgressForm);
+  DeleteDataCheckBox.Parent := UninstallProgressForm;
+  DeleteDataCheckBox.Left := UninstallProgressForm.StatusLabel.Left;
+  DeleteDataCheckBox.Top := UninstallProgressForm.StatusLabel.Top + UninstallProgressForm.StatusLabel.Height + ScaleY(16);
+  DeleteDataCheckBox.Width := UninstallProgressForm.StatusLabel.Width;
+  DeleteDataCheckBox.Height := ScaleY(24);
+  DeleteDataCheckBox.Caption := 'Also delete all DropSpace local data and settings (original files are kept).';
+  DeleteDataCheckBox.Checked := PurgeDataRequested;
+end;
+
+function ShouldPurgeData(): Boolean;
+begin
+  Result := PurgeDataRequested or
+            ((DeleteDataCheckBox <> nil) and DeleteDataCheckBox.Checked);
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  DataRoot: String;
+begin
+  if CurUninstallStep <> usUninstall then
+    Exit;
+
+  { Capture the interactive choice while its control is still alive. }
+  if (DeleteDataCheckBox <> nil) and DeleteDataCheckBox.Checked then
+    PurgeDataRequested := True;
+
+  if not PurgeDataRequested then
+    Exit;
+
+  { DelTree is deliberately constrained to DropSpace's owned LocalAppData
+    root.  It never reads the database and therefore cannot follow or delete
+    external file references stored by Temporary Space.  [UninstallDelete]
+    remains as a final idempotent cleanup pass. }
+  DataRoot := ExpandConstant('{localappdata}\DropSpace');
+  Log('Complete uninstall: removing DropSpace-owned data root ' + DataRoot);
+  if DirExists(DataRoot) and not DelTree(DataRoot, True, True, True) then
+    RaiseException('Complete uninstall could not remove the DropSpace local data directory.');
+end;
