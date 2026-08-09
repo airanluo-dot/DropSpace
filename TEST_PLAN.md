@@ -162,6 +162,7 @@ Reference device specifications are recorded with results.
 - Database/payload size after retention cleanup.
 - 100 Overlay reveal/dismiss and compact/expanded cycles with window count, working set, handlers, and Composition resource observations.
 - Hidden/idle CPU and GPU observation: no continuous `CompositionTarget.Rendering`, DispatcherTimer, global input hook, or high-frequency loop.
+- Interrupt a width/height/radius/content spring in both directions and prove every channel settles with no retained frame subscription.
 
 No performance number is accepted without hardware, build configuration, dataset, and measurement method.
 
@@ -187,4 +188,6 @@ For each phase/release retain:
 - Accessibility and privacy review notes.
 - Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
 
-The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, executes 100 real Overlay lifecycle/animation cycles within bounded HWND/GDI/USER/private-byte deltas with no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
+The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, registers `AddClipboardFormatListener`, writes two unique system clipboard strings through the real Windows clipboard, observes `WM_CLIPBOARDUPDATE`, reads and persists them, verifies Pause/Resume and self-write suppression, removes its test rows, creates one native activation host per monitor, executes 100 real Overlay lifecycle/animation cycles within bounded HWND/GDI/USER/private-byte deltas with no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
+
+Automation does not claim visual quality or Explorer pointer routing. Before Preview sign-off, a real Windows 11 desktop must still verify zero residual pixels in Hidden, Explorer/Desktop `CF_HDROP` entry and Drop, ordinary click-through beneath the activation host, Dynamic Island/Notch motion quality, drag-out, mixed-DPI monitors, and fullscreen behavior.

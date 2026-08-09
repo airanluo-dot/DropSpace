@@ -64,7 +64,7 @@ Pinned is not a store and the Overlay is not a second product or page. Clipboard
 
 ## Top Overlay
 
-- With zero Temporary Space items and no drag, the visible Overlay is absent; a 3-pixel top-center activation strip remains transparent and no-activate so standard file drag events can reveal it.
+- With zero Temporary Space items and no drag, the visual Overlay HWND is actually hidden and has an empty window region. A separate zero-alpha 680 × 72 DIP native OLE activation host receives shell file drags without drawing XAML, chrome, borders, shadows, or backdrop pixels.
 - A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
@@ -99,7 +99,7 @@ Order: primary action; Copy/Open variants; Pin; Locate/Replace when relevant; Re
 3. On drop, read storage items, normalize references, and create one batch.
 4. Report accepted and rejected counts without blocking successful items.
 
-The main Space well and the hidden top activation zone both use standard `StorageItems`. On multiple displays, the zone receiving the drag becomes the active Overlay display unless Primary is selected.
+The main Space well continues to use WinUI `StorageItems`; the hidden top host accepts shell `CF_HDROP` through OLE and both converge on `MainViewModel.AddPathsAsync`. On multiple displays, the host receiving the drag becomes the active Overlay display unless Primary is selected.
 
 ### Drag out
 

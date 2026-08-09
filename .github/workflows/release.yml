@@ -49,7 +49,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content RELEASE_VERSION -Raw).Trim()
-          if ($version -ne "v0.1.0-preview.1") { throw "Unexpected release version: $version" }
+          if ($version -ne "v0.1.0-preview.2") { throw "Unexpected release version: $version" }
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
@@ -128,7 +128,7 @@ jobs:
       - name: Upload validated release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.1
+          name: DropSpace-v0.1.0-preview.2
           path: |
             artifacts/release/DropSpace.exe
             artifacts/release/DropSpace-x64.msix
@@ -158,16 +158,16 @@ jobs:
       - name: Download validated release bundle
         uses: actions/download-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.1
+          name: DropSpace-v0.1.0-preview.2
           path: artifacts/release
 
       - name: Create GitHub Preview Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-preview.1
+          tag_name: v0.1.0-preview.2
           target_commitish: ${{ github.sha }}
-          name: DropSpace v0.1.0-preview.1
-          body_path: .github/release-notes/v0.1.0-preview.1.md
+          name: DropSpace v0.1.0-preview.2
+          body_path: .github/release-notes/v0.1.0-preview.2.md
           prerelease: true
           draft: false
           make_latest: false

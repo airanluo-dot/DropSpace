@@ -11,14 +11,14 @@ DropSpace is a native **Preview release candidate**. The repository contains the
 The implemented vertical slice includes:
 
 - Space file/folder reference staging with drag-in, picker intake, external drag-out, open, copy path, pin, remove, and Locate/Replace.
-- Event-driven, bounded Clipboard history for text, URLs, colors, code-like text, and resource-limited images.
+- Event-driven, bounded Clipboard history driven by the desktop `WM_CLIPBOARDUPDATE` listener for text, URLs, colors, code-like text, and resource-limited images.
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
-- An event-driven top-edge drag activation zone, formal Overlay state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
+- A separate zero-alpha Win32/OLE top-edge drag host, truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 
-Windows CI audits dependencies, builds the x64 app and unsigned MSIX, publishes the portable EXE, and runs policy/persistence tests. The release workflow also starts the built EXE and verifies Windows App SDK/SQLite/AppData initialization, second-instance redirection, and clean exit. Explorer/Desktop drag compatibility, tray recovery after Explorer restart, accessibility, mixed-DPI geometry, and animation feel remain manual release-candidate validation gates and are not claimed by automation.
+Windows CI audits dependencies, builds the x64 app and unsigned MSIX, publishes the portable EXE, and runs policy/persistence tests. The release workflow also starts the built EXE and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/Pause/Resume/self-write suppression, activation-host creation, 100 Overlay lifecycle cycles, second-instance redirection, and clean exit. Explorer/Desktop OLE hit routing, zero-pixel Hidden appearance, tray recovery after Explorer restart, accessibility, mixed-DPI geometry, and animation feel remain manual release-candidate validation gates and are not claimed by automation.
 
 ## Download and run
 

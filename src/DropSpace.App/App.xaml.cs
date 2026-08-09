@@ -51,6 +51,8 @@ public partial class App : Application
             _window = new MainWindow(viewModel, _services.GetRequiredService<ILogger<MainWindow>>());
             _window.ExitRequested += OnExitRequested;
             _window.Activate();
+            _services.GetRequiredService<ClipboardNotificationService>().Initialize(
+                WinRT.Interop.WindowNative.GetWindowHandle(_window));
 
             try
             {
@@ -61,8 +63,13 @@ public partial class App : Application
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
+                    var clipboardMetrics = await _services.GetRequiredService<ClipboardIntegrationSmoke>()
+                        .RunAsync();
                     var metrics = await _overlayWindows.RunLifecycleSmokeAsync(100);
-                    WriteSmokeMarker(_services.GetRequiredService<AppStoragePaths>(), metrics);
+                    WriteSmokeMarker(
+                        _services.GetRequiredService<AppStoragePaths>(),
+                        metrics,
+                        clipboardMetrics);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -120,7 +127,9 @@ public partial class App : Application
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
         services.AddSingleton<ISettingsService, JsonSettingsService>();
+        services.AddSingleton<ClipboardNotificationService>();
         services.AddSingleton<ClipboardCaptureService>();
+        services.AddSingleton<ClipboardIntegrationSmoke>();
         services.AddSingleton<ShellActionService>();
         services.AddSingleton<ThumbnailService>();
         services.AddSingleton<DragStorageItemService>();
@@ -129,6 +138,7 @@ public partial class App : Application
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
+        services.AddSingleton<OleDragDropService>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();
@@ -179,7 +189,10 @@ public partial class App : Application
         }
     }
 
-    private static void WriteSmokeMarker(AppStoragePaths paths, OverlayLifecycleMetrics metrics)
+    private static void WriteSmokeMarker(
+        AppStoragePaths paths,
+        OverlayLifecycleMetrics metrics,
+        ClipboardIntegrationMetrics clipboard)
     {
         var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
         var marker = JsonSerializer.Serialize(new
@@ -189,11 +202,21 @@ public partial class App : Application
             storageWritable = Directory.Exists(paths.Data),
             overlayCycles = metrics.Cycles,
             overlayWindowCount = metrics.WindowCount,
+            dragActivationHostCount = metrics.ActivationHostCount,
             overlayHandleDelta = metrics.HandleDelta,
             overlayGdiObjectDelta = metrics.GdiObjectDelta,
             overlayUserObjectDelta = metrics.UserObjectDelta,
             overlayPrivateBytesDelta = metrics.PrivateBytesDelta,
             noContinuousFrameLoop = metrics.NoContinuousFrameSubscription,
+            clipboardListenerRegistered = clipboard.ListenerRegistered,
+            clipboardObservedUpdateDelta = clipboard.ObservedUpdateDelta,
+            clipboardSuccessfulCaptureDelta = clipboard.SuccessfulCaptureDelta,
+            clipboardFailedReadDelta = clipboard.FailedReadDelta,
+            clipboardFirstTextPersisted = clipboard.FirstTextPersisted,
+            clipboardSecondTextPersisted = clipboard.SecondTextPersisted,
+            clipboardPauseVerified = clipboard.PauseVerified,
+            clipboardResumeVerified = clipboard.ResumeVerified,
+            clipboardSelfWriteSuppressionVerified = clipboard.SelfWriteSuppressionVerified,
         });
         File.WriteAllText(markerPath, marker);
     }

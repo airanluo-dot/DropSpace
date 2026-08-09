@@ -309,7 +309,7 @@ Make Temporary Space available as a low-idle, top-edge file drop interaction wit
 
 ### Features
 
-Formal interruptible Overlay state machine; hidden drag activation zone; Dynamic Island/Notch modes; Compact/Expanded actions; external drag-out; Reduced Motion; per-monitor DPI placement; fullscreen suppression.
+Formal interruptible Overlay state machine; independent per-monitor Win32/OLE drag activation hosts; truly hidden visual HWND; continuously spring-driven Dynamic Island/Notch geometry; Compact/Expanded actions; external drag-out; Reduced Motion; per-monitor DPI placement/topology rebuild; fullscreen suppression; Win32 clipboard listener health and integration smoke.
 
 ### Tests
 

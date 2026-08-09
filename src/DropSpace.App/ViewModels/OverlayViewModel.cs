@@ -110,15 +110,16 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public void CancelDrag() => _stateMachine.CancelDrag();
 
-    public async Task CompleteDropAsync(
+    public async Task<int> CompleteDropAsync(
         string monitorId,
         IEnumerable<string> paths,
         CancellationToken cancellationToken = default)
     {
         ActiveMonitorId = monitorId;
-        await _mainViewModel.AddPathsAsync(paths, cancellationToken);
+        var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
+        return accepted;
     }
 
     public async Task ExpandAsync(CancellationToken cancellationToken = default)
