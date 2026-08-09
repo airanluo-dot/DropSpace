@@ -4,6 +4,7 @@ using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Overlay;
+using DropSpace.Core.Policies;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Logging;
 using DropSpace.Infrastructure.Settings;
@@ -283,6 +284,7 @@ public partial class App : Application
             stage,
             exceptionType = exception.GetType().Name,
             errorCode = exception.HResult,
+            error = LogRedactor.Redact(exception.Message),
         });
     }
 

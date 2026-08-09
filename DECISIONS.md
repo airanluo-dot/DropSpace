@@ -126,7 +126,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 - Status: Accepted and implemented; supersedes the geometry/hit-routing portion of D-024
 - Context: Real Preview.2 Explorer/Desktop testing showed that `RegisterDragDrop` success did not yield `DragEnter`; `HTTRANSPARENT` made cross-thread target discovery skip the zero-alpha HWND, and overlapping activation/visual targets created handoff ambiguity.
-- Decision: Return `HTCLIENT` and reduce idle interception to one physical top-edge pixel across 960 DIP. On valid OLE entry, expand the same HWND to 760 × 112 DIP, keep it above the visual Overlay and own the operation through Drop/Leave. Let the shaped visual HWND own direct drops only when already visible.
+- Decision: Return `HTCLIENT`, use visually imperceptible but nonzero uniform alpha 1/255, and reduce idle interception to one physical top-edge pixel across 960 DIP. Fully transparent layered HWNDs are skipped by target discovery. On valid OLE entry, expand the same HWND to 760 × 112 DIP, keep it above the visual Overlay and own the operation through Drop/Leave. Let the shaped visual HWND own direct drops only when already visible.
 - Reason: `WindowFromPoint`/OLE can discover a real registered target, while normal non-drag input loses at most the single topmost physical row and no polling/hook is needed.
 - Trade-offs: The exact top pixel is intentionally owned by DropSpace; real Explorer/Desktop and maximized-title-bar behavior remains manual acceptance evidence.
 

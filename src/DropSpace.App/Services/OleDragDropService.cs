@@ -12,7 +12,7 @@ public sealed record DragActivationCallbacks(
     Func<string, IReadOnlyList<string>, Task> Dropped);
 
 /// <summary>
-/// Owns OLE initialization and native drop-target registrations. Both the zero-alpha reveal host
+/// Owns OLE initialization and native drop-target registrations. Both the visually transparent reveal host
 /// and the independently visible WinUI island feed the same callbacks and AddPathsAsync pipeline.
 /// </summary>
 public sealed class OleDragDropService : IDisposable
@@ -182,9 +182,13 @@ public sealed class DragActivationHost : IDisposable
             Hosts[WindowHandle] = this;
         }
 
-        if (!SetLayeredWindowAttributes(WindowHandle, 0, 0, LayeredAlpha))
+        // A uniform alpha of zero is omitted by WindowFromPoint/OLE target discovery on supported
+        // Windows builds even when WM_NCHITTEST returns HTCLIENT. One out of 255 keeps the unpainted
+        // host visually imperceptible while leaving it discoverable; the idle surface is one physical
+        // pixel high so it does not interfere with normal title-bar interaction.
+        if (!SetLayeredWindowAttributes(WindowHandle, 0, 1, LayeredAlpha))
         {
-            var exception = new Win32Exception(Marshal.GetLastWin32Error(), "The activation HWND could not be made zero-alpha.");
+            var exception = new Win32Exception(Marshal.GetLastWin32Error(), "The activation HWND could not be made visually transparent.");
             DestroyHostWindow();
             throw exception;
         }
@@ -232,7 +236,7 @@ public sealed class DragActivationHost : IDisposable
             IsDropReady,
             "activation-host");
         _logger.LogInformation(
-            "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, idle bounds {Left},{Top},{Width},{Height}, active bounds {ActiveLeft},{ActiveTop},{ActiveWidth},{ActiveHeight}; zero-alpha=yes, mouse-hit-test=client, ownership=activation-through-drop.",
+            "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, idle bounds {Left},{Top},{Width},{Height}, active bounds {ActiveLeft},{ActiveTop},{ActiveWidth},{ActiveHeight}; uniform-alpha=1/255, mouse-hit-test=client, ownership=activation-through-drop.",
             monitor.Id,
             WindowHandle,
             monitor.Dpi,

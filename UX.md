@@ -64,7 +64,7 @@ Pinned is not a store and the Overlay is not a second product or page. Clipboard
 
 ## Top Overlay
 
-- With zero Temporary Space items and no drag, the visual Overlay HWND is actually hidden and has an empty window region. A separate zero-alpha native OLE host exposes a wide one-physical-pixel top hot edge; a real `CF_HDROP` entry expands that same owner to a forgiving 760 × 112 DIP capture area through Drop/Leave without drawing XAML, chrome, borders, shadows, or backdrop pixels.
+- With zero Temporary Space items and no drag, the visual Overlay HWND is actually hidden and has an empty window region. A separate unpainted 1/255-alpha native OLE host exposes a wide one-physical-pixel top hot edge; nonzero uniform alpha is required for Windows target discovery but is visually imperceptible. A real `CF_HDROP` entry expands that same owner to a forgiving 760 × 112 DIP capture area through Drop/Leave without drawing XAML, chrome, borders, shadows, or backdrop pixels.
 - A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.

@@ -23,7 +23,7 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | Hide-to-tray background operation | Supported | Keep desktop process alive; not an OS background task |
 | Startup at sign-in | Supported/packaging-dependent | Activation/startup registration; V1.1 preference |
 | Single instance | Supported | Windows App SDK AppInstance redirection |
-| Hidden top-edge file-drag reveal | Supported with Win32/OLE interop | Independent zero-alpha activation HWNDs plus `IDropTarget`/`RegisterDragDrop`/`CF_HDROP` |
+| Hidden top-edge file-drag reveal | Supported with Win32/OLE interop | Independent visually transparent activation HWNDs plus `IDropTarget`/`RegisterDragDrop`/`CF_HDROP` |
 | Dynamic Island / Notch | Supported with WinUI Composition and shaped HWND | Shared state/data; visual geometry only differs |
 | Per-monitor DPI placement | Supported with Win32 interop | Physical monitor bounds + effective DPI; DIP-to-pixel conversion at window boundary |
 | Portable single-file EXE | Supported on Windows App SDK 1.5+ | Unpackaged, Windows App SDK self-contained, .NET self-contained, content extraction enabled |
@@ -63,7 +63,7 @@ Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/window
 DropSpace separates two lifecycles per enabled display:
 
 - The visual WinUI Overlay HWND owns only the Island/Notch. `Hidden` clears its HRGN and calls `SW_HIDE`; no XAML surface, backdrop, frame, shadow, or border remains visible.
-- A dedicated native activation HWND stays zero-alpha and registers a managed `IDropTarget` with `RegisterDragDrop`. Idle it is 960 DIP wide but exactly one physical pixel high at the monitor top edge. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED` and `WM_NCHITTEST=HTCLIENT`: Microsoft documents `HTTRANSPARENT` as forwarding only within the same thread, so it cannot be used for reliable Explorer target discovery. A valid `DragEnter` expands the same HWND to 760 × 112 DIP and preserves ownership through Drop/Leave.
+- A dedicated native activation HWND uses uniform alpha 1/255 and registers a managed `IDropTarget` with `RegisterDragDrop`. Alpha zero is skipped by Windows point/OLE discovery; 1/255 is visually imperceptible and keeps the surface discoverable. Idle it is 960 DIP wide but exactly one physical pixel high at the monitor top edge. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED` and `WM_NCHITTEST=HTCLIENT`: Microsoft documents `HTTRANSPARENT` as forwarding only within the same thread, so it cannot be used for reliable Explorer target discovery. A valid `DragEnter` expands the same HWND to 760 × 112 DIP and preserves ownership through Drop/Leave.
 
 The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. Hidden-edge drags remain owned by the activation HWND for their whole lifetime; Reveal never hands them to the visual window. When Compact/Expanded is already visible, its shaped HWND independently accepts direct Drop outside the one-pixel idle edge. There are no overlapping active targets, global hooks, mouse-button scans, or cursor polling.
 

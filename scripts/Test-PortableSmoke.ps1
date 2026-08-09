@@ -51,7 +51,7 @@ try
 
                 if ($marker.failed -eq $true)
                 {
-                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode))."
+                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode)): $($marker.error)"
                 }
 
                 if ($marker.ready -eq $true)

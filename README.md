@@ -15,7 +15,7 @@ The implemented vertical slice includes:
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
-- A separate zero-alpha Win32/OLE top-edge drag host, truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
+- A separate visually transparent Win32/OLE top-edge drag host, truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 - A pinned Inno Setup 7.0.2 `DropSpaceSetup.exe` with custom per-user install path, independent uninstaller, stable product identity, graceful in-place upgrades, preserve-data uninstall, and explicit complete-uninstall mode.
 
