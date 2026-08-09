@@ -1,15 +1,12 @@
 using System.Diagnostics;
-using System.Numerics;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
-using Microsoft.UI.Composition;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
@@ -20,29 +17,30 @@ namespace DropSpace.App;
 
 public sealed partial class OverlayWindow : Window
 {
-    private const double ActivationWidth = 280;
-    private const double ActivationHeight = 3;
+    private const double HostWidth = 600;
+    private const double HostHeight = 360;
     private readonly OverlayViewModel _viewModel;
     private readonly MonitorDescriptor _monitor;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly Action _openMainWindow;
     private readonly ILogger<OverlayWindow> _logger;
     private readonly nint _windowHandle;
-    private OverlayGeometry _currentGeometry = OverlayGeometry.Hidden;
-    private OverlayDisplayMode _currentDisplayMode = OverlayDisplayMode.DynamicIsland;
+    private readonly IDisposable _nativeDropTarget;
+    private readonly OverlayMotionController _motion = new(OverlayMotionValues.Hidden);
+    private OverlayState _lastStableState = OverlayState.Hidden;
+    private OverlayState _previousState = OverlayState.Hidden;
+    private OverlayDisplayMode _renderDisplayMode = OverlayDisplayMode.DynamicIsland;
+    private long _lastFrameTimestamp;
     private bool _isActiveWindow;
-    private bool _isModeMorphRunning;
-    private long _animationRevision;
-    private long _modeMorphStarted;
-    private double _modeFromOffset;
-    private double _modeToOffset;
-    private double _modeFromTopRadius;
-    private double _modeToTopRadius;
+    private bool _isVisible;
+    private bool _hasFrameSubscription;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
         MonitorDescriptor monitor,
         MonitorLayoutService monitorLayout,
+        OleDragDropService dragDropService,
+        DragActivationCallbacks dragCallbacks,
         Action openMainWindow,
         ILogger<OverlayWindow> logger)
     {
@@ -63,29 +61,35 @@ public sealed partial class OverlayWindow : Window
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
-        OverlayWindowInterop.ConfigureToolWindow(_windowHandle);
-        ConfigureActivationZone();
+        OverlayWindowInterop.ConfigureVisualWindow(_windowHandle);
+        PositionFixedHost();
+        OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
+        OverlayWindowInterop.Hide(_windowHandle);
+        _nativeDropTarget = dragDropService.RegisterVisualTarget(
+            _windowHandle,
+            monitor.Id,
+            dragCallbacks);
     }
 
     public string MonitorId => _monitor.Id;
 
-    internal bool HasActiveFrameSubscription => _isModeMorphRunning;
+    internal bool HasActiveFrameSubscription => _hasFrameSubscription;
 
     public void ApplySnapshot(OverlaySnapshot snapshot, bool isActiveWindow, bool activationEnabled)
     {
-        _isActiveWindow = isActiveWindow;
-        if (!activationEnabled)
+        _isActiveWindow = isActiveWindow && activationEnabled;
+        if (!_isActiveWindow)
         {
-            AppWindow.Hide();
+            HideImmediately();
             return;
         }
 
         var suppressedForFullscreen = snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
                                       _monitorLayout.IsForegroundFullscreen(_monitor);
-        if (!isActiveWindow || snapshot.State == OverlayState.Hidden || suppressedForFullscreen)
+        if (suppressedForFullscreen)
         {
-            ConfigureActivationZone();
-            if (isActiveWindow && snapshot.State == OverlayState.ModeTransition && suppressedForFullscreen)
+            HideImmediately();
+            if (snapshot.State == OverlayState.ModeTransition)
             {
                 DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
             }
@@ -93,123 +97,138 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        AppWindow.Show(false);
-        OverlayWindowInterop.SetNoActivate(_windowHandle, snapshot.State != OverlayState.Expanded);
-        if (snapshot.State != OverlayState.ModeTransition)
+        if (snapshot.State == OverlayState.Hidden ||
+            snapshot.State == OverlayState.ModeTransition && snapshot.TemporaryItemCount == 0)
         {
-            UpdatePanelVisibility(snapshot.State);
-        }
+            HideImmediately();
+            _lastStableState = OverlayState.Hidden;
+            _previousState = snapshot.State;
+            if (snapshot.State == OverlayState.ModeTransition)
+            {
+                DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
+            }
 
-        if (snapshot.State == OverlayState.ModeTransition)
-        {
-            StartModeMorph(snapshot.TargetDisplayMode);
             return;
         }
 
-        StopModeMorph();
-        _currentDisplayMode = snapshot.DisplayMode;
-        var geometry = OverlayGeometry.For(snapshot.State, snapshot.DisplayMode);
-        _ = AnimateToAsync(geometry, snapshot.State);
+        if (snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady or
+            OverlayState.Compact or OverlayState.Expanded)
+        {
+            _lastStableState = snapshot.State;
+        }
+
+        var displayMode = snapshot.State == OverlayState.ModeTransition
+            ? snapshot.TargetDisplayMode
+            : snapshot.DisplayMode;
+        _renderDisplayMode = displayMode;
+        var targetState = snapshot.State == OverlayState.ModeTransition
+            ? ResolveModeTransitionState(snapshot)
+            : snapshot.State;
+        var target = CreateMotionTarget(targetState, displayMode);
+
+        EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
+        PrepareContentForTarget(target);
+        if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
+        {
+            _motion.PulseDropTarget(0.94);
+        }
+
+        _motion.SetTarget(target, IsReducedMotion());
+        StartAnimationFrames();
+        _previousState = snapshot.State;
     }
 
     public void CloseForShutdown()
     {
-        StopModeMorph();
+        StopAnimationFrames();
+        _nativeDropTarget.Dispose();
         Close();
     }
 
-    private void ConfigureActivationZone()
+    private OverlayState ResolveModeTransitionState(OverlaySnapshot snapshot)
     {
-        _animationRevision++;
-        StopModeMorph();
-        _isActiveWindow = false;
+        if (_lastStableState is OverlayState.DragApproaching or OverlayState.DragReady or
+            OverlayState.Compact or OverlayState.Expanded)
+        {
+            return _lastStableState;
+        }
+
+        return snapshot.TemporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
+    }
+
+    private void EnsureVisualHostShown(bool allowActivation)
+    {
+        PositionFixedHost();
+        OverlayWindowInterop.SetNoActivate(_windowHandle, !allowActivation);
+        if (_isVisible)
+        {
+            OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
+            return;
+        }
+
+        ApplyMotionFrame(_motion.Current);
+        OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
+        _isVisible = true;
+    }
+
+    private void HideImmediately()
+    {
+        StopAnimationFrames();
         Surface.Opacity = 0;
-        Root.Opacity = 1;
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
-        var width = ToPixels(ActivationWidth);
-        var height = Math.Max(1, ToPixels(ActivationHeight));
-        var x = _monitor.Left + (_monitor.Width - width) / 2;
-        AppWindow.MoveAndResize(new RectInt32(x, _monitor.Top, width, height));
-        OverlayWindowInterop.ApplyActivationRegion(_windowHandle, width, height);
-        OverlayWindowInterop.SetNoActivate(_windowHandle, true);
-        AppWindow.Show(false);
-        _currentGeometry = OverlayGeometry.Hidden;
+        OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
+        OverlayWindowInterop.Hide(_windowHandle);
+        _motion.SnapTo(OverlayMotionValues.Hidden);
+        _isVisible = false;
     }
 
-    private async Task AnimateToAsync(OverlayGeometry target, OverlayState state)
+    private void PositionFixedHost()
     {
-        var revision = ++_animationRevision;
-        var previous = _currentGeometry;
-        _currentGeometry = target;
-        Surface.Opacity = 1;
-        var reducedMotion = IsReducedMotion();
-        var targetWidth = ToPixels(target.Width);
-        var targetHeight = ToPixels(target.Height + target.TopOffset);
-        var previousWidth = ToPixels(previous.Width);
-        var previousHeight = ToPixels(previous.Height + previous.TopOffset);
-        var hostWidth = Math.Max(targetWidth, previousWidth);
-        var hostHeight = Math.Max(targetHeight, previousHeight);
-        MoveHost(hostWidth, hostHeight);
+        var width = ToPixels(HostWidth);
+        var height = ToPixels(HostHeight);
+        var x = _monitor.Left + (_monitor.Width - width) / 2;
+        AppWindow.MoveAndResize(new RectInt32(x, _monitor.Top, width, height));
+    }
 
-        Surface.Width = target.Width;
-        Surface.Height = target.Height;
-        SurfaceTranslation.Y = target.TopOffset;
-        Surface.CornerRadius = target.CornerRadius;
-
-        var visual = ElementCompositionPreview.GetElementVisual(Surface);
-        visual.CenterPoint = new Vector3((float)(target.Width / 2), (float)(target.Height / 2), 0);
-        visual.Scale = new Vector3(
-            (float)Math.Clamp(previous.Width / Math.Max(1, target.Width), 0.35, 2.5),
-            (float)Math.Clamp(previous.Height / Math.Max(1, target.Height), 0.2, 4),
-            1);
-        visual.Opacity = (float)previous.Opacity;
-
-        var compositor = visual.Compositor;
-        var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        batch.Completed += (_, _) => completion.TrySetResult();
-
-        if (reducedMotion)
-        {
-            var scale = compositor.CreateVector3KeyFrameAnimation();
-            scale.InsertKeyFrame(1, Vector3.One);
-            scale.Duration = TimeSpan.FromMilliseconds(90);
-            visual.StartAnimation(nameof(visual.Scale), scale);
-        }
-        else
-        {
-            var scale = compositor.CreateSpringVector3Animation();
-            scale.FinalValue = Vector3.One;
-            scale.DampingRatio = 0.82f;
-            scale.Period = TimeSpan.FromMilliseconds(180);
-            visual.StartAnimation(nameof(visual.Scale), scale);
-        }
-
-        var opacity = compositor.CreateScalarKeyFrameAnimation();
-        opacity.InsertKeyFrame(1, (float)target.Opacity);
-        opacity.Duration = TimeSpan.FromMilliseconds(reducedMotion ? 80 : 150);
-        visual.StartAnimation(nameof(visual.Opacity), opacity);
-        batch.End();
-        await completion.Task;
-
-        if (revision != _animationRevision)
+    private void StartAnimationFrames()
+    {
+        if (_hasFrameSubscription)
         {
             return;
         }
 
-        visual.Scale = Vector3.One;
-        visual.Opacity = (float)target.Opacity;
-        MoveHost(targetWidth, targetHeight);
-        OverlayWindowInterop.ApplyRegion(
-            _windowHandle,
-            targetWidth,
-            targetHeight,
-            ToPixels(target.TopOffset),
-            ToPixels(target.BottomRadius),
-            _currentDisplayMode);
+        _lastFrameTimestamp = Stopwatch.GetTimestamp();
+        CompositionTarget.Rendering += OnAnimationFrame;
+        _hasFrameSubscription = true;
+    }
 
+    private void StopAnimationFrames()
+    {
+        if (!_hasFrameSubscription)
+        {
+            return;
+        }
+
+        CompositionTarget.Rendering -= OnAnimationFrame;
+        _hasFrameSubscription = false;
+    }
+
+    private void OnAnimationFrame(object? sender, object args)
+    {
+        var now = Stopwatch.GetTimestamp();
+        var elapsed = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now);
+        _lastFrameTimestamp = now;
+        _motion.Step(elapsed);
+        ApplyMotionFrame(_motion.Current);
+        if (_motion.IsAnimating)
+        {
+            return;
+        }
+
+        StopAnimationFrames();
+        var state = _viewModel.Snapshot.State;
         if (!_isActiveWindow)
         {
             return;
@@ -219,149 +238,149 @@ public sealed partial class OverlayWindow : Window
         {
             _viewModel.CompleteDismissal();
         }
-    }
-
-    private void StartModeMorph(OverlayDisplayMode targetMode)
-    {
-        if (_isModeMorphRunning && targetMode == _currentDisplayMode)
-        {
-            return;
-        }
-
-        StopModeMorph();
-        _modeFromOffset = SurfaceTranslation.Y;
-        _modeToOffset = targetMode == OverlayDisplayMode.DynamicIsland ? 8 : 0;
-        _modeFromTopRadius = Surface.CornerRadius.TopLeft;
-        _modeToTopRadius = targetMode == OverlayDisplayMode.DynamicIsland
-            ? _currentGeometry.BottomRadius
-            : 0;
-        _currentDisplayMode = targetMode;
-        _modeMorphStarted = Stopwatch.GetTimestamp();
-        _isModeMorphRunning = true;
-        CompositionTarget.Rendering += OnModeMorphFrame;
-    }
-
-    private void OnModeMorphFrame(object? sender, object args)
-    {
-        var duration = IsReducedMotion() ? 100d : 260d;
-        var elapsed = Stopwatch.GetElapsedTime(_modeMorphStarted).TotalMilliseconds;
-        var progress = Math.Clamp(elapsed / duration, 0, 1);
-        var eased = 1 - Math.Pow(1 - progress, 3);
-        var topOffset = Lerp(_modeFromOffset, _modeToOffset, eased);
-        var topRadius = Lerp(_modeFromTopRadius, _modeToTopRadius, eased);
-        SurfaceTranslation.Y = topOffset;
-        Surface.CornerRadius = new CornerRadius(
-            topRadius,
-            topRadius,
-            _currentGeometry.BottomRadius,
-            _currentGeometry.BottomRadius);
-
-        var width = ToPixels(_currentGeometry.Width);
-        var height = ToPixels(_currentGeometry.Height + Math.Max(_modeFromOffset, _modeToOffset));
-        MoveHost(width, height);
-        OverlayWindowInterop.ApplyRegion(
-            _windowHandle,
-            width,
-            height,
-            ToPixels(topOffset),
-            ToPixels(_currentGeometry.BottomRadius),
-            _currentDisplayMode);
-
-        if (progress < 1)
-        {
-            return;
-        }
-
-        StopModeMorph();
-        if (_isActiveWindow)
+        else if (state == OverlayState.ModeTransition)
         {
             _viewModel.CompleteModeTransition();
         }
     }
 
-    private void StopModeMorph()
+    private void ApplyMotionFrame(OverlayMotionValues values)
     {
-        if (!_isModeMorphRunning)
+        Surface.Width = values.Width;
+        Surface.Height = values.Height;
+        Surface.CornerRadius = new CornerRadius(
+            values.TopRadius,
+            values.TopRadius,
+            values.BottomRadius,
+            values.BottomRadius);
+        SurfaceTransform.TranslateY = values.TopOffset;
+        SurfaceTransform.ScaleX = values.DropTargetScale;
+        SurfaceTransform.ScaleY = values.DropTargetScale;
+        Surface.Opacity = values.Opacity;
+        CompactPanel.Opacity = values.CompactContent;
+        DragPanel.Opacity = values.DragContent;
+        ExpandedPanel.Opacity = values.ExpandedContent;
+        CollapseInvisibleContent(values);
+
+        var width = ToPixels(values.Width * values.DropTargetScale);
+        var height = ToPixels(values.Height * values.DropTargetScale);
+        var left = (ToPixels(HostWidth) - width) / 2;
+        var top = ToPixels(values.TopOffset + values.Height * (1 - values.DropTargetScale) / 2);
+        OverlayWindowInterop.ApplyVisualRegion(
+            _windowHandle,
+            left,
+            top,
+            width,
+            height,
+            ToPixels(values.TopRadius),
+            ToPixels(values.BottomRadius),
+            _renderDisplayMode);
+    }
+
+    private void PrepareContentForTarget(OverlayMotionValues target)
+    {
+        if (target.CompactContent > 0)
         {
-            return;
+            CompactPanel.Visibility = Visibility.Visible;
+            CompactPanel.IsHitTestVisible = true;
+        }
+        else
+        {
+            CompactPanel.IsHitTestVisible = false;
         }
 
-        CompositionTarget.Rendering -= OnModeMorphFrame;
-        _isModeMorphRunning = false;
-    }
-
-    private void MoveHost(int width, int height)
-    {
-        var x = _monitor.Left + (_monitor.Width - width) / 2;
-        AppWindow.MoveAndResize(new RectInt32(x, _monitor.Top, width, height));
-    }
-
-    private void UpdatePanelVisibility(OverlayState state)
-    {
-        CompactPanel.Visibility = state == OverlayState.Compact ? Visibility.Visible : Visibility.Collapsed;
-        DragPanel.Visibility = state is OverlayState.DragApproaching or OverlayState.DragReady
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        ExpandedPanel.Visibility = state == OverlayState.Expanded ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private bool IsReducedMotion()
-    {
-        return _viewModel.MotionPreference switch
+        if (target.DragContent > 0)
         {
-            OverlayMotionPreference.Reduced => true,
-            OverlayMotionPreference.Full => false,
-            _ => !new Windows.UI.ViewManagement.UISettings().AnimationsEnabled,
-        };
+            DragPanel.Visibility = Visibility.Visible;
+            DragPanel.IsHitTestVisible = true;
+        }
+        else
+        {
+            DragPanel.IsHitTestVisible = false;
+        }
+
+        if (target.ExpandedContent > 0)
+        {
+            ExpandedPanel.Visibility = Visibility.Visible;
+            ExpandedPanel.IsHitTestVisible = true;
+        }
+        else
+        {
+            ExpandedPanel.IsHitTestVisible = false;
+        }
     }
+
+    private void CollapseInvisibleContent(OverlayMotionValues values)
+    {
+        if (values.CompactContent <= 0.001 && _motion.Target.CompactContent == 0)
+        {
+            CompactPanel.Visibility = Visibility.Collapsed;
+        }
+
+        if (values.DragContent <= 0.001 && _motion.Target.DragContent == 0)
+        {
+            DragPanel.Visibility = Visibility.Collapsed;
+        }
+
+        if (values.ExpandedContent <= 0.001 && _motion.Target.ExpandedContent == 0)
+        {
+            ExpandedPanel.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private bool IsReducedMotion() => _viewModel.MotionPreference switch
+    {
+        OverlayMotionPreference.Reduced => true,
+        OverlayMotionPreference.Full => false,
+        _ => !new Windows.UI.ViewManagement.UISettings().AnimationsEnabled,
+    };
 
     private int ToPixels(double dips) => Math.Max(0, (int)Math.Round(dips * _monitor.Scale));
 
-    private static double Lerp(double from, double to, double progress) => from + (to - from) * progress;
-
-    private void OnDragEnter(object sender, DragEventArgs args)
+    private static OverlayMotionValues CreateMotionTarget(OverlayState state, OverlayDisplayMode mode)
     {
-        if (!args.DataView.Contains(StandardDataFormats.StorageItems))
+        var topOffset = mode == OverlayDisplayMode.DynamicIsland ? 8 : 0;
+        return state switch
         {
-            args.AcceptedOperation = DataPackageOperation.None;
-            return;
-        }
-
-        args.AcceptedOperation = DataPackageOperation.Copy;
-        args.DragUIOverride.Caption = "添加到 DropSpace";
-        args.DragUIOverride.IsCaptionVisible = true;
-        _viewModel.BeginDragApproach(MonitorId);
+            OverlayState.DragApproaching => Create(300, 54, topOffset, 27, mode, 0, 1, 0),
+            OverlayState.DragReady => Create(430, 92, topOffset, 30, mode, 0, 1, 0),
+            OverlayState.Compact => Create(340, 64, topOffset, 32, mode, 1, 0, 0),
+            OverlayState.Expanded => Create(560, 340, topOffset, 28, mode, 0, 0, 1),
+            OverlayState.Dismissing or OverlayState.Hidden => new OverlayMotionValues(
+                120,
+                12,
+                topOffset,
+                mode == OverlayDisplayMode.DynamicIsland ? 6 : 0,
+                6,
+                0,
+                0,
+                0,
+                0,
+                0.92),
+            _ => OverlayMotionValues.Hidden,
+        };
     }
 
-    private void OnDragOver(object sender, DragEventArgs args)
-    {
-        var ready = args.DataView.Contains(StandardDataFormats.StorageItems);
-        args.AcceptedOperation = ready ? DataPackageOperation.Copy : DataPackageOperation.None;
-        _viewModel.SetDragReady(ready);
-    }
-
-    private void OnDragLeave(object sender, DragEventArgs args) => _viewModel.CancelDrag();
-
-    private async void OnDrop(object sender, DragEventArgs args)
-    {
-        try
-        {
-            if (!args.DataView.Contains(StandardDataFormats.StorageItems))
-            {
-                _viewModel.CancelDrag();
-                return;
-            }
-
-            var items = await args.DataView.GetStorageItemsAsync();
-            var paths = items.Select(item => item.Path).Where(path => !string.IsNullOrWhiteSpace(path)).ToArray();
-            await _viewModel.CompleteDropAsync(MonitorId, paths);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(exception, "Overlay drop failed.");
-            _viewModel.CancelDrag();
-        }
-    }
+    private static OverlayMotionValues Create(
+        double width,
+        double height,
+        double topOffset,
+        double radius,
+        OverlayDisplayMode mode,
+        double compactContent,
+        double dragContent,
+        double expandedContent) =>
+        new(
+            width,
+            height,
+            topOffset,
+            mode == OverlayDisplayMode.DynamicIsland ? radius : 0,
+            radius,
+            1,
+            compactContent,
+            dragContent,
+            expandedContent,
+            1);
 
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {
@@ -456,30 +475,15 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerEntered(object sender, PointerRoutedEventArgs args)
     {
-        if (_viewModel.Snapshot.State != OverlayState.Compact)
+        if (_viewModel.Snapshot.State == OverlayState.Compact)
         {
-            return;
+            Surface.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(248, 20, 20, 27));
         }
-
-        var visual = ElementCompositionPreview.GetElementVisual(Surface);
-        var animation = visual.Compositor.CreateScalarKeyFrameAnimation();
-        animation.InsertKeyFrame(1, 0.96f);
-        animation.Duration = TimeSpan.FromMilliseconds(100);
-        visual.StartAnimation(nameof(visual.Opacity), animation);
     }
 
     private void OnSurfacePointerExited(object sender, PointerRoutedEventArgs args)
     {
-        if (_viewModel.Snapshot.State != OverlayState.Compact)
-        {
-            return;
-        }
-
-        var visual = ElementCompositionPreview.GetElementVisual(Surface);
-        var animation = visual.Compositor.CreateScalarKeyFrameAnimation();
-        animation.InsertKeyFrame(1, 1f);
-        animation.Duration = TimeSpan.FromMilliseconds(100);
-        visual.StartAnimation(nameof(visual.Opacity), animation);
+        Surface.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(242, 13, 13, 17));
     }
 
     private static ItemCardViewModel? GetCard(object sender) => sender switch
@@ -488,45 +492,4 @@ public sealed partial class OverlayWindow : Window
         FrameworkElement { DataContext: ItemCardViewModel card } => card,
         _ => null,
     };
-
-    private sealed record OverlayGeometry(
-        double Width,
-        double Height,
-        double TopOffset,
-        double TopRadius,
-        double BottomRadius,
-        double Opacity)
-    {
-        public static OverlayGeometry Hidden { get; } = new(ActivationWidth, ActivationHeight, 0, 0, 0, 0);
-
-        public CornerRadius CornerRadius => new(TopRadius, TopRadius, BottomRadius, BottomRadius);
-
-        public static OverlayGeometry For(OverlayState state, OverlayDisplayMode mode)
-        {
-            var topOffset = mode == OverlayDisplayMode.DynamicIsland ? 8 : 0;
-            return state switch
-            {
-                OverlayState.DragApproaching => Create(300, 54, topOffset, 27, mode, 0.94),
-                OverlayState.DragReady => Create(430, 92, topOffset, 30, mode, 1),
-                OverlayState.Compact => Create(340, 64, topOffset, 32, mode, 1),
-                OverlayState.Expanded => Create(560, 340, topOffset, 28, mode, 1),
-                OverlayState.Dismissing => Create(140, 20, topOffset, 10, mode, 0),
-                _ => Hidden,
-            };
-        }
-
-        private static OverlayGeometry Create(
-            double width,
-            double height,
-            double topOffset,
-            double radius,
-            OverlayDisplayMode mode,
-            double opacity) => new(
-                width,
-                height,
-                topOffset,
-                mode == OverlayDisplayMode.DynamicIsland ? radius : 0,
-                radius,
-                opacity);
-    }
 }

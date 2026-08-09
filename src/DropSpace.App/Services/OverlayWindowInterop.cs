@@ -6,23 +6,64 @@ namespace DropSpace.App.Services;
 internal static class OverlayWindowInterop
 {
     private const int ExtendedStyleIndex = -20;
+    private const int StyleIndex = -16;
     private const long ExtendedStyleAppWindow = 0x00040000L;
+    private const long ExtendedStyleClientEdge = 0x00000200L;
+    private const long ExtendedStyleWindowEdge = 0x00000100L;
+    private const long ExtendedStyleDialogModalFrame = 0x00000001L;
     private const long ExtendedStyleNoActivate = 0x08000000L;
     private const long ExtendedStyleToolWindow = 0x00000080L;
+    private const long StyleBorder = 0x00800000L;
+    private const long StyleCaption = 0x00C00000L;
+    private const long StyleDialogFrame = 0x00400000L;
+    private const long StyleThickFrame = 0x00040000L;
     private const uint SetWindowPositionNoSize = 0x0001;
     private const uint SetWindowPositionNoMove = 0x0002;
     private const uint SetWindowPositionNoActivate = 0x0010;
     private const uint SetWindowPositionFrameChanged = 0x0020;
     private const int ShowNoActivate = 4;
+    private const int ShowHide = 0;
     private const int RegionOr = 2;
+    private const int DwmWindowAttributeNonClientRenderingPolicy = 2;
+    private const int DwmWindowAttributeCornerPreference = 33;
+    private const int DwmWindowAttributeBorderColor = 34;
+    private const int DwmNonClientRenderingDisabled = 1;
+    private const int DwmCornerDoNotRound = 1;
+    private const uint DwmColorNone = 0xFFFFFFFE;
     private static readonly nint Topmost = new(-1);
 
-    public static void ConfigureToolWindow(nint window)
+    public static void ConfigureVisualWindow(nint window)
     {
-        var style = GetWindowLongPointer(window, ExtendedStyleIndex).ToInt64();
-        style |= ExtendedStyleToolWindow | ExtendedStyleNoActivate;
-        style &= ~ExtendedStyleAppWindow;
-        SetWindowLongPointer(window, ExtendedStyleIndex, new nint(style));
+        var extendedStyle = GetWindowLongPointer(window, ExtendedStyleIndex).ToInt64();
+        extendedStyle |= ExtendedStyleToolWindow | ExtendedStyleNoActivate;
+        extendedStyle &= ~(ExtendedStyleAppWindow |
+                           ExtendedStyleClientEdge |
+                           ExtendedStyleWindowEdge |
+                           ExtendedStyleDialogModalFrame);
+        SetWindowLongPointer(window, ExtendedStyleIndex, new nint(extendedStyle));
+
+        var style = GetWindowLongPointer(window, StyleIndex).ToInt64();
+        style &= ~(StyleBorder | StyleCaption | StyleDialogFrame | StyleThickFrame);
+        SetWindowLongPointer(window, StyleIndex, new nint(style));
+
+        var nonClientPolicy = DwmNonClientRenderingDisabled;
+        DwmSetWindowAttribute(
+            window,
+            DwmWindowAttributeNonClientRenderingPolicy,
+            ref nonClientPolicy,
+            sizeof(int));
+        var cornerPreference = DwmCornerDoNotRound;
+        DwmSetWindowAttribute(
+            window,
+            DwmWindowAttributeCornerPreference,
+            ref cornerPreference,
+            sizeof(int));
+        var borderColor = DwmColorNone;
+        DwmSetWindowAttribute(
+            window,
+            DwmWindowAttributeBorderColor,
+            ref borderColor,
+            sizeof(uint));
         SetWindowPos(
             window,
             Topmost,
@@ -34,8 +75,24 @@ internal static class OverlayWindowInterop
             SetWindowPositionNoSize |
             SetWindowPositionNoActivate |
             SetWindowPositionFrameChanged);
+    }
+
+    public static void ShowNoActivateAndTopmost(nint window)
+    {
+        SetWindowPos(
+            window,
+            Topmost,
+            0,
+            0,
+            0,
+            0,
+            SetWindowPositionNoMove |
+            SetWindowPositionNoSize |
+            SetWindowPositionNoActivate);
         ShowWindow(window, ShowNoActivate);
     }
+
+    public static void Hide(nint window) => ShowWindow(window, ShowHide);
 
     public static void SetNoActivate(nint window, bool noActivate)
     {
@@ -57,17 +114,23 @@ internal static class OverlayWindowInterop
             SetWindowPositionFrameChanged);
     }
 
-    public static void ApplyRegion(
+    public static void ApplyVisualRegion(
         nint window,
+        int left,
+        int top,
         int width,
         int height,
-        int topOffset,
-        int radius,
+        int topRadius,
+        int bottomRadius,
         OverlayDisplayMode displayMode)
     {
-        var region = displayMode == OverlayDisplayMode.Notch
-            ? CreateNotchRegion(width, height, radius)
-            : CreateRoundRectRgn(0, topOffset, width + 1, height + 1, radius * 2, radius * 2);
+        var region = CreateAsymmetricRoundRectRegion(
+            left,
+            top,
+            width,
+            height,
+            displayMode == OverlayDisplayMode.Notch ? topRadius : Math.Max(topRadius, 1),
+            bottomRadius);
         if (region == nint.Zero)
         {
             return;
@@ -79,43 +142,73 @@ internal static class OverlayWindowInterop
         }
     }
 
-    public static void ApplyActivationRegion(nint window, int width, int height)
+    public static void ApplyEmptyRegion(nint window)
     {
-        var region = CreateRectRgn(0, 0, width, height);
+        var region = CreateRectRgn(0, 0, 0, 0);
         if (region != nint.Zero && SetWindowRgn(window, region, false) == 0)
         {
             DeleteObject(region);
         }
     }
 
-    private static nint CreateNotchRegion(int width, int height, int radius)
+    private static nint CreateAsymmetricRoundRectRegion(
+        int left,
+        int top,
+        int width,
+        int height,
+        int topRadius,
+        int bottomRadius)
     {
-        var top = CreateRectRgn(0, 0, width + 1, Math.Max(1, height - radius));
-        var bottom = CreateRoundRectRgn(
-            0,
-            Math.Max(0, height - radius * 2),
-            width + 1,
-            height + 1,
-            radius * 2,
-            radius * 2);
-        if (top == nint.Zero || bottom == nint.Zero)
+        topRadius = Math.Clamp(topRadius, 0, Math.Min(width / 2, height / 2));
+        bottomRadius = Math.Clamp(bottomRadius, 0, Math.Min(width / 2, height / 2));
+        var destination = CreateRectRgn(
+            left,
+            top + topRadius,
+            left + width + 1,
+            Math.Max(top + topRadius + 1, top + height - bottomRadius));
+        var topPart = topRadius == 0
+            ? CreateRectRgn(left, top, left + width + 1, top + 1)
+            : CreateRoundRectRgn(
+                left,
+                top,
+                left + width + 1,
+                top + topRadius * 2 + 1,
+                topRadius * 2,
+                topRadius * 2);
+        var bottomPart = bottomRadius == 0
+            ? CreateRectRgn(left, top + height - 1, left + width + 1, top + height + 1)
+            : CreateRoundRectRgn(
+            left,
+                Math.Max(top, top + height - bottomRadius * 2),
+            left + width + 1,
+                top + height + 1,
+                bottomRadius * 2,
+                bottomRadius * 2);
+        if (destination == nint.Zero || topPart == nint.Zero || bottomPart == nint.Zero)
         {
-            if (top != nint.Zero)
+            if (destination != nint.Zero)
             {
-                DeleteObject(top);
+                DeleteObject(destination);
             }
 
-            if (bottom != nint.Zero)
+            if (topPart != nint.Zero)
             {
-                DeleteObject(bottom);
+                DeleteObject(topPart);
+            }
+
+            if (bottomPart != nint.Zero)
+            {
+                DeleteObject(bottomPart);
             }
 
             return nint.Zero;
         }
 
-        CombineRgn(top, top, bottom, RegionOr);
-        DeleteObject(bottom);
-        return top;
+        CombineRgn(destination, destination, topPart, RegionOr);
+        CombineRgn(destination, destination, bottomPart, RegionOr);
+        DeleteObject(topPart);
+        DeleteObject(bottomPart);
+        return destination;
     }
 
     private static nint GetWindowLongPointer(nint window, int index) => IntPtr.Size == 8
@@ -174,4 +267,18 @@ internal static class OverlayWindowInterop
 
     [DllImport("user32.dll")]
     private static extern int SetWindowRgn(nint window, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        nint window,
+        int attribute,
+        ref int value,
+        int valueSize);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        nint window,
+        int attribute,
+        ref uint value,
+        int valueSize);
 }

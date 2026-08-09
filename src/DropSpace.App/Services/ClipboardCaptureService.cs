@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using System.Runtime.InteropServices;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
@@ -20,8 +21,11 @@ public enum ClipboardRecordingState
 
 public sealed record ClipboardCaptureStatus(
     ClipboardRecordingState State,
+    bool ListenerRegistered,
+    DateTimeOffset? LastNotificationUtc,
     long ObservedEvents,
     long CapturedItems,
+    long FailedReads,
     long DroppedEvents,
     string? Message);
 
@@ -30,6 +34,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly IItemRepository _repository;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
+    private readonly ClipboardNotificationService _notifications;
     private readonly DispatcherQueue _dispatcher;
     private readonly ILogger<ClipboardCaptureService> _logger;
     private readonly Channel<CaptureSignal> _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
@@ -48,6 +53,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private int _pauseGeneration;
     private long _observedEvents;
     private long _capturedItems;
+    private long _failedReads;
     private long _droppedEvents;
     private string? _selfFingerprint;
     private DateTimeOffset _selfWriteExpiresUtc;
@@ -58,12 +64,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         IItemRepository repository,
         ISettingsService settingsService,
         IPayloadStore payloadStore,
+        ClipboardNotificationService notifications,
         DispatcherQueue dispatcher,
         ILogger<ClipboardCaptureService> logger)
     {
         _repository = repository;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
+        _notifications = notifications;
         _dispatcher = dispatcher;
         _logger = logger;
     }
@@ -91,10 +99,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
             _settings = await _settingsService.LoadAsync(cancellationToken).ConfigureAwait(false);
             _paused = _settings.ClipboardPaused;
-            Clipboard.ContentChanged += OnClipboardContentChanged;
+            _notifications.ClipboardChanged += OnClipboardChanged;
+            _notifications.StatusChanged += OnNotificationStatusChanged;
             _worker = Task.Run(ProcessSignalsAsync, CancellationToken.None);
             _initialized = true;
-            PublishStatus(_paused ? "仍保持上次退出时的暂停状态。" : null);
+            PublishStatus(
+                _notifications.Status.IsRegistered
+                    ? _paused ? "仍保持上次退出时的暂停状态。" : null
+                    : "系统剪贴板监听注册失败；请查看诊断日志。",
+                _notifications.Status.IsRegistered ? null : ClipboardRecordingState.Error);
         }
         finally
         {
@@ -208,7 +221,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
         if (_initialized)
         {
-            Clipboard.ContentChanged -= OnClipboardContentChanged;
+            _notifications.ClipboardChanged -= OnClipboardChanged;
+            _notifications.StatusChanged -= OnNotificationStatusChanged;
         }
 
         _signals.Writer.TryComplete();
@@ -234,7 +248,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _commitGate.Dispose();
     }
 
-    private void OnClipboardContentChanged(object? sender, object eventArgs)
+    private void OnClipboardChanged(object? sender, ClipboardNotification notification)
     {
         var observed = Interlocked.Increment(ref _observedEvents);
         if (_paused)
@@ -243,11 +257,23 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             return;
         }
 
-        var signal = new CaptureSignal(observed, Volatile.Read(ref _pauseGeneration), DateTimeOffset.UtcNow);
+        var signal = new CaptureSignal(
+            notification.SequenceNumber,
+            observed,
+            Volatile.Read(ref _pauseGeneration),
+            notification.ObservedAtUtc);
         if (!_signals.Writer.TryWrite(signal))
         {
             Interlocked.Increment(ref _droppedEvents);
             PublishStatus("剪贴板活动过于频繁，已跳过一个事件。");
+        }
+    }
+
+    private void OnNotificationStatusChanged(object? sender, ClipboardNotificationStatus status)
+    {
+        if (!status.IsRegistered)
+        {
+            PublishStatus("系统剪贴板监听不可用；请查看诊断日志。", ClipboardRecordingState.Error);
         }
     }
 
@@ -264,9 +290,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
                 try
                 {
-                    var snapshot = await ReadSnapshotAsync(_shutdown.Token).ConfigureAwait(false);
+                    var snapshot = await ReadSnapshotWithRetryAsync(signal, _shutdown.Token).ConfigureAwait(false);
                     if (snapshot is null || IsSelfWrite(snapshot.Fingerprint))
                     {
+                        if (snapshot is not null)
+                        {
+                            _logger.LogDebug(
+                                "Clipboard self-write suppressed for sequence {SequenceNumber}.",
+                                signal.ClipboardSequenceNumber);
+                        }
+
                         continue;
                     }
 
@@ -296,6 +329,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                                     ContentClassifier.CreateTextCandidate(snapshot.Text),
                                     _shutdown.Token)
                                 .ConfigureAwait(false);
+                            _logger.LogDebug(
+                                "Clipboard text committed for sequence {SequenceNumber}.",
+                                signal.ClipboardSequenceNumber);
                         }
                         else if (snapshot.ImageBytes is not null)
                         {
@@ -328,6 +364,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                                 {
                                     await _payloadStore.DeleteAsync(payload.RelativePath, _shutdown.Token).ConfigureAwait(false);
                                 }
+
+                                _logger.LogDebug(
+                                    "Clipboard image committed for sequence {SequenceNumber}.",
+                                    signal.ClipboardSequenceNumber);
                             }
                             catch
                             {
@@ -370,6 +410,69 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _logger.LogError(exception, "Clipboard capture worker stopped unexpectedly.");
             PublishStatus("剪贴板记录因内部错误停止。", ClipboardRecordingState.Error);
         }
+    }
+
+    private async Task<ClipboardSnapshot?> ReadSnapshotWithRetryAsync(
+        CaptureSignal signal,
+        CancellationToken cancellationToken)
+    {
+        var delays = new[]
+        {
+            TimeSpan.Zero,
+            TimeSpan.FromMilliseconds(35),
+            TimeSpan.FromMilliseconds(90),
+            TimeSpan.FromMilliseconds(180),
+        };
+
+        Exception? lastException = null;
+        for (var attempt = 0; attempt < delays.Length; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (delays[attempt] > TimeSpan.Zero)
+            {
+                await Task.Delay(delays[attempt], cancellationToken).ConfigureAwait(false);
+                var currentSequence = GetClipboardSequenceNumber();
+                if (signal.ClipboardSequenceNumber != 0 &&
+                    currentSequence != 0 &&
+                    currentSequence != signal.ClipboardSequenceNumber)
+                {
+                    _logger.LogDebug(
+                        "Clipboard retry abandoned because sequence advanced from {OriginalSequence} to {CurrentSequence}.",
+                        signal.ClipboardSequenceNumber,
+                        currentSequence);
+                    return null;
+                }
+            }
+
+            try
+            {
+                _logger.LogDebug(
+                    "Clipboard snapshot read started for sequence {SequenceNumber}, attempt {Attempt}.",
+                    signal.ClipboardSequenceNumber,
+                    attempt + 1);
+                var snapshot = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug(
+                    "Clipboard snapshot read completed for sequence {SequenceNumber}; format {Format}.",
+                    signal.ClipboardSequenceNumber,
+                    snapshot?.Text is not null ? "text" : snapshot?.ImageBytes is not null ? "image" : "unsupported");
+                return snapshot;
+            }
+            catch (Exception exception) when (exception is COMException or UnauthorizedAccessException)
+            {
+                lastException = exception;
+                Interlocked.Increment(ref _failedReads);
+                PublishStatus("剪贴板暂时被其他程序占用，正在重试。");
+                _logger.LogDebug(
+                    exception,
+                    "Transient clipboard read failure for sequence {SequenceNumber}, attempt {Attempt}.",
+                    signal.ClipboardSequenceNumber,
+                    attempt + 1);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Clipboard sequence {signal.ClipboardSequenceNumber} remained unavailable after bounded retry.",
+            lastException);
     }
 
     private Task<ClipboardSnapshot?> ReadSnapshotAsync(CancellationToken cancellationToken) =>
@@ -481,16 +584,28 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private ClipboardCaptureStatus CreateStatus(string? message, ClipboardRecordingState? state = null) =>
         new(
-            state ?? (_paused ? ClipboardRecordingState.Paused : ClipboardRecordingState.Recording),
+            state ?? (!_notifications.Status.IsRegistered
+                ? ClipboardRecordingState.Error
+                : _paused ? ClipboardRecordingState.Paused : ClipboardRecordingState.Recording),
+            _notifications.Status.IsRegistered,
+            _notifications.Status.LastNotificationUtc,
             Interlocked.Read(ref _observedEvents),
             Interlocked.Read(ref _capturedItems),
+            Interlocked.Read(ref _failedReads),
             Interlocked.Read(ref _droppedEvents),
             message);
 
     private void PublishStatus(string? message, ClipboardRecordingState? state = null) =>
         StatusChanged?.Invoke(this, CreateStatus(message, state));
 
-    private sealed record CaptureSignal(long Sequence, int PauseGeneration, DateTimeOffset ObservedAtUtc);
+    [DllImport("user32.dll")]
+    private static extern uint GetClipboardSequenceNumber();
+
+    private sealed record CaptureSignal(
+        uint ClipboardSequenceNumber,
+        long ObservedEventNumber,
+        int PauseGeneration,
+        DateTimeOffset ObservedAtUtc);
 
     private sealed record ClipboardSnapshot(
         string? Text,

@@ -9,12 +9,7 @@
   mc:Ignorable="d">
   <Grid
     x:Name="Root"
-    AllowDrop="True"
-    Background="Transparent"
-    DragEnter="OnDragEnter"
-    DragLeave="OnDragLeave"
-    DragOver="OnDragOver"
-    Drop="OnDrop">
+    Background="Transparent">
     <Border
       x:Name="Surface"
       HorizontalAlignment="Center"
@@ -22,14 +17,14 @@
       Width="340"
       Height="64"
       Background="#F20D0D11"
-      BorderBrush="#38FFFFFF"
-      BorderThickness="1"
+      BorderThickness="0"
       CornerRadius="32"
+      Opacity="0"
       RenderTransformOrigin="0.5,0.5"
       PointerEntered="OnSurfacePointerEntered"
       PointerExited="OnSurfacePointerExited">
       <Border.RenderTransform>
-        <TranslateTransform x:Name="SurfaceTranslation" />
+        <CompositeTransform x:Name="SurfaceTransform" />
       </Border.RenderTransform>
 
       <Grid>
@@ -69,6 +64,7 @@
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
           Spacing="4"
+          Opacity="0"
           Visibility="Collapsed">
           <TextBlock
             HorizontalAlignment="Center"
@@ -83,7 +79,7 @@
             Text="{Binding DragSubtitle}" />
         </StackPanel>
 
-        <Grid x:Name="ExpandedPanel" Padding="18,14,18,16" Visibility="Collapsed">
+        <Grid x:Name="ExpandedPanel" Padding="18,14,18,16" Opacity="0" Visibility="Collapsed">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
