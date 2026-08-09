@@ -56,12 +56,14 @@ public sealed class OverlayWindowService : IDisposable
 
         _openMainWindow = openMainWindow;
         CreateMonitorSurfaces();
+        var primaryMonitor = _primaryMonitor
+            ?? throw new InvalidOperationException("No primary monitor was available after creating overlay surfaces.");
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
-        await _viewModel.InitializeAsync(_primaryMonitor.Id, cancellationToken);
+        await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
         ApplySnapshot(_viewModel.Snapshot);
     }
 
