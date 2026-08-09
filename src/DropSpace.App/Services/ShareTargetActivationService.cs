@@ -2,8 +2,8 @@ using DropSpace.App.ViewModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
+using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.ApplicationModel.DataTransfer.ShareTarget;
 using Windows.Storage;
 
 namespace DropSpace.App.Services;
