@@ -126,10 +126,18 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 
 - `OverlayStateMachine` in Core is the single lifecycle authority: `Hidden`, `DragApproaching`, `DragReady`, `Compact`, `Expanded`, `Dismissing`, and `ModeTransition`.
 - `OverlayViewModel` projects that state over the existing `MainViewModel`/repository; it does not create a second Temporary Space store.
-- `OverlayWindowService` creates one no-taskbar tool window per startup monitor, selects the active monitor, and applies one snapshot to all surfaces.
+- `OverlayWindowService` creates one no-taskbar visual window and one independent native activation host per monitor, selects the active monitor, and rebuilds both after display-topology changes.
 - `MonitorLayoutService` converts physical monitor bounds and effective DPI; `OverlayWindowInterop` contains all HWND styles, topmost/no-activate behavior, and shaped regions.
-- The top activation zone is a transparent 280 × 3 DIP-equivalent edge surface registered through normal WinUI/OLE drag/drop. It is event-driven; there is no mouse polling or global low-level hook.
-- Composition spring/keyframe animations run only while a target changes. The only rendering subscription is the bounded mode-geometry morph and it is removed on completion or interruption.
+- `OleDragDropService` creates a zero-alpha 680 × 72 DIP native activation HWND and registers a managed `IDropTarget` with `RegisterDragDrop`; both activation and visual HWNDs accept `CF_HDROP` and converge on `MainViewModel.AddPathsAsync`.
+- The activation host uses tool-window/no-activate/layered styles and transparent non-client hit testing. It has no XAML, backdrop, DWM border, shadow, paint loop, taskbar entry, or Alt+Tab entry.
+- The visual Overlay HWND is genuinely hidden and assigned an empty region in `Hidden`; it is never reused as the activation strip.
+- `OverlayMotionController` continuously integrates width, height, offset, both radii, opacity, content reveal, and drop feedback toward replaceable spring targets. `CompositionTarget.Rendering` is attached only while a target is unsettled and removed at rest.
+
+### Clipboard notification and capture
+
+- `ClipboardNotificationService` subclasses the stable main-window HWND and registers `AddClipboardFormatListener`; it converts `WM_CLIPBOARDUPDATE` plus `GetClipboardSequenceNumber` into a content-free notification.
+- `ClipboardCaptureService` owns the bounded serialized channel, pause generation, self-write fingerprint, finite transient retry, WinRT snapshot read/normalization, repository commit, retention, and health metrics.
+- Listener registration failure is an Error state rather than a false “Recording” state. Diagnostics expose registration, last notification time, observed/captured/failed/dropped counts without payload text or file paths.
 
 ### TrayService
 

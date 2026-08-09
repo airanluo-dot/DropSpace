@@ -23,7 +23,7 @@ BEGIN
             VALUE "InternalName", "DropSpace"
             VALUE "OriginalFilename", "DropSpace.exe"
             VALUE "ProductName", "DropSpace"
-            VALUE "ProductVersion", "0.1.0-preview.1"
+            VALUE "ProductVersion", "0.1.0-preview.2"
         END
     END
     BLOCK "VarFileInfo"

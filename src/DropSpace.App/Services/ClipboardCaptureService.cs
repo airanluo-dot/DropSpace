@@ -58,6 +58,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private string? _selfFingerprint;
     private DateTimeOffset _selfWriteExpiresUtc;
     private DateTimeOffset _lastRetentionUtc = DateTimeOffset.MinValue;
+    private uint _lastProcessedClipboardSequence;
     private int _disposeStarted;
 
     public ClipboardCaptureService(
@@ -288,9 +289,19 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     continue;
                 }
 
+                if (signal.ClipboardSequenceNumber != 0 &&
+                    signal.ClipboardSequenceNumber == _lastProcessedClipboardSequence)
+                {
+                    _logger.LogInformation(
+                        "Duplicate WM_CLIPBOARDUPDATE skipped for sequence {SequenceNumber}.",
+                        signal.ClipboardSequenceNumber);
+                    continue;
+                }
+
                 try
                 {
                     var snapshot = await ReadSnapshotWithRetryAsync(signal, _shutdown.Token).ConfigureAwait(false);
+                    _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                     if (snapshot is null || IsSelfWrite(snapshot.Fingerprint))
                     {
                         if (snapshot is not null)
@@ -396,6 +407,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 }
                 catch (Exception exception)
                 {
+                    _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                     _logger.LogWarning(exception, "Clipboard event could not be captured.");
                     PublishStatus("一个剪贴板项目未能记录；记录功能仍在运行。");
                 }

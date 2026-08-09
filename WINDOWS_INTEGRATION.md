@@ -13,7 +13,7 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | WinUI 3 shell, controls, theme | Supported | Native XAML/Fluent resources |
 | Mica primary window | Supported | `Window.SystemBackdrop`; solid fallback |
 | Acrylic transient surfaces | Supported | Use sparingly on flyouts/menus |
-| Clipboard change event | Supported | `Windows.ApplicationModel.DataTransfer.Clipboard.ContentChanged` |
+| Clipboard change event | Supported with Win32 interop | `AddClipboardFormatListener` + `WM_CLIPBOARDUPDATE` on a stable message-pump HWND |
 | Text/image clipboard reads | Supported, format-dependent | Snapshot `DataPackageView`, handle transient failures |
 | Clipboard source app | Limited/best effort | Win32 clipboard-owner window may be absent/stale/indirect |
 | Drag files into app | Supported | XAML drag/drop with `StorageItems` |
@@ -23,7 +23,7 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | Hide-to-tray background operation | Supported | Keep desktop process alive; not an OS background task |
 | Startup at sign-in | Supported/packaging-dependent | Activation/startup registration; V1.1 preference |
 | Single instance | Supported | Windows App SDK AppInstance redirection |
-| Hidden top-edge file-drag reveal | Supported with HWND/WinUI interop | Transparent no-activate tool-window zones plus standard `StorageItems` drag events |
+| Hidden top-edge file-drag reveal | Supported with Win32/OLE interop | Independent zero-alpha activation HWNDs plus `IDropTarget`/`RegisterDragDrop`/`CF_HDROP` |
 | Dynamic Island / Notch | Supported with WinUI Composition and shaped HWND | Shared state/data; visual geometry only differs |
 | Per-monitor DPI placement | Supported with Win32 interop | Physical monitor bounds + effective DPI; DIP-to-pixel conversion at window boundary |
 | Portable single-file EXE | Supported on Windows App SDK 1.5+ | Unpackaged, Windows App SDK self-contained, .NET self-contained, content extraction enabled |
@@ -35,17 +35,18 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 
 ## Clipboard monitoring
 
-Use the WinRT clipboard `ContentChanged` event; never poll. The handler should capture a lightweight view/request and delegate to a serialized async pipeline. Clipboard content can be delayed-rendered, locked, replaced again before async reads complete, or offer several formats.
+The unpackaged desktop build registers its stable main-window HWND with `AddClipboardFormatListener` and receives `WM_CLIPBOARDUPDATE` through a narrow window-subclass adapter. The main HWND remains alive while hidden to the tray. The native handler emits only sequence/time metadata; the existing bounded async capture pipeline reads the current value through WinRT `DataPackageView` on the UI thread. Clipboard content can be delayed-rendered, locked, replaced again before async reads complete, or offer several formats.
 
 Implementation requirements:
 
 - Prefer supported standard formats in policy order.
-- Bound retries and payload size before decoding where possible.
-- Record sequence/fingerprint information to suppress self-copy loops.
+- Bound retries and payload size before decoding where possible; retry only a finite number of times and abandon the old generation if the sequence advances.
+- Use `GetClipboardSequenceNumber` to coalesce duplicate notifications and fingerprint information to suppress self-copy loops.
 - Treat event occurrence as a hint, not proof that content can be persisted.
 - Capture only while the DropSpace process is running.
+- Surface listener registration, last notification, observed updates, successful captures, failed reads, dropped signals, and pause state in diagnostics.
 
-Official reference: [Copy and paste in WinUI apps](https://learn.microsoft.com/en-us/windows/apps/develop/communication/copy-and-paste).
+Official references: [AddClipboardFormatListener](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-addclipboardformatlistener), [WM_CLIPBOARDUPDATE](https://learn.microsoft.com/en-us/windows/win32/dataxchg/wm-clipboardupdate), [GetClipboardSequenceNumber](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboardsequencenumber), and [Copy and paste in WinUI apps](https://learn.microsoft.com/en-us/windows/apps/develop/communication/copy-and-paste).
 
 ## Source-app attribution and exclusions
 
@@ -59,9 +60,16 @@ Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/window
 
 ### Hidden Overlay activation
 
-DropSpace keeps one fully transparent top-center tool-window region per enabled display. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`, stays out of taskbar/Alt+Tab, and is 3 DIP-equivalent pixels high when idle. WinUI registers the root surface as an OLE-compatible drop target. This is deliberately not implemented with global hooks, mouse-button inspection, or a high-frequency cursor loop.
+DropSpace separates two lifecycles per enabled display:
 
-When a `StorageItems` drag enters, the known zone identifies the monitor, the Core state machine changes targets, and the surface is resized/re-shaped into the visible drop target. Non-active monitors retain only their zones. Monitor coordinates are physical pixels; UI dimensions are DIPs scaled with each monitor's effective DPI.
+- The visual WinUI Overlay HWND owns only the Island/Notch. `Hidden` clears its HRGN and calls `SW_HIDE`; no XAML surface, backdrop, frame, shadow, or border remains visible.
+- A dedicated 680 × 72 DIP-equivalent native activation HWND stays zero-alpha and registers a managed `IDropTarget` with `RegisterDragDrop`. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED`, `WM_NCHITTEST=HTTRANSPARENT` for ordinary pointer input, and intentionally does not use `WS_EX_TRANSPARENT` (that flag controls paint ordering rather than being the OLE contract).
+
+The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. The visual HWND is registered with the same adapter when visible, so target handoff during Reveal does not create a second persistence path. There are no global hooks, mouse-button scans, or cursor polling.
+
+When a shell drag enters, the known host identifies the monitor, the Core state machine changes targets, and the separate visual surface reveals. Non-active monitors retain only their enabled hosts. Monitor coordinates are physical pixels; host and UI dimensions are DIPs scaled with each monitor's effective DPI. `WM_DISPLAYCHANGE` rebuilds monitor-bound hosts and visual windows.
+
+Official references: [RegisterDragDrop](https://learn.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-registerdragdrop), [IDropTarget](https://learn.microsoft.com/en-us/windows/win32/api/oleidl/nn-oleidl-idroptarget), and [DragQueryFile](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-dragqueryfilew).
 
 ### Drag in
 

@@ -97,6 +97,30 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Reason: Independent C#/WinUI/Composition implementation preserves DropSpace's architecture and avoids creating a GPL-derived work.
 - Trade-offs: Equivalent behavior must be designed and tested independently; WinIsland's implementation details are not reusable.
 
+## D-023 — Desktop clipboard notification uses the Win32 listener list
+
+- Status: Accepted and implemented; supersedes the notification-source portion of D-008
+- Context: Real unpackaged `v0.1.0-preview.1` testing showed no captures even though the WinRT `Clipboard.ContentChanged` delegate was attached; the UI had no registration health and could falsely say Recording.
+- Decision: Register the stable main HWND through `AddClipboardFormatListener`, handle `WM_CLIPBOARDUPDATE` via `SetWindowSubclass`, and attach `GetClipboardSequenceNumber` to bounded capture signals. Continue using WinRT only to read/normalize actual text and bitmap formats.
+- Reason: This is the standard desktop notification contract, survives main-window hide-to-tray, exposes registration failure, and remains event-driven.
+- Trade-offs: Snapshot reads still race clipboard ownership and therefore use bounded retry plus sequence-change cancellation.
+
+## D-024 — Native drag activation and visual Overlay are separate HWND lifecycles
+
+- Status: Accepted and implemented; supersedes D-021
+- Context: The shared 280 × 3 XAML window was nearly impossible to hit and `Hidden` still showed a real HWND, producing a white line/transparent rectangle on Windows 11.
+- Decision: Truly hide and empty-region the visual HWND. Keep a separate zero-alpha 680 × 72 DIP per-monitor native host registered through OLE `IDropTarget`/`RegisterDragDrop`; register the visual HWND with the same target adapter for handoff during Reveal. Both targets accept `CF_HDROP` with copy semantics and invoke the existing `AddPathsAsync` use case.
+- Reason: A practical activation area no longer requires a visible XAML/DWM host, and diagnostics distinguish target discovery, data format, reveal, Drop, and repository acceptance.
+- Trade-offs: Zero-alpha cross-process OLE targeting and `HTTRANSPARENT` click-through still require real Explorer/Desktop validation on the supported Windows builds; no polling/hook fallback is introduced.
+
+## D-025 — Overlay morphs real geometry through interruptible spring targets
+
+- Status: Accepted and implemented
+- Context: Preview.1 assigned final Width/Height/CornerRadius first and animated only scale/opacity, visibly jumping to a rectangular endpoint.
+- Decision: Keep a bounded fixed host during transitions and integrate visible width, height, top offset, top/bottom radius, opacity, content reveals, and drop scale with a real-time damped spring. Update the shaped HRGN and XAML geometry each frame; stop `CompositionTarget.Rendering` immediately on settlement/Hidden.
+- Reason: New targets retain current values and velocity, so reversal and mode changes are continuous rather than queued storyboards.
+- Trade-offs: Geometry frames perform bounded XAML/HRGN updates only during transitions; real-device animation feel and edge antialiasing remain visual acceptance items.
+
 ## D-008 — Event-driven clipboard capture
 
 - Status: Accepted
