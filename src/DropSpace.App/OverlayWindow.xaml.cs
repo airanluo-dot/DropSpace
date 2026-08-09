@@ -34,6 +34,9 @@ public sealed partial class OverlayWindow : Window
     private bool _isActiveWindow;
     private bool _isVisible;
     private bool _hasFrameSubscription;
+    private bool _hideWhenSettled;
+    private bool _suppressedForFullscreen;
+    private long _regionFailureCount;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -75,6 +78,62 @@ public sealed partial class OverlayWindow : Window
 
     internal bool HasActiveFrameSubscription => _hasFrameSubscription;
 
+    internal long RegionFailureCount => Interlocked.Read(ref _regionFailureCount);
+
+    internal long RunNotchGeometryStress(int cycles)
+    {
+        if (cycles is < 1 or > 1_000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(cycles));
+        }
+
+        var failuresBefore = RegionFailureCount;
+        var island = CreateMotionTarget(OverlayState.Compact, OverlayDisplayMode.DynamicIsland);
+        var notch = CreateMotionTarget(OverlayState.Compact, OverlayDisplayMode.Notch);
+        var controller = new OverlayMotionController(island);
+        for (var cycle = 0; cycle < cycles; cycle++)
+        {
+            controller.SetTarget(notch, reducedMotion: false);
+            ApplyStressFrames(controller, OverlayDisplayMode.Notch, 2 + cycle % 5);
+            controller.SetTarget(island, reducedMotion: false);
+            ApplyStressFrames(controller, OverlayDisplayMode.DynamicIsland, 1 + cycle % 4);
+            controller.SetTarget(notch, reducedMotion: false);
+            ApplyStressFrames(controller, OverlayDisplayMode.Notch, 1 + cycle % 3);
+            controller.SetTarget(island, reducedMotion: false);
+            ApplyStressFrames(controller, OverlayDisplayMode.DynamicIsland, 2 + cycle % 6);
+        }
+
+        for (var frame = 0; frame < 600 && controller.IsAnimating; frame++)
+        {
+            ApplyStressFrames(controller, OverlayDisplayMode.DynamicIsland, 1);
+        }
+
+        if (controller.IsAnimating || !controller.Current.IsApiSafe())
+        {
+            throw new InvalidOperationException("The real overlay geometry stress did not settle to an API-safe frame.");
+        }
+
+        return RegionFailureCount - failuresBefore;
+    }
+
+    private void ApplyStressFrames(
+        OverlayMotionController controller,
+        OverlayDisplayMode displayMode,
+        int frames)
+    {
+        _renderDisplayMode = displayMode;
+        for (var frame = 0; frame < frames; frame++)
+        {
+            controller.Step(TimeSpan.FromMilliseconds(16));
+            if (!controller.Current.IsApiSafe())
+            {
+                throw new InvalidOperationException($"Unsafe overlay motion frame: {controller.Current}.");
+            }
+
+            ApplyMotionFrame(controller.Current);
+        }
+    }
+
     public void ApplySnapshot(OverlaySnapshot snapshot, bool isActiveWindow, bool activationEnabled)
     {
         _isActiveWindow = isActiveWindow && activationEnabled;
@@ -88,14 +147,19 @@ public sealed partial class OverlayWindow : Window
                                       _monitorLayout.IsForegroundFullscreen(_monitor);
         if (suppressedForFullscreen)
         {
-            HideImmediately();
-            if (snapshot.State == OverlayState.ModeTransition)
-            {
-                DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
-            }
-
+            BeginFullscreenSuppression(snapshot);
             return;
         }
+
+        if (_suppressedForFullscreen)
+        {
+            _logger.LogInformation(
+                "Full-screen suppression ended on monitor {MonitorId}; restoring the overlay with its current spring state.",
+                _monitor.Id);
+        }
+
+        _suppressedForFullscreen = false;
+        _hideWhenSettled = false;
 
         if (snapshot.State == OverlayState.Hidden ||
             snapshot.State == OverlayState.ModeTransition && snapshot.TemporaryItemCount == 0)
@@ -182,6 +246,39 @@ public sealed partial class OverlayWindow : Window
         OverlayWindowInterop.Hide(_windowHandle);
         _motion.SnapTo(OverlayMotionValues.Hidden);
         _isVisible = false;
+        _hideWhenSettled = false;
+    }
+
+    private void BeginFullscreenSuppression(OverlaySnapshot snapshot)
+    {
+        if (!_suppressedForFullscreen)
+        {
+            _logger.LogInformation(
+                "A real user full-screen window suppressed the passive overlay on monitor {MonitorId}.",
+                _monitor.Id);
+        }
+
+        if (!_isVisible)
+        {
+            _suppressedForFullscreen = true;
+            if (snapshot.State == OverlayState.ModeTransition)
+            {
+                DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
+            }
+
+            return;
+        }
+
+        _suppressedForFullscreen = true;
+        _hideWhenSettled = true;
+        var displayMode = snapshot.State == OverlayState.ModeTransition
+            ? snapshot.TargetDisplayMode
+            : snapshot.DisplayMode;
+        _renderDisplayMode = displayMode;
+        var hiddenTarget = CreateMotionTarget(OverlayState.Hidden, displayMode);
+        PrepareContentForTarget(hiddenTarget);
+        _motion.SetTarget(hiddenTarget, IsReducedMotion());
+        StartAnimationFrames();
     }
 
     private void PositionFixedHost()
@@ -228,6 +325,22 @@ public sealed partial class OverlayWindow : Window
         }
 
         StopAnimationFrames();
+        if (_hideWhenSettled)
+        {
+            _hideWhenSettled = false;
+            Surface.Opacity = 0;
+            CollapseInvisibleContent(_motion.Current);
+            OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
+            OverlayWindowInterop.Hide(_windowHandle);
+            _isVisible = false;
+            if (_viewModel.Snapshot.State == OverlayState.ModeTransition)
+            {
+                _viewModel.CompleteModeTransition();
+            }
+
+            return;
+        }
+
         var state = _viewModel.Snapshot.State;
         if (!_isActiveWindow)
         {
@@ -246,6 +359,7 @@ public sealed partial class OverlayWindow : Window
 
     private void ApplyMotionFrame(OverlayMotionValues values)
     {
+        values = values.ProjectToSafeRange();
         Surface.Width = values.Width;
         Surface.Height = values.Height;
         Surface.CornerRadius = new CornerRadius(
@@ -266,7 +380,7 @@ public sealed partial class OverlayWindow : Window
         var height = ToPixels(values.Height * values.DropTargetScale);
         var left = (ToPixels(HostWidth) - width) / 2;
         var top = ToPixels(values.TopOffset + values.Height * (1 - values.DropTargetScale) / 2);
-        OverlayWindowInterop.ApplyVisualRegion(
+        if (!OverlayWindowInterop.ApplyVisualRegion(
             _windowHandle,
             left,
             top,
@@ -274,7 +388,14 @@ public sealed partial class OverlayWindow : Window
             height,
             ToPixels(values.TopRadius),
             ToPixels(values.BottomRadius),
-            _renderDisplayMode);
+            _renderDisplayMode))
+        {
+            Interlocked.Increment(ref _regionFailureCount);
+            OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
+            _logger.LogError(
+                "The overlay HRGN could not be applied for monitor {MonitorId}; the unsafe frame was hidden.",
+                _monitor.Id);
+        }
     }
 
     private void PrepareContentForTarget(OverlayMotionValues target)

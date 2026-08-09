@@ -66,6 +66,14 @@ public sealed record AppSettings
 
     public OverlayMonitorPreference OverlayMonitor { get; init; } = OverlayMonitorPreference.Automatic;
 
+    public AppSettings WithSafeUiPreferences() => this with
+    {
+        Theme = ThemePreference.System,
+        OverlayDisplayMode = OverlayDisplayMode.DynamicIsland,
+        OverlayMotion = OverlayMotionPreference.System,
+        OverlayMonitor = OverlayMonitorPreference.Automatic,
+    };
+
     public AppSettings Validate()
     {
         if (Version is < 1 or > CurrentVersion)
@@ -96,6 +104,16 @@ public sealed record AppSettings
         if (MaxTextCharacters is < 1_024 or > 16_777_216)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
+        }
+
+        if (!Enum.IsDefined(Theme))
+        {
+            throw new ArgumentOutOfRangeException(nameof(Theme));
+        }
+
+        if (!Enum.IsDefined(CloseBehavior))
+        {
+            throw new ArgumentOutOfRangeException(nameof(CloseBehavior));
         }
 
         if (!Enum.IsDefined(OverlayDisplayMode))

@@ -82,6 +82,104 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
+    public async Task Settings_PersistedNotchLoadsWithoutCrash()
+    {
+        var service = new JsonSettingsService(_paths);
+        var expected = new AppSettings
+        {
+            OverlayDisplayMode = OverlayDisplayMode.Notch,
+            OverlayMotion = OverlayMotionPreference.Full,
+        };
+
+        await service.SaveAsync(expected);
+        var actual = await service.LoadAsync();
+
+        Assert.AreEqual(OverlayDisplayMode.Notch, actual.OverlayDisplayMode);
+        Assert.AreEqual(OverlayMotionPreference.Full, actual.OverlayMotion);
+        Assert.IsFalse(service.LastLoadRecovery.Recovered);
+    }
+
+    [TestMethod]
+    public async Task Settings_InvalidOverlayValueIsQuarantinedAndNonUiPreferencesArePreserved()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 2,
+              "ClipboardPaused": true,
+              "RetentionDays": 21,
+              "RetentionItemCount": 300,
+              "OverlayDisplayMode": 999,
+              "OverlayMotion": 0,
+              "OverlayMonitor": 0
+            }
+            """);
+        var databaseSentinel = Path.Combine(_paths.Data, "database-sentinel.bin");
+        await File.WriteAllTextAsync(databaseSentinel, "do not delete");
+        var service = new JsonSettingsService(_paths);
+
+        var actual = await service.LoadAsync();
+
+        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
+        Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
+        Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
+        Assert.IsTrue(actual.ClipboardPaused);
+        Assert.AreEqual(21, actual.RetentionDays);
+        Assert.IsTrue(service.LastLoadRecovery.Recovered);
+        Assert.IsTrue(service.LastLoadRecovery.PreservedNonUiPreferences);
+        Assert.IsTrue(File.Exists(databaseSentinel));
+        Assert.AreEqual(1, Directory.GetFiles(_paths.Quarantine, "settings-*.json").Length);
+    }
+
+    [TestMethod]
+    public async Task Settings_MalformedJsonFallsBackWithoutDeletingDatabaseOrPayloads()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(_paths.Settings, "{ definitely not JSON");
+        var databaseSentinel = Path.Combine(_paths.Data, "dropspace.db");
+        var payloadSentinel = Path.Combine(_paths.Payloads, "keep.bin");
+        await File.WriteAllTextAsync(databaseSentinel, "database");
+        await File.WriteAllTextAsync(payloadSentinel, "payload");
+        var service = new JsonSettingsService(_paths);
+
+        var actual = await service.LoadAsync();
+
+        Assert.AreEqual(new AppSettings(), actual);
+        Assert.IsTrue(service.LastLoadRecovery.Recovered);
+        Assert.IsFalse(service.LastLoadRecovery.PreservedNonUiPreferences);
+        Assert.IsTrue(File.Exists(databaseSentinel));
+        Assert.IsTrue(File.Exists(payloadSentinel));
+    }
+
+    [TestMethod]
+    public async Task Settings_ResetUiOnlyPreservesClipboardAndRetentionPreferences()
+    {
+        var service = new JsonSettingsService(_paths);
+        await service.SaveAsync(new AppSettings
+        {
+            ClipboardPaused = true,
+            CaptureImages = false,
+            RetentionDays = 45,
+            Theme = ThemePreference.Dark,
+            OverlayDisplayMode = OverlayDisplayMode.Notch,
+            OverlayMotion = OverlayMotionPreference.Full,
+            OverlayMonitor = OverlayMonitorPreference.Primary,
+        });
+
+        var actual = await service.ResetUiSettingsAsync();
+
+        Assert.IsTrue(actual.ClipboardPaused);
+        Assert.IsFalse(actual.CaptureImages);
+        Assert.AreEqual(45, actual.RetentionDays);
+        Assert.AreEqual(ThemePreference.System, actual.Theme);
+        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
+        Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
+        Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
+    }
+
+    [TestMethod]
     public async Task PayloadStore_WritesHashesReadsAndDeletes()
     {
         var store = new FilePayloadStore(_paths);

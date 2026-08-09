@@ -114,7 +114,7 @@ internal static class OverlayWindowInterop
             SetWindowPositionFrameChanged);
     }
 
-    public static void ApplyVisualRegion(
+    public static bool ApplyVisualRegion(
         nint window,
         int left,
         int top,
@@ -133,13 +133,16 @@ internal static class OverlayWindowInterop
             bottomRadius);
         if (region == nint.Zero)
         {
-            return;
+            return false;
         }
 
         if (SetWindowRgn(window, region, true) == 0)
         {
             DeleteObject(region);
+            return false;
         }
+
+        return true;
     }
 
     public static void ApplyEmptyRegion(nint window)

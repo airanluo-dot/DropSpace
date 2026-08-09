@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using DropSpace.App.Services;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     private readonly DispatcherQueue _dispatcher;
     private readonly ILogger<OverlayViewModel> _logger;
     private OverlaySnapshot _snapshot;
+    private AppSettings? _pendingSettings;
+    private TaskCompletionSource? _modeTransitionCompletion;
+    private OverlayDisplayMode? _modeTransitionExpected;
     private string? _activeMonitorId;
     private bool _disposed;
 
@@ -29,6 +33,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         _dispatcher = dispatcher;
         _logger = logger;
         _snapshot = stateMachine.Snapshot;
+        _mainViewModel.UiSettingsPreflightAsync = ApplyUiSettingsAsync;
     }
 
     public event EventHandler<OverlaySnapshot>? SnapshotChanged;
@@ -58,9 +63,11 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _activeMonitorId, value);
     }
 
-    public OverlayMonitorPreference MonitorPreference => _mainViewModel.OverlayMonitor;
+    public OverlayMonitorPreference MonitorPreference =>
+        (_pendingSettings ?? _mainViewModel.Settings).OverlayMonitor;
 
-    public OverlayMotionPreference MotionPreference => _mainViewModel.OverlayMotion;
+    public OverlayMotionPreference MotionPreference =>
+        (_pendingSettings ?? _mainViewModel.Settings).OverlayMotion;
 
     public bool IsDragPromptVisible => Snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
 
@@ -134,6 +141,37 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public void CompleteModeTransition() => _stateMachine.CompleteModeTransition();
 
+    private Task ApplyUiSettingsAsync(AppSettings candidate, CancellationToken cancellationToken)
+    {
+        candidate.Validate();
+        return _dispatcher.HasThreadAccess
+            ? ApplyUiSettingsOnDispatcherAsync(candidate, cancellationToken)
+            : _dispatcher.EnqueueAsync(() => ApplyUiSettingsOnDispatcherAsync(candidate, cancellationToken));
+    }
+
+    private async Task ApplyUiSettingsOnDispatcherAsync(
+        AppSettings candidate,
+        CancellationToken cancellationToken)
+    {
+        _pendingSettings = candidate;
+        OnPropertyChanged(nameof(MonitorPreference));
+        OnPropertyChanged(nameof(MotionPreference));
+
+        var snapshot = _stateMachine.Snapshot;
+        if (snapshot.DisplayMode == candidate.OverlayDisplayMode &&
+            snapshot.State != OverlayState.ModeTransition)
+        {
+            return;
+        }
+
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _modeTransitionCompletion?.TrySetCanceled();
+        _modeTransitionCompletion = completion;
+        _modeTransitionExpected = candidate.OverlayDisplayMode;
+        _stateMachine.RequestDisplayMode(candidate.OverlayDisplayMode);
+        await completion.Task.WaitAsync(TimeSpan.FromSeconds(8), cancellationToken);
+    }
+
     public async Task OpenAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         await _mainViewModel.OpenAsync(card, cancellationToken);
@@ -183,6 +221,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
         _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
         _stateMachine.Changed -= OnStateChanged;
+        if (_mainViewModel.UiSettingsPreflightAsync == ApplyUiSettingsAsync)
+        {
+            _mainViewModel.UiSettingsPreflightAsync = null;
+        }
+
+        _modeTransitionCompletion?.TrySetCanceled();
         _disposed = true;
     }
 
@@ -201,6 +245,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
         else if (args.PropertyName == nameof(MainViewModel.Settings))
         {
+            _pendingSettings = null;
             OnPropertyChanged(nameof(MonitorPreference));
             OnPropertyChanged(nameof(MotionPreference));
             if (_stateMachine.Snapshot.TargetDisplayMode != _mainViewModel.OverlayDisplayMode)
@@ -219,6 +264,16 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
 
         Snapshot = snapshot;
+        if (_modeTransitionCompletion is { } completion &&
+            _modeTransitionExpected is { } expected &&
+            snapshot.State != OverlayState.ModeTransition &&
+            snapshot.DisplayMode == expected)
+        {
+            _modeTransitionCompletion = null;
+            _modeTransitionExpected = null;
+            completion.TrySetResult();
+        }
+
         SnapshotChanged?.Invoke(this, snapshot);
     }
 }

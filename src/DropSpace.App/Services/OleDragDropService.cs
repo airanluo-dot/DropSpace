@@ -112,9 +112,11 @@ public sealed class OleDragDropService : IDisposable
 
 public sealed class DragActivationHost : IDisposable
 {
-    public const double WidthDips = 680;
-    public const double HeightDips = 72;
-    private const int HitTestTransparent = -1;
+    public const double IdleWidthDips = 960;
+    public const int IdleHeightPixels = 1;
+    public const double ActiveWidthDips = 760;
+    public const double ActiveHeightDips = 112;
+    private const int HitTestClient = 1;
     private const int MouseActivateNoActivate = 3;
     private const uint WindowStylePopup = 0x80000000;
     private const uint ExtendedStyleTopmost = 0x00000008;
@@ -124,11 +126,13 @@ public sealed class DragActivationHost : IDisposable
     private const uint LayeredAlpha = 0x00000002;
     private const int ShowNoActivate = 4;
     private const int HideWindow = 0;
+    private const uint SetWindowPositionNoActivate = 0x0010;
+    private const uint SetWindowPositionShowWindow = 0x0040;
     private const uint WindowMessageNonClientHitTest = 0x0084;
     private const uint WindowMessageMouseActivate = 0x0021;
     private const uint WindowMessageEraseBackground = 0x0014;
     private const uint WindowMessageDisplayChange = 0x007E;
-    private const string WindowClassName = "DropSpace.DragActivationHost.v2";
+    private const string WindowClassName = "DropSpace.DragActivationHost.v3";
     private static readonly object ClassGate = new();
     private static readonly Dictionary<nint, DragActivationHost> Hosts = [];
     private static readonly WindowProcedureCallback SharedWindowProcedure = StaticWindowProcedure;
@@ -136,7 +140,11 @@ public sealed class DragActivationHost : IDisposable
     private readonly MonitorDescriptor _monitor;
     private readonly ILogger<DragActivationHost> _logger;
     private readonly OleDropTargetRegistration _dropTarget;
-    private readonly NativeRectangle _bounds;
+    private readonly NativeRectangle _idleBounds;
+    private readonly NativeRectangle _activeBounds;
+    private NativeRectangle _bounds;
+    private bool _enabled = true;
+    private bool _dragActive;
     private bool _disposed;
 
     public DragActivationHost(
@@ -148,10 +156,9 @@ public sealed class DragActivationHost : IDisposable
         _logger = logger;
         EnsureWindowClass();
 
-        var width = ToPixels(WidthDips);
-        var height = ToPixels(HeightDips);
-        var left = monitor.Left + (monitor.Width - width) / 2;
-        _bounds = new NativeRectangle(left, monitor.Top, left + width, monitor.Top + height);
+        _idleBounds = CreateCenteredBounds(ToPixels(IdleWidthDips), IdleHeightPixels);
+        _activeBounds = CreateCenteredBounds(ToPixels(ActiveWidthDips), ToPixels(ActiveHeightDips));
+        _bounds = _idleBounds;
         WindowHandle = CreateWindowEx(
             ExtendedStyleTopmost | ExtendedStyleToolWindow | ExtendedStyleLayered | ExtendedStyleNoActivate,
             WindowClassName,
@@ -159,8 +166,8 @@ public sealed class DragActivationHost : IDisposable
             WindowStylePopup,
             _bounds.Left,
             _bounds.Top,
-            width,
-            height,
+            _bounds.Width,
+            _bounds.Height,
             nint.Zero,
             nint.Zero,
             GetModuleHandle(null),
@@ -183,22 +190,60 @@ public sealed class DragActivationHost : IDisposable
         }
 
         ShowWindow(WindowHandle, ShowNoActivate);
+        var ownedCallbacks = new DragActivationCallbacks(
+            monitorId =>
+            {
+                ExpandForDrag();
+                callbacks.DragApproaching(monitorId);
+                BringToTop();
+            },
+            (monitorId, ready) =>
+            {
+                callbacks.DragReadyChanged(monitorId, ready);
+                BringToTop();
+            },
+            monitorId =>
+            {
+                try
+                {
+                    callbacks.DragLeft(monitorId);
+                }
+                finally
+                {
+                    CollapseAfterDrag();
+                }
+            },
+            async (monitorId, paths) =>
+            {
+                try
+                {
+                    await callbacks.Dropped(monitorId, paths);
+                }
+                finally
+                {
+                    CollapseAfterDrag();
+                }
+            });
         _dropTarget = new OleDropTargetRegistration(
             WindowHandle,
             monitor.Id,
-            callbacks,
+            ownedCallbacks,
             logger,
             IsDropReady,
             "activation-host");
         _logger.LogInformation(
-            "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, bounds {Left},{Top},{Width},{Height}; zero-alpha=yes, mouse-hit-test=transparent.",
+            "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, idle bounds {Left},{Top},{Width},{Height}, active bounds {ActiveLeft},{ActiveTop},{ActiveWidth},{ActiveHeight}; zero-alpha=yes, mouse-hit-test=client, ownership=activation-through-drop.",
             monitor.Id,
             WindowHandle,
             monitor.Dpi,
             _bounds.Left,
             _bounds.Top,
-            width,
-            height);
+            _idleBounds.Width,
+            _idleBounds.Height,
+            _activeBounds.Left,
+            _activeBounds.Top,
+            _activeBounds.Width,
+            _activeBounds.Height);
     }
 
     public event EventHandler? DisplayTopologyChanged;
@@ -207,10 +252,30 @@ public sealed class DragActivationHost : IDisposable
 
     public string MonitorId => _monitor.Id;
 
+    internal bool IsIdleTargetDiscoverable()
+    {
+        var point = new NativePoint(
+            _idleBounds.Left + _idleBounds.Width / 2,
+            _idleBounds.Top);
+        return WindowFromPoint(point) == WindowHandle;
+    }
+
     public void SetEnabled(bool enabled)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        ShowWindow(WindowHandle, enabled ? ShowNoActivate : HideWindow);
+        if (_enabled == enabled)
+        {
+            return;
+        }
+
+        _enabled = enabled;
+        if (!enabled)
+        {
+            ShowWindow(WindowHandle, HideWindow);
+            return;
+        }
+
+        PositionWindow(_dragActive ? _activeBounds : _idleBounds);
     }
 
     public void Dispose()
@@ -236,6 +301,65 @@ public sealed class DragActivationHost : IDisposable
     }
 
     private int ToPixels(double dips) => Math.Max(1, (int)Math.Round(dips * _monitor.Scale));
+
+    private NativeRectangle CreateCenteredBounds(int width, int height)
+    {
+        width = Math.Min(width, _monitor.Width);
+        var left = _monitor.Left + (_monitor.Width - width) / 2;
+        return new NativeRectangle(left, _monitor.Top, left + width, _monitor.Top + height);
+    }
+
+    private void ExpandForDrag()
+    {
+        _dragActive = true;
+        PositionWindow(_activeBounds);
+        _logger.LogInformation(
+            "Drag activation HWND {WindowHandle} expanded for OLE ownership on monitor {MonitorId}: bounds {Left},{Top},{Width},{Height}.",
+            WindowHandle,
+            _monitor.Id,
+            _activeBounds.Left,
+            _activeBounds.Top,
+            _activeBounds.Width,
+            _activeBounds.Height);
+    }
+
+    private void CollapseAfterDrag()
+    {
+        _dragActive = false;
+        if (_enabled)
+        {
+            PositionWindow(_idleBounds);
+        }
+
+        _logger.LogInformation(
+            "Drag activation HWND {WindowHandle} returned to its one-physical-pixel idle hot edge on monitor {MonitorId}.",
+            WindowHandle,
+            _monitor.Id);
+    }
+
+    private void BringToTop()
+    {
+        if (_dragActive && _enabled)
+        {
+            PositionWindow(_activeBounds);
+        }
+    }
+
+    private void PositionWindow(NativeRectangle bounds)
+    {
+        _bounds = bounds;
+        if (!SetWindowPos(
+                WindowHandle,
+                new nint(-1),
+                bounds.Left,
+                bounds.Top,
+                bounds.Width,
+                bounds.Height,
+                SetWindowPositionNoActivate | SetWindowPositionShowWindow))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "The drag activation HWND could not be positioned.");
+        }
+    }
 
     private void DestroyHostWindow()
     {
@@ -280,10 +404,10 @@ public sealed class DragActivationHost : IDisposable
     {
         if (message == WindowMessageNonClientHitTest)
         {
-            // Deliberately use WM_NCHITTEST rather than WS_EX_TRANSPARENT. The latter is a paint
-            // ordering flag and can make OLE target discovery inconsistent; HTTRANSPARENT keeps
-            // ordinary clicks flowing to the desktop/window beneath this zero-alpha host.
-            return new nint(HitTestTransparent);
+            // OLE target discovery uses the window under the pointer. HTTRANSPARENT forwards only
+            // within the creating thread and made Explorer skip this registered target entirely.
+            // The idle HWND is therefore an intentional one-physical-pixel HTCLIENT hot edge.
+            return new nint(HitTestClient);
         }
 
         if (message == WindowMessageMouseActivate)
@@ -330,7 +454,12 @@ public sealed class DragActivationHost : IDisposable
         public nint SmallIcon;
     }
 
-    private readonly record struct NativeRectangle(int Left, int Top, int Right, int Bottom);
+    private readonly record struct NativeRectangle(int Left, int Top, int Right, int Bottom)
+    {
+        public int Width => Right - Left;
+
+        public int Height => Bottom - Top;
+    }
 
     private delegate nint WindowProcedureCallback(nint window, uint message, nint wParam, nint lParam);
 
@@ -363,12 +492,26 @@ public sealed class DragActivationHost : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ShowWindow(nint window, int command);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        nint window,
+        nint insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyWindow(nint window);
 
     [DllImport("user32.dll")]
     private static extern nint DefWindowProc(nint window, uint message, nint wParam, nint lParam);
+
+    [DllImport("user32.dll")]
+    private static extern nint WindowFromPoint(NativePoint point);
 }
 
 [ComVisible(true)]
@@ -467,18 +610,21 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     public int DragEnter(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
         _currentDataObject = dataObject;
+        var discoveredWindow = WindowFromPoint(point);
         var cfHDrop = HasFormat(dataObject, ClipboardFormatHDrop);
         var shellIdListFormat = unchecked((short)RegisterClipboardFormat("Shell IDList Array"));
         var storageItems = shellIdListFormat != 0 && HasFormat(dataObject, shellIdListFormat);
         _canAccept = cfHDrop;
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         _logger.LogInformation(
-            "OLE DragEnter received by {SurfaceKind} on monitor {MonitorId}: CF_HDROP={CfHDrop}, StorageItems={StorageItems}, accepted={Accepted}.",
+            "OLE DragEnter received by {SurfaceKind} on monitor {MonitorId}: CF_HDROP={CfHDrop}, StorageItems={StorageItems}, accepted={Accepted}, WindowFromPoint={DiscoveredWindow}, targetMatches={TargetMatches}.",
             _surfaceKind,
             _monitorId,
             cfHDrop,
             storageItems,
-            _canAccept);
+            _canAccept,
+            discoveredWindow,
+            discoveredWindow == _windowHandle);
         if (_canAccept)
         {
             _callbacks.DragApproaching(_monitorId);
@@ -669,4 +815,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern uint RegisterClipboardFormat(string format);
+
+    [DllImport("user32.dll")]
+    private static extern nint WindowFromPoint(NativePoint point);
 }
