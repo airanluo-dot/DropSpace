@@ -27,7 +27,7 @@ public sealed partial class MainWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-        AppWindow.SetIcon("Assets/AppIcon.ico");
+        NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
         AppWindow.Resize(new SizeInt32(980, 680));
         AppWindow.Closing += OnAppWindowClosing;
         _mainPage = new Views.MainPage(viewModel, WindowNative.GetWindowHandle(this));
@@ -45,8 +45,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico");
-            _tray = new NativeTrayService(WindowNative.GetWindowHandle(this), iconPath, logger);
+            _tray = new NativeTrayService(WindowNative.GetWindowHandle(this), logger);
             _tray.OpenRequested += (_, _) => DispatcherQueue.TryEnqueue(ShowAndActivate);
             _tray.TogglePauseRequested += OnTrayTogglePauseRequested;
             _tray.ClearRequested += (_, _) => DispatcherQueue.TryEnqueue(async () =>
@@ -85,6 +84,8 @@ public sealed partial class MainWindow : Window
         AppWindow.Show();
         Activate();
     }
+
+    public void Hide() => AppWindow.Hide();
 
     public void AllowCloseAndClose()
     {

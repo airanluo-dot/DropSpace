@@ -57,7 +57,7 @@ public sealed class JsonSettingsService : ISettingsService
                 settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
                     .ConfigureAwait(false);
                 settings ??= new AppSettings();
-                if (settings.Version == 1)
+                if (settings.Version is 1 or 2)
                 {
                     settings = settings with { Version = AppSettings.CurrentVersion };
                 }

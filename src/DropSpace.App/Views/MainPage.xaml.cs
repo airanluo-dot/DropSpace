@@ -341,6 +341,64 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnCaptureFilesToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { CaptureFiles = CaptureFilesToggle.IsOn }));
+        }
+    }
+
+    private async void OnCaptureFoldersToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { CaptureFolders = CaptureFoldersToggle.IsOn }));
+        }
+    }
+
+    private async void OnStartWithWindowsToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { StartWithWindows = StartWithWindowsToggle.IsOn }));
+        }
+    }
+
+    private async void OnClipboardLimitsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (_syncingSettings ||
+            double.IsNaN(MaxImageMegabytesNumber.Value) ||
+            double.IsNaN(MaxImageMegapixelsNumber.Value) ||
+            double.IsNaN(MaxClipboardFileMegabytesNumber.Value) ||
+            double.IsNaN(MaxClipboardFileTotalMegabytesNumber.Value) ||
+            double.IsNaN(MaxClipboardFileItemsNumber.Value))
+        {
+            return;
+        }
+
+        var singleFileMegabytes = (long)Math.Round(MaxClipboardFileMegabytesNumber.Value);
+        var totalFileMegabytes = (long)Math.Round(MaxClipboardFileTotalMegabytesNumber.Value);
+        if (totalFileMegabytes < singleFileMegabytes)
+        {
+            await ShowMessageAsync("限制值无效", "单次文件总大小上限不能小于单个文件大小上限。");
+            SyncSettingsControls();
+            return;
+        }
+
+        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        {
+            MaxImageBytes = checked((long)Math.Round(MaxImageMegabytesNumber.Value * 1024 * 1024)),
+            MaxImagePixels = checked((long)Math.Round(MaxImageMegapixelsNumber.Value * 1_000_000)),
+            MaxClipboardFileBytes = checked(singleFileMegabytes * 1024 * 1024),
+            MaxClipboardFileTotalBytes = checked(totalFileMegabytes * 1024 * 1024),
+            MaxClipboardFileItems = (int)Math.Round(MaxClipboardFileItemsNumber.Value),
+        }));
+    }
+
     private async void OnRetentionChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (_syncingSettings || double.IsNaN(RetentionDaysNumber.Value) || double.IsNaN(RetentionCountNumber.Value))
@@ -488,6 +546,14 @@ public sealed partial class MainPage : Page
         {
             PauseToggle.IsOn = _viewModel.IsClipboardPaused;
             CaptureImagesToggle.IsOn = _viewModel.CaptureImages;
+            CaptureFilesToggle.IsOn = _viewModel.CaptureFiles;
+            CaptureFoldersToggle.IsOn = _viewModel.CaptureFolders;
+            StartWithWindowsToggle.IsOn = _viewModel.StartWithWindows;
+            MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
+            MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
+            MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
+            MaxClipboardFileTotalMegabytesNumber.Value = _viewModel.MaxClipboardFileTotalMegabytes;
+            MaxClipboardFileItemsNumber.Value = _viewModel.MaxClipboardFileItems;
             RetentionDaysNumber.Value = _viewModel.RetentionDays;
             RetentionCountNumber.Value = _viewModel.RetentionItemCount;
             SelectComboItem(ThemeCombo, _viewModel.Theme.ToString());
@@ -512,7 +578,7 @@ public sealed partial class MainPage : Page
         {
             case "Clipboard":
                 EmptyTitle.Text = "暂无剪贴板记录";
-                EmptyDescription.Text = "复制文本或图片后，支持的内容会出现在这里。";
+                EmptyDescription.Text = "复制文本、图片、文件或文件夹后，支持的内容会出现在这里。";
                 break;
             case "Pinned":
                 EmptyTitle.Text = "暂无固定项目";

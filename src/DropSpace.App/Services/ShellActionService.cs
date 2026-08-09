@@ -93,7 +93,7 @@ public sealed class ShellActionService(
 
         if (item.File is not null)
         {
-            return clipboard.CopyTextAsync(item.File.OriginalPath, cancellationToken);
+            return clipboard.CopyFilesAsync([item.File.OriginalPath], cancellationToken);
         }
 
         if (item.Payload is not null && item.Kind == ItemKind.Image)

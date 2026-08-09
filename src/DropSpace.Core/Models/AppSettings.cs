@@ -34,13 +34,19 @@ public enum OverlayMonitorPreference
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int Version { get; init; } = CurrentVersion;
 
     public bool ClipboardPaused { get; init; }
 
     public bool CaptureImages { get; init; } = true;
+
+    public bool CaptureFiles { get; init; } = true;
+
+    public bool CaptureFolders { get; init; } = true;
+
+    public bool StartWithWindows { get; init; } = true;
 
     public int RetentionDays { get; init; } = 30;
 
@@ -49,6 +55,12 @@ public sealed record AppSettings
     public long MaxImageBytes { get; init; } = 25L * 1024 * 1024;
 
     public long MaxImagePixels { get; init; } = 50_000_000;
+
+    public long MaxClipboardFileBytes { get; init; } = 2L * 1024 * 1024 * 1024;
+
+    public long MaxClipboardFileTotalBytes { get; init; } = 8L * 1024 * 1024 * 1024;
+
+    public int MaxClipboardFileItems { get; init; } = 100;
 
     public int MaxTextCharacters { get; init; } = 2 * 1024 * 1024;
 
@@ -99,6 +111,22 @@ public sealed record AppSettings
         if (MaxImagePixels is < 1_000_000 or > 200_000_000)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxImagePixels));
+        }
+
+        if (MaxClipboardFileBytes is < 1_048_576 or > 1_099_511_627_776)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxClipboardFileBytes));
+        }
+
+        if (MaxClipboardFileTotalBytes is < 1_048_576 or > 4_398_046_511_104 ||
+            MaxClipboardFileTotalBytes < MaxClipboardFileBytes)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxClipboardFileTotalBytes));
+        }
+
+        if (MaxClipboardFileItems is < 1 or > 1_000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxClipboardFileItems));
         }
 
         if (MaxTextCharacters is < 1_024 or > 16_777_216)

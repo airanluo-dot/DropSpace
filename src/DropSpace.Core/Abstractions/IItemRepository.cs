@@ -8,6 +8,12 @@ public interface IItemRepository
 
     Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default);
 
+    Task<DropItem> AddClipboardFileAsync(
+        FileCandidate candidate,
+        string fingerprint,
+        string? metadataJson,
+        CancellationToken cancellationToken = default);
+
     Task<DropItem> AddTextAsync(TextCandidate candidate, CancellationToken cancellationToken = default);
 
     Task<DropItem> AddImageAsync(ImageCandidate candidate, CancellationToken cancellationToken = default);

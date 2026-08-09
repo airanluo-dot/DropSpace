@@ -37,18 +37,55 @@
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
 
-      <Grid Padding="28,20,28,14" ColumnSpacing="20">
+      <Grid x:Name="ResponsiveHeader" Padding="28,20,28,14" ColumnSpacing="20" RowSpacing="12">
+        <VisualStateManager.VisualStateGroups>
+          <VisualStateGroup x:Name="HeaderWidthStates">
+            <VisualState x:Name="NarrowHeader">
+              <VisualState.StateTriggers>
+                <AdaptiveTrigger MinWindowWidth="0" />
+              </VisualState.StateTriggers>
+              <VisualState.Setters>
+                <Setter Target="HeaderText.(Grid.ColumnSpan)" Value="3" />
+                <Setter Target="SearchBox.(Grid.Row)" Value="1" />
+                <Setter Target="SearchBox.(Grid.Column)" Value="0" />
+                <Setter Target="SearchBox.(Grid.ColumnSpan)" Value="2" />
+                <Setter Target="SearchBox.HorizontalAlignment" Value="Stretch" />
+                <Setter Target="SearchColumn.Width" Value="0" />
+                <Setter Target="AddButton.(Grid.Row)" Value="1" />
+                <Setter Target="AddButton.(Grid.Column)" Value="2" />
+              </VisualState.Setters>
+            </VisualState>
+            <VisualState x:Name="WideHeader">
+              <VisualState.StateTriggers>
+                <AdaptiveTrigger MinWindowWidth="860" />
+              </VisualState.StateTriggers>
+              <VisualState.Setters>
+                <Setter Target="HeaderText.(Grid.ColumnSpan)" Value="1" />
+                <Setter Target="SearchBox.(Grid.Row)" Value="0" />
+                <Setter Target="SearchBox.(Grid.Column)" Value="1" />
+                <Setter Target="SearchBox.(Grid.ColumnSpan)" Value="1" />
+                <Setter Target="SearchColumn.Width" Value="320" />
+                <Setter Target="AddButton.(Grid.Row)" Value="0" />
+                <Setter Target="AddButton.(Grid.Column)" Value="2" />
+              </VisualState.Setters>
+            </VisualState>
+          </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="320" />
+          <ColumnDefinition x:Name="SearchColumn" Width="320" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel Spacing="3">
+        <StackPanel x:Name="HeaderText" MinWidth="0" Spacing="3">
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="{Binding PageTitle}" Style="{StaticResource TitleTextBlockStyle}" />
             <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding ItemCountText}" />
           </StackPanel>
-          <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding PageDescription}" TextWrapping="Wrap" />
+          <TextBlock MaxWidth="520" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding PageDescription}" TextWrapping="WrapWholeWords" />
           <TextBlock
             x:Name="ClipboardStatusText"
             Margin="0,5,0,0"
@@ -303,9 +340,74 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock FontWeight="SemiBold" Text="记录图片" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="超过 25 MB 或 5000 万像素的图片会被跳过。" TextWrapping="Wrap" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="大小和像素上限可在下方调整；超限图片会被跳过。" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="CaptureImagesToggle" Grid.Column="1" Toggled="OnCaptureImagesToggled" AutomationProperties.Name="记录剪贴板图片" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="180" />
+              </Grid.ColumnDefinitions>
+              <TextBlock VerticalAlignment="Center" Text="单张图片最大大小（MB）" TextWrapping="Wrap" />
+              <NumberBox x:Name="MaxImageMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="256" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="180" />
+              </Grid.ColumnDefinitions>
+              <TextBlock VerticalAlignment="Center" Text="单张图片最大像素（百万）" TextWrapping="Wrap" />
+              <NumberBox x:Name="MaxImageMegapixelsNumber" Grid.Column="1" Minimum="1" Maximum="200" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="记录文件与文件夹" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Explorer 的复制操作会作为 Clipboard 引用记录，不会移动或复制原始文件。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="CaptureFilesToggle" Grid.Column="1" Toggled="OnCaptureFilesToggled" AutomationProperties.Name="记录剪贴板文件" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="包含文件夹引用" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="文件夹不会被递归扫描或复制；只记录外部引用。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="CaptureFoldersToggle" Grid.Column="1" Toggled="OnCaptureFoldersToggled" AutomationProperties.Name="记录剪贴板文件夹" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="180" />
+              </Grid.ColumnDefinitions>
+              <TextBlock VerticalAlignment="Center" Text="单次最多项目数" />
+              <NumberBox x:Name="MaxClipboardFileItemsNumber" Grid.Column="1" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="180" />
+              </Grid.ColumnDefinitions>
+              <TextBlock VerticalAlignment="Center" Text="单个文件最大大小（MB）" TextWrapping="Wrap" />
+              <NumberBox x:Name="MaxClipboardFileMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="1048576" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="180" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="单次已知总大小上限（MB）" TextWrapping="Wrap" />
+                <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="必须不小于单文件上限；文件夹不递归计入。" TextWrapping="Wrap" />
+              </StackPanel>
+              <NumberBox x:Name="MaxClipboardFileTotalMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="4194304" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <InfoBar
               IsClosable="False"
@@ -336,6 +438,17 @@
 
           <StackPanel Spacing="12">
             <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="外观与窗口" />
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="开机自启动" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="默认开启；使用当前用户启动项，不需要管理员权限。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="StartWithWindowsToggle" Grid.Column="1" Toggled="OnStartWithWindowsToggled" AutomationProperties.Name="开机自启动" />
+            </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

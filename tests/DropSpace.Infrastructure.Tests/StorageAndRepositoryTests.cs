@@ -41,6 +41,14 @@ public sealed class StorageAndRepositoryTests
         {
             ClipboardPaused = true,
             CaptureImages = false,
+            CaptureFiles = false,
+            CaptureFolders = false,
+            StartWithWindows = false,
+            MaxImageBytes = 64L * 1024 * 1024,
+            MaxImagePixels = 75_000_000,
+            MaxClipboardFileBytes = 512L * 1024 * 1024,
+            MaxClipboardFileTotalBytes = 4L * 1024 * 1024 * 1024,
+            MaxClipboardFileItems = 42,
             RetentionDays = 14,
             RetentionItemCount = 250,
             Theme = ThemePreference.Dark,
@@ -97,6 +105,31 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(OverlayDisplayMode.Notch, actual.OverlayDisplayMode);
         Assert.AreEqual(OverlayMotionPreference.Full, actual.OverlayMotion);
         Assert.IsFalse(service.LastLoadRecovery.Recovered);
+    }
+
+    [TestMethod]
+    public async Task Settings_VersionTwoMigratesClipboardFilesAndStartupToSafeDefaults()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 2,
+              "CaptureImages": false,
+              "MaxImageBytes": 33554432,
+              "MaxImagePixels": 60000000
+            }
+            """);
+
+        var actual = await new JsonSettingsService(_paths).LoadAsync();
+
+        Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
+        Assert.IsFalse(actual.CaptureImages);
+        Assert.AreEqual(33_554_432, actual.MaxImageBytes);
+        Assert.IsTrue(actual.CaptureFiles);
+        Assert.IsTrue(actual.CaptureFolders);
+        Assert.IsTrue(actual.StartWithWindows);
     }
 
     [TestMethod]
@@ -161,6 +194,10 @@ public sealed class StorageAndRepositoryTests
         {
             ClipboardPaused = true,
             CaptureImages = false,
+            CaptureFiles = false,
+            CaptureFolders = false,
+            StartWithWindows = false,
+            MaxClipboardFileItems = 12,
             RetentionDays = 45,
             Theme = ThemePreference.Dark,
             OverlayDisplayMode = OverlayDisplayMode.Notch,
@@ -172,6 +209,10 @@ public sealed class StorageAndRepositoryTests
 
         Assert.IsTrue(actual.ClipboardPaused);
         Assert.IsFalse(actual.CaptureImages);
+        Assert.IsFalse(actual.CaptureFiles);
+        Assert.IsFalse(actual.CaptureFolders);
+        Assert.IsFalse(actual.StartWithWindows);
+        Assert.AreEqual(12, actual.MaxClipboardFileItems);
         Assert.AreEqual(45, actual.RetentionDays);
         Assert.AreEqual(ThemePreference.System, actual.Theme);
         Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
@@ -291,6 +332,32 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(item.Id, duplicate.Id);
         Assert.IsTrue(File.Exists(sourcePath));
         Assert.IsNull(await repository.GetAsync(item.Id));
+    }
+
+    [TestMethod]
+    public async Task Repository_ClipboardFileIsSeparateFromTemporarySpaceAndDeduplicatesRecentCopy()
+    {
+        Directory.CreateDirectory(_root);
+        var sourcePath = Path.Combine(_root, "clipboard-source.txt");
+        await File.WriteAllTextAsync(sourcePath, "keep me");
+        var repository = CreateRepository();
+        var candidate = await new LocalFileReferenceService().InspectAsync(sourcePath);
+        var fingerprint = FingerprintService.ForText($"clipboard-file\0{candidate.NormalizedPath}");
+
+        var space = await repository.AddFileAsync(candidate);
+        var clipboard = await repository.AddClipboardFileAsync(candidate, fingerprint, "{\"batchItemCount\":1}");
+        var duplicate = await repository.AddClipboardFileAsync(candidate, fingerprint, "{\"batchItemCount\":1}");
+
+        Assert.AreNotEqual(space.Id, clipboard.Id);
+        Assert.AreEqual(ItemSource.Space, space.Source);
+        Assert.AreEqual(ItemSource.Clipboard, clipboard.Source);
+        Assert.AreEqual(clipboard.Id, duplicate.Id);
+        Assert.AreEqual(2, duplicate.Revision);
+        Assert.AreEqual(1, await repository.CountAsync(ItemSource.Space));
+        Assert.AreEqual(1, await repository.CountAsync(ItemSource.Clipboard));
+        await repository.RemoveAsync(clipboard.Id);
+        Assert.IsTrue(File.Exists(sourcePath));
+        Assert.IsNotNull(await repository.GetAsync(space.Id));
     }
 
     [TestMethod]

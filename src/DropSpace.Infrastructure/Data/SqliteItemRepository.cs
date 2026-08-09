@@ -16,18 +16,50 @@ public sealed class SqliteItemRepository(
 
     public Task InitializeAsync(CancellationToken cancellationToken = default) => database.InitializeAsync(cancellationToken);
 
-    public async Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default)
+    public Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default) =>
+        AddFileCoreAsync(candidate, ItemSource.Space, null, null, cancellationToken);
+
+    public Task<DropItem> AddClipboardFileAsync(
+        FileCandidate candidate,
+        string fingerprint,
+        string? metadataJson,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fingerprint);
+        return AddFileCoreAsync(candidate, ItemSource.Clipboard, fingerprint, metadataJson, cancellationToken);
+    }
+
+    private async Task<DropItem> AddFileCoreAsync(
+        FileCandidate candidate,
+        ItemSource source,
+        string? fingerprint,
+        string? metadataJson,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            var duplicateId = await FindFileDuplicateAsync(connection, candidate.NormalizedPath, cancellationToken)
-                .ConfigureAwait(false);
+            var duplicateId = source == ItemSource.Space
+                ? await FindFileDuplicateAsync(connection, source, candidate.NormalizedPath, cancellationToken)
+                    .ConfigureAwait(false)
+                : await FindRecentClipboardDuplicateAsync(
+                        connection,
+                        fingerprint ?? throw new InvalidOperationException("Clipboard file fingerprint is required."),
+                        cancellationToken)
+                    .ConfigureAwait(false);
             if (duplicateId is Guid existingId)
             {
-                logger.LogInformation("An existing Space reference was reused instead of creating a duplicate.");
+                if (source == ItemSource.Clipboard)
+                {
+                    await TouchDuplicateAsync(connection, existingId, cancellationToken).ConfigureAwait(false);
+                }
+
+                logger.LogInformation(
+                    source == ItemSource.Space
+                        ? "An existing Space reference was reused instead of creating a duplicate."
+                        : "A recent duplicate clipboard file reference was collapsed.");
                 return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
             }
 
@@ -38,15 +70,16 @@ public sealed class SqliteItemRepository(
                     connection,
                     transaction,
                     itemId,
-                    ItemSource.Space,
+                    source,
                     candidate.EntryKind == FileEntryKind.Folder ? ItemKind.Folder : ItemKind.File,
                     candidate.Title,
                     now,
                     candidate.Status,
                     ContentClassifier.BuildSearchText(candidate.Title, candidate.OriginalPath),
+                    fingerprint,
                     null,
-                    null,
-                    cancellationToken)
+                    cancellationToken,
+                    metadataJson)
                 .ConfigureAwait(false);
 
             await using var command = connection.CreateCommand();
@@ -561,16 +594,20 @@ public sealed class SqliteItemRepository(
 
     private static async Task<Guid?> FindFileDuplicateAsync(
         SqliteConnection connection,
+        ItemSource source,
         string normalizedPath,
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT item_id
-            FROM file_references
-            WHERE normalized_path = @path COLLATE NOCASE
+            SELECT f.item_id
+            FROM file_references f
+            JOIN items i ON i.id = f.item_id
+            WHERE i.source = @source
+              AND f.normalized_path = @path COLLATE NOCASE
             LIMIT 1;
             """;
+        command.Parameters.AddWithValue("@source", (int)source);
         command.Parameters.AddWithValue("@path", normalizedPath);
         var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return result is byte[] bytes ? new Guid(bytes) : null;
@@ -627,7 +664,8 @@ public sealed class SqliteItemRepository(
         string searchText,
         string? fingerprint,
         Guid? payloadId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? metadataJson = null)
     {
         await using var command = connection.CreateCommand();
         command.Transaction = (SqliteTransaction)transaction;
@@ -637,7 +675,7 @@ public sealed class SqliteItemRepository(
                 fingerprint, search_text, payload_id, metadata_json, revision)
             VALUES (
                 @id, @source, @kind, @title, @created_at_utc, NULL, 0, @status,
-                @fingerprint, @search_text, @payload_id, NULL, 1);
+                @fingerprint, @search_text, @payload_id, @metadata_json, 1);
             """;
         command.Parameters.AddWithValue("@id", ToBytes(itemId));
         command.Parameters.AddWithValue("@source", (int)source);
@@ -648,6 +686,7 @@ public sealed class SqliteItemRepository(
         command.Parameters.AddWithValue("@fingerprint", DbValue(fingerprint));
         command.Parameters.AddWithValue("@search_text", searchText);
         command.Parameters.AddWithValue("@payload_id", payloadId is null ? DBNull.Value : ToBytes(payloadId.Value));
+        command.Parameters.AddWithValue("@metadata_json", DbValue(metadataJson));
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 

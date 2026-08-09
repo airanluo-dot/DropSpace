@@ -24,9 +24,6 @@ public sealed class NativeTrayService : IDisposable
     private const uint TpmRightButton = 0x0002;
     private const uint TpmReturnCmd = 0x0100;
     private const uint TpmNonotify = 0x0080;
-    private const uint ImageIcon = 1;
-    private const uint LrLoadFromFile = 0x0010;
-    private const uint LrDefaultSize = 0x0040;
     private const uint MenuOpen = 1001;
     private const uint MenuPause = 1002;
     private const uint MenuClear = 1003;
@@ -42,7 +39,7 @@ public sealed class NativeTrayService : IDisposable
     private bool _paused;
     private bool _disposed;
 
-    public NativeTrayService(IntPtr windowHandle, string iconPath, ILogger<NativeTrayService> logger)
+    public NativeTrayService(IntPtr windowHandle, ILogger<NativeTrayService> logger)
     {
         if (windowHandle == IntPtr.Zero)
         {
@@ -53,7 +50,7 @@ public sealed class NativeTrayService : IDisposable
         _logger = logger;
         _subclassProc = WindowSubclassProc;
         _taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
-        _iconHandle = LoadImage(IntPtr.Zero, iconPath, ImageIcon, 0, 0, LrLoadFromFile | LrDefaultSize);
+        _iconHandle = NativeApplicationIcon.LoadSharedTrayIcon();
         if (_iconHandle == IntPtr.Zero)
         {
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "The tray icon could not be loaded.");
@@ -127,11 +124,8 @@ public sealed class NativeTrayService : IDisposable
 
         Remove();
         RemoveWindowSubclass(_windowHandle, _subclassProc, new UIntPtr(SubclassId));
-        if (_iconHandle != IntPtr.Zero)
-        {
-            DestroyIcon(_iconHandle);
-            _iconHandle = IntPtr.Zero;
-        }
+        // LR_SHARED resource icons are process-owned and must not be destroyed by callers.
+        _iconHandle = IntPtr.Zero;
 
         _disposed = true;
     }
@@ -289,13 +283,6 @@ public sealed class NativeTrayService : IDisposable
 
     [DllImport("comctl32.dll")]
     private static extern IntPtr DefSubclassProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr LoadImage(IntPtr instance, string name, uint type, int width, int height, uint load);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool DestroyIcon(IntPtr icon);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr CreatePopupMenu();

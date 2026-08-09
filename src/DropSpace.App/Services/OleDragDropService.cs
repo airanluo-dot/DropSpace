@@ -113,9 +113,9 @@ public sealed class OleDragDropService : IDisposable
 public sealed class DragActivationHost : IDisposable
 {
     public const double IdleWidthDips = 960;
-    public const int IdleHeightPixels = 1;
-    public const double ActiveWidthDips = 760;
-    public const double ActiveHeightDips = 112;
+    public const int IdleHeightPixels = 12;
+    public const double ActiveWidthDips = 840;
+    public const double ActiveHeightDips = 144;
     private const int HitTestClient = 1;
     private const int MouseActivateNoActivate = 3;
     private const uint WindowStylePopup = 0x80000000;
@@ -132,7 +132,7 @@ public sealed class DragActivationHost : IDisposable
     private const uint WindowMessageMouseActivate = 0x0021;
     private const uint WindowMessageEraseBackground = 0x0014;
     private const uint WindowMessageDisplayChange = 0x007E;
-    private const string WindowClassName = "DropSpace.DragActivationHost.v3";
+    private const string WindowClassName = "DropSpace.DragActivationHost.v4";
     private static readonly object ClassGate = new();
     private static readonly Dictionary<nint, DragActivationHost> Hosts = [];
     private static readonly WindowProcedureCallback SharedWindowProcedure = StaticWindowProcedure;
@@ -184,8 +184,10 @@ public sealed class DragActivationHost : IDisposable
 
         // A uniform alpha of zero is omitted by WindowFromPoint/OLE target discovery on supported
         // Windows builds even when WM_NCHITTEST returns HTCLIENT. One out of 255 keeps the unpainted
-        // host visually imperceptible while leaving it discoverable; the idle surface is one physical
-        // pixel high so it does not interfere with normal title-bar interaction.
+        // host visually imperceptible while leaving it discoverable. Preview.3 used one physical
+        // pixel here, which required the OLE cursor hotspot to land on the exact topmost scan line.
+        // A bounded 12-pixel screen-edge safety band remains within the non-client resize edge on
+        // common maximized windows while being large enough for real Explorer/Desktop drags.
         if (!SetLayeredWindowAttributes(WindowHandle, 0, 1, LayeredAlpha))
         {
             var exception = new Win32Exception(Marshal.GetLastWin32Error(), "The activation HWND could not be made visually transparent.");
@@ -236,7 +238,7 @@ public sealed class DragActivationHost : IDisposable
             IsDropReady,
             "activation-host");
         _logger.LogInformation(
-            "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, idle bounds {Left},{Top},{Width},{Height}, active bounds {ActiveLeft},{ActiveTop},{ActiveWidth},{ActiveHeight}; uniform-alpha=1/255, mouse-hit-test=client, ownership=activation-through-drop.",
+            "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, idle bounds {Left},{Top},{Width},{Height}, active bounds {ActiveLeft},{ActiveTop},{ActiveWidth},{ActiveHeight}; uniform-alpha=1/255, mouse-hit-test=client, ownership=activation-through-drop, activation-band=12-physical-pixels.",
             monitor.Id,
             WindowHandle,
             monitor.Dpi,
@@ -260,7 +262,7 @@ public sealed class DragActivationHost : IDisposable
     {
         var point = new NativePoint(
             _idleBounds.Left + _idleBounds.Width / 2,
-            _idleBounds.Top);
+            _idleBounds.Top + _idleBounds.Height / 2);
         return WindowFromPoint(point) == WindowHandle;
     }
 
@@ -296,8 +298,8 @@ public sealed class DragActivationHost : IDisposable
 
     private bool IsDropReady(NativePoint point)
     {
-        var horizontalInset = ToPixels(90);
-        var topInset = ToPixels(10);
+        var horizontalInset = ToPixels(72);
+        var topInset = IdleHeightPixels;
         return point.X >= _bounds.Left + horizontalInset &&
                point.X < _bounds.Right - horizontalInset &&
                point.Y >= _bounds.Top + topInset &&
@@ -336,7 +338,7 @@ public sealed class DragActivationHost : IDisposable
         }
 
         _logger.LogInformation(
-            "Drag activation HWND {WindowHandle} returned to its one-physical-pixel idle hot edge on monitor {MonitorId}.",
+            "Drag activation HWND {WindowHandle} returned to its bounded top-edge activation band on monitor {MonitorId}.",
             WindowHandle,
             _monitor.Id);
     }
@@ -410,7 +412,7 @@ public sealed class DragActivationHost : IDisposable
         {
             // OLE target discovery uses the window under the pointer. HTTRANSPARENT forwards only
             // within the creating thread and made Explorer skip this registered target entirely.
-            // The idle HWND is therefore an intentional one-physical-pixel HTCLIENT hot edge.
+            // The idle HWND is therefore an intentional bounded HTCLIENT screen-edge band.
             return new nint(HitTestClient);
         }
 
@@ -681,7 +683,10 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         try
         {
             var paths = ReadDropPaths(dataObject);
-            var ready = _canAccept && _isReady(point);
+            // Once OLE selected this HWND and CF_HDROP was accepted, keep target ownership through
+            // Drop. Re-evaluating a smaller visual-ready rectangle here made a valid Explorer drop
+            // fail with DROPEFFECT_NONE when the final cursor sample landed on an animated edge.
+            var ready = _canAccept;
             effect = ready && paths.Count > 0 ? DropEffectCopy : DropEffectNone;
             _logger.LogInformation(
                 "OLE Drop received by {SurfaceKind} on monitor {MonitorId}: item count {ItemCount}, accepted={Accepted}, DragOver count {DragOverCount}.",
