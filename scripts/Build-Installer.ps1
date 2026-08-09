@@ -93,9 +93,14 @@ if (-not (Test-Path $installerPath -PathType Leaf))
 }
 
 $versionInfo = (Get-Item $installerPath).VersionInfo
-if ($versionInfo.FileVersion -ne $versionInfoVersion -or $versionInfo.ProductVersion -ne $AppVersion)
+$numericFileVersion = "$($versionInfo.FileMajorPart).$($versionInfo.FileMinorPart).$($versionInfo.FileBuildPart).$($versionInfo.FilePrivatePart)"
+$fileTextVersion = $versionInfo.FileVersion.Trim()
+$productTextVersion = $versionInfo.ProductVersion.Trim()
+if ($numericFileVersion -ne $versionInfoVersion -or
+    $fileTextVersion -ne $AppVersion -or
+    $productTextVersion -ne $AppVersion)
 {
-    throw "Installer version metadata mismatch: file=$($versionInfo.FileVersion), product=$($versionInfo.ProductVersion)."
+    throw "Installer version metadata mismatch: numeric=$numericFileVersion, fileText=$fileTextVersion, productText=$productTextVersion."
 }
 
 Write-Host "Installer: $installerPath"
