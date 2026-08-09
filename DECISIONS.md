@@ -65,9 +65,9 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Alternatives: Unpackaged self-contained installer.
 - Trade-offs: Packaging/signing complexity and some shell integration constraints.
 
-## D-019 — Portable EXE is the preferred Preview deployment
+## D-019 — Portable EXE established the unpackaged Preview payload
 
-- Status: Accepted and implemented
+- Status: Accepted and implemented; ordinary-user recommendation superseded by D-026
 - Context: Ordinary users must be able to download one file and run without installing .NET, Windows App SDK Runtime, a certificate, or an MSIX package.
 - Decision: Publish win-x64 with `WindowsPackageType=None`, .NET and Windows App SDK self-contained, single-file bundling, and content self-extraction. Keep MSIX as an alternative build.
 - Reason: The Preview's lowest-friction path is `DropSpace.exe` while one codebase and deployment abstraction preserve package support.
@@ -108,11 +108,27 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 ## D-024 — Native drag activation and visual Overlay are separate HWND lifecycles
 
-- Status: Accepted and implemented; supersedes D-021
+- Status: Superseded by D-027; the separate-lifecycle boundary remains
 - Context: The shared 280 × 3 XAML window was nearly impossible to hit and `Hidden` still showed a real HWND, producing a white line/transparent rectangle on Windows 11.
 - Decision: Truly hide and empty-region the visual HWND. Keep a separate zero-alpha 680 × 72 DIP per-monitor native host registered through OLE `IDropTarget`/`RegisterDragDrop`; register the visual HWND with the same target adapter for handoff during Reveal. Both targets accept `CF_HDROP` with copy semantics and invoke the existing `AddPathsAsync` use case.
 - Reason: A practical activation area no longer requires a visible XAML/DWM host, and diagnostics distinguish target discovery, data format, reveal, Drop, and repository acceptance.
 - Trade-offs: Zero-alpha cross-process OLE targeting and `HTTRANSPARENT` click-through still require real Explorer/Desktop validation on the supported Windows builds; no polling/hook fallback is introduced.
+
+## D-026 — Stable per-user Inno Setup lifecycle is the recommended channel
+
+- Status: Accepted and implemented
+- Context: A normal Windows application needs Installed Apps registration, a standalone uninstaller, custom path, in-place upgrade, downgrade protection, and explicit data retention independent of whether the main EXE can launch.
+- Decision: Build `DropSpaceSetup.exe` with pinned Inno Setup 7.0.2 and permanent AppId `E11EC281-BCE7-4F98-8EEF-2387E202CF0F`. Install the existing self-contained x64 EXE per user at `%LOCALAPPDATA%\Programs\DropSpace` by default; preserve custom paths and `%LOCALAPPDATA%\DropSpace` through upgrades; keep Portable EXE and MSIX assets.
+- Reason: It gives Windows-standard install/upgrade/uninstall behavior without administrator rights or another application runtime.
+- Trade-offs: Preview artifacts are unsigned and can trigger SmartScreen. CI must test the installer itself, not only compilation.
+
+## D-027 — OLE activation uses a one-pixel discoverable hot edge and single-owner expansion
+
+- Status: Accepted and implemented; supersedes the geometry/hit-routing portion of D-024
+- Context: Real Preview.2 Explorer/Desktop testing showed that `RegisterDragDrop` success did not yield `DragEnter`; `HTTRANSPARENT` made cross-thread target discovery skip the zero-alpha HWND, and overlapping activation/visual targets created handoff ambiguity.
+- Decision: Return `HTCLIENT` and reduce idle interception to one physical top-edge pixel across 960 DIP. On valid OLE entry, expand the same HWND to 760 × 112 DIP, keep it above the visual Overlay and own the operation through Drop/Leave. Let the shaped visual HWND own direct drops only when already visible.
+- Reason: `WindowFromPoint`/OLE can discover a real registered target, while normal non-drag input loses at most the single topmost physical row and no polling/hook is needed.
+- Trade-offs: The exact top pixel is intentionally owned by DropSpace; real Explorer/Desktop and maximized-title-bar behavior remains manual acceptance evidence.
 
 ## D-025 — Overlay morphs real geometry through interruptible spring targets
 

@@ -5,7 +5,7 @@ namespace DropSpace.Core.Tests;
 [TestClass]
 public sealed class FullscreenWindowClassifierTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Progman")]
     [DataRow("WorkerW")]
     [DataRow("Shell_TrayWnd")]

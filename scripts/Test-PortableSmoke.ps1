@@ -61,7 +61,10 @@ try
         $marker.clipboardPauseVerified -ne $true -or
         $marker.clipboardResumeVerified -ne $true -or
         $marker.clipboardSelfWriteSuppressionVerified -ne $true -or
-        $marker.noContinuousFrameLoop -ne $true)
+        $marker.noContinuousFrameLoop -ne $true -or
+        [int]$marker.notchGeometryStressCycles -ne 1000 -or
+        [long]$marker.overlayRegionFailureCount -ne 0 -or
+        $marker.dragActivationTargetsDiscoverable -ne $true)
     {
         throw "DropSpace.exe produced an invalid startup marker."
     }
@@ -90,6 +93,7 @@ try
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, single instance, clean exit."
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
+    Write-Host "Overlay geometry stress: switches=$($marker.notchGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), activationTargetsDiscoverable=$($marker.dragActivationTargetsDiscoverable)"
 }
 finally
 {

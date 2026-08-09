@@ -4,7 +4,7 @@ Status labels: **Supported**, **Supported with Win32 interop**, **Complex/valida
 
 ## Platform baseline
 
-WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace supports both an unpackaged self-contained single-file x64 EXE (recommended) and an MSIX package (alternative). Neither deployment path stores runtime data beside the executable.
+WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace supports the recommended per-user Inno Setup installer, the same unpackaged self-contained single-file x64 EXE as a portable option, and an MSIX package as an alternative. No deployment path stores runtime data beside the executable.
 
 ## Capability matrix
 
@@ -63,9 +63,13 @@ Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/window
 DropSpace separates two lifecycles per enabled display:
 
 - The visual WinUI Overlay HWND owns only the Island/Notch. `Hidden` clears its HRGN and calls `SW_HIDE`; no XAML surface, backdrop, frame, shadow, or border remains visible.
-- A dedicated 680 × 72 DIP-equivalent native activation HWND stays zero-alpha and registers a managed `IDropTarget` with `RegisterDragDrop`. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED`, `WM_NCHITTEST=HTTRANSPARENT` for ordinary pointer input, and intentionally does not use `WS_EX_TRANSPARENT` (that flag controls paint ordering rather than being the OLE contract).
+- A dedicated native activation HWND stays zero-alpha and registers a managed `IDropTarget` with `RegisterDragDrop`. Idle it is 960 DIP wide but exactly one physical pixel high at the monitor top edge. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED` and `WM_NCHITTEST=HTCLIENT`: Microsoft documents `HTTRANSPARENT` as forwarding only within the same thread, so it cannot be used for reliable Explorer target discovery. A valid `DragEnter` expands the same HWND to 760 × 112 DIP and preserves ownership through Drop/Leave.
 
-The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. The visual HWND is registered with the same adapter when visible, so target handoff during Reveal does not create a second persistence path. There are no global hooks, mouse-button scans, or cursor polling.
+The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. Hidden-edge drags remain owned by the activation HWND for their whole lifetime; Reveal never hands them to the visual window. When Compact/Expanded is already visible, its shaped HWND independently accepts direct Drop outside the one-pixel idle edge. There are no overlapping active targets, global hooks, mouse-button scans, or cursor polling.
+
+### Fullscreen classification
+
+Monitor bounds alone do not imply a full-screen application: the Windows desktop itself covers the monitor. The foreground classifier requires a visible, uncloaked, non-iconic, top-level non-tool window on the target monitor and excludes desktop/shell handles plus `Progman`, `WorkerW`, `Shell_TrayWnd`, and `Shell_SecondaryTrayWnd`. Fullscreen suppression morphs to Hidden and restores from the retained spring state; it does not snap. Drag states override passive suppression.
 
 When a shell drag enters, the known host identifies the monitor, the Core state machine changes targets, and the separate visual surface reveals. Non-active monitors retain only their enabled hosts. Monitor coordinates are physical pixels; host and UI dimensions are DIPs scaled with each monitor's effective DPI. `WM_DISPLAYCHANGE` rebuilds monitor-bound hosts and visual windows.
 

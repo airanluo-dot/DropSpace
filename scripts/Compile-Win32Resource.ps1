@@ -43,9 +43,21 @@ if ($null -eq $resourceCompiler)
 $outputDirectory = [System.IO.Path]::GetDirectoryName($output)
 [System.IO.Directory]::CreateDirectory($outputDirectory) | Out-Null
 $generatedSource = "$output.rc"
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetDirectoryName($source)) "../.."))
+$releaseTag = ([System.IO.File]::ReadAllText((Join-Path $repositoryRoot "RELEASE_VERSION"))).Trim()
+if ($releaseTag -notmatch '^v(?<prefix>[0-9]+\.[0-9]+\.[0-9]+)-preview\.(?<preview>[0-9]+)$')
+{
+    throw "RELEASE_VERSION is not a supported preview version: $releaseTag"
+}
+$productVersion = $releaseTag.Substring(1)
+$fileVersion = "$($Matches.prefix).$($Matches.preview)"
+$fileVersionCommas = $fileVersion.Replace('.', ',')
 $backslash = [string][char]92
 $escapedManifest = $manifest.Replace($backslash, $backslash + $backslash).Replace('"', '\"')
-$resourceSource = [System.IO.File]::ReadAllText($source) +
+$resourceTemplate = [System.IO.File]::ReadAllText($source)
+$resourceSource = $resourceTemplate.Replace('@FILE_VERSION_COMMAS@', $fileVersionCommas)
+$resourceSource = $resourceSource.Replace('@FILE_VERSION@', $fileVersion)
+$resourceSource = $resourceSource.Replace('@PRODUCT_VERSION@', $productVersion) +
     [Environment]::NewLine +
     "1 24 `"$escapedManifest`"" +
     [Environment]::NewLine

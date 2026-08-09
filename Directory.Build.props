@@ -9,5 +9,10 @@
     <NuGetAuditMode>all</NuGetAuditMode>
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
+    <DropSpaceReleaseTag Condition="Exists('$(MSBuildThisFileDirectory)RELEASE_VERSION')">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)RELEASE_VERSION').Trim())</DropSpaceReleaseTag>
+    <DropSpaceReleaseVersion Condition="'$(DropSpaceReleaseTag)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(DropSpaceReleaseTag)', '^v', ''))</DropSpaceReleaseVersion>
+    <DropSpaceVersionPrefix Condition="'$(DropSpaceReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DropSpaceReleaseVersion)', '^[0-9]+\.[0-9]+\.[0-9]+').Value)</DropSpaceVersionPrefix>
+    <DropSpacePreviewNumber Condition="'$(DropSpaceReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DropSpaceReleaseVersion)', 'preview\.([0-9]+)$').Groups[1].Value)</DropSpacePreviewNumber>
+    <DropSpaceFileVersion Condition="'$(DropSpaceVersionPrefix)' != '' and '$(DropSpacePreviewNumber)' != ''">$(DropSpaceVersionPrefix).$(DropSpacePreviewNumber)</DropSpaceFileVersion>
   </PropertyGroup>
 </Project>
