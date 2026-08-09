@@ -17,6 +17,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IFileReferenceService _fileReferences;
     private readonly ILocalStorageMetrics _storageMetrics;
     private readonly IStartupRegistrationService _startupRegistration;
+    private readonly WindowsShareIntegrationService _windowsShareIntegration;
     private readonly ClipboardCaptureService _clipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
@@ -35,6 +36,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private bool _isSettingsVisible;
     private int _itemCount;
     private int _spaceItemCount;
+    private long _spaceRevision;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
     private string _storageSummary = "正在计算…";
@@ -47,6 +49,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IFileReferenceService fileReferences,
         ILocalStorageMetrics storageMetrics,
         IStartupRegistrationService startupRegistration,
+        WindowsShareIntegrationService windowsShareIntegration,
         ClipboardCaptureService clipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
@@ -60,6 +63,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _fileReferences = fileReferences;
         _storageMetrics = storageMetrics;
         _startupRegistration = startupRegistration;
+        _windowsShareIntegration = windowsShareIntegration;
         _clipboard = clipboard;
         _shell = shell;
         _thumbnails = thumbnails;
@@ -71,6 +75,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
+
+    public event EventHandler<SpaceProjectionChangedEventArgs>? SpaceProjectionChanged;
 
     /// <summary>
     /// The visual overlay registers this transaction hook. UI preferences are preflighted and
@@ -175,6 +181,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _spaceItemCount, value);
     }
 
+    public long SpaceRevision => Interlocked.Read(ref _spaceRevision);
+
     public ItemCardViewModel? SelectedItem
     {
         get => _selectedItem;
@@ -242,6 +250,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public OverlayMotionPreference OverlayMotion => Settings.OverlayMotion;
 
     public OverlayMonitorPreference OverlayMonitor => Settings.OverlayMonitor;
+
+    public bool HasWindowsShareIdentity => _windowsShareIntegration.HasPackageIdentity;
+
+    public string WindowsShareIntegrationStatus => _windowsShareIntegration.StatusText;
+
+    public Task<bool> OpenDropTraySettingsAsync() =>
+        _windowsShareIntegration.OpenDropTraySettingsAsync();
 
     public string StoragePath => _storageMetrics.RootPath;
 
@@ -363,7 +378,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         StatusMessage = rejected == 0 ? $"已添加 {accepted} 项。" : $"已添加 {accepted} 项，另有 {rejected} 项无法加入。";
         await ReloadAsync(cancellationToken);
-        await RefreshSpaceItemCountAsync(cancellationToken);
+        await PublishSpaceProjectionChangedAsync(cancellationToken);
         return accepted;
     }
 
@@ -389,6 +404,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
         }
+
+        if (card.Item.Source == ItemSource.Space)
+        {
+            await PublishSpaceProjectionChangedAsync(cancellationToken);
+        }
     }
 
     public async Task RemoveAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -412,7 +432,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsEmpty = Items.Count == 0;
         if (card.Item.Source == ItemSource.Space)
         {
-            await RefreshSpaceItemCountAsync(cancellationToken);
+            await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
 
         StatusMessage = "已从 DropSpace 移除；原始文件未被修改。";
@@ -483,6 +503,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             card.Update(refreshed);
             card.DragStorageItem = null;
             await LoadThumbnailSafelyAsync(card, cancellationToken);
+        }
+
+        if (card.Item.Source == ItemSource.Space)
+        {
+            await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
 
         StatusMessage = "文件引用已更新。";
@@ -686,6 +711,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             cancellationToken: cancellationToken);
     }
 
+    private async Task PublishSpaceProjectionChangedAsync(CancellationToken cancellationToken)
+    {
+        await RefreshSpaceItemCountAsync(cancellationToken);
+        var revision = Interlocked.Increment(ref _spaceRevision);
+        SpaceProjectionChanged?.Invoke(
+            this,
+            new SpaceProjectionChangedEventArgs(revision, SpaceItemCount));
+    }
+
     private void OnItemCaptured(object? sender, DropItem item)
     {
         _dispatcher.TryEnqueue(() =>
@@ -769,3 +803,5 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 }
+
+public sealed record SpaceProjectionChangedEventArgs(long Revision, int ItemCount);

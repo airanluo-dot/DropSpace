@@ -19,6 +19,11 @@
       Background="#F20D0D11"
       BorderThickness="0"
       CornerRadius="32"
+      AllowDrop="True"
+      DragEnter="OnSurfaceDragEnter"
+      DragOver="OnSurfaceDragOver"
+      DragLeave="OnSurfaceDragLeave"
+      Drop="OnSurfaceDrop"
       Opacity="0"
       RenderTransformOrigin="0.5,0.5"
       PointerEntered="OnSurfacePointerEntered"
@@ -204,6 +209,22 @@
             <Button Grid.Column="1" Content="打开 DropSpace" Click="OnOpenMainWindowClicked" />
           </Grid>
         </Grid>
+
+        <Border
+          Margin="8"
+          Padding="20"
+          IsHitTestVisible="False"
+          Background="#337C5CFC"
+          BorderBrush="#FF9B87FF"
+          BorderThickness="2"
+          CornerRadius="22"
+          Visibility="{Binding IsExpandedDropTargetActive, Converter={StaticResource BoolToVisibilityConverter}}">
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="5">
+            <FontIcon FontSize="24" Foreground="White" Glyph="&#xECC8;" />
+            <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="White" Text="放到 DropSpace" />
+            <TextBlock FontSize="12" Foreground="#DFFFFFFF" Text="松开即可加入 Temporary Space" />
+          </StackPanel>
+        </Border>
       </Grid>
     </Border>
   </Grid>

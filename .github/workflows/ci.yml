@@ -80,11 +80,22 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-UnsignedPackage.ps1 -NoRestore
 
+      - name: Build and validate external-location identity package
+        shell: pwsh
+        run: ./scripts/Build-IdentityPackage.ps1
+
       - name: Upload unsigned MSIX package
         uses: actions/upload-artifact@v4
         with:
           name: dropspace-msix-unsigned-x64
           path: artifacts/msix/**
+          if-no-files-found: error
+
+      - name: Upload unsigned identity package for signing pipeline
+        uses: actions/upload-artifact@v4
+        with:
+          name: dropspace-identity-unsigned-x64
+          path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
 
       - name: Upload test results

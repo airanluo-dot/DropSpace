@@ -173,3 +173,9 @@ Privacy/Clipboard menu → select range → show affected unpinned count → con
 - Paused recording state is visible in main window and tray menu.
 - Removing a record never uses wording that implies deleting the source file.
 - All primary flows work at 125%, 150%, and 200% scale with keyboard only.
+
+## Drop Tray compatibility and visible drop
+
+When Compact is visible, its complete black surface is a direct file target: valid DragEnter morphs continuously to DragReady, DragLeave reverses to Compact and Drop gives a short confirmation before Compact. When Expanded is visible, its geometry remains Expanded; a contained highlight says “放到 DropSpace”, the list updates immediately after Drop, and the panel remains open.
+
+Settings explains that Windows 11 Drop Tray can own the same top edge. “打开 Windows Drop Tray 设置” opens System → Multitasking. DropSpace never guesses the toggle state. Trusted identity builds additionally state that Windows Share is registered; unsigned/portable deployments state that Share integration is unavailable without weakening the two native drag paths.

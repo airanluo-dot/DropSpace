@@ -24,4 +24,6 @@ DropSpaceSetup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 
 Inno Setup returns `0` only for a completed setup; any non-zero documented or future exit code is failure. The updater must not force-close DropSpace and must not delete `%LOCALAPPDATA%\DropSpace` on upgrade or rollback.
 
+Signed upgrades reuse the same `AiranLuo.DropSpace.Identity` Name, `CN=airanluo-dot` Publisher and `DropSpace` Application Id. Only its four-part version changes. Setup registers the newer signed package against the inherited `{app}` path after graceful maintenance shutdown. Unsigned builds do not attempt registration, so an unsigned update never asks users to weaken trust policy.
+
 Release version comes from repository-root `RELEASE_VERSION`. It drives EXE ProductVersion/FileVersion, installer AppVersion/VersionInfo, workflow tag/title, baseline/current lifecycle fixtures and release notes selection. Commercial signing remains optional: when Artifact Signing credentials are configured, Setup, portable EXE and MSIX are all signed and verified before publishing; no private signing material is stored in Git.

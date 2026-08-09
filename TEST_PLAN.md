@@ -193,3 +193,14 @@ The portable smoke harness must prove that the published single `DropSpace.exe` 
 The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
 
 Automation does not claim visual quality or Explorer pointer routing. Before Preview sign-off, a real Windows 11 desktop must still verify zero residual pixels in Hidden, Desktop focus persistence, Explorer/Desktop `CF_HDROP` entry and Drop, direct Compact/Expanded Drop, the 12-physical-pixel edge band's ordinary-input trade-off, Dynamic Island/Notch motion quality, drag-out, 16:9/16:10 and 100–200% layout, taskbar icon selection/cache behavior, mixed-DPI monitors, real game/video fullscreen behavior, sign-in startup, installer wizard, and Windows Installed Apps uninstall UI.
+
+## Preview.5 automated gates
+
+- Core coordinator test issues 500 concurrent revisions and proves maximum loader/apply concurrency of one, latest-revision convergence and recovery after a failed revision.
+- Overlay state tests cover Compact direct drag → DragReady → Compact and Expanded drag/highlight/drop/leave without geometry collapse.
+- Windows executable smoke probes Compact and Expanded center pixels with `WindowFromPoint`; each must be the visual root HWND or a WinUI descendant while the passive host is disabled.
+- A synthetic `CF_HDROP` COM data object is sent through the registered visual native target in Compact and Expanded. Both must reach `AddPathsAsync`; Expanded must remain Expanded.
+- A 200-cycle stress alternates removal from Expanded Overlay and Main projection while both are live, forces GC periodically, checks authoritative count/Main/Recent projections, requires zero AppDomain/unobserved-task deltas and proves the external sentinel still exists.
+- Identity build validates the stable Name/Publisher/version and Share Target manifest. Unsigned CI does not install it; trusted registration is exercised only when Artifact Signing credentials exist.
+
+Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.

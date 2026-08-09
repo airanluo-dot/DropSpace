@@ -438,6 +438,34 @@
 
           <StackPanel Spacing="12">
             <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="外观与窗口" />
+            <Border
+              Padding="16"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="8">
+              <StackPanel Spacing="10">
+                <TextBlock FontWeight="SemiBold" Text="顶部拖放兼容性" />
+                <TextBlock
+                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                  Text="Windows 11 的 Drop Tray 与 DropSpace 使用相同的屏幕顶部拖放区域。开启系统 Drop Tray 时，它可能优先接收拖到顶部的文件，从而阻止 DropSpace 灵动岛自动展开。关闭 Drop Tray 可获得完整的“拖到顶部 → 灵动岛展开 → 放入 Temporary Space”体验。"
+                  TextWrapping="Wrap" />
+                <TextBlock
+                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                  Text="{Binding WindowsShareIntegrationStatus}"
+                  TextWrapping="Wrap" />
+                <TextBlock
+                  FontSize="12"
+                  Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                  Text="Windows 未提供公开、稳定的 API 读取 Drop Tray 开关；DropSpace 不读取内部 Feature Flag，也不会替你更改系统设置。"
+                  TextWrapping="Wrap" />
+                <Button
+                  HorizontalAlignment="Left"
+                  AutomationProperties.Name="打开 Windows Drop Tray 设置"
+                  Click="OnOpenDropTraySettingsClicked"
+                  Content="打开 Windows Drop Tray 设置" />
+              </StackPanel>
+            </Border>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

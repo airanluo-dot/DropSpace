@@ -12,6 +12,7 @@ namespace DropSpace.App.Services;
 public sealed class OverlayWindowService : IDisposable
 {
     private readonly OverlayViewModel _viewModel;
+    private readonly MainViewModel _mainViewModel;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly OverlayStateMachine _stateMachine;
@@ -19,23 +20,28 @@ public sealed class OverlayWindowService : IDisposable
     private readonly DispatcherQueue _dispatcher;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OverlayWindowService> _logger;
+    private readonly CrashDiagnosticsService _crashDiagnostics;
     private readonly List<OverlayWindow> _windows = [];
     private readonly List<DragActivationHost> _activationHosts = [];
     private MonitorDescriptor? _primaryMonitor;
     private Action? _openMainWindow;
+    private DragTargetOwner _activeDragOwner;
     private bool _topologyRefreshPending;
     private bool _disposed;
 
     public OverlayWindowService(
         OverlayViewModel viewModel,
+        MainViewModel mainViewModel,
         MonitorLayoutService monitorLayout,
         ForegroundWindowMonitor foregroundWindowMonitor,
         OverlayStateMachine stateMachine,
         OleDragDropService dragDropService,
         DispatcherQueue dispatcher,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        CrashDiagnosticsService crashDiagnostics)
     {
         _viewModel = viewModel;
+        _mainViewModel = mainViewModel;
         _monitorLayout = monitorLayout;
         _foregroundWindowMonitor = foregroundWindowMonitor;
         _stateMachine = stateMachine;
@@ -43,6 +49,7 @@ public sealed class OverlayWindowService : IDisposable
         _dispatcher = dispatcher;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
+        _crashDiagnostics = crashDiagnostics;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -91,6 +98,21 @@ public sealed class OverlayWindowService : IDisposable
                 $"Overlay geometry stress encountered {regionFailures} HRGN application failures.");
         }
 
+        _stateMachine.Restore(1, original.DisplayMode);
+        await Task.Delay(750, cancellationToken);
+        var compactVisualTargetDiscoverable = ProbeActiveVisualCenter();
+        _stateMachine.Expand();
+        await Task.Delay(750, cancellationToken);
+        var expandedVisualTargetDiscoverable = ProbeActiveVisualCenter();
+        // Activation-host discovery is meaningful only while the visual Overlay is truly hidden.
+        _stateMachine.Restore(0, original.TargetDisplayMode);
+        await Task.Delay(300, cancellationToken);
+        if (!compactVisualTargetDiscoverable || !expandedVisualTargetDiscoverable)
+        {
+            throw new InvalidOperationException(
+                "WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states.");
+        }
+
         var activationTargetsDiscoverable = _activationHosts.All(host => host.IsIdleTargetDiscoverable());
         if (!activationTargetsDiscoverable)
         {
@@ -127,7 +149,9 @@ public sealed class OverlayWindowService : IDisposable
             _windows.All(window => !window.HasActiveFrameSubscription),
             geometryStressCycles,
             regionFailures,
-            activationTargetsDiscoverable);
+            activationTargetsDiscoverable,
+            compactVisualTargetDiscoverable,
+            expandedVisualTargetDiscoverable);
 
         if (metrics.HandleDelta > 96 || metrics.GdiObjectDelta > 48 || metrics.UserObjectDelta > 48 ||
             metrics.PrivateBytesDelta > 192L * 1024 * 1024 || !metrics.NoContinuousFrameSubscription)
@@ -143,6 +167,195 @@ public sealed class OverlayWindowService : IDisposable
             metrics.UserObjectDelta,
             metrics.PrivateBytesDelta);
         return metrics;
+    }
+
+    public async Task<VisibleOverlayDropSmokeMetrics> RunVisibleOverlayDropSmokeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var testRoot = Path.Combine(Path.GetTempPath(), $"DropSpace-visible-drop-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(testRoot);
+        var compactAnchor = Path.Combine(testRoot, "compact-anchor.txt");
+        var compactDrop = Path.Combine(testRoot, "compact-drop.txt");
+        var expandedDrop = Path.Combine(testRoot, "expanded-drop.txt");
+        await File.WriteAllTextAsync(compactAnchor, "anchor", cancellationToken);
+        await File.WriteAllTextAsync(compactDrop, "compact", cancellationToken);
+        await File.WriteAllTextAsync(expandedDrop, "expanded", cancellationToken);
+        var baselineCount = _mainViewModel.SpaceItemCount;
+        await _mainViewModel.NavigateAsync("Space", cancellationToken);
+
+        try
+        {
+            if (await _mainViewModel.AddPathsAsync([compactAnchor], cancellationToken) != 1)
+            {
+                throw new InvalidOperationException("The visible-drop anchor could not be added.");
+            }
+
+            await _viewModel.RefreshRecentItemsAsync(cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            var activeWindow = GetActiveWindow();
+            await activeWindow.RunSyntheticCfHDropAsync([compactDrop], cancellationToken);
+            await _viewModel.RefreshRecentItemsAsync(cancellationToken);
+            var compactDropAccepted = _mainViewModel.Items.Any(item =>
+                string.Equals(item.Item.File?.OriginalPath, compactDrop, StringComparison.OrdinalIgnoreCase));
+            if (!compactDropAccepted || _viewModel.Snapshot.State != OverlayState.Compact)
+            {
+                throw new InvalidOperationException("Compact visible Overlay CF_HDROP did not settle back to Compact.");
+            }
+
+            await _viewModel.ExpandAsync(cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            await activeWindow.RunSyntheticCfHDropAsync([expandedDrop], cancellationToken);
+            await _viewModel.RefreshRecentItemsAsync(cancellationToken);
+            var expandedDropAccepted = _mainViewModel.Items.Any(item =>
+                string.Equals(item.Item.File?.OriginalPath, expandedDrop, StringComparison.OrdinalIgnoreCase));
+            var expandedStayedOpen = _viewModel.Snapshot.State == OverlayState.Expanded;
+            if (!expandedDropAccepted || !expandedStayedOpen)
+            {
+                throw new InvalidOperationException("Expanded visible Overlay CF_HDROP failed or collapsed the Expanded view.");
+            }
+
+            return new VisibleOverlayDropSmokeMetrics(
+                compactDropAccepted,
+                expandedDropAccepted,
+                expandedStayedOpen,
+                _mainViewModel.SpaceItemCount - baselineCount);
+        }
+        finally
+        {
+            foreach (var path in new[] { compactAnchor, compactDrop, expandedDrop })
+            {
+                var card = _mainViewModel.Items.FirstOrDefault(item =>
+                    string.Equals(item.Item.File?.OriginalPath, path, StringComparison.OrdinalIgnoreCase));
+                if (card is not null)
+                {
+                    await _mainViewModel.RemoveAsync(card, CancellationToken.None);
+                }
+            }
+
+            foreach (var path in new[] { compactAnchor, compactDrop, expandedDrop })
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: false);
+            }
+        }
+    }
+
+    public async Task<ProjectionDeletionStressMetrics> RunProjectionDeletionStressAsync(
+        int cycles,
+        CancellationToken cancellationToken = default)
+    {
+        if (cycles is < 1 or > 500)
+        {
+            throw new ArgumentOutOfRangeException(nameof(cycles));
+        }
+
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var unhandledBefore = _crashDiagnostics.UnhandledCount;
+        var unobservedBefore = _crashDiagnostics.UnobservedTaskCount;
+        var testRoot = Path.Combine(Path.GetTempPath(), $"DropSpace-projection-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(testRoot);
+        var externalSentinel = Path.Combine(testRoot, "external-user-file.txt");
+        await File.WriteAllTextAsync(externalSentinel, "DropSpace projection stress sentinel", cancellationToken);
+        var baselineCount = _mainViewModel.SpaceItemCount;
+        await _mainViewModel.NavigateAsync("Space", cancellationToken);
+
+        try
+        {
+            for (var cycle = 0; cycle < cycles; cycle++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var accepted = await _mainViewModel.AddPathsAsync([externalSentinel], cancellationToken);
+                if (accepted != 1)
+                {
+                    throw new InvalidOperationException($"Projection stress add failed at cycle {cycle}.");
+                }
+
+                await _viewModel.RefreshRecentItemsAsync(cancellationToken);
+                await _viewModel.ExpandAsync(cancellationToken);
+                var card = _viewModel.RecentItems.FirstOrDefault(item =>
+                    string.Equals(item.Item.File?.OriginalPath, externalSentinel, StringComparison.OrdinalIgnoreCase));
+                if (card is null)
+                {
+                    throw new InvalidOperationException($"Overlay projection did not expose the stress item at cycle {cycle}.");
+                }
+
+                if (cycle % 2 == 0)
+                {
+                    await _viewModel.RemoveAsync(card, cancellationToken);
+                }
+                else
+                {
+                    var mainCard = _mainViewModel.Items.FirstOrDefault(item => item.Id == card.Id)
+                        ?? throw new InvalidOperationException($"Main projection did not expose the stress item at cycle {cycle}.");
+                    await _mainViewModel.RemoveAsync(mainCard, cancellationToken);
+                }
+                await _viewModel.RefreshRecentItemsAsync(cancellationToken);
+                if (_mainViewModel.SpaceItemCount != baselineCount ||
+                    _mainViewModel.Items.Any(item => item.Id == card.Id) ||
+                    _viewModel.RecentItems.Any(item => item.Id == card.Id))
+                {
+                    throw new InvalidOperationException($"Temporary Space projections diverged after deletion at cycle {cycle}.");
+                }
+
+                if (!File.Exists(externalSentinel))
+                {
+                    throw new InvalidOperationException("Removing a DropSpace reference deleted the external sentinel file.");
+                }
+
+                if (cycle % 10 == 9)
+                {
+                    await Task.Delay(1, cancellationToken);
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                }
+            }
+
+            await Task.Delay(100, cancellationToken);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            var metrics = new ProjectionDeletionStressMetrics(
+                cycles,
+                _mainViewModel.SpaceItemCount,
+                _viewModel.RecentItems.Count,
+                _crashDiagnostics.UnhandledCount - unhandledBefore,
+                _crashDiagnostics.UnobservedTaskCount - unobservedBefore,
+                File.Exists(externalSentinel));
+            if (metrics.UnhandledExceptionDelta != 0 ||
+                metrics.UnobservedTaskExceptionDelta != 0 ||
+                !metrics.ExternalSentinelPreserved)
+            {
+                throw new InvalidOperationException($"Projection deletion stress reported a failure: {metrics}.");
+            }
+
+            _logger.LogInformation(
+                "Main Window + Expanded Overlay deletion stress passed {Cycles} cycles: authoritative count {Count}, unhandled delta {UnhandledDelta}, unobserved task delta {UnobservedDelta}, external sentinel preserved={SentinelPreserved}.",
+                metrics.Cycles,
+                metrics.FinalSpaceItemCount,
+                metrics.UnhandledExceptionDelta,
+                metrics.UnobservedTaskExceptionDelta,
+                metrics.ExternalSentinelPreserved);
+            return metrics;
+        }
+        finally
+        {
+            if (File.Exists(externalSentinel))
+            {
+                File.Delete(externalSentinel);
+            }
+
+            if (Directory.Exists(testRoot))
+            {
+                Directory.Delete(testRoot, recursive: false);
+            }
+        }
     }
 
     public void Dispose()
@@ -214,7 +427,12 @@ public sealed class OverlayWindowService : IDisposable
         var activeMonitorId = primaryOnly ? _primaryMonitor.Id : _viewModel.ActiveMonitorId;
         foreach (var host in _activationHosts)
         {
-            host.SetEnabled(!primaryOnly || host.MonitorId == _primaryMonitor.Id);
+            var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
+            var visualSurfaceOwnsStableInput = snapshot.State is OverlayState.Compact or OverlayState.Expanded ||
+                                               snapshot.State == OverlayState.ModeTransition && snapshot.TemporaryItemCount > 0;
+            var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
+                                    _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
+            host.SetEnabled(monitorEnabled && activationEnabled);
         }
 
         foreach (var window in _windows)
@@ -231,14 +449,19 @@ public sealed class OverlayWindowService : IDisposable
     {
         var monitors = _monitorLayout.GetMonitors();
         _primaryMonitor = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
-        var callbacks = new DragActivationCallbacks(
+        var activationCallbacks = new DragActivationCallbacks(
             OnDragApproaching,
             OnDragReadyChanged,
             OnDragLeft,
             OnDroppedAsync);
+        var visualCallbacks = new DragActivationCallbacks(
+            OnVisibleDragApproaching,
+            OnVisibleDragReadyChanged,
+            OnVisibleDragLeft,
+            OnVisibleDroppedAsync);
         foreach (var monitor in monitors)
         {
-            var host = _dragDropService.CreateActivationHost(monitor, callbacks);
+            var host = _dragDropService.CreateActivationHost(monitor, activationCallbacks);
             host.DisplayTopologyChanged += OnDisplayTopologyChanged;
             _activationHosts.Add(host);
             _windows.Add(new OverlayWindow(
@@ -246,7 +469,7 @@ public sealed class OverlayWindowService : IDisposable
                 monitor,
                 _monitorLayout,
                 _dragDropService,
-                callbacks,
+                visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
                 _loggerFactory.CreateLogger<OverlayWindow>()));
         }
@@ -254,6 +477,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnDragApproaching(string monitorId)
     {
+        _activeDragOwner = DragTargetOwner.ActivationHost;
         _logger.LogInformation(
             "Visual overlay reveal requested by drag activation on monitor {MonitorId}.",
             monitorId);
@@ -276,16 +500,77 @@ public sealed class OverlayWindowService : IDisposable
         {
             _viewModel.CancelDrag();
         }
+
+        _activeDragOwner = DragTargetOwner.None;
+        ApplySnapshot(_viewModel.Snapshot);
     }
 
     private async Task OnDroppedAsync(string monitorId, IReadOnlyList<string> paths)
     {
-        var accepted = await _viewModel.CompleteDropAsync(monitorId, paths);
+        try
+        {
+            var accepted = await _viewModel.CompleteDropAsync(monitorId, paths);
+            _logger.LogInformation(
+                "Temporary Space activation-host drop completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}.",
+                monitorId,
+                paths.Count,
+                accepted);
+        }
+        finally
+        {
+            _activeDragOwner = DragTargetOwner.None;
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+    }
+
+    private void OnVisibleDragApproaching(string monitorId)
+    {
+        _activeDragOwner = DragTargetOwner.VisualOverlay;
         _logger.LogInformation(
-            "Temporary Space drop pipeline completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}.",
-            monitorId,
-            paths.Count,
-            accepted);
+            "Visible Overlay accepted direct drag ownership on monitor {MonitorId}; passive activation hosts are disabled until Drop/Leave.",
+            monitorId);
+        _viewModel.BeginVisibleDragApproach(monitorId);
+    }
+
+    private void OnVisibleDragReadyChanged(string monitorId, bool ready)
+    {
+        if (_activeDragOwner != DragTargetOwner.VisualOverlay)
+        {
+            OnVisibleDragApproaching(monitorId);
+        }
+
+        _viewModel.SetDragReady(ready);
+    }
+
+    private void OnVisibleDragLeft(string monitorId)
+    {
+        if (_activeDragOwner == DragTargetOwner.VisualOverlay &&
+            string.Equals(_viewModel.ActiveMonitorId, monitorId, StringComparison.Ordinal))
+        {
+            _viewModel.CancelDrag();
+        }
+
+        _activeDragOwner = DragTargetOwner.None;
+        ApplySnapshot(_viewModel.Snapshot);
+    }
+
+    private async Task OnVisibleDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    {
+        try
+        {
+            var accepted = await _viewModel.CompleteVisibleDropAsync(monitorId, paths);
+            _logger.LogInformation(
+                "Visible Overlay direct drop completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}, resulting state {State}.",
+                monitorId,
+                paths.Count,
+                accepted,
+                _viewModel.Snapshot.State);
+        }
+        finally
+        {
+            _activeDragOwner = DragTargetOwner.None;
+            ApplySnapshot(_viewModel.Snapshot);
+        }
     }
 
     private void OnDisplayTopologyChanged(object? sender, EventArgs args)
@@ -360,6 +645,19 @@ public sealed class OverlayWindowService : IDisposable
         _stateMachine.CompleteDismissal();
     }
 
+    private bool ProbeActiveVisualCenter()
+    {
+        return GetActiveWindow().ProbeVisibleCenter().IsRootOrDescendant;
+    }
+
+    private OverlayWindow GetActiveWindow()
+    {
+        var activeMonitorId = _viewModel.ActiveMonitorId ?? _primaryMonitor?.Id;
+        return _windows.FirstOrDefault(candidate =>
+                   string.Equals(candidate.MonitorId, activeMonitorId, StringComparison.Ordinal))
+               ?? throw new InvalidOperationException("No active visual Overlay Window is available.");
+    }
+
     private static void CollectReleasedResources()
     {
         GC.Collect();
@@ -380,6 +678,13 @@ public sealed class OverlayWindowService : IDisposable
 
     private sealed record ResourceSnapshot(int HandleCount, uint GdiObjects, uint UserObjects, long PrivateBytes);
 
+    private enum DragTargetOwner
+    {
+        None,
+        ActivationHost,
+        VisualOverlay,
+    }
+
     [DllImport("user32.dll")]
     private static extern uint GetGuiResources(nint process, uint flags);
 }
@@ -395,4 +700,20 @@ public sealed record OverlayLifecycleMetrics(
     bool NoContinuousFrameSubscription,
     int GeometryStressCycles,
     long RegionFailureCount,
-    bool ActivationTargetsDiscoverable);
+    bool ActivationTargetsDiscoverable,
+    bool CompactVisualTargetDiscoverable,
+    bool ExpandedVisualTargetDiscoverable);
+
+public sealed record ProjectionDeletionStressMetrics(
+    int Cycles,
+    int FinalSpaceItemCount,
+    int FinalRecentItemCount,
+    long UnhandledExceptionDelta,
+    long UnobservedTaskExceptionDelta,
+    bool ExternalSentinelPreserved);
+
+public sealed record VisibleOverlayDropSmokeMetrics(
+    bool CompactDropAccepted,
+    bool ExpandedDropAccepted,
+    bool ExpandedStayedOpen,
+    int AddedItemCount);

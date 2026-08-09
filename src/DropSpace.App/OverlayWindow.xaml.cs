@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics;
+using Windows.Storage;
 using WinRT.Interop;
 
 namespace DropSpace.App;
@@ -24,8 +25,9 @@ public sealed partial class OverlayWindow : Window
     private readonly MonitorLayoutService _monitorLayout;
     private readonly Action _openMainWindow;
     private readonly ILogger<OverlayWindow> _logger;
+    private readonly DragActivationCallbacks _visualDragCallbacks;
     private readonly nint _windowHandle;
-    private readonly IDisposable _nativeDropTarget;
+    private readonly OleDropTargetRegistration _nativeDropTarget;
     private readonly OverlayMotionController _motion = new(OverlayMotionValues.Hidden);
     private OverlayState _lastStableState = OverlayState.Hidden;
     private OverlayState _previousState = OverlayState.Hidden;
@@ -37,6 +39,7 @@ public sealed partial class OverlayWindow : Window
     private bool _hideWhenSettled;
     private bool _suppressedForFullscreen;
     private long _regionFailureCount;
+    private bool _visualDragActive;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -52,6 +55,7 @@ public sealed partial class OverlayWindow : Window
         _monitorLayout = monitorLayout;
         _openMainWindow = openMainWindow;
         _logger = logger;
+        _visualDragCallbacks = dragCallbacks;
         InitializeComponent();
         Root.DataContext = viewModel;
 
@@ -79,6 +83,35 @@ public sealed partial class OverlayWindow : Window
     internal bool HasActiveFrameSubscription => _hasFrameSubscription;
 
     internal long RegionFailureCount => Interlocked.Read(ref _regionFailureCount);
+
+    internal VisibleWindowProbe ProbeVisibleCenter()
+    {
+        var values = _motion.Current.ProjectToSafeRange();
+        var x = _monitor.Left + _monitor.Width / 2;
+        var y = _monitor.Top + ToPixels(values.TopOffset + values.Height / 2);
+        var probe = OverlayWindowInterop.ProbeWindowAtPoint(_windowHandle, x, y);
+        _logger.LogInformation(
+            "Visible Overlay center probe on monitor {MonitorId}: point {X},{Y}, root HWND {RootWindow}, WindowFromPoint {DiscoveredWindow}, class {WindowClassName}, root-or-descendant={Owned}.",
+            _monitor.Id,
+            x,
+            y,
+            probe.RootWindow,
+            probe.DiscoveredWindow,
+            probe.WindowClassName,
+            probe.IsRootOrDescendant);
+        return probe;
+    }
+
+    internal Task RunSyntheticCfHDropAsync(
+        IReadOnlyList<string> paths,
+        CancellationToken cancellationToken = default)
+    {
+        var values = _motion.Current.ProjectToSafeRange();
+        var point = new NativePoint(
+            _monitor.Left + _monitor.Width / 2,
+            _monitor.Top + ToPixels(values.TopOffset + values.Height / 2));
+        return _nativeDropTarget.RunSyntheticCfHDropAsync(paths, point, cancellationToken);
+    }
 
     internal long RunNotchGeometryStress(int cycles)
     {
@@ -605,6 +638,93 @@ public sealed partial class OverlayWindow : Window
     private void OnSurfacePointerExited(object sender, PointerRoutedEventArgs args)
     {
         Surface.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(242, 13, 13, 17));
+    }
+
+    private void OnSurfaceDragEnter(object sender, DragEventArgs args)
+    {
+        var canAccept = args.DataView.Contains(StandardDataFormats.StorageItems);
+        args.AcceptedOperation = canAccept ? DataPackageOperation.Copy : DataPackageOperation.None;
+        args.Handled = canAccept;
+        if (!canAccept)
+        {
+            return;
+        }
+
+        _visualDragActive = true;
+        _visualDragCallbacks.DragApproaching(_monitor.Id);
+        _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
+        _logger.LogInformation(
+            "WinUI visual-surface DragEnter received on monitor {MonitorId}: StorageItems=true, root HWND {WindowHandle}.",
+            _monitor.Id,
+            _windowHandle);
+    }
+
+    private void OnSurfaceDragOver(object sender, DragEventArgs args)
+    {
+        var canAccept = args.DataView.Contains(StandardDataFormats.StorageItems);
+        args.AcceptedOperation = canAccept ? DataPackageOperation.Copy : DataPackageOperation.None;
+        args.Handled = canAccept;
+        if (canAccept)
+        {
+            _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
+        }
+    }
+
+    private void OnSurfaceDragLeave(object sender, DragEventArgs args)
+    {
+        if (!_visualDragActive)
+        {
+            return;
+        }
+
+        _visualDragActive = false;
+        _visualDragCallbacks.DragLeft(_monitor.Id);
+        _logger.LogInformation(
+            "WinUI visual-surface DragLeave received on monitor {MonitorId}.",
+            _monitor.Id);
+    }
+
+    private async void OnSurfaceDrop(object sender, DragEventArgs args)
+    {
+        if (!args.DataView.Contains(StandardDataFormats.StorageItems))
+        {
+            args.AcceptedOperation = DataPackageOperation.None;
+            return;
+        }
+
+        args.Handled = true;
+        _visualDragActive = false;
+        try
+        {
+            var items = await args.DataView.GetStorageItemsAsync();
+            var paths = items
+                .Where(static item => item is IStorageFile or IStorageFolder)
+                .Select(static item => item.Path)
+                .Where(static path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            args.AcceptedOperation = paths.Length > 0
+                ? DataPackageOperation.Copy
+                : DataPackageOperation.None;
+            _logger.LogInformation(
+                "WinUI visual-surface Drop received on monitor {MonitorId}: offered item count {ItemCount}, accepted path count {PathCount}.",
+                _monitor.Id,
+                items.Count,
+                paths.Length);
+            if (paths.Length == 0)
+            {
+                _visualDragCallbacks.DragLeft(_monitor.Id);
+                return;
+            }
+
+            await _visualDragCallbacks.Dropped(_monitor.Id, paths);
+        }
+        catch (Exception exception)
+        {
+            args.AcceptedOperation = DataPackageOperation.None;
+            _logger.LogWarning(exception, "Visible Overlay StorageItems drop failed.");
+            _visualDragCallbacks.DragLeft(_monitor.Id);
+        }
     }
 
     private static ItemCardViewModel? GetCard(object sender) => sender switch

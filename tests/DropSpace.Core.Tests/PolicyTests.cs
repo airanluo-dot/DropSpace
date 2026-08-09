@@ -121,6 +121,39 @@ public sealed class PolicyTests
         Assert.IsEmpty(mainWindowProjection);
     }
 
+    [TestMethod]
+    public void ProjectionSynchronization_UpdatesMovesAddsAndRemovesWithoutClear()
+    {
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        var third = Guid.NewGuid();
+        var removed = Guid.NewGuid();
+        var projection = new List<(Guid Id, string Value)>
+        {
+            (first, "old-first"),
+            (second, "old-second"),
+            (removed, "removed"),
+        };
+        var incoming = new List<(Guid Id, string Value)>
+        {
+            (second, "new-second"),
+            (third, "new-third"),
+            (first, "new-first"),
+        };
+
+        ProjectionCollection.SynchronizeById(
+            projection,
+            incoming,
+            item => item.Id,
+            (existing, updated) =>
+            {
+                var index = projection.IndexOf(existing);
+                projection[index] = updated;
+            });
+
+        CollectionAssert.AreEqual(incoming, projection);
+    }
+
     private static DropItem CreateItem(ItemSource source, DateTimeOffset createdAt, bool isPinned = false) => new(
         Guid.NewGuid(),
         source,

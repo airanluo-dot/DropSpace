@@ -18,6 +18,7 @@ public sealed record OverlaySnapshot(
     int TemporaryItemCount,
     OverlayDisplayMode DisplayMode,
     OverlayDisplayMode TargetDisplayMode,
+    bool ExpandedDropActive,
     long Revision);
 
 public sealed class OverlayStateMachine
@@ -27,6 +28,7 @@ public sealed class OverlayStateMachine
     private int _temporaryItemCount;
     private OverlayDisplayMode _displayMode = OverlayDisplayMode.DynamicIsland;
     private OverlayDisplayMode _targetDisplayMode = OverlayDisplayMode.DynamicIsland;
+    private bool _expandedDropActive;
     private long _revision;
 
     public event EventHandler<OverlaySnapshot>? Changed;
@@ -36,6 +38,7 @@ public sealed class OverlayStateMachine
         _temporaryItemCount,
         _displayMode,
         _targetDisplayMode,
+        _expandedDropActive,
         _revision);
 
     public void Restore(int temporaryItemCount, OverlayDisplayMode displayMode)
@@ -44,6 +47,7 @@ public sealed class OverlayStateMachine
         _temporaryItemCount = temporaryItemCount;
         _displayMode = displayMode;
         _targetDisplayMode = displayMode;
+        _expandedDropActive = false;
         _state = temporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
         _resumeAfterModeTransition = _state;
         Publish();
@@ -56,6 +60,7 @@ public sealed class OverlayStateMachine
 
         if (temporaryItemCount == 0)
         {
+            _expandedDropActive = false;
             if (_state is OverlayState.Compact or OverlayState.Expanded)
             {
                 _state = OverlayState.Dismissing;
@@ -77,11 +82,30 @@ public sealed class OverlayStateMachine
         }
 
         _state = OverlayState.DragApproaching;
+        _expandedDropActive = false;
         Publish();
+    }
+
+    public void BeginVisibleDrag()
+    {
+        if (_state == OverlayState.Expanded)
+        {
+            _expandedDropActive = true;
+            Publish();
+            return;
+        }
+
+        BeginDragApproach();
     }
 
     public void SetDragReady(bool ready)
     {
+        if (_expandedDropActive)
+        {
+            Publish();
+            return;
+        }
+
         if (_state is not (OverlayState.DragApproaching or OverlayState.DragReady))
         {
             return;
@@ -93,6 +117,13 @@ public sealed class OverlayStateMachine
 
     public void CancelDrag()
     {
+        if (_expandedDropActive)
+        {
+            _expandedDropActive = false;
+            Publish();
+            return;
+        }
+
         if (_state is not (OverlayState.DragApproaching or OverlayState.DragReady))
         {
             return;
@@ -106,7 +137,20 @@ public sealed class OverlayStateMachine
     {
         ArgumentOutOfRangeException.ThrowIfNegative(temporaryItemCount);
         _temporaryItemCount = temporaryItemCount;
+        _expandedDropActive = false;
         _state = temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
+        Publish();
+    }
+
+    public void CompleteVisibleDrop(int temporaryItemCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(temporaryItemCount);
+        _temporaryItemCount = temporaryItemCount;
+        var remainExpanded = _expandedDropActive;
+        _expandedDropActive = false;
+        _state = temporaryItemCount == 0
+            ? OverlayState.Dismissing
+            : remainExpanded ? OverlayState.Expanded : OverlayState.Compact;
         Publish();
     }
 
@@ -127,6 +171,7 @@ public sealed class OverlayStateMachine
         }
 
         _state = _temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
+        _expandedDropActive = false;
         Publish();
     }
 
@@ -165,6 +210,7 @@ public sealed class OverlayStateMachine
         }
 
         _state = _temporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
+        _expandedDropActive = false;
         Publish();
     }
 
