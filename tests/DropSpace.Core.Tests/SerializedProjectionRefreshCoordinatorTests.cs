@@ -70,7 +70,7 @@ public sealed class SerializedProjectionRefreshCoordinatorTests
                 ? Task.FromException(new InvalidOperationException("injected projection failure"))
                 : Task.CompletedTask);
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => coordinator.RequestAsync(1));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => coordinator.RequestAsync(1));
         await coordinator.RequestAsync(2);
 
         Assert.AreEqual(2, coordinator.AppliedRevision);
