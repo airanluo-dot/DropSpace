@@ -66,12 +66,25 @@ function Invoke-CheckedProcess
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [string]$Description = "process"
+        [string]$Description = "process",
+        [string]$LogPath = ""
     )
 
-    $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments -Wait -PassThru
+    $effectiveArguments = @($Arguments)
+    if (-not [string]::IsNullOrWhiteSpace($LogPath))
+    {
+        $effectiveArguments += "/LOG=$LogPath"
+    }
+
+    $process = Start-Process -FilePath $FilePath -ArgumentList $effectiveArguments -Wait -PassThru
     if ($process.ExitCode -ne 0)
     {
+        if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
+        {
+            Write-Host "---- $Description log tail ----"
+            Get-Content $LogPath -Tail 120 | Write-Host
+        }
+
         throw "$Description failed with exit code $($process.ExitCode)."
     }
 }
@@ -142,7 +155,7 @@ try
     Invoke-CheckedProcess $baselineInstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
         "/DIR=$installPath", "/TASKS=desktopicon"
-    ) "baseline silent install"
+    ) "baseline silent install" (Join-Path $testRoot "baseline-install.log")
 
     $installedExe = Join-Path $installPath "DropSpace.exe"
     if (-not (Test-Path $installedExe -PathType Leaf)) { throw "Installed DropSpace.exe is missing." }
@@ -177,7 +190,7 @@ try
 
     Invoke-CheckedProcess $currentInstallerPath @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
-    ) "in-place upgrade"
+    ) "in-place upgrade" (Join-Path $testRoot "upgrade.log")
     if (-not $runningProcess.WaitForExit(15000))
     {
         throw "In-place upgrade did not gracefully stop the running DropSpace process."
@@ -198,7 +211,7 @@ try
     $uninstaller = Get-UninstallerPath
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=0"
-    ) "normal uninstall"
+    ) "normal uninstall" (Join-Path $testRoot "normal-uninstall.log")
     if (Test-Path $installedExe) { throw "Normal uninstall left application files behind." }
     if ($null -ne (Get-UninstallEntry) -or (Test-Path $customRegistryPath))
     {
@@ -212,14 +225,14 @@ try
 
     Invoke-CheckedProcess $currentInstallerPath @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$installPath"
-    ) "current reinstall"
+    ) "current reinstall" (Join-Path $testRoot "reinstall.log")
     $externalSentinel = Join-Path $testRoot "original-user-file.pdf"
     Set-Content -Path $externalSentinel -Value "must never be deleted" -Encoding utf8
     Set-Content -Path (Join-Path $dataRoot "referenced-original-path.marker") -Value $externalSentinel -Encoding utf8
     $uninstaller = Get-UninstallerPath
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=1"
-    ) "complete uninstall"
+    ) "complete uninstall" (Join-Path $testRoot "complete-uninstall.log")
     if (Test-Path $installPath) { throw "Complete uninstall left the application directory behind." }
     if (Test-Path $dataRoot) { throw "Complete uninstall did not remove DropSpace-owned local data." }
     if (-not (Test-Path $externalSentinel))

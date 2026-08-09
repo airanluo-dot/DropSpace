@@ -90,8 +90,26 @@ Type: files; Name: "{app}\install.version"
 Type: filesandordirs; Name: "{localappdata}\DropSpace"; Check: ShouldPurgeData
 
 [Code]
+const
+  EventModifyState = $0002;
+  SynchronizeAccess = $00100000;
+  WaitObject0 = 0;
+  MaintenanceWaitMilliseconds = 15000;
+
 var
   DeleteDataCheckBox: TNewCheckBox;
+
+function OpenEvent(DesiredAccess: DWORD; InheritHandle: BOOL; Name: String): HANDLE;
+external 'OpenEventW@kernel32.dll stdcall';
+
+function SignalEvent(EventHandle: HANDLE): BOOL;
+external 'SetEvent@kernel32.dll stdcall';
+
+function WaitForSingleObject(EventHandle: HANDLE; Milliseconds: DWORD): DWORD;
+external 'WaitForSingleObject@kernel32.dll stdcall';
+
+function CloseKernelHandle(Handle: HANDLE): BOOL;
+external 'CloseHandle@kernel32.dll stdcall';
 
 function HasParameter(const Name: String): Boolean;
 var
@@ -128,23 +146,61 @@ end;
 
 function RequestMaintenanceShutdown(): Boolean;
 var
-  ResultCode: Integer;
-  ExecutablePath: String;
+  RequestEvent: HANDLE;
+  StoppedEvent: HANDLE;
+  WaitResult: DWORD;
+  Attempt: Integer;
 begin
   Result := True;
   if not CheckForMutexes('Local\DropSpace.Running.v1') then
     Exit;
 
-  ExecutablePath := ExpandConstant('{app}\DropSpace.exe');
-  if (not FileExists(ExecutablePath)) or
-     (not Exec(ExecutablePath, '--shutdown-for-maintenance', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or
-     (ResultCode <> 0) then
+  Log('DropSpace is running; requesting graceful maintenance shutdown through named events.');
+  RequestEvent := OpenEvent(EventModifyState, False, 'Local\DropSpace.MaintenanceShutdown.v1');
+  StoppedEvent := OpenEvent(SynchronizeAccess, False, 'Local\DropSpace.MaintenanceStopped.v1');
+  if (RequestEvent = 0) or (StoppedEvent = 0) then
   begin
+    if RequestEvent <> 0 then
+      CloseKernelHandle(RequestEvent);
+    if StoppedEvent <> 0 then
+      CloseKernelHandle(StoppedEvent);
+    Log(Format('Maintenance events were unavailable (Win32 error %d).', [DLLGetLastError]));
     Result := False;
     Exit;
   end;
 
+  if not SignalEvent(RequestEvent) then
+  begin
+    Log(Format('Could not signal the maintenance request (Win32 error %d).', [DLLGetLastError]));
+    CloseKernelHandle(RequestEvent);
+    CloseKernelHandle(StoppedEvent);
+    Result := False;
+    Exit;
+  end;
+
+  WaitResult := WaitForSingleObject(StoppedEvent, MaintenanceWaitMilliseconds);
+  CloseKernelHandle(RequestEvent);
+  CloseKernelHandle(StoppedEvent);
+  if WaitResult <> WaitObject0 then
+  begin
+    Log(Format('Timed out waiting for graceful maintenance shutdown (wait result %d).', [WaitResult]));
+    Result := False;
+    Exit;
+  end;
+
+  { The stopped event is signaled after managed disposal completes and immediately before
+    process exit. Give the kernel a bounded moment to release the process-owned mutex. }
+  for Attempt := 1 to 50 do
+  begin
+    if not CheckForMutexes('Local\DropSpace.Running.v1') then
+      Break;
+    Sleep(100);
+  end;
   Result := not CheckForMutexes('Local\DropSpace.Running.v1');
+  if Result then
+    Log('DropSpace completed graceful maintenance shutdown.')
+  else
+    Log('DropSpace acknowledged shutdown but its process mutex remained present.');
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

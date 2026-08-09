@@ -2,13 +2,15 @@
 
 DropSpace installers use one permanent Inno Setup AppId and `UsePreviousAppDir=yes`. A newer `DropSpaceSetup.exe` therefore recognizes the existing per-user installation, inherits a custom directory and shortcut choices, appends the uninstall log, and replaces the program payload without requiring a prior uninstall.
 
-Before files are replaced, Setup checks the `Local\DropSpace.Running.v1` mutex. If DropSpace is running it launches:
+Before files are replaced, Setup checks the `Local\DropSpace.Running.v1` mutex. If DropSpace is running, Setup opens the application-owned `Local\DropSpace.MaintenanceShutdown.v1` and `Local\DropSpace.MaintenanceStopped.v1` kernel events, signals the request, and waits for bounded completion. This avoids bootstrapping a second WinUI process during maintenance.
+
+External maintenance tools can request the same handshake through:
 
 ```text
 DropSpace.exe --shutdown-for-maintenance
 ```
 
-That command signals an event handled by the existing UI process. The process uses the normal shutdown path to stop Overlay animation, revoke OLE targets, remove clipboard/tray listeners, flush settings/SQLite/logging services, close the main window, signal completion, and exit. Setup waits for success. It never uses `taskkill /f`; if graceful shutdown fails it stops with a clear instruction to exit DropSpace manually.
+The running process uses the normal shutdown path to stop Overlay animation, revoke OLE targets, remove clipboard/tray listeners, flush settings/SQLite/logging services, close the main window, signal completion, and exit. Setup waits for the stopped event and process mutex release. It never uses `taskkill /f`; if graceful shutdown fails it stops with a clear instruction to exit DropSpace manually.
 
 The installer records a monotonic numeric `VersionCode` below `HKCU\Software\DropSpace\Install`. Older Setup builds block a silent downgrade by default. A deliberate test downgrade requires `/ALLOWDOWNGRADE=1` and should never be used for ordinary updates.
 
