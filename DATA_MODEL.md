@@ -71,6 +71,8 @@ Subtype detection never grants security trust or changes the original string.
 
 No remote title/favicon fetch in MVP.
 
+File/folder records can use either source. `Source=Space` means deliberate Temporary Space staging; `Source=Clipboard` means an automatic Explorer copy-history reference. Both use `file_references`, but duplicate checks are source-scoped so the same external file may legitimately appear once in each product surface. Clipboard batch metadata contains only a fingerprint, count and item index; it never owns or copies the referenced source.
+
 ### PayloadRecord
 
 - `Id`
@@ -224,4 +226,3 @@ Migrations are forward-only in production. Downgrade means restoring a compatibl
 - Apply age cutoff, then count cap from newest to oldest.
 - Clear-range operations use `CreatedAtUtc`, display affected count, and default to preserving pinned items.
 - Space items have no automatic expiry in MVP.
-

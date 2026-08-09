@@ -97,6 +97,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Reason: Independent C#/WinUI/Composition implementation preserves DropSpace's architecture and avoids creating a GPL-derived work.
 - Trade-offs: Equivalent behavior must be designed and tested independently; WinIsland's implementation details are not reusable.
 - Preview.2 review record: public commit `6b5745bdce434a33753e4c328479d5bb35834f6d` was inspected, especially `window/app/startup.rs`, `layout.rs`, `frame.rs`, `events.rs`, `utils/physics.rs`, and the rounded background renderer. The independent design lessons were: keep a transparent undecorated maximum host around a separately drawn rounded surface; drive width/height/radius/view/hide as replaceable spring targets; restrict pointer hit testing to visible geometry; use event-loop wait deadlines and request redraw only for animation/playback/interaction; and keep monitor placement in physical coordinates. No GPL implementation text, constants, control flow, renderer code, assets, or dependencies were copied.
+- Preview.4 review record (2026-08-09): the current public repository and its reorganized `src/window`/`src/ui` structure were re-reviewed, including the window app's separate window/renderer state, compact/expanded/visible targets, spring collection, timestamps, and next-frame scheduling. DropSpace retained only behavioral lessons—one surface hierarchy, replaceable targets, render scheduling while unsettled, and physical monitor placement. The 12-pixel OLE activation band, native `IDropTarget`, WinUI/HRGN morph, responsive layout, and all C# code were independently designed; no GPL source, translated control flow, constants, algorithms, assets, or dependencies were used.
 
 ## D-023 — Desktop clipboard notification uses the Win32 listener list
 
@@ -124,11 +125,43 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 ## D-027 — OLE activation uses a one-pixel discoverable hot edge and single-owner expansion
 
-- Status: Accepted and implemented; supersedes the geometry/hit-routing portion of D-024
+- Status: Superseded by D-028; the single-owner and `HTCLIENT` decisions remain
 - Context: Real Preview.2 Explorer/Desktop testing showed that `RegisterDragDrop` success did not yield `DragEnter`; `HTTRANSPARENT` made cross-thread target discovery skip the zero-alpha HWND, and overlapping activation/visual targets created handoff ambiguity.
 - Decision: Return `HTCLIENT`, use visually imperceptible but nonzero uniform alpha 1/255, and reduce idle interception to one physical top-edge pixel across 960 DIP. Fully transparent layered HWNDs are skipped by target discovery. On valid OLE entry, expand the same HWND to 760 × 112 DIP, keep it above the visual Overlay and own the operation through Drop/Leave. Let the shaped visual HWND own direct drops only when already visible.
 - Reason: `WindowFromPoint`/OLE can discover a real registered target, while normal non-drag input loses at most the single topmost physical row and no polling/hook is needed.
 - Trade-offs: The exact top pixel is intentionally owned by DropSpace; real Explorer/Desktop and maximized-title-bar behavior remains manual acceptance evidence.
+
+## D-028 — OLE activation uses a bounded edge band and never re-rejects an accepted owner
+
+- Status: Accepted and implemented; supersedes the geometry and final-Drop acceptance portions of D-027
+- Context: Real Preview.3 testing still produced no reveal. A one-physical-pixel target required the Explorer cursor hotspot to land on the exact first scan line. Separately, final `Drop` re-evaluated a smaller Ready rectangle while spring geometry and pointer samples were changing, so an operation that had already entered the target could end with `DROPEFFECT_NONE`.
+- Decision: Keep `HTCLIENT`, nonzero 1/255 alpha, no polling/hooks, and single native OLE ownership, but expose a bounded 960-DIP × 12-physical-pixel monitor-edge safety band. Expand the same owner to 840 × 144 DIP after accepted `CF_HDROP`. Once this owner accepts the operation, final Drop depends on valid extracted paths, not a second animated-edge hit test. The already-visible shaped Overlay remains an independent direct target.
+- Reason: Real cursor hotspots can reach the target and accepted Explorer operations are not lost during visual morphing, while ownership and persistence still converge on `MainViewModel.AddPathsAsync`.
+- Trade-offs: The bounded top-center band intentionally owns ordinary hit testing in those 12 physical rows. It is no-activate and visually imperceptible, but its interaction trade-off and real Explorer/Desktop delivery remain Windows 11 manual acceptance items.
+
+## D-029 — Clipboard file history reuses references but not Temporary Space identity
+
+- Status: Accepted and implemented
+- Context: Explorer file copies belong in Clipboard History, but automatic history must not make the file an actively staged Temporary Space item or copy/move the source.
+- Decision: Read `StandardDataFormats.StorageItems` before bitmap/text, inspect each external file/folder through `IFileReferenceService`, and store it in the existing item/reference schema with `Source=Clipboard`. Scope path deduplication by source, apply recent fingerprint deduplication to Clipboard, never enumerate captured folders, and expose validated user limits for item count and known bytes.
+- Reason: File availability, Copy again, Open, Show in folder, retention, search, pinning, and SQLite migrations reuse established behavior while the product surfaces remain unambiguous.
+- Trade-offs: Virtual shell objects without stable file-system paths are skipped; folder contents do not contribute to known-size limits.
+
+## D-030 — Executable resources are the desktop icon authority
+
+- Status: Accepted and implemented
+- Context: A self-contained single-file runtime does not guarantee that `Assets/AppIcon.ico` exists beside the process. Path-only window/tray loading therefore produced a generic taskbar icon on another machine.
+- Decision: Treat the multi-resolution canonical ICO embedded as Win32 resource 101 as the window/taskbar/tray authority. Inno shortcuts and Installed Apps point to `DropSpace.exe` icon index 0; loose WinUI/MSIX assets remain packaging derivatives documented in `BRAND_ASSETS.md`.
+- Reason: Portable and installed builds obtain the same icon without depending on extraction layout or the current directory.
+- Trade-offs: Branding changes must regenerate the canonical ICO and MSIX PNG derivatives, then pass automated PE/icon-chain and manual Windows cache/scaling checks.
+
+## D-031 — Startup is a default-on per-user preference owned by the app
+
+- Status: Accepted and implemented
+- Context: DropSpace clipboard/tray behavior is useful only when the user can opt into sign-in launch without elevation, and Portable paths can move.
+- Decision: Persist `StartWithWindows=true` by default and reconcile the exact quoted current EXE plus `--startup` in the current user's Run key on launch/settings changes. Apply external registration before settings replacement and roll it back if the settings transaction fails. Start hidden to tray; uninstall removes only DropSpace's value.
+- Reason: It works for Installed and Portable builds with ordinary user rights, preserves the user's explicit disable choice through upgrades, and automatically repairs a moved Portable path after manual launch.
+- Trade-offs: Windows can independently disable startup apps, and real sign-in behavior remains a manual acceptance item.
 
 ## D-025 — Overlay morphs real geometry through interruptible spring targets
 

@@ -25,7 +25,7 @@ Space file records store references and metadata only. Clipboard images and larg
 
 ### Assets to protect
 
-- Clipboard text and images.
+- Clipboard text, images, and copied file/folder references.
 - File paths, names, timestamps, and user work patterns.
 - Pinned items and retention preferences.
 - Database, payload files, backups, logs, and exported diagnostics.
@@ -62,7 +62,7 @@ Space file records store references and metadata only. Clipboard images and larg
 
 - Removing a DropSpace record never deletes or moves its referenced source file.
 - All app-owned payload paths resolve inside one controlled root; traversal is rejected.
-- Clipboard events are bounded by count, bytes, time, and concurrency before expensive decoding.
+- Clipboard events are bounded by count, bytes, time, and concurrency before expensive decoding. Clipboard folders are stored only as references and are never recursively enumerated for capture-size accounting.
 - Raw payloads, full paths, and URL query strings do not enter logs by default.
 - Pause means no new clipboard item is persisted after the pause transition completes.
 - Exit removes tray/hotkey/listeners and ends capture.

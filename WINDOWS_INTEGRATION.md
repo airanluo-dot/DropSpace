@@ -14,14 +14,14 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | Mica primary window | Supported | `Window.SystemBackdrop`; solid fallback |
 | Acrylic transient surfaces | Supported | Use sparingly on flyouts/menus |
 | Clipboard change event | Supported with Win32 interop | `AddClipboardFormatListener` + `WM_CLIPBOARDUPDATE` on a stable message-pump HWND |
-| Text/image clipboard reads | Supported, format-dependent | Snapshot `DataPackageView`, handle transient failures |
+| Text/image/file clipboard reads | Supported, format-dependent | Snapshot `DataPackageView`, prefer `StorageItems`, handle transient failures |
 | Clipboard source app | Limited/best effort | Win32 clipboard-owner window may be absent/stale/indirect |
 | Drag files into app | Supported | XAML drag/drop with `StorageItems` |
 | Drag files out to Explorer/apps | Supported, compatibility test required | Standard data package/storage items; test targets |
 | Global hotkey | Supported with Win32 interop | `RegisterHotKey`, conflict handling; V1.1 |
 | Tray icon | Supported with Win32 interop | `Shell_NotifyIcon`, native menu and restart recovery |
 | Hide-to-tray background operation | Supported | Keep desktop process alive; not an OS background task |
-| Startup at sign-in | Supported/packaging-dependent | Activation/startup registration; V1.1 preference |
+| Startup at sign-in | Supported | Per-user `HKCU` Run value, default on, Settings-controlled, `--startup` hidden launch |
 | Single instance | Supported | Windows App SDK AppInstance redirection |
 | Hidden top-edge file-drag reveal | Supported with Win32/OLE interop | Independent visually transparent activation HWNDs plus `IDropTarget`/`RegisterDragDrop`/`CF_HDROP` |
 | Dynamic Island / Notch | Supported with WinUI Composition and shaped HWND | Shared state/data; visual geometry only differs |
@@ -35,7 +35,7 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 
 ## Clipboard monitoring
 
-The unpackaged desktop build registers its stable main-window HWND with `AddClipboardFormatListener` and receives `WM_CLIPBOARDUPDATE` through a narrow window-subclass adapter. The main HWND remains alive while hidden to the tray. The native handler emits only sequence/time metadata; the existing bounded async capture pipeline reads the current value through WinRT `DataPackageView` on the UI thread. Clipboard content can be delayed-rendered, locked, replaced again before async reads complete, or offer several formats.
+The unpackaged desktop build registers its stable main-window HWND with `AddClipboardFormatListener` and receives `WM_CLIPBOARDUPDATE` through a narrow window-subclass adapter. The main HWND remains alive while hidden to the tray. The native handler emits only sequence/time metadata; the bounded async capture pipeline reads the current value through WinRT `DataPackageView` on the UI thread. It prefers `StandardDataFormats.StorageItems` for Explorer file/folder copies, then bitmap, then text. Clipboard content can be delayed-rendered, locked, replaced again before async reads complete, or offer several formats.
 
 Implementation requirements:
 
@@ -63,9 +63,9 @@ Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/window
 DropSpace separates two lifecycles per enabled display:
 
 - The visual WinUI Overlay HWND owns only the Island/Notch. `Hidden` clears its HRGN and calls `SW_HIDE`; no XAML surface, backdrop, frame, shadow, or border remains visible.
-- A dedicated native activation HWND uses uniform alpha 1/255 and registers a managed `IDropTarget` with `RegisterDragDrop`. Alpha zero is skipped by Windows point/OLE discovery; 1/255 is visually imperceptible and keeps the surface discoverable. Idle it is 960 DIP wide but exactly one physical pixel high at the monitor top edge. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED` and `WM_NCHITTEST=HTCLIENT`: Microsoft documents `HTTRANSPARENT` as forwarding only within the same thread, so it cannot be used for reliable Explorer target discovery. A valid `DragEnter` expands the same HWND to 760 × 112 DIP and preserves ownership through Drop/Leave.
+- A dedicated native activation HWND uses uniform alpha 1/255 and registers a managed `IDropTarget` with `RegisterDragDrop`. Alpha zero is skipped by Windows point/OLE discovery; 1/255 is visually imperceptible and keeps the surface discoverable. Preview.3's exact one-pixel scan line was not usable with real cursor hotspots. Preview.4 uses a bounded 960-DIP-wide × 12-physical-pixel monitor-edge safety band. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED` and `WM_NCHITTEST=HTCLIENT`: Microsoft documents `HTTRANSPARENT` as forwarding only within the same thread, so it cannot be used for reliable Explorer target discovery. A valid `DragEnter` expands the same HWND to 840 × 144 DIP and preserves ownership through Drop/Leave.
 
-The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. Hidden-edge drags remain owned by the activation HWND for their whole lifetime; Reveal never hands them to the visual window. When Compact/Expanded is already visible, its shaped HWND independently accepts direct Drop outside the one-pixel idle edge. There are no overlapping active targets, global hooks, mouse-button scans, or cursor polling.
+The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. Hidden-edge drags remain owned by the activation HWND for their whole lifetime; Reveal never hands them to the visual window. An accepted owner does not re-reject the final Drop because spring geometry changed between samples. When Compact/Expanded is already visible, its shaped HWND independently accepts direct Drop. There are no global hooks, mouse-button scans, or cursor polling.
 
 ### Fullscreen classification
 
@@ -116,7 +116,7 @@ Official references: [App lifecycle activation](https://learn.microsoft.com/en-u
 
 ## Startup
 
-Packaged startup activation is feasible but user control, OS policy, disabled startup entries, and activation timing must be handled. Implement after tray/background behavior is stable. Never bypass the user's Windows startup-app preference.
+Installed and portable builds use the current user's standard Run key with an explicitly quoted executable plus `--startup`. It is enabled by default, can be disabled/re-enabled in Settings, follows a moved portable executable on the next manual launch, starts with the main window hidden, and uses the existing single-instance/tray lifecycle. It does not request elevation. The Inno uninstaller deletes only DropSpace's value. Windows may still let the user disable startup centrally; DropSpace never changes system security policy.
 
 ## SQLite
 

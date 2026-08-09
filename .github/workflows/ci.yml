@@ -57,6 +57,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-Installer.ps1
 
+      - name: Validate icon and brand asset chain
+        shell: pwsh
+        run: ./scripts/Test-BrandAssets.ps1
+
       - name: Test install, in-place upgrade, and both uninstall modes
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation

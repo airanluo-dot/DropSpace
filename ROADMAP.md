@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The Preview production slice covers Phases 1–10 in code: application composition, persistence, Space, external drag-out, text/image Clipboard, unified search/Pinned, tray/privacy lifecycle, the top Dynamic Island/Notch Overlay, a retained MSIX path, a portable self-contained x64 EXE, and a recommended Inno Setup per-user installer. CI and release automation test portable, installed, upgrade and uninstall lifecycles, calculate SHA-256, and create the GitHub Preview Release. Commercial signing remains optional and automatically activates only when Artifact Signing credentials are configured.
+The Preview production slice covers Phases 1–10 plus the file-capture and startup portions of Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, the top Dynamic Island/Notch Overlay, configurable capture limits, default-on per-user startup, a retained MSIX path, a portable self-contained x64 EXE, and a recommended Inno Setup per-user installer. CI and release automation test portable, installed, upgrade and uninstall lifecycles, calculate SHA-256, and create the GitHub Preview Release. Commercial signing remains optional and automatically activates only when Artifact Signing credentials are configured.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
 
@@ -347,7 +347,7 @@ Conflict, IME, rapid invocation, full-screen/elevated app, mixed-DPI/multi-displ
 
 One panel instance opens on the active work area, reports hotkey conflicts, dismisses reliably, and meets the measured latency target without duplicating storage/search logic.
 
-### Phase 12 — Clipboard file formats and best-effort exclusions
+### Phase 12 — Clipboard file formats delivered; best-effort exclusions remain
 
 #### Goal
 
@@ -355,7 +355,7 @@ Expand clipboard compatibility without turning attribution into a privacy promis
 
 #### Features
 
-Storage-item clipboard capture, source labels when known, exclusion settings, Unknown-source behavior, manual Space intake for text/URLs.
+Delivered in Preview.4: Storage-item clipboard capture, separate Clipboard source semantics, folder/reference policy, and configurable item/byte/image limits. Remaining: exclusion settings, Unknown-source attribution behavior, and manual Space intake for text/URLs.
 
 #### Files/modules
 
@@ -373,7 +373,7 @@ Explorer file copy, virtual/mixed formats, false attribution, password-manager a
 
 Unsupported/unknown sources remain safe and clearly labeled; exclusions never claim guaranteed protection; file/text/URL records preserve correct source and retention semantics.
 
-### Phase 13 — Startup and integration refinements
+### Phase 13 — Startup delivered; update/integration refinements remain
 
 #### Goal
 
@@ -381,7 +381,7 @@ Improve launch and shell integration only after the utility is stable.
 
 #### Features
 
-Startup preference, update channel decision/implementation, richer tray flyout; Explorer integration remains behind a separate decision.
+Delivered in Preview.4: default-on per-user startup preference, hidden `--startup` activation, portable path reconciliation, and uninstall cleanup. Remaining: update channel decision/implementation and richer tray flyout; Explorer integration remains behind a separate decision.
 
 #### Files/modules
 
