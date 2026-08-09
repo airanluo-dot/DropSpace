@@ -57,7 +57,7 @@ $installPath = Join-Path $testRoot "CustomInstallLocation"
 $baselineOutput = Join-Path $testRoot "baseline"
 $dataRoot = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) "DropSpace"
 $startMenuShortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\DropSpace.lnk"
-$desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory) "DropSpace.lnk"
+$desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)) "DropSpace.lnk"
 $customRegistryPath = "HKCU:\Software\DropSpace\Install"
 $runningProcess = $null
 
