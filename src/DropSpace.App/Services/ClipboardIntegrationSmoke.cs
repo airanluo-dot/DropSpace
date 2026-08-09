@@ -2,6 +2,7 @@ using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using Microsoft.UI.Dispatching;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 
 namespace DropSpace.App.Services;
 
@@ -12,6 +13,7 @@ public sealed record ClipboardIntegrationMetrics(
     long FailedReadDelta,
     bool FirstTextPersisted,
     bool SecondTextPersisted,
+    bool FileReferencePersisted,
     bool PauseVerified,
     bool ResumeVerified,
     bool SelfWriteSuppressionVerified);
@@ -36,6 +38,10 @@ public sealed class ClipboardIntegrationSmoke(
         var paused = $"{token}-paused";
         var resumed = $"{token}-resumed";
         var selfWrite = $"{token}-self";
+        var fileTestRoot = Path.Combine(Path.GetTempPath(), "DropSpace-clipboard-smoke", token);
+        var filePath = Path.Combine(fileTestRoot, $"{token}-file.txt");
+        var secondFilePath = Path.Combine(fileTestRoot, $"{token}-second.bin");
+        var folderPath = Path.Combine(fileTestRoot, $"{token}-folder");
         try
         {
             if (wasPaused)
@@ -69,6 +75,24 @@ public sealed class ClipboardIntegrationSmoke(
             if (!secondPersisted)
             {
                 throw new InvalidOperationException("The second clipboard text did not reach the repository.");
+            }
+
+            Directory.CreateDirectory(fileTestRoot);
+            Directory.CreateDirectory(folderPath);
+            await File.WriteAllTextAsync(filePath, "clipboard file reference smoke", cancellationToken);
+            await File.WriteAllBytesAsync(secondFilePath, [1, 2, 3, 4], cancellationToken);
+            var beforeFile = capture.Status;
+            await SetClipboardItemsAsync(filePath, secondFilePath, folderPath);
+            await WaitForAsync(
+                () => capture.Status.CapturedItems >= beforeFile.CapturedItems + 3,
+                "repository capture for mixed clipboard file/folder references",
+                cancellationToken);
+            var filePersisted = await ContainsFileAsync(filePath, cancellationToken) &&
+                                await ContainsFileAsync(secondFilePath, cancellationToken) &&
+                                await ContainsFileAsync(folderPath, cancellationToken);
+            if (!filePersisted)
+            {
+                throw new InvalidOperationException("The mixed clipboard file/folder references did not reach the repository.");
             }
 
             await capture.PauseAsync(cancellationToken);
@@ -121,6 +145,7 @@ public sealed class ClipboardIntegrationSmoke(
                 final.FailedReads - baseline.FailedReads,
                 firstPersisted,
                 secondPersisted,
+                filePersisted,
                 pauseVerified,
                 resumeVerified,
                 selfWriteVerified);
@@ -141,6 +166,11 @@ public sealed class ClipboardIntegrationSmoke(
             {
                 await capture.ResumeAsync(CancellationToken.None);
             }
+
+            if (Directory.Exists(fileTestRoot))
+            {
+                Directory.Delete(fileTestRoot, recursive: true);
+            }
         }
     }
 
@@ -156,12 +186,42 @@ public sealed class ClipboardIntegrationSmoke(
         return Task.CompletedTask;
     });
 
+    private Task SetClipboardItemsAsync(params string[] paths) => dispatcher.EnqueueAsync(async () =>
+    {
+        var items = new List<IStorageItem>(paths.Length);
+        foreach (var path in paths)
+        {
+            items.Add(Directory.Exists(path)
+                ? await StorageFolder.GetFolderFromPathAsync(path)
+                : await StorageFile.GetFileFromPathAsync(path));
+        }
+
+        var package = new DataPackage
+        {
+            RequestedOperation = DataPackageOperation.Copy,
+        };
+        package.SetStorageItems(items, readOnly: true);
+        Clipboard.SetContent(package);
+        Clipboard.Flush();
+    });
+
     private async Task<bool> ContainsTextAsync(string text, CancellationToken cancellationToken)
     {
         var matches = await repository.QueryAsync(
             new ItemQuery(Source: ItemSource.Clipboard, Search: text, Limit: 10),
             cancellationToken);
         return matches.Any(item => string.Equals(item.Text?.InlineText, text, StringComparison.Ordinal));
+    }
+
+    private async Task<bool> ContainsFileAsync(string path, CancellationToken cancellationToken)
+    {
+        var matches = await repository.QueryAsync(
+            new ItemQuery(Source: ItemSource.Clipboard, Search: Path.GetFileName(path), Limit: 10),
+            cancellationToken);
+        return matches.Any(item => string.Equals(
+            item.File?.OriginalPath,
+            path,
+            StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task RemoveSmokeItemsAsync(string token, CancellationToken cancellationToken)

@@ -11,13 +11,15 @@ DropSpace is a native **Preview release candidate**. The repository contains the
 The implemented vertical slice includes:
 
 - Space file/folder reference staging with drag-in, picker intake, external drag-out, open, copy path, pin, remove, and Locate/Replace.
-- Event-driven, bounded Clipboard history driven by the desktop `WM_CLIPBOARDUPDATE` listener for text, URLs, colors, code-like text, and resource-limited images.
+- Event-driven, bounded Clipboard history driven by the desktop `WM_CLIPBOARDUPDATE` listener for text, URLs, colors, code-like text, images, and Explorer file/folder references. Image and file batch limits are user-configurable.
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
+- A responsive header that stacks controls before text scaling can collapse the page title, an embedded Win32 taskbar/tray icon chain, and a documented brand-asset map.
 - A separate visually transparent Win32/OLE top-edge drag host, truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 - A pinned Inno Setup 7.0.2 `DropSpaceSetup.exe` with custom per-user install path, independent uninstaller, stable product identity, graceful in-place upgrades, preserve-data uninstall, and explicit complete-uninstall mode.
+- Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 
 Windows CI audits dependencies, builds the x64 app, portable EXE, installer and unsigned MSIX, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/Pause/Resume/self-write suppression, activation target discovery, 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry cycles, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Explorer/Desktop OLE delivery, zero-pixel Hidden appearance, installer wizard appearance, tray recovery after Explorer restart, accessibility, mixed-DPI geometry, and animation feel remain manual release-candidate validation gates and are not claimed by automation.
 
@@ -66,6 +68,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Roadmap](ROADMAP.md)
 - [Test plan](TEST_PLAN.md)
 - [Decisions](DECISIONS.md)
+- [Logo and icon asset map](BRAND_ASSETS.md)
 - [Agent rules](AGENTS.md)
 
 ## Development workflow

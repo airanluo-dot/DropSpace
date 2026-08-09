@@ -18,6 +18,8 @@ AppId: E11EC281-BCE7-4F98-8EEF-2387E202CF0F
 
 Program files and user data are separate. The selected install directory contains `DropSpace.exe` and the uninstaller. Database, settings, Clipboard payloads, cache, logs, backups and quarantine remain below `%LOCALAPPDATA%\DropSpace` for installed, portable and MSIX builds.
 
+On first run, DropSpace enables the current user's standard Windows startup entry by default and launches future sign-in instances with `--startup` hidden to the tray. Settings can disable or re-enable it without elevation. Uninstall always removes only DropSpace's startup value.
+
 ## Uninstall
 
 Normal uninstall removes program files, the Start Menu/Desktop shortcuts, DropSpace install metadata and any future DropSpace-owned startup/protocol entries, but preserves `%LOCALAPPDATA%\DropSpace` for reinstall.

@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
@@ -34,6 +35,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly IItemRepository _repository;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
+    private readonly IFileReferenceService _fileReferences;
     private readonly ClipboardNotificationService _notifications;
     private readonly DispatcherQueue _dispatcher;
     private readonly ILogger<ClipboardCaptureService> _logger;
@@ -65,6 +67,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         IItemRepository repository,
         ISettingsService settingsService,
         IPayloadStore payloadStore,
+        IFileReferenceService fileReferences,
         ClipboardNotificationService notifications,
         DispatcherQueue dispatcher,
         ILogger<ClipboardCaptureService> logger)
@@ -72,6 +75,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _repository = repository;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
+        _fileReferences = fileReferences;
         _notifications = notifications;
         _dispatcher = dispatcher;
         _logger = logger;
@@ -213,6 +217,42 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }).ConfigureAwait(false);
     }
 
+    public async Task CopyFilesAsync(
+        IEnumerable<string> paths,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        var distinctPaths = paths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (distinctPaths.Length == 0)
+        {
+            throw new ArgumentException("At least one file-system path is required.", nameof(paths));
+        }
+
+        MarkSelfWrite(CreateFileClipboardFingerprint(distinctPaths));
+        await _dispatcher.EnqueueAsync(async () =>
+        {
+            var storageItems = new List<IStorageItem>(distinctPaths.Length);
+            foreach (var path in distinctPaths)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                storageItems.Add(Directory.Exists(path)
+                    ? await StorageFolder.GetFolderFromPathAsync(path)
+                    : await StorageFile.GetFileFromPathAsync(path));
+            }
+
+            var package = new DataPackage
+            {
+                RequestedOperation = DataPackageOperation.Copy,
+            };
+            package.SetStorageItems(storageItems, readOnly: true);
+            Clipboard.SetContent(package);
+        }).ConfigureAwait(false);
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
@@ -319,7 +359,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         continue;
                     }
 
-                    DropItem item;
+                    IReadOnlyList<DropItem> items;
                     await _commitGate.WaitAsync(_shutdown.Token).ConfigureAwait(false);
                     try
                     {
@@ -328,65 +368,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                             continue;
                         }
 
-                        if (snapshot.Text is not null)
-                        {
-                            if (snapshot.Text.Length > _settings.MaxTextCharacters)
-                            {
-                                _logger.LogWarning("Clipboard text skipped because it exceeded the configured character limit.");
-                                continue;
-                            }
-
-                            item = await _repository.AddTextAsync(
-                                    ContentClassifier.CreateTextCandidate(snapshot.Text),
-                                    _shutdown.Token)
-                                .ConfigureAwait(false);
-                            _logger.LogInformation(
-                                "Clipboard text committed for sequence {SequenceNumber}.",
-                                signal.ClipboardSequenceNumber);
-                        }
-                        else if (snapshot.ImageBytes is not null)
-                        {
-                            if (!_settings.CaptureImages)
-                            {
-                                continue;
-                            }
-
-                            await using var stream = new MemoryStream(snapshot.ImageBytes, writable: false);
-                            var payload = await _payloadStore.WriteAsync(
-                                    "images",
-                                    stream,
-                                    _settings.MaxImageBytes,
-                                    _shutdown.Token)
-                                .ConfigureAwait(false);
-                            try
-                            {
-                                item = await _repository.AddImageAsync(
-                                        new ImageCandidate(
-                                            snapshot.Fingerprint,
-                                            snapshot.Width,
-                                            snapshot.Height,
-                                            snapshot.ImageBytes.LongLength,
-                                            snapshot.MimeType ?? "image/png",
-                                            snapshot.HasAlpha,
-                                            payload),
-                                        _shutdown.Token)
-                                    .ConfigureAwait(false);
-                                if (item.Payload?.Id != payload.Id)
-                                {
-                                    await _payloadStore.DeleteAsync(payload.RelativePath, _shutdown.Token).ConfigureAwait(false);
-                                }
-
-                                _logger.LogInformation(
-                                    "Clipboard image committed for sequence {SequenceNumber}.",
-                                    signal.ClipboardSequenceNumber);
-                            }
-                            catch
-                            {
-                                await _payloadStore.DeleteAsync(payload.RelativePath, _shutdown.Token).ConfigureAwait(false);
-                                throw;
-                            }
-                        }
-                        else
+                        items = await CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, _shutdown.Token)
+                            .ConfigureAwait(false);
+                        if (items.Count == 0)
                         {
                             continue;
                         }
@@ -396,8 +380,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         _commitGate.Release();
                     }
 
-                    Interlocked.Increment(ref _capturedItems);
-                    ItemCaptured?.Invoke(this, item);
+                    Interlocked.Add(ref _capturedItems, items.Count);
+                    foreach (var item in items)
+                    {
+                        ItemCaptured?.Invoke(this, item);
+                    }
                     PublishStatus(null);
                     await ApplyRetentionIfDueAsync(_shutdown.Token).ConfigureAwait(false);
                 }
@@ -466,7 +453,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 _logger.LogInformation(
                     "Clipboard snapshot read completed for sequence {SequenceNumber}; format {Format}.",
                     signal.ClipboardSequenceNumber,
-                    snapshot?.Text is not null ? "text" : snapshot?.ImageBytes is not null ? "image" : "unsupported");
+                    snapshot?.FilePaths is not null ? "files" : snapshot?.Text is not null ? "text" : snapshot?.ImageBytes is not null ? "image" : "unsupported");
                 return snapshot;
             }
             catch (Exception exception) when (exception is COMException or UnauthorizedAccessException)
@@ -492,6 +479,28 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             var view = Clipboard.GetContent();
+
+            if (view.Contains(StandardDataFormats.StorageItems))
+            {
+                var storageItems = await view.GetStorageItemsAsync();
+                var paths = storageItems
+                    .Select(item => item.Path)
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                if (paths.Length > 0)
+                {
+                    return new ClipboardSnapshot(
+                        null,
+                        null,
+                        paths,
+                        CreateFileClipboardFingerprint(paths),
+                        0,
+                        0,
+                        null,
+                        null);
+                }
+            }
 
             if (view.Contains(StandardDataFormats.Bitmap))
             {
@@ -528,6 +537,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 return new ClipboardSnapshot(
                     null,
                     bytes,
+                    null,
                     FingerprintService.ForBytes(bytes),
                     checked((int)decoder.PixelWidth),
                     checked((int)decoder.PixelHeight),
@@ -547,6 +557,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 return new ClipboardSnapshot(
                     normalized,
                     null,
+                    null,
                     FingerprintService.ForText(normalized),
                     0,
                     0,
@@ -556,6 +567,148 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
             return null;
         });
+
+    private async Task<IReadOnlyList<DropItem>> CommitSnapshotAsync(
+        ClipboardSnapshot snapshot,
+        uint sequenceNumber,
+        CancellationToken cancellationToken)
+    {
+        if (snapshot.Text is not null)
+        {
+            if (snapshot.Text.Length > _settings.MaxTextCharacters)
+            {
+                _logger.LogWarning("Clipboard text skipped because it exceeded the configured character limit.");
+                return [];
+            }
+
+            var item = await _repository.AddTextAsync(
+                    ContentClassifier.CreateTextCandidate(snapshot.Text),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            _logger.LogInformation("Clipboard text committed for sequence {SequenceNumber}.", sequenceNumber);
+            return [item];
+        }
+
+        if (snapshot.ImageBytes is not null)
+        {
+            if (!_settings.CaptureImages)
+            {
+                return [];
+            }
+
+            await using var stream = new MemoryStream(snapshot.ImageBytes, writable: false);
+            var payload = await _payloadStore.WriteAsync(
+                    "images",
+                    stream,
+                    _settings.MaxImageBytes,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            try
+            {
+                var item = await _repository.AddImageAsync(
+                        new ImageCandidate(
+                            snapshot.Fingerprint,
+                            snapshot.Width,
+                            snapshot.Height,
+                            snapshot.ImageBytes.LongLength,
+                            snapshot.MimeType ?? "image/png",
+                            snapshot.HasAlpha,
+                            payload),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (item.Payload?.Id != payload.Id)
+                {
+                    await _payloadStore.DeleteAsync(payload.RelativePath, cancellationToken).ConfigureAwait(false);
+                }
+
+                _logger.LogInformation("Clipboard image committed for sequence {SequenceNumber}.", sequenceNumber);
+                return [item];
+            }
+            catch
+            {
+                await _payloadStore.DeleteAsync(payload.RelativePath, cancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        if (snapshot.FilePaths is null || !_settings.CaptureFiles)
+        {
+            return [];
+        }
+
+        if (snapshot.FilePaths.Count > _settings.MaxClipboardFileItems)
+        {
+            _logger.LogWarning(
+                "Clipboard file batch skipped because item count {ItemCount} exceeded configured limit {Limit}.",
+                snapshot.FilePaths.Count,
+                _settings.MaxClipboardFileItems);
+            return [];
+        }
+
+        var candidates = new List<FileCandidate>(snapshot.FilePaths.Count);
+        long knownTotalBytes = 0;
+        foreach (var path in snapshot.FilePaths)
+        {
+            try
+            {
+                var candidate = await _fileReferences.InspectAsync(path, cancellationToken).ConfigureAwait(false);
+                if (candidate.EntryKind == FileEntryKind.Folder && !_settings.CaptureFolders)
+                {
+                    continue;
+                }
+
+                if (candidate.KnownSize is long size)
+                {
+                    if (size > _settings.MaxClipboardFileBytes ||
+                        size > _settings.MaxClipboardFileTotalBytes - knownTotalBytes)
+                    {
+                        _logger.LogWarning("A clipboard file reference was skipped by configured byte limits.");
+                        continue;
+                    }
+
+                    knownTotalBytes += size;
+                }
+
+                candidates.Add(candidate);
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+            {
+                _logger.LogWarning(exception, "A clipboard file reference could not be inspected.");
+            }
+        }
+
+        var captured = new List<DropItem>(candidates.Count);
+        for (var index = 0; index < candidates.Count; index++)
+        {
+            var candidate = candidates[index];
+            var fingerprint = FingerprintService.ForText($"clipboard-file\0{candidate.NormalizedPath}");
+            var metadata = JsonSerializer.Serialize(new
+            {
+                batchFingerprint = snapshot.Fingerprint,
+                batchItemCount = snapshot.FilePaths.Count,
+                itemIndex = index,
+            });
+            captured.Add(await _repository.AddClipboardFileAsync(
+                    candidate,
+                    fingerprint,
+                    metadata,
+                    cancellationToken)
+                .ConfigureAwait(false));
+        }
+
+        _logger.LogInformation(
+            "Clipboard file batch committed for sequence {SequenceNumber}: offered {OfferedCount}, captured {CapturedCount}, known bytes {KnownBytes}.",
+            sequenceNumber,
+            snapshot.FilePaths.Count,
+            captured.Count,
+            knownTotalBytes);
+        return captured;
+    }
+
+    private static string CreateFileClipboardFingerprint(IEnumerable<string> paths) =>
+        FingerprintService.ForText(string.Join(
+            '\n',
+            paths.Select(Path.GetFullPath).Order(StringComparer.OrdinalIgnoreCase)));
 
     private async Task ApplyRetentionIfDueAsync(CancellationToken cancellationToken)
     {
@@ -622,6 +775,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private sealed record ClipboardSnapshot(
         string? Text,
         byte[]? ImageBytes,
+        IReadOnlyList<string>? FilePaths,
         string Fingerprint,
         int Width,
         int Height,

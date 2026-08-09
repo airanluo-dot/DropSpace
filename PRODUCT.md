@@ -90,7 +90,7 @@ The first shippable MVP is deliberately smaller than the original list.
 - Single-instance packaged WinUI 3 app shell.
 - Space: file and folder references, multi-file drag-in, open, copy, remove record, pin, missing-state handling.
 - Real external drag-out of file/folder references.
-- Clipboard: event-driven plain text and image capture while the process is running.
+- Clipboard: event-driven plain text, image, and Explorer file/folder reference capture while the process is running.
 - URL and basic color recognition as presentation metadata.
 - Pinned filter/view across Space and Clipboard.
 - Unified keyword search over stored metadata and text.
@@ -103,10 +103,9 @@ The first shippable MVP is deliberately smaller than the original list.
 ### Deferred to V1.1
 
 - Quick Panel and global hotkey. They require separate window focus, multi-display positioning, conflict handling, and performance work.
-- Clipboard file-list capture. Clipboard format and delayed-rendering behavior need broader compatibility testing.
 - App exclusion UI. Source attribution is best-effort and must be validated before presenting it as a privacy guarantee.
 - Rich code detection, HSL editing, favicon download, Explorer context-menu integration.
-- Automatic startup toggle and update mechanism beyond installer-supported updates.
+- Automatic update mechanism beyond installer-supported updates.
 - UI automation suite breadth beyond critical smoke paths.
 
 ## V1.1

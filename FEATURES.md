@@ -84,6 +84,8 @@ Bursts, delayed rendering, clipboard locked by another process, empty formats, m
 - Domain plus safe display URL.
 - Open only after explicit action.
 - No favicon network request in MVP.
+- Explorer file, folder, multiple-item, and mixed file/folder copy capture as Clipboard references, separate from Temporary Space.
+- User controls for image enable/byte/pixel limits and file enable/folder/single-byte/total-byte/item-count limits.
 
 ### Image
 
@@ -157,7 +159,7 @@ Cancelled drag, last-item dismissal interrupted by a new drag, rapid mode retarg
 
 ### General
 
-Close behavior, run in background explanation, tray availability, startup (V1.1), launch page.
+Close behavior, run in background explanation, tray availability, default-on per-user startup, launch page.
 
 ### Clipboard
 

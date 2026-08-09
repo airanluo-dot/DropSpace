@@ -59,6 +59,7 @@ $dataRoot = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]:
 $startMenuShortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\DropSpace.lnk"
 $desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)) "DropSpace.lnk"
 $customRegistryPath = "HKCU:\Software\DropSpace\Install"
+$startupRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $runningProcess = $null
 
 function Invoke-CheckedProcess
@@ -235,6 +236,12 @@ try
 
     & (Join-Path $PSScriptRoot "Test-PortableSmoke.ps1") -ExecutablePath $installedExe
 
+    $startupCommand = (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction Stop).DropSpace
+    if ($startupCommand -notlike "*$installedExe*--startup*")
+    {
+        throw "Installed smoke did not create the expected per-user startup registration."
+    }
+
     $uninstaller = Get-UninstallerPath
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=0"
@@ -247,6 +254,10 @@ try
     if ((Test-Path $startMenuShortcut) -or (Test-Path $desktopShortcut))
     {
         throw "Normal uninstall left shortcuts behind."
+    }
+    if ($null -ne (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction SilentlyContinue))
+    {
+        throw "Normal uninstall left the DropSpace startup registration behind."
     }
     if (-not (Test-Path $dataMarker)) { throw "Normal uninstall did not preserve user data." }
 
@@ -270,6 +281,10 @@ try
         (Test-Path $startMenuShortcut) -or (Test-Path $desktopShortcut))
     {
         throw "Complete uninstall left DropSpace-owned registry or shortcut state behind."
+    }
+    if ($null -ne (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction SilentlyContinue))
+    {
+        throw "Complete uninstall left the DropSpace startup registration behind."
     }
 
     Write-Host "Installer lifecycle passed: silent per-user install, x64 metadata, Installed Apps, custom path, graceful in-place upgrade, installed smoke, preserve-data uninstall, complete uninstall, external sentinel protection."

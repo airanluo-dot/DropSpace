@@ -10,6 +10,7 @@ on:
       - scripts/Build-PortableExe.ps1
       - scripts/Build-UnsignedPackage.ps1
       - scripts/Compile-Win32Resource.ps1
+      - scripts/Test-BrandAssets.ps1
       - scripts/Test-PortableSmoke.ps1
       - scripts/Install-InnoSetup.ps1
       - scripts/Build-Installer.ps1
@@ -53,7 +54,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content RELEASE_VERSION -Raw).Trim()
-          if ($version -ne "v0.1.0-preview.3") { throw "Unexpected release version: $version" }
+          if ($version -ne "v0.1.0-preview.4") { throw "Unexpected release version: $version" }
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
@@ -74,6 +75,10 @@ jobs:
       - name: Build pinned Inno Setup installer
         shell: pwsh
         run: ./scripts/Build-Installer.ps1
+
+      - name: Validate icon and brand asset chain
+        shell: pwsh
+        run: ./scripts/Test-BrandAssets.ps1
 
       - name: Test installer lifecycle
         shell: pwsh
@@ -142,7 +147,7 @@ jobs:
       - name: Upload validated release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.3
+          name: DropSpace-v0.1.0-preview.4
           path: |
             artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
@@ -173,16 +178,16 @@ jobs:
       - name: Download validated release bundle
         uses: actions/download-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.3
+          name: DropSpace-v0.1.0-preview.4
           path: artifacts/release
 
       - name: Create GitHub Preview Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-preview.3
+          tag_name: v0.1.0-preview.4
           target_commitish: ${{ github.sha }}
-          name: DropSpace v0.1.0-preview.3
-          body_path: .github/release-notes/v0.1.0-preview.3.md
+          name: DropSpace v0.1.0-preview.4
+          body_path: .github/release-notes/v0.1.0-preview.4.md
           prerelease: true
           draft: false
           make_latest: false

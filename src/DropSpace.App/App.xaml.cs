@@ -87,6 +87,11 @@ public partial class App : Application
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
+                if (commandLine.Contains("--startup", StringComparer.OrdinalIgnoreCase))
+                {
+                    _window.Hide();
+                }
+
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     WriteSmokeProgressMarker("clipboard-integration");
@@ -97,7 +102,8 @@ public partial class App : Application
                     WriteSmokeMarker(
                         _services.GetRequiredService<AppStoragePaths>(),
                         metrics,
-                        clipboardMetrics);
+                        clipboardMetrics,
+                        _services.GetRequiredService<IStartupRegistrationService>().IsEnabled);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -174,6 +180,7 @@ public partial class App : Application
         services.AddSingleton<DragStorageItemService>();
         services.AddSingleton<IFileReferenceService, LocalFileReferenceService>();
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
+        services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
@@ -231,7 +238,8 @@ public partial class App : Application
     private static void WriteSmokeMarker(
         AppStoragePaths paths,
         OverlayLifecycleMetrics metrics,
-        ClipboardIntegrationMetrics clipboard)
+        ClipboardIntegrationMetrics clipboard,
+        bool startupRegistrationEnabled)
     {
         var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
         var marker = JsonSerializer.Serialize(new
@@ -258,9 +266,11 @@ public partial class App : Application
             clipboardFailedReadDelta = clipboard.FailedReadDelta,
             clipboardFirstTextPersisted = clipboard.FirstTextPersisted,
             clipboardSecondTextPersisted = clipboard.SecondTextPersisted,
+            clipboardFileReferencePersisted = clipboard.FileReferencePersisted,
             clipboardPauseVerified = clipboard.PauseVerified,
             clipboardResumeVerified = clipboard.ResumeVerified,
             clipboardSelfWriteSuppressionVerified = clipboard.SelfWriteSuppressionVerified,
+            startupRegistrationEnabled,
         });
         File.WriteAllText(markerPath, marker);
     }

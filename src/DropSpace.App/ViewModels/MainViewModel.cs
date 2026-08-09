@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using DropSpace.Core.Collections;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
@@ -15,6 +16,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IPayloadStore _payloadStore;
     private readonly IFileReferenceService _fileReferences;
     private readonly ILocalStorageMetrics _storageMetrics;
+    private readonly IStartupRegistrationService _startupRegistration;
     private readonly ClipboardCaptureService _clipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
@@ -44,6 +46,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IPayloadStore payloadStore,
         IFileReferenceService fileReferences,
         ILocalStorageMetrics storageMetrics,
+        IStartupRegistrationService startupRegistration,
         ClipboardCaptureService clipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
@@ -56,6 +59,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _payloadStore = payloadStore;
         _fileReferences = fileReferences;
         _storageMetrics = storageMetrics;
+        _startupRegistration = startupRegistration;
         _clipboard = clipboard;
         _shell = shell;
         _thumbnails = thumbnails;
@@ -186,6 +190,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             {
                 OnPropertyChanged(nameof(IsClipboardPaused));
                 OnPropertyChanged(nameof(CaptureImages));
+                OnPropertyChanged(nameof(CaptureFiles));
+                OnPropertyChanged(nameof(CaptureFolders));
+                OnPropertyChanged(nameof(StartWithWindows));
+                OnPropertyChanged(nameof(MaxImageMegabytes));
+                OnPropertyChanged(nameof(MaxImageMegapixels));
+                OnPropertyChanged(nameof(MaxClipboardFileMegabytes));
+                OnPropertyChanged(nameof(MaxClipboardFileTotalMegabytes));
+                OnPropertyChanged(nameof(MaxClipboardFileItems));
                 OnPropertyChanged(nameof(RetentionDays));
                 OnPropertyChanged(nameof(RetentionItemCount));
                 OnPropertyChanged(nameof(Theme));
@@ -200,6 +212,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool IsClipboardPaused => Settings.ClipboardPaused;
 
     public bool CaptureImages => Settings.CaptureImages;
+
+    public bool CaptureFiles => Settings.CaptureFiles;
+
+    public bool CaptureFolders => Settings.CaptureFolders;
+
+    public bool StartWithWindows => Settings.StartWithWindows;
+
+    public double MaxImageMegabytes => Settings.MaxImageBytes / (1024d * 1024);
+
+    public double MaxImageMegapixels => Settings.MaxImagePixels / 1_000_000d;
+
+    public double MaxClipboardFileMegabytes => Settings.MaxClipboardFileBytes / (1024d * 1024);
+
+    public double MaxClipboardFileTotalMegabytes => Settings.MaxClipboardFileTotalBytes / (1024d * 1024);
+
+    public int MaxClipboardFileItems => Settings.MaxClipboardFileItems;
 
     public int RetentionDays => Settings.RetentionDays;
 
@@ -234,6 +262,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         Settings = await _settingsService.LoadAsync(cancellationToken);
+        await _startupRegistration.SetEnabledAsync(Settings.StartWithWindows, cancellationToken);
         await _repository.InitializeAsync(cancellationToken);
         await RefreshSpaceItemCountAsync(cancellationToken);
         await _clipboard.InitializeAsync(cancellationToken);
@@ -250,7 +279,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             case "Clipboard":
                 PageTitle = "Clipboard";
-                PageDescription = "自动记录当前进程运行期间复制的文本和图片。";
+                PageDescription = "自动记录复制的文本、图片、文件与文件夹引用。";
                 break;
             case "Pinned":
                 PageTitle = "Pinned";
@@ -346,11 +375,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (refreshed is not null)
         {
             card.Update(refreshed);
+            var projectedCard = Items.FirstOrDefault(item => item.Id == refreshed.Id);
+            if (projectedCard is not null && !ReferenceEquals(projectedCard, card))
+            {
+                projectedCard.Update(refreshed);
+            }
         }
 
         if (CurrentSection == "Pinned" && !card.IsPinned)
         {
-            Items.Remove(card);
+            ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
+
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
         }
@@ -372,7 +407,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         }
 
-        Items.Remove(card);
+        ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
         ItemCount = Items.Count;
         IsEmpty = Items.Count == 0;
         if (card.Item.Source == ItemSource.Space)
@@ -479,6 +514,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 await preflight(settings, cancellationToken);
             }
 
+            await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
             await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
             await _settingsService.SaveAsync(settings, cancellationToken);
             Settings = settings;
@@ -486,6 +522,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch
         {
+            await _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None);
             await _clipboard.UpdateSettingsAsync(previous, CancellationToken.None);
             if (preflight is not null)
             {

@@ -74,8 +74,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "DropSpace.exe"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0
+Name: "{autodesktop}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0; Tasks: desktopicon
 
 [Registry]
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
@@ -255,6 +255,10 @@ var
 begin
   if CurUninstallStep <> usUninstall then
     Exit;
+
+  { The application owns its per-user startup preference. Always remove only
+    DropSpace's value; never touch other programs in the Run key. }
+  RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'DropSpace');
 
   { Capture the interactive choice while its control is still alive. }
   if (DeleteDataCheckBox <> nil) and DeleteDataCheckBox.Checked then

@@ -1,5 +1,6 @@
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
+using DropSpace.Core.Collections;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DropSpace.Core.Tests;
@@ -77,6 +78,47 @@ public sealed class PolicyTests
         Assert.IsFalse(redacted.Contains("token=abc", StringComparison.Ordinal));
         Assert.IsFalse(redacted.Contains("hunter2", StringComparison.Ordinal));
         Assert.IsFalse(redacted.Contains("abc.def", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void ClipboardCaptureLimits_AcceptValidCustomValuesAndRejectInvertedFileTotals()
+    {
+        var valid = new AppSettings
+        {
+            CaptureImages = false,
+            CaptureFiles = true,
+            CaptureFolders = false,
+            MaxImageBytes = 64L * 1024 * 1024,
+            MaxImagePixels = 80_000_000,
+            MaxClipboardFileBytes = 512L * 1024 * 1024,
+            MaxClipboardFileTotalBytes = 2L * 1024 * 1024 * 1024,
+            MaxClipboardFileItems = 25,
+            StartWithWindows = false,
+        };
+
+        Assert.AreSame(valid, valid.Validate());
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            (valid with
+            {
+                MaxClipboardFileBytes = 3L * 1024 * 1024 * 1024,
+                MaxClipboardFileTotalBytes = 2L * 1024 * 1024 * 1024,
+            }).Validate());
+    }
+
+    [TestMethod]
+    public void ProjectionRemoval_UsesDomainIdentityAcrossDifferentViewInstances()
+    {
+        var id = Guid.NewGuid();
+        var mainWindowProjection = new List<(Guid Id, string View)> { (id, "main") };
+        var overlayCard = (Id: id, View: "overlay");
+
+        var removed = ProjectionCollection.RemoveById(
+            mainWindowProjection,
+            item => item.Id,
+            overlayCard.Id);
+
+        Assert.IsTrue(removed);
+        Assert.IsEmpty(mainWindowProjection);
     }
 
     private static DropItem CreateItem(ItemSource source, DateTimeOffset createdAt, bool isPinned = false) => new(

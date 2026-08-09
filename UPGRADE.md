@@ -2,6 +2,8 @@
 
 DropSpace installers use one permanent Inno Setup AppId and `UsePreviousAppDir=yes`. A newer `DropSpaceSetup.exe` therefore recognizes the existing per-user installation, inherits a custom directory and shortcut choices, appends the uninstall log, and replaces the program payload without requiring a prior uninstall.
 
+The `StartWithWindows` preference remains in `%LOCALAPPDATA%\DropSpace\settings.json`, so upgrades preserve an explicit user disable. On the next successful launch DropSpace reconciles its one per-user Run value to the upgraded executable path; Setup does not blindly re-enable startup.
+
 Before files are replaced, Setup checks the `Local\DropSpace.Running.v1` mutex. If DropSpace is running, Setup opens the application-owned `Local\DropSpace.MaintenanceShutdown.v1` and `Local\DropSpace.MaintenanceStopped.v1` kernel events, signals the request, and waits for bounded completion. This avoids bootstrapping a second WinUI process during maintenance.
 
 External maintenance tools can request the same handshake through:
