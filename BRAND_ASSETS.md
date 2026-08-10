@@ -1,5 +1,7 @@
 # DropSpace logo and icon asset map
 
+The repository-owned logo and icon files are distributed under Apache-2.0 as copyrighted works. Their use as source-identifying trademarks is separate from that copyright license; see [TRADEMARKS.md](TRADEMARKS.md).
+
 `src/DropSpace.App/Assets/AppIcon.ico` is the canonical desktop icon source. It contains 16, 24, 32, 48, 64, 128, and 256 pixel square frames. Replace and validate this file first when the DropSpace logo changes.
 
 ## Runtime and packaging consumers

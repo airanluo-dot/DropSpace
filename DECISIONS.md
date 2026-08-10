@@ -281,3 +281,11 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 **Decision:** Stable Compact/Expanded disables the passive host, applies WinUI `AllowDrop` to the visible surface and retains a native root `CF_HDROP` adapter. Repository mutation publishes one monotonically increasing Space revision. Overlay refresh is serialized/coalesced and synchronizes cards by identity on the UI Dispatcher.
 
 **Rationale:** Preview.4 registered the root HWND but visible WinUI pixels could resolve to a child HWND, while the passive topmost host could compete. The deletion crash path separately allowed one removal to start two repository refreshes and overlapping `ObservableCollection.Clear/Add` during Dismissing. Exclusive target ownership and a single projection coordinator remove both races without duplicating storage logic.
+
+## D-034 — License DropSpace's original work under Apache-2.0
+
+**Decision:** DropSpace's original source, documentation, configuration, tests, scripts, and repository-owned brand image files are licensed under Apache License 2.0, with `Copyright 2026 Airan Luo`. Contributions use Apache-2.0 inbound and outbound terms without a CLA. Third-party dependencies retain their own licenses, and trademark/source-identification policy remains separate from copyright licensing.
+
+**Rationale:** Apache-2.0 permits source access, forks, modification, redistribution, and commercial use while providing explicit patent terms and preserving NOTICE and attribution requirements. A project-level SPDX policy avoids mechanical headers on generated, binary, manifest, and third-party files.
+
+**Audit boundary:** Git history contains only the project owner's `Luo Airan` and `Aren Vox` identities plus GitHub merge automation. No vendored third-party source or visual asset was found. WinIsland remains a GPL-3.0 behavioral reference only under D-022 and is not incorporated. Runtime/build dependencies remain governed by [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
