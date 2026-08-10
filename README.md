@@ -3,6 +3,7 @@
 DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island/Notch provides a fast file drop surface over the same Temporary Space.
 
 [![Windows CI](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml/badge.svg)](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
 ## Status
 
@@ -71,6 +72,10 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Test plan](TEST_PLAN.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)
+- [Licensing policy](LICENSING.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [Trademark and brand policy](TRADEMARKS.md)
+- [Contributing](CONTRIBUTING.md)
 - [Agent rules](AGENTS.md)
 
 ## Development workflow
@@ -107,4 +112,8 @@ Work is implemented on task branches. Each meaningful, verified change is commit
 
 ## License
 
-No open-source license has been granted. All rights are reserved unless a license is added later.
+Copyright 2026 Airan Luo.
+
+DropSpace's original source code, documentation, and repository-owned assets are licensed under the [Apache License 2.0](LICENSE) (`Apache-2.0`). You may use, modify, distribute, and use the project commercially subject to that license.
+
+Third-party dependencies remain under their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The Apache license does not grant a general right to present a modified distribution as an official DropSpace release; see [TRADEMARKS.md](TRADEMARKS.md).
