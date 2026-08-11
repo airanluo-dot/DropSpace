@@ -21,7 +21,9 @@ on:
 
 concurrency:
   group: dropspace-release-${{ github.ref }}
-  cancel-in-progress: false
+  # A new PR revision invalidates its older validation bundle. Published main
+  # releases remain non-cancellable so an asset upload cannot be interrupted.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate-release:

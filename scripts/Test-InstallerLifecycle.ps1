@@ -62,6 +62,7 @@ $desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialF
 $customRegistryPath = "HKCU:\Software\DropSpace\Install"
 $startupRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $runningProcess = $null
+$restartProcess = $null
 
 function Invoke-CheckedProcess
 {
@@ -69,7 +70,8 @@ function Invoke-CheckedProcess
         [Parameter(Mandatory = $true)][string]$FilePath,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
         [string]$Description = "process",
-        [string]$LogPath = ""
+        [string]$LogPath = "",
+        [int]$TimeoutSeconds = 180
     )
 
     $effectiveArguments = @($Arguments)
@@ -78,7 +80,20 @@ function Invoke-CheckedProcess
         $effectiveArguments += "/LOG=$LogPath"
     }
 
-    $process = Start-Process -FilePath $FilePath -ArgumentList $effectiveArguments -Wait -PassThru
+    $process = Start-Process -FilePath $FilePath -ArgumentList $effectiveArguments -PassThru
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000))
+    {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
+        {
+            Write-Host "---- $Description log tail ----"
+            Get-Content $LogPath -Tail 120 | Write-Host
+        }
+
+        throw "$Description did not exit within $TimeoutSeconds seconds."
+    }
+
+    $process.Refresh()
     if ($process.ExitCode -ne 0)
     {
         if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
@@ -235,7 +250,6 @@ try
         throw "In-place upgrade reset the selected installation path."
     }
 
-    $restartProcess = $null
     $restartDeadline = [DateTime]::UtcNow.AddSeconds(45)
     while ([DateTime]::UtcNow -lt $restartDeadline)
     {
@@ -247,16 +261,42 @@ try
     {
         throw "/UPDATE did not automatically restart the installed DropSpace version."
     }
-    $shutdown = Start-Process -FilePath $installedExe -ArgumentList "--shutdown-for-maintenance" -Wait -PassThru
-    if ($shutdown.ExitCode -ne 0)
-    {
-        throw "The restarted app did not complete graceful post-update shutdown."
-    }
+
     $updatedMarker = Join-Path $dataRoot "Updates\last-update.json"
-    if (-not (Test-Path $updatedMarker -PathType Leaf) -or (Get-Content $updatedMarker -Raw) -notmatch [regex]::Escape($currentVersion))
+    $updatedMarkerDeadline = [DateTime]::UtcNow.AddSeconds(45)
+    while ([DateTime]::UtcNow -lt $updatedMarkerDeadline)
     {
-        throw "The restarted version did not persist the expected update launch marker."
+        $restartProcess.Refresh()
+        if ($restartProcess.HasExited)
+        {
+            throw "The restarted app exited before persisting its update launch marker."
+        }
+
+        if ((Test-Path $updatedMarker -PathType Leaf) -and
+            (Get-Content $updatedMarker -Raw) -match [regex]::Escape($currentVersion))
+        {
+            break
+        }
+
+        Start-Sleep -Milliseconds 250
     }
+    if (-not (Test-Path $updatedMarker -PathType Leaf) -or
+        (Get-Content $updatedMarker -Raw) -notmatch [regex]::Escape($currentVersion))
+    {
+        throw "The restarted version did not persist the expected update launch marker within 45 seconds."
+    }
+
+    Wait-ForMaintenanceEndpoint $restartProcess
+    Invoke-CheckedProcess `
+        -FilePath $installedExe `
+        -Arguments @("--shutdown-for-maintenance") `
+        -Description "post-update graceful maintenance shutdown" `
+        -TimeoutSeconds 30
+    if (-not $restartProcess.WaitForExit(15000))
+    {
+        throw "The restarted app acknowledged maintenance shutdown but did not exit within 15 seconds."
+    }
+    $restartProcess = $null
 
     & (Join-Path $PSScriptRoot "Test-PortableSmoke.ps1") -ExecutablePath $installedExe
 
@@ -315,9 +355,12 @@ try
 }
 finally
 {
-    if ($null -ne $runningProcess -and -not $runningProcess.HasExited)
+    foreach ($process in @($restartProcess, $runningProcess))
     {
-        Stop-Process -Id $runningProcess.Id -Force -ErrorAction SilentlyContinue
+        if ($null -ne $process -and -not $process.HasExited)
+        {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
     }
     if (Test-Path $testRoot)
     {
