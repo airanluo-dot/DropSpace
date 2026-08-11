@@ -1,8 +1,4 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="branding/generated/docs/DropSpace-Lockup-Horizontal-White.png">
-  <source media="(prefers-color-scheme: light)" srcset="branding/generated/docs/DropSpace-Lockup-Horizontal-Black.png">
-  <img alt="DropSpace" src="branding/generated/docs/DropSpace-Lockup-Horizontal-Black.png" width="420">
-</picture>
+<img alt="DropSpace" src="branding/generated/docs/DropSpace-Logo-Black.png" width="220">
 
 # DropSpace
 

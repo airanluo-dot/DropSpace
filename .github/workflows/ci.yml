@@ -34,6 +34,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1
 
+      - name: Verify deterministic brand generation
+        shell: pwsh
+        run: ./scripts/Generate-BrandAssets.ps1 -Verify
+
       - name: Validate Stable and Preview release metadata
         shell: pwsh
         run: ./scripts/Test-ReleaseVersion.ps1

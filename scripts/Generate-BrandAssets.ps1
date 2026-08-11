@@ -9,13 +9,11 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $masterRoot = Join-Path $repositoryRoot "branding/master"
-$fullIconSource = Join-Path $masterRoot "DropSpace-AppIcon-Master-2048.png"
-$miniMarkSource = Join-Path $masterRoot "DropSpace-MiniMark-Purple-1024.png"
-$flatVectorSource = Join-Path $masterRoot "DropSpace-AppIcon-Flat-Vector.svg"
-$blackLockupSource = Join-Path $masterRoot "DropSpace-Lockup-Horizontal-Black.png"
-$whiteLockupSource = Join-Path $masterRoot "DropSpace-Lockup-Horizontal-White.png"
+$blackMainSource = Join-Path $masterRoot "black/DropSpace-Black-Main-Original.png"
+$whiteBackupSource = Join-Path $masterRoot "white/DropSpace-White-Backup-Original.png"
+$sourceManifest = Join-Path $repositoryRoot "branding/SOURCE_MANIFEST.json"
 
-foreach ($source in @($fullIconSource, $miniMarkSource, $flatVectorSource, $blackLockupSource, $whiteLockupSource))
+foreach ($source in @($blackMainSource, $whiteBackupSource, $sourceManifest))
 {
     if (-not (Test-Path $source -PathType Leaf))
     {
@@ -82,6 +80,13 @@ function Write-RenderedPng
     $context = $visual.RenderOpen()
     try
     {
+        # The supplied Black Main artwork includes its authoritative black canvas,
+        # glow, and reflection. Keep the entire generated surface black so wide
+        # tiles and splash assets do not expose an unintended transparent variant.
+        $context.DrawRectangle(
+            [System.Windows.Media.Brushes]::Black,
+            $null,
+            [System.Windows.Rect]::new(0, 0, $Width, $Height))
         $context.DrawImage(
             $Source,
             [System.Windows.Rect]::new($left, $top, $contentSize, $contentSize))
@@ -185,16 +190,14 @@ function Generate-Assets
 
     [System.IO.Directory]::CreateDirectory($AssetRoot) | Out-Null
     [System.IO.Directory]::CreateDirectory($DocsRoot) | Out-Null
-    $fullIcon = Read-Bitmap $fullIconSource
-    $miniMark = Read-Bitmap $miniMarkSource
+    $blackMain = Read-Bitmap $blackMainSource
 
     $icoSizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
     $icoFrames = @{}
     foreach ($size in $icoSizes)
     {
-        $source = if ($size -le 32) { $miniMark } else { $fullIcon }
         $framePath = Join-Path $AssetRoot "AppIcon.frame-$size.png"
-        Write-RenderedPng $source $size $size 1 $framePath
+        Write-RenderedPng $blackMain $size $size 1 $framePath
         $icoFrames[$size] = $framePath
     }
     Write-Ico $icoFrames (Join-Path $AssetRoot "AppIcon.ico")
@@ -202,8 +205,6 @@ function Generate-Assets
     {
         [System.IO.File]::Delete([string]$framePath)
     }
-    [System.IO.File]::Copy($flatVectorSource, (Join-Path $AssetRoot "AppIcon.svg"), $true)
-
     $scaleFactors = [ordered]@{ 100 = 1.0; 125 = 1.25; 150 = 1.5; 200 = 2.0; 400 = 4.0 }
     foreach ($entry in $scaleFactors.GetEnumerator())
     {
@@ -216,23 +217,21 @@ function Generate-Assets
         $wideHeight = [int][Math]::Round(150 * $factor, [MidpointRounding]::AwayFromZero)
         $splashWidth = [int][Math]::Round(620 * $factor, [MidpointRounding]::AwayFromZero)
         $splashHeight = [int][Math]::Round(300 * $factor, [MidpointRounding]::AwayFromZero)
-        Write-RenderedPng $fullIcon $square44 $square44 1 (Join-Path $AssetRoot "Square44x44Logo.scale-$scale.png")
-        Write-RenderedPng $fullIcon $square150 $square150 1 (Join-Path $AssetRoot "Square150x150Logo.scale-$scale.png")
-        Write-RenderedPng $fullIcon $store $store 1 (Join-Path $AssetRoot "StoreLogo.scale-$scale.png")
-        Write-RenderedPng $fullIcon $wideWidth $wideHeight 0.72 (Join-Path $AssetRoot "Wide310x150Logo.scale-$scale.png")
-        Write-RenderedPng $fullIcon $splashWidth $splashHeight 0.72 (Join-Path $AssetRoot "SplashScreen.scale-$scale.png")
+        Write-RenderedPng $blackMain $square44 $square44 1 (Join-Path $AssetRoot "Square44x44Logo.scale-$scale.png")
+        Write-RenderedPng $blackMain $square150 $square150 1 (Join-Path $AssetRoot "Square150x150Logo.scale-$scale.png")
+        Write-RenderedPng $blackMain $store $store 1 (Join-Path $AssetRoot "StoreLogo.scale-$scale.png")
+        Write-RenderedPng $blackMain $wideWidth $wideHeight 0.72 (Join-Path $AssetRoot "Wide310x150Logo.scale-$scale.png")
+        Write-RenderedPng $blackMain $splashWidth $splashHeight 0.72 (Join-Path $AssetRoot "SplashScreen.scale-$scale.png")
     }
     [System.IO.File]::Copy((Join-Path $AssetRoot "StoreLogo.scale-100.png"), (Join-Path $AssetRoot "StoreLogo.png"), $true)
 
     foreach ($size in @(16, 20, 24, 30, 32, 36, 40, 44, 48, 60, 64, 72, 80, 96, 256))
     {
-        $source = if ($size -le 32) { $miniMark } else { $fullIcon }
-        Write-RenderedPng $source $size $size 1 (Join-Path $AssetRoot "Square44x44Logo.targetsize-$($size)_altform-unplated.png")
+        Write-RenderedPng $blackMain $size $size 1 (Join-Path $AssetRoot "Square44x44Logo.targetsize-$($size)_altform-unplated.png")
     }
-    Write-RenderedPng $miniMark 48 48 1 (Join-Path $AssetRoot "LockScreenLogo.scale-200.png")
+    Write-RenderedPng $blackMain 48 48 1 (Join-Path $AssetRoot "LockScreenLogo.scale-200.png")
 
-    [System.IO.File]::Copy($blackLockupSource, (Join-Path $DocsRoot "DropSpace-Lockup-Horizontal-Black.png"), $true)
-    [System.IO.File]::Copy($whiteLockupSource, (Join-Path $DocsRoot "DropSpace-Lockup-Horizontal-White.png"), $true)
+    Write-RenderedPng $blackMain 512 512 1 (Join-Path $DocsRoot "DropSpace-Logo-Black.png")
 }
 
 $destination = Resolve-RepositoryPath $DestinationRoot
@@ -240,8 +239,8 @@ $documentation = Resolve-RepositoryPath $DocumentationRoot
 if (-not $Verify)
 {
     Generate-Assets $destination $documentation
-    Write-Host "Generated DropSpace brand assets from canonical masters."
-    Write-Host "ICO optical variants: Mini Mark 16/20/24/32; Full 3D 40/48/64/128/256."
+    Write-Host "Generated DropSpace brand assets from the authoritative Black Main master."
+    Write-Host "ICO frames: Black Main artwork at 16/20/24/32/40/48/64/128/256. White Backup is retained only as a canonical fallback source."
     return
 }
 

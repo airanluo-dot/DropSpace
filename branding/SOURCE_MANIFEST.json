@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "authoritativeRuntimeVariant": "Black Main",
+  "runtimeBackground": "black",
+  "transparentArtworkExtractionAllowed": false,
+  "sources": [
+    {
+      "path": "master/black/DropSpace-Black-Main-Original.png",
+      "role": "canonical runtime artwork",
+      "sha256": "519664732432643022331a7c9b1c57dcedac361f09500691512738aef5bb73bf"
+    },
+    {
+      "path": "master/black/DropSpace-Black-Main-Resampled-2048.png",
+      "role": "upstream packaged resample retained for provenance",
+      "sha256": "319470a340b5402537ff4a6dc7c4c80fe41d1e4a08cf850d08bf3eb2f6e393ac"
+    },
+    {
+      "path": "master/black/DropSpace-Black-Main-Resampled-4096.png",
+      "role": "upstream packaged resample retained for provenance",
+      "sha256": "431710f7e7447a6bda4a861ec64667aef366f5c5fffca4fd681bbe964321a8f6"
+    },
+    {
+      "path": "master/white/DropSpace-White-Backup-Original.png",
+      "role": "canonical backup only; never a runtime default",
+      "sha256": "d463f19661b2eb4e9a86f261f3a6363385b0936cb9947d0c5b80a71b36e221b2"
+    },
+    {
+      "path": "master/white/DropSpace-White-Backup-Resampled-2048.png",
+      "role": "backup packaged resample retained for provenance",
+      "sha256": "6ee681eeb56f0bd889bd4665d3d0f16b4d5177ca254f4225d92417017110b156"
+    },
+    {
+      "path": "master/white/DropSpace-White-Backup-Resampled-4096.png",
+      "role": "backup packaged resample retained for provenance",
+      "sha256": "d6f95ca369fdb05851d224f6614a9ff73d6ebc3e8622bcb96b92859116f3f0ae"
+    }
+  ]
+}

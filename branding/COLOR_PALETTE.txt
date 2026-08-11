@@ -1,7 +1,0 @@
-Deep Navy: #101321
-Graphite: #242632
-Electric Violet: #6F5BFF
-Rift Violet: #9C83FF
-Flare: #F0ECFF
-Ink: #151720
-White: #FFFFFF

@@ -47,7 +47,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\*.png" />
-    <Content Include="Assets\AppIcon.svg" />
     <Content Include="Assets\AppIcon.ico" />
   </ItemGroup>
   <ItemGroup>
