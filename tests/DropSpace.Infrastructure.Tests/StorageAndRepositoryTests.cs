@@ -1,6 +1,7 @@
 using System.Text;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
+using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
@@ -56,6 +57,10 @@ public sealed class StorageAndRepositoryTests
             OverlayDisplayMode = OverlayDisplayMode.Notch,
             OverlayMotion = OverlayMotionPreference.Reduced,
             OverlayMonitor = OverlayMonitorPreference.Primary,
+            AutoCheckForUpdates = false,
+            AutoDownloadUpdates = false,
+            UpdateChannel = UpdateChannel.Preview,
+            LastUpdateCheckUtc = DateTimeOffset.Parse("2026-08-10T00:00:00Z"),
         };
 
         await service.SaveAsync(expected);
@@ -87,6 +92,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
         Assert.IsTrue(actual.ClipboardPaused);
+        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
     }
 
     [TestMethod]
@@ -130,6 +136,36 @@ public sealed class StorageAndRepositoryTests
         Assert.IsTrue(actual.CaptureFiles);
         Assert.IsTrue(actual.CaptureFolders);
         Assert.IsTrue(actual.StartWithWindows);
+        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+    }
+
+    [TestMethod]
+    public async Task Settings_FreshStableDefaultsToStable_WhileExistingPreviewSchemaMigratesToPreview()
+    {
+        var fresh = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.AreEqual(UpdateChannel.Stable, fresh.UpdateChannel);
+        Assert.IsTrue(fresh.AutoCheckForUpdates);
+        Assert.IsTrue(fresh.AutoDownloadUpdates);
+        Assert.IsFalse(fresh.AutoInstallUpdates);
+
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 3,
+              "Theme": 2,
+              "StartWithWindows": false,
+              "RetentionDays": 45
+            }
+            """);
+
+        var migrated = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.AreEqual(AppSettings.CurrentVersion, migrated.Version);
+        Assert.AreEqual(UpdateChannel.Preview, migrated.UpdateChannel);
+        Assert.AreEqual(ThemePreference.Dark, migrated.Theme);
+        Assert.IsFalse(migrated.StartWithWindows);
+        Assert.AreEqual(45, migrated.RetentionDays);
     }
 
     [TestMethod]

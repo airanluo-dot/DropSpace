@@ -5,10 +5,12 @@ using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
+using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Logging;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
+using DropSpace.Infrastructure.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
@@ -103,6 +105,15 @@ public partial class App : Application
                     _window.Hide();
                 }
 
+                var updatedArgument = Array.FindIndex(commandLine, value =>
+                    string.Equals(value, "--updated", StringComparison.OrdinalIgnoreCase));
+                if (updatedArgument >= 0 && updatedArgument + 1 < commandLine.Length &&
+                    ReleaseVersion.TryParse(commandLine[updatedArgument + 1], out var updatedVersion))
+                {
+                    await _services.GetRequiredService<IUpdateService>().MarkUpdatedLaunchAsync(updatedVersion);
+                    viewModel.ShowUpdatedVersion(updatedVersion);
+                }
+
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     WriteSmokeProgressMarker("clipboard-integration");
@@ -128,6 +139,13 @@ public partial class App : Application
 
                     await ShutdownAsync();
                     Environment.Exit(0);
+                }
+
+                else if (!commandLine.Contains("--test-mode", StringComparer.OrdinalIgnoreCase) &&
+                    !string.Equals(Environment.GetEnvironmentVariable("DROPSPACE_TEST_MODE"), "1", StringComparison.Ordinal))
+                {
+                    // Process-lifetime ownership: opening or hiding windows never calls this path.
+                    _ = viewModel.CheckForUpdatesAtStartupAsync();
                 }
             }
             catch (Exception exception)
@@ -201,6 +219,31 @@ public partial class App : Application
         services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
         services.AddSingleton<WindowsShareIntegrationService>();
         services.AddSingleton<ShareTargetActivationService>();
+        services.AddSingleton<ReleaseBuildInfo>();
+        services.AddSingleton<IDeploymentModeService, DeploymentModeService>();
+        services.AddSingleton<UpdateManifestParser>();
+        services.AddSingleton<UpdateStateStore>();
+        services.AddSingleton<IUpdateVerifier, UpdateFileVerifier>();
+        services.AddSingleton<ITrustedUpdateVerifier, AuthenticodeTrustedUpdateVerifier>();
+        services.AddSingleton<IUpdateInstallerLauncher, InnoUpdateInstallerLauncher>();
+        services.AddSingleton<IUpdateSource>(provider => new GitHubReleaseUpdateSource(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(15) },
+            provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion));
+        services.AddSingleton<IUpdateDownloader>(provider => new HttpUpdateDownloader(
+            new HttpClient { Timeout = TimeSpan.FromMinutes(30) },
+            paths,
+            provider.GetRequiredService<UpdateStateStore>()));
+        services.AddSingleton<IUpdateService>(provider => new UpdateService(
+            provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion,
+            provider.GetRequiredService<IUpdateSource>(),
+            provider.GetRequiredService<UpdateManifestParser>(),
+            provider.GetRequiredService<IUpdateDownloader>(),
+            provider.GetRequiredService<IUpdateVerifier>(),
+            provider.GetRequiredService<ITrustedUpdateVerifier>(),
+            provider.GetRequiredService<IUpdateInstallerLauncher>(),
+            provider.GetRequiredService<IDeploymentModeService>(),
+            provider.GetRequiredService<UpdateStateStore>(),
+            provider.GetRequiredService<ILogger<UpdateService>>()));
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();

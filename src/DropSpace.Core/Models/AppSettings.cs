@@ -1,3 +1,5 @@
+using DropSpace.Core.Updates;
+
 namespace DropSpace.Core.Models;
 
 public enum ThemePreference
@@ -34,7 +36,7 @@ public enum OverlayMonitorPreference
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -77,6 +79,16 @@ public sealed record AppSettings
     public OverlayMotionPreference OverlayMotion { get; init; } = OverlayMotionPreference.System;
 
     public OverlayMonitorPreference OverlayMonitor { get; init; } = OverlayMonitorPreference.Automatic;
+
+    public bool AutoCheckForUpdates { get; init; } = true;
+
+    public bool AutoDownloadUpdates { get; init; } = true;
+
+    public bool AutoInstallUpdates { get; init; }
+
+    public UpdateChannel UpdateChannel { get; init; } = UpdateChannel.Stable;
+
+    public DateTimeOffset? LastUpdateCheckUtc { get; init; }
 
     public AppSettings WithSafeUiPreferences() => this with
     {
@@ -157,6 +169,16 @@ public sealed record AppSettings
         if (!Enum.IsDefined(OverlayMonitor))
         {
             throw new ArgumentOutOfRangeException(nameof(OverlayMonitor));
+        }
+
+        if (!Enum.IsDefined(UpdateChannel))
+        {
+            throw new ArgumentOutOfRangeException(nameof(UpdateChannel));
+        }
+
+        if (LastUpdateCheckUtc is { } lastCheck && lastCheck.Offset != TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
         return this;

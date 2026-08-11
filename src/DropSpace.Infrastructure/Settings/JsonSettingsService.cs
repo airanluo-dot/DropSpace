@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -54,12 +55,27 @@ public sealed class JsonSettingsService : ISettingsService
                     FileShare.Read,
                     16_384,
                     FileOptions.Asynchronous | FileOptions.SequentialScan);
-                settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
-                    .ConfigureAwait(false);
-                settings ??= new AppSettings();
-                if (settings.Version is 1 or 2)
+                if (stream.Length > 1_048_576)
                 {
-                    settings = settings with { Version = AppSettings.CurrentVersion };
+                    throw new JsonException("settings.json exceeds the supported size limit.");
+                }
+
+                using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+                var hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
+                    document.RootElement.EnumerateObject().Any(property =>
+                        string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
+                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
+                settings ??= new AppSettings();
+                if (settings.Version is 1 or 2 or 3)
+                {
+                    settings = settings with
+                    {
+                        Version = AppSettings.CurrentVersion,
+                        // A settings file from before schema 4 belongs to the Preview-era installed
+                        // population. Fresh v0.1.0 users have no file and retain the Stable default.
+                        UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
+                    };
                 }
 
                 return settings.Validate();
