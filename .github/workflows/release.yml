@@ -93,7 +93,7 @@ jobs:
 
       - name: Publish portable self-contained EXE
         shell: pwsh
-        run: ./scripts/Build-PortableExe.ps1 -NoRestore
+        run: ./scripts/Build-PortableExe.ps1
 
       - name: Build unsigned MSIX
         shell: pwsh
