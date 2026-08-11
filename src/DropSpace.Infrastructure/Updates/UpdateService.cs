@@ -197,7 +197,7 @@ public sealed class UpdateService : IUpdateService
 
             return Status;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
             _logger.LogError(exception, "The verified update installer could not be launched.");
             await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);

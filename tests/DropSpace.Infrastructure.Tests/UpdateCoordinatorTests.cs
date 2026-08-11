@@ -74,6 +74,38 @@ public sealed class UpdateCoordinatorTests
         Assert.AreEqual(1, source.CallCount);
     }
 
+    [TestMethod]
+    public async Task InstallerShellLaunchFailure_RestoresReadyState()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+        var update = CreateInstallerUpdate(paths);
+        Directory.CreateDirectory(Path.GetDirectoryName(update.FilePath)!);
+        await File.WriteAllBytesAsync(update.FilePath, [1]);
+        await store.SaveAsync(update, "ReadyToInstall");
+
+        var service = new UpdateService(
+            ReleaseVersion.Parse("0.1.0"),
+            new FakeSource(),
+            new UpdateManifestParser(),
+            new NeverDownloader(),
+            new AlwaysVerifier(),
+            new UntrustedVerifier(),
+            new Win32FailingLauncher(),
+            new FakeDeploymentMode(DeploymentMode.Installer),
+            store,
+            NullLogger<UpdateService>.Instance);
+
+        Assert.AreEqual(UpdateState.ReadyToInstall, (await service.RecoverPendingAsync()).State);
+        var result = await service.InstallAsync(unattended: false);
+
+        Assert.AreEqual(UpdateState.ReadyToInstall, result.State);
+        Assert.AreEqual("ReadyToInstall", (await store.LoadHighestAsync(
+            ReleaseVersion.Parse("0.1.0"), DeploymentMode.Installer))?.State);
+    }
+
     private UpdateService Create(IUpdateSource source)
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
@@ -110,9 +142,45 @@ public sealed class UpdateCoordinatorTests
             throw new AssertFailedException("No manifest should be requested when the fake release list is empty.");
     }
 
-    private sealed class FakeDeploymentMode : IDeploymentModeService
+    private static DownloadedUpdate CreateInstallerUpdate(AppStoragePaths paths)
     {
-        public DeploymentMode Current => DeploymentMode.Portable;
+        var version = ReleaseVersion.Parse("0.1.1");
+        var installer = new UpdateManifestAsset("DropSpaceSetup.exe", 1, new string('a', 64));
+        var portable = new UpdateManifestAsset("DropSpace.exe", 1, new string('b', 64));
+        var asset = new UpdateReleaseAsset(
+            installer.AssetName,
+            installer.Size,
+            new Uri("https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.1/DropSpaceSetup.exe"));
+        var release = new UpdateRelease(
+            "v0.1.1",
+            false,
+            false,
+            DateTimeOffset.Parse("2026-08-11T00:00:00Z"),
+            new Uri("https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.1"),
+            [asset]);
+        var manifest = new UpdateManifest(
+            1,
+            UpdateChannel.Stable,
+            version,
+            version.ToVersionCode(),
+            DateTimeOffset.Parse("2026-08-11T00:00:00Z"),
+            26100,
+            false,
+            "Test update",
+            installer,
+            portable);
+        var directory = Path.Combine(paths.Updates, version.ToString());
+        return new DownloadedUpdate(
+            new UpdateCandidate(release, manifest, asset, DeploymentMode.Installer),
+            Path.Combine(directory, installer.AssetName),
+            installer.Size,
+            installer.Sha256,
+            Path.Combine(directory, "update-install.log"));
+    }
+
+    private sealed class FakeDeploymentMode(DeploymentMode mode = DeploymentMode.Portable) : IDeploymentModeService
+    {
+        public DeploymentMode Current => mode;
     }
 
     private sealed class NeverDownloader : IUpdateDownloader
@@ -136,5 +204,11 @@ public sealed class UpdateCoordinatorTests
     {
         public Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default) =>
             throw new AssertFailedException("Installer launch was not expected.");
+    }
+
+    private sealed class Win32FailingLauncher : IUpdateInstallerLauncher
+    {
+        public Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default) =>
+            throw new System.ComponentModel.Win32Exception(5, "Simulated ShellExecute denial.");
     }
 }
