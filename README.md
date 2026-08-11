@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="branding/generated/docs/DropSpace-Lockup-Horizontal-White.png">
+  <source media="(prefers-color-scheme: light)" srcset="branding/generated/docs/DropSpace-Lockup-Horizontal-Black.png">
+  <img alt="DropSpace" src="branding/generated/docs/DropSpace-Lockup-Horizontal-Black.png" width="420">
+</picture>
+
 # DropSpace
 
 DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island/Notch provides a fast file drop surface over the same Temporary Space.
@@ -7,7 +13,9 @@ DropSpace is a local-first Windows 11 workspace for temporarily holding file ref
 
 ## Status
 
-DropSpace is a native **Preview release candidate**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.1.0 is the first Stable release**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+
+Latest Stable: [v0.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
 The implemented vertical slice includes:
 
@@ -23,6 +31,7 @@ The implemented vertical slice includes:
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 - A pinned Inno Setup 7.0.2 `DropSpaceSetup.exe` with custom per-user install path, independent uninstaller, stable product identity, graceful in-place upgrades, preserve-data uninstall, and explicit complete-uninstall mode.
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
+- Process-lifetime in-app update checks, repeatable manual checks, Stable/Preview channels, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
 Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/Pause/Resume/self-write suppression, activation and visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, 200 serialized deletion cycles, 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry cycles, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Real Explorer/Desktop Shell routing, Drop Tray/Share ranking, zero-pixel Hidden appearance, installer wizard appearance, tray recovery after Explorer restart, accessibility, mixed-DPI geometry, and animation feel remain manual release-candidate validation gates and are not claimed by automation.
 
@@ -38,11 +47,11 @@ Normal uninstall keeps local DropSpace data for reinstall. Select “also delete
 
 Download `DropSpace.exe` from the official [GitHub Releases](https://github.com/airanluo-dot/DropSpace/releases) page and double-click it. It is self-contained and requires no Visual Studio, separate .NET runtime, Windows App SDK runtime installation, PowerShell, certificate installation, or administrator rights.
 
-This Preview is not commercially code-signed. SmartScreen may show an unknown-app warning on first launch; obtain the file only from the official release and compare it with `SHA256SUMS.txt`.
+The first Stable build is not commercially code-signed. SmartScreen may show an unknown-app warning on first launch; obtain the file only from the official release and compare it with `SHA256SUMS.txt`.
 
 ### 3. MSIX — alternative package
 
-`DropSpace-x64.msix` remains an alternate Windows package. The Preview package is unsigned, so ordinary users should prefer `DropSpace.exe`; MSIX certificate/signing policy is intentionally not bypassed.
+`DropSpace-x64.msix` remains an alternate Windows package. The package is unsigned, so ordinary users should prefer Setup; MSIX certificate/signing policy is intentionally not bypassed.
 
 ### 4. Developer build
 
@@ -52,7 +61,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 
 - Windows 11 native desktop application.
 - C#, .NET, WinUI 3, Windows App SDK, and MVVM.
-- Local storage only by default.
+- Local content storage; the updater sends no user content and reads only public GitHub Release metadata when enabled.
 - File records are references; removing a record never deletes or moves its source file.
 - Clipboard source-app exclusions are best effort and are not treated as a privacy guarantee.
 - AI, OCR, accounts, cloud sync, and browser extensions are outside the MVP and V1.1 scope.

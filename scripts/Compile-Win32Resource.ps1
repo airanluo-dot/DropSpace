@@ -45,12 +45,10 @@ $outputDirectory = [System.IO.Path]::GetDirectoryName($output)
 $generatedSource = "$output.rc"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetDirectoryName($source)) "../.."))
 $releaseTag = ([System.IO.File]::ReadAllText((Join-Path $repositoryRoot "RELEASE_VERSION"))).Trim()
-if ($releaseTag -notmatch '^v(?<prefix>[0-9]+\.[0-9]+\.[0-9]+)-preview\.(?<preview>[0-9]+)$')
-{
-    throw "RELEASE_VERSION is not a supported preview version: $releaseTag"
-}
-$productVersion = $releaseTag.Substring(1)
-$fileVersion = "$($Matches.prefix).$($Matches.preview)"
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
+$productVersion = $releaseInfo.SemanticVersion
+$fileVersion = $releaseInfo.FileVersion
 $fileVersionCommas = $fileVersion.Replace('.', ',')
 $backslash = [string][char]92
 $escapedManifest = $manifest.Replace($backslash, $backslash + $backslash).Replace('"', '\"')

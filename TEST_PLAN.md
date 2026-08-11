@@ -194,7 +194,15 @@ The installer lifecycle harness runs only in an isolated Windows account/runner 
 
 Automation does not claim visual quality or Explorer pointer routing. Before Preview sign-off, a real Windows 11 desktop must still verify zero residual pixels in Hidden, Desktop focus persistence, Explorer/Desktop `CF_HDROP` entry and Drop, direct Compact/Expanded Drop, the 12-physical-pixel edge band's ordinary-input trade-off, Dynamic Island/Notch motion quality, drag-out, 16:9/16:10 and 100–200% layout, taskbar icon selection/cache behavior, mixed-DPI monitors, real game/video fullscreen behavior, sign-in startup, installer wizard, and Windows Installed Apps uninstall UI.
 
-## Preview.5 automated gates
+## v0.1.0 Stable automated gates
+
+- ReleaseVersion parsing/order and the complete Stable/Preview selection matrix, including Preview receiving Stable and no downgrade.
+- Fresh Stable settings versus existing Preview-era migration; all existing Clipboard/retention/overlay/startup preferences preserved.
+- Process-start automatic check once, repeatable manual check, disabled automatic check, and single-flight overlap.
+- Exact/bounded update manifest failures: schema, tag, channel, version code, size, SHA, missing/duplicate/unexpected assets, malformed JSON, oversized input, and arbitrary URL field.
+- Streaming update download success plus hash/size/interruption/cancellation/transport/path-containment failures; no partial payload reaches executable state.
+- Brand generator, nine ICO frames, resource ID 101, EXE/Setup embedded icon, MSIX asset matrix, and no retired icon reference.
+- Installer `/UPDATE` graceful maintenance shutdown, custom-path/data/startup preservation, automatic restart marker, installed smoke, both uninstall modes, and external sentinel protection.
 
 - Core coordinator test issues 500 concurrent revisions and proves maximum loader/apply concurrency of one, latest-revision convergence and recovery after a failed revision.
 - Overlay state tests cover Compact direct drag → DragReady → Compact and Expanded drag/highlight/drop/leave without geometry collapse.

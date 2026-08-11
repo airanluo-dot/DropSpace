@@ -8,6 +8,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$env:DROPSPACE_TEST_MODE = "1"
 
 if (-not $AllowUserDataMutation)
 {
@@ -32,18 +33,18 @@ else
     [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $PortableExecutable))
 }
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
-if ($releaseTag -notmatch '^v(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)-preview\.(?<preview>[0-9]+)$')
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
+$currentVersion = $releaseInfo.SemanticVersion
+$baselineVersion = if ($releaseInfo.IsPreview -and $releaseInfo.PreviewNumber -gt 1)
 {
-    throw "Unsupported RELEASE_VERSION: $releaseTag"
+    "$($releaseInfo.Major).$($releaseInfo.Minor).$($releaseInfo.Patch)-preview.$($releaseInfo.PreviewNumber - 1)"
 }
-
-$currentVersion = $releaseTag.Substring(1)
-$baselinePreview = [Math]::Max(0, [int]$Matches.preview - 1)
-$baselineVersion = "$($Matches.major).$($Matches.minor).$($Matches.patch)-preview.$baselinePreview"
-$baselineVersionCode = ([int]$Matches.major * 100000000) +
-    ([int]$Matches.minor * 1000000) +
-    ([int]$Matches.patch * 10000) +
-    $baselinePreview
+else
+{
+    "$($releaseInfo.Major).$($releaseInfo.Minor).$($releaseInfo.Patch)-preview.5"
+}
+$baselineVersionCode = (Get-DropSpaceReleaseInfo "v$baselineVersion").VersionCode
 $testBase = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP))
 {
     [System.IO.Path]::GetTempPath()
@@ -217,8 +218,8 @@ try
     Wait-ForMaintenanceEndpoint $runningProcess
 
     Invoke-CheckedProcess $currentInstallerPath @(
-        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
-    ) "in-place upgrade" (Join-Path $testRoot "upgrade.log")
+        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE"
+    ) "in-place /UPDATE upgrade" (Join-Path $testRoot "upgrade.log")
     if (-not $runningProcess.WaitForExit(15000))
     {
         throw "In-place upgrade did not gracefully stop the running DropSpace process."
@@ -232,6 +233,29 @@ try
     if ([System.IO.Path]::GetFullPath((Get-ItemProperty $customRegistryPath).InstallPath) -ne [System.IO.Path]::GetFullPath($installPath))
     {
         throw "In-place upgrade reset the selected installation path."
+    }
+
+    $restartProcess = $null
+    $restartDeadline = [DateTime]::UtcNow.AddSeconds(45)
+    while ([DateTime]::UtcNow -lt $restartDeadline)
+    {
+        $restartProcess = Get-Process -Name DropSpace -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $restartProcess) { break }
+        Start-Sleep -Milliseconds 250
+    }
+    if ($null -eq $restartProcess)
+    {
+        throw "/UPDATE did not automatically restart the installed DropSpace version."
+    }
+    $shutdown = Start-Process -FilePath $installedExe -ArgumentList "--shutdown-for-maintenance" -Wait -PassThru
+    if ($shutdown.ExitCode -ne 0)
+    {
+        throw "The restarted app did not complete graceful post-update shutdown."
+    }
+    $updatedMarker = Join-Path $dataRoot "Updates\last-update.json"
+    if (-not (Test-Path $updatedMarker -PathType Leaf) -or (Get-Content $updatedMarker -Raw) -notmatch [regex]::Escape($currentVersion))
+    {
+        throw "The restarted version did not persist the expected update launch marker."
     }
 
     & (Join-Path $PSScriptRoot "Test-PortableSmoke.ps1") -ExecutablePath $installedExe
@@ -287,7 +311,7 @@ try
         throw "Complete uninstall left the DropSpace startup registration behind."
     }
 
-    Write-Host "Installer lifecycle passed: silent per-user install, x64 metadata, Installed Apps, custom path, graceful in-place upgrade, installed smoke, preserve-data uninstall, complete uninstall, external sentinel protection."
+    Write-Host "Installer lifecycle passed: silent per-user install, x64 metadata, Installed Apps, custom path, graceful /UPDATE shutdown, automatic restart marker, installed smoke, preserve-data uninstall, complete uninstall, external sentinel protection."
 }
 finally
 {

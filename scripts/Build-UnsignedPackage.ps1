@@ -15,6 +15,9 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $projectPath = Join-Path $repositoryRoot "src/DropSpace.App/DropSpace.App.csproj"
 $packageDirectory = Join-Path $repositoryRoot "artifacts/msix"
 $runtimeIdentifier = if ($Platform -eq "ARM64") { "win-arm64" } else { "win-x64" }
+$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 
 New-Item -ItemType Directory -Path $packageDirectory -Force | Out-Null
 
@@ -29,6 +32,7 @@ $arguments = @(
     "-p:AppxBundle=Never",
     "-p:AppxPackageSigningEnabled=false",
     "-p:PackageCertificateThumbprint=",
+    "-p:AppxPackageVersion=$($releaseInfo.PackageVersion)",
     "-p:AppxPackageDir=$packageDirectory\"
 )
 

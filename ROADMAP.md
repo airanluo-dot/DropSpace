@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The Preview production slice covers Phases 1–10 plus the file-capture and startup portions of Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, the top Dynamic Island/Notch Overlay, configurable capture limits, default-on per-user startup, a retained MSIX path, a portable self-contained x64 EXE, and a recommended Inno Setup per-user installer. CI and release automation test portable, installed, upgrade and uninstall lifecycles, calculate SHA-256, and create the GitHub Preview Release. Commercial signing remains optional and automatically activates only when Artifact Signing credentials are configured.
+The v0.1.0 Stable production slice covers Phases 1–10 plus file capture, startup, branding, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, Dynamic Island/Notch, configurable limits, default-on startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
 
@@ -373,7 +373,7 @@ Explorer file copy, virtual/mixed formats, false attribution, password-manager a
 
 Unsupported/unknown sources remain safe and clearly labeled; exclusions never claim guaranteed protection; file/text/URL records preserve correct source and retention semantics.
 
-### Phase 13 — Startup delivered; update/integration refinements remain
+### Phase 13 — Startup and update foundation delivered
 
 #### Goal
 
@@ -381,7 +381,7 @@ Improve launch and shell integration only after the utility is stable.
 
 #### Features
 
-Delivered in Preview.4: default-on per-user startup preference, hidden `--startup` activation, portable path reconciliation, and uninstall cleanup. Remaining: update channel decision/implementation and richer tray flyout; Explorer integration remains behind a separate decision.
+Delivered through v0.1.0: default-on per-user startup, hidden `--startup`, portable path reconciliation, uninstall cleanup, Stable/Preview SemVer discovery, startup-only/manual checks, verified streaming download, Inno `/UPDATE`, graceful restart, and deployment-mode separation. Remaining: trusted production signing, richer tray update UX, and Explorer integration behind a separate decision.
 
 #### Files/modules
 
@@ -399,9 +399,11 @@ Startup enabled/disabled by Windows, update/rollback, offline launch, Explorer r
 
 Actual Windows startup state matches UI, update failure preserves the working install/data, and no Explorer extension ships without a new accepted decision and performance validation.
 
-### Preview.5
+### v0.1.0 Stable
 
 - Windows 11 Drop Tray compatibility guidance and official Share Target contract.
 - Stable, signing-ready external-location identity package integrated with optional Artifact Signing and Inno uninstall.
+- Canonical Brand Master pipeline and all Windows icon surfaces.
+- Machine-readable update manifests, Stable/Preview channels, verified downloads, and installer upgrade/restart foundation.
 - Direct Compact/Expanded Overlay drop with exclusive activation/visual ownership.
 - Serialized Temporary Space projections and Main + Expanded deletion crash stress coverage.

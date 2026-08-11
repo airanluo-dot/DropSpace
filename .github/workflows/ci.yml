@@ -30,13 +30,21 @@ jobs:
           cache: true
           cache-dependency-path: Directory.Packages.props
 
+      - name: Generate brand assets from canonical masters
+        shell: pwsh
+        run: ./scripts/Generate-BrandAssets.ps1
+
+      - name: Validate Stable and Preview release metadata
+        shell: pwsh
+        run: ./scripts/Test-ReleaseVersion.ps1
+
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
 
-      - name: Test core policies
+      - name: Test core policies, SemVer, and channel selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
 
-      - name: Test persistence and storage
+      - name: Test persistence, manifests, streaming downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure.trx"
 
       - name: Build WinUI application

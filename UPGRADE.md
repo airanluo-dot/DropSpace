@@ -16,13 +16,15 @@ The running process uses the normal shutdown path to stop Overlay animation, rev
 
 The installer records a monotonic numeric `VersionCode` below `HKCU\Software\DropSpace\Install`. Older Setup builds block a silent downgrade by default. A deliberate test downgrade requires `/ALLOWDOWNGRADE=1` and should never be used for ordinary updates.
 
-Future in-app update code can download the fixed asset name `DropSpaceSetup.exe`, verify release metadata/hash/signature policy, then invoke:
+The v0.1.0 in-app updater downloads the fixed asset name `DropSpaceSetup.exe`, validates the strict release manifest, size and SHA-256, revalidates immediately before execution, then invokes:
 
 ```text
-DropSpaceSetup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+DropSpaceSetup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /LOG=<DropSpace-owned path>
 ```
 
-Inno Setup returns `0` only for a completed setup; any non-zero documented or future exit code is failure. The updater must not force-close DropSpace and must not delete `%LOCALAPPDATA%\DropSpace` on upgrade or rollback.
+The updater starts Setup before the current process exits. Setup requests the existing maintenance handshake, replaces files, and only `/UPDATE` starts `DropSpace.exe --updated <version>` after success. Inno Setup returns `0` only for a completed setup; any non-zero documented or future exit code is failure. The updater never force-closes DropSpace and never deletes `%LOCALAPPDATA%\DropSpace` on upgrade or rollback.
+
+The public v0.1.0 build is unsigned. It supports checks, streaming download and integrity verification, but unattended installation is disabled. A future signed build must pass `WinVerifyTrust` and an exact compiled DropSpace signer-subject allow-list; any merely valid third-party signature is rejected. Portable deployments never run Setup, and Package/MSIX deployments remain Windows-managed.
 
 Signed upgrades reuse the same `AiranLuo.DropSpace.Identity` Name, `CN=airanluo-dot` Publisher and `DropSpace` Application Id. Only its four-part version changes. Setup registers the newer signed package against the inherited `{app}` path after graceful maintenance shutdown. Unsigned builds do not attempt registration, so an unsigned update never asks users to weaken trust policy.
 

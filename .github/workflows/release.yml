@@ -1,4 +1,4 @@
-name: Preview Release
+name: DropSpace Release
 
 on:
   pull_request:
@@ -7,15 +7,8 @@ on:
       - RELEASE_VERSION
       - .github/workflows/release.yml
       - .github/release-notes/**
-      - scripts/Build-PortableExe.ps1
-      - scripts/Build-UnsignedPackage.ps1
-      - scripts/Build-IdentityPackage.ps1
-      - scripts/Compile-Win32Resource.ps1
-      - scripts/Test-BrandAssets.ps1
-      - scripts/Test-PortableSmoke.ps1
-      - scripts/Install-InnoSetup.ps1
-      - scripts/Build-Installer.ps1
-      - scripts/Test-InstallerLifecycle.ps1
+      - branding/**
+      - scripts/**
       - installer/**
       - identity/**
       - src/**
@@ -27,17 +20,23 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: preview-release-${{ github.ref }}
+  group: dropspace-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   validate-release:
     name: Build and validate release bundle
     runs-on: windows-latest
-    timeout-minutes: 70
+    timeout-minutes: 80
     permissions:
       contents: read
       id-token: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      channel: ${{ steps.version.outputs.channel }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      make_latest: ${{ steps.version.outputs.make_latest }}
     env:
       SIGNING_ENABLED: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.ARTIFACT_SIGNING_ENDPOINT != '' && secrets.ARTIFACT_SIGNING_ACCOUNT != '' && secrets.ARTIFACT_SIGNING_PROFILE != '' }}
 
@@ -52,19 +51,37 @@ jobs:
           cache: true
           cache-dependency-path: Directory.Packages.props
 
-      - name: Validate release version
+      - name: Derive Stable or Preview release metadata
+        id: version
         shell: pwsh
         run: |
-          $version = (Get-Content RELEASE_VERSION -Raw).Trim()
-          if ($version -ne "v0.1.0-preview.5") { throw "Unexpected release version: $version" }
+          . ./scripts/ReleaseVersion.ps1
+          $info = Get-DropSpaceReleaseInfo ((Get-Content RELEASE_VERSION -Raw).Trim())
+          if (-not (Test-Path ".github/release-notes/$($info.Tag).md" -PathType Leaf)) {
+            throw "Missing release notes for $($info.Tag)."
+          }
+          "tag=$($info.Tag)" >> $env:GITHUB_OUTPUT
+          "version=$($info.SemanticVersion)" >> $env:GITHUB_OUTPUT
+          "channel=$($info.Channel)" >> $env:GITHUB_OUTPUT
+          "prerelease=$($info.GitHubPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "make_latest=$($info.MakeLatest.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          $info | Format-List | Out-String | Write-Host
+
+      - name: Validate Stable and Preview release metadata
+        shell: pwsh
+        run: ./scripts/Test-ReleaseVersion.ps1
+
+      - name: Generate brand assets from canonical masters
+        shell: pwsh
+        run: ./scripts/Generate-BrandAssets.ps1
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
 
-      - name: Test core policies and overlay state
+      - name: Test core policies, versions, and update selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core-release.trx"
 
-      - name: Test persistence and storage
+      - name: Test persistence, manifests, downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure-release.trx"
 
       - name: Build WinUI Release
@@ -72,7 +89,7 @@ jobs:
 
       - name: Publish portable self-contained EXE
         shell: pwsh
-        run: ./scripts/Build-PortableExe.ps1
+        run: ./scripts/Build-PortableExe.ps1 -NoRestore
 
       - name: Build unsigned MSIX
         shell: pwsh
@@ -126,10 +143,11 @@ jobs:
           Copy-Item artifacts/signing/DropSpace.exe artifacts/release/DropSpace.exe -Force
           Copy-Item artifacts/signing/DropSpace-x64.msix artifacts/release/DropSpace-x64.msix -Force
           Copy-Item artifacts/signing/DropSpace.Identity.msix artifacts/identity/DropSpace.Identity.msix -Force
-          $identitySignature = Get-AuthenticodeSignature artifacts/identity/DropSpace.Identity.msix
-          if ($identitySignature.Status -ne 'Valid') { throw "Signed identity package is not trusted: $($identitySignature.Status)" }
+          if ((Get-AuthenticodeSignature artifacts/identity/DropSpace.Identity.msix).Status -ne 'Valid') {
+            throw "The signed identity package is not trusted."
+          }
 
-      - name: Build pinned Inno Setup installer
+      - name: Build pinned Inno Setup installer from final app payload
         shell: pwsh
         run: |
           if ($env:SIGNING_ENABLED -eq 'true') {
@@ -139,7 +157,7 @@ jobs:
           }
           Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
-      - name: Sign installer
+      - name: Sign final installer
         if: env.SIGNING_ENABLED == 'true'
         uses: azure/artifact-signing-action@v2
         with:
@@ -157,19 +175,19 @@ jobs:
         shell: pwsh
         run: Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
-      - name: Validate icon and brand asset chain
+      - name: Validate generated icon and brand chain
         shell: pwsh
         run: ./scripts/Test-BrandAssets.ps1
 
-      - name: Test installer lifecycle
+      - name: Test installer /UPDATE, restart, upgrade, and uninstall lifecycle
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
 
-      - name: Smoke test portable EXE
+      - name: Smoke test portable EXE without public network access
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1
 
-      - name: Verify signatures and generate SHA-256 manifest
+      - name: Freeze bytes, verify signatures, and generate release metadata
         shell: pwsh
         run: |
           $files = @(
@@ -189,24 +207,26 @@ jobs:
             "$hash  $([System.IO.Path]::GetFileName($file))"
           }
           $lines | Set-Content artifacts/release/SHA256SUMS.txt -Encoding ascii
+          ./scripts/New-UpdateManifest.ps1
+          ./scripts/Test-UpdateManifest.ps1
           Get-ChildItem artifacts/release | Select-Object Name,Length
-          Get-Content artifacts/release/SHA256SUMS.txt
 
       - name: Upload validated release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.5
+          name: DropSpace-release-${{ steps.version.outputs.tag }}
           path: |
             artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
+            artifacts/release/update-manifest.json
           if-no-files-found: error
 
       - name: Upload identity registration artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DropSpace-identity-v0.1.0-preview.5
+          name: DropSpace-identity-${{ steps.version.outputs.tag }}
           path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
 
@@ -214,12 +234,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-test-results
+          name: release-test-results-${{ steps.version.outputs.tag }}
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
 
   publish-release:
-    name: Publish GitHub Preview Release
+    name: Publish GitHub Release
     if: github.event_name != 'pull_request'
     needs: validate-release
     runs-on: ubuntu-latest
@@ -233,22 +253,23 @@ jobs:
       - name: Download validated release bundle
         uses: actions/download-artifact@v4
         with:
-          name: DropSpace-v0.1.0-preview.5
+          name: DropSpace-release-${{ needs.validate-release.outputs.tag }}
           path: artifacts/release
 
-      - name: Create GitHub Preview Release
+      - name: Publish immutable Stable or Preview release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-preview.5
+          tag_name: ${{ needs.validate-release.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: DropSpace v0.1.0-preview.5
-          body_path: .github/release-notes/v0.1.0-preview.5.md
-          prerelease: true
+          name: DropSpace ${{ needs.validate-release.outputs.tag }}
+          body_path: .github/release-notes/${{ needs.validate-release.outputs.tag }}.md
+          prerelease: ${{ needs.validate-release.outputs.prerelease }}
           draft: false
-          make_latest: false
+          make_latest: ${{ needs.validate-release.outputs.make_latest }}
           fail_on_unmatched_files: true
           files: |
             artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
+            artifacts/release/update-manifest.json

@@ -289,3 +289,11 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 **Rationale:** Apache-2.0 permits source access, forks, modification, redistribution, and commercial use while providing explicit patent terms and preserving NOTICE and attribution requirements. A project-level SPDX policy avoids mechanical headers on generated, binary, manifest, and third-party files.
 
 **Audit boundary:** Git history contains only the project owner's `Luo Airan` and `Aren Vox` identities plus GitHub merge automation. No vendored third-party source or visual asset was found. WinIsland remains a GPL-3.0 behavioral reference only under D-022 and is not incorporated. Runtime/build dependencies remain governed by [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## D-035 — Narrow, opt-out GitHub Release update boundary
+
+**Decision:** D-012/D-016 continue to prohibit content/network enrichment, telemetry, accounts and sync, but v0.1.0 adds one explicit update-only boundary. When enabled, one process-start check and user-invoked checks read at most 20 public releases from the official GitHub REST API. No Clipboard content, Temporary Space path, filename, query, username, machine ID or install identifier is sent. Stable accepts only Stable versions; Preview accepts all releases; both choose the highest SemVer strictly above the running version.
+
+**Security boundary:** Remote metadata cannot provide arbitrary execution URLs. A bounded, exact-schema `update-manifest.json` names only fixed official assets. Downloads remain inside `%LOCALAPPDATA%\DropSpace\Updates`, stream to `.download`, require exact size and SHA-256, and are atomically promoted. Integrity is not publisher authenticity; unattended installation additionally requires WinVerifyTrust and the compiled DropSpace signer identity. Unsigned builds require explicit user installation.
+
+**Rationale:** A first Stable desktop application needs an understandable upgrade path without a service, timer, scheduled task, tracking identity, or silent trust downgrade. The abstraction keeps Portable and Windows-managed Package deployments from invoking Inno Setup.

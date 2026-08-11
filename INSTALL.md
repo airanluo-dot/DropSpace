@@ -2,7 +2,7 @@
 
 ## Recommended setup
 
-Download `DropSpaceSetup.exe` from the official GitHub Release and verify it against `SHA256SUMS.txt`. The Preview installer is not commercially signed, so Windows SmartScreen may require “More info → Run anyway”. Never disable Defender or SmartScreen for DropSpace.
+Download `DropSpaceSetup.exe` from the official Stable GitHub Release and verify it against `SHA256SUMS.txt`. The v0.1.0 installer is not commercially signed, so Windows SmartScreen may require “More info → Run anyway”. Never disable Defender or SmartScreen for DropSpace.
 
 Setup uses Inno Setup 7.0.2 and installs per user without administrator rights. The default program directory is:
 

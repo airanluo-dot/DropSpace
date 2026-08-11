@@ -73,7 +73,7 @@ Compared with Explorer, DropSpace avoids premature organization. Compared with a
 
 ## Product principles
 
-- Local first; no account or network dependency.
+- Local first; no account or content network dependency. The opt-out updater reads only public official GitHub Release metadata/assets.
 - References, not custody: never move or delete source files by default.
 - Explicit source boundaries: manual and automatic content remain visibly distinct.
 - Fast before clever: simple filters and indexed search before AI.
@@ -105,7 +105,7 @@ The first shippable MVP is deliberately smaller than the original list.
 - Quick Panel and global hotkey. They require separate window focus, multi-display positioning, conflict handling, and performance work.
 - App exclusion UI. Source attribution is best-effort and must be validated before presenting it as a privacy guarantee.
 - Rich code detection, HSL editing, favicon download, Explorer context-menu integration.
-- Automatic update mechanism beyond installer-supported updates.
+- Background update timers/services, forced updates, and portable self-replacement. v0.1.0 supports process-start/manual discovery, verified download, and installer-owned upgrade only.
 - UI automation suite breadth beyond critical smoke paths.
 
 ## V1.1
