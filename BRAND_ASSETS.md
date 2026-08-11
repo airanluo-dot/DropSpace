@@ -1,28 +1,42 @@
-# DropSpace logo and icon asset map
+# DropSpace brand asset map
 
-The repository-owned logo and icon files are distributed under Apache-2.0 as copyrighted works. Their use as source-identifying trademarks is separate from that copyright license; see [TRADEMARKS.md](TRADEMARKS.md).
+The repository-owned logo and icon files are distributed under Apache-2.0 as copyrighted works. Their use as source-identifying trademarks remains separate; see [TRADEMARKS.md](TRADEMARKS.md).
 
-`src/DropSpace.App/Assets/AppIcon.ico` is the canonical desktop icon source. It contains 16, 24, 32, 48, 64, 128, and 256 pixel square frames. Replace and validate this file first when the DropSpace logo changes.
+## Canonical sources
+
+`branding/master/` is the only design authority. Runtime PNG/ICO exports are generated, not redesigned.
+
+| Brand role | Canonical source |
+|---|---|
+| Full App Icon | `DropSpace-AppIcon-Master-2048.png` |
+| Flat vector | `DropSpace-AppIcon-Flat-Vector.svg` |
+| Mini Mark | `DropSpace-MiniMark-Master.svg` and approved purple PNG export |
+| Wordmark | `DropSpace-Wordmark-Master.svg` |
+| Horizontal Lockup | `DropSpace-Lockup-Horizontal.svg` plus approved black/white exports |
+| Brand specification | `branding/BRAND_SPEC.md` and `branding/COLOR_PALETTE.txt` |
+
+Run `scripts/Generate-BrandAssets.ps1` on Windows to regenerate `src/DropSpace.App/Assets/` and `branding/generated/docs/`. CI generates the same outputs before compiling and validates the complete consumer chain.
+
+## Optical sizing
+
+`AppIcon.ico` contains exactly 16, 20, 24, 32, 40, 48, 64, 128, and 256 pixel PNG-compressed frames. The official Purple Mini Mark is used at 16–32px for legibility. The full 3D App Icon is used at 40–256px. This is an approved optical export choice, not a separate logo design.
 
 ## Runtime and packaging consumers
 
 | Surface | Source / integration |
 |---|---|
-| Main window and taskbar | `src/DropSpace.App/DropSpace.rc` embeds `AppIcon.ico` as resource ID 101; `NativeApplicationIcon` loads the executable resource and sends `WM_SETICON` for both sizes. |
-| Tray | `NativeTrayService` uses the same embedded resource via `NativeApplicationIcon`; it does not depend on a loose file next to the single-file EXE. |
-| Portable EXE metadata | `scripts/Compile-Win32Resource.ps1` compiles `DropSpace.rc` before publish. |
-| Start Menu / Desktop shortcuts | `installer/DropSpace.iss` points `IconFilename` to installed `DropSpace.exe`, index 0. |
-| Setup wizard | Inno Setup `SetupIconFile` consumes the canonical ICO. |
-| Installed Apps / uninstaller | `UninstallDisplayIcon` points to installed `DropSpace.exe`; the Inno-generated uninstaller carries the setup icon. |
-| WinUI content/developer layout | `DropSpace.App.csproj` includes the canonical ICO; `AppWindow.SetIcon` is only a secondary physical-file fallback. |
-| MSIX | `Package.appxmanifest` and `Assets/` visual assets remain the package identity chain; regenerate those PNG assets from the same approved master artwork when branding changes. |
+| EXE, main window, taskbar, Alt+Tab | `DropSpace.rc` embeds generated `AppIcon.ico` as stable resource ID 101; `NativeApplicationIcon` applies both Win32 sizes. |
+| Tray | `NativeTrayService` loads the same embedded resource 101, independent of a loose single-file extraction path. |
+| Start Menu / Desktop | Inno shortcuts reference installed `DropSpace.exe`, icon index 0. |
+| Setup wizard | `SetupIconFile` consumes generated `AppIcon.ico`. |
+| Installed Apps / uninstaller | `UninstallDisplayIcon` references the installed EXE; Inno carries the Setup icon into its uninstaller. |
+| MSIX / Search / Share identity | `Package.appxmanifest` and the external identity manifest resolve generated Square44, Square150, Store, Wide, Splash, scale, targetsize, and altform-unplated PNGs. |
+| README | Light/dark `<picture>` sources use the official black/white Horizontal Lockup from `branding/generated/docs/`. |
 
-## Replacement checklist
+## Replacement contract
 
-1. Export a square, transparent master and rebuild `AppIcon.ico` with every required size above.
-2. Regenerate the MSIX PNG visual assets in `src/DropSpace.App/Assets/` from the same master where the manifest uses them.
-3. Do not change Win32 resource ID 101, the Inno AppId, executable name, or package identity for a visual refresh.
-4. Run `scripts/Test-BrandAssets.ps1` against the final Portable EXE and installer. The Windows CI and release workflow run it automatically.
-5. Manually verify the main window, taskbar at 100–200% scaling, tray, Start Menu shortcut, optional Desktop shortcut, Setup wizard, Installed Apps, uninstaller, Portable EXE, and MSIX tile.
-
-README and release screenshots are documentation assets, not runtime authorities. Update them deliberately after the executable/package chain has passed validation.
+1. Replace only the approved canonical masters in `branding/master/`.
+2. Run `scripts/Generate-BrandAssets.ps1` and review every generated change.
+3. Do not change Win32 resource ID 101, the Inno AppId, executable name, or package identities for a visual refresh.
+4. Run `scripts/Test-BrandAssets.ps1` against final Portable and Setup executables.
+5. Manually verify Windows icon cache surfaces, 100–200% DPI, Light/Dark themes, and 16–32px clarity. DropSpace never deletes Windows icon caches or restarts Explorer.

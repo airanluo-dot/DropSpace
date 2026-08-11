@@ -39,7 +39,11 @@ finally
     $stream.Dispose()
 }
 
-$requiredSizes = @(16, 24, 32, 48, 64, 128, 256)
+$requiredSizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
+if ($sizes.Count -ne $requiredSizes.Count)
+{
+    throw "AppIcon.ico must contain exactly the approved nine optical frames; found $($sizes.Count)."
+}
 foreach ($required in $requiredSizes)
 {
     if ($sizes -notcontains $required)
@@ -53,6 +57,7 @@ $references = @{
     "src/DropSpace.App/DropSpace.App.csproj" = 'Assets\AppIcon.ico'
     "installer/DropSpace.iss" = 'SetupIconFile=..\src\DropSpace.App\Assets\AppIcon.ico'
     "src/DropSpace.App/MainWindow.xaml.cs" = 'NativeApplicationIcon.ApplyToWindow'
+    "scripts/Generate-BrandAssets.ps1" = 'DropSpace-AppIcon-Master-2048.png'
 }
 foreach ($entry in $references.GetEnumerator())
 {
@@ -61,6 +66,40 @@ foreach ($entry in $references.GetEnumerator())
     {
         throw "Brand asset reference is missing from $($entry.Key): $($entry.Value)"
     }
+}
+
+foreach ($asset in @(
+    "branding/master/DropSpace-AppIcon-Master-2048.png",
+    "branding/master/DropSpace-MiniMark-Purple-1024.png",
+    "branding/generated/docs/DropSpace-Lockup-Horizontal-Black.png",
+    "branding/generated/docs/DropSpace-Lockup-Horizontal-White.png",
+    "src/DropSpace.App/Assets/StoreLogo.png"))
+{
+    if (-not (Test-Path (Join-Path $repositoryRoot $asset) -PathType Leaf))
+    {
+        throw "Brand source/output is missing: $asset"
+    }
+}
+
+foreach ($scale in @(100, 125, 150, 200, 400))
+{
+    foreach ($name in @("Square44x44Logo", "Square150x150Logo", "StoreLogo", "Wide310x150Logo", "SplashScreen"))
+    {
+        $asset = Join-Path $repositoryRoot "src/DropSpace.App/Assets/$name.scale-$scale.png"
+        if (-not (Test-Path $asset -PathType Leaf)) { throw "MSIX brand asset is missing: $asset" }
+    }
+}
+
+$legacyReferences = Get-ChildItem $repositoryRoot -Recurse -File |
+    Where-Object {
+        $_.FullName -notmatch '[\\/]\.git[\\/]' -and
+        $_.FullName -notmatch '[\\/]artifacts[\\/]' -and
+        $_.FullName -ne $PSCommandPath
+    } |
+    Select-String -SimpleMatch "targetsize-48_altform-lightunplated" -ErrorAction SilentlyContinue
+if ($legacyReferences)
+{
+    throw "The retired light-unplated icon is still referenced by the build."
 }
 
 function Assert-EmbeddedIcon
@@ -91,4 +130,4 @@ function Assert-EmbeddedIcon
 
 Assert-EmbeddedIcon $PortableExecutable
 Assert-EmbeddedIcon $InstallerExecutable
-Write-Host "Brand assets passed: canonical ICO frames $($sizes -join ', '), PE icons, Win32 resource, WinUI, tray, and installer references."
+Write-Host "Brand assets passed: official Mini Mark at 16/20/24/32, full 3D icon at 40/48/64/128/256, PE resource 101, WinUI, tray, installer, and MSIX references."

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    
+        <linearGradient id="purple" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#B7A7FF"/>
+          <stop offset="45%" stop-color="#7B63FF"/>
+          <stop offset="100%" stop-color="#4C42D8"/>
+        </linearGradient>
+        
+    <mask id="barMask">
+      <rect width="1024" height="1024" fill="black"/>
+      <rect x="150" y="560" width="724" height="246" rx="123" fill="white"/>
+      <rect x="410" y="560" width="204" height="145" rx="78" fill="black"/>
+    </mask>
+  </defs>
+  <g fill="url(#purple)">
+    <rect x="150" y="560" width="724" height="246" rx="123" mask="url(#barMask)"/>
+    <rect x="431" y="302" width="162" height="162" rx="28" transform="rotate(45 512 383)"/>
+  </g>
+</svg>
