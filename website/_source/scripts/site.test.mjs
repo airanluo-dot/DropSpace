@@ -31,6 +31,10 @@ test("external links are secured", () => {
 test("Chinese localization and language switch are present", () => {
   assert.match(html, /data-language-switch/);
   assert.match(changelog, /data-language-switch/);
+  assert.match(html, /<script defer="defer" src="\.\/script\.js"><\/script>/);
+  assert.match(changelog, /<script defer="defer" src="\.\.\/script\.js"><\/script>/);
+  assert.doesNotMatch(html, /type="module"/);
+  assert.doesNotMatch(changelog, /type="module"/);
   for (const value of ["Windows 11 的临时空间", "下载安装程序", "更新日志 — DropSpace"]) {
     assert.ok(script.includes(value), `missing Chinese translation: ${value}`);
   }
