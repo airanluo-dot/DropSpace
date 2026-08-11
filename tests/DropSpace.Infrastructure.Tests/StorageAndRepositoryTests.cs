@@ -1,6 +1,7 @@
 using System.Text;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
+using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
@@ -56,6 +57,10 @@ public sealed class StorageAndRepositoryTests
             OverlayDisplayMode = OverlayDisplayMode.Notch,
             OverlayMotion = OverlayMotionPreference.Reduced,
             OverlayMonitor = OverlayMonitorPreference.Primary,
+            AutoCheckForUpdates = false,
+            AutoDownloadUpdates = false,
+            UpdateChannel = UpdateChannel.Preview,
+            LastUpdateCheckUtc = DateTimeOffset.Parse("2026-08-10T00:00:00Z"),
         };
 
         await service.SaveAsync(expected);
@@ -87,6 +92,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
         Assert.IsTrue(actual.ClipboardPaused);
+        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
     }
 
     [TestMethod]
@@ -130,6 +136,36 @@ public sealed class StorageAndRepositoryTests
         Assert.IsTrue(actual.CaptureFiles);
         Assert.IsTrue(actual.CaptureFolders);
         Assert.IsTrue(actual.StartWithWindows);
+        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+    }
+
+    [TestMethod]
+    public async Task Settings_FreshStableDefaultsToStable_WhileExistingPreviewSchemaMigratesToPreview()
+    {
+        var fresh = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.AreEqual(UpdateChannel.Stable, fresh.UpdateChannel);
+        Assert.IsTrue(fresh.AutoCheckForUpdates);
+        Assert.IsTrue(fresh.AutoDownloadUpdates);
+        Assert.IsFalse(fresh.AutoInstallUpdates);
+
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 3,
+              "Theme": 2,
+              "StartWithWindows": false,
+              "RetentionDays": 45
+            }
+            """);
+
+        var migrated = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.AreEqual(AppSettings.CurrentVersion, migrated.Version);
+        Assert.AreEqual(UpdateChannel.Preview, migrated.UpdateChannel);
+        Assert.AreEqual(ThemePreference.Dark, migrated.Theme);
+        Assert.IsFalse(migrated.StartWithWindows);
+        Assert.AreEqual(45, migrated.RetentionDays);
     }
 
     [TestMethod]
@@ -260,18 +296,20 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
-    public async Task Repository_DeduplicatesRecentClipboardTextAndSupportsSearch()
+    public async Task Repository_PreservesNonConsecutiveClipboardTextAndSupportsSearch()
     {
         var repository = CreateRepository();
         var candidate = ContentClassifier.CreateTextCandidate("https://example.com/docs?q=drop");
 
         var first = await repository.AddTextAsync(candidate);
-        var duplicate = await repository.AddTextAsync(candidate);
+        await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("intervening clipboard value"));
+        var repeated = await repository.AddTextAsync(candidate);
         var results = await repository.QueryAsync(new ItemQuery(Search: "EXAMPLE"));
 
-        Assert.AreEqual(first.Id, duplicate.Id);
-        Assert.AreEqual(2, duplicate.Revision);
-        Assert.AreEqual(1, results.Count);
+        Assert.AreNotEqual(first.Id, repeated.Id);
+        Assert.AreEqual(1, repeated.Revision);
+        Assert.AreEqual(3, await repository.CountAsync(ItemSource.Clipboard));
+        Assert.AreEqual(2, results.Count);
         Assert.AreEqual(ItemKind.Url, results[0].Kind);
         Assert.AreEqual("example.com", results[0].Url?.Host);
     }
@@ -335,7 +373,7 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
-    public async Task Repository_ClipboardFileIsSeparateFromTemporarySpaceAndDeduplicatesRecentCopy()
+    public async Task Repository_ClipboardFileIsSeparateFromTemporarySpaceAndPreservesDistinctCaptureEvents()
     {
         Directory.CreateDirectory(_root);
         var sourcePath = Path.Combine(_root, "clipboard-source.txt");
@@ -351,10 +389,10 @@ public sealed class StorageAndRepositoryTests
         Assert.AreNotEqual(space.Id, clipboard.Id);
         Assert.AreEqual(ItemSource.Space, space.Source);
         Assert.AreEqual(ItemSource.Clipboard, clipboard.Source);
-        Assert.AreEqual(clipboard.Id, duplicate.Id);
-        Assert.AreEqual(2, duplicate.Revision);
+        Assert.AreNotEqual(clipboard.Id, duplicate.Id);
+        Assert.AreEqual(1, duplicate.Revision);
         Assert.AreEqual(1, await repository.CountAsync(ItemSource.Space));
-        Assert.AreEqual(1, await repository.CountAsync(ItemSource.Clipboard));
+        Assert.AreEqual(2, await repository.CountAsync(ItemSource.Clipboard));
         await repository.RemoveAsync(clipboard.Id);
         Assert.IsTrue(File.Exists(sourcePath));
         Assert.IsNotNull(await repository.GetAsync(space.Id));

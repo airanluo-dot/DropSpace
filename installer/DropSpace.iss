@@ -90,7 +90,8 @@ Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: dword; ValueName:
 #ifdef IdentityPackage
 Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;&quot;{app}\DropSpace.Identity.ps1&quot;&quot; -Action Register -PackagePath &quot;&quot;{app}\DropSpace.Identity.msix&quot;&quot; -ExternalLocation &quot;&quot;{app}&quot;&quot;"; StatusMsg: "Registering the signed DropSpace Windows Share identity..."; Flags: runhidden waituntilterminated
 #endif
-Filename: "{app}\DropSpace.exe"; Description: "{cm:LaunchProgram,DropSpace}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\DropSpace.exe"; Description: "{cm:LaunchProgram,DropSpace}"; Flags: nowait postinstall skipifsilent; Check: not IsUpdateMode
+Filename: "{app}\DropSpace.exe"; Parameters: "--startup --updated {#AppVersion}"; WorkingDir: "{app}"; Flags: nowait; Check: IsUpdateMode
 
 #ifdef IdentityPackage
 [UninstallRun]
@@ -100,6 +101,10 @@ Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoL
 [UninstallDelete]
 Type: files; Name: "{app}\install.version"
 Type: filesandordirs; Name: "{localappdata}\DropSpace"; Check: ShouldPurgeData
+; UninstallFilesDir is a dedicated child directory. Remove it and the selected
+; install root only when they are empty; never recurse through a custom path.
+Type: dirifempty; Name: "{app}\uninstall"
+Type: dirifempty; Name: "{app}"
 
 [Code]
 const
@@ -137,6 +142,11 @@ begin
       Exit;
     end;
   end;
+end;
+
+function IsUpdateMode(): Boolean;
+begin
+  Result := HasParameter('/UPDATE');
 end;
 
 function InitializeSetup: Boolean;

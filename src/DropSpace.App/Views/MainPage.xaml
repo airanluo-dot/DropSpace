@@ -549,6 +549,82 @@
           </StackPanel>
 
           <StackPanel Spacing="12">
+            <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="更新" />
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="自动检查更新" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="每次 DropSpace 进程启动最多检查一次；不会运行后台定时器。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="AutoCheckUpdatesToggle" Grid.Column="1" Toggled="OnAutoCheckUpdatesToggled" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="自动下载更新" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="仅下载到 DropSpace 自有缓存，完成大小与 SHA-256 验证后才可安装。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="AutoDownloadUpdatesToggle" Grid.Column="1" Toggled="OnAutoDownloadUpdatesToggled" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="无人值守自动安装" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="只有更新通过可信 Authenticode 发布者验证时才可用；当前未签名构建保持关闭。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch
+                x:Name="AutoInstallUpdatesToggle"
+                Grid.Column="1"
+                IsEnabled="{Binding TrustedAutoInstallAvailable}"
+                Toggled="OnAutoInstallUpdatesToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="更新通道" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="稳定版只接收正式版；预览版接收全部版本并严格选择最高 SemVer。" TextWrapping="Wrap" />
+              </StackPanel>
+              <ComboBox x:Name="UpdateChannelCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnUpdateChannelChanged">
+                <ComboBoxItem Content="稳定版" Tag="Stable" />
+                <ComboBoxItem Content="预览版" Tag="Preview" />
+              </ComboBox>
+            </Grid>
+            <Border
+              Padding="16"
+              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="8">
+              <StackPanel Spacing="8">
+                <TextBlock FontWeight="SemiBold" Text="{Binding CurrentVersionDisplayText}" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding DeploymentModeText}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding UpdateStatusText}" TextWrapping="Wrap" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding UpdateProgressText}" />
+                <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{Binding LastUpdateCheckDisplayText}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="检查更新" IsEnabled="{Binding CanCheckForUpdates}" Click="OnCheckForUpdatesClicked" />
+                  <Button Content="立即下载" Visibility="{Binding CanDownloadUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnDownloadUpdateClicked" />
+                  <Button Content="立即更新" Visibility="{Binding CanInstallUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnInstallUpdateClicked" />
+                  <Button Content="打开下载位置" Visibility="{Binding CanOpenUpdateLocation, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnOpenUpdateLocationClicked" />
+                  <Button Content="查看更新内容" Visibility="{Binding CanViewReleaseNotes, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnViewReleaseNotesClicked" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Spacing="12">
             <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="本地数据" />
             <TextBlock FontWeight="SemiBold" Text="存储位置" />
             <TextBox IsReadOnly="True" Text="{Binding StoragePath}" TextWrapping="Wrap" />

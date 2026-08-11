@@ -14,5 +14,9 @@
     <DropSpaceVersionPrefix Condition="'$(DropSpaceReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DropSpaceReleaseVersion)', '^[0-9]+\.[0-9]+\.[0-9]+').Value)</DropSpaceVersionPrefix>
     <DropSpacePreviewNumber Condition="'$(DropSpaceReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DropSpaceReleaseVersion)', 'preview\.([0-9]+)$').Groups[1].Value)</DropSpacePreviewNumber>
     <DropSpaceFileVersion Condition="'$(DropSpaceVersionPrefix)' != '' and '$(DropSpacePreviewNumber)' != ''">$(DropSpaceVersionPrefix).$(DropSpacePreviewNumber)</DropSpaceFileVersion>
+    <DropSpaceFileVersion Condition="'$(DropSpaceVersionPrefix)' != '' and '$(DropSpacePreviewNumber)' == ''">$(DropSpaceVersionPrefix).0</DropSpaceFileVersion>
+    <DropSpacePackageRevision Condition="'$(DropSpacePreviewNumber)' != ''">$(DropSpacePreviewNumber)</DropSpacePackageRevision>
+    <DropSpacePackageRevision Condition="'$(DropSpacePreviewNumber)' == ''">9999</DropSpacePackageRevision>
+    <DropSpacePackageVersion Condition="'$(DropSpaceVersionPrefix)' != ''">$(DropSpaceVersionPrefix).$(DropSpacePackageRevision)</DropSpacePackageVersion>
   </PropertyGroup>
 </Project>

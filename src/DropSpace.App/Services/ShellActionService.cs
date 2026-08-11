@@ -9,6 +9,30 @@ public sealed class ShellActionService(
     ClipboardCaptureService clipboard,
     ILogger<ShellActionService> logger)
 {
+    public async Task<bool> OpenHttpsAsync(Uri uri, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(uri);
+        cancellationToken.ThrowIfCancellationRequested();
+        return uri.IsAbsoluteUri && uri.Scheme == Uri.UriSchemeHttps && await Launcher.LaunchUriAsync(uri);
+    }
+
+    public Task<bool> OpenFolderAsync(string path, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            Directory.CreateDirectory(path);
+            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+            return Task.FromResult(true);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(exception, "Could not open a DropSpace-owned folder.");
+            return Task.FromResult(false);
+        }
+    }
+
     public async Task<bool> OpenAsync(DropItem item, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);

@@ -1,5 +1,6 @@
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Models;
+using DropSpace.Core.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -368,6 +369,58 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnAutoCheckUpdatesToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { AutoCheckForUpdates = AutoCheckUpdatesToggle.IsOn }));
+        }
+    }
+
+    private async void OnAutoDownloadUpdatesToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { AutoDownloadUpdates = AutoDownloadUpdatesToggle.IsOn }));
+        }
+    }
+
+    private async void OnAutoInstallUpdatesToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { AutoInstallUpdates = AutoInstallUpdatesToggle.IsOn }));
+        }
+    }
+
+    private async void OnUpdateChannelChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && UpdateChannelCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<UpdateChannel>(value, out var channel))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { UpdateChannel = channel }));
+        }
+    }
+
+    private async void OnCheckForUpdatesClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _viewModel.CheckForUpdatesManuallyAsync());
+
+    private async void OnDownloadUpdateClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _viewModel.DownloadUpdateAsync());
+
+    private async void OnInstallUpdateClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _viewModel.InstallUpdateAsync());
+
+    private async void OnOpenUpdateLocationClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(async () => _ = await _viewModel.OpenUpdateLocationAsync());
+
+    private async void OnViewReleaseNotesClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(async () => _ = await _viewModel.OpenUpdateReleaseNotesAsync());
+
     private async void OnOpenDropTraySettingsClicked(object sender, RoutedEventArgs args)
     {
         await RunAsync(async () =>
@@ -562,6 +615,9 @@ public sealed partial class MainPage : Page
             CaptureFilesToggle.IsOn = _viewModel.CaptureFiles;
             CaptureFoldersToggle.IsOn = _viewModel.CaptureFolders;
             StartWithWindowsToggle.IsOn = _viewModel.StartWithWindows;
+            AutoCheckUpdatesToggle.IsOn = _viewModel.AutoCheckForUpdates;
+            AutoDownloadUpdatesToggle.IsOn = _viewModel.AutoDownloadUpdates;
+            AutoInstallUpdatesToggle.IsOn = _viewModel.AutoInstallUpdates;
             MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
             MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
             MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
@@ -574,6 +630,7 @@ public sealed partial class MainPage : Page
             SelectComboItem(OverlayDisplayModeCombo, _viewModel.OverlayDisplayMode.ToString());
             SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
             SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
+            SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
         }
         finally
         {

@@ -178,6 +178,10 @@ The external-location identity is `AiranLuo.DropSpace.Identity`, Publisher `CN=a
 
 Official references: [Receive content with the Share Target contract](https://learn.microsoft.com/en-us/windows/apps/develop/windows-integration/integrate-sharesheet-receive), [grant package identity to an external-location desktop app](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/grant-identity-to-nonpackaged-apps), and [Microsoft's Drop Tray Release Preview description](https://blogs.windows.com/windows-insider/2026/04/17/releasing-windows-11-builds-26100-8313-and-26200-8313-to-the-release-preview-channel/).
 
+## In-app update integration
+
+Installer deployments are identified by exact `HKCU\Software\DropSpace\Install\InstallPath` ownership before sparse package identity is considered. Portable has neither a matching installer registration nor package identity. Full MSIX/package deployments remain Windows-managed. The updater launches Inno with structured arguments `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /LOG=<owned path>`; Setup then owns graceful maintenance shutdown and post-success restart. Windows Authenticode validation uses `WinVerifyTrust`, but unattended installation additionally requires the exact compiled DropSpace publisher identity rather than any valid certificate.
+
 ## Visible Overlay file drop
 
 Compact/Expanded visible pixels are direct targets. The XAML Surface accepts `StorageItems`; the root HWND retains a native `CF_HDROP` adapter as a second compatible route for Shell sources that select the root. The passive top-edge HWND is hidden while stable visible geometry owns input, so targets never overlap. A selected OLE owner is retained through Drop/Leave even if animation changes geometry. Diagnostics record root/descendant `WindowFromPoint`, format availability, target kind and accepted counts, never paths.

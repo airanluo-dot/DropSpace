@@ -13,7 +13,13 @@ DropSpace should feel like a compact system utility, not a content dashboard. Th
 - **Global search**: searches all collections while preserving source identity.
 - **Top Overlay**: a Dynamic Island or top-attached Notch over the same Temporary Space state and actions.
 
-Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist in this Preview.
+Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist.
+
+## Updates
+
+Settings exposes automatic check/download toggles, Stable/Preview channel, current version, last check, state, manual check, download, install/open-location, and release-notes actions. Automatic checking belongs to the process lifetime and runs at most once after normal Tray/Clipboard/Overlay/database startup; reopening a window never checks again. A failed startup check is quiet and visible only as status. Manual checks can repeat and share an in-flight request.
+
+Stable accepts only final releases. Preview accepts both release kinds and chooses the highest SemVer above the running build, so a Preview user receives a newer Stable and never downgrades after switching channels. Unsigned builds disable unattended installation. Portable shows a verified-download workflow; Package/MSIX says Windows manages updates.
 
 ## Main window
 

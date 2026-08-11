@@ -44,22 +44,10 @@ public sealed class SqliteItemRepository(
             var duplicateId = source == ItemSource.Space
                 ? await FindFileDuplicateAsync(connection, source, candidate.NormalizedPath, cancellationToken)
                     .ConfigureAwait(false)
-                : await FindRecentClipboardDuplicateAsync(
-                        connection,
-                        fingerprint ?? throw new InvalidOperationException("Clipboard file fingerprint is required."),
-                        cancellationToken)
-                    .ConfigureAwait(false);
+                : null;
             if (duplicateId is Guid existingId)
             {
-                if (source == ItemSource.Clipboard)
-                {
-                    await TouchDuplicateAsync(connection, existingId, cancellationToken).ConfigureAwait(false);
-                }
-
-                logger.LogInformation(
-                    source == ItemSource.Space
-                        ? "An existing Space reference was reused instead of creating a duplicate."
-                        : "A recent duplicate clipboard file reference was collapsed.");
+                logger.LogInformation("An existing Space reference was reused instead of creating a duplicate.");
                 return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
             }
 
@@ -118,15 +106,6 @@ public sealed class SqliteItemRepository(
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            var duplicateId = await FindRecentClipboardDuplicateAsync(connection, candidate.Fingerprint, cancellationToken)
-                .ConfigureAwait(false);
-            if (duplicateId is Guid existingId)
-            {
-                logger.LogInformation("A recent duplicate clipboard text item was collapsed.");
-                await TouchDuplicateAsync(connection, existingId, cancellationToken).ConfigureAwait(false);
-                return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
-            }
-
             var itemId = Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -193,15 +172,6 @@ public sealed class SqliteItemRepository(
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            var duplicateId = await FindRecentClipboardDuplicateAsync(connection, candidate.Fingerprint, cancellationToken)
-                .ConfigureAwait(false);
-            if (duplicateId is Guid existingId)
-            {
-                logger.LogInformation("A recent duplicate clipboard image item was collapsed.");
-                await TouchDuplicateAsync(connection, existingId, cancellationToken).ConfigureAwait(false);
-                return (await GetWithConnectionAsync(connection, existingId, cancellationToken).ConfigureAwait(false))!;
-            }
-
             var itemId = Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -611,45 +581,6 @@ public sealed class SqliteItemRepository(
         command.Parameters.AddWithValue("@path", normalizedPath);
         var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return result is byte[] bytes ? new Guid(bytes) : null;
-    }
-
-    private static async Task<Guid?> FindRecentClipboardDuplicateAsync(
-        SqliteConnection connection,
-        string fingerprint,
-        CancellationToken cancellationToken)
-    {
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT id
-            FROM items
-            WHERE source = @source
-              AND fingerprint = @fingerprint
-              AND is_pinned = 0
-              AND created_at_utc >= @cutoff
-            ORDER BY created_at_utc DESC
-            LIMIT 1;
-            """;
-        command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
-        command.Parameters.AddWithValue("@fingerprint", fingerprint);
-        command.Parameters.AddWithValue("@cutoff", ToTimestamp(DateTimeOffset.UtcNow.AddSeconds(-3)));
-        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return result is byte[] bytes ? new Guid(bytes) : null;
-    }
-
-    private static async Task TouchDuplicateAsync(
-        SqliteConnection connection,
-        Guid id,
-        CancellationToken cancellationToken)
-    {
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            UPDATE items
-            SET created_at_utc = @now, revision = revision + 1
-            WHERE id = @id AND is_pinned = 0;
-            """;
-        command.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
-        command.Parameters.AddWithValue("@id", ToBytes(id));
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task InsertBaseItemAsync(

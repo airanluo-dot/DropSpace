@@ -15,11 +15,9 @@ $projectPath = Join-Path $repositoryRoot "src/DropSpace.App/DropSpace.App.csproj
 $publishDirectory = Join-Path $repositoryRoot "artifacts/portable/win-x64"
 $releaseDirectory = Join-Path $repositoryRoot "artifacts/release"
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
-if ($releaseTag -notmatch '^v(?<prefix>[0-9]+\.[0-9]+\.[0-9]+)-preview\.(?<preview>[0-9]+)$')
-{
-    throw "RELEASE_VERSION is not a supported preview version: $releaseTag"
-}
-$repositoryVersion = $releaseTag.Substring(1)
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
+$repositoryVersion = $releaseInfo.SemanticVersion
 if ([string]::IsNullOrWhiteSpace($Version))
 {
     $Version = $repositoryVersion
@@ -28,7 +26,7 @@ elseif ($Version -ne $repositoryVersion)
 {
     throw "Requested version $Version does not match RELEASE_VERSION $repositoryVersion."
 }
-$fileVersion = "$($Matches.prefix).$($Matches.preview)"
+$fileVersion = $releaseInfo.FileVersion
 
 if (Test-Path $publishDirectory)
 {

@@ -9,12 +9,9 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
-if ($releaseTag -notmatch '^v(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)-preview\.(?<preview>[0-9]+)$')
-{
-    throw "RELEASE_VERSION is not a supported preview version: $releaseTag"
-}
-
-$packageVersion = "$($Matches.major).$($Matches.minor).$($Matches.patch).$($Matches.preview)"
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
+$packageVersion = $releaseInfo.PackageVersion
 $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory))
 {
     [System.IO.Path]::GetFullPath($OutputDirectory)
@@ -59,17 +56,20 @@ $manifestPath = Join-Path $stage "AppxManifest.xml"
 $manifest | Set-Content $manifestPath -Encoding utf8NoBOM
 
 $assetRoot = Join-Path $repositoryRoot "src/DropSpace.App/Assets"
-foreach ($asset in @(
-    "StoreLogo.png",
-    "Square44x44Logo.scale-200.png",
-    "Square150x150Logo.scale-200.png"))
+$assets = @(
+    Get-Item (Join-Path $assetRoot "StoreLogo.png")
+    Get-ChildItem $assetRoot -File -Filter "StoreLogo.scale-*.png"
+    Get-ChildItem $assetRoot -File -Filter "Square44x44Logo.scale-*.png"
+    Get-ChildItem $assetRoot -File -Filter "Square44x44Logo.targetsize-*_altform-unplated.png"
+    Get-ChildItem $assetRoot -File -Filter "Square150x150Logo.scale-*.png"
+) | Sort-Object Name -Unique
+foreach ($asset in $assets)
 {
-    $source = Join-Path $assetRoot $asset
-    if (-not (Test-Path $source -PathType Leaf))
+    if (-not (Test-Path $asset.FullName -PathType Leaf))
     {
-        throw "Identity package asset is missing: $source"
+        throw "Identity package asset is missing: $($asset.FullName)"
     }
-    Copy-Item $source (Join-Path $stage "Assets/$asset") -Force
+    Copy-Item $asset.FullName (Join-Path $stage "Assets/$($asset.Name)") -Force
 }
 
 $packagePath = Join-Path $outputPath "DropSpace.Identity.msix"

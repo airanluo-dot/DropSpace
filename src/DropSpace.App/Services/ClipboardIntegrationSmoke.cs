@@ -10,9 +10,12 @@ public sealed record ClipboardIntegrationMetrics(
     bool ListenerRegistered,
     long ObservedUpdateDelta,
     long SuccessfulCaptureDelta,
+    long SuppressedConsecutiveDuplicateDelta,
     long FailedReadDelta,
     bool FirstTextPersisted,
     bool SecondTextPersisted,
+    bool ConsecutiveDuplicateSuppressionVerified,
+    bool NonConsecutiveDuplicatePreserved,
     bool FileReferencePersisted,
     bool PauseVerified,
     bool ResumeVerified,
@@ -65,6 +68,24 @@ public sealed class ClipboardIntegrationSmoke(
                 throw new InvalidOperationException("The first clipboard text did not reach the repository.");
             }
 
+            var beforeConsecutiveDuplicate = capture.Status;
+            await SetClipboardTextAsync(first);
+            await WaitForAsync(
+                () => capture.Status.ObservedEvents > beforeConsecutiveDuplicate.ObservedEvents,
+                "WM_CLIPBOARDUPDATE for consecutive duplicate text",
+                cancellationToken);
+            await WaitForAsync(
+                () => capture.Status.SuppressedConsecutiveDuplicates > beforeConsecutiveDuplicate.SuppressedConsecutiveDuplicates,
+                "consecutive duplicate suppression",
+                cancellationToken);
+            var consecutiveDuplicateSuppressed =
+                capture.Status.CapturedItems == beforeConsecutiveDuplicate.CapturedItems &&
+                await CountTextAsync(first, cancellationToken) == 1;
+            if (!consecutiveDuplicateSuppressed)
+            {
+                throw new InvalidOperationException("A consecutive duplicate clipboard text created another history item.");
+            }
+
             var afterFirst = capture.Status;
             await SetClipboardTextAsync(second);
             await WaitForAsync(
@@ -75,6 +96,18 @@ public sealed class ClipboardIntegrationSmoke(
             if (!secondPersisted)
             {
                 throw new InvalidOperationException("The second clipboard text did not reach the repository.");
+            }
+
+            var beforeNonConsecutiveRepeat = capture.Status;
+            await SetClipboardTextAsync(first);
+            await WaitForAsync(
+                () => capture.Status.CapturedItems > beforeNonConsecutiveRepeat.CapturedItems,
+                "repository capture for non-consecutive repeated text",
+                cancellationToken);
+            var nonConsecutiveDuplicatePreserved = await CountTextAsync(first, cancellationToken) == 2;
+            if (!nonConsecutiveDuplicatePreserved)
+            {
+                throw new InvalidOperationException("A non-consecutive clipboard text was incorrectly collapsed.");
             }
 
             Directory.CreateDirectory(fileTestRoot);
@@ -142,9 +175,12 @@ public sealed class ClipboardIntegrationSmoke(
                 final.ListenerRegistered,
                 final.ObservedEvents - baseline.ObservedEvents,
                 final.CapturedItems - baseline.CapturedItems,
+                final.SuppressedConsecutiveDuplicates - baseline.SuppressedConsecutiveDuplicates,
                 final.FailedReads - baseline.FailedReads,
                 firstPersisted,
                 secondPersisted,
+                consecutiveDuplicateSuppressed,
+                nonConsecutiveDuplicatePreserved,
                 filePersisted,
                 pauseVerified,
                 resumeVerified,
@@ -211,6 +247,14 @@ public sealed class ClipboardIntegrationSmoke(
             new ItemQuery(Source: ItemSource.Clipboard, Search: text, Limit: 10),
             cancellationToken);
         return matches.Any(item => string.Equals(item.Text?.InlineText, text, StringComparison.Ordinal));
+    }
+
+    private async Task<int> CountTextAsync(string text, CancellationToken cancellationToken)
+    {
+        var matches = await repository.QueryAsync(
+            new ItemQuery(Source: ItemSource.Clipboard, Search: text, Limit: 100),
+            cancellationToken);
+        return matches.Count(item => string.Equals(item.Text?.InlineText, text, StringComparison.Ordinal));
     }
 
     private async Task<bool> ContainsFileAsync(string path, CancellationToken cancellationToken)

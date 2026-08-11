@@ -1,0 +1,39 @@
+Set-StrictMode -Version Latest
+
+function Get-DropSpaceReleaseInfo
+{
+    param([Parameter(Mandatory = $true)][string]$Tag)
+
+    $value = $Tag.Trim()
+    if ($value -notmatch '^v(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0|[1-9][0-9]*)(?:-preview\.(?<preview>[1-9][0-9]*))?$')
+    {
+        throw "Unsupported DropSpace release version: $Tag"
+    }
+
+    $major = [int]$Matches.major
+    $minor = [int]$Matches.minor
+    $patch = [int]$Matches.patch
+    $isPreview = $Matches.ContainsKey("preview") -and -not [string]::IsNullOrWhiteSpace([string]$Matches.preview)
+    $preview = if ($isPreview) { [int]$Matches.preview } else { 9999 }
+    if ($major -gt 20 -or $minor -gt 99 -or $patch -gt 99 -or ($isPreview -and $preview -gt 9998))
+    {
+        throw "Release version exceeds the shared VersionCode/package-version range: $Tag"
+    }
+
+    $semanticVersion = $value.Substring(1)
+    [PSCustomObject]@{
+        Tag = $value
+        SemanticVersion = $semanticVersion
+        Major = $major
+        Minor = $minor
+        Patch = $patch
+        PreviewNumber = if ($isPreview) { $preview } else { $null }
+        IsPreview = $isPreview
+        Channel = if ($isPreview) { "preview" } else { "stable" }
+        FileVersion = if ($isPreview) { "$major.$minor.$patch.$preview" } else { "$major.$minor.$patch.0" }
+        PackageVersion = "$major.$minor.$patch.$preview"
+        VersionCode = ($major * 100000000) + ($minor * 1000000) + ($patch * 10000) + $preview
+        GitHubPrerelease = $isPreview
+        MakeLatest = -not $isPreview
+    }
+}

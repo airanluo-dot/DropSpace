@@ -4,7 +4,7 @@
 
 DropSpace stores sensitive classes of data by design. “Local only” reduces network exposure but does not make clipboard history safe by default. The product must minimize capture, make recording state obvious, bound retention, and avoid claims that content classification or source-app exclusions are complete.
 
-This threat model covers the planned Windows desktop runtime described by `ARCHITECTURE.md`, not future cloud, sync, browser-extension, or AI systems.
+This threat model covers the Windows desktop runtime described by `ARCHITECTURE.md`, including its narrow public GitHub Release update boundary. Cloud sync, accounts, browser extensions, telemetry, and AI remain outside it.
 
 ## Data lifecycle
 
@@ -39,6 +39,7 @@ Space file records store references and metadata only. Clipboard images and larg
 4. User-controlled paths/removable/network/cloud storage → file services.
 5. UI process → SQLite/payload/cache directories.
 6. Future network/AI providers are outside MVP and require a new explicit boundary.
+7. Public GitHub Release metadata/downloads → bounded update parser/cache → optional installer execution.
 
 ### Assumptions
 
@@ -47,7 +48,7 @@ Space file records store references and metadata only. Clipboard images and larg
 - Source files remain owned and protected by their existing file-system/provider permissions.
 - Windows, WinUI, clipboard, image codec, SQLite, and shell components are trusted platform dependencies but can fail on malformed or unavailable input.
 - Same-account malware or an administrator can generally access local app data; MVP does not claim protection from that attacker.
-- Remote/cloud providers are out of scope because MVP makes no network calls.
+- Ordinary content features make no network calls. If update checks are enabled, DropSpace contacts only the public GitHub Releases API and official GitHub asset URLs without a user or device identifier.
 
 ### Threat actors and conditions
 
@@ -69,6 +70,7 @@ Space file records store references and metadata only. Clipboard images and larg
 - Pinned status affects retention only; it does not grant extra execution capability.
 - Opening a URL or file requires an explicit user action.
 - Database migrations never silently replace a failed store with an empty one.
+- Update metadata is bounded and fail-closed; executable URLs cannot come from a manifest; cached installers require exact size and SHA-256 and never execute unattended without the exact trusted DropSpace Authenticode publisher.
 
 ## Attack Surface, Mitigations, and Attacker Stories
 
@@ -173,6 +175,7 @@ Before V1.1+, evaluate Windows Data Protection APIs for payload keys and define 
 | Unsafe source reference | Explicit action, capability checks, no auto-open | User can choose to open malicious content |
 | Migration/corruption loss | Transactions, backup, recovery screen | Last unflushed events can be lost |
 | Privacy leak through telemetry | Local structured redacted logs | User-generated titles can still be identifying if mishandled |
+| Compromised update metadata/payload | Fixed official GitHub asset identity, bounded manifest, size/hash, publisher gate | SHA-256 alone does not establish authenticity; unsigned builds require explicit user action |
 
 ### Concrete attacker stories
 
@@ -183,6 +186,10 @@ Before V1.1+, evaluate Windows Data Protection APIs for payload keys and define 
 - A migration fails after an update. Transactions and the pre-migration backup preserve the prior store; the app enters recovery instead of overwriting history.
 
 Out of scope for MVP severity claims: an attacker with administrator/kernel access, a fully compromised Windows account, or compromise of an AI/cloud provider that does not exist in the MVP architecture.
+
+### Updater privacy and network behavior
+
+Automatic update checking is enabled by default and can be disabled. It runs at most once per process start, with no timer, service, scheduled task, network-change listener, or machine identifier. Manual checks remain user-invoked. Requests contain only normal HTTPS/GitHub headers and `User-Agent: DropSpace/<version>`. Diagnostics may record version, state, HTTP status, integrity outcome and installer exit status; they never record Clipboard content, Temporary Space paths, filenames, search queries, tokens, or GitHub credentials.
 
 ## Severity Calibration (Critical, High, Medium, Low)
 

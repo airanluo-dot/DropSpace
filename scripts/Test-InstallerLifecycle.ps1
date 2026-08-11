@@ -8,6 +8,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$env:DROPSPACE_TEST_MODE = "1"
 
 if (-not $AllowUserDataMutation)
 {
@@ -32,18 +33,18 @@ else
     [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $PortableExecutable))
 }
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
-if ($releaseTag -notmatch '^v(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)-preview\.(?<preview>[0-9]+)$')
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
+$currentVersion = $releaseInfo.SemanticVersion
+$baselineVersion = if ($releaseInfo.IsPreview -and $releaseInfo.PreviewNumber -gt 1)
 {
-    throw "Unsupported RELEASE_VERSION: $releaseTag"
+    "$($releaseInfo.Major).$($releaseInfo.Minor).$($releaseInfo.Patch)-preview.$($releaseInfo.PreviewNumber - 1)"
 }
-
-$currentVersion = $releaseTag.Substring(1)
-$baselinePreview = [Math]::Max(0, [int]$Matches.preview - 1)
-$baselineVersion = "$($Matches.major).$($Matches.minor).$($Matches.patch)-preview.$baselinePreview"
-$baselineVersionCode = ([int]$Matches.major * 100000000) +
-    ([int]$Matches.minor * 1000000) +
-    ([int]$Matches.patch * 10000) +
-    $baselinePreview
+else
+{
+    "$($releaseInfo.Major).$($releaseInfo.Minor).$($releaseInfo.Patch)-preview.5"
+}
+$baselineVersionCode = (Get-DropSpaceReleaseInfo "v$baselineVersion").VersionCode
 $testBase = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP))
 {
     [System.IO.Path]::GetTempPath()
@@ -61,6 +62,7 @@ $desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialF
 $customRegistryPath = "HKCU:\Software\DropSpace\Install"
 $startupRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $runningProcess = $null
+$restartProcess = $null
 
 function Invoke-CheckedProcess
 {
@@ -68,7 +70,8 @@ function Invoke-CheckedProcess
         [Parameter(Mandatory = $true)][string]$FilePath,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
         [string]$Description = "process",
-        [string]$LogPath = ""
+        [string]$LogPath = "",
+        [int]$TimeoutSeconds = 180
     )
 
     $effectiveArguments = @($Arguments)
@@ -77,7 +80,20 @@ function Invoke-CheckedProcess
         $effectiveArguments += "/LOG=$LogPath"
     }
 
-    $process = Start-Process -FilePath $FilePath -ArgumentList $effectiveArguments -Wait -PassThru
+    $process = Start-Process -FilePath $FilePath -ArgumentList $effectiveArguments -PassThru
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000))
+    {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
+        {
+            Write-Host "---- $Description log tail ----"
+            Get-Content $LogPath -Tail 120 | Write-Host
+        }
+
+        throw "$Description did not exit within $TimeoutSeconds seconds."
+    }
+
+    $process.Refresh()
     if ($process.ExitCode -ne 0)
     {
         if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
@@ -162,6 +178,31 @@ function Wait-ForMaintenanceEndpoint
     throw "Installed baseline app did not expose its maintenance endpoint within $TimeoutSeconds seconds."
 }
 
+function Wait-PathRemoved
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [int]$TimeoutSeconds = 20
+    )
+
+    # Inno runs the final uninstaller/self-delete pass from a temporary process.
+    # The launched unins*.exe can exit just before that helper removes the empty
+    # uninstall and application directories, so observe the real filesystem
+    # postcondition with a bounded wait instead of racing the helper.
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    while ((Test-Path $Path) -and [DateTime]::UtcNow -lt $deadline)
+    {
+        Start-Sleep -Milliseconds 200
+    }
+
+    if (Test-Path $Path)
+    {
+        $remaining = @(Get-ChildItem -Path $Path -Force -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName)
+        throw "Uninstall did not remove '$Path' within $TimeoutSeconds seconds. Remaining entries: $($remaining -join '; ')"
+    }
+}
+
 if (Test-Path $dataRoot)
 {
     throw "The isolated runner already contains $dataRoot; refusing to risk pre-existing user data."
@@ -217,8 +258,8 @@ try
     Wait-ForMaintenanceEndpoint $runningProcess
 
     Invoke-CheckedProcess $currentInstallerPath @(
-        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
-    ) "in-place upgrade" (Join-Path $testRoot "upgrade.log")
+        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE"
+    ) "in-place /UPDATE upgrade" (Join-Path $testRoot "upgrade.log")
     if (-not $runningProcess.WaitForExit(15000))
     {
         throw "In-place upgrade did not gracefully stop the running DropSpace process."
@@ -234,6 +275,54 @@ try
         throw "In-place upgrade reset the selected installation path."
     }
 
+    $restartDeadline = [DateTime]::UtcNow.AddSeconds(45)
+    while ([DateTime]::UtcNow -lt $restartDeadline)
+    {
+        $restartProcess = Get-Process -Name DropSpace -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $restartProcess) { break }
+        Start-Sleep -Milliseconds 250
+    }
+    if ($null -eq $restartProcess)
+    {
+        throw "/UPDATE did not automatically restart the installed DropSpace version."
+    }
+
+    $updatedMarker = Join-Path $dataRoot "Updates\last-update.json"
+    $updatedMarkerDeadline = [DateTime]::UtcNow.AddSeconds(45)
+    while ([DateTime]::UtcNow -lt $updatedMarkerDeadline)
+    {
+        $restartProcess.Refresh()
+        if ($restartProcess.HasExited)
+        {
+            throw "The restarted app exited before persisting its update launch marker."
+        }
+
+        if ((Test-Path $updatedMarker -PathType Leaf) -and
+            (Get-Content $updatedMarker -Raw) -match [regex]::Escape($currentVersion))
+        {
+            break
+        }
+
+        Start-Sleep -Milliseconds 250
+    }
+    if (-not (Test-Path $updatedMarker -PathType Leaf) -or
+        (Get-Content $updatedMarker -Raw) -notmatch [regex]::Escape($currentVersion))
+    {
+        throw "The restarted version did not persist the expected update launch marker within 45 seconds."
+    }
+
+    Wait-ForMaintenanceEndpoint $restartProcess
+    Invoke-CheckedProcess `
+        -FilePath $installedExe `
+        -Arguments @("--shutdown-for-maintenance") `
+        -Description "post-update graceful maintenance shutdown" `
+        -TimeoutSeconds 30
+    if (-not $restartProcess.WaitForExit(15000))
+    {
+        throw "The restarted app acknowledged maintenance shutdown but did not exit within 15 seconds."
+    }
+    $restartProcess = $null
+
     & (Join-Path $PSScriptRoot "Test-PortableSmoke.ps1") -ExecutablePath $installedExe
 
     $startupCommand = (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction Stop).DropSpace
@@ -246,6 +335,7 @@ try
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=0"
     ) "normal uninstall" (Join-Path $testRoot "normal-uninstall.log")
+    Wait-PathRemoved -Path $installPath
     if (Test-Path $installedExe) { throw "Normal uninstall left application files behind." }
     if ($null -ne (Get-UninstallEntry) -or (Test-Path $customRegistryPath))
     {
@@ -271,7 +361,7 @@ try
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=1"
     ) "complete uninstall" (Join-Path $testRoot "complete-uninstall.log")
-    if (Test-Path $installPath) { throw "Complete uninstall left the application directory behind." }
+    Wait-PathRemoved -Path $installPath
     if (Test-Path $dataRoot) { throw "Complete uninstall did not remove DropSpace-owned local data." }
     if (-not (Test-Path $externalSentinel))
     {
@@ -287,13 +377,16 @@ try
         throw "Complete uninstall left the DropSpace startup registration behind."
     }
 
-    Write-Host "Installer lifecycle passed: silent per-user install, x64 metadata, Installed Apps, custom path, graceful in-place upgrade, installed smoke, preserve-data uninstall, complete uninstall, external sentinel protection."
+    Write-Host "Installer lifecycle passed: silent per-user install, x64 metadata, Installed Apps, custom path, graceful /UPDATE shutdown, automatic restart marker, installed smoke, preserve-data uninstall, complete uninstall, external sentinel protection."
 }
 finally
 {
-    if ($null -ne $runningProcess -and -not $runningProcess.HasExited)
+    foreach ($process in @($restartProcess, $runningProcess))
     {
-        Stop-Process -Id $runningProcess.Id -Force -ErrorAction SilentlyContinue
+        if ($null -ne $process -and -not $process.HasExited)
+        {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
     }
     if (Test-Path $testRoot)
     {

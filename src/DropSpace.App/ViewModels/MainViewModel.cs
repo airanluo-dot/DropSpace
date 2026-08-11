@@ -4,6 +4,7 @@ using DropSpace.Core.Collections;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Updates;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 
@@ -22,6 +23,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
     private readonly DragStorageItemService _dragStorageItems;
+    private readonly IUpdateService _updates;
     private readonly DispatcherQueue _dispatcher;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
@@ -40,6 +42,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
     private string _storageSummary = "正在计算…";
+    private UpdateStatusSnapshot _updateStatus;
     private bool _disposed;
 
     public MainViewModel(
@@ -54,6 +57,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ShellActionService shell,
         ThumbnailService thumbnails,
         DragStorageItemService dragStorageItems,
+        IUpdateService updates,
         DispatcherQueue dispatcher,
         ILogger<MainViewModel> logger)
     {
@@ -68,10 +72,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _shell = shell;
         _thumbnails = thumbnails;
         _dragStorageItems = dragStorageItems;
+        _updates = updates;
+        _updateStatus = updates.Status;
         _dispatcher = dispatcher;
         _logger = logger;
         _clipboard.ItemCaptured += OnItemCaptured;
         _clipboard.StatusChanged += OnClipboardStatusChanged;
+        _updates.StatusChanged += OnUpdateStatusChanged;
     }
 
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
@@ -213,6 +220,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(OverlayDisplayMode));
                 OnPropertyChanged(nameof(OverlayMotion));
                 OnPropertyChanged(nameof(OverlayMonitor));
+                OnPropertyChanged(nameof(AutoCheckForUpdates));
+                OnPropertyChanged(nameof(AutoDownloadUpdates));
+                OnPropertyChanged(nameof(AutoInstallUpdates));
+                OnPropertyChanged(nameof(UpdateChannel));
+                OnPropertyChanged(nameof(LastUpdateCheckText));
+                OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
             }
         }
     }
@@ -251,6 +264,76 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public OverlayMonitorPreference OverlayMonitor => Settings.OverlayMonitor;
 
+    public bool AutoCheckForUpdates => Settings.AutoCheckForUpdates;
+
+    public bool AutoDownloadUpdates => Settings.AutoDownloadUpdates;
+
+    public bool AutoInstallUpdates => Settings.AutoInstallUpdates;
+
+    public UpdateChannel UpdateChannel => Settings.UpdateChannel;
+
+    public string CurrentVersionText => _updates.CurrentVersion.ToString();
+
+    public string CurrentVersionDisplayText => $"DropSpace {CurrentVersionText}";
+
+    public UpdateStatusSnapshot UpdateStatus
+    {
+        get => _updateStatus;
+        private set
+        {
+            if (SetProperty(ref _updateStatus, value))
+            {
+                OnPropertyChanged(nameof(UpdateStatusText));
+                OnPropertyChanged(nameof(UpdateProgressText));
+                OnPropertyChanged(nameof(CanCheckForUpdates));
+                OnPropertyChanged(nameof(CanDownloadUpdate));
+                OnPropertyChanged(nameof(CanInstallUpdate));
+                OnPropertyChanged(nameof(CanOpenUpdateLocation));
+                OnPropertyChanged(nameof(CanViewReleaseNotes));
+                OnPropertyChanged(nameof(TrustedAutoInstallAvailable));
+                OnPropertyChanged(nameof(DeploymentModeText));
+                OnPropertyChanged(nameof(LastUpdateCheckText));
+                OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
+            }
+        }
+    }
+
+    public string UpdateStatusText => UpdateStatus.Message;
+
+    public string UpdateProgressText => UpdateStatus.Progress is { } progress
+        ? $"{progress.Percentage:0}% · {FormatBytes(progress.BytesReceived)} / {FormatBytes(progress.TotalBytes)}"
+        : string.Empty;
+
+    public bool CanCheckForUpdates => UpdateStatus.State is not UpdateState.Checking and not UpdateState.Downloading and not UpdateState.Installing;
+
+    public bool CanDownloadUpdate => UpdateStatus.Candidate is not null &&
+        UpdateStatus.DeploymentMode != DeploymentMode.Packaged &&
+        UpdateStatus.State is UpdateState.UpdateAvailable or UpdateState.Failed;
+
+    public bool CanInstallUpdate => UpdateStatus.State == UpdateState.ReadyToInstall &&
+        UpdateStatus.DeploymentMode == DeploymentMode.Installer;
+
+    public bool CanOpenUpdateLocation => UpdateStatus.State == UpdateState.ReadyToInstall &&
+        UpdateStatus.DeploymentMode == DeploymentMode.Portable;
+
+    public bool CanViewReleaseNotes => UpdateStatus.Candidate is not null;
+
+    public bool TrustedAutoInstallAvailable => UpdateStatus.TrustedAutoInstallAvailable;
+
+    public string DeploymentModeText => UpdateStatus.DeploymentMode switch
+    {
+        DeploymentMode.Installer => "安装版",
+        DeploymentMode.Portable => "便携版（仅下载并验证，不会自动安装）",
+        DeploymentMode.Packaged => "Windows 包（由 Windows 管理更新）",
+        _ => "未知",
+    };
+
+    public string LastUpdateCheckText => Settings.LastUpdateCheckUtc is { } value
+        ? value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+        : "尚未检查";
+
+    public string LastUpdateCheckDisplayText => $"上次检查：{LastUpdateCheckText}";
+
     public bool HasWindowsShareIdentity => _windowsShareIntegration.HasPackageIdentity;
 
     public string WindowsShareIntegrationStatus => _windowsShareIntegration.StatusText;
@@ -282,9 +365,51 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await RefreshSpaceItemCountAsync(cancellationToken);
         await _clipboard.InitializeAsync(cancellationToken);
         ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
+        UpdateStatus = await _updates.RecoverPendingAsync(cancellationToken);
         _ = RefreshStorageSummaryAsync(cancellationToken);
         await NavigateAsync(Settings.LaunchPage, cancellationToken);
     }
+
+    public async Task CheckForUpdatesAtStartupAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var status = await _updates.CheckAtStartupAsync(Settings, cancellationToken);
+            await PersistLastUpdateCheckAsync(status, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(exception, "The process-lifetime automatic update check failed safely.");
+        }
+    }
+
+    public async Task CheckForUpdatesManuallyAsync(CancellationToken cancellationToken = default)
+    {
+        var status = await _updates.CheckManuallyAsync(Settings, cancellationToken);
+        await PersistLastUpdateCheckAsync(status, cancellationToken);
+    }
+
+    public Task DownloadUpdateAsync(CancellationToken cancellationToken = default) =>
+        _updates.DownloadAsync(cancellationToken);
+
+    public Task InstallUpdateAsync(CancellationToken cancellationToken = default) =>
+        _updates.InstallAsync(unattended: false, cancellationToken);
+
+    public Task<bool> OpenUpdateLocationAsync(CancellationToken cancellationToken = default)
+    {
+        var directory = UpdateStatus.Download?.FilePath is { } path ? Path.GetDirectoryName(path) : null;
+        return directory is null
+            ? Task.FromResult(false)
+            : _shell.OpenFolderAsync(directory, cancellationToken);
+    }
+
+    public Task<bool> OpenUpdateReleaseNotesAsync(CancellationToken cancellationToken = default) =>
+        UpdateStatus.Candidate is { } candidate
+            ? _shell.OpenHttpsAsync(candidate.Release.HtmlUri, cancellationToken)
+            : Task.FromResult(false);
+
+    public void ShowUpdatedVersion(ReleaseVersion version) =>
+        StatusMessage = $"DropSpace 已更新至 {version}。";
 
     public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
     {
@@ -568,7 +693,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)
     {
         var fromUtc = GetClearFromUtc(range);
-        var result = await _repository.ClearClipboardAsync(fromUtc, includePinned: false, cancellationToken);
+        var result = await _clipboard.ClearHistoryAsync(fromUtc, includePinned: false, cancellationToken);
         foreach (var path in result.PayloadPaths)
         {
             try
@@ -624,6 +749,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         _clipboard.ItemCaptured -= OnItemCaptured;
         _clipboard.StatusChanged -= OnClipboardStatusChanged;
+        _updates.StatusChanged -= OnUpdateStatusChanged;
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();
         _disposed = true;
@@ -757,12 +883,53 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         });
     }
 
+    private void OnUpdateStatusChanged(object? sender, UpdateStatusSnapshot status)
+    {
+        if (_dispatcher.HasThreadAccess)
+        {
+            UpdateStatus = status;
+        }
+        else
+        {
+            _dispatcher.TryEnqueue(() => UpdateStatus = status);
+        }
+    }
+
+    private async Task PersistLastUpdateCheckAsync(
+        UpdateStatusSnapshot status,
+        CancellationToken cancellationToken)
+    {
+        if (status.LastCheckedAtUtc is not { } checkedAt)
+        {
+            return;
+        }
+
+        var updated = Settings with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() };
+        await _settingsService.SaveAsync(updated, cancellationToken);
+        if (_dispatcher.HasThreadAccess)
+        {
+            Settings = updated;
+        }
+        else
+        {
+            _dispatcher.TryEnqueue(() => Settings = updated);
+        }
+    }
+
     private static string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch
     {
         ClipboardRecordingState.Recording => $"正在记录 · 已捕获 {status.CapturedItems} 项",
         ClipboardRecordingState.Paused => "已暂停记录",
         ClipboardRecordingState.Error => "记录发生错误",
         _ => string.Empty,
+    };
+
+    private static string FormatBytes(long value) => value switch
+    {
+        < 1024 => $"{value} B",
+        < 1024 * 1024 => $"{value / 1024d:0.0} KB",
+        < 1024L * 1024 * 1024 => $"{value / (1024d * 1024):0.0} MB",
+        _ => $"{value / (1024d * 1024 * 1024):0.00} GB",
     };
 
     private static DateTimeOffset? GetClearFromUtc(ClearRange range) => range switch

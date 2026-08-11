@@ -23,3 +23,6 @@
 *.pdf binary
 *.zip binary
 *.pfx binary
+
+# Canonical brand-package files must retain their exact upstream bytes.
+branding/master/*.txt -text

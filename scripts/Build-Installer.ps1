@@ -35,27 +35,18 @@ else
     [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $OutputDirectory))
 }
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
-if ($releaseTag -notmatch '^v(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)-preview\.(?<preview>[0-9]+)$')
-{
-    throw "RELEASE_VERSION is not a supported preview version: $releaseTag"
-}
+. (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+$repositoryRelease = Get-DropSpaceReleaseInfo $releaseTag
 
 if ([string]::IsNullOrWhiteSpace($AppVersion))
 {
-    $AppVersion = $releaseTag.Substring(1)
+    $AppVersion = $repositoryRelease.SemanticVersion
 }
-if ($AppVersion -notmatch '^(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)-preview\.(?<preview>[0-9]+)$')
-{
-    throw "AppVersion is not a supported preview version: $AppVersion"
-}
-
-$versionInfoVersion = "$($Matches.major).$($Matches.minor).$($Matches.patch).$($Matches.preview)"
+$releaseInfo = Get-DropSpaceReleaseInfo "v$AppVersion"
+$versionInfoVersion = $releaseInfo.FileVersion
 if ($VersionCode -eq 0)
 {
-    $VersionCode = ([int]$Matches.major * 100000000) +
-        ([int]$Matches.minor * 1000000) +
-        ([int]$Matches.patch * 10000) +
-        [int]$Matches.preview
+    $VersionCode = $releaseInfo.VersionCode
 }
 if (-not (Test-Path $sourceExe -PathType Leaf))
 {
