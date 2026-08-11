@@ -30,5 +30,18 @@ for (const relative of ["index.html", "changelog/index.html", "404.html", "site.
   await writeFile(file, contents);
 }
 
+function toXhtml(html) {
+  return html
+    .replace(/^<!doctype html>/i, '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>')
+    .replace('<html lang="en">', '<html xmlns="http://www.w3.org/1999/xhtml" lang="en">')
+    .replace(/\s(data-[a-z-]+)(?=[\s>])/g, ' $1=""')
+    .replace(/<(meta|link|img|br|hr|input|source|track|wbr)(\b[^>]*?)(?<!\/)\s*>/gi, '<$1$2 />');
+}
+
+for (const relative of ["index.html", "changelog/index.html"]) {
+  const html = await readFile(path.join(dist, relative), "utf8");
+  await writeFile(path.join(dist, relative.replace(/\.html$/, ".xhtml")), toXhtml(html));
+}
+
 await writeFile(path.join(dist, "release-data.json"), `${JSON.stringify(releases, null, 2)}\n`);
 console.log(`Built DropSpace website for ${stable.tag}.`);

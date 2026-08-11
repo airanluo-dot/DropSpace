@@ -37,8 +37,8 @@ test("Chinese localization and language switch are present", () => {
   assert.match(script, /localStorage\.setItem\("dropspace-language"/);
 });
 
-test("production metadata uses the public Pages deployment", () => {
-  const origin = "https://airanluo-dot.github.io/DropSpace/";
-  assert.ok(html.includes(origin));
-  assert.ok(changelog.includes(`${origin}changelog/`));
+test("production metadata uses the global XHTML CDN deployment", () => {
+  const origin = "https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/";
+  assert.ok(html.includes(`${origin}index.xhtml`));
+  assert.ok(changelog.includes(`${origin}changelog/index.xhtml`));
 });

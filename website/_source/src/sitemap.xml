@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://airanluo-dot.github.io/DropSpace/</loc></url>
-  <url><loc>https://airanluo-dot.github.io/DropSpace/changelog/</loc></url>
+  <url><loc>https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/index.xhtml</loc></url>
+  <url><loc>https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/changelog/index.xhtml</loc></url>
 </urlset>

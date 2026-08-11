@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://airanluo-dot.github.io/DropSpace/sitemap.xml
+Sitemap: https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/sitemap.xml
