@@ -335,6 +335,7 @@ try
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=0"
     ) "normal uninstall" (Join-Path $testRoot "normal-uninstall.log")
+    Wait-PathRemoved -Path $installPath
     if (Test-Path $installedExe) { throw "Normal uninstall left application files behind." }
     if ($null -ne (Get-UninstallEntry) -or (Test-Path $customRegistryPath))
     {

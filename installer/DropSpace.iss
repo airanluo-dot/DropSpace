@@ -101,6 +101,10 @@ Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoL
 [UninstallDelete]
 Type: files; Name: "{app}\install.version"
 Type: filesandordirs; Name: "{localappdata}\DropSpace"; Check: ShouldPurgeData
+; UninstallFilesDir is a dedicated child directory. Remove it and the selected
+; install root only when they are empty; never recurse through a custom path.
+Type: dirifempty; Name: "{app}\uninstall"
+Type: dirifempty; Name: "{app}"
 
 [Code]
 const
