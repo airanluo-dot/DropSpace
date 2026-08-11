@@ -57,7 +57,7 @@ Browse by date, search, preview, copy again, export an image, pin, delete, pause
 
 ### App behavior
 
-Subscribe to clipboard change events. Snapshot supported formats off the UI thread through a bounded queue, assign a content fingerprint, suppress self-authored loops, enforce limits, and persist only accepted payloads.
+Subscribe to clipboard change events. Snapshot supported formats off the UI thread through a bounded queue, assign a content fingerprint, suppress self-authored loops, enforce limits, and persist only accepted payloads. Collapse only adjacent identical snapshots (`A, A → A`); an intervening observation restores normal history (`A, B, A → A, B, A`).
 
 ### States
 

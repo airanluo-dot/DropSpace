@@ -143,7 +143,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 - Status: Accepted and implemented
 - Context: Explorer file copies belong in Clipboard History, but automatic history must not make the file an actively staged Temporary Space item or copy/move the source.
-- Decision: Read `StandardDataFormats.StorageItems` before bitmap/text, inspect each external file/folder through `IFileReferenceService`, and store it in the existing item/reference schema with `Source=Clipboard`. Scope path deduplication by source, apply recent fingerprint deduplication to Clipboard, never enumerate captured folders, and expose validated user limits for item count and known bytes.
+- Decision: Read `StandardDataFormats.StorageItems` before bitmap/text, inspect each external file/folder through `IFileReferenceService`, and store it in the existing item/reference schema with `Source=Clipboard`. Keep normalized-path reuse only for deliberate Temporary Space staging; Clipboard capture events remain separate rows unless the consecutive-capture coordinator suppresses the immediately repeated snapshot. Never enumerate captured folders, and expose validated user limits for item count and known bytes.
 - Reason: File availability, Copy again, Open, Show in folder, retention, search, pinning, and SQLite migrations reuse established behavior while the product surfaces remain unambiguous.
 - Trade-offs: Virtual shell objects without stable file-system paths are skipped; folder contents do not contribute to known-size limits.
 
@@ -297,3 +297,9 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 **Security boundary:** Remote metadata cannot provide arbitrary execution URLs. A bounded, exact-schema `update-manifest.json` names only fixed official assets. Downloads remain inside `%LOCALAPPDATA%\DropSpace\Updates`, stream to `.download`, require exact size and SHA-256, and are atomically promoted. Integrity is not publisher authenticity; unattended installation additionally requires WinVerifyTrust and the compiled DropSpace signer identity. Unsigned builds require explicit user installation.
 
 **Rationale:** A first Stable desktop application needs an understandable upgrade path without a service, timer, scheduled task, tracking identity, or silent trust downgrade. The abstraction keeps Portable and Windows-managed Package deployments from invoking Inno Setup.
+
+## D-036 — Clipboard duplicate suppression is consecutive, observed, and transactional
+
+**Decision:** Reuse each snapshot's canonical `FingerprintService` identity inside a serialized process-local coordinator. Suppress only when the current fingerprint equals both the immediately previous observed identity and the last successfully persisted identity. A different supported or policy-rejected observation ends the run; a failed commit never marks success. Clear History and Resume reset the coordinator. SQLite stores valid non-consecutive repetitions and performs no historical fingerprint lookup or time-window collapse.
+
+**Rationale:** Windows can emit repeated notifications for one effective state, but Clipboard History is chronological rather than a set. This yields `A,A → A` and `A,B,A → A,B,A`, avoids races and time heuristics, keeps failures retryable, and requires no schema or duplicate counter.

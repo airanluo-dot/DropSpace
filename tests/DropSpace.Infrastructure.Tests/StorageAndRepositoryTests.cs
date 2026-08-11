@@ -296,18 +296,20 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
-    public async Task Repository_DeduplicatesRecentClipboardTextAndSupportsSearch()
+    public async Task Repository_PreservesNonConsecutiveClipboardTextAndSupportsSearch()
     {
         var repository = CreateRepository();
         var candidate = ContentClassifier.CreateTextCandidate("https://example.com/docs?q=drop");
 
         var first = await repository.AddTextAsync(candidate);
-        var duplicate = await repository.AddTextAsync(candidate);
+        await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("intervening clipboard value"));
+        var repeated = await repository.AddTextAsync(candidate);
         var results = await repository.QueryAsync(new ItemQuery(Search: "EXAMPLE"));
 
-        Assert.AreEqual(first.Id, duplicate.Id);
-        Assert.AreEqual(2, duplicate.Revision);
-        Assert.AreEqual(1, results.Count);
+        Assert.AreNotEqual(first.Id, repeated.Id);
+        Assert.AreEqual(1, repeated.Revision);
+        Assert.AreEqual(3, await repository.CountAsync(ItemSource.Clipboard));
+        Assert.AreEqual(2, results.Count);
         Assert.AreEqual(ItemKind.Url, results[0].Kind);
         Assert.AreEqual("example.com", results[0].Url?.Host);
     }
@@ -371,7 +373,7 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
-    public async Task Repository_ClipboardFileIsSeparateFromTemporarySpaceAndDeduplicatesRecentCopy()
+    public async Task Repository_ClipboardFileIsSeparateFromTemporarySpaceAndPreservesDistinctCaptureEvents()
     {
         Directory.CreateDirectory(_root);
         var sourcePath = Path.Combine(_root, "clipboard-source.txt");
@@ -387,10 +389,10 @@ public sealed class StorageAndRepositoryTests
         Assert.AreNotEqual(space.Id, clipboard.Id);
         Assert.AreEqual(ItemSource.Space, space.Source);
         Assert.AreEqual(ItemSource.Clipboard, clipboard.Source);
-        Assert.AreEqual(clipboard.Id, duplicate.Id);
-        Assert.AreEqual(2, duplicate.Revision);
+        Assert.AreNotEqual(clipboard.Id, duplicate.Id);
+        Assert.AreEqual(1, duplicate.Revision);
         Assert.AreEqual(1, await repository.CountAsync(ItemSource.Space));
-        Assert.AreEqual(1, await repository.CountAsync(ItemSource.Clipboard));
+        Assert.AreEqual(2, await repository.CountAsync(ItemSource.Clipboard));
         await repository.RemoveAsync(clipboard.Id);
         Assert.IsTrue(File.Exists(sourcePath));
         Assert.IsNotNull(await repository.GetAsync(space.Id));

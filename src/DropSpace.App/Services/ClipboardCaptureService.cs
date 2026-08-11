@@ -26,6 +26,7 @@ public sealed record ClipboardCaptureStatus(
     DateTimeOffset? LastNotificationUtc,
     long ObservedEvents,
     long CapturedItems,
+    long SuppressedConsecutiveDuplicates,
     long FailedReads,
     long DroppedEvents,
     string? Message);
@@ -48,6 +49,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _stateGate = new(1, 1);
     private readonly SemaphoreSlim _commitGate = new(1, 1);
+    private readonly ConsecutiveClipboardCaptureCoordinator _consecutiveCaptures = new();
     private Task? _worker;
     private AppSettings _settings = new();
     private volatile bool _paused;
@@ -55,6 +57,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private int _pauseGeneration;
     private long _observedEvents;
     private long _capturedItems;
+    private long _suppressedConsecutiveDuplicates;
     private long _failedReads;
     private long _droppedEvents;
     private string? _selfFingerprint;
@@ -154,6 +157,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 return;
             }
 
+            await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _commitGate.Release();
+            }
+
             _settings = _settings with { ClipboardPaused = false };
             await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
             _paused = false;
@@ -178,6 +191,25 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         finally
         {
             _stateGate.Release();
+        }
+    }
+
+    public async Task<ClearResult> ClearHistoryAsync(
+        DateTimeOffset? fromUtc,
+        bool includePinned,
+        CancellationToken cancellationToken = default)
+    {
+        await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var result = await _repository.ClearClipboardAsync(fromUtc, includePinned, cancellationToken)
+                .ConfigureAwait(false);
+            await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+        finally
+        {
+            _commitGate.Release();
         }
     }
 
@@ -287,6 +319,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _shutdown.Dispose();
         _stateGate.Dispose();
         _commitGate.Dispose();
+        _consecutiveCaptures.Dispose();
     }
 
     private void OnClipboardChanged(object? sender, ClipboardNotification notification)
@@ -368,8 +401,23 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                             continue;
                         }
 
-                        items = await CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, _shutdown.Token)
+                        var capture = await _consecutiveCaptures.ExecuteAsync(
+                                snapshot.Fingerprint,
+                                token => CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, token),
+                                committedItems => committedItems.Count > 0,
+                                _shutdown.Token)
                             .ConfigureAwait(false);
+                        if (capture.Suppressed)
+                        {
+                            Interlocked.Increment(ref _suppressedConsecutiveDuplicates);
+                            _logger.LogInformation(
+                                "Consecutive clipboard snapshot suppressed for sequence {SequenceNumber}.",
+                                signal.ClipboardSequenceNumber);
+                            PublishStatus(null);
+                            continue;
+                        }
+
+                        items = capture.Value;
                         if (items.Count == 0)
                         {
                             continue;
@@ -449,7 +497,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     "Clipboard snapshot read started for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,
                     attempt + 1);
-                var snapshot = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
+                var snapshot = await ReadSnapshotAsync(signal, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation(
                     "Clipboard snapshot read completed for sequence {SequenceNumber}; format {Format}.",
                     signal.ClipboardSequenceNumber,
@@ -474,7 +522,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             lastException);
     }
 
-    private Task<ClipboardSnapshot?> ReadSnapshotAsync(CancellationToken cancellationToken) =>
+    private Task<ClipboardSnapshot?> ReadSnapshotAsync(
+        CaptureSignal signal,
+        CancellationToken cancellationToken) =>
         _dispatcher.EnqueueAsync(async () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -500,6 +550,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         null,
                         null);
                 }
+
+                return CreateRejectedSnapshot(signal, "empty-storage-items");
             }
 
             if (view.Contains(StandardDataFormats.Bitmap))
@@ -508,14 +560,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 using var stream = await reference.OpenReadAsync();
                 if (stream.Size == 0 || stream.Size > (ulong)_settings.MaxImageBytes)
                 {
-                    return null;
+                    return CreateRejectedSnapshot(signal, "image-byte-limit");
                 }
 
                 var decoder = await BitmapDecoder.CreateAsync(stream);
                 var pixels = checked((long)decoder.PixelWidth * decoder.PixelHeight);
                 if (pixels > _settings.MaxImagePixels)
                 {
-                    return null;
+                    return CreateRejectedSnapshot(signal, "image-pixel-limit");
                 }
 
                 using var bitmap = await decoder.GetSoftwareBitmapAsync(
@@ -527,7 +579,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 await encoder.FlushAsync();
                 if (encodedStream.Size == 0 || encodedStream.Size > (ulong)_settings.MaxImageBytes)
                 {
-                    return null;
+                    return CreateRejectedSnapshot(signal, "encoded-image-byte-limit");
                 }
 
                 var bytes = new byte[checked((int)encodedStream.Size)];
@@ -550,7 +602,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 var text = await view.GetTextAsync();
                 if (string.IsNullOrWhiteSpace(text))
                 {
-                    return null;
+                    return CreateRejectedSnapshot(signal, "empty-text");
                 }
 
                 var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
@@ -565,8 +617,20 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     null);
             }
 
-            return null;
+            return CreateRejectedSnapshot(signal, "unsupported-format");
         });
+
+    private static ClipboardSnapshot CreateRejectedSnapshot(CaptureSignal signal, string reason) =>
+        new(
+            null,
+            null,
+            null,
+            FingerprintService.ForText(
+                $"clipboard-observed-not-persisted\0{reason}\0{signal.ClipboardSequenceNumber}\0{signal.ObservedEventNumber}"),
+            0,
+            0,
+            null,
+            null);
 
     private async Task<IReadOnlyList<DropItem>> CommitSnapshotAsync(
         ClipboardSnapshot snapshot,
@@ -756,6 +820,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _notifications.Status.LastNotificationUtc,
             Interlocked.Read(ref _observedEvents),
             Interlocked.Read(ref _capturedItems),
+            Interlocked.Read(ref _suppressedConsecutiveDuplicates),
             Interlocked.Read(ref _failedReads),
             Interlocked.Read(ref _droppedEvents),
             message);

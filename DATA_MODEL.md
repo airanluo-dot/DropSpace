@@ -180,7 +180,7 @@ Foreign-key reference from `items.payload_id` is enforced in the final migration
 - `items(source, created_at_utc DESC)` for collection paging.
 - `items(is_pinned, created_at_utc DESC)` partial/compound pinned query.
 - `items(kind, created_at_utc DESC)` for type filtering.
-- `items(fingerprint, source, created_at_utc DESC)` for bounded duplicate lookup.
+- `items(fingerprint, source, created_at_utc DESC)` for fingerprint chronology/diagnostics; it is not used to globally suppress Clipboard history.
 - `file_references(normalized_path)` for duplicate/reference refresh.
 - `url_metadata(host)` for URL filtering.
 - Search: begin with indexed projections and measured queries; add FTS5 only after confirming deployment availability and migration cost.
@@ -197,7 +197,7 @@ Foreign-key reference from `items.payload_id` is enforced in the final migration
 ## Duplicate policy
 
 - Space: exact normalized duplicate prompts/merges by default rather than silently adding.
-- Clipboard: identical fingerprint within a configurable short window updates recency/count metadata instead of creating noise; pinned records are never silently replaced.
+- Clipboard: a process-local serialized coordinator collapses only consecutive identical observed snapshots after a successful persistence. `A → B → A` creates three rows; no historical fingerprint query, uniqueness constraint, recency rewrite, or duplicate counter is used.
 - A fingerprint is not a security boundary and may use SHA-256 over canonicalized content.
 
 ## Migrations

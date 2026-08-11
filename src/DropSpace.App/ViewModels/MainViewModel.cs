@@ -687,7 +687,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)
     {
         var fromUtc = GetClearFromUtc(range);
-        var result = await _repository.ClearClipboardAsync(fromUtc, includePinned: false, cancellationToken);
+        var result = await _clipboard.ClearHistoryAsync(fromUtc, includePinned: false, cancellationToken);
         foreach (var path in result.PayloadPaths)
         {
             try

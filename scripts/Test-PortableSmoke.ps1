@@ -91,10 +91,13 @@ try
         [int]$marker.overlayWindowCount -lt 1 -or
         [int]$marker.dragActivationHostCount -lt 1 -or
         $marker.clipboardListenerRegistered -ne $true -or
-        [int]$marker.clipboardObservedUpdateDelta -lt 6 -or
-        [int]$marker.clipboardSuccessfulCaptureDelta -lt 6 -or
+        [int]$marker.clipboardObservedUpdateDelta -lt 8 -or
+        [int]$marker.clipboardSuccessfulCaptureDelta -lt 7 -or
+        [int]$marker.clipboardSuppressedConsecutiveDuplicateDelta -lt 1 -or
         $marker.clipboardFirstTextPersisted -ne $true -or
         $marker.clipboardSecondTextPersisted -ne $true -or
+        $marker.clipboardConsecutiveDuplicateSuppressionVerified -ne $true -or
+        $marker.clipboardNonConsecutiveDuplicatePreserved -ne $true -or
         $marker.clipboardFileReferencePersisted -ne $true -or
         $marker.clipboardPauseVerified -ne $true -or
         $marker.clipboardResumeVerified -ne $true -or
@@ -140,7 +143,7 @@ try
     }
 
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
-    Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
+    Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
     Write-Host "Overlay geometry stress: switches=$($marker.notchGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), activationTargetsDiscoverable=$($marker.dragActivationTargetsDiscoverable)"
     Write-Host "Visible Overlay targets: compact=$($marker.compactVisualTargetDiscoverable), expanded=$($marker.expandedVisualTargetDiscoverable)"
