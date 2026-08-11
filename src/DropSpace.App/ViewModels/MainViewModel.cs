@@ -225,6 +225,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(AutoInstallUpdates));
                 OnPropertyChanged(nameof(UpdateChannel));
                 OnPropertyChanged(nameof(LastUpdateCheckText));
+                OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
             }
         }
     }
@@ -273,6 +274,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string CurrentVersionText => _updates.CurrentVersion.ToString();
 
+    public string CurrentVersionDisplayText => $"DropSpace {CurrentVersionText}";
+
     public UpdateStatusSnapshot UpdateStatus
     {
         get => _updateStatus;
@@ -290,6 +293,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(TrustedAutoInstallAvailable));
                 OnPropertyChanged(nameof(DeploymentModeText));
                 OnPropertyChanged(nameof(LastUpdateCheckText));
+                OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
             }
         }
     }
@@ -327,6 +331,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string LastUpdateCheckText => Settings.LastUpdateCheckUtc is { } value
         ? value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
         : "尚未检查";
+
+    public string LastUpdateCheckDisplayText => $"上次检查：{LastUpdateCheckText}";
 
     public bool HasWindowsShareIdentity => _windowsShareIntegration.HasPackageIdentity;
 

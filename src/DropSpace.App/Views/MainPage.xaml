@@ -608,11 +608,11 @@
               BorderThickness="1"
               CornerRadius="8">
               <StackPanel Spacing="8">
-                <TextBlock FontWeight="SemiBold" Text="{Binding CurrentVersionText, StringFormat='DropSpace {0}'}" />
+                <TextBlock FontWeight="SemiBold" Text="{Binding CurrentVersionDisplayText}" />
                 <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding DeploymentModeText}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding UpdateStatusText}" TextWrapping="Wrap" />
                 <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding UpdateProgressText}" />
-                <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{Binding LastUpdateCheckText, StringFormat='上次检查：{0}'}" />
+                <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{Binding LastUpdateCheckDisplayText}" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <Button Content="检查更新" IsEnabled="{Binding CanCheckForUpdates}" Click="OnCheckForUpdatesClicked" />
                   <Button Content="立即下载" Visibility="{Binding CanDownloadUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnDownloadUpdateClicked" />
