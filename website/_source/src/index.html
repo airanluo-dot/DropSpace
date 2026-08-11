@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DropSpace — A Temporary Space for Windows</title>
+  <meta name="description" content="Drag files to the top of your Windows 11 screen, keep them in a temporary space, and bring them back when you need them.">
+  <link rel="canonical" href="https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/index.html">
+  <link rel="alternate" hreflang="en" href="?lang=en">
+  <link rel="alternate" hreflang="zh-CN" href="?lang=zh">
+  <meta name="theme-color" content="#050506">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="DropSpace — A Temporary Space for Windows">
+  <meta property="og:description" content="Drag it. Keep it. Use it later.">
+  <meta property="og:url" content="https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/index.html">
+  <meta property="og:image" content="https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DropSpace — A Temporary Space for Windows">
+  <meta name="twitter:description" content="Drag it. Keep it. Use it later.">
+  <meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/assets/og-image.png">
+  <link rel="icon" type="image/png" href="./assets/favicon.png">
+  <link rel="apple-touch-icon" href="./assets/favicon.png">
+  <link rel="manifest" href="./site.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"DropSpace","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 11 build 26100 or later","softwareVersion":"{{STABLE_TAG}}","downloadUrl":"{{INSTALLER_URL}}","license":"https://www.apache.org/licenses/LICENSE-2.0","codeRepository":"https://github.com/airanluo-dot/DropSpace","author":{"@type":"Person","name":"Airan Luo"}}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header" data-header>
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="DropSpace home">
+        <img src="./assets/dropspace-logo.png" width="42" height="42" alt="">
+        <span>DropSpace</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="./changelog/index.html">Changelog</a>
+        <a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+      <button class="language-switch" type="button" data-language-switch aria-label="切换到中文">中文</button>
+      <a class="button button-small button-outline" href="{{INSTALLER_URL}}" data-download="installer">Download</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" id="top">
+      <div class="hero-copy">
+        <h1>Drag it. Keep it.<br>Use it later.</h1>
+        <p>A temporary space for Windows 11—right at the top of your screen.</p>
+        <div class="actions">
+          <a class="button button-primary" href="{{INSTALLER_URL}}" data-download="installer">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4.4 10.3 3v8.2H3V4.4Zm8.3-1.6L21 1v10.2h-9.7V2.8ZM3 12.2h7.3V21L3 19.6v-7.4Zm8.3 0H21V23l-9.7-1.8v-9Z"/></svg>
+            Download for Windows
+          </a>
+          <a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+        </div>
+        <p class="stable-line"><span aria-hidden="true"></span> Latest Stable · {{STABLE_TAG}}</p>
+      </div>
+
+      <div class="desktop-demo" data-demo aria-label="Animated demonstration: drag a file to the top of the screen to place it in DropSpace">
+        <div class="screen-bar"><i></i><i></i><i></i><span>Desktop</span></div>
+        <div class="island" data-island>
+          <img src="./assets/favicon.png" alt="" width="26" height="26">
+          <span class="island-label">DropSpace</span>
+          <strong class="island-count">3</strong>
+        </div>
+        <div class="desktop-file" data-file>
+          <svg aria-hidden="true" viewBox="0 0 64 64"><path d="M13 5h25l13 13v41H13z"/><path d="M38 5v14h13"/><path d="M21 33h22M21 42h17"/></svg>
+          <span>Project Brief.pdf</span>
+        </div>
+        <div class="drop-trail" aria-hidden="true"></div>
+        <div class="space-popover" data-popover>
+          <div class="popover-head"><div><strong>Temporary Space</strong><span>Ready when you are</span></div><b>3 items</b></div>
+          <div class="file-row"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>2.4 MB · just now</small></div><i>•••</i></div>
+          <div class="file-row"><span class="file-type image">IMG</span><div><strong>Design Notes.png</strong><small>1.1 MB · 2 min ago</small></div><i>•••</i></div>
+          <div class="file-row"><span class="file-type doc">DOC</span><div><strong>Client Deck.pptx</strong><small>6.7 MB · 8 min ago</small></div><i>•••</i></div>
+          <small class="safe-note">Removing a reference never deletes the original file.</small>
+        </div>
+        <div class="demo-caption"><span>1. Drag from anywhere</span><span>2. Drop at the top</span><span>3. Use it later</span></div>
+      </div>
+    </section>
+
+    <section class="temporary band shell" id="features">
+      <div class="section-copy">
+        <p class="section-index">01 / TEMPORARY SPACE</p>
+        <h2>Without the<br>temporary mess.</h2>
+        <p>DropSpace keeps file and folder references at your fingertips without moving or duplicating the originals. Your files stay exactly where you left them.</p>
+      </div>
+      <div class="reference-flow" aria-label="Explorer file reference is added to Temporary Space while the original stays in place">
+        <div class="explorer-window">
+          <div class="window-title"><span></span><span></span><span></span><b>Documents / Projects</b></div>
+          <div class="explorer-body"><aside>Home<br>Desktop<br>Downloads<br><strong>Documents</strong><br>Pictures</aside><div class="files"><small>Name <i>Date modified</i></small><p><b class="mini-file pdf">P</b>Project Brief.pdf <i>Today</i></p><p><b class="mini-file image">I</b>Design Notes.png <i>Today</i></p><p><b class="mini-file doc">D</b>Client Deck.pptx <i>Yesterday</i></p></div></div>
+        </div>
+        <svg class="flow-arrow" aria-hidden="true" viewBox="0 0 130 38"><path d="M2 19h116M104 5l14 14-14 14"/></svg>
+        <div class="reference-card"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>Reference · source unchanged</small></div></div>
+        <div class="source-safe"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span><strong>Original stays in place</strong><small>Nothing is moved or copied.</small></span></div>
+      </div>
+    </section>
+
+    <section class="modes shell">
+      <div class="section-heading split-heading"><div><p class="section-index">02 / TOP-SCREEN ACCESS</p><h2>Two shapes.<br>One quick workspace.</h2></div><p>Choose Dynamic Island or Notch. Both move through the same clear states: Compact, Drop Ready, Expanded.</p></div>
+      <div class="mode-stage" data-mode-stage>
+        <div class="mode-switch" role="group" aria-label="Overlay shape preview">
+          <button class="active" type="button" data-mode="island" aria-pressed="true">Dynamic Island</button>
+          <button type="button" data-mode="notch" aria-pressed="false">Notch</button>
+        </div>
+        <div class="mode-screen">
+          <div class="mode-overlay compact"><img src="./assets/favicon.png" alt=""><span>Temporary Space</span><b>3</b></div>
+          <div class="mode-overlay ready"><span></span><strong>Drop Ready</strong><small>Release to add files</small></div>
+          <div class="mode-overlay expanded"><div><strong>Temporary Space</strong><small>3 recent items</small></div><div class="tiny-rows"><span>Project Brief.pdf</span><span>Design Notes.png</span><span>Client Deck.pptx</span></div></div>
+          <div class="state-labels"><span>Compact</span><span>Drop Ready</span><span>Expanded</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="clipboard band shell">
+      <div class="section-copy">
+        <p class="section-index">03 / CLIPBOARD HISTORY</p>
+        <h2>History that<br>stays useful.</h2>
+        <p>Find copied text, links, images, files and folders. Pause recording when you need to, pin what matters, and search everything in one place.</p>
+        <div class="duplicate-rule"><div><code>A</code><code>A</code><code>A</code><b>→</b><code>A</code></div><small>Consecutive duplicates collapse.</small><div><code>A</code><code class="blue">B</code><code>A</code><b>→</b><code>A</code><code class="blue">B</code><code>A</code></div><small>Useful A → B → A history stays.</small></div>
+      </div>
+      <div class="clipboard-window">
+        <div class="clipboard-title"><strong>Clipboard History</strong><div><span>⌕</span><span>Ⅱ</span><span>×</span></div></div>
+        <div class="filter-row"><b>All</b><span>Text</span><span>Links</span><span>Images</span><span>Files</span><i>Pinned</i></div>
+        <div class="clip-row"><span class="clip-icon text">T</span><div><strong>Design is not just what it looks like…</strong><small>Text · 3 min ago</small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon link">↗</span><div><strong>github.com/airanluo-dot/DropSpace</strong><small>Link · 8 min ago</small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon image">▧</span><div><strong>Screenshot 2026-08-11.png</strong><small>Image · 14 min ago</small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon file">▤</span><div><strong>Release Notes.md</strong><small>File · 22 min ago</small></div><b>···</b></div>
+      </div>
+    </section>
+
+    <section class="drag shell">
+      <div class="section-heading"><p class="section-index">04 / DRAG & DROP</p><h2>Built for the drag.</h2><p>Explorer, Desktop, Compact, Expanded, or the main window—DropSpace meets the file where your workflow already is.</p></div>
+      <div class="drag-rail">
+        <div><span>Explorer / Desktop</span><strong>→ Compact Island</strong><i class="mini-island"></i></div>
+        <div><span>Explorer / Desktop</span><strong>→ Expanded Island</strong><i class="mini-expanded"><b></b><b></b><b></b></i></div>
+        <div><span>Main Window</span><strong>Drag in / out</strong><i class="mini-window"><b></b><b></b><b></b></i></div>
+      </div>
+      <div class="feature-rail" aria-label="Additional DropSpace features">
+        <span><b>⌕</b>Search</span><span><b>⌖</b>Pinned items</span><span><b>▱</b>Folders</span><span><b>▤</b>Tray access</span><span><b>⊞</b>Start with Windows</span><span><b>↻</b>Stable & Preview updates</span>
+      </div>
+    </section>
+
+    <section class="download band shell" id="download">
+      <div class="download-intro"><p class="section-index">DOWNLOAD</p><h2>Ready when<br>you are.</h2><p>Latest Stable · {{STABLE_TAG}}</p><p>Windows 11 build 26100 or later</p><a href="{{STABLE_URL}}" target="_blank" rel="noopener noreferrer">View all releases <span>↗</span></a><a href="{{CHECKSUM_URL}}">SHA-256 checksums <span>↗</span></a></div>
+      <div class="download-options">
+        <a class="download-card recommended" href="{{INSTALLER_URL}}" data-download="installer"><img src="./assets/favicon.png" alt=""><div><strong>Download Installer</strong><span>Recommended for most users</span><small>DropSpaceSetup.exe</small></div><b>↓</b><em>RECOMMENDED</em></a>
+        <a class="download-card" href="{{PORTABLE_URL}}" data-download="portable"><span class="download-icon">▱</span><div><strong>Portable</strong><span>Run without installing</span><small>DropSpace.exe</small></div><b>↓</b></a>
+        <a class="download-card" href="{{MSIX_URL}}" data-download="msix"><span class="download-icon">◇</span><div><strong>MSIX</strong><span>Alternative unsigned package</span><small>DropSpace-x64.msix</small></div><b>↓</b></a>
+      </div>
+    </section>
+
+    <section class="whats-new shell" id="changelog">
+      <div><p class="section-index">WHAT'S NEW</p><h2>First Stable.</h2><a class="release-title" href="{{STABLE_URL}}" target="_blank" rel="noopener noreferrer">{{STABLE_TAG}} — {{STABLE_TITLE}}</a><p>{{STABLE_DATE}}</p></div>
+      <div class="release-list"><span>Final official branding</span><span>Temporary Space with Dynamic Island or Notch</span><span>Clipboard History with consecutive duplicate suppression</span><span>In-app Stable and Preview update channels</span><span>Installer, Portable, and MSIX downloads</span><a class="button button-ghost" href="./changelog/index.html">View full changelog</a></div>
+    </section>
+
+    <section class="open-source band shell">
+      <div><p class="section-index">OPEN SOURCE</p><h2>Open by design.</h2><p>DropSpace is built in the open, with its code, decisions, privacy model and release history available to everyone.</p></div>
+      <div><div class="actions"><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">View Source</a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/stargazers" target="_blank" rel="noopener noreferrer">Star on GitHub</a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/issues" target="_blank" rel="noopener noreferrer">Report an Issue</a></div><p>Apache-2.0 · Copyright 2026 Airan Luo</p></div>
+    </section>
+
+    <section class="faq shell" id="faq">
+      <div class="section-heading"><p class="section-index">FAQ</p><h2>Good to know.</h2></div>
+      <div class="faq-list">
+        <details><summary>What is DropSpace?</summary><p>A local-first Windows 11 workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island or Notch.</p></details>
+        <details><summary>Does DropSpace move my files?</summary><p>No. Temporary Space stores references. Adding or removing a reference does not move, copy, or delete the original file.</p></details>
+        <details><summary>Can I add folders?</summary><p>Yes. DropSpace can hold file and folder references through drag and drop or its picker.</p></details>
+        <details><summary>What is Clipboard History?</summary><p>A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.</p></details>
+        <details><summary>What's the difference between Installer and Portable?</summary><p>The recommended per-user Installer adds Start Menu integration, an uninstaller, and in-place update support. Portable runs directly without installation; updates are notify/download-only.</p></details>
+        <details><summary>Does DropSpace support Windows 10?</summary><p>No. The current release requires Windows 11 build 26100 or later.</p></details>
+        <details><summary>What about the Windows 11 Drop Tray?</summary><p>Windows may own the same top-edge drag gesture. DropSpace Settings links to the official Multitasking page; direct drops onto visible Compact and Expanded surfaces remain supported.</p></details>
+        <details><summary>Does DropSpace upload clipboard content?</summary><p>No. Ordinary content features use local storage. If update checks are enabled, DropSpace contacts only public GitHub Release metadata and official GitHub asset URLs.</p></details>
+        <details><summary>How do updates work?</summary><p>Stable receives Stable releases. Preview can receive Stable and Preview releases. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="#top"><img src="./assets/dropspace-logo.png" width="42" height="42" alt=""><span>DropSpace</span></a><nav aria-label="Footer"><a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/airanluo-dot/DropSpace/releases" target="_blank" rel="noopener noreferrer">Releases</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a></nav><p>© 2026 Airan Luo.</p></div></footer>
+  <script type="module" src="./script.js"></script>
+</body>
+</html>

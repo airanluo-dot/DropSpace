@@ -1,0 +1,11 @@
+{
+  "name": "dropspace-website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync-releases": "node scripts/sync-releases.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test scripts/*.test.mjs"
+  }
+}

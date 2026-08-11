@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/sitemap.xml
