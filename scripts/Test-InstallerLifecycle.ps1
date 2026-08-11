@@ -178,6 +178,31 @@ function Wait-ForMaintenanceEndpoint
     throw "Installed baseline app did not expose its maintenance endpoint within $TimeoutSeconds seconds."
 }
 
+function Wait-PathRemoved
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [int]$TimeoutSeconds = 20
+    )
+
+    # Inno runs the final uninstaller/self-delete pass from a temporary process.
+    # The launched unins*.exe can exit just before that helper removes the empty
+    # uninstall and application directories, so observe the real filesystem
+    # postcondition with a bounded wait instead of racing the helper.
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    while ((Test-Path $Path) -and [DateTime]::UtcNow -lt $deadline)
+    {
+        Start-Sleep -Milliseconds 200
+    }
+
+    if (Test-Path $Path)
+    {
+        $remaining = @(Get-ChildItem -Path $Path -Force -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName)
+        throw "Uninstall did not remove '$Path' within $TimeoutSeconds seconds. Remaining entries: $($remaining -join '; ')"
+    }
+}
+
 if (Test-Path $dataRoot)
 {
     throw "The isolated runner already contains $dataRoot; refusing to risk pre-existing user data."
@@ -335,7 +360,7 @@ try
     Invoke-CheckedProcess $uninstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/PURGEDATA=1"
     ) "complete uninstall" (Join-Path $testRoot "complete-uninstall.log")
-    if (Test-Path $installPath) { throw "Complete uninstall left the application directory behind." }
+    Wait-PathRemoved -Path $installPath
     if (Test-Path $dataRoot) { throw "Complete uninstall did not remove DropSpace-owned local data." }
     if (-not (Test-Path $externalSentinel))
     {
