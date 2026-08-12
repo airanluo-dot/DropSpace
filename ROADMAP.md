@@ -424,3 +424,11 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Recognize Explorer/Desktop file item ancestors without accepting blank Shell surfaces; retain system threshold and final OLE validation.
 - Add a versioned official website release API, runtime website refresh, GitHub Pages mirror and resilient in-app metadata fallback.
 - Graduation remains blocked on new real Windows 11 Explorer/Desktop evidence; Stable stays v0.1.0.
+
+### v0.2.0-preview.3 field hotfix
+
+- Add documented `EVENT_OBJECT_DRAGSTART/CANCEL/COMPLETE` signals so transient UIA item hit-test failure no longer leaves Smart mode completely silent.
+- Retain verified Explorer/Desktop file-view origin evidence while requiring exact item evidence for mouse-threshold-only fallback and real OLE `CF_HDROP` for acceptance.
+- Use one DPI-aware Drop Tray-safe anchor for every Overlay state and both Dynamic Island/Notch; enlarge the host so offset Expanded geometry and the native target region cannot diverge.
+- Add Windows smoke health gates for the observation-only mouse hook and object-drag event hook plus Core placement/DPI regressions.
+- Graduation remains blocked on real Windows 11 Explorer/Desktop event delivery, false-positive evidence, mixed-DPI visual alignment, and Drop Tray coexistence; Stable stays v0.1.0.
