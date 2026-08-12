@@ -42,9 +42,13 @@ if (systemCheck) {
 // Release data is refreshed at runtime so Cloudflare Pages can reflect a newly published GitHub
 // Release without waiting for a second static-site deployment. Build-time data remains a complete,
 // offline-safe fallback. The app consumes the same versioned contract.
-const releaseApiPaths = location.hostname.endsWith("github.io")
+const isGitHubPages = location.hostname.endsWith("github.io");
+const isLocalPreview = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+const releaseApiPaths = isGitHubPages
   ? [`/${location.pathname.split("/").filter(Boolean)[0]}/api/v1/releases.json`]
-  : ["/api/v1/releases.json", "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
+  : isLocalPreview
+    ? ["/api/v1/releases.json"]
+    : ["/api/v1/releases.json", "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
 
 void refreshReleaseData();
 
