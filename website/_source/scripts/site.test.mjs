@@ -9,6 +9,8 @@ const en = await read("en/index.html");
 const zh = await read("zh-cn/index.html");
 const enChangelog = await read("en/changelog/index.html");
 const zhChangelog = await read("zh-cn/changelog/index.html");
+const cssHref = (en.match(/href="([^"]*styles\.[^"]+\.css)"/) ?? [])[1];
+const css = await read(new URL(cssHref, "https://airanluo-dot.github.io/DropSpace/en/").pathname.replace(/^\/DropSpace\//, ""));
 const releaseApi = JSON.parse(await read("api/v1/releases.json"));
 
 test("fallback has all Stable downloads", () => {
@@ -57,13 +59,29 @@ test("localized metadata, canonical, hreflang, OG and structured data are comple
 });
 
 test("homepage includes product, media, requirements, limitations and verification", () => {
-  for (const value of ["Temporary Space", "Dynamic Island", "Notch", "Clipboard History", "Download Installer", "PRODUCT PREVIEW", "SYSTEM REQUIREMENTS", "KNOWN LIMITATIONS", "VERIFY YOUR DOWNLOAD"]) {
+  for (const value of ["Temporary Space", "Dynamic Island", "One Island.", "Ready for every drop.", "Clipboard History", "Download Installer", "PRODUCT PREVIEW", "SYSTEM REQUIREMENTS", "KNOWN LIMITATIONS", "VERIFY YOUR DOWNLOAD"]) {
     assert.ok(en.includes(value), `missing ${value}`);
   }
+  assert.doesNotMatch(en, /data-mode="notch"|>Notch<|Two shapes\./);
+  assert.doesNotMatch(zh, />刘海<|两种外形。/);
   assert.ok(en.includes("product-overview."));
   assert.ok(en.includes("drag-demo."));
   assert.ok(!en.includes("localhost"));
   assert.ok(!en.includes("Lorem ipsum"));
+});
+
+test("live Stable status keeps one green dot and a horizontal API-updated label", () => {
+  for (const html of [en, zh]) {
+    const document = new JSDOM(html).window.document;
+    const status = document.querySelector(".stable-line");
+    assert.ok(status);
+    assert.equal(status.querySelectorAll(".release-live-dot").length, 1);
+    assert.equal(status.querySelectorAll("[data-stable-version].release-live-copy").length, 1);
+  }
+  assert.match(css, /\.stable-line\{[^}]*display:flex!important[^}]*white-space:nowrap/);
+  assert.match(css, /\.release-live-dot\{[^}]*width:7px[^}]*height:7px/);
+  assert.match(css, /\.release-live-copy\{[^}]*width:auto[^}]*height:auto[^}]*background:none/);
+  assert.doesNotMatch(css, /\.stable-line span\{/);
 });
 
 test("release data drives every download and changelog entry", () => {

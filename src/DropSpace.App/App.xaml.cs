@@ -372,7 +372,7 @@ public partial class App : Application
             overlayUserObjectDelta = metrics.UserObjectDelta,
             overlayPrivateBytesDelta = metrics.PrivateBytesDelta,
             noContinuousFrameLoop = metrics.NoContinuousFrameSubscription,
-            notchGeometryStressCycles = metrics.GeometryStressCycles,
+            overlayGeometryStressCycles = metrics.GeometryStressCycles,
             overlayRegionFailureCount = metrics.RegionFailureCount,
             idleTopEdgePassThrough = metrics.IdleTopEdgePassThrough,
             wakeModeSwitchVerified = metrics.WakeModeSwitchVerified,

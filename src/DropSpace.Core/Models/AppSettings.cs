@@ -15,12 +15,6 @@ public enum CloseBehavior
     Exit,
 }
 
-public enum OverlayDisplayMode
-{
-    DynamicIsland,
-    Notch,
-}
-
 public enum OverlayMotionPreference
 {
     System,
@@ -43,7 +37,7 @@ public enum FileDragWakeMode
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -81,8 +75,6 @@ public sealed record AppSettings
 
     public string LaunchPage { get; init; } = "Space";
 
-    public OverlayDisplayMode OverlayDisplayMode { get; init; } = OverlayDisplayMode.DynamicIsland;
-
     public OverlayMotionPreference OverlayMotion { get; init; } = OverlayMotionPreference.System;
 
     public OverlayMonitorPreference OverlayMonitor { get; init; } = OverlayMonitorPreference.Automatic;
@@ -102,7 +94,6 @@ public sealed record AppSettings
     public AppSettings WithSafeUiPreferences() => this with
     {
         Theme = ThemePreference.System,
-        OverlayDisplayMode = OverlayDisplayMode.DynamicIsland,
         OverlayMotion = OverlayMotionPreference.System,
         OverlayMonitor = OverlayMonitorPreference.Automatic,
         FileDragWakeMode = FileDragWakeMode.SmartExperimental,
@@ -164,11 +155,6 @@ public sealed record AppSettings
         if (!Enum.IsDefined(CloseBehavior))
         {
             throw new ArgumentOutOfRangeException(nameof(CloseBehavior));
-        }
-
-        if (!Enum.IsDefined(OverlayDisplayMode))
-        {
-            throw new ArgumentOutOfRangeException(nameof(OverlayDisplayMode));
         }
 
         if (!Enum.IsDefined(OverlayMotion))

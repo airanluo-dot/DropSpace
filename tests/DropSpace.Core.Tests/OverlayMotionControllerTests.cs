@@ -76,20 +76,21 @@ public sealed class OverlayMotionControllerTests
     }
 
     [TestMethod]
-    public void OneThousandNotchModeReversalsAlwaysProduceApiSafeFrames()
+    public void OneThousandIslandStateReversalsAlwaysProduceApiSafeFrames()
     {
-        var controller = new OverlayMotionController(IslandCompact());
-        var island = IslandCompact();
-        var notch = NotchCompact();
+        var compact = IslandCompact();
+        var ready = Visible(430, 92, 84, 30, 1);
+        var expanded = new OverlayMotionValues(560, 340, 84, 28, 28, 1, 0, 0, 1, 1);
+        var controller = new OverlayMotionController(compact);
         for (var cycle = 0; cycle < 1_000; cycle++)
         {
-            controller.SetTarget(notch, reducedMotion: false);
+            controller.SetTarget(ready, reducedMotion: false);
             StepAndAssertSafe(controller, 4 + cycle % 7);
-            controller.SetTarget(island, reducedMotion: false);
+            controller.SetTarget(compact, reducedMotion: false);
             StepAndAssertSafe(controller, 2 + cycle % 5);
-            controller.SetTarget(notch, reducedMotion: false);
+            controller.SetTarget(expanded, reducedMotion: false);
             StepAndAssertSafe(controller, 1 + cycle % 3);
-            controller.SetTarget(island, reducedMotion: false);
+            controller.SetTarget(compact, reducedMotion: false);
             StepAndAssertSafe(controller, 3 + cycle % 6);
         }
 
@@ -99,7 +100,7 @@ public sealed class OverlayMotionControllerTests
         }
 
         Assert.IsFalse(controller.IsAnimating);
-        Assert.AreEqual(island, controller.Current);
+        Assert.AreEqual(compact, controller.Current);
     }
 
     [TestMethod]
@@ -134,9 +135,6 @@ public sealed class OverlayMotionControllerTests
 
     private static OverlayMotionValues IslandCompact() =>
         new(340, 64, 8, 32, 32, 1, 1, 0, 0, 1);
-
-    private static OverlayMotionValues NotchCompact() =>
-        new(340, 64, 0, 0, 32, 1, 1, 0, 0, 1);
 
     private static OverlayMotionValues Visible(
         double width,

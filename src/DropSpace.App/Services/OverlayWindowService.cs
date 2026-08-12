@@ -97,25 +97,25 @@ public sealed class OverlayWindowService : IDisposable
         var original = _viewModel.Snapshot;
         for (var index = 0; index < 5; index++)
         {
-            ExerciseLifecycle(original.DisplayMode);
+            ExerciseLifecycle();
         }
 
         var geometryStressCycles = 1_000;
-        var regionFailures = _windows[0].RunNotchGeometryStress(geometryStressCycles);
+        var regionFailures = _windows[0].RunGeometryStress(geometryStressCycles);
         if (regionFailures != 0)
         {
             throw new InvalidOperationException(
                 $"Overlay geometry stress encountered {regionFailures} HRGN application failures.");
         }
 
-        _stateMachine.Restore(1, original.DisplayMode);
+        _stateMachine.Restore(1);
         await Task.Delay(750, cancellationToken);
         var compactVisualTargetDiscoverable = ProbeActiveVisualCenter();
         _stateMachine.Expand();
         await Task.Delay(750, cancellationToken);
         var expandedVisualTargetDiscoverable = ProbeActiveVisualCenter();
         // Activation-host discovery is meaningful only while the visual Overlay is truly hidden.
-        _stateMachine.Restore(0, original.TargetDisplayMode);
+        _stateMachine.Restore(0);
         await Task.Delay(300, cancellationToken);
         if (!compactVisualTargetDiscoverable || !expandedVisualTargetDiscoverable)
         {
@@ -152,14 +152,14 @@ public sealed class OverlayWindowService : IDisposable
         for (var index = 0; index < cycles; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ExerciseLifecycle(original.DisplayMode);
+            ExerciseLifecycle();
             if (index % 10 == 9)
             {
                 await Task.Delay(16, cancellationToken);
             }
         }
 
-        _stateMachine.Restore(original.TemporaryItemCount, original.TargetDisplayMode);
+        _stateMachine.Restore(original.TemporaryItemCount);
         await Task.Delay(500, cancellationToken);
         CollectReleasedResources();
         var after = CaptureResources();
@@ -475,8 +475,7 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var host in _activationHosts)
         {
             var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
-            var visualSurfaceOwnsStableInput = snapshot.State is OverlayState.Compact or OverlayState.Expanded ||
-                                               snapshot.State == OverlayState.ModeTransition && snapshot.TemporaryItemCount > 0;
+            var visualSurfaceOwnsStableInput = snapshot.State is OverlayState.Compact or OverlayState.Expanded;
             var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
                                     _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
             host.SetEnabled(monitorEnabled && activationEnabled);
@@ -746,16 +745,9 @@ public sealed class OverlayWindowService : IDisposable
         });
     }
 
-    private void ExerciseLifecycle(OverlayDisplayMode initialMode)
+    private void ExerciseLifecycle()
     {
-        var alternateMode = initialMode == OverlayDisplayMode.DynamicIsland
-            ? OverlayDisplayMode.Notch
-            : OverlayDisplayMode.DynamicIsland;
-        _stateMachine.Restore(0, initialMode);
-        _stateMachine.RequestDisplayMode(alternateMode);
-        _stateMachine.CompleteModeTransition();
-        _stateMachine.RequestDisplayMode(initialMode);
-        _stateMachine.CompleteModeTransition();
+        _stateMachine.Restore(0);
         _stateMachine.BeginDragApproach();
         _stateMachine.SetDragReady(true);
         _stateMachine.CompleteDrop(1);

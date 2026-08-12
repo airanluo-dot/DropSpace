@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.1.0 Stable production slice covers Phases 1–10 plus file capture, startup, branding, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, Dynamic Island/Notch, configurable limits, default-on startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.1.0 Stable production slice covers Phases 1–10 plus file capture, startup, branding, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, Dynamic Island, configurable limits, default-on startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
 
@@ -311,7 +311,7 @@ Make Temporary Space available as a low-idle, top-edge file drop interaction wit
 
 ### Features
 
-Formal interruptible Overlay state machine; independent per-monitor Win32/OLE drag activation hosts; truly hidden visual HWND; continuously spring-driven Dynamic Island/Notch geometry; Compact/Expanded actions; external drag-out; Reduced Motion; per-monitor DPI placement/topology rebuild; fullscreen suppression; Win32 clipboard listener health and integration smoke.
+Formal interruptible Overlay state machine; independent per-monitor Win32/OLE drag activation hosts; truly hidden visual HWND; continuously spring-driven Dynamic Island geometry; Compact/Expanded actions; external drag-out; Reduced Motion; per-monitor DPI placement/topology rebuild; fullscreen suppression; Win32 clipboard listener health and integration smoke.
 
 ### Tests
 
@@ -413,7 +413,7 @@ Actual Windows startup state matches UI, update failure preserves the working in
 
 - Default Hidden idle owns no top-edge hit-test or OLE target window.
 - Documented accessibility drag signals and bounded read-only mouse thresholds recognize Explorer/Desktop candidates; UIA/MSAA perform item hit-testing and real `CF_HDROP` remains mandatory.
-- Temporary Island/Notch target appears on the active drag monitor below the Windows Drop Tray region.
+- Temporary Dynamic Island target appears on the active drag monitor below the Windows Drop Tray region.
 - Smart, Classic top-edge and Disabled modes switch immediately with safe schema migration.
 - Graduation gate: real Windows 11 evidence for false positives, Explorer/Desktop coverage, cancellation, Drop Tray on/off, multi-monitor DPI and third-party limitations.
 - Serialized Temporary Space projections and Main + Expanded deletion crash stress coverage.
@@ -429,6 +429,6 @@ Actual Windows startup state matches UI, update failure preserves the working in
 
 - Add independent `EVENT_OBJECT_DRAGSTART/CANCEL/COMPLETE` and provider-supplied `EVENT_SYSTEM_DRAGDROPSTART/END` signals so transient UIA/MSAA item hit-test failure no longer leaves Smart mode completely silent.
 - Retain verified Explorer/Desktop file-view origin evidence while requiring exact item evidence for mouse-threshold-only fallback and real OLE `CF_HDROP` for acceptance.
-- Use one DPI-aware Drop Tray-safe anchor for every Overlay state and both Dynamic Island/Notch; enlarge the host so offset Expanded geometry and the native target region cannot diverge.
+- Use one DPI-aware Drop Tray-safe anchor for every Dynamic Island state; enlarge the host so offset Expanded geometry and the native target region cannot diverge.
 - Add Windows smoke health gates for the observation-only mouse hook and object-drag event hook plus Core placement/DPI regressions.
 - Graduation remains blocked on real Windows 11 Explorer/Desktop event delivery, false-positive evidence, mixed-DPI visual alignment, and Drop Tray coexistence; Stable stays v0.1.0.

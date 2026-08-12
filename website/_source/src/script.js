@@ -26,18 +26,6 @@ if (demo) {
   reduced.addEventListener("change", () => { clearTimeout(timer); run(); });
 }
 
-const stage = document.querySelector("[data-mode-stage]");
-document.querySelectorAll("[data-mode]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-mode]").forEach((item) => {
-      const active = item === button;
-      item.classList.toggle("active", active);
-      item.setAttribute("aria-pressed", String(active));
-    });
-    stage?.classList.toggle("notch", button.dataset.mode === "notch");
-  });
-});
-
 const observer = new IntersectionObserver((entries) => {
   for (const entry of entries) if (entry.isIntersecting) entry.target.classList.add("revealed");
 }, { threshold: 0.12 });

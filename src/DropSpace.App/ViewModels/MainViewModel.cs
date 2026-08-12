@@ -217,7 +217,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(RetentionItemCount));
                 OnPropertyChanged(nameof(Theme));
                 OnPropertyChanged(nameof(CloseBehavior));
-                OnPropertyChanged(nameof(OverlayDisplayMode));
                 OnPropertyChanged(nameof(OverlayMotion));
                 OnPropertyChanged(nameof(OverlayMonitor));
                 OnPropertyChanged(nameof(FileDragWakeMode));
@@ -258,8 +257,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ThemePreference Theme => Settings.Theme;
 
     public CloseBehavior CloseBehavior => Settings.CloseBehavior;
-
-    public OverlayDisplayMode OverlayDisplayMode => Settings.OverlayDisplayMode;
 
     public OverlayMotionPreference OverlayMotion => Settings.OverlayMotion;
 

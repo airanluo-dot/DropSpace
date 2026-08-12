@@ -47,6 +47,36 @@ test("localized changelog and Stable downloads are real", async ({ page }) => {
   await expect(installer).toHaveAttribute("href", "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe");
 });
 
+test("live Stable status and Dynamic Island showcase keep their intended layout", async ({ page }) => {
+  await page.goto("/DropSpace/zh-cn/");
+  await expect(page.locator(".release-live-dot")).toHaveCount(1);
+  await expect(page.locator(".release-live-copy")).toHaveText(/最新稳定版 · v\d+\.\d+\.\d+/);
+
+  const stableLayout = await page.locator(".stable-line").evaluate((line) => {
+    const dot = line.querySelector(".release-live-dot").getBoundingClientRect();
+    const copy = line.querySelector(".release-live-copy").getBoundingClientRect();
+    return {
+      direction: getComputedStyle(line).flexDirection,
+      writingMode: getComputedStyle(line).writingMode,
+      dotWidth: dot.width,
+      copyWidth: copy.width,
+      verticalOverlap: Math.min(dot.bottom, copy.bottom) - Math.max(dot.top, copy.top)
+    };
+  });
+  expect(stableLayout.direction).toBe("row");
+  expect(stableLayout.writingMode).toBe("horizontal-tb");
+  expect(stableLayout.dotWidth).toBe(7);
+  expect(stableLayout.copyWidth).toBeGreaterThan(80);
+  expect(stableLayout.verticalOverlap).toBeGreaterThan(0);
+
+  const showcase = page.locator("section.modes");
+  await expect(showcase).toContainText("一个灵动岛");
+  await expect(showcase).toContainText("接住每一次拖放");
+  await expect(showcase).not.toContainText("刘海");
+  await expect(showcase.locator(".mode-overlay")).toHaveCount(3);
+  await expect(showcase.locator("button")).toHaveCount(0);
+});
+
 test("reduced motion, system detection and narrow layout remain usable", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });

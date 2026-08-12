@@ -104,7 +104,7 @@ try
         $marker.clipboardSelfWriteSuppressionVerified -ne $true -or
         $marker.startupRegistrationEnabled -ne $true -or
         $marker.noContinuousFrameLoop -ne $true -or
-        [int]$marker.notchGeometryStressCycles -ne 1000 -or
+        [int]$marker.overlayGeometryStressCycles -ne 1000 -or
         [long]$marker.overlayRegionFailureCount -ne 0 -or
         $marker.idleTopEdgePassThrough -ne $true -or
         $marker.wakeModeSwitchVerified -ne $true -or
@@ -146,7 +146,7 @@ try
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
-    Write-Host "Overlay geometry stress: switches=$($marker.notchGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"
+    Write-Host "Overlay geometry stress: transitions=$($marker.overlayGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"
     Write-Host "Visible Overlay targets: compact=$($marker.compactVisualTargetDiscoverable), expanded=$($marker.expandedVisualTargetDiscoverable)"
     Write-Host "Visible Overlay CF_HDROP pipeline: compact=$($marker.compactSyntheticCfHDropAccepted), expanded=$($marker.expandedSyntheticCfHDropAccepted), expandedStayedOpen=$($marker.expandedDropStayedOpen)"
     Write-Host "Main + Expanded deletion stress: cycles=$($marker.projectionDeletionStressCycles), unhandled=$($marker.projectionUnhandledExceptionDelta), unobserved=$($marker.projectionUnobservedTaskExceptionDelta), externalSentinel=$($marker.projectionExternalSentinelPreserved)"

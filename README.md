@@ -2,7 +2,7 @@
 
 # DropSpace
 
-DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island/Notch provides a fast file drop surface over the same Temporary Space.
+DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island provides a fast file drop surface over the same Temporary Space.
 
 Official website: https://dropspace.pages.dev/ (GitHub Pages mirror: https://airanluo-dot.github.io/DropSpace/)
 
@@ -15,7 +15,7 @@ DropSpace **v0.1.0 is the first Stable release**. The repository contains the Wi
 
 Latest Stable: [v0.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
-Experimental Preview: **v0.2.0-preview.3** repairs the remaining no-response path with a non-blocking native message pump, two independent documented accessibility drag signal ranges, and bounded UI Automation/MSAA file-item hit-testing. The deprecated root-wide `UiaAddEvent` subscription no longer delays observer startup. It also gives DragApproaching, DragReady, Compact, Expanded, Dismissing, Dynamic Island, and Notch one DPI-aware Smart-mode anchor below Windows Drop Tray. Smart idle still leaves no top-edge activation HWND, the old top-edge target remains opt-in, and Stable-channel users do not receive this Preview.
+Experimental Preview: **v0.2.0-preview.3** repairs the remaining no-response path with a non-blocking native message pump, two independent documented accessibility drag signal ranges, and bounded UI Automation/MSAA file-item hit-testing. The deprecated root-wide `UiaAddEvent` subscription no longer delays observer startup. It also gives every Dynamic Island lifecycle state one DPI-aware Smart-mode anchor below Windows Drop Tray. Smart idle still leaves no top-edge activation HWND, the old top-edge target remains opt-in, and Stable-channel users do not receive this Preview.
 
 The implemented vertical slice includes:
 
@@ -25,7 +25,7 @@ The implemented vertical slice includes:
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
 - A responsive header that stacks controls before text scaling can collapse the page title, an embedded Win32 taskbar/tray icon chain, and a documented brand-asset map.
-- A truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry. Experimental Smart wake combines documented object-drag events, supplemental UI Automation signals, and bounded Explorer/Desktop mouse-threshold evidence, creates the visible OLE target only for the candidate session, and leaves the screen edge unowned while idle.
+- A truly hidden visual Overlay, formal state machine, and one continuously morphing Dynamic Island with Compact/Drop Ready/Expanded states. Experimental Smart wake combines documented object-drag events, supplemental UI Automation signals, and bounded Explorer/Desktop mouse-threshold evidence, creates the visible OLE target only for the candidate session, and leaves the screen edge unowned while idle.
 - An opt-in traditional top-edge OLE activation zone remains for sources Smart mode cannot identify. Settings disclose that it participates in top-edge hit testing and may conflict with Windows Drop Tray or title-bar controls.
 - Direct Explorer/Desktop drops onto the visible Compact or Expanded Overlay, with one OLE owner per pixel and Expanded in-place drop feedback.
 - Windows 11 Drop Tray compatibility guidance plus a standard `StorageItems` Share Target contract. The external-location identity is registered only by a future trusted-signed Setup; unsigned previews never install a self-signed certificate.
@@ -34,7 +34,7 @@ The implemented vertical slice includes:
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 - Process-lifetime in-app update checks, repeatable manual checks, Stable/Preview channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
-Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/consecutive-only duplicate suppression/Pause/Resume/self-write suppression, Smart mouse plus accessibility WinEvent observer registration, hidden top-edge pass-through, temporary visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, DPI-aware host containment, 1,000 deduplicated candidate sessions, settings migration, 200 serialized deletion cycles, 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry cycles, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Real Explorer/Desktop provider coverage, cross-process event delivery, false-positive rate, Drop Tray coexistence, zero-pixel Hidden appearance, accessibility, mixed-DPI geometry, and animation feel remain manual Preview gates and are not claimed by automation.
+Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/consecutive-only duplicate suppression/Pause/Resume/self-write suppression, Smart mouse plus accessibility WinEvent observer registration, hidden top-edge pass-through, temporary visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, DPI-aware host containment, 1,000 deduplicated candidate sessions, settings migration, 200 serialized deletion cycles, 100 Overlay lifecycle cycles, 1,000 interruptible Island geometry transitions, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Real Explorer/Desktop provider coverage, cross-process event delivery, false-positive rate, Drop Tray coexistence, zero-pixel Hidden appearance, accessibility, mixed-DPI geometry, and animation feel remain manual Preview gates and are not claimed by automation.
 
 ## Download and run
 

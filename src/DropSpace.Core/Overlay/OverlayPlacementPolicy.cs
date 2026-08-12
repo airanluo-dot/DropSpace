@@ -5,7 +5,7 @@ namespace DropSpace.Core.Overlay;
 /// <summary>
 /// Defines the single visual anchor used by every state in one Overlay lifecycle. Smart drag
 /// mode is intentionally displaced below the Windows 11 Drop Tray area; that displacement must
-/// not disappear when DragReady transitions to Compact, Expanded, Dismissing, or Notch.
+/// not disappear when DragReady transitions to Compact, Expanded, or Dismissing.
 /// </summary>
 public static class OverlayPlacementPolicy
 {
@@ -18,7 +18,6 @@ public static class OverlayPlacementPolicy
         MaximumSurfaceHeightDips + HostBottomMarginDips;
 
     public static double GetTopOffsetDips(
-        OverlayDisplayMode displayMode,
         FileDragWakeMode wakeMode,
         double monitorScale)
     {
@@ -27,12 +26,9 @@ public static class OverlayPlacementPolicy
             throw new ArgumentOutOfRangeException(nameof(monitorScale));
         }
 
-        var displayModeGap = displayMode == OverlayDisplayMode.DynamicIsland
-            ? DynamicIslandTopGapDips
-            : 0;
         var compatibilityOffset = wakeMode == FileDragWakeMode.SmartExperimental
             ? SmartTopOffsetPhysicalPixels / monitorScale
             : 0;
-        return displayModeGap + compatibilityOffset;
+        return DynamicIslandTopGapDips + compatibilityOffset;
     }
 }
