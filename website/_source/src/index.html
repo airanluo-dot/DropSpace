@@ -57,7 +57,7 @@
           </a>
           <a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">View on GitHub</a>
         </div>
-        <p class="stable-line"><span aria-hidden="true"></span> <span data-stable-version>Latest Stable · {{STABLE_TAG}}</span></p>
+        <p class="stable-line" aria-live="polite"><span class="release-live-dot" aria-hidden="true"></span><span class="release-live-copy" data-stable-version>Latest Stable · {{STABLE_TAG}}</span></p>
       </div>
 
       <div class="desktop-demo" data-demo aria-label="Animated demonstration: drag a file to the top of the screen to place it in DropSpace">
@@ -101,12 +101,9 @@
     </section>
 
     <section class="modes shell">
-      <div class="section-heading split-heading"><div><p class="section-index">02 / TOP-SCREEN ACCESS</p><h2>Two shapes.<br>One quick workspace.</h2></div><p>Choose Dynamic Island or Notch. Both move through the same clear states: Compact, Drop Ready, Expanded.</p></div>
+      <div class="section-heading split-heading"><div><p class="section-index">02 / TOP-SCREEN ACCESS</p><h2>One Island.<br>Ready for every drop.</h2></div><p>The Dynamic Island stays out of the way, then moves fluidly through Compact, Drop Ready, and Expanded as your files need it.</p></div>
       <div class="mode-stage" data-mode-stage>
-        <div class="mode-switch" role="group" aria-label="Overlay shape preview">
-          <button class="active" type="button" data-mode="island" aria-pressed="true">Dynamic Island</button>
-          <button type="button" data-mode="notch" aria-pressed="false">Notch</button>
-        </div>
+        <div class="island-showcase-label"><span aria-hidden="true"></span><strong>Dynamic Island</strong><small>One continuous surface</small></div>
         <div class="mode-screen">
           <div class="mode-overlay compact"><img src="./assets/favicon.png" alt=""><span>Temporary Space</span><b>3</b></div>
           <div class="mode-overlay ready"><span></span><strong>Drop Ready</strong><small>Release to add files</small></div>
@@ -170,7 +167,7 @@
 
     <section class="whats-new shell" id="changelog">
       <div><p class="section-index">WHAT'S NEW</p><h2>First Stable.</h2><a class="release-title" href="{{STABLE_URL}}" data-release-url target="_blank" rel="noopener noreferrer"><span data-stable-tag>{{STABLE_TAG}}</span> — {{STABLE_TITLE}}</a><p>{{STABLE_DATE}}</p></div>
-      <div class="release-list"><span>Final official branding</span><span>Temporary Space with Dynamic Island or Notch</span><span>Clipboard History with consecutive duplicate suppression</span><span>In-app Stable and Preview update channels</span><span>Installer, Portable, and MSIX downloads</span><a class="button button-ghost" href="./changelog/index.html">View full changelog</a></div>
+      <div class="release-list"><span>Final official branding</span><span>Temporary Space with Dynamic Island</span><span>Clipboard History with consecutive duplicate suppression</span><span>In-app Stable and Preview update channels</span><span>Installer, Portable, and MSIX downloads</span><a class="button button-ghost" href="./changelog/index.html">View full changelog</a></div>
     </section>
 
     <section class="open-source band shell">
@@ -181,7 +178,7 @@
     <section class="faq shell" id="faq">
       <div class="section-heading"><p class="section-index">FAQ</p><h2>Good to know.</h2></div>
       <div class="faq-list">
-        <details><summary>What is DropSpace?</summary><p>A local-first Windows 11 workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island or Notch.</p></details>
+        <details><summary>What is DropSpace?</summary><p>A local-first Windows 11 workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</p></details>
         <details><summary>Does DropSpace move my files?</summary><p>No. Temporary Space stores references. Adding or removing a reference does not move, copy, or delete the original file.</p></details>
         <details><summary>Can I add folders?</summary><p>Yes. DropSpace can hold file and folder references through drag and drop or its picker.</p></details>
         <details><summary>What is Clipboard History?</summary><p>A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.</p></details>

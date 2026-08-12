@@ -19,8 +19,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
-    private TaskCompletionSource? _modeTransitionCompletion;
-    private OverlayDisplayMode? _modeTransitionExpected;
     private string? _activeMonitorId;
     private bool _disposed;
 
@@ -111,7 +109,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
         _mainViewModel.SpaceProjectionChanged += OnSpaceProjectionChanged;
         _stateMachine.Changed += OnStateChanged;
-        _stateMachine.Restore(_mainViewModel.SpaceItemCount, _mainViewModel.OverlayDisplayMode);
+        _stateMachine.Restore(_mainViewModel.SpaceItemCount);
         await RefreshRecentItemsAsync(cancellationToken);
     }
 
@@ -171,8 +169,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public void CompleteDismissal() => _stateMachine.CompleteDismissal();
 
-    public void CompleteModeTransition() => _stateMachine.CompleteModeTransition();
-
     private Task ApplyUiSettingsAsync(AppSettings candidate, CancellationToken cancellationToken)
     {
         candidate.Validate();
@@ -181,28 +177,16 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
             : _dispatcher.EnqueueAsync(() => ApplyUiSettingsOnDispatcherAsync(candidate, cancellationToken));
     }
 
-    private async Task ApplyUiSettingsOnDispatcherAsync(
+    private Task ApplyUiSettingsOnDispatcherAsync(
         AppSettings candidate,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _pendingSettings = candidate;
         OnPropertyChanged(nameof(MonitorPreference));
         OnPropertyChanged(nameof(MotionPreference));
         OnPropertyChanged(nameof(FileDragWakeMode));
-
-        var snapshot = _stateMachine.Snapshot;
-        if (snapshot.DisplayMode == candidate.OverlayDisplayMode &&
-            snapshot.State != OverlayState.ModeTransition)
-        {
-            return;
-        }
-
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _modeTransitionCompletion?.TrySetCanceled();
-        _modeTransitionCompletion = completion;
-        _modeTransitionExpected = candidate.OverlayDisplayMode;
-        _stateMachine.RequestDisplayMode(candidate.OverlayDisplayMode);
-        await completion.Task.WaitAsync(TimeSpan.FromSeconds(8), cancellationToken);
+        return Task.CompletedTask;
     }
 
     public async Task OpenAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -242,7 +226,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
             _mainViewModel.UiSettingsPreflightAsync = null;
         }
 
-        _modeTransitionCompletion?.TrySetCanceled();
         _projectionRefresh.Dispose();
         _disposed = true;
     }
@@ -320,10 +303,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(MonitorPreference));
             OnPropertyChanged(nameof(MotionPreference));
             OnPropertyChanged(nameof(FileDragWakeMode));
-            if (_stateMachine.Snapshot.TargetDisplayMode != _mainViewModel.OverlayDisplayMode)
-            {
-                _stateMachine.RequestDisplayMode(_mainViewModel.OverlayDisplayMode);
-            }
         }
     }
 
@@ -336,16 +315,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
 
         Snapshot = snapshot;
-        if (_modeTransitionCompletion is { } completion &&
-            _modeTransitionExpected is { } expected &&
-            snapshot.State != OverlayState.ModeTransition &&
-            snapshot.DisplayMode == expected)
-        {
-            _modeTransitionCompletion = null;
-            _modeTransitionExpected = null;
-            completion.TrySetResult();
-        }
-
         SnapshotChanged?.Invoke(this, snapshot);
     }
 }

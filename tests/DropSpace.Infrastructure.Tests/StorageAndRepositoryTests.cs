@@ -54,7 +54,6 @@ public sealed class StorageAndRepositoryTests
             RetentionItemCount = 250,
             Theme = ThemePreference.Dark,
             CloseBehavior = CloseBehavior.Exit,
-            OverlayDisplayMode = OverlayDisplayMode.Notch,
             OverlayMotion = OverlayMotionPreference.Reduced,
             OverlayMonitor = OverlayMonitorPreference.Primary,
             FileDragWakeMode = FileDragWakeMode.ClassicTopEdge,
@@ -89,7 +88,6 @@ public sealed class StorageAndRepositoryTests
         var actual = await new JsonSettingsService(_paths).LoadAsync();
 
         Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
-        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
         Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
@@ -117,7 +115,6 @@ public sealed class StorageAndRepositoryTests
 
         Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
         Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
-        Assert.AreEqual(OverlayDisplayMode.Notch, actual.OverlayDisplayMode);
         Assert.AreEqual(ThemePreference.Dark, actual.Theme);
         Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
         Assert.IsFalse(actual.StartWithWindows);
@@ -147,20 +144,25 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
-    public async Task Settings_PersistedNotchLoadsWithoutCrash()
+    public async Task Settings_LegacyNotchFieldIsIgnoredAndMigratedWithoutCrash()
     {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 5,
+              "OverlayDisplayMode": 1,
+              "OverlayMotion": 1,
+              "RetentionDays": 21
+            }
+            """);
         var service = new JsonSettingsService(_paths);
-        var expected = new AppSettings
-        {
-            OverlayDisplayMode = OverlayDisplayMode.Notch,
-            OverlayMotion = OverlayMotionPreference.Full,
-        };
-
-        await service.SaveAsync(expected);
         var actual = await service.LoadAsync();
 
-        Assert.AreEqual(OverlayDisplayMode.Notch, actual.OverlayDisplayMode);
         Assert.AreEqual(OverlayMotionPreference.Full, actual.OverlayMotion);
+        Assert.AreEqual(21, actual.RetentionDays);
+        Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
         Assert.IsFalse(service.LastLoadRecovery.Recovered);
     }
 
@@ -236,7 +238,7 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
-    public async Task Settings_InvalidOverlayValueIsQuarantinedAndNonUiPreferencesArePreserved()
+    public async Task Settings_RemovedOverlayModeValueIsIgnoredWithoutQuarantine()
     {
         _paths.EnsureCreated();
         await File.WriteAllTextAsync(
@@ -258,15 +260,13 @@ public sealed class StorageAndRepositoryTests
 
         var actual = await service.LoadAsync();
 
-        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
         Assert.IsTrue(actual.ClipboardPaused);
         Assert.AreEqual(21, actual.RetentionDays);
-        Assert.IsTrue(service.LastLoadRecovery.Recovered);
-        Assert.IsTrue(service.LastLoadRecovery.PreservedNonUiPreferences);
+        Assert.IsFalse(service.LastLoadRecovery.Recovered);
         Assert.IsTrue(File.Exists(databaseSentinel));
-        Assert.AreEqual(1, Directory.GetFiles(_paths.Quarantine, "settings-*.json").Length);
+        Assert.AreEqual(0, Directory.GetFiles(_paths.Quarantine, "settings-*.json").Length);
     }
 
     [TestMethod]
@@ -303,7 +303,6 @@ public sealed class StorageAndRepositoryTests
             MaxClipboardFileItems = 12,
             RetentionDays = 45,
             Theme = ThemePreference.Dark,
-            OverlayDisplayMode = OverlayDisplayMode.Notch,
             OverlayMotion = OverlayMotionPreference.Full,
             OverlayMonitor = OverlayMonitorPreference.Primary,
         });
@@ -318,7 +317,6 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(12, actual.MaxClipboardFileItems);
         Assert.AreEqual(45, actual.RetentionDays);
         Assert.AreEqual(ThemePreference.System, actual.Theme);
-        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
     }

@@ -42,7 +42,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
 - Smart drag policy: click, stationary press, below-threshold movement, unknown/text/window sources, Explorer/Desktop left/right candidate drags, documented object/system-event promotion after an exact-item miss, duplicate WinEvent/mouse signals, Escape/completion and 1,000 sequential sessions.
 - Smart accessibility adapter: `SetWinEventHook` registers the documented object-drag and system drag/drop ranges before the observer message pump is declared ready; callbacks remain bounded; deprecated root-wide `UiaAddEvent` registration cannot block startup; COM initialization occurs on the actual classifier thread; UIA/MSAA nested item leaves can resolve through bounded inspection; and all returned COM objects have bounded lifetime.
-- Overlay placement policy: one Smart physical offset at 100%, 125%, 150%, 175%, and 200% DPI; Dynamic Island and Notch display gaps; Classic/Disabled top-edge anchors; offset 340-DIP Expanded geometry remains inside the fixed host.
+- Overlay placement policy: one Smart physical offset at 100%, 125%, 150%, 175%, and 200% DPI; Dynamic Island top gap; Classic/Disabled top-edge anchors; offset 340-DIP Expanded geometry remains inside the fixed host.
 
 ## Integration tests
 
@@ -96,7 +96,7 @@ Automate only stable critical flows:
 5. Pause/resume and clear history.
 6. Missing-item Locate/Replace with controlled picker abstraction where automation allows.
 7. Theme change and core automation properties.
-8. Dynamic Island/Notch setting persistence and immediate state-preserving transition.
+8. Legacy settings containing the removed Overlay display-mode field migrate safely to the single Dynamic Island surface.
 
 External drag-out remains a manual/adapter-assisted compatibility test because end-to-end pointer automation across processes can be brittle.
 
@@ -126,8 +126,8 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 - 100%, 125%, 150%, 200%; mixed scale.
 - Move window between displays; disconnect the last-used display.
 - Taskbar on each edge and auto-hide.
-- In Smart mode, drag a real Explorer/Desktop file on each monitor and verify the temporary target appears on that pointer's display without first touching the top edge. Verify DragApproaching, DragReady, post-Drop Compact, Expanded, Dismissing, Dynamic Island, and Notch retain one physical vertical anchor with no jump or clipped Drop region. In Classic mode, verify the legacy edge target separately.
-- Switch Dynamic Island/Notch at every scale and migrate between mixed-scale displays without blur, offset, or crash.
+- In Smart mode, drag a real Explorer/Desktop file on each monitor and verify the temporary target appears on that pointer's display without first touching the top edge. Verify DragApproaching, DragReady, post-Drop Compact, Expanded, and Dismissing retain one physical vertical anchor with no jump or clipped Drop region. In Classic mode, verify the legacy edge target separately.
+- Exercise the Dynamic Island at every scale and migrate between mixed-scale displays without blur, offset, or crash.
 - Verify ordinary fullscreen suppresses passive presentation while an explicit file drag may reveal the target.
 
 ### Accessibility
@@ -193,11 +193,11 @@ For each phase/release retain:
 - Accessibility and privacy review notes.
 - Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
 
-The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, verifies zero classic activation hosts in the fresh Smart default, verifies the observation-only mouse hook and at least one documented accessibility drag WinEvent source are registered, proves hidden top-center `WindowFromPoint` pass-through, proves temporary Compact/Expanded target discovery and synthetic `CF_HDROP`, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Island/Notch real XAML/HRGN geometry cycles with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
+The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, verifies zero classic activation hosts in the fresh Smart default, verifies the observation-only mouse hook and at least one documented accessibility drag WinEvent source are registered, proves hidden top-center `WindowFromPoint` pass-through, proves temporary Compact/Expanded target discovery and synthetic `CF_HDROP`, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Dynamic Island real XAML/HRGN geometry transitions with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
 
 The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
 
-Automation does not claim visual quality or Explorer/UIA provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags never reveal Smart mode; Explorer/Desktop file/folder/multi-select left/right drags do; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island/Notch motion, mixed-DPI monitors and full-screen behavior remain correct.
+Automation does not claim visual quality or Explorer/UIA provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags never reveal Smart mode; Explorer/Desktop file/folder/multi-select left/right drags do; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct.
 
 ## v0.1.0 Stable automated gates
 

@@ -1,12 +1,17 @@
 {
-  "schemaVersion": 1,
-  "authoritativeRuntimeVariant": "Black Main",
-  "runtimeBackground": "black",
-  "transparentArtworkExtractionAllowed": false,
+  "schemaVersion": 2,
+  "authoritativeRuntimeVariant": "Transparent Final",
+  "runtimeBackground": "transparent",
+  "activeSource": {
+    "path": "master/transparent/DropSpace-Logo-Transparent-Final.png",
+    "role": "canonical runtime, packaging, installer, documentation, and website artwork",
+    "sha256": "25330466ffe4b593dbe33e4c28327833210d676418a3a61d68c1dd403e8ae8e0"
+  },
+  "legacyPolicy": "Retained for provenance and rollback; never selected by the default generator or active build references.",
   "sources": [
     {
       "path": "master/black/DropSpace-Black-Main-Original.png",
-      "role": "canonical runtime artwork",
+      "role": "legacy Black Main artwork retained inactive",
       "sha256": "519664732432643022331a7c9b1c57dcedac361f09500691512738aef5bb73bf"
     },
     {
@@ -21,7 +26,7 @@
     },
     {
       "path": "master/white/DropSpace-White-Backup-Original.png",
-      "role": "canonical backup only; never a runtime default",
+      "role": "legacy White Backup artwork retained inactive",
       "sha256": "d463f19661b2eb4e9a86f261f3a6363385b0936cb9947d0c5b80a71b36e221b2"
     },
     {

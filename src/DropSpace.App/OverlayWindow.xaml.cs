@@ -30,9 +30,7 @@ public sealed partial class OverlayWindow : Window
     private readonly nint _windowHandle;
     private OleDropTargetRegistration? _nativeDropTarget;
     private readonly OverlayMotionController _motion = new(OverlayMotionValues.Hidden);
-    private OverlayState _lastStableState = OverlayState.Hidden;
     private OverlayState _previousState = OverlayState.Hidden;
-    private OverlayDisplayMode _renderDisplayMode = OverlayDisplayMode.DynamicIsland;
     private long _lastFrameTimestamp;
     private bool _isActiveWindow;
     private bool _isVisible;
@@ -113,7 +111,7 @@ public sealed partial class OverlayWindow : Window
         return target.RunSyntheticCfHDropAsync(paths, point, cancellationToken);
     }
 
-    internal long RunNotchGeometryStress(int cycles)
+    internal long RunGeometryStress(int cycles)
     {
         if (cycles is < 1 or > 1_000)
         {
@@ -121,36 +119,28 @@ public sealed partial class OverlayWindow : Window
         }
 
         var failuresBefore = RegionFailureCount;
-        var island = CreateMotionTarget(
-            OverlayState.Compact,
-            OverlayDisplayMode.DynamicIsland,
-            OverlayPlacementPolicy.GetTopOffsetDips(
-                OverlayDisplayMode.DynamicIsland,
-                FileDragWakeMode.SmartExperimental,
-                _monitor.Scale));
-        var notch = CreateMotionTarget(
-            OverlayState.Compact,
-            OverlayDisplayMode.Notch,
-            OverlayPlacementPolicy.GetTopOffsetDips(
-                OverlayDisplayMode.Notch,
-                FileDragWakeMode.SmartExperimental,
-                _monitor.Scale));
-        var controller = new OverlayMotionController(island);
+        var topOffset = OverlayPlacementPolicy.GetTopOffsetDips(
+            FileDragWakeMode.SmartExperimental,
+            _monitor.Scale);
+        var compact = CreateMotionTarget(OverlayState.Compact, topOffset);
+        var ready = CreateMotionTarget(OverlayState.DragReady, topOffset);
+        var expanded = CreateMotionTarget(OverlayState.Expanded, topOffset);
+        var controller = new OverlayMotionController(compact);
         for (var cycle = 0; cycle < cycles; cycle++)
         {
-            controller.SetTarget(notch, reducedMotion: false);
-            ApplyStressFrames(controller, OverlayDisplayMode.Notch, 2 + cycle % 5);
-            controller.SetTarget(island, reducedMotion: false);
-            ApplyStressFrames(controller, OverlayDisplayMode.DynamicIsland, 1 + cycle % 4);
-            controller.SetTarget(notch, reducedMotion: false);
-            ApplyStressFrames(controller, OverlayDisplayMode.Notch, 1 + cycle % 3);
-            controller.SetTarget(island, reducedMotion: false);
-            ApplyStressFrames(controller, OverlayDisplayMode.DynamicIsland, 2 + cycle % 6);
+            controller.SetTarget(ready, reducedMotion: false);
+            ApplyStressFrames(controller, 2 + cycle % 5);
+            controller.SetTarget(compact, reducedMotion: false);
+            ApplyStressFrames(controller, 1 + cycle % 4);
+            controller.SetTarget(expanded, reducedMotion: false);
+            ApplyStressFrames(controller, 1 + cycle % 3);
+            controller.SetTarget(compact, reducedMotion: false);
+            ApplyStressFrames(controller, 2 + cycle % 6);
         }
 
         for (var frame = 0; frame < 600 && controller.IsAnimating; frame++)
         {
-            ApplyStressFrames(controller, OverlayDisplayMode.DynamicIsland, 1);
+            ApplyStressFrames(controller, 1);
         }
 
         if (controller.IsAnimating || !controller.Current.IsApiSafe())
@@ -161,12 +151,8 @@ public sealed partial class OverlayWindow : Window
         return RegionFailureCount - failuresBefore;
     }
 
-    private void ApplyStressFrames(
-        OverlayMotionController controller,
-        OverlayDisplayMode displayMode,
-        int frames)
+    private void ApplyStressFrames(OverlayMotionController controller, int frames)
     {
-        _renderDisplayMode = displayMode;
         for (var frame = 0; frame < frames; frame++)
         {
             controller.Step(TimeSpan.FromMilliseconds(16));
@@ -210,38 +196,17 @@ public sealed partial class OverlayWindow : Window
         _suppressedForFullscreen = false;
         _hideWhenSettled = false;
 
-        if (snapshot.State == OverlayState.Hidden ||
-            snapshot.State == OverlayState.ModeTransition && snapshot.TemporaryItemCount == 0)
+        if (snapshot.State == OverlayState.Hidden)
         {
             HideImmediately();
-            _lastStableState = OverlayState.Hidden;
             _previousState = snapshot.State;
-            if (snapshot.State == OverlayState.ModeTransition)
-            {
-                DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
-            }
-
             return;
         }
 
-        if (snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady or
-            OverlayState.Compact or OverlayState.Expanded)
-        {
-            _lastStableState = snapshot.State;
-        }
-
-        var displayMode = snapshot.State == OverlayState.ModeTransition
-            ? snapshot.TargetDisplayMode
-            : snapshot.DisplayMode;
-        _renderDisplayMode = displayMode;
-        var targetState = snapshot.State == OverlayState.ModeTransition
-            ? ResolveModeTransitionState(snapshot)
-            : snapshot.State;
         var topOffset = OverlayPlacementPolicy.GetTopOffsetDips(
-            displayMode,
             wakeMode,
             _monitor.Scale);
-        var target = CreateMotionTarget(targetState, displayMode, topOffset);
+        var target = CreateMotionTarget(snapshot.State, topOffset);
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
         PrepareContentForTarget(target);
@@ -260,17 +225,6 @@ public sealed partial class OverlayWindow : Window
         StopAnimationFrames();
         RevokeNativeDropTarget();
         Close();
-    }
-
-    private OverlayState ResolveModeTransitionState(OverlaySnapshot snapshot)
-    {
-        if (_lastStableState is OverlayState.DragApproaching or OverlayState.DragReady or
-            OverlayState.Compact or OverlayState.Expanded)
-        {
-            return _lastStableState;
-        }
-
-        return snapshot.TemporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
     }
 
     private void EnsureVisualHostShown(bool allowActivation)
@@ -316,24 +270,14 @@ public sealed partial class OverlayWindow : Window
         if (!_isVisible)
         {
             _suppressedForFullscreen = true;
-            if (snapshot.State == OverlayState.ModeTransition)
-            {
-                DispatcherQueue.TryEnqueue(_viewModel.CompleteModeTransition);
-            }
-
             return;
         }
 
         _suppressedForFullscreen = true;
         _hideWhenSettled = true;
-        var displayMode = snapshot.State == OverlayState.ModeTransition
-            ? snapshot.TargetDisplayMode
-            : snapshot.DisplayMode;
-        _renderDisplayMode = displayMode;
         var hiddenTarget = CreateMotionTarget(
             OverlayState.Hidden,
-            displayMode,
-            OverlayPlacementPolicy.GetTopOffsetDips(displayMode, wakeMode, _monitor.Scale));
+            OverlayPlacementPolicy.GetTopOffsetDips(wakeMode, _monitor.Scale));
         PrepareContentForTarget(hiddenTarget);
         _motion.SetTarget(hiddenTarget, IsReducedMotion());
         StartAnimationFrames();
@@ -392,11 +336,6 @@ public sealed partial class OverlayWindow : Window
             OverlayWindowInterop.Hide(_windowHandle);
             RevokeNativeDropTarget();
             _isVisible = false;
-            if (_viewModel.Snapshot.State == OverlayState.ModeTransition)
-            {
-                _viewModel.CompleteModeTransition();
-            }
-
             return;
         }
 
@@ -409,10 +348,6 @@ public sealed partial class OverlayWindow : Window
         if (state == OverlayState.Dismissing)
         {
             _viewModel.CompleteDismissal();
-        }
-        else if (state == OverlayState.ModeTransition)
-        {
-            _viewModel.CompleteModeTransition();
         }
     }
 
@@ -446,8 +381,7 @@ public sealed partial class OverlayWindow : Window
             width,
             height,
             ToPixels(values.TopRadius),
-            ToPixels(values.BottomRadius),
-            _renderDisplayMode))
+            ToPixels(values.BottomRadius)))
         {
             Interlocked.Increment(ref _regionFailureCount);
             OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
@@ -517,22 +451,19 @@ public sealed partial class OverlayWindow : Window
 
     private int ToPixels(double dips) => Math.Max(0, (int)Math.Round(dips * _monitor.Scale));
 
-    private static OverlayMotionValues CreateMotionTarget(
-        OverlayState state,
-        OverlayDisplayMode mode,
-        double topOffset)
+    private static OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
     {
         return state switch
         {
-            OverlayState.DragApproaching => Create(300, 54, topOffset, 27, mode, 0, 1, 0),
-            OverlayState.DragReady => Create(430, 92, topOffset, 30, mode, 0, 1, 0),
-            OverlayState.Compact => Create(340, 64, topOffset, 32, mode, 1, 0, 0),
-            OverlayState.Expanded => Create(560, 340, topOffset, 28, mode, 0, 0, 1),
+            OverlayState.DragApproaching => Create(300, 54, topOffset, 27, 0, 1, 0),
+            OverlayState.DragReady => Create(430, 92, topOffset, 30, 0, 1, 0),
+            OverlayState.Compact => Create(340, 64, topOffset, 32, 1, 0, 0),
+            OverlayState.Expanded => Create(560, 340, topOffset, 28, 0, 0, 1),
             OverlayState.Dismissing or OverlayState.Hidden => new OverlayMotionValues(
                 120,
                 12,
                 topOffset,
-                mode == OverlayDisplayMode.DynamicIsland ? 6 : 0,
+                6,
                 6,
                 0,
                 0,
@@ -548,7 +479,6 @@ public sealed partial class OverlayWindow : Window
         double height,
         double topOffset,
         double radius,
-        OverlayDisplayMode mode,
         double compactContent,
         double dragContent,
         double expandedContent) =>
@@ -556,7 +486,7 @@ public sealed partial class OverlayWindow : Window
             width,
             height,
             topOffset,
-            mode == OverlayDisplayMode.DynamicIsland ? radius : 0,
+            radius,
             radius,
             1,
             compactContent,

@@ -1,4 +1,3 @@
-using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 
 namespace DropSpace.Core.Tests;
@@ -126,39 +125,6 @@ public sealed class OverlayStateMachineTests
     }
 
     [TestMethod]
-    public void DynamicIslandTransitionsToNotchWithoutChangingCount()
-    {
-        var machine = Create(3);
-        machine.RequestDisplayMode(OverlayDisplayMode.Notch);
-        Assert.AreEqual(OverlayState.ModeTransition, machine.Snapshot.State);
-        machine.CompleteModeTransition();
-        Assert.AreEqual(OverlayDisplayMode.Notch, machine.Snapshot.DisplayMode);
-        Assert.AreEqual(OverlayState.Compact, machine.Snapshot.State);
-        Assert.AreEqual(3, machine.Snapshot.TemporaryItemCount);
-    }
-
-    [TestMethod]
-    public void NotchTransitionsBackToDynamicIsland()
-    {
-        var machine = Create(1, OverlayDisplayMode.Notch);
-        machine.RequestDisplayMode(OverlayDisplayMode.DynamicIsland);
-        machine.CompleteModeTransition();
-        Assert.AreEqual(OverlayDisplayMode.DynamicIsland, machine.Snapshot.DisplayMode);
-    }
-
-    [TestMethod]
-    public void DragCanInterruptModeTransitionAtItsLatestTarget()
-    {
-        var machine = Create(0);
-        machine.RequestDisplayMode(OverlayDisplayMode.Notch);
-        machine.BeginDragApproach();
-
-        Assert.AreEqual(OverlayState.DragApproaching, machine.Snapshot.State);
-        Assert.AreEqual(OverlayDisplayMode.Notch, machine.Snapshot.DisplayMode);
-        Assert.AreEqual(OverlayDisplayMode.Notch, machine.Snapshot.TargetDisplayMode);
-    }
-
-    [TestMethod]
     public void NewItemInterruptsDismissalAndReturnsCompact()
     {
         var machine = Create(1);
@@ -189,12 +155,10 @@ public sealed class OverlayStateMachineTests
         Assert.AreEqual(700, notifications);
     }
 
-    private static OverlayStateMachine Create(
-        int count,
-        OverlayDisplayMode mode = OverlayDisplayMode.DynamicIsland)
+    private static OverlayStateMachine Create(int count)
     {
         var machine = new OverlayStateMachine();
-        machine.Restore(count, mode);
+        machine.Restore(count);
         return machine;
     }
 }

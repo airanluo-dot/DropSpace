@@ -145,7 +145,7 @@ Unicode, case folding, paths, punctuation, very long text, stale index after mig
 
 ### User behavior
 
-In experimental Smart mode, a recognized Explorer/Desktop file drag reveals a temporary target below the top edge without a permanent activation window. Drop into Temporary Space, click Compact to expand recent items, or switch between Dynamic Island and Notch. Traditional top-edge and disabled automatic-wake modes remain available.
+In experimental Smart mode, a recognized Explorer/Desktop file drag reveals a temporary Dynamic Island below the top edge without a permanent activation window. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge and disabled automatic-wake modes remain available.
 
 ### App behavior
 
@@ -167,7 +167,7 @@ Master toggle, retention age/count, image capture, size limits, duplicate policy
 
 ### Appearance
 
-System/light/dark, Dynamic Island/Notch, System/Full/Reduced Overlay motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
+System/light/dark, System/Full/Reduced Dynamic Island motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
 
 ### Privacy
 

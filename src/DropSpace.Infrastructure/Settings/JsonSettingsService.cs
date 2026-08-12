@@ -77,13 +77,13 @@ public sealed class JsonSettingsService : ISettingsService
                         string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
                 settings ??= CreateDefaults();
-                if (settings.Version is 1 or 2 or 3 or 4)
+                if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
                 {
                     settings = settings with
                     {
                         Version = AppSettings.CurrentVersion,
-                        // A settings file from before schema 4 belongs to the Preview-era installed
-                        // population. Fresh builds take the channel selected by their release kind.
+                        // A legacy settings file without an update channel belongs to the Preview-era
+                        // installed population. Fresh builds use the channel selected by their release kind.
                         UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
                     };
                 }

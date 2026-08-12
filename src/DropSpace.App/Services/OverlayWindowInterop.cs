@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using DropSpace.Core.Models;
 
 namespace DropSpace.App.Services;
 
@@ -131,15 +130,14 @@ internal static class OverlayWindowInterop
         int width,
         int height,
         int topRadius,
-        int bottomRadius,
-        OverlayDisplayMode displayMode)
+        int bottomRadius)
     {
         var region = CreateAsymmetricRoundRectRegion(
             left,
             top,
             width,
             height,
-            displayMode == OverlayDisplayMode.Notch ? topRadius : Math.Max(topRadius, 1),
+            Math.Max(topRadius, 1),
             bottomRadius);
         if (region == nint.Zero)
         {

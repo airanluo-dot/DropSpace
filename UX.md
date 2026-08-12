@@ -11,7 +11,7 @@ DropSpace should feel like a compact system utility, not a content dashboard. Th
 - **Pinned**: saved filter spanning both sources.
 - **Settings**: behavior, retention, appearance, and privacy.
 - **Global search**: searches all collections while preserving source identity.
-- **Top Overlay**: a Dynamic Island or top-attached Notch over the same Temporary Space state and actions.
+- **Top Overlay**: one Dynamic Island over the same Temporary Space state and actions.
 
 Pinned is not a store and the Overlay is not a second product or page. Clipboard items never make the Overlay persist.
 
@@ -75,7 +75,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
 - Removing the last Temporary item enters an interruptible dismissal and returns to Hidden. A new drag or item can reverse the target before dismissal completes.
-- Dynamic Island has an 8-DIP top gap and full corners. Notch attaches to the top edge with square upper corners and rounded lower corners. Settings transitions morph offset and corners without recreating business state.
+- Dynamic Island has an 8-DIP top gap and full corners. Its Compact, Drop Ready and Expanded states morph without recreating business state.
 
 ## Settings
 
@@ -83,7 +83,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 - Dangerous clear actions live in Privacy, separated from ordinary toggles.
 - “Exclude apps” (V1.1) includes the copy: “Best effort. Some clipboard changes cannot be attributed to an app.”
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
-- Top interface settings provide Dynamic Island/Notch, Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, and Automatic/Primary monitor. System motion follows Windows `UISettings.AnimationsEnabled`.
+- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, and Automatic/Primary monitor. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`.
 
 ## System tray
 
