@@ -26,8 +26,9 @@ public sealed partial class OverlayWindow : Window
     private readonly Action _openMainWindow;
     private readonly ILogger<OverlayWindow> _logger;
     private readonly DragActivationCallbacks _visualDragCallbacks;
+    private readonly OleDragDropService _dragDropService;
     private readonly nint _windowHandle;
-    private readonly OleDropTargetRegistration _nativeDropTarget;
+    private OleDropTargetRegistration? _nativeDropTarget;
     private readonly OverlayMotionController _motion = new(OverlayMotionValues.Hidden);
     private OverlayState _lastStableState = OverlayState.Hidden;
     private OverlayState _previousState = OverlayState.Hidden;
@@ -56,6 +57,7 @@ public sealed partial class OverlayWindow : Window
         _openMainWindow = openMainWindow;
         _logger = logger;
         _visualDragCallbacks = dragCallbacks;
+        _dragDropService = dragDropService;
         InitializeComponent();
         Root.DataContext = viewModel;
 
@@ -72,10 +74,6 @@ public sealed partial class OverlayWindow : Window
         PositionFixedHost();
         OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
         OverlayWindowInterop.Hide(_windowHandle);
-        _nativeDropTarget = dragDropService.RegisterVisualTarget(
-            _windowHandle,
-            monitor.Id,
-            dragCallbacks);
     }
 
     public string MonitorId => _monitor.Id;
@@ -110,7 +108,9 @@ public sealed partial class OverlayWindow : Window
         var point = new NativePoint(
             _monitor.Left + _monitor.Width / 2,
             _monitor.Top + ToPixels(values.TopOffset + values.Height / 2));
-        return _nativeDropTarget.RunSyntheticCfHDropAsync(paths, point, cancellationToken);
+        var target = _nativeDropTarget
+            ?? throw new InvalidOperationException("The visible Overlay OLE target is not currently registered.");
+        return target.RunSyntheticCfHDropAsync(paths, point, cancellationToken);
     }
 
     internal long RunNotchGeometryStress(int cycles)
@@ -167,7 +167,11 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
-    public void ApplySnapshot(OverlaySnapshot snapshot, bool isActiveWindow, bool activationEnabled)
+    public void ApplySnapshot(
+        OverlaySnapshot snapshot,
+        bool isActiveWindow,
+        bool activationEnabled,
+        FileDragWakeMode wakeMode)
     {
         _isActiveWindow = isActiveWindow && activationEnabled;
         if (!_isActiveWindow)
@@ -221,7 +225,11 @@ public sealed partial class OverlayWindow : Window
         var targetState = snapshot.State == OverlayState.ModeTransition
             ? ResolveModeTransitionState(snapshot)
             : snapshot.State;
-        var target = CreateMotionTarget(targetState, displayMode);
+        var smartDragOffsetDips = wakeMode == FileDragWakeMode.SmartExperimental &&
+                                  targetState is OverlayState.DragApproaching or OverlayState.DragReady
+            ? 76d / _monitor.Scale
+            : 0;
+        var target = CreateMotionTarget(targetState, displayMode, smartDragOffsetDips);
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
         PrepareContentForTarget(target);
@@ -238,7 +246,7 @@ public sealed partial class OverlayWindow : Window
     public void CloseForShutdown()
     {
         StopAnimationFrames();
-        _nativeDropTarget.Dispose();
+        RevokeNativeDropTarget();
         Close();
     }
 
@@ -255,6 +263,7 @@ public sealed partial class OverlayWindow : Window
 
     private void EnsureVisualHostShown(bool allowActivation)
     {
+        EnsureNativeDropTargetRegistered();
         PositionFixedHost();
         OverlayWindowInterop.SetNoActivate(_windowHandle, !allowActivation);
         if (_isVisible)
@@ -277,6 +286,7 @@ public sealed partial class OverlayWindow : Window
         ExpandedPanel.Visibility = Visibility.Collapsed;
         OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
         OverlayWindowInterop.Hide(_windowHandle);
+        RevokeNativeDropTarget();
         _motion.SnapTo(OverlayMotionValues.Hidden);
         _isVisible = false;
         _hideWhenSettled = false;
@@ -365,6 +375,7 @@ public sealed partial class OverlayWindow : Window
             CollapseInvisibleContent(_motion.Current);
             OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
             OverlayWindowInterop.Hide(_windowHandle);
+            RevokeNativeDropTarget();
             _isVisible = false;
             if (_viewModel.Snapshot.State == OverlayState.ModeTransition)
             {
@@ -491,9 +502,12 @@ public sealed partial class OverlayWindow : Window
 
     private int ToPixels(double dips) => Math.Max(0, (int)Math.Round(dips * _monitor.Scale));
 
-    private static OverlayMotionValues CreateMotionTarget(OverlayState state, OverlayDisplayMode mode)
+    private static OverlayMotionValues CreateMotionTarget(
+        OverlayState state,
+        OverlayDisplayMode mode,
+        double additionalTopOffset = 0)
     {
-        var topOffset = mode == OverlayDisplayMode.DynamicIsland ? 8 : 0;
+        var topOffset = (mode == OverlayDisplayMode.DynamicIsland ? 8 : 0) + additionalTopOffset;
         return state switch
         {
             OverlayState.DragApproaching => Create(300, 54, topOffset, 27, mode, 0, 1, 0),
@@ -535,6 +549,34 @@ public sealed partial class OverlayWindow : Window
             dragContent,
             expandedContent,
             1);
+
+    private void EnsureNativeDropTargetRegistered()
+    {
+        _nativeDropTarget ??= _dragDropService.RegisterVisualTarget(
+            _windowHandle,
+            _monitor.Id,
+            _visualDragCallbacks);
+    }
+
+    internal bool ProbeIdleTopEdgePassThrough()
+    {
+        var x = _monitor.Left + _monitor.Width / 2;
+        var y = _monitor.Top + 2;
+        var probe = OverlayWindowInterop.ProbeWindowAtPoint(_windowHandle, x, y);
+        _logger.LogInformation(
+            "Idle top-edge pass-through probe on monitor {MonitorId}: WindowFromPoint {DiscoveredWindow}, class {WindowClassName}, ownedByDropSpace={Owned}.",
+            _monitor.Id,
+            probe.DiscoveredWindow,
+            probe.WindowClassName,
+            probe.IsRootOrDescendant);
+        return !probe.IsRootOrDescendant;
+    }
+
+    private void RevokeNativeDropTarget()
+    {
+        var target = Interlocked.Exchange(ref _nativeDropTarget, null);
+        target?.Dispose();
+    }
 
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {

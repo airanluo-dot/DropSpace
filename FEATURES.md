@@ -145,7 +145,7 @@ Unicode, case folding, paths, punctuation, very long text, stale index after mig
 
 ### User behavior
 
-Drag files/folders to the top-center activation zone, drop them into Temporary Space, click Compact to expand recent items, or switch between Dynamic Island and Notch in Settings.
+In experimental Smart mode, a recognized Explorer/Desktop file drag reveals a temporary target below the top edge without a permanent activation window. Drop into Temporary Space, click Compact to expand recent items, or switch between Dynamic Island and Notch. Traditional top-edge and disabled automatic-wake modes remain available.
 
 ### App behavior
 

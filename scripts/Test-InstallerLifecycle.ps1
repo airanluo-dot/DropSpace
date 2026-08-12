@@ -36,14 +36,7 @@ $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).T
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 $currentVersion = $releaseInfo.SemanticVersion
-$baselineVersion = if ($releaseInfo.IsPreview -and $releaseInfo.PreviewNumber -gt 1)
-{
-    "$($releaseInfo.Major).$($releaseInfo.Minor).$($releaseInfo.Patch)-preview.$($releaseInfo.PreviewNumber - 1)"
-}
-else
-{
-    "$($releaseInfo.Major).$($releaseInfo.Minor).$($releaseInfo.Patch)-preview.5"
-}
+$baselineVersion = Get-DropSpaceLifecycleBaselineVersion $releaseInfo
 $baselineVersionCode = (Get-DropSpaceReleaseInfo "v$baselineVersion").VersionCode
 $testBase = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP))
 {

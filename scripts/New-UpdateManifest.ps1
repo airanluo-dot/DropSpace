@@ -2,7 +2,7 @@ param(
     [string]$ReleaseDirectory = "artifacts/release",
     [string]$OutputPath = "artifacts/release/update-manifest.json",
     [string]$PublishedAt = "",
-    [string]$Summary = "DropSpace stable and preview updates are selected with strict SemVer ordering."
+    [string]$Summary = ""
 )
 
 Set-StrictMode -Version Latest
@@ -10,6 +10,18 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
+$releaseSummary = if (-not [string]::IsNullOrWhiteSpace($Summary))
+{
+    $Summary
+}
+elseif ($releaseInfo.Tag -eq "v0.2.0-preview.1")
+{
+    "Experimental smart file-drag wake Preview. Some third-party or virtual-file drags may require Classic top-edge compatibility mode."
+}
+else
+{
+    "DropSpace stable and preview updates are selected with strict SemVer ordering."
+}
 $directory = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDirectory))
 $output = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $OutputPath))
 $installer = Join-Path $directory "DropSpaceSetup.exe"
@@ -39,7 +51,7 @@ $manifest = [ordered]@{
     publishedAt = $timestamp.ToString("o", [Globalization.CultureInfo]::InvariantCulture)
     minimumWindowsBuild = 26100
     mandatory = $false
-    summary = $Summary
+    summary = $releaseSummary
     installer = [ordered]@{
         assetName = "DropSpaceSetup.exe"
         size = (Get-Item $installer).Length

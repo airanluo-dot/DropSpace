@@ -68,6 +68,24 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
         return monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
     }
 
+    public MonitorDescriptor GetMonitorAtPoint(int x, int y)
+    {
+        var monitors = GetMonitors();
+        return monitors.FirstOrDefault(monitor =>
+                   x >= monitor.Left && x < monitor.Left + monitor.Width &&
+                   y >= monitor.Top && y < monitor.Top + monitor.Height)
+               ?? monitors.OrderBy(monitor => DistanceSquaredToBounds(monitor, x, y)).First();
+    }
+
+    private static long DistanceSquaredToBounds(MonitorDescriptor monitor, int x, int y)
+    {
+        var nearestX = Math.Clamp(x, monitor.Left, monitor.Left + monitor.Width - 1);
+        var nearestY = Math.Clamp(y, monitor.Top, monitor.Top + monitor.Height - 1);
+        var deltaX = (long)x - nearestX;
+        var deltaY = (long)y - nearestY;
+        return deltaX * deltaX + deltaY * deltaY;
+    }
+
     public bool IsForegroundFullscreen(MonitorDescriptor monitor)
     {
         var foreground = GetForegroundWindow();

@@ -220,6 +220,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(OverlayDisplayMode));
                 OnPropertyChanged(nameof(OverlayMotion));
                 OnPropertyChanged(nameof(OverlayMonitor));
+                OnPropertyChanged(nameof(FileDragWakeMode));
                 OnPropertyChanged(nameof(AutoCheckForUpdates));
                 OnPropertyChanged(nameof(AutoDownloadUpdates));
                 OnPropertyChanged(nameof(AutoInstallUpdates));
@@ -263,6 +264,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public OverlayMotionPreference OverlayMotion => Settings.OverlayMotion;
 
     public OverlayMonitorPreference OverlayMonitor => Settings.OverlayMonitor;
+
+    public FileDragWakeMode FileDragWakeMode => Settings.FileDragWakeMode;
 
     public bool AutoCheckForUpdates => Settings.AutoCheckForUpdates;
 

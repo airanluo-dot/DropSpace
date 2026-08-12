@@ -37,3 +37,37 @@ function Get-DropSpaceReleaseInfo
         MakeLatest = -not $isPreview
     }
 }
+
+function Get-DropSpaceLifecycleBaselineVersion
+{
+    param([Parameter(Mandatory = $true)]$ReleaseInfo)
+
+    if ($ReleaseInfo.IsPreview -and $ReleaseInfo.PreviewNumber -gt 1)
+    {
+        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch)-preview.$($ReleaseInfo.PreviewNumber - 1)"
+    }
+
+    if (-not $ReleaseInfo.IsPreview)
+    {
+        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch)-preview.5"
+    }
+
+    # A first Preview has no same-line predecessor. Use the nearest lower
+    # stable release so the lifecycle fixture exercises a real upgrade and
+    # never trips the installer's downgrade guard (for example 0.1.0 ->
+    # 0.2.0-preview.1).
+    if ($ReleaseInfo.Patch -gt 0)
+    {
+        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch - 1)"
+    }
+    if ($ReleaseInfo.Minor -gt 0)
+    {
+        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor - 1).0"
+    }
+    if ($ReleaseInfo.Major -gt 0)
+    {
+        return "$($ReleaseInfo.Major - 1).0.0"
+    }
+
+    throw "Release $($ReleaseInfo.Tag) has no representable lower lifecycle baseline."
+}

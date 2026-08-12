@@ -191,6 +191,10 @@ Out of scope for MVP severity claims: an attacker with administrator/kernel acce
 
 Automatic update checking is enabled by default and can be disabled. It runs at most once per process start, with no timer, service, scheduled task, network-change listener, or machine identifier. Manual checks remain user-invoked. Requests contain only normal HTTPS/GitHub headers and `User-Agent: DropSpace/<version>`. Diagnostics may record version, state, HTTP status, integrity outcome and installer exit status; they never record Clipboard content, Temporary Space paths, filenames, search queries, tokens, or GitHub credentials.
 
+### Smart drag observer privacy
+
+The experimental Smart drag detector observes UI Automation drag event identifiers and global mouse/key transition metadata (button, screen point, threshold crossing and cancellation) only while the process is running. It does not suppress input, inject into another process, record typed keys, upload telemetry, or log dragged file names/full paths. File paths are read only after the visible OLE target receives a valid `CF_HDROP`, then follow the existing local Temporary Space reference pipeline.
+
 ## Severity Calibration (Critical, High, Medium, Low)
 
 - **Critical:** plausible code execution or broad arbitrary-file overwrite triggered by clipboard/drag input without meaningful user action; payload path traversal escaping app storage into user/system files.

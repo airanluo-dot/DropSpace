@@ -530,6 +530,16 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnFileDragWakeModeChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && FileDragWakeModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<FileDragWakeMode>(value, out var mode))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { FileDragWakeMode = mode }));
+        }
+    }
+
     private async void OnClearLastHourClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.LastHour);
 
     private async void OnClearTodayClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.Today);
@@ -630,6 +640,7 @@ public sealed partial class MainPage : Page
             SelectComboItem(OverlayDisplayModeCombo, _viewModel.OverlayDisplayMode.ToString());
             SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
             SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
+            SelectComboItem(FileDragWakeModeCombo, _viewModel.FileDragWakeMode.ToString());
             SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
         }
         finally

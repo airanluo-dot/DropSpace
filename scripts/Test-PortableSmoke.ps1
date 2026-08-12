@@ -89,7 +89,7 @@ try
         [int]$marker.schemaVersion -lt 1 -or
         [int]$marker.overlayCycles -ne 100 -or
         [int]$marker.overlayWindowCount -lt 1 -or
-        [int]$marker.dragActivationHostCount -lt 1 -or
+        [int]$marker.dragActivationHostCount -ne 0 -or
         $marker.clipboardListenerRegistered -ne $true -or
         [int]$marker.clipboardObservedUpdateDelta -lt 8 -or
         [int]$marker.clipboardSuccessfulCaptureDelta -lt 7 -or
@@ -106,7 +106,8 @@ try
         $marker.noContinuousFrameLoop -ne $true -or
         [int]$marker.notchGeometryStressCycles -ne 1000 -or
         [long]$marker.overlayRegionFailureCount -ne 0 -or
-        $marker.dragActivationTargetsDiscoverable -ne $true -or
+        $marker.idleTopEdgePassThrough -ne $true -or
+        $marker.wakeModeSwitchVerified -ne $true -or
         $marker.compactVisualTargetDiscoverable -ne $true -or
         $marker.expandedVisualTargetDiscoverable -ne $true -or
         $marker.compactSyntheticCfHDropAccepted -ne $true -or
@@ -145,7 +146,7 @@ try
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
-    Write-Host "Overlay geometry stress: switches=$($marker.notchGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), activationTargetsDiscoverable=$($marker.dragActivationTargetsDiscoverable)"
+    Write-Host "Overlay geometry stress: switches=$($marker.notchGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"
     Write-Host "Visible Overlay targets: compact=$($marker.compactVisualTargetDiscoverable), expanded=$($marker.expandedVisualTargetDiscoverable)"
     Write-Host "Visible Overlay CF_HDROP pipeline: compact=$($marker.compactSyntheticCfHDropAccepted), expanded=$($marker.expandedSyntheticCfHDropAccepted), expandedStayedOpen=$($marker.expandedDropStayedOpen)"
     Write-Host "Main + Expanded deletion stress: cycles=$($marker.projectionDeletionStressCycles), unhandled=$($marker.projectionUnhandledExceptionDelta), unobserved=$($marker.projectionUnobservedTaskExceptionDelta), externalSentinel=$($marker.projectionExternalSentinelPreserved)"

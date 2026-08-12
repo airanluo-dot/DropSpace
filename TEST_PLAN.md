@@ -40,6 +40,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Settings validation/revert on failure.
 - Overlay state transitions for empty/drag/compact/expanded/dismiss/mode-transition paths, including interruption and count preservation.
 - One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
+- Smart drag policy: click, stationary press, below-threshold movement, unknown/text/window sources, Explorer/Desktop left/right candidate drags, duplicate UIA/mouse signals, Escape/completion and 1,000 sequential sessions.
 
 ## Integration tests
 
@@ -123,7 +124,7 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 - 100%, 125%, 150%, 200%; mixed scale.
 - Move window between displays; disconnect the last-used display.
 - Taskbar on each edge and auto-hide.
-- Drag into each monitor's top activation zone; verify the receiving monitor becomes active in Automatic mode.
+- In Smart mode, drag a real Explorer/Desktop file on each monitor and verify the temporary target appears on that pointer's display without first touching the top edge. In Classic mode, verify the legacy edge target separately.
 - Switch Dynamic Island/Notch at every scale and migrate between mixed-scale displays without blur, offset, or crash.
 - Verify ordinary fullscreen suppresses passive presentation while an explicit file drag may reveal the target.
 
@@ -163,7 +164,7 @@ Reference device specifications are recorded with results.
 - Large image peak decoded memory.
 - Database/payload size after retention cleanup.
 - 100 Overlay reveal/dismiss and compact/expanded cycles with window count, working set, handlers, and Composition resource observations.
-- Hidden/idle CPU and GPU observation: no continuous `CompositionTarget.Rendering`, DispatcherTimer, global input hook, or high-frequency loop.
+- Hidden/idle CPU and GPU observation: no continuous `CompositionTarget.Rendering`, DispatcherTimer, high-frequency loop or polling. Smart mode's event-driven observer hooks must remain idle and never suppress input.
 - Interrupt a width/height/radius/content spring in both directions and prove every channel settles with no retained frame subscription.
 
 No performance number is accepted without hardware, build configuration, dataset, and measurement method.
@@ -190,11 +191,11 @@ For each phase/release retain:
 - Accessibility and privacy review notes.
 - Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
 
-The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, creates one native activation host per monitor, verifies `WindowFromPoint` target discoverability, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Island/Notch real XAML/HRGN geometry cycles with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
+The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, verifies zero classic activation hosts in the fresh Smart default, proves hidden top-center `WindowFromPoint` pass-through, proves temporary Compact/Expanded target discovery and synthetic `CF_HDROP`, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Island/Notch real XAML/HRGN geometry cycles with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
 
 The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
 
-Automation does not claim visual quality or Explorer pointer routing. Before Preview sign-off, a real Windows 11 desktop must still verify zero residual pixels in Hidden, Desktop focus persistence, Explorer/Desktop `CF_HDROP` entry and Drop, direct Compact/Expanded Drop, the 12-physical-pixel edge band's ordinary-input trade-off, Dynamic Island/Notch motion quality, drag-out, 16:9/16:10 and 100–200% layout, taskbar icon selection/cache behavior, mixed-DPI monitors, real game/video fullscreen behavior, sign-in startup, installer wizard, and Windows Installed Apps uninstall UI.
+Automation does not claim visual quality or Explorer/UIA provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags never reveal Smart mode; Explorer/Desktop file/folder/multi-select left/right drags do; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island/Notch motion, mixed-DPI monitors and full-screen behavior remain correct.
 
 ## v0.1.0 Stable automated gates
 
