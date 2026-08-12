@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-uF8BtDk2M/UnkOVEZ80KCbZWABxbd84bjQDZ/0BT+lk='; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DropSpace — Windows 临时空间</title>
+  <meta name="description" content="将文件拖到 Windows 11 屏幕顶部，放入临时空间，需要时再取回。">
+  <link rel="canonical" href="https://airanluo-dot.github.io/DropSpace/zh-cn/">
+
+
+  <meta name="theme-color" content="#050506">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="DropSpace — Windows 临时空间">
+  <meta property="og:description" content="拖进来，暂存好，需要时再取走。">
+  <meta property="og:url" content="https://airanluo-dot.github.io/DropSpace/zh-cn/">
+  <meta property="og:image" content="https://airanluo-dot.github.io/DropSpace/assets/og-image.4ad3de97c7eb.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DropSpace — Windows 临时空间">
+  <meta name="twitter:description" content="拖进来，暂存好，需要时再取走。">
+  <meta name="twitter:image" content="https://airanluo-dot.github.io/DropSpace/assets/og-image.4ad3de97c7eb.png">
+  <link rel="icon" type="image/png" href="/DropSpace/assets/favicon.2de52d0240e9.png">
+  <link rel="apple-touch-icon" href="/DropSpace/assets/favicon.2de52d0240e9.png">
+  <link rel="manifest" href="/DropSpace/site.webmanifest">
+  <link rel="stylesheet" href="/DropSpace/assets/styles.7d2034d962e9.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"DropSpace","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 11 build 26100 or later","softwareVersion":"v0.1.0","downloadUrl":"https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe","license":"https://www.apache.org/licenses/LICENSE-2.0","codeRepository":"https://github.com/airanluo-dot/DropSpace","author":{"@type":"Person","name":"Airan Luo"},"url":"https://airanluo-dot.github.io/DropSpace/zh-cn/","inLanguage":"zh-CN"}</script>
+<link rel="alternate" hreflang="en" href="https://airanluo-dot.github.io/DropSpace/en/"><link rel="alternate" hreflang="zh-CN" href="https://airanluo-dot.github.io/DropSpace/zh-cn/"><link rel="alternate" hreflang="x-default" href="https://airanluo-dot.github.io/DropSpace/en/"></head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="site-header" data-header="">
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="DropSpace home">
+        <img src="/DropSpace/assets/dropspace-logo.043c1f8804e7.png" width="42" height="42" alt="">
+        <span>DropSpace</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">功能</a>
+        <a href="#download">下载</a>
+        <a href="/DropSpace/zh-cn/changelog/">更新日志</a>
+        <a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+      <a class="language-switch" data-language-switch="" href="/DropSpace/en/" aria-label="Switch to English">EN</a>
+      <a class="button button-small button-outline" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe" data-download="installer">下载</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" id="top">
+      <div class="hero-copy">
+        <h1>拖进来。暂存好。<br>需要时再取走。</h1>
+        <p>Windows 11 的临时空间，就在屏幕顶部。</p>
+        <div class="actions">
+          <a class="button button-primary" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe" data-download="installer">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4.4 10.3 3v8.2H3V4.4Zm8.3-1.6L21 1v10.2h-9.7V2.8ZM3 12.2h7.3V21L3 19.6v-7.4Zm8.3 0H21V23l-9.7-1.8v-9Z"></path></svg>
+            下载 Windows 版
+          </a>
+          <a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">在 GitHub 查看</a>
+        </div>
+        <p class="stable-line"><span aria-hidden="true"></span> 最新稳定版 · v0.1.0</p>
+      </div>
+
+      <div class="desktop-demo" data-demo="" aria-label="Animated demonstration: drag a file to the top of the screen to place it in DropSpace">
+        <div class="screen-bar"><i></i><i></i><i></i><span>桌面</span></div>
+        <div class="island" data-island="">
+          <img src="/DropSpace/assets/favicon.2de52d0240e9.png" alt="" width="26" height="26">
+          <span class="island-label">DropSpace</span>
+          <strong class="island-count">3</strong>
+        </div>
+        <div class="desktop-file" data-file="">
+          <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 64 64"><path d="M13 5h25l13 13v41H13z"></path><path d="M38 5v14h13"></path><path d="M21 33h22M21 42h17"></path></svg>
+          <span>Project Brief.pdf</span>
+        </div>
+        <div class="drop-trail" aria-hidden="true"></div>
+        <div class="space-popover" data-popover="">
+          <div class="popover-head"><div><strong>临时空间</strong><span>随时等你取用</span></div><b>3 个项目</b></div>
+          <div class="file-row"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>2.4 MB · just now</small></div><i>•••</i></div>
+          <div class="file-row"><span class="file-type image">IMG</span><div><strong>Design Notes.png</strong><small>1.1 MB · 2 min ago</small></div><i>•••</i></div>
+          <div class="file-row"><span class="file-type doc">DOC</span><div><strong>Client Deck.pptx</strong><small>6.7 MB · 8 min ago</small></div><i>•••</i></div>
+          <small class="safe-note">移除引用绝不会删除原文件。</small>
+        </div>
+        <div class="demo-caption"><span>1. 从任意位置拖动</span><span>2. 放到屏幕顶部</span><span>3. 需要时再使用</span></div>
+      </div>
+    </section>
+
+    <section class="temporary band shell" id="features">
+      <div class="section-copy">
+        <p class="section-index">01 / 临时空间</p>
+        <h2>临时存放，<br>不再杂乱。</h2>
+        <p>DropSpace 将文件与文件夹引用放在触手可及的位置，不移动、也不复制原文件。文件仍留在原来的位置。</p>
+      </div>
+      <div class="reference-flow" aria-label="Explorer file reference is added to Temporary Space while the original stays in place">
+        <div class="explorer-window">
+          <div class="window-title"><span></span><span></span><span></span><b>Documents / Projects</b></div>
+          <div class="explorer-body"><aside>Home<br>桌面<br>Downloads<br><strong>Documents</strong><br>Pictures</aside><div class="files"><small>Name <i>Date modified</i></small><p><b class="mini-file pdf">P</b>Project Brief.pdf <i>Today</i></p><p><b class="mini-file image">I</b>Design Notes.png <i>Today</i></p><p><b class="mini-file doc">D</b>Client Deck.pptx <i>Yesterday</i></p></div></div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="flow-arrow" aria-hidden="true" viewBox="0 0 130 38"><path d="M2 19h116M104 5l14 14-14 14"></path></svg>
+        <div class="reference-card"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>文件引用 · 原文件不变</small></div></div>
+        <div class="source-safe"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg><span><strong>原文件保持原位</strong><small>不会移动或复制任何内容。</small></span></div>
+      </div>
+    </section>
+
+    <section class="modes shell">
+      <div class="section-heading split-heading"><div><p class="section-index">02 / 屏幕顶部访问</p><h2>两种外形。<br>同一个快捷空间。</h2></div><p>选择灵动岛或刘海模式。两者都拥有相同的状态：紧凑、可以放下、展开。</p></div>
+      <div class="mode-stage" data-mode-stage="">
+        <div class="mode-switch" role="group" aria-label="Overlay shape preview">
+          <button class="active" type="button" data-mode="island" aria-pressed="true">灵动岛</button>
+          <button type="button" data-mode="notch" aria-pressed="false">刘海</button>
+        </div>
+        <div class="mode-screen">
+          <div class="mode-overlay compact"><img src="/DropSpace/assets/favicon.2de52d0240e9.png" alt=""><span>临时空间</span><b>3</b></div>
+          <div class="mode-overlay ready"><span></span><strong>可以放下</strong><small>松开即可添加文件</small></div>
+          <div class="mode-overlay expanded"><div><strong>临时空间</strong><small>最近 3 个项目</small></div><div class="tiny-rows"><span>Project Brief.pdf</span><span>Design Notes.png</span><span>Client Deck.pptx</span></div></div>
+          <div class="state-labels"><span>紧凑</span><span>可以放下</span><span>展开</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="clipboard band shell">
+      <div class="section-copy">
+        <p class="section-index">03 / 剪贴板历史</p>
+        <h2>真正有用的<br>剪贴板历史。</h2>
+        <p>查找复制过的文本、链接、图片、文件和文件夹。随时暂停记录、固定重要内容，并在一个地方搜索全部历史。</p>
+        <div class="duplicate-rule"><div><code>A</code><code>A</code><code>A</code><b>→</b><code>A</code></div><small>连续重复内容会自动合并。</small><div><code>A</code><code class="blue">B</code><code>A</code><b>→</b><code>A</code><code class="blue">B</code><code>A</code></div><small>有意义的 A → B → A 历史仍会保留。</small></div>
+      </div>
+      <div class="clipboard-window">
+        <div class="clipboard-title"><strong>剪贴板历史</strong><div><span>⌕</span><span>Ⅱ</span><span>×</span></div></div>
+        <div class="filter-row"><b>全部</b><span>文本</span><span>链接</span><span>图片</span><span>文件</span><i>已固定</i></div>
+        <div class="clip-row"><span class="clip-icon text">T</span><div><strong>Design is not just what it looks like…</strong><small>Text · 3 min ago</small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon link">↗</span><div><strong>github.com/airanluo-dot/DropSpace</strong><small>Link · 8 min ago</small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon image">▧</span><div><strong>Screenshot 2026-08-11.png</strong><small>Image · 14 min ago</small></div><b>⌖</b></div>
+        <div class="clip-row"><span class="clip-icon file">▤</span><div><strong>Release Notes.md</strong><small>File · 22 min ago</small></div><b>···</b></div>
+      </div>
+    </section>
+
+    <section class="drag shell">
+      <div class="section-heading"><p class="section-index">04 / 拖放</p><h2>为拖放而生。</h2><p>无论资源管理器、桌面、紧凑模式、展开模式还是主窗口，DropSpace 都能融入你已有的文件工作流。</p></div>
+      <div class="drag-rail">
+        <div><span>资源管理器 / 桌面</span><strong>→ 紧凑灵动岛</strong><i class="mini-island"></i></div>
+        <div><span>资源管理器 / 桌面</span><strong>→ 展开灵动岛</strong><i class="mini-expanded"><b></b><b></b><b></b></i></div>
+        <div><span>主窗口</span><strong>拖入 / 拖出</strong><i class="mini-window"><b></b><b></b><b></b></i></div>
+      </div>
+      <div class="feature-rail" aria-label="Additional DropSpace features">
+        <span><b>⌕</b>搜索</span><span><b>⌖</b>固定项目</span><span><b>▱</b>文件夹</span><span><b>▤</b>托盘访问</span><span><b>⊞</b>随 Windows 启动</span><span><b>↻</b>稳定版与预览版更新</span>
+      </div>
+    </section>
+
+    <section class="product-media band shell" aria-labelledby="product-media-title">
+      <div class="section-heading split-heading"><div><p class="section-index">产品预览</p><h2 id="product-media-title">直接看懂完整流程。</h2></div><p>基于 v0.1.0 已发布交互与界面结构制作的轻量产品演示。这是官网重构演示，不是其他软件的录屏。</p></div>
+      <div class="media-grid">
+        <figure class="media-frame"><video autoplay="" muted="" loop="" playsinline="" poster="/DropSpace/assets/product-overview.3e2f363da985.webp" aria-label="把文件放到屏幕顶部"><source src="/DropSpace/assets/drag-demo.bb31de57adc2.webm" type="video/webm"></video><figcaption>把文件放到屏幕顶部</figcaption></figure>
+        <figure class="media-frame"><img src="/DropSpace/assets/product-overview.3e2f363da985.webp" width="1280" height="720" loading="lazy" alt="Temporary Space overview"><figcaption>临时空间概览</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="download band shell" id="download">
+      <div class="download-intro"><p class="section-index">下载</p><h2>准备就绪，<br>随时可用。</h2><p>最新稳定版 · v0.1.0</p><p>需要 Windows 11 版本 26100 或更高</p><a href="https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">查看全部版本 <span>↗</span></a><a href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt">SHA-256 校验值 <span>↗</span></a></div>
+      <div class="download-options">
+        <a class="download-card recommended" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe" data-download="installer"><img src="/DropSpace/assets/favicon.2de52d0240e9.png" alt=""><div><strong>下载安装程序</strong><span>推荐大多数用户选择</span><small>DropSpaceSetup.exe</small></div><b>↓</b><em>推荐</em></a>
+        <a class="download-card" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace.exe" data-download="portable"><span class="download-icon">▱</span><div><strong>便携版</strong><span>无需安装即可运行</span><small>DropSpace.exe</small></div><b>↓</b></a>
+        <a class="download-card" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace-x64.msix" data-download="msix"><span class="download-icon">◇</span><div><strong>MSIX</strong><span>备用的未签名软件包</span><small>DropSpace-x64.msix</small></div><b>↓</b></a>
+      </div>
+    </section>
+
+    <section class="release-readiness shell" aria-label="System requirements and download verification">
+      <article><p class="section-index">系统要求</p><h2>Windows 11 24H2 或更高版本</h2><p>需要系统版本 26100 或更高，不支持 Windows 10。</p><p class="system-result" data-system-check="" data-windows="检测到 Windows。浏览器无法可靠读取具体系统版本，请在“设置 → 系统 → 系统信息”中确认版本为 26100 或更高。" data-other="当前设备未报告为 Windows。DropSpace 下载仅适用于 Windows 11。">正在检测此设备……</p></article>
+      <article id="known-limitations"><p class="section-index">已知限制</p><h2>安装前需要了解。</h2><p>当前公开版本尚未签名，因此 SmartScreen 可能显示未知应用警告。Windows 11 顶部拖放托盘可能占用同一手势；分享集成需要未来受信任签名版本。</p></article>
+      <article><p class="section-index">校验下载</p><h2>确认你收到的文件。</h2><p>请只从官方 GitHub Release 下载，并将文件 SHA-256 与 SHA256SUMS.txt 对比。哈希一致可以证明文件完整，但不能单独证明发布者身份。</p><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt">校验说明</a></article>
+    </section>
+
+    <section class="whats-new shell" id="changelog">
+      <div><p class="section-index">最新变化</p><h2>首个稳定版。</h2><a class="release-title" href="https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">v0.1.0 — 首个稳定版本</a><p>2026年8月11日</p></div>
+      <div class="release-list"><span>最终正式品牌视觉</span><span>支持灵动岛或刘海模式的临时空间</span><span>带连续重复抑制的剪贴板历史</span><span>应用内稳定版与预览版更新通道</span><span>安装程序、便携版与 MSIX 下载</span><a class="button button-ghost" href="/DropSpace/zh-cn/changelog/">查看完整更新日志</a></div>
+    </section>
+
+    <section class="open-source band shell">
+      <div><p class="section-index">开源</p><h2>从设计之初便开放。</h2><p>DropSpace 在开放环境中构建，代码、设计决策、隐私模型和发布历史均向所有人公开。</p></div>
+      <div><div class="actions"><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">查看源代码</a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/stargazers" target="_blank" rel="noopener noreferrer">在 GitHub 加星</a><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/issues" target="_blank" rel="noopener noreferrer">报告问题</a></div><p>Apache-2.0 · Copyright 2026 Airan Luo</p></div>
+    </section>
+
+    <section class="faq shell" id="faq">
+      <div class="section-heading"><p class="section-index">常见问题</p><h2>你可能想知道。</h2></div>
+      <div class="faq-list">
+        <details><summary>DropSpace 是什么？</summary><p>一个本地优先的 Windows 11 工作空间，用于临时保存文件引用和最近的剪贴板内容，并提供主窗口与屏幕顶部的灵动岛或刘海界面。</p></details>
+        <details><summary>DropSpace 会移动我的文件吗？</summary><p>不会。临时空间只保存引用。添加或移除引用都不会移动、复制或删除原文件。</p></details>
+        <details><summary>可以添加文件夹吗？</summary><p>可以。你可以通过拖放或选择器将文件和文件夹引用加入 DropSpace。</p></details>
+        <details><summary>什么是剪贴板历史？</summary><p>保存在本地的文本、网址、图片、文件和文件夹历史。你可以搜索、固定、暂停、清除并设置保留限制。</p></details>
+        <details><summary>安装版和便携版有什么区别？</summary><p>推荐的个人用户安装版提供开始菜单入口、独立卸载程序和原位更新；便携版无需安装即可运行，更新仅提供通知和下载。</p></details>
+        <details><summary>DropSpace 支持 Windows 10 吗？</summary><p>不支持。当前版本需要 Windows 11 版本 26100 或更高。</p></details>
+        <details><summary>Windows 11 顶部拖放托盘怎么办？</summary><p>Windows 可能会占用相同的顶部拖动手势。DropSpace 设置会链接到官方多任务页面；你仍可直接拖放到可见的紧凑或展开界面。</p></details>
+        <details><summary>DropSpace 会上传剪贴板内容吗？</summary><p>不会。常规内容功能只使用本地存储。启用更新检查后，DropSpace 只会访问公开的 GitHub Release 元数据和官方 GitHub 资源地址。</p></details>
+        <details><summary>更新如何工作？</summary><p>稳定通道只接收稳定版本；预览通道可接收稳定版和预览版。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="shell footer-inner"><a class="brand" href="#top"><img src="/DropSpace/assets/dropspace-logo.043c1f8804e7.png" width="42" height="42" alt=""><span>DropSpace</span></a><nav aria-label="Footer"><a href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/airanluo-dot/DropSpace/releases" target="_blank" rel="noopener noreferrer">发布版本</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">许可证</a><a href="https://github.com/airanluo-dot/DropSpace/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">隐私</a></nav><p>© 2026 Airan Luo.</p></div></footer>
+  <script defer="defer" src="/DropSpace/assets/script.67670c827461.js"></script>
+
+
+</body></html>

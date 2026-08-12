@@ -1,8 +1,38 @@
-const header = document.querySelector("[data-header]");
-const demo = document.querySelector("[data-demo]");
-const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+export const site = {
+  en: {
+    lang: "en",
+    route: "en",
+    title: "DropSpace — A Temporary Space for Windows",
+    description: "Drag files to the top of your Windows 11 screen, keep them in a temporary space, and bring them back when you need them.",
+    ogDescription: "Drag it. Keep it. Use it later.",
+    switchLabel: "中文",
+    switchAria: "切换到中文",
+    switchRoute: "zh-cn"
+  },
+  "zh-cn": {
+    lang: "zh-CN",
+    route: "zh-cn",
+    title: "DropSpace — Windows 临时空间",
+    description: "将文件拖到 Windows 11 屏幕顶部，放入临时空间，需要时再取回。",
+    ogDescription: "拖进来，暂存好，需要时再取走。",
+    switchLabel: "EN",
+    switchAria: "Switch to English",
+    switchRoute: "en"
+  }
+};
 
-const zh = {
+export const changelogMeta = {
+  en: {
+    title: "Changelog — DropSpace",
+    description: "DropSpace Stable and Preview release history."
+  },
+  "zh-cn": {
+    title: "更新日志 — DropSpace",
+    description: "DropSpace 稳定版与预览版发布历史。"
+  }
+};
+
+export const zh = {
   "Skip to content": "跳到主要内容",
   "Features": "功能",
   "Download": "下载",
@@ -12,7 +42,6 @@ const zh = {
   "A temporary space for Windows 11—right at the top of your screen.": "Windows 11 的临时空间，就在屏幕顶部。",
   "Download for Windows": "下载 Windows 版",
   "View on GitHub": "在 GitHub 查看",
-  "Latest Stable · v0.1.0": "最新稳定版 · v0.1.0",
   "Desktop": "桌面",
   "Drop Ready": "可以放下",
   "Release to add files": "松开即可添加文件",
@@ -34,7 +63,7 @@ const zh = {
   "02 / TOP-SCREEN ACCESS": "02 / 屏幕顶部访问",
   "Two shapes.": "两种外形。",
   "One quick workspace.": "同一个快捷空间。",
-  "Choose Dynamic Island or Notch. Both move through the same clear states: Compact, Drop Ready, Expanded.": "选择灵动岛或刘海模式。两者都拥有相同的清晰状态：紧凑、可以放下、展开。",
+  "Choose Dynamic Island or Notch. Both move through the same clear states: Compact, Drop Ready, Expanded.": "选择灵动岛或刘海模式。两者都拥有相同的状态：紧凑、可以放下、展开。",
   "Dynamic Island": "灵动岛",
   "Notch": "刘海",
   "Compact": "紧凑",
@@ -66,6 +95,11 @@ const zh = {
   "Tray access": "托盘访问",
   "Start with Windows": "随 Windows 启动",
   "Stable & Preview updates": "稳定版与预览版更新",
+  "PRODUCT PREVIEW": "产品预览",
+  "See the flow, not just a feature list.": "直接看懂完整流程。",
+  "A lightweight product demo based on the shipped v0.1.0 interaction and UI structure. It is a website reconstruction, not a recording from another app.": "基于 v0.1.0 已发布交互与界面结构制作的轻量产品演示。这是官网重构演示，不是其他软件的录屏。",
+  "Drop a file at the top": "把文件放到屏幕顶部",
+  "Temporary Space overview": "临时空间概览",
   "DOWNLOAD": "下载",
   "Ready when": "准备就绪，",
   "you are.": "随时可用。",
@@ -79,10 +113,21 @@ const zh = {
   "Run without installing": "无需安装即可运行",
   "MSIX": "MSIX",
   "Alternative unsigned package": "备用的未签名软件包",
+  "SYSTEM REQUIREMENTS": "系统要求",
+  "Windows 11 24H2 or later": "Windows 11 24H2 或更高版本",
+  "Requires build 26100 or later. Windows 10 is not supported.": "需要系统版本 26100 或更高，不支持 Windows 10。",
+  "Checking this device…": "正在检测此设备……",
+  "Windows detected. Your browser cannot reliably report the exact Windows build—confirm build 26100 or later in Settings → System → About.": "检测到 Windows。浏览器无法可靠读取具体系统版本，请在“设置 → 系统 → 系统信息”中确认版本为 26100 或更高。",
+  "This device is not reporting Windows. DropSpace downloads are for Windows 11 only.": "当前设备未报告为 Windows。DropSpace 下载仅适用于 Windows 11。",
+  "KNOWN LIMITATIONS": "已知限制",
+  "Know before you install.": "安装前需要了解。",
+  "The current public build is unsigned, so SmartScreen may show an unknown-app warning. Windows 11 Drop Tray can own the same top-edge gesture, and Share integration requires a future trusted-signed build.": "当前公开版本尚未签名，因此 SmartScreen 可能显示未知应用警告。Windows 11 顶部拖放托盘可能占用同一手势；分享集成需要未来受信任签名版本。",
+  "VERIFY YOUR DOWNLOAD": "校验下载",
+  "Check the file you received.": "确认你收到的文件。",
+  "Download only from the official GitHub Release. Compare the file's SHA-256 with SHA256SUMS.txt; a matching hash proves file integrity, but not publisher identity.": "请只从官方 GitHub Release 下载，并将文件 SHA-256 与 SHA256SUMS.txt 对比。哈希一致可以证明文件完整，但不能单独证明发布者身份。",
+  "Verification guide": "校验说明",
   "WHAT'S NEW": "最新变化",
   "First Stable.": "首个稳定版。",
-  "v0.1.0 — First Stable Release": "v0.1.0 — 首个稳定版本",
-  "August 11, 2026": "2026 年 8 月 11 日",
   "Final official branding": "最终正式品牌视觉",
   "Temporary Space with Dynamic Island or Notch": "支持灵动岛或刘海模式的临时空间",
   "Clipboard History with consecutive duplicate suppression": "带连续重复抑制的剪贴板历史",
@@ -126,81 +171,6 @@ const zh = {
   "Full release notes": "完整发布说明",
   "Preview channel": "预览通道",
   "Preview releases remain available through GitHub Releases and the optional in-app Preview channel. They are never the default website download.": "预览版本仍可通过 GitHub Releases 和应用内可选预览通道获取，但绝不会成为网站默认下载。",
-  "Download v0.1.0": "下载 v0.1.0"
+  "Download release": "下载此版本",
+  "Published release notes remain in their original language.": "发布说明正文保留发布时使用的原始语言。"
 };
-
-function translatePage(language) {
-  const isZh = language === "zh";
-  document.documentElement.lang = isZh ? "zh-CN" : "en";
-  if (!isZh) return;
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    const value = node.nodeValue;
-    const trimmed = value?.trim();
-    if (!trimmed || !zh[trimmed]) continue;
-    node.nodeValue = value.replace(trimmed, zh[trimmed]);
-  }
-  document.title = location.pathname.includes("changelog") ? "更新日志 — DropSpace" : "DropSpace — Windows 临时空间";
-  document.querySelector('meta[name="description"]')?.setAttribute("content", "将文件拖到 Windows 11 屏幕顶部，临时存放，需要时再取回。");
-  document.querySelectorAll("[data-language-switch]").forEach((button) => {
-    button.textContent = "EN";
-    button.setAttribute("aria-label", "Switch to English");
-  });
-}
-
-const requestedLanguage = new URLSearchParams(location.search).get("lang");
-const savedLanguage = localStorage.getItem("dropspace-language");
-const language = requestedLanguage === "en" || requestedLanguage === "zh"
-  ? requestedLanguage
-  : savedLanguage ?? (navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
-translatePage(language);
-document.querySelectorAll("[data-language-switch]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const next = document.documentElement.lang === "zh-CN" ? "en" : "zh";
-    localStorage.setItem("dropspace-language", next);
-    const url = new URL(location.href);
-    url.searchParams.set("lang", next);
-    location.href = url;
-  });
-});
-
-addEventListener("scroll", () => header?.classList.toggle("scrolled", scrollY > 18), { passive: true });
-
-if (demo) {
-  let timer;
-  const run = () => {
-    if (reduced.matches) {
-      demo.dataset.state = "expanded";
-      return;
-    }
-    const states = [["idle", 0], ["ready", 2500], ["expanded", 3900], ["idle", 6500]];
-    let index = 0;
-    const step = () => {
-      demo.dataset.state = states[index][0];
-      const next = states[(index + 1) % states.length];
-      const delay = index === states.length - 1 ? 700 : next[1] - states[index][1];
-      index = (index + 1) % states.length;
-      timer = setTimeout(step, delay);
-    };
-    step();
-  };
-  run();
-  reduced.addEventListener("change", () => { clearTimeout(timer); run(); });
-}
-
-const stage = document.querySelector("[data-mode-stage]");
-document.querySelectorAll("[data-mode]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-mode]").forEach((item) => {
-      const active = item === button;
-      item.classList.toggle("active", active);
-      item.setAttribute("aria-pressed", String(active));
-    });
-    stage?.classList.toggle("notch", button.dataset.mode === "notch");
-  });
-});
-
-const observer = new IntersectionObserver((entries) => {
-  for (const entry of entries) if (entry.isIntersecting) entry.target.classList.add("revealed");
-}, { threshold: 0.12 });
-document.querySelectorAll("main section").forEach((section) => observer.observe(section));

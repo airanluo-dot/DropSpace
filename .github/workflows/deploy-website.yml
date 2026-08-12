@@ -1,0 +1,61 @@
+name: Deploy official website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/_source/package-lock.json
+      - name: Install website dependencies
+        working-directory: website/_source
+        run: npm ci
+      - name: Sync GitHub Releases
+        working-directory: website/_source
+        run: npm run sync-releases
+      - name: Build and test static output
+        working-directory: website/_source
+        run: npm test
+      - name: Install Chromium
+        working-directory: website/_source
+        run: npx playwright install --with-deps chromium
+      - name: Test language routes in a real browser
+        working-directory: website/_source
+        run: npm run test:browser
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload atomic Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: website/_source/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,15 +1,26 @@
 # DropSpace Website
 
-Official bilingual static website for [DropSpace](https://github.com/airanluo-dot/DropSpace). The deployable files live in the Windows App repository's `website/` directory and are served through jsDelivr's global CDN. The public entry point is `website/index.xhtml`; XHTML preserves the correct browser content type on the CDN.
+Official bilingual static website for [DropSpace](https://github.com/airanluo-dot/DropSpace). Source and build tooling live in `website/_source`; generated production files are exported to `website/` and deployed atomically by GitHub Pages.
 
-## Local build
+## Routes
+
+- English: `/en/`
+- 简体中文: `/zh-cn/`
+- Localized changelog: `/<language>/changelog/`
+
+These are independent generated HTML documents. The language switch is a normal link and does not replace strings at runtime.
+
+## Build and verification
 
 ```bash
+npm ci
 npm run sync-releases
 npm test
-npm run build
+npx playwright install chromium
+npm run test:browser
+npm run export
 ```
 
-Release metadata is synchronized at build time from public GitHub Releases. A committed v0.1.0 fallback keeps downloads available if the API is temporarily unavailable.
+The release sync reads public GitHub Releases at build time. A committed Stable fallback preserves working download links if GitHub's API is temporarily unavailable. CSS, JavaScript, brand assets, screenshots, and demo media receive content-hashed filenames so each Pages artifact is internally consistent.
 
-After publishing an update to `main`, purge the changed `website/` URLs through jsDelivr so the branch-backed public URL refreshes immediately.
+GitHub Pages does not expose arbitrary response-header or cache-rule configuration. The build therefore uses a strict per-document CSP meta policy, immutable versioned asset URLs, static redirects, a custom 404 page, and an atomic Pages artifact deployment. Moving to a host with response-header controls would allow the same CSP to be enforced as an HTTP header.

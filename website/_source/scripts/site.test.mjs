@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import test from "node:test";
+import { JSDOM } from "jsdom";
 
-const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
-const changelog = await readFile(new URL("../src/changelog/index.html", import.meta.url), "utf8");
-const script = await readFile(new URL("../src/script.js", import.meta.url), "utf8");
+const read = (relative) => readFile(new URL(`../dist/${relative}`, import.meta.url), "utf8");
 const releases = JSON.parse(await readFile(new URL("../data/releases.json", import.meta.url), "utf8"));
+const en = await read("en/index.html");
+const zh = await read("zh-cn/index.html");
+const enChangelog = await read("en/changelog/index.html");
+const zhChangelog = await read("zh-cn/changelog/index.html");
 
 test("fallback has all Stable downloads", () => {
   assert.equal(releases.stable.tag, "v0.1.0");
@@ -14,35 +17,85 @@ test("fallback has all Stable downloads", () => {
   }
 });
 
-test("homepage has required sections and metadata", () => {
-  for (const value of ["Temporary Space", "Dynamic Island", "Notch", "Clipboard History", "Download Installer", "OPEN SOURCE", "application/ld+json"]) {
-    assert.ok(html.includes(value), `missing ${value}`);
+test("build emits independent English and Simplified Chinese pages", () => {
+  assert.match(en, /<html lang="en">/);
+  assert.match(zh, /<html lang="zh-CN">/);
+  assert.match(en, /Drag it\. Keep it\./);
+  assert.match(zh, /拖进来。暂存好。/);
+  assert.doesNotMatch(en, /localStorage\.setItem\("dropspace-language"/);
+  assert.doesNotMatch(zh, /translatePage|createTreeWalker/);
+});
+
+test("localized metadata, canonical, hreflang, OG and structured data are complete", () => {
+  for (const [html, route, title] of [[en, "en", "DropSpace — A Temporary Space for Windows"], [zh, "zh-cn", "DropSpace — Windows 临时空间"]]) {
+    const document = new JSDOM(html).window.document;
+    assert.equal(document.title, title);
+    assert.equal(document.querySelector('link[rel="canonical"]')?.href, `https://airanluo-dot.github.io/DropSpace/${route}/`);
+    assert.equal(document.querySelector('meta[property="og:url"]')?.content, `https://airanluo-dot.github.io/DropSpace/${route}/`);
+    assert.ok(document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content.includes("sha256-"));
+    const structured = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
+    assert.equal(structured.inLanguage, route === "en" ? "en" : "zh-CN");
+    assert.equal(structured.softwareVersion, releases.stable.tag);
+    assert.equal(document.querySelectorAll('link[rel="alternate"]').length, 3);
   }
-  assert.ok(!html.includes("localhost"));
-  assert.ok(!html.includes("Lorem ipsum"));
 });
 
-test("external links are secured", () => {
-  const targets = [...html.matchAll(/<a[^>]+target="_blank"[^>]*>/g)].map((match) => match[0]);
-  assert.ok(targets.length > 0);
-  for (const tag of targets) assert.match(tag, /rel="noopener noreferrer"/);
-});
-
-test("Chinese localization and language switch are present", () => {
-  assert.match(html, /data-language-switch/);
-  assert.match(changelog, /data-language-switch/);
-  assert.match(html, /<script defer="defer" src="\.\/script\.js"><\/script>/);
-  assert.match(changelog, /<script defer="defer" src="\.\.\/script\.js"><\/script>/);
-  assert.doesNotMatch(html, /type="module"/);
-  assert.doesNotMatch(changelog, /type="module"/);
-  for (const value of ["Windows 11 的临时空间", "下载安装程序", "更新日志 — DropSpace"]) {
-    assert.ok(script.includes(value), `missing Chinese translation: ${value}`);
+test("homepage includes product, media, requirements, limitations and verification", () => {
+  for (const value of ["Temporary Space", "Dynamic Island", "Notch", "Clipboard History", "Download Installer", "PRODUCT PREVIEW", "SYSTEM REQUIREMENTS", "KNOWN LIMITATIONS", "VERIFY YOUR DOWNLOAD"]) {
+    assert.ok(en.includes(value), `missing ${value}`);
   }
-  assert.match(script, /localStorage\.setItem\("dropspace-language"/);
+  assert.ok(en.includes("product-overview."));
+  assert.ok(en.includes("drag-demo."));
+  assert.ok(!en.includes("localhost"));
+  assert.ok(!en.includes("Lorem ipsum"));
 });
 
-test("production metadata uses the global XHTML CDN deployment", () => {
-  const origin = "https://cdn.jsdelivr.net/gh/airanluo-dot/DropSpace@main/website/";
-  assert.ok(html.includes(`${origin}index.xhtml`));
-  assert.ok(changelog.includes(`${origin}changelog/index.xhtml`));
+test("release data drives every download and changelog entry", () => {
+  for (const url of Object.values(releases.stable.assets)) assert.ok(en.includes(url));
+  for (const release of [releases.stable, ...releases.previews]) {
+    assert.ok(enChangelog.includes(release.tag));
+    assert.ok(zhChangelog.includes(release.tag));
+    assert.ok(enChangelog.includes(release.url));
+  }
+});
+
+test("all external blank-target links are secured", () => {
+  for (const html of [en, zh, enChangelog, zhChangelog]) {
+    const document = new JSDOM(html).window.document;
+    for (const link of document.querySelectorAll('a[target="_blank"]')) {
+      assert.equal(link.rel, "noopener noreferrer");
+    }
+  }
+});
+
+test("generated assets are content-versioned", async () => {
+  const files = await readdir(new URL("../dist/assets/", import.meta.url));
+  for (const prefix of ["styles", "script", "dropspace-logo", "favicon", "og-image", "redirect"]) {
+    assert.ok(files.some((file) => new RegExp(`^${prefix}\\.[a-f0-9]{12}\\.`).test(file)), `missing versioned ${prefix}`);
+  }
+});
+
+test("root, error page, robots and sitemap are production-safe", async () => {
+  const root = await read("index.html");
+  const notFound = await read("404.html");
+  const sitemap = await read("sitemap.xml");
+  assert.match(root, /redirect\.[a-f0-9]{12}\.js/);
+  assert.match(notFound, /noindex/);
+  assert.match(sitemap, /\/en\//);
+  assert.match(sitemap, /\/zh-cn\//);
+});
+
+test("all generated internal links and assets resolve", async () => {
+  for (const [relative, html] of [["en/index.html", en], ["zh-cn/index.html", zh], ["en/changelog/index.html", enChangelog], ["zh-cn/changelog/index.html", zhChangelog]]) {
+    const document = new JSDOM(html).window.document;
+    for (const element of document.querySelectorAll("[href], [src], [poster]")) {
+      const value = element.getAttribute("href") ?? element.getAttribute("src") ?? element.getAttribute("poster");
+      if (!value || value.startsWith("#") || /^https?:/.test(value)) continue;
+      const url = new URL(value, `https://airanluo-dot.github.io/DropSpace/${relative}`);
+      if (!url.pathname.startsWith("/DropSpace/")) continue;
+      let target = url.pathname.slice("/DropSpace/".length);
+      if (!target || target.endsWith("/")) target += "index.html";
+      await assert.doesNotReject(stat(new URL(`../dist/${target}`, import.meta.url)), `${relative} has broken ${value}`);
+    }
+  }
 });

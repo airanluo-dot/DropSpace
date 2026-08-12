@@ -59,3 +59,9 @@ Desktop.ini
 *.bak
 *.log
 ~$*
+
+# DropSpace website local build and browser-test output
+website/_source/node_modules/
+website/_source/dist/
+website/_source/test-results/
+website/_source/playwright-report/

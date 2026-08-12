@@ -3,8 +3,14 @@ name: Windows CI
 on:
   push:
     branches: [main, "agent/**"]
+    paths-ignore:
+      - "website/**"
+      - ".github/workflows/deploy-website.yml"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "website/**"
+      - ".github/workflows/deploy-website.yml"
 
 permissions:
   contents: read
