@@ -19,7 +19,7 @@ namespace DropSpace.App;
 public sealed partial class OverlayWindow : Window
 {
     private const double HostWidth = 600;
-    private const double HostHeight = 360;
+    private const double HostHeight = OverlayPlacementPolicy.MinimumHostHeightDips;
     private readonly OverlayViewModel _viewModel;
     private readonly MonitorDescriptor _monitor;
     private readonly MonitorLayoutService _monitorLayout;
@@ -121,8 +121,20 @@ public sealed partial class OverlayWindow : Window
         }
 
         var failuresBefore = RegionFailureCount;
-        var island = CreateMotionTarget(OverlayState.Compact, OverlayDisplayMode.DynamicIsland);
-        var notch = CreateMotionTarget(OverlayState.Compact, OverlayDisplayMode.Notch);
+        var island = CreateMotionTarget(
+            OverlayState.Compact,
+            OverlayDisplayMode.DynamicIsland,
+            OverlayPlacementPolicy.GetTopOffsetDips(
+                OverlayDisplayMode.DynamicIsland,
+                FileDragWakeMode.SmartExperimental,
+                _monitor.Scale));
+        var notch = CreateMotionTarget(
+            OverlayState.Compact,
+            OverlayDisplayMode.Notch,
+            OverlayPlacementPolicy.GetTopOffsetDips(
+                OverlayDisplayMode.Notch,
+                FileDragWakeMode.SmartExperimental,
+                _monitor.Scale));
         var controller = new OverlayMotionController(island);
         for (var cycle = 0; cycle < cycles; cycle++)
         {
@@ -184,7 +196,7 @@ public sealed partial class OverlayWindow : Window
                                       _monitorLayout.IsForegroundFullscreen(_monitor);
         if (suppressedForFullscreen)
         {
-            BeginFullscreenSuppression(snapshot);
+            BeginFullscreenSuppression(snapshot, wakeMode);
             return;
         }
 
@@ -225,11 +237,11 @@ public sealed partial class OverlayWindow : Window
         var targetState = snapshot.State == OverlayState.ModeTransition
             ? ResolveModeTransitionState(snapshot)
             : snapshot.State;
-        var smartDragOffsetDips = wakeMode == FileDragWakeMode.SmartExperimental &&
-                                  targetState is OverlayState.DragApproaching or OverlayState.DragReady
-            ? 76d / _monitor.Scale
-            : 0;
-        var target = CreateMotionTarget(targetState, displayMode, smartDragOffsetDips);
+        var topOffset = OverlayPlacementPolicy.GetTopOffsetDips(
+            displayMode,
+            wakeMode,
+            _monitor.Scale);
+        var target = CreateMotionTarget(targetState, displayMode, topOffset);
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
         PrepareContentForTarget(target);
@@ -292,7 +304,7 @@ public sealed partial class OverlayWindow : Window
         _hideWhenSettled = false;
     }
 
-    private void BeginFullscreenSuppression(OverlaySnapshot snapshot)
+    private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
         if (!_suppressedForFullscreen)
         {
@@ -318,7 +330,10 @@ public sealed partial class OverlayWindow : Window
             ? snapshot.TargetDisplayMode
             : snapshot.DisplayMode;
         _renderDisplayMode = displayMode;
-        var hiddenTarget = CreateMotionTarget(OverlayState.Hidden, displayMode);
+        var hiddenTarget = CreateMotionTarget(
+            OverlayState.Hidden,
+            displayMode,
+            OverlayPlacementPolicy.GetTopOffsetDips(displayMode, wakeMode, _monitor.Scale));
         PrepareContentForTarget(hiddenTarget);
         _motion.SetTarget(hiddenTarget, IsReducedMotion());
         StartAnimationFrames();
@@ -505,9 +520,8 @@ public sealed partial class OverlayWindow : Window
     private static OverlayMotionValues CreateMotionTarget(
         OverlayState state,
         OverlayDisplayMode mode,
-        double additionalTopOffset = 0)
+        double topOffset)
     {
-        var topOffset = (mode == OverlayDisplayMode.DynamicIsland ? 8 : 0) + additionalTopOffset;
         return state switch
         {
             OverlayState.DragApproaching => Create(300, 54, topOffset, 27, mode, 0, 1, 0),

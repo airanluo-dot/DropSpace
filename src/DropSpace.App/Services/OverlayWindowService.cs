@@ -137,6 +137,13 @@ public sealed class OverlayWindowService : IDisposable
                 "Smart, Classic and Disabled drag-wake modes did not transfer native target ownership cleanly.");
         }
 
+        var smartObserverRegistered = VerifySmartObserverRegistration(_viewModel.FileDragWakeMode);
+        if (!smartObserverRegistered)
+        {
+            throw new InvalidOperationException(
+                "The Smart detector did not register both its observation-only mouse hook and documented EVENT_OBJECT drag signal source.");
+        }
+
         await Task.Delay(300, cancellationToken);
         CollectReleasedResources();
         var before = CaptureResources();
@@ -168,6 +175,7 @@ public sealed class OverlayWindowService : IDisposable
             regionFailures,
             idleTopEdgePassThrough,
             wakeModeSwitchVerified,
+            smartObserverRegistered,
             compactVisualTargetDiscoverable,
             expandedVisualTargetDiscoverable);
 
@@ -537,9 +545,11 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _logger.LogInformation(
-            "File drag wake mode applied: {Mode}; classic idle activation host count {HostCount}; smart detector UIA registered={UiaRegistered}.",
+            "File drag wake mode applied: {Mode}; classic idle activation host count {HostCount}; smart mouse observer registered={MouseRegistered}; EVENT_OBJECT drag observer registered={ObjectDragRegistered}; UIA registered={UiaRegistered}.",
             mode,
             _activationHosts.Count,
+            _dragSessionDetector.MouseObserverRegistered,
+            _dragSessionDetector.ObjectDragEventsRegistered,
             _dragSessionDetector.UiAutomationEventsRegistered);
     }
 
@@ -783,6 +793,27 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
+    private bool VerifySmartObserverRegistration(FileDragWakeMode originalMode)
+    {
+        try
+        {
+            ConfigureWakeMode(FileDragWakeMode.SmartExperimental, force: true);
+            var registrationCompleted = _dragSessionDetector.WaitForObserverRegistration(
+                TimeSpan.FromSeconds(2));
+            return registrationCompleted &&
+                   _dragSessionDetector.MouseObserverRegistered &&
+                   _dragSessionDetector.ObjectDragEventsRegistered;
+        }
+        finally
+        {
+            if (originalMode != FileDragWakeMode.SmartExperimental)
+            {
+                ConfigureWakeMode(originalMode, force: true);
+                ApplySnapshot(_viewModel.Snapshot);
+            }
+        }
+    }
+
     private OverlayWindow GetActiveWindow()
     {
         var activeMonitorId = _viewModel.ActiveMonitorId ?? _primaryMonitor?.Id;
@@ -836,6 +867,7 @@ public sealed record OverlayLifecycleMetrics(
     long RegionFailureCount,
     bool IdleTopEdgePassThrough,
     bool WakeModeSwitchVerified,
+    bool SmartObserverRegistered,
     bool CompactVisualTargetDiscoverable,
     bool ExpandedVisualTargetDiscoverable);
 

@@ -70,6 +70,33 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
+    public void DocumentedObjectDragSignalCanPromoteARecognizedShellSurface()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+
+        var transition = policy.AccessibilityDragStarted(
+            new(140, 120),
+            DragSourceKind.ExplorerFileView);
+
+        Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
+        Assert.AreEqual(DragSourceKind.ExplorerFileView, transition.Source);
+        Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void DocumentedObjectDragSignalStillRejectsUnknownApplications()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+
+        var transition = policy.AccessibilityDragStarted(new(140, 120), DragSourceKind.Unknown);
+
+        Assert.AreEqual(DragSessionTransitionKind.None, transition.Kind);
+        Assert.IsFalse(policy.IsActive);
+    }
+
+    [TestMethod]
     public void EscapeCancellationClosesExactlyOneSession()
     {
         var policy = Create();
