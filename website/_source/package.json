@@ -6,7 +6,6 @@
   "scripts": {
     "sync-releases": "node scripts/sync-releases.mjs",
     "build": "node scripts/build.mjs",
-    "export": "node scripts/export.mjs",
     "test": "node scripts/build.mjs && node --test scripts/*.test.mjs",
     "test:browser": "playwright test"
   },
