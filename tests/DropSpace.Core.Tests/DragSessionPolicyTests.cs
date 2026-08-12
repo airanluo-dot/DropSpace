@@ -26,7 +26,7 @@ public sealed class DragSessionPolicyTests
         Assert.IsFalse(policy.IsActive);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(DragSourceKind.ExplorerFileView, DragPointerButton.Left)]
     [DataRow(DragSourceKind.ExplorerFileView, DragPointerButton.Right)]
     [DataRow(DragSourceKind.DesktopFileView, DragPointerButton.Left)]
