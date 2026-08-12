@@ -46,11 +46,11 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
-    public void UiAutomationSignalIsDeduplicatedWithMouseFallback()
+    public void AccessibilitySignalIsDeduplicatedWithMouseFallback()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.ExplorerFileView);
-        var first = policy.UiAutomationDragStarted(new(105, 105), DragSourceKind.ExplorerFileView);
+        var first = policy.AccessibilityDragStarted(new(105, 105), DragSourceKind.ExplorerFileView);
         var duplicate = policy.PointerMoved(new(120, 120));
 
         Assert.AreEqual(DragSessionTransitionKind.Started, first.Kind);
@@ -58,15 +58,42 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
-    public void UiAutomationSignalKeepsVerifiedPressOriginAfterPointerLeavesItem()
+    public void AccessibilitySignalKeepsVerifiedPressOriginAfterPointerLeavesItem()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.ExplorerFileView);
 
-        var transition = policy.UiAutomationDragStarted(new(180, 180), DragSourceKind.Unknown);
+        var transition = policy.AccessibilityDragStarted(new(180, 180), DragSourceKind.Unknown);
 
         Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
         Assert.AreEqual(DragSourceKind.ExplorerFileView, transition.Source);
+    }
+
+    [TestMethod]
+    public void DocumentedObjectDragSignalCanPromoteARecognizedShellSurface()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+
+        var transition = policy.AccessibilityDragStarted(
+            new(140, 120),
+            DragSourceKind.ExplorerFileView);
+
+        Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
+        Assert.AreEqual(DragSourceKind.ExplorerFileView, transition.Source);
+        Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void DocumentedObjectDragSignalStillRejectsUnknownApplications()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+
+        var transition = policy.AccessibilityDragStarted(new(140, 120), DragSourceKind.Unknown);
+
+        Assert.AreEqual(DragSessionTransitionKind.None, transition.Kind);
+        Assert.IsFalse(policy.IsActive);
     }
 
     [TestMethod]

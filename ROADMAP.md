@@ -412,7 +412,7 @@ Actual Windows startup state matches UI, update failure preserves the working in
 ### v0.2.0-preview.1 experimental smart drag wake
 
 - Default Hidden idle owns no top-edge hit-test or OLE target window.
-- UI Automation drag signals and bounded read-only mouse thresholds recognize Explorer/Desktop candidates; real `CF_HDROP` remains mandatory.
+- Documented accessibility drag signals and bounded read-only mouse thresholds recognize Explorer/Desktop candidates; UIA/MSAA perform item hit-testing and real `CF_HDROP` remains mandatory.
 - Temporary Island/Notch target appears on the active drag monitor below the Windows Drop Tray region.
 - Smart, Classic top-edge and Disabled modes switch immediately with safe schema migration.
 - Graduation gate: real Windows 11 evidence for false positives, Explorer/Desktop coverage, cancellation, Drop Tray on/off, multi-monitor DPI and third-party limitations.
@@ -424,3 +424,11 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Recognize Explorer/Desktop file item ancestors without accepting blank Shell surfaces; retain system threshold and final OLE validation.
 - Add a versioned official website release API, runtime website refresh, GitHub Pages mirror and resilient in-app metadata fallback.
 - Graduation remains blocked on new real Windows 11 Explorer/Desktop evidence; Stable stays v0.1.0.
+
+### v0.2.0-preview.3 field hotfix
+
+- Add independent `EVENT_OBJECT_DRAGSTART/CANCEL/COMPLETE` and provider-supplied `EVENT_SYSTEM_DRAGDROPSTART/END` signals so transient UIA/MSAA item hit-test failure no longer leaves Smart mode completely silent.
+- Retain verified Explorer/Desktop file-view origin evidence while requiring exact item evidence for mouse-threshold-only fallback and real OLE `CF_HDROP` for acceptance.
+- Use one DPI-aware Drop Tray-safe anchor for every Overlay state and both Dynamic Island/Notch; enlarge the host so offset Expanded geometry and the native target region cannot diverge.
+- Add Windows smoke health gates for the observation-only mouse hook and object-drag event hook plus Core placement/DPI regressions.
+- Graduation remains blocked on real Windows 11 Explorer/Desktop event delivery, false-positive evidence, mixed-DPI visual alignment, and Drop Tray coexistence; Stable stays v0.1.0.

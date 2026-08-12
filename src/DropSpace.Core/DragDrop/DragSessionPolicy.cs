@@ -39,7 +39,7 @@ public readonly record struct DragSessionTransition(
 /// <summary>
 /// Pure, testable gate for candidate file-drag sessions. This policy never reads files and never
 /// accepts a drop; it only combines trusted source classification, the configured Windows drag
-/// threshold and optional UI Automation drag events into one deduplicated candidate session.
+/// threshold and optional accessibility drag events into one deduplicated candidate session.
 /// OLE IDataObject/CF_HDROP remains the final authority in the App layer.
 /// </summary>
 public sealed class DragSessionPolicy
@@ -97,7 +97,7 @@ public sealed class DragSessionPolicy
         return Start(point);
     }
 
-    public DragSessionTransition UiAutomationDragStarted(
+    public DragSessionTransition AccessibilityDragStarted(
         DragScreenPoint point,
         DragSourceKind source)
     {

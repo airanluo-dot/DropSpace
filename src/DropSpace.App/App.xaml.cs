@@ -376,6 +376,7 @@ public partial class App : Application
             overlayRegionFailureCount = metrics.RegionFailureCount,
             idleTopEdgePassThrough = metrics.IdleTopEdgePassThrough,
             wakeModeSwitchVerified = metrics.WakeModeSwitchVerified,
+            smartObserverRegistered = metrics.SmartObserverRegistered,
             compactVisualTargetDiscoverable = metrics.CompactVisualTargetDiscoverable,
             expandedVisualTargetDiscoverable = metrics.ExpandedVisualTargetDiscoverable,
             compactSyntheticCfHDropAccepted = visibleDrop.CompactDropAccepted,
