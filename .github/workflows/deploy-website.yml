@@ -6,6 +6,8 @@ on:
     paths:
       - "website/**"
       - ".github/workflows/deploy-website.yml"
+  release:
+    types: [published, edited, released, prereleased]
   workflow_dispatch:
 
 permissions:
