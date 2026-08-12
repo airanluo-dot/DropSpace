@@ -70,7 +70,7 @@ test("all external blank-target links are secured", () => {
 
 test("generated assets are content-versioned", async () => {
   const files = await readdir(new URL("../dist/assets/", import.meta.url));
-  for (const prefix of ["styles", "script", "dropspace-logo", "favicon", "og-image", "redirect"]) {
+  for (const prefix of ["styles", "script", "dropspace-logo", "favicon", "og-image"]) {
     assert.ok(files.some((file) => new RegExp(`^${prefix}\\.[a-f0-9]{12}\\.`).test(file)), `missing versioned ${prefix}`);
   }
 });
@@ -79,7 +79,10 @@ test("root, error page, robots and sitemap are production-safe", async () => {
   const root = await read("index.html");
   const notFound = await read("404.html");
   const sitemap = await read("sitemap.xml");
-  assert.match(root, /redirect\.[a-f0-9]{12}\.js/);
+  assert.match(root, /location\.replace/);
+  assert.match(root, /background:#050506/);
+  assert.match(root, /Content-Security-Policy/);
+  assert.doesNotMatch(root, /<script[^>]+src=/);
   assert.match(notFound, /noindex/);
   assert.match(sitemap, /\/en\//);
   assert.match(sitemap, /\/zh-cn\//);

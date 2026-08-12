@@ -1,5 +1,28 @@
 import { expect, test } from "@playwright/test";
 
+test("root redirects before rendering a separate unstyled page", async ({ browser }) => {
+  const english = await browser.newContext({ locale: "en-US" });
+  const englishPage = await english.newPage();
+  await englishPage.goto("/DropSpace/");
+  await expect(englishPage).toHaveURL(/\/DropSpace\/en\/$/);
+  await expect(englishPage).toHaveTitle("DropSpace — A Temporary Space for Windows");
+  await english.close();
+
+  const chinese = await browser.newContext({ locale: "zh-CN" });
+  const chinesePage = await chinese.newPage();
+  await chinesePage.goto("/DropSpace/");
+  await expect(chinesePage).toHaveURL(/\/DropSpace\/zh-cn\/$/);
+  await expect(chinesePage).toHaveTitle("DropSpace — Windows 临时空间");
+  await chinese.close();
+
+  const noScript = await browser.newContext({ javaScriptEnabled: false });
+  const fallbackPage = await noScript.newPage();
+  await fallbackPage.goto("/DropSpace/");
+  await expect(fallbackPage.locator("body")).toHaveCSS("background-color", "rgb(5, 5, 6)");
+  await expect(fallbackPage.getByRole("link", { name: "简体中文" })).toBeVisible();
+  await noScript.close();
+});
+
 test("language switch navigates between complete static documents", async ({ page }) => {
   await page.goto("/DropSpace/en/");
   await expect(page).toHaveTitle("DropSpace — A Temporary Space for Windows");

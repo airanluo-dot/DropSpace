@@ -4,6 +4,8 @@
 
 DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island/Notch provides a fast file drop surface over the same Temporary Space.
 
+Official website: https://airanluo-dot.github.io/DropSpace/
+
 [![Windows CI](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml/badge.svg)](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
