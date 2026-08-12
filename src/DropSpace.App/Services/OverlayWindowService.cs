@@ -141,7 +141,8 @@ public sealed class OverlayWindowService : IDisposable
         if (!smartObserverRegistered)
         {
             throw new InvalidOperationException(
-                "The Smart detector did not register both its observation-only mouse hook and documented EVENT_OBJECT drag signal source.");
+                "The Smart detector did not register its observation-only mouse and accessibility drag signal sources: " +
+                _dragSessionDetector.ObserverRegistrationDiagnostics);
         }
 
         await Task.Delay(300, cancellationToken);
@@ -545,12 +546,10 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _logger.LogInformation(
-            "File drag wake mode applied: {Mode}; classic idle activation host count {HostCount}; smart mouse observer registered={MouseRegistered}; EVENT_OBJECT drag observer registered={ObjectDragRegistered}; UIA registered={UiaRegistered}.",
+            "File drag wake mode applied: {Mode}; classic idle activation host count {HostCount}; smart observer status: {ObserverStatus}.",
             mode,
             _activationHosts.Count,
-            _dragSessionDetector.MouseObserverRegistered,
-            _dragSessionDetector.ObjectDragEventsRegistered,
-            _dragSessionDetector.UiAutomationEventsRegistered);
+            _dragSessionDetector.ObserverRegistrationDiagnostics);
     }
 
     private void OnSmartDragCandidateStarted(object? sender, DragSessionCandidate candidate)
@@ -799,10 +798,11 @@ public sealed class OverlayWindowService : IDisposable
         {
             ConfigureWakeMode(FileDragWakeMode.SmartExperimental, force: true);
             var registrationCompleted = _dragSessionDetector.WaitForObserverRegistration(
-                TimeSpan.FromSeconds(2));
+                TimeSpan.FromSeconds(5));
             return registrationCompleted &&
                    _dragSessionDetector.MouseObserverRegistered &&
-                   _dragSessionDetector.ObjectDragEventsRegistered;
+                   (_dragSessionDetector.ObjectDragEventsRegistered ||
+                    _dragSessionDetector.SystemDragEventsRegistered);
         }
         finally
         {

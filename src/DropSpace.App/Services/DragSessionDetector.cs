@@ -38,6 +38,8 @@ public sealed class DragSessionDetector : IDisposable
     private const int SystemMetricVerticalDrag = 69;
     private const uint CoInitializeMultithreaded = 0;
     private const int RpcEChangedMode = unchecked((int)0x80010106);
+    private const uint EventSystemDragDropStart = 0x000E;
+    private const uint EventSystemDragDropEnd = 0x000F;
     private const uint EventObjectDragStart = 0x8021;
     private const uint EventObjectDragCancel = 0x8022;
     private const uint EventObjectDragComplete = 0x8023;
@@ -69,8 +71,8 @@ public sealed class DragSessionDetector : IDisposable
     private WinEventProcedure? _winEventProcedure;
     private nint _mouseHook;
     private nint _keyboardHook;
+    private nint _systemDragWinEventHook;
     private nint _dragWinEventHook;
-    private UiAutomationDragEventSource? _uiAutomation;
     private CancellationTokenSource? _completionGrace;
     private CancellationTokenSource? _sessionTimeout;
     private FileDragWakeMode _mode = FileDragWakeMode.Disabled;
@@ -81,6 +83,11 @@ public sealed class DragSessionDetector : IDisposable
     private long _rejectedSourceCount;
     private long _comInitializationFailureCount;
     private long _objectDragStartSignalCount;
+    private long _systemDragStartSignalCount;
+    private int _mouseHookRegistrationError;
+    private int _keyboardHookRegistrationError;
+    private int _objectDragHookRegistrationError;
+    private int _systemDragHookRegistrationError;
     private int _pointerObservationActive;
 
     public DragSessionDetector(
@@ -98,9 +105,9 @@ public sealed class DragSessionDetector : IDisposable
 
     public event EventHandler<long>? CandidateEnded;
 
-    public bool UiAutomationEventsRegistered => _uiAutomation?.IsRegistered == true;
-
     public bool ObjectDragEventsRegistered => _dragWinEventHook != nint.Zero;
+
+    public bool SystemDragEventsRegistered => _systemDragWinEventHook != nint.Zero;
 
     public bool MouseObserverRegistered => _mouseHook != nint.Zero;
 
@@ -116,6 +123,15 @@ public sealed class DragSessionDetector : IDisposable
 
     public long ObjectDragStartSignalCount => Interlocked.Read(ref _objectDragStartSignalCount);
 
+    public long SystemDragStartSignalCount => Interlocked.Read(ref _systemDragStartSignalCount);
+
+    public string ObserverRegistrationDiagnostics =>
+        $"ready={_observerRegistrationReady.IsSet}; " +
+        $"mouse={MouseObserverRegistered}/error={Volatile.Read(ref _mouseHookRegistrationError)}; " +
+        $"keyboard={_keyboardHook != nint.Zero}/error={Volatile.Read(ref _keyboardHookRegistrationError)}; " +
+        $"objectDrag={ObjectDragEventsRegistered}/error={Volatile.Read(ref _objectDragHookRegistrationError)}; " +
+        $"systemDrag={SystemDragEventsRegistered}/error={Volatile.Read(ref _systemDragHookRegistrationError)}";
+
     public bool WaitForObserverRegistration(TimeSpan timeout) =>
         _observerRegistrationReady.Wait(timeout);
 
@@ -124,7 +140,8 @@ public sealed class DragSessionDetector : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         lock (_lifecycleGate)
         {
-            if (_mode == mode && (mode != FileDragWakeMode.SmartExperimental || _hookThread is not null))
+            if (_mode == mode &&
+                (mode != FileDragWakeMode.SmartExperimental || _hookThread is { IsAlive: true }))
             {
                 return;
             }
@@ -173,6 +190,10 @@ public sealed class DragSessionDetector : IDisposable
         _hookThreadId = 0;
         _hookMessageQueueReady.Reset();
         _observerRegistrationReady.Reset();
+        Volatile.Write(ref _mouseHookRegistrationError, 0);
+        Volatile.Write(ref _keyboardHookRegistrationError, 0);
+        Volatile.Write(ref _objectDragHookRegistrationError, 0);
+        Volatile.Write(ref _systemDragHookRegistrationError, 0);
         _runCancellation = new CancellationTokenSource();
         _processor = Task.Run(() => ProcessSignalsAsync(_runCancellation.Token));
         _hookThread = new Thread(HookThreadMain)
@@ -250,20 +271,47 @@ public sealed class DragSessionDetector : IDisposable
         // an observer in its first GetMessage call.
         _ = PeekMessage(out _, nint.Zero, 0, 0, PeekMessageNoRemove);
         _hookMessageQueueReady.Set();
-        var comResult = CoInitializeEx(nint.Zero, CoInitializeMultithreaded);
-        var comInitialized = comResult >= 0;
         try
         {
             _mouseProcedure = MouseHookCallback;
             _keyboardProcedure = KeyboardHookCallback;
             _winEventProcedure = WinEventCallback;
             _mouseHook = SetWindowsHookEx(HookMouseLowLevel, _mouseProcedure, GetModuleHandle(null), 0);
+            if (_mouseHook == nint.Zero)
+            {
+                Volatile.Write(ref _mouseHookRegistrationError, Marshal.GetLastWin32Error());
+            }
+
             _keyboardHook = SetWindowsHookEx(HookKeyboardLowLevel, _keyboardProcedure, GetModuleHandle(null), 0);
+            if (_keyboardHook == nint.Zero)
+            {
+                Volatile.Write(ref _keyboardHookRegistrationError, Marshal.GetLastWin32Error());
+            }
+
             if (_mouseHook == nint.Zero || _keyboardHook == nint.Zero)
             {
                 _logger.LogError(
-                    "Smart drag observer hook registration failed with Win32 error {Error}; the classic compatibility mode remains available.",
-                    Marshal.GetLastWin32Error());
+                    "Smart drag input observer registration was incomplete: mouse={MouseRegistered} error={MouseError}, keyboard={KeyboardRegistered} error={KeyboardError}; the classic compatibility mode remains available.",
+                    _mouseHook != nint.Zero,
+                    _mouseHookRegistrationError,
+                    _keyboardHook != nint.Zero,
+                    _keyboardHookRegistrationError);
+            }
+
+            _systemDragWinEventHook = SetWinEventHook(
+                EventSystemDragDropStart,
+                EventSystemDragDropEnd,
+                nint.Zero,
+                _winEventProcedure,
+                0,
+                0,
+                WinEventOutOfContext | WinEventSkipOwnProcess);
+            if (_systemDragWinEventHook == nint.Zero)
+            {
+                Volatile.Write(ref _systemDragHookRegistrationError, Marshal.GetLastWin32Error());
+                _logger.LogWarning(
+                    "EVENT_SYSTEM_DRAGDROPSTART/END registration failed with Win32 error {Error}; other smart-drag signals remain active.",
+                    _systemDragHookRegistrationError);
             }
 
             _dragWinEventHook = SetWinEventHook(
@@ -276,9 +324,10 @@ public sealed class DragSessionDetector : IDisposable
                 WinEventOutOfContext | WinEventSkipOwnProcess);
             if (_dragWinEventHook == nint.Zero)
             {
+                Volatile.Write(ref _objectDragHookRegistrationError, Marshal.GetLastWin32Error());
                 _logger.LogWarning(
-                    "EVENT_OBJECT_DRAGSTART/CANCEL/COMPLETE registration failed with Win32 error {Error}; UI Automation and the Explorer threshold fallback remain active.",
-                    Marshal.GetLastWin32Error());
+                    "EVENT_OBJECT_DRAGSTART/CANCEL/COMPLETE registration failed with Win32 error {Error}; system drag events and the Explorer threshold fallback remain active.",
+                    _objectDragHookRegistrationError);
             }
             else
             {
@@ -286,11 +335,15 @@ public sealed class DragSessionDetector : IDisposable
                     "Documented EVENT_OBJECT_DRAGSTART/CANCEL/COMPLETE signals registered on the observer message thread.");
             }
 
-            _uiAutomation = new UiAutomationDragEventSource(
-                (kind, point) => TryWrite(new DetectorSignal(kind, point)),
-                _logger);
-            _uiAutomation.Start();
+            // Registration must complete before the message pump starts and must never be gated on
+            // a root-wide UI Automation subscription. The former UiaAddEvent call was deprecated
+            // and could block this thread before GetMessage, leaving Smart mode inert. UIA/MSAA
+            // are now used only for bounded source hit-testing on the serialized worker.
             _observerRegistrationReady.Set();
+
+            _logger.LogInformation(
+                "Smart drag native observers ready: {Diagnostics}.",
+                ObserverRegistrationDiagnostics);
 
             while (GetMessage(out var message, nint.Zero, 0, 0) > 0)
             {
@@ -307,12 +360,16 @@ public sealed class DragSessionDetector : IDisposable
         finally
         {
             _observerRegistrationReady.Reset();
-            _uiAutomation?.Dispose();
-            _uiAutomation = null;
             if (_dragWinEventHook != nint.Zero)
             {
                 _ = UnhookWinEvent(_dragWinEventHook);
                 _dragWinEventHook = nint.Zero;
+            }
+
+            if (_systemDragWinEventHook != nint.Zero)
+            {
+                _ = UnhookWinEvent(_systemDragWinEventHook);
+                _systemDragWinEventHook = nint.Zero;
             }
 
             _winEventProcedure = null;
@@ -326,11 +383,6 @@ public sealed class DragSessionDetector : IDisposable
             {
                 _ = UnhookWindowsHookEx(_keyboardHook);
                 _keyboardHook = nint.Zero;
-            }
-
-            if (comInitialized)
-            {
-                CoUninitialize();
             }
         }
     }
@@ -392,6 +444,8 @@ public sealed class DragSessionDetector : IDisposable
     {
         var kind = eventType switch
         {
+            EventSystemDragDropStart => DetectorSignalKind.AccessibleObjectStarted,
+            EventSystemDragDropEnd => DetectorSignalKind.AccessibleObjectCompleted,
             EventObjectDragStart => DetectorSignalKind.AccessibleObjectStarted,
             EventObjectDragCancel => DetectorSignalKind.AccessibleObjectCancelled,
             EventObjectDragComplete => DetectorSignalKind.AccessibleObjectCompleted,
@@ -404,7 +458,14 @@ public sealed class DragSessionDetector : IDisposable
 
         if (kind == DetectorSignalKind.AccessibleObjectStarted)
         {
-            Interlocked.Increment(ref _objectDragStartSignalCount);
+            if (eventType == EventSystemDragDropStart)
+            {
+                Interlocked.Increment(ref _systemDragStartSignalCount);
+            }
+            else
+            {
+                Interlocked.Increment(ref _objectDragStartSignalCount);
+            }
         }
 
         // The out-of-context callback only queues metadata. Process and UI Automation inspection
@@ -445,9 +506,6 @@ public sealed class DragSessionDetector : IDisposable
                     case DetectorSignalKind.PointerMoved:
                         transition = _policy.PointerMoved(signal.Point);
                         break;
-                    case DetectorSignalKind.UiAutomationStarted:
-                        transition = _policy.AccessibilityDragStarted(signal.Point, pressedShellSurface);
-                        break;
                     case DetectorSignalKind.AccessibleObjectStarted:
                         var eventSource = ShellDragSourceInspector.ClassifyDragEvent(
                             signal.SourceWindow,
@@ -458,7 +516,6 @@ public sealed class DragSessionDetector : IDisposable
                         break;
                     case DetectorSignalKind.LeftReleased:
                     case DetectorSignalKind.RightReleased:
-                    case DetectorSignalKind.UiAutomationCompleted:
                     case DetectorSignalKind.AccessibleObjectCompleted:
                         ScheduleCompletion(signal.Point, cancellationToken);
                         if (!_policy.IsActive)
@@ -466,7 +523,6 @@ public sealed class DragSessionDetector : IDisposable
                             pressedShellSurface = DragSourceKind.Unknown;
                         }
                         continue;
-                    case DetectorSignalKind.UiAutomationCancelled:
                     case DetectorSignalKind.AccessibleObjectCancelled:
                     case DetectorSignalKind.Cancelled:
                         transition = _policy.DragCancelled(signal.Point);
@@ -655,9 +711,6 @@ public sealed class DragSessionDetector : IDisposable
         LeftReleased,
         RightPressed,
         RightReleased,
-        UiAutomationStarted,
-        UiAutomationCompleted,
-        UiAutomationCancelled,
         AccessibleObjectStarted,
         AccessibleObjectCompleted,
         AccessibleObjectCancelled,
@@ -784,140 +837,6 @@ public sealed class DragSessionDetector : IDisposable
     [DllImport("ole32.dll")]
     private static extern void CoUninitialize();
 
-    private sealed class UiAutomationDragEventSource : IDisposable
-    {
-        private const int DragStartEventId = 20026;
-        private const int DragCancelEventId = 20027;
-        private const int DragCompleteEventId = 20028;
-        private const int TreeScopeDescendants = 4;
-        private readonly Action<DetectorSignalKind, DragScreenPoint> _publish;
-        private readonly ILogger _logger;
-        private readonly UiaEventCallback _callback;
-        private readonly List<nint> _events = [];
-        private nint _root;
-
-        public UiAutomationDragEventSource(
-            Action<DetectorSignalKind, DragScreenPoint> publish,
-            ILogger logger)
-        {
-            _publish = publish;
-            _logger = logger;
-            _callback = OnEvent;
-        }
-
-        public bool IsRegistered => _events.Count == 3;
-
-        public void Start()
-        {
-            try
-            {
-                var rootResult = UiaGetRootNode(out _root);
-                if (rootResult < 0 || _root == nint.Zero)
-                {
-                    Marshal.ThrowExceptionForHR(rootResult);
-                }
-
-                Register(DragStartEventId);
-                Register(DragCancelEventId);
-                Register(DragCompleteEventId);
-                _logger.LogInformation(
-                    "UI Automation drag signal source registered for DragStart, DragCancel and DragComplete events.");
-            }
-            catch (Exception exception) when (exception is COMException or DllNotFoundException or EntryPointNotFoundException)
-            {
-                _logger.LogWarning(
-                    exception,
-                    "UI Automation drag events are unavailable; bounded Explorer/Desktop threshold detection remains active.");
-                Dispose();
-            }
-        }
-
-        public void Dispose()
-        {
-            foreach (var handle in _events)
-            {
-                _ = UiaRemoveEvent(handle);
-            }
-
-            _events.Clear();
-            if (_root != nint.Zero)
-            {
-                _ = UiaNodeRelease(_root);
-                _root = nint.Zero;
-            }
-        }
-
-        private void Register(int eventId)
-        {
-            var result = UiaAddEvent(
-                _root,
-                eventId,
-                _callback,
-                TreeScopeDescendants,
-                nint.Zero,
-                0,
-                nint.Zero,
-                out var handle);
-            if (result < 0 || handle == nint.Zero)
-            {
-                Marshal.ThrowExceptionForHR(result);
-            }
-
-            _events.Add(handle);
-        }
-
-        private void OnEvent(nint arguments, nint requestedData, nint treeStructure)
-        {
-            if (arguments == nint.Zero)
-            {
-                return;
-            }
-
-            var eventArguments = Marshal.PtrToStructure<UiaEventArguments>(arguments);
-            var kind = eventArguments.EventId switch
-            {
-                DragStartEventId => DetectorSignalKind.UiAutomationStarted,
-                DragCancelEventId => DetectorSignalKind.UiAutomationCancelled,
-                DragCompleteEventId => DetectorSignalKind.UiAutomationCompleted,
-                _ => DetectorSignalKind.None,
-            };
-            if (kind != DetectorSignalKind.None)
-            {
-                _publish(kind, GetCursorPoint());
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private readonly struct UiaEventArguments
-        {
-            public readonly int Type;
-            public readonly int EventId;
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate void UiaEventCallback(nint arguments, nint requestedData, nint treeStructure);
-
-        [DllImport("UIAutomationCore.dll")]
-        private static extern int UiaGetRootNode(out nint node);
-
-        [DllImport("UIAutomationCore.dll")]
-        private static extern int UiaAddEvent(
-            nint node,
-            int eventId,
-            UiaEventCallback callback,
-            int scope,
-            nint properties,
-            int propertyCount,
-            nint cacheRequest,
-            out nint eventHandle);
-
-        [DllImport("UIAutomationCore.dll")]
-        private static extern int UiaRemoveEvent(nint eventHandle);
-
-        [DllImport("UIAutomationCore.dll")]
-        private static extern int UiaNodeRelease(nint node);
-    }
-
     private static class ShellDragSourceInspector
     {
         private const uint GetAncestorParent = 1;
@@ -941,20 +860,39 @@ public sealed class DragSessionDetector : IDisposable
         public static SourceInspection Inspect(DragScreenPoint point)
         {
             var window = WindowFromPoint(new NativePoint { X = point.X, Y = point.Y });
-            var surfaceSource = ClassifyShellSurface(window);
-            if (surfaceSource == DragSourceKind.Unknown)
+            var rootSource = ClassifyExplorerRoot(window);
+            if (rootSource == DragSourceKind.Unknown)
             {
                 return SourceInspection.Unknown;
             }
 
+            var surfaceSource = ClassifyShellSurface(window);
+            var itemAtPoint = IsFileItemAtPoint(point) || IsAccessibleFileItemAtPoint(point);
+            if (surfaceSource == DragSourceKind.Unknown && itemAtPoint)
+            {
+                // Modern Explorer hosts parts of its file view in XAML bridge windows whose class
+                // names change between Windows builds. A confirmed UIA/MSAA file item plus an
+                // explorer.exe root is stronger evidence than a mutable implementation class.
+                surfaceSource = rootSource;
+            }
+
             return new SourceInspection(
                 surfaceSource,
-                IsFileItemAtPoint(point) ? surfaceSource : DragSourceKind.Unknown);
+                itemAtPoint ? surfaceSource : DragSourceKind.Unknown);
         }
 
         public static DragSourceKind ClassifyDragEvent(nint sourceWindow, DragScreenPoint point)
         {
             var source = ClassifyShellSurface(sourceWindow);
+            if (source != DragSourceKind.Unknown)
+            {
+                return source;
+            }
+
+            // An accessibility drag-start event is itself strong drag evidence. Providers often
+            // report their top-level Explorer HWND rather than the implementation-detail file-view
+            // child, so accept a verified explorer.exe root without requiring a class allow-list.
+            source = ClassifyExplorerRoot(sourceWindow);
             if (source != DragSourceKind.Unknown)
             {
                 return source;
@@ -967,13 +905,16 @@ public sealed class DragSessionDetector : IDisposable
             var pointWindow = WindowFromPoint(new NativePoint { X = point.X, Y = point.Y });
             if (sourceWindow == nint.Zero)
             {
-                return ClassifyShellSurface(pointWindow);
+                var pointSource = ClassifyShellSurface(pointWindow);
+                return pointSource != DragSourceKind.Unknown
+                    ? pointSource
+                    : ClassifyExplorerRoot(pointWindow);
             }
 
             var sourceRoot = GetAncestor(sourceWindow, GetAncestorRoot);
             var pointRoot = GetAncestor(pointWindow, GetAncestorRoot);
             return sourceRoot != nint.Zero && sourceRoot == pointRoot
-                ? ClassifyShellSurface(pointWindow)
+                ? ClassifyExplorerRoot(pointWindow)
                 : DragSourceKind.Unknown;
         }
 
@@ -984,26 +925,14 @@ public sealed class DragSessionDetector : IDisposable
                 return DragSourceKind.Unknown;
             }
 
+            var rootSource = ClassifyExplorerRoot(window);
+            if (rootSource == DragSourceKind.Unknown)
+            {
+                return DragSourceKind.Unknown;
+            }
+
             var root = GetAncestor(window, GetAncestorRoot);
-            _ = GetWindowThreadProcessId(root, out var processId);
-            string processName;
-            try
-            {
-                using var process = Process.GetProcessById(unchecked((int)processId));
-                processName = process.ProcessName;
-            }
-            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception)
-            {
-                return DragSourceKind.Unknown;
-            }
-
-            if (!string.Equals(processName, "explorer", StringComparison.OrdinalIgnoreCase))
-            {
-                return DragSourceKind.Unknown;
-            }
-
             var rootClass = GetClass(root);
-            var desktop = rootClass is "Progman" or "WorkerW";
             var hasFileViewSurface = false;
             var current = window;
             for (var depth = 0; depth < 16 && current != nint.Zero; depth++)
@@ -1027,7 +956,43 @@ public sealed class DragSessionDetector : IDisposable
                 return DragSourceKind.Unknown;
             }
 
-            return desktop ? DragSourceKind.DesktopFileView : DragSourceKind.ExplorerFileView;
+            return rootClass is "Progman" or "WorkerW"
+                ? DragSourceKind.DesktopFileView
+                : DragSourceKind.ExplorerFileView;
+        }
+
+        private static DragSourceKind ClassifyExplorerRoot(nint window)
+        {
+            if (window == nint.Zero)
+            {
+                return DragSourceKind.Unknown;
+            }
+
+            var root = GetAncestor(window, GetAncestorRoot);
+            _ = GetWindowThreadProcessId(root, out var processId);
+            try
+            {
+                using var process = Process.GetProcessById(unchecked((int)processId));
+                if (!string.Equals(process.ProcessName, "explorer", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DragSourceKind.Unknown;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception)
+            {
+                return DragSourceKind.Unknown;
+            }
+
+            var rootClass = GetClass(root);
+            if (rootClass is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or
+                "NotifyIconOverflowWindow")
+            {
+                return DragSourceKind.Unknown;
+            }
+
+            return rootClass is "Progman" or "WorkerW"
+                ? DragSourceKind.DesktopFileView
+                : DragSourceKind.ExplorerFileView;
         }
 
         private static bool IsFileItemAtPoint(DragScreenPoint point)
@@ -1090,6 +1055,41 @@ public sealed class DragSessionDetector : IDisposable
             }
         }
 
+        private static bool IsAccessibleFileItemAtPoint(DragScreenPoint point)
+        {
+            IAccessible? accessible = null;
+            try
+            {
+                var result = AccessibleObjectFromPoint(
+                    new NativePoint { X = point.X, Y = point.Y },
+                    out accessible,
+                    out var childId);
+                if (result < 0 || accessible is null)
+                {
+                    return false;
+                }
+
+                var roleValue = accessible.GetRole(childId);
+                if (roleValue is null)
+                {
+                    return false;
+                }
+
+                var role = Convert.ToInt32(roleValue, System.Globalization.CultureInfo.InvariantCulture);
+                // Explorer/Desktop file items are exposed as list items; navigation-pane folders
+                // can be outline items. Rows/data cells cover Details layouts on older providers.
+                return role is 0x22 or 0x24 or 0x1C or 0x1D;
+            }
+            catch (Exception exception) when (exception is COMException or InvalidCastException or FormatException or OverflowException)
+            {
+                return false;
+            }
+            finally
+            {
+                ReleaseComObject(accessible);
+            }
+        }
+
         private static void ReleaseComObject(object? value)
         {
             if (value is not null && Marshal.IsComObject(value))
@@ -1130,6 +1130,22 @@ public sealed class DragSessionDetector : IDisposable
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetClassName(nint window, StringBuilder className, int maximumCount);
+
+        [DllImport("oleacc.dll")]
+        private static extern int AccessibleObjectFromPoint(
+            NativePoint point,
+            [MarshalAs(UnmanagedType.Interface)] out IAccessible accessible,
+            [MarshalAs(UnmanagedType.Struct)] out object childId);
+
+        [ComImport]
+        [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
+        [Guid("618736E0-3C3D-11CF-810C-00AA00389B71")]
+        private interface IAccessible
+        {
+            [DispId(-5006)]
+            [return: MarshalAs(UnmanagedType.Struct)]
+            object GetRole([In, Optional, MarshalAs(UnmanagedType.Struct)] object childId);
+        }
 
         [ComImport]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

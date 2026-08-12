@@ -117,10 +117,6 @@ public sealed class DragSessionPolicy
         return Start(point);
     }
 
-    public DragSessionTransition UiAutomationDragStarted(
-        DragScreenPoint point,
-        DragSourceKind source) => AccessibilityDragStarted(point, source);
-
     public DragSessionTransition PointerReleased(DragScreenPoint point) =>
         Finish(point, DragSessionTransitionKind.Completed);
 
