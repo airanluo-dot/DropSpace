@@ -17,15 +17,18 @@ public sealed class OverlayWindowService : IDisposable
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly OverlayStateMachine _stateMachine;
     private readonly OleDragDropService _dragDropService;
+    private readonly DragSessionDetector _dragSessionDetector;
     private readonly DispatcherQueue _dispatcher;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OverlayWindowService> _logger;
     private readonly CrashDiagnosticsService _crashDiagnostics;
     private readonly List<OverlayWindow> _windows = [];
     private readonly List<DragActivationHost> _activationHosts = [];
+    private DisplayTopologyWatcher? _displayTopologyWatcher;
     private MonitorDescriptor? _primaryMonitor;
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
+    private FileDragWakeMode? _configuredWakeMode;
     private bool _topologyRefreshPending;
     private bool _disposed;
 
@@ -36,6 +39,7 @@ public sealed class OverlayWindowService : IDisposable
         ForegroundWindowMonitor foregroundWindowMonitor,
         OverlayStateMachine stateMachine,
         OleDragDropService dragDropService,
+        DragSessionDetector dragSessionDetector,
         DispatcherQueue dispatcher,
         ILoggerFactory loggerFactory,
         CrashDiagnosticsService crashDiagnostics)
@@ -46,6 +50,7 @@ public sealed class OverlayWindowService : IDisposable
         _foregroundWindowMonitor = foregroundWindowMonitor;
         _stateMachine = stateMachine;
         _dragDropService = dragDropService;
+        _dragSessionDetector = dragSessionDetector;
         _dispatcher = dispatcher;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
@@ -71,6 +76,11 @@ public sealed class OverlayWindowService : IDisposable
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
+        _displayTopologyWatcher = new DisplayTopologyWatcher();
+        _displayTopologyWatcher.Changed += OnDisplayTopologyChanged;
+        _dragSessionDetector.CandidateStarted += OnSmartDragCandidateStarted;
+        _dragSessionDetector.CandidateEnded += OnSmartDragCandidateEnded;
+        ConfigureWakeMode(_viewModel.FileDragWakeMode);
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -113,11 +123,18 @@ public sealed class OverlayWindowService : IDisposable
                 "WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states.");
         }
 
-        var activationTargetsDiscoverable = _activationHosts.All(host => host.IsIdleTargetDiscoverable());
-        if (!activationTargetsDiscoverable)
+        var idleTopEdgePassThrough = _windows.All(window => window.ProbeIdleTopEdgePassThrough());
+        if (!idleTopEdgePassThrough)
         {
             throw new InvalidOperationException(
-                "At least one idle drag-activation HWND was not discoverable by WindowFromPoint.");
+                "A hidden visual Overlay still owned a top-edge WindowFromPoint hit.");
+        }
+
+        var wakeModeSwitchVerified = VerifyWakeModeSwitchOwnership(_viewModel.FileDragWakeMode);
+        if (!wakeModeSwitchVerified)
+        {
+            throw new InvalidOperationException(
+                "Smart, Classic and Disabled drag-wake modes did not transfer native target ownership cleanly.");
         }
 
         await Task.Delay(300, cancellationToken);
@@ -149,7 +166,8 @@ public sealed class OverlayWindowService : IDisposable
             _windows.All(window => !window.HasActiveFrameSubscription),
             geometryStressCycles,
             regionFailures,
-            activationTargetsDiscoverable,
+            idleTopEdgePassThrough,
+            wakeModeSwitchVerified,
             compactVisualTargetDiscoverable,
             expandedVisualTargetDiscoverable);
 
@@ -368,6 +386,15 @@ public sealed class OverlayWindowService : IDisposable
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
+        _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
+        _dragSessionDetector.CandidateEnded -= OnSmartDragCandidateEnded;
+        _dragSessionDetector.SetMode(FileDragWakeMode.Disabled);
+        if (_displayTopologyWatcher is not null)
+        {
+            _displayTopologyWatcher.Changed -= OnDisplayTopologyChanged;
+            _displayTopologyWatcher.Dispose();
+            _displayTopologyWatcher = null;
+        }
         _foregroundWindowMonitor.Dispose();
         foreach (var window in _windows)
         {
@@ -414,6 +441,11 @@ public sealed class OverlayWindowService : IDisposable
         {
             ApplySnapshot(_viewModel.Snapshot);
         }
+        else if (args.PropertyName == nameof(OverlayViewModel.FileDragWakeMode))
+        {
+            ConfigureWakeMode(_viewModel.FileDragWakeMode);
+            ApplySnapshot(_viewModel.Snapshot);
+        }
     }
 
     private void ApplySnapshot(OverlaySnapshot snapshot)
@@ -423,7 +455,13 @@ public sealed class OverlayWindowService : IDisposable
             return;
         }
 
-        var primaryOnly = _viewModel.MonitorPreference == OverlayMonitorPreference.Primary;
+        // An explicit smart-drag session follows the pointer display even when passive Compact
+        // presentation is pinned to Primary. The user's monitor preference resumes after Drop or
+        // cancellation; only the temporary interaction is pointer-local.
+        var smartPointerDisplay = _viewModel.FileDragWakeMode == FileDragWakeMode.SmartExperimental &&
+                                  (snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady);
+        var primaryOnly = _viewModel.MonitorPreference == OverlayMonitorPreference.Primary &&
+                          !smartPointerDisplay;
         var activeMonitorId = primaryOnly ? _primaryMonitor.Id : _viewModel.ActiveMonitorId;
         foreach (var host in _activationHosts)
         {
@@ -441,7 +479,8 @@ public sealed class OverlayWindowService : IDisposable
             window.ApplySnapshot(
                 snapshot,
                 string.Equals(window.MonitorId, activeMonitorId, StringComparison.Ordinal),
-                activationEnabled);
+                activationEnabled,
+                _viewModel.FileDragWakeMode);
         }
     }
 
@@ -449,11 +488,6 @@ public sealed class OverlayWindowService : IDisposable
     {
         var monitors = _monitorLayout.GetMonitors();
         _primaryMonitor = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
-        var activationCallbacks = new DragActivationCallbacks(
-            OnDragApproaching,
-            OnDragReadyChanged,
-            OnDragLeft,
-            OnDroppedAsync);
         var visualCallbacks = new DragActivationCallbacks(
             OnVisibleDragApproaching,
             OnVisibleDragReadyChanged,
@@ -461,9 +495,6 @@ public sealed class OverlayWindowService : IDisposable
             OnVisibleDroppedAsync);
         foreach (var monitor in monitors)
         {
-            var host = _dragDropService.CreateActivationHost(monitor, activationCallbacks);
-            host.DisplayTopologyChanged += OnDisplayTopologyChanged;
-            _activationHosts.Add(host);
             _windows.Add(new OverlayWindow(
                 _viewModel,
                 monitor,
@@ -473,6 +504,80 @@ public sealed class OverlayWindowService : IDisposable
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
                 _loggerFactory.CreateLogger<OverlayWindow>()));
         }
+    }
+
+    private void ConfigureWakeMode(FileDragWakeMode mode, bool force = false)
+    {
+        if (!force && _configuredWakeMode == mode)
+        {
+            return;
+        }
+
+        foreach (var host in _activationHosts)
+        {
+            host.DisplayTopologyChanged -= OnDisplayTopologyChanged;
+            host.Dispose();
+        }
+
+        _activationHosts.Clear();
+        _dragSessionDetector.SetMode(mode);
+        _configuredWakeMode = mode;
+        if (mode == FileDragWakeMode.ClassicTopEdge)
+        {
+            var callbacks = new DragActivationCallbacks(
+                OnDragApproaching,
+                OnDragReadyChanged,
+                OnDragLeft,
+                OnDroppedAsync);
+            foreach (var monitor in _monitorLayout.GetMonitors())
+            {
+                var host = _dragDropService.CreateActivationHost(monitor, callbacks);
+                _activationHosts.Add(host);
+            }
+        }
+
+        _logger.LogInformation(
+            "File drag wake mode applied: {Mode}; classic idle activation host count {HostCount}; smart detector UIA registered={UiaRegistered}.",
+            mode,
+            _activationHosts.Count,
+            _dragSessionDetector.UiAutomationEventsRegistered);
+    }
+
+    private void OnSmartDragCandidateStarted(object? sender, DragSessionCandidate candidate)
+    {
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_disposed || _viewModel.FileDragWakeMode != FileDragWakeMode.SmartExperimental)
+            {
+                return;
+            }
+
+            _activeDragOwner = DragTargetOwner.SmartDetector;
+            _viewModel.BeginDragApproach(candidate.MonitorId);
+            _logger.LogInformation(
+                "Smart drag candidate {SessionId} revealed a temporary visual OLE target on monitor {MonitorId}; source={Source}.",
+                candidate.SessionId,
+                candidate.MonitorId,
+                candidate.Source);
+        });
+    }
+
+    private void OnSmartDragCandidateEnded(object? sender, long sessionId)
+    {
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_disposed || _activeDragOwner != DragTargetOwner.SmartDetector)
+            {
+                return;
+            }
+
+            _viewModel.CancelDrag();
+            _activeDragOwner = DragTargetOwner.None;
+            ApplySnapshot(_viewModel.Snapshot);
+            _logger.LogInformation(
+                "Smart drag candidate {SessionId} ended before a visual OLE target accepted ownership.",
+                sessionId);
+        });
     }
 
     private void OnDragApproaching(string monitorId)
@@ -502,6 +607,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _activeDragOwner = DragTargetOwner.None;
+        _dragSessionDetector.NotifyOleSessionCompleted();
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -519,6 +625,7 @@ public sealed class OverlayWindowService : IDisposable
         finally
         {
             _activeDragOwner = DragTargetOwner.None;
+            _dragSessionDetector.NotifyOleSessionCompleted();
             ApplySnapshot(_viewModel.Snapshot);
         }
     }
@@ -551,6 +658,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _activeDragOwner = DragTargetOwner.None;
+        _dragSessionDetector.NotifyOleSessionCompleted();
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -569,6 +677,7 @@ public sealed class OverlayWindowService : IDisposable
         finally
         {
             _activeDragOwner = DragTargetOwner.None;
+            _dragSessionDetector.NotifyOleSessionCompleted();
             ApplySnapshot(_viewModel.Snapshot);
         }
     }
@@ -605,6 +714,7 @@ public sealed class OverlayWindowService : IDisposable
 
                 _activationHosts.Clear();
                 CreateMonitorSurfaces();
+                ConfigureWakeMode(_viewModel.FileDragWakeMode, force: true);
                 if (_primaryMonitor is not null &&
                     !_windows.Any(window => string.Equals(
                         window.MonitorId,
@@ -616,7 +726,8 @@ public sealed class OverlayWindowService : IDisposable
 
                 ApplySnapshot(_viewModel.Snapshot);
                 _logger.LogInformation(
-                    "Drag activation hosts rebuilt after a display-topology change; monitor count {MonitorCount}.",
+                    "Overlay surfaces rebuilt after a display-topology change; window count {WindowCount}, classic activation host count {HostCount}.",
+                    _windows.Count,
                     _activationHosts.Count);
             }
             catch (Exception exception)
@@ -648,6 +759,28 @@ public sealed class OverlayWindowService : IDisposable
     private bool ProbeActiveVisualCenter()
     {
         return GetActiveWindow().ProbeVisibleCenter().IsRootOrDescendant;
+    }
+
+    private bool VerifyWakeModeSwitchOwnership(FileDragWakeMode originalMode)
+    {
+        try
+        {
+            ConfigureWakeMode(FileDragWakeMode.ClassicTopEdge, force: true);
+            ApplySnapshot(_viewModel.Snapshot);
+            var classicTargetOwned = _activationHosts.Count == _windows.Count &&
+                                     _activationHosts.All(host => host.IsIdleTargetDiscoverable());
+
+            ConfigureWakeMode(FileDragWakeMode.Disabled, force: true);
+            ApplySnapshot(_viewModel.Snapshot);
+            var disabledPassThrough = _activationHosts.Count == 0 &&
+                                      _windows.All(window => window.ProbeIdleTopEdgePassThrough());
+            return classicTargetOwned && disabledPassThrough;
+        }
+        finally
+        {
+            ConfigureWakeMode(originalMode, force: true);
+            ApplySnapshot(_viewModel.Snapshot);
+        }
     }
 
     private OverlayWindow GetActiveWindow()
@@ -683,6 +816,7 @@ public sealed class OverlayWindowService : IDisposable
         None,
         ActivationHost,
         VisualOverlay,
+        SmartDetector,
     }
 
     [DllImport("user32.dll")]
@@ -700,7 +834,8 @@ public sealed record OverlayLifecycleMetrics(
     bool NoContinuousFrameSubscription,
     int GeometryStressCycles,
     long RegionFailureCount,
-    bool ActivationTargetsDiscoverable,
+    bool IdleTopEdgePassThrough,
+    bool WakeModeSwitchVerified,
     bool CompactVisualTargetDiscoverable,
     bool ExpandedVisualTargetDiscoverable);
 

@@ -59,7 +59,6 @@ public sealed class OleDragDropService : IDisposable
             _loggerFactory.CreateLogger<OleDropTargetRegistration>(),
             _ => true,
             "visual-overlay");
-        _registrations.Add(registration);
         return registration;
     }
 

@@ -70,7 +70,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 
 ## Top Overlay
 
-- With zero Temporary Space items and no drag, the visual Overlay HWND is actually hidden and has an empty window region. A separate unpainted 1/255-alpha native OLE host exposes a wide 12-physical-pixel top safety band; nonzero uniform alpha is required for Windows target discovery but is visually imperceptible. A real `CF_HDROP` entry expands that same owner to a forgiving 840 × 144 DIP capture area through Drop/Leave without drawing XAML, chrome, borders, shadows, or backdrop pixels.
+- With zero Temporary Space items and no drag, Smart mode leaves every visual Overlay hidden with an empty region and no registered OLE target. It does not create a top-edge input window. A recognized Explorer/Desktop file-drag candidate reveals the target on the pointer display about 76 physical pixels below the edge; final acceptance still requires real `CF_HDROP` data. Traditional top-edge mode restores the former 1/255-alpha 12-physical-pixel compatibility band only when the user explicitly selects it.
 - A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
@@ -83,7 +83,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 - Dangerous clear actions live in Privacy, separated from ordinary toggles.
 - “Exclude apps” (V1.1) includes the copy: “Best effort. Some clipboard changes cannot be attributed to an app.”
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
-- Top interface settings provide Dynamic Island/Notch, System/Full/Reduced motion, and Automatic/Primary monitor. System motion follows Windows `UISettings.AnimationsEnabled`.
+- Top interface settings provide Dynamic Island/Notch, Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, and Automatic/Primary monitor. System motion follows Windows `UISettings.AnimationsEnabled`.
 
 ## System tray
 

@@ -19,16 +19,26 @@ public sealed class JsonSettingsService : ISettingsService
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly AppStoragePaths _paths;
     private readonly ILogger<JsonSettingsService> _logger;
+    private readonly UpdateChannel _freshUpdateChannel;
 
     public JsonSettingsService(AppStoragePaths paths)
-        : this(paths, NullLogger<JsonSettingsService>.Instance)
+        : this(paths, NullLogger<JsonSettingsService>.Instance, UpdateChannel.Stable)
     {
     }
 
     public JsonSettingsService(AppStoragePaths paths, ILogger<JsonSettingsService> logger)
+        : this(paths, logger, UpdateChannel.Stable)
+    {
+    }
+
+    public JsonSettingsService(
+        AppStoragePaths paths,
+        ILogger<JsonSettingsService> logger,
+        UpdateChannel freshUpdateChannel)
     {
         _paths = paths;
         _logger = logger;
+        _freshUpdateChannel = freshUpdateChannel;
     }
 
     public SettingsRecoveryReport LastLoadRecovery { get; private set; } = SettingsRecoveryReport.None;
@@ -42,7 +52,7 @@ public sealed class JsonSettingsService : ISettingsService
             LastLoadRecovery = SettingsRecoveryReport.None;
             if (!File.Exists(_paths.Settings))
             {
-                return new AppSettings();
+                return CreateDefaults();
             }
 
             AppSettings? settings = null;
@@ -66,14 +76,14 @@ public sealed class JsonSettingsService : ISettingsService
                     document.RootElement.EnumerateObject().Any(property =>
                         string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
-                settings ??= new AppSettings();
-                if (settings.Version is 1 or 2 or 3)
+                settings ??= CreateDefaults();
+                if (settings.Version is 1 or 2 or 3 or 4)
                 {
                     settings = settings with
                     {
                         Version = AppSettings.CurrentVersion,
                         // A settings file from before schema 4 belongs to the Preview-era installed
-                        // population. Fresh v0.1.0 users have no file and retain the Stable default.
+                        // population. Fresh builds take the channel selected by their release kind.
                         UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
                     };
                 }
@@ -152,7 +162,7 @@ public sealed class JsonSettingsService : ISettingsService
                     exception,
                     "The UI reset command quarantined unreadable settings as {QuarantineFileName}.",
                     Path.GetFileName(quarantinePath));
-                settings = new AppSettings();
+                settings = CreateDefaults();
             }
 
             var reset = settings.WithSafeUiPreferences().Validate();
@@ -169,7 +179,7 @@ public sealed class JsonSettingsService : ISettingsService
     {
         if (!File.Exists(_paths.Settings))
         {
-            return new AppSettings();
+            return CreateDefaults();
         }
 
         await using var stream = new FileStream(
@@ -180,7 +190,7 @@ public sealed class JsonSettingsService : ISettingsService
             16_384,
             FileOptions.Asynchronous | FileOptions.SequentialScan);
         var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
-            .ConfigureAwait(false) ?? new AppSettings();
+            .ConfigureAwait(false) ?? CreateDefaults();
         return settings;
     }
 
@@ -205,7 +215,7 @@ public sealed class JsonSettingsService : ISettingsService
         File.Move(temporaryPath, _paths.Settings, true);
     }
 
-    private static AppSettings TryPreserveNonUiPreferences(AppSettings? candidate, out bool preserved)
+    private AppSettings TryPreserveNonUiPreferences(AppSettings? candidate, out bool preserved)
     {
         if (candidate is not null)
         {
@@ -224,8 +234,10 @@ public sealed class JsonSettingsService : ISettingsService
         }
 
         preserved = false;
-        return new AppSettings();
+        return CreateDefaults();
     }
+
+    private AppSettings CreateDefaults() => new() { UpdateChannel = _freshUpdateChannel };
 
     private string QuarantineSettingsFile()
     {

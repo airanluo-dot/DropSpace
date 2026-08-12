@@ -35,6 +35,14 @@ Assert-Equal $preview.VersionCode 1010010 "Preview version code"
 Assert-Equal $preview.GitHubPrerelease $true "Preview prerelease flag"
 Assert-Equal $preview.MakeLatest $false "Preview latest flag"
 
+$smartDragPreview = Get-DropSpaceReleaseInfo "v0.2.0-preview.1"
+Assert-Equal $smartDragPreview.SemanticVersion "0.2.0-preview.1" "Smart-drag Preview semantic version"
+Assert-Equal $smartDragPreview.Channel "preview" "Smart-drag Preview channel"
+Assert-Equal $smartDragPreview.FileVersion "0.2.0.1" "Smart-drag Preview file version"
+Assert-Equal $smartDragPreview.PackageVersion "0.2.0.1" "Smart-drag Preview package version"
+Assert-Equal $smartDragPreview.GitHubPrerelease $true "Smart-drag Preview prerelease flag"
+Assert-Equal $smartDragPreview.MakeLatest $false "Smart-drag Preview latest flag"
+
 foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1.0-preview.9999"))
 {
     try

@@ -6,6 +6,8 @@ The v0.1.0 Stable production slice covers Phases 1–10 plus file capture, start
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
 
+v0.2.0-preview.1 replaces the default permanent top-edge input band with an experimental, event-driven Smart drag candidate detector and temporary visual OLE target. The old band remains an explicit compatibility option. Real Explorer/Desktop provider coverage and false-positive evidence determine whether Smart mode can graduate beyond Preview.
+
 ## Delivery rule
 
 Every phase ends with a buildable, runnable application and a recorded acceptance review. A phase may contain a disposable technical spike, but production behavior is not claimed until its tests pass.
@@ -406,4 +408,12 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Canonical Brand Master pipeline and all Windows icon surfaces.
 - Machine-readable update manifests, Stable/Preview channels, verified downloads, and installer upgrade/restart foundation.
 - Direct Compact/Expanded Overlay drop with exclusive activation/visual ownership.
+
+### v0.2.0-preview.1 experimental smart drag wake
+
+- Default Hidden idle owns no top-edge hit-test or OLE target window.
+- UI Automation drag signals and bounded read-only mouse thresholds recognize Explorer/Desktop candidates; real `CF_HDROP` remains mandatory.
+- Temporary Island/Notch target appears on the active drag monitor below the Windows Drop Tray region.
+- Smart, Classic top-edge and Disabled modes switch immediately with safe schema migration.
+- Graduation gate: real Windows 11 evidence for false positives, Explorer/Desktop coverage, cancellation, Drop Tray on/off, multi-monitor DPI and third-party limitations.
 - Serialized Temporary Space projections and Main + Expanded deletion crash stress coverage.

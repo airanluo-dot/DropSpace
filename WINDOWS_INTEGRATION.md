@@ -23,7 +23,7 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | Hide-to-tray background operation | Supported | Keep desktop process alive; not an OS background task |
 | Startup at sign-in | Supported | Per-user `HKCU` Run value, default on, Settings-controlled, `--startup` hidden launch |
 | Single instance | Supported | Windows App SDK AppInstance redirection |
-| Hidden top-edge file-drag reveal | Supported with Win32/OLE interop | Independent visually transparent activation HWNDs plus `IDropTarget`/`RegisterDragDrop`/`CF_HDROP` |
+| Hidden file-drag reveal | Experimental Smart mode plus Classic fallback | UIA drag signals + bounded input observer reveal a temporary visible `IDropTarget`; legacy transparent top-edge target is opt-in |
 | Dynamic Island / Notch | Supported with WinUI Composition and shaped HWND | Shared state/data; visual geometry only differs |
 | Per-monitor DPI placement | Supported with Win32 interop | Physical monitor bounds + effective DPI; DIP-to-pixel conversion at window boundary |
 | Portable single-file EXE | Supported on Windows App SDK 1.5+ | Unpackaged, Windows App SDK self-contained, .NET self-contained, content extraction enabled |
@@ -58,14 +58,16 @@ Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/window
 
 ## File drag and drop
 
-### Hidden Overlay activation
+### Smart Overlay activation (v0.2 Preview)
 
 DropSpace separates two lifecycles per enabled display:
 
-- The visual WinUI Overlay HWND owns only the Island/Notch. `Hidden` clears its HRGN and calls `SW_HIDE`; no XAML surface, backdrop, frame, shadow, or border remains visible.
-- A dedicated native activation HWND uses uniform alpha 1/255 and registers a managed `IDropTarget` with `RegisterDragDrop`. Alpha zero is skipped by Windows point/OLE discovery; 1/255 is visually imperceptible and keeps the surface discoverable. Preview.3's exact one-pixel scan line was not usable with real cursor hotspots. Preview.4 uses a bounded 960-DIP-wide × 12-physical-pixel monitor-edge safety band. It uses `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED` and `WM_NCHITTEST=HTCLIENT`: Microsoft documents `HTTRANSPARENT` as forwarding only within the same thread, so it cannot be used for reliable Explorer target discovery. A valid `DragEnter` expands the same HWND to 840 × 144 DIP and preserves ownership through Drop/Leave.
+- Smart mode is the default Preview setting. While idle, every visual Overlay is `SW_HIDE`, has an empty HRGN and has revoked `RegisterDragDrop`; no DropSpace HWND owns the monitor's top-center hit point. Display-topology broadcasts use a never-shown, zero-sized ordinary message window, not a topmost edge surface.
+- A dedicated observer thread listens for `UIA_Drag_DragStart`, `DragCancel` and `DragComplete` when providers expose them. `WH_MOUSE_LL`/`WH_KEYBOARD_LL` are observation-only fallbacks: callbacks enqueue bounded point/button signals, call `CallNextHookEx`, and do no source inspection or blocking work. The worker requires an Explorer/Desktop file-view source and movement beyond `SM_CXDRAG`/`SM_CYDRAG` before starting a candidate.
+- A candidate reveals the Island/Notch on the pointer's display, offset about 76 physical pixels below the top so it does not compete for the primary Windows Drop Tray strip. The visible HWND registers an OLE target at reveal and revokes it on Hidden. Final acceptance still requires `CF_HDROP`; a candidate never reads or stores files itself.
+- Classic mode retains the former uniform-alpha 1/255, 960-DIP × 12-physical-pixel `HTCLIENT` top-edge host for compatibility. It is default-off, explicitly warns about title-bar/Drop Tray conflicts, and is destroyed immediately when the user changes mode. Disabled mode provides only main-window, already-visible Overlay and Windows Share entry points.
 
-The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. Hidden-edge drags remain owned by the activation HWND for their whole lifetime; Reveal never hands them to the visual window. An accepted owner does not re-reject the final Drop because spring geometry changed between samples. When Compact/Expanded is already visible, its shaped HWND independently accepts direct Drop. There are no global hooks, mouse-button scans, or cursor polling.
+The OLE target checks `CF_HDROP`, advertises `DROPEFFECT_COPY`, extracts paths only on Drop, and reports only monitor/DPI/bounds/format/item-count diagnostics. Compact/Expanded and a Smart-revealed target use the same visual registration and `AddPathsAsync` business path. The low-level hooks observe only session boundaries; there is no injection, input suppression, mouse-button scan or cursor polling loop.
 
 ### Fullscreen classification
 
@@ -74,6 +76,8 @@ Monitor bounds alone do not imply a full-screen application: the Windows desktop
 When a shell drag enters, the known host identifies the monitor, the Core state machine changes targets, and the separate visual surface reveals. Non-active monitors retain only their enabled hosts. Monitor coordinates are physical pixels; host and UI dimensions are DIPs scaled with each monitor's effective DPI. `WM_DISPLAYCHANGE` rebuilds monitor-bound hosts and visual windows.
 
 Official references: [RegisterDragDrop](https://learn.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-registerdragdrop), [IDropTarget](https://learn.microsoft.com/en-us/windows/win32/api/oleidl/nn-oleidl-idroptarget), and [DragQueryFile](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-dragqueryfilew).
+
+Smart detection uses only documented observation surfaces: [UI Automation event identifiers](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-event-ids), [LowLevelMouseProc](https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelmouseproc), and the system drag thresholds exposed by [GetSystemMetrics](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics). Provider coverage is best effort; these signals never replace final OLE validation.
 
 ### Drag in
 
@@ -165,11 +169,11 @@ Each risk has a dedicated vertical-spike phase before the affected feature is de
 
 ## Windows 11 Drop Tray and Share Target
 
-Drop Tray is Windows Shell UI at the same top-center edge as DropSpace's passive reveal host. When Shell owns that area it can win `WindowFromPoint`/OLE discovery before DropSpace; DropSpace deliberately does not fight it with larger transparent topmost windows, hooks, polling, registry feature flags or repeated `SetWindowPos`.
+Drop Tray is Windows Shell UI at the top-center edge formerly shared with DropSpace's passive reveal host. Smart mode avoids that contest by recognizing a bounded candidate first and revealing the temporary target below the primary Drop Tray strip. DropSpace does not fight Shell with larger transparent topmost windows, injection, polling, registry feature flags or repeated `SetWindowPos`.
 
 Two public paths coexist:
 
-- Drop Tray off/not owning the edge: the existing 12-physical-pixel passive host receives `CF_HDROP`, expands while retaining OLE ownership and reveals the Dynamic Island/Notch.
+- Smart mode: an identified Explorer/Desktop candidate reveals below the edge and the visible target completes OLE validation. Classic mode remains available when broader legacy source compatibility is more important than the edge-input trade-off.
 - Drop Tray on: a trusted identity build declares `windows.shareTarget` for `StorageItems`. The Share operation uses `ReportStarted`, adds accessible files/folders through `MainViewModel.AddPathsAsync`, then calls `ReportCompleted` or `ReportError`. Redirection through `AppInstance` keeps one database writer.
 
 Microsoft's public Drop Tray description says its **More…** action opens Windows Share. A registered DropSpace target is therefore reachable in the full Share UI. No public contract guarantees that DropSpace is directly pinned in the compact Drop Tray suggestion row; that is Windows version/relevance dependent. No stable public API is documented for querying the Drop Tray toggle. Settings therefore explains the conflict and launches `ms-settings:multitasking` without claiming current state.

@@ -15,6 +15,8 @@ DropSpace **v0.1.0 is the first Stable release**. The repository contains the Wi
 
 Latest Stable: [v0.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
+Experimental Preview: **v0.2.0-preview.1** tests a new smart file-drag wake architecture. Smart mode leaves no top-edge activation HWND while idle, recognizes bounded Explorer/Desktop candidate drags, and reveals a temporary OLE target below Windows Drop Tray. It may not recognize every third-party or virtual-file source; the previous top-edge target remains an opt-in compatibility mode. Stable-channel users do not receive this Preview.
+
 The implemented vertical slice includes:
 
 - Space file/folder reference staging with drag-in, picker intake, external drag-out, open, copy path, pin, remove, and Locate/Replace.
@@ -23,7 +25,8 @@ The implemented vertical slice includes:
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
 - Deterministic branded Windows assets and x64/ARM64 project configurations.
 - A responsive header that stacks controls before text scaling can collapse the page title, an embedded Win32 taskbar/tray icon chain, and a documented brand-asset map.
-- A separate visually transparent Win32/OLE top-edge drag host, truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry.
+- A truly hidden visual Overlay, formal state machine, Compact/Expanded surface, and immediately switchable Dynamic Island/Notch geometry. Experimental Smart wake observes public UI Automation drag signals plus bounded Explorer/Desktop mouse-threshold evidence, creates the visible OLE target only for the candidate session, and leaves the screen edge unowned while idle.
+- An opt-in traditional top-edge OLE activation zone remains for sources Smart mode cannot identify. Settings disclose that it participates in top-edge hit testing and may conflict with Windows Drop Tray or title-bar controls.
 - Direct Explorer/Desktop drops onto the visible Compact or Expanded Overlay, with one OLE owner per pixel and Expanded in-place drop feedback.
 - Windows 11 Drop Tray compatibility guidance plus a standard `StorageItems` Share Target contract. The external-location identity is registered only by a future trusted-signed Setup; unsigned previews never install a self-signed certificate.
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
@@ -31,7 +34,7 @@ The implemented vertical slice includes:
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
 - Process-lifetime in-app update checks, repeatable manual checks, Stable/Preview channels, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
-Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/consecutive-only duplicate suppression/Pause/Resume/self-write suppression, activation and visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, 200 serialized deletion cycles, 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry cycles, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Real Explorer/Desktop Shell routing, Drop Tray/Share ranking, zero-pixel Hidden appearance, installer wizard appearance, tray recovery after Explorer restart, accessibility, mixed-DPI geometry, and animation feel remain manual release-candidate validation gates and are not claimed by automation.
+Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/consecutive-only duplicate suppression/Pause/Resume/self-write suppression, hidden top-edge pass-through, temporary visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, 1,000 deduplicated candidate sessions, settings migration, 200 serialized deletion cycles, 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry cycles, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Real Explorer/Desktop UIA/provider coverage, cross-process pointer routing, false-positive rate, Drop Tray coexistence, zero-pixel Hidden appearance, accessibility, mixed-DPI geometry, and animation feel remain manual Preview gates and are not claimed by automation.
 
 ## Download and run
 

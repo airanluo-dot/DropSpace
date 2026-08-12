@@ -75,6 +75,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     public OverlayMotionPreference MotionPreference =>
         (_pendingSettings ?? _mainViewModel.Settings).OverlayMotion;
 
+    public FileDragWakeMode FileDragWakeMode =>
+        (_pendingSettings ?? _mainViewModel.Settings).FileDragWakeMode;
+
     public bool IsDragPromptVisible => Snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
 
     public bool IsCompactVisible => Snapshot.State == OverlayState.Compact;
@@ -93,7 +96,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public string DragTitle => Snapshot.State == OverlayState.DragReady
         ? "放到 DropSpace"
-        : "拖到顶部以暂存";
+        : FileDragWakeMode == DropSpace.Core.Models.FileDragWakeMode.ClassicTopEdge
+            ? "拖到顶部以暂存"
+            : "拖到出现的 DropSpace";
 
     public string DragSubtitle => Snapshot.State == OverlayState.DragReady
         ? "松开即可添加文件或文件夹引用"
@@ -183,6 +188,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         _pendingSettings = candidate;
         OnPropertyChanged(nameof(MonitorPreference));
         OnPropertyChanged(nameof(MotionPreference));
+        OnPropertyChanged(nameof(FileDragWakeMode));
 
         var snapshot = _stateMachine.Snapshot;
         if (snapshot.DisplayMode == candidate.OverlayDisplayMode &&
@@ -313,6 +319,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
             _pendingSettings = null;
             OnPropertyChanged(nameof(MonitorPreference));
             OnPropertyChanged(nameof(MotionPreference));
+            OnPropertyChanged(nameof(FileDragWakeMode));
             if (_stateMachine.Snapshot.TargetDisplayMode != _mainViewModel.OverlayDisplayMode)
             {
                 _stateMachine.RequestDisplayMode(_mainViewModel.OverlayDisplayMode);

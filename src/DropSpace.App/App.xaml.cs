@@ -205,7 +205,13 @@ public partial class App : Application
         services.AddSingleton<SqliteDatabase>();
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
-        services.AddSingleton<ISettingsService, JsonSettingsService>();
+        services.AddSingleton<ReleaseBuildInfo>();
+        services.AddSingleton<ISettingsService>(provider => new JsonSettingsService(
+            paths,
+            provider.GetRequiredService<ILogger<JsonSettingsService>>(),
+            provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion.IsPreview
+                ? UpdateChannel.Preview
+                : UpdateChannel.Stable));
         services.AddSingleton<ClipboardNotificationService>();
         services.AddSingleton<ClipboardCaptureService>();
         services.AddSingleton<ClipboardIntegrationSmoke>();
@@ -219,7 +225,6 @@ public partial class App : Application
         services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
         services.AddSingleton<WindowsShareIntegrationService>();
         services.AddSingleton<ShareTargetActivationService>();
-        services.AddSingleton<ReleaseBuildInfo>();
         services.AddSingleton<IDeploymentModeService, DeploymentModeService>();
         services.AddSingleton<UpdateManifestParser>();
         services.AddSingleton<UpdateStateStore>();
@@ -248,6 +253,7 @@ public partial class App : Application
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<OleDragDropService>();
+        services.AddSingleton<DragSessionDetector>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();
@@ -342,7 +348,8 @@ public partial class App : Application
             noContinuousFrameLoop = metrics.NoContinuousFrameSubscription,
             notchGeometryStressCycles = metrics.GeometryStressCycles,
             overlayRegionFailureCount = metrics.RegionFailureCount,
-            dragActivationTargetsDiscoverable = metrics.ActivationTargetsDiscoverable,
+            idleTopEdgePassThrough = metrics.IdleTopEdgePassThrough,
+            wakeModeSwitchVerified = metrics.WakeModeSwitchVerified,
             compactVisualTargetDiscoverable = metrics.CompactVisualTargetDiscoverable,
             expandedVisualTargetDiscoverable = metrics.ExpandedVisualTargetDiscoverable,
             compactSyntheticCfHDropAccepted = visibleDrop.CompactDropAccepted,

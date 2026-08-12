@@ -57,6 +57,7 @@ public sealed class StorageAndRepositoryTests
             OverlayDisplayMode = OverlayDisplayMode.Notch,
             OverlayMotion = OverlayMotionPreference.Reduced,
             OverlayMonitor = OverlayMonitorPreference.Primary,
+            FileDragWakeMode = FileDragWakeMode.ClassicTopEdge,
             AutoCheckForUpdates = false,
             AutoDownloadUpdates = false,
             UpdateChannel = UpdateChannel.Preview,
@@ -91,8 +92,58 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(OverlayDisplayMode.DynamicIsland, actual.OverlayDisplayMode);
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
+        Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
         Assert.IsTrue(actual.ClipboardPaused);
         Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+    }
+
+    [TestMethod]
+    public async Task Settings_VersionFourMigratesToSmartDragWithoutChangingExistingPreferences()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 4,
+              "Theme": 2,
+              "OverlayDisplayMode": 1,
+              "UpdateChannel": 1,
+              "StartWithWindows": false
+            }
+            """);
+
+        var actual = await new JsonSettingsService(_paths).LoadAsync();
+
+        Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
+        Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
+        Assert.AreEqual(OverlayDisplayMode.Notch, actual.OverlayDisplayMode);
+        Assert.AreEqual(ThemePreference.Dark, actual.Theme);
+        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+        Assert.IsFalse(actual.StartWithWindows);
+    }
+
+    [TestMethod]
+    public async Task Settings_InvalidDragWakeModeIsQuarantinedToSafeSmartDefault()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 5,
+              "FileDragWakeMode": 999,
+              "RetentionDays": 21,
+              "RetentionItemCount": 300
+            }
+            """);
+
+        var service = new JsonSettingsService(_paths);
+        var actual = await service.LoadAsync();
+
+        Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
+        Assert.AreEqual(21, actual.RetentionDays);
+        Assert.IsTrue(service.LastLoadRecovery.Recovered);
     }
 
     [TestMethod]
@@ -166,6 +217,22 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(ThemePreference.Dark, migrated.Theme);
         Assert.IsFalse(migrated.StartWithWindows);
         Assert.AreEqual(45, migrated.RetentionDays);
+    }
+
+    [TestMethod]
+    public async Task Settings_FreshPreviewBuildDefaultsToPreviewChannel()
+    {
+        var service = new JsonSettingsService(
+            _paths,
+            NullLogger<JsonSettingsService>.Instance,
+            UpdateChannel.Preview);
+
+        var fresh = await service.LoadAsync();
+
+        Assert.AreEqual(UpdateChannel.Preview, fresh.UpdateChannel);
+        Assert.IsTrue(fresh.AutoCheckForUpdates);
+        Assert.IsTrue(fresh.AutoDownloadUpdates);
+        Assert.IsFalse(fresh.AutoInstallUpdates);
     }
 
     [TestMethod]

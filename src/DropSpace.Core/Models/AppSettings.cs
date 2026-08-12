@@ -34,9 +34,16 @@ public enum OverlayMonitorPreference
     Primary,
 }
 
+public enum FileDragWakeMode
+{
+    SmartExperimental,
+    ClassicTopEdge,
+    Disabled,
+}
+
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -80,6 +87,8 @@ public sealed record AppSettings
 
     public OverlayMonitorPreference OverlayMonitor { get; init; } = OverlayMonitorPreference.Automatic;
 
+    public FileDragWakeMode FileDragWakeMode { get; init; } = FileDragWakeMode.SmartExperimental;
+
     public bool AutoCheckForUpdates { get; init; } = true;
 
     public bool AutoDownloadUpdates { get; init; } = true;
@@ -96,6 +105,7 @@ public sealed record AppSettings
         OverlayDisplayMode = OverlayDisplayMode.DynamicIsland,
         OverlayMotion = OverlayMotionPreference.System,
         OverlayMonitor = OverlayMonitorPreference.Automatic,
+        FileDragWakeMode = FileDragWakeMode.SmartExperimental,
     };
 
     public AppSettings Validate()
@@ -169,6 +179,11 @@ public sealed record AppSettings
         if (!Enum.IsDefined(OverlayMonitor))
         {
             throw new ArgumentOutOfRangeException(nameof(OverlayMonitor));
+        }
+
+        if (!Enum.IsDefined(FileDragWakeMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(FileDragWakeMode));
         }
 
         if (!Enum.IsDefined(UpdateChannel))

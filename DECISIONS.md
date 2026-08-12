@@ -272,7 +272,9 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 ## D-032 — Treat Windows Drop Tray as a cooperating Shell owner, not a window to defeat
 
-**Decision:** Preserve the native top-edge host when available, add honest Settings guidance, and implement the public Windows Share Target contract behind a trusted external-location identity. Never poll, hook, probe undocumented flags, import certificates or fight Shell z-order. A Share Target is guaranteed in the Share UI; direct placement in Drop Tray suggestions is not guaranteed.
+**Status:** Accepted; the default passive-host portion is superseded by D-037 for v0.2 Preview. Share/Drop Tray boundaries remain current.
+
+**Decision:** Preserve the native top-edge host only as explicit Classic compatibility mode, add honest Settings guidance, and implement the public Windows Share Target contract behind a trusted external-location identity. Never poll, inject, probe undocumented flags, import certificates or fight Shell z-order. D-037 permits observation-only low-level hooks for bounded session signals; they never suppress input. A Share Target is guaranteed in the Share UI; direct placement in Drop Tray suggestions is not guaranteed.
 
 **Rationale:** Drop Tray and DropSpace intentionally occupy the same user gesture. Windows Shell can acquire OLE ownership first, and no application-local HWND style can reliably override that without harming the desktop. Package identity/signature is the supported integration boundary.
 
@@ -303,3 +305,11 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 **Decision:** Reuse each snapshot's canonical `FingerprintService` identity inside a serialized process-local coordinator. Suppress only when the current fingerprint equals both the immediately previous observed identity and the last successfully persisted identity. A different supported or policy-rejected observation ends the run; a failed commit never marks success. Clear History and Resume reset the coordinator. SQLite stores valid non-consecutive repetitions and performs no historical fingerprint lookup or time-window collapse.
 
 **Rationale:** Windows can emit repeated notifications for one effective state, but Clipboard History is chronological rather than a set. This yields `A,A → A` and `A,B,A → A,B,A`, avoids races and time heuristics, keeps failures retryable, and requires no schema or duplicate counter.
+
+## D-037 — Smart drag candidates replace the default permanent top-edge target
+
+**Decision:** Smart mode is the v0.2.0-preview.1 default. Hidden idle creates no topmost edge HWND and no registered OLE target. Public UI Automation DragStart/DragCancel/DragComplete signals are combined with an observation-only low-level mouse/keyboard queue, Explorer/Desktop file-view classification and Windows `SM_CXDRAG`/`SM_CYDRAG` thresholds. A candidate reveals the normal shaped visual Overlay on the pointer's display, offset below Drop Tray, and temporarily calls `RegisterDragDrop`. Only a real OLE `IDataObject` containing `CF_HDROP` can be accepted. The previous edge host remains user-selected Classic compatibility mode; Disabled creates neither automatic-wake mechanism.
+
+**Rationale:** The old host was reliable after Explorer selected it, but permanently owned a real top-edge hit-test band and competed with title bars and Windows Drop Tray. Mouse-down or movement alone creates unacceptable false positives, while UIA events alone are optional provider behavior. Layered evidence bounds the experiment without moving final file validation out of OLE.
+
+**Constraints and trade-offs:** No Explorer injection, Shell/registry hacks, input suppression, undocumented Drop Tray detection, persistent polling or path-bearing diagnostics. Unknown third-party and virtual-file sources may not wake Smart mode. Real Windows 11 evidence, not CI alone, determines whether this experiment graduates. Classic mode remains the explicit reliability/input-area trade-off.

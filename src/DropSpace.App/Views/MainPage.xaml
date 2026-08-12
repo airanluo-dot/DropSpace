@@ -466,6 +466,34 @@
                   Content="打开 Windows Drop Tray 设置" />
               </StackPanel>
             </Border>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="240" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Spacing="3">
+                <TextBlock Text="文件拖拽唤醒方式" />
+                <TextBlock
+                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                  Text="智能检测空闲时不占用屏幕顶部；传统模式兼容范围可能更广，但会长期保留不可见顶部输入区域。"
+                  TextWrapping="Wrap" />
+              </StackPanel>
+              <ComboBox
+                x:Name="FileDragWakeModeCombo"
+                Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                SelectionChanged="OnFileDragWakeModeChanged">
+                <ComboBoxItem Content="智能检测（实验性）" Tag="SmartExperimental" />
+                <ComboBoxItem Content="传统顶部感应区（兼容）" Tag="ClassicTopEdge" />
+                <ComboBoxItem Content="关闭自动唤醒" Tag="Disabled" />
+              </ComboBox>
+            </Grid>
+            <InfoBar
+              IsClosable="False"
+              IsOpen="True"
+              Message="智能检测目前优先支持 Explorer 与桌面的真实文件/文件夹拖拽。部分第三方软件、虚拟文件或不提供标准信号的来源可能无法自动唤醒；已显示的 DropSpace 仍可直接接收标准文件拖放。"
+              Severity="Informational"
+              Title="实验性拖拽检测" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
