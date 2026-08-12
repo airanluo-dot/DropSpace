@@ -42,6 +42,9 @@ Assert-Equal $smartDragPreview.FileVersion "0.2.0.1" "Smart-drag Preview file ve
 Assert-Equal $smartDragPreview.PackageVersion "0.2.0.1" "Smart-drag Preview package version"
 Assert-Equal $smartDragPreview.GitHubPrerelease $true "Smart-drag Preview prerelease flag"
 Assert-Equal $smartDragPreview.MakeLatest $false "Smart-drag Preview latest flag"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $smartDragPreview) "0.1.0" "First Preview lifecycle baseline"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion (Get-DropSpaceReleaseInfo "v0.2.0-preview.2")) "0.2.0-preview.1" "Later Preview lifecycle baseline"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $stable) "0.1.0-preview.5" "Stable lifecycle baseline"
 
 foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1.0-preview.9999"))
 {
