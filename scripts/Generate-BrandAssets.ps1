@@ -1,6 +1,7 @@
 param(
     [string]$DestinationRoot = "src/DropSpace.App/Assets",
     [string]$DocumentationRoot = "branding/generated/docs",
+    [string]$WebsiteAssetRoot = "website/_source/src/assets",
     [switch]$Verify
 )
 
@@ -9,11 +10,12 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $masterRoot = Join-Path $repositoryRoot "branding/master"
-$blackMainSource = Join-Path $masterRoot "black/DropSpace-Black-Main-Original.png"
+$runtimeMainSource = Join-Path $masterRoot "transparent/DropSpace-Logo-Transparent-Final.png"
+$blackLegacySource = Join-Path $masterRoot "black/DropSpace-Black-Main-Original.png"
 $whiteBackupSource = Join-Path $masterRoot "white/DropSpace-White-Backup-Original.png"
 $sourceManifest = Join-Path $repositoryRoot "branding/SOURCE_MANIFEST.json"
 
-foreach ($source in @($blackMainSource, $whiteBackupSource, $sourceManifest))
+foreach ($source in @($runtimeMainSource, $blackLegacySource, $whiteBackupSource, $sourceManifest))
 {
     if (-not (Test-Path $source -PathType Leaf))
     {
@@ -65,7 +67,8 @@ function Write-RenderedPng
         [Parameter(Mandatory = $true)][int]$Width,
         [Parameter(Mandatory = $true)][int]$Height,
         [Parameter(Mandatory = $true)][double]$ContentScale,
-        [Parameter(Mandatory = $true)][string]$Path
+        [Parameter(Mandatory = $true)][string]$Path,
+        [AllowNull()][System.Windows.Media.Brush]$Background = $null
     )
 
     if ($Width -lt 1 -or $Height -lt 1 -or $ContentScale -le 0 -or $ContentScale -gt 1)
@@ -80,13 +83,13 @@ function Write-RenderedPng
     $context = $visual.RenderOpen()
     try
     {
-        # The supplied Black Main artwork includes its authoritative black canvas,
-        # glow, and reflection. Keep the entire generated surface black so wide
-        # tiles and splash assets do not expose an unintended transparent variant.
-        $context.DrawRectangle(
-            [System.Windows.Media.Brushes]::Black,
-            $null,
-            [System.Windows.Rect]::new(0, 0, $Width, $Height))
+        if ($null -ne $Background)
+        {
+            $context.DrawRectangle(
+                $Background,
+                $null,
+                [System.Windows.Rect]::new(0, 0, $Width, $Height))
+        }
         $context.DrawImage(
             $Source,
             [System.Windows.Rect]::new($left, $top, $contentSize, $contentSize))
@@ -185,19 +188,21 @@ function Generate-Assets
 {
     param(
         [Parameter(Mandatory = $true)][string]$AssetRoot,
-        [Parameter(Mandatory = $true)][string]$DocsRoot
+        [Parameter(Mandatory = $true)][string]$DocsRoot,
+        [Parameter(Mandatory = $true)][string]$WebsiteRoot
     )
 
     [System.IO.Directory]::CreateDirectory($AssetRoot) | Out-Null
     [System.IO.Directory]::CreateDirectory($DocsRoot) | Out-Null
-    $blackMain = Read-Bitmap $blackMainSource
+    [System.IO.Directory]::CreateDirectory($WebsiteRoot) | Out-Null
+    $runtimeMain = Read-Bitmap $runtimeMainSource
 
     $icoSizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
     $icoFrames = @{}
     foreach ($size in $icoSizes)
     {
         $framePath = Join-Path $AssetRoot "AppIcon.frame-$size.png"
-        Write-RenderedPng $blackMain $size $size 1 $framePath
+        Write-RenderedPng $runtimeMain $size $size 1 $framePath
         $icoFrames[$size] = $framePath
     }
     Write-Ico $icoFrames (Join-Path $AssetRoot "AppIcon.ico")
@@ -217,39 +222,44 @@ function Generate-Assets
         $wideHeight = [int][Math]::Round(150 * $factor, [MidpointRounding]::AwayFromZero)
         $splashWidth = [int][Math]::Round(620 * $factor, [MidpointRounding]::AwayFromZero)
         $splashHeight = [int][Math]::Round(300 * $factor, [MidpointRounding]::AwayFromZero)
-        Write-RenderedPng $blackMain $square44 $square44 1 (Join-Path $AssetRoot "Square44x44Logo.scale-$scale.png")
-        Write-RenderedPng $blackMain $square150 $square150 1 (Join-Path $AssetRoot "Square150x150Logo.scale-$scale.png")
-        Write-RenderedPng $blackMain $store $store 1 (Join-Path $AssetRoot "StoreLogo.scale-$scale.png")
-        Write-RenderedPng $blackMain $wideWidth $wideHeight 0.72 (Join-Path $AssetRoot "Wide310x150Logo.scale-$scale.png")
-        Write-RenderedPng $blackMain $splashWidth $splashHeight 0.72 (Join-Path $AssetRoot "SplashScreen.scale-$scale.png")
+        Write-RenderedPng $runtimeMain $square44 $square44 1 (Join-Path $AssetRoot "Square44x44Logo.scale-$scale.png")
+        Write-RenderedPng $runtimeMain $square150 $square150 1 (Join-Path $AssetRoot "Square150x150Logo.scale-$scale.png")
+        Write-RenderedPng $runtimeMain $store $store 1 (Join-Path $AssetRoot "StoreLogo.scale-$scale.png")
+        Write-RenderedPng $runtimeMain $wideWidth $wideHeight 0.72 (Join-Path $AssetRoot "Wide310x150Logo.scale-$scale.png")
+        Write-RenderedPng $runtimeMain $splashWidth $splashHeight 0.72 (Join-Path $AssetRoot "SplashScreen.scale-$scale.png")
     }
     [System.IO.File]::Copy((Join-Path $AssetRoot "StoreLogo.scale-100.png"), (Join-Path $AssetRoot "StoreLogo.png"), $true)
 
     foreach ($size in @(16, 20, 24, 30, 32, 36, 40, 44, 48, 60, 64, 72, 80, 96, 256))
     {
-        Write-RenderedPng $blackMain $size $size 1 (Join-Path $AssetRoot "Square44x44Logo.targetsize-$($size)_altform-unplated.png")
+        Write-RenderedPng $runtimeMain $size $size 1 (Join-Path $AssetRoot "Square44x44Logo.targetsize-$($size)_altform-unplated.png")
     }
-    Write-RenderedPng $blackMain 48 48 1 (Join-Path $AssetRoot "LockScreenLogo.scale-200.png")
+    Write-RenderedPng $runtimeMain 48 48 1 (Join-Path $AssetRoot "LockScreenLogo.scale-200.png")
 
-    Write-RenderedPng $blackMain 512 512 1 (Join-Path $DocsRoot "DropSpace-Logo-Black.png")
+    Write-RenderedPng $runtimeMain 512 512 1 (Join-Path $DocsRoot "DropSpace-Logo-Transparent.png")
+    Write-RenderedPng $runtimeMain 512 512 1 (Join-Path $WebsiteRoot "dropspace-logo.png")
+    Write-RenderedPng $runtimeMain 256 256 1 (Join-Path $WebsiteRoot "favicon.png")
+    Write-RenderedPng $runtimeMain 1200 630 0.7 (Join-Path $WebsiteRoot "og-image.png") ([System.Windows.Media.Brushes]::Black)
 }
 
 $destination = Resolve-RepositoryPath $DestinationRoot
 $documentation = Resolve-RepositoryPath $DocumentationRoot
+$websiteAssets = Resolve-RepositoryPath $WebsiteAssetRoot
 if (-not $Verify)
 {
-    Generate-Assets $destination $documentation
-    Write-Host "Generated DropSpace brand assets from the authoritative Black Main master."
-    Write-Host "ICO frames: Black Main artwork at 16/20/24/32/40/48/64/128/256. White Backup is retained only as a canonical fallback source."
+    Generate-Assets $destination $documentation $websiteAssets
+    Write-Host "Generated DropSpace brand assets from the authoritative transparent Final master."
+    Write-Host "ICO frames: transparent Final artwork at 16/20/24/32/40/48/64/128/256. Black Main and White Backup remain inactive legacy sources."
     return
 }
 
 $verificationRoot = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-brand-$([Guid]::NewGuid().ToString('N'))"
 $verificationAssets = Join-Path $verificationRoot "assets"
 $verificationDocs = Join-Path $verificationRoot "docs"
+$verificationWebsite = Join-Path $verificationRoot "website"
 try
 {
-    Generate-Assets $verificationAssets $verificationDocs
+    Generate-Assets $verificationAssets $verificationDocs $verificationWebsite
     $generatedFiles = Get-ChildItem $verificationAssets -File | Sort-Object Name
     foreach ($generated in $generatedFiles)
     {
@@ -275,6 +285,17 @@ try
             (Get-FileHash $existing -Algorithm SHA256).Hash)
         {
             throw "Generated documentation brand asset is stale: $existing"
+        }
+    }
+
+    foreach ($generated in (Get-ChildItem $verificationWebsite -File | Sort-Object Name))
+    {
+        $existing = Join-Path $websiteAssets $generated.Name
+        if (-not (Test-Path $existing -PathType Leaf) -or
+            (Get-FileHash $generated.FullName -Algorithm SHA256).Hash -ne
+            (Get-FileHash $existing -Algorithm SHA256).Hash)
+        {
+            throw "Generated website brand asset is stale: $existing"
         }
     }
 

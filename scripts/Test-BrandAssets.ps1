@@ -14,6 +14,7 @@ if (-not (Test-Path $iconPath -PathType Leaf))
 }
 
 $sourceHashes = [ordered]@{
+    "branding/master/transparent/DropSpace-Logo-Transparent-Final.png" = "25330466ffe4b593dbe33e4c28327833210d676418a3a61d68c1dd403e8ae8e0"
     "branding/master/black/DropSpace-Black-Main-Original.png" = "519664732432643022331a7c9b1c57dcedac361f09500691512738aef5bb73bf"
     "branding/master/black/DropSpace-Black-Main-Resampled-2048.png" = "319470a340b5402537ff4a6dc7c4c80fe41d1e4a08cf850d08bf3eb2f6e393ac"
     "branding/master/black/DropSpace-Black-Main-Resampled-4096.png" = "431710f7e7447a6bda4a861ec64667aef366f5c5fffca4fd681bbe964321a8f6"
@@ -39,28 +40,94 @@ foreach ($entry in $sourceHashes.GetEnumerator())
 
 $sourceManifestPath = Join-Path $repositoryRoot "branding/SOURCE_MANIFEST.json"
 $sourceManifest = Get-Content $sourceManifestPath -Raw | ConvertFrom-Json
-if ($sourceManifest.schemaVersion -ne 1 -or
-    $sourceManifest.authoritativeRuntimeVariant -ne "Black Main" -or
-    $sourceManifest.runtimeBackground -ne "black" -or
-    $sourceManifest.transparentArtworkExtractionAllowed -ne $false)
+if ($sourceManifest.schemaVersion -ne 2 -or
+    $sourceManifest.authoritativeRuntimeVariant -ne "Transparent Final" -or
+    $sourceManifest.runtimeBackground -ne "transparent" -or
+    $sourceManifest.activeSource.path -ne "master/transparent/DropSpace-Logo-Transparent-Final.png" -or
+    $sourceManifest.activeSource.sha256 -ne $sourceHashes["branding/master/transparent/DropSpace-Logo-Transparent-Final.png"])
 {
-    throw "Brand source manifest does not enforce the Black Main runtime policy."
+    throw "Brand source manifest does not enforce the transparent Final runtime policy."
 }
 
 $generator = Get-Content (Join-Path $repositoryRoot "scripts/Generate-BrandAssets.ps1") -Raw
 foreach ($requiredText in @(
-    'black/DropSpace-Black-Main-Original.png',
-    'Write-RenderedPng $blackMain',
-    '[System.Windows.Media.Brushes]::Black'))
+    'transparent/DropSpace-Logo-Transparent-Final.png',
+    'Write-RenderedPng $runtimeMain',
+    'DropSpace-Logo-Transparent.png',
+    'WebsiteAssetRoot'))
 {
     if (-not $generator.Contains($requiredText, [StringComparison]::Ordinal))
     {
-        throw "Brand generator is missing the Black Main invariant: $requiredText"
+        throw "Brand generator is missing the transparent Final invariant: $requiredText"
     }
 }
-if ($generator.Contains('Read-Bitmap $whiteBackupSource', [StringComparison]::Ordinal))
+foreach ($forbiddenSelection in @('Read-Bitmap $blackLegacySource', 'Read-Bitmap $whiteBackupSource'))
 {
-    throw "White Backup must be retained as a source but cannot be selected by the default runtime generator."
+    if ($generator.Contains($forbiddenSelection, [StringComparison]::Ordinal))
+    {
+        throw "Legacy artwork must remain retained but inactive: $forbiddenSelection"
+    }
+}
+
+$legacyExports = @(
+    "branding/generated/docs/DropSpace-Logo-Black.png",
+    "branding/legacy/runtime-black-v1/website/dropspace-logo.png",
+    "branding/legacy/runtime-black-v1/website/favicon.png",
+    "branding/legacy/runtime-black-v1/website/og-image.png"
+)
+foreach ($legacyExport in $legacyExports)
+{
+    if (-not (Test-Path (Join-Path $repositoryRoot $legacyExport) -PathType Leaf))
+    {
+        throw "Inactive legacy brand export is missing: $legacyExport"
+    }
+}
+
+$activeWindowsRoot = Join-Path $repositoryRoot "src/DropSpace.App/Assets"
+$legacyWindowsRoot = Join-Path $repositoryRoot "branding/legacy/runtime-black-v1/windows"
+$activeWindowsNames = @(Get-ChildItem $activeWindowsRoot -File | ForEach-Object Name | Sort-Object)
+$legacyWindowsNames = @(Get-ChildItem $legacyWindowsRoot -File | ForEach-Object Name | Sort-Object)
+if ($null -ne (Compare-Object $activeWindowsNames $legacyWindowsNames))
+{
+    throw "The complete previous Windows brand export set must remain archived and inactive."
+}
+foreach ($name in $activeWindowsNames)
+{
+    if ((Get-FileHash (Join-Path $activeWindowsRoot $name) -Algorithm SHA256).Hash -eq
+        (Get-FileHash (Join-Path $legacyWindowsRoot $name) -Algorithm SHA256).Hash)
+    {
+        throw "An active Windows brand output still contains its archived predecessor: $name"
+    }
+}
+
+foreach ($pair in @(
+    @("website/_source/src/assets/dropspace-logo.png", "branding/legacy/runtime-black-v1/website/dropspace-logo.png"),
+    @("website/_source/src/assets/favicon.png", "branding/legacy/runtime-black-v1/website/favicon.png"),
+    @("website/_source/src/assets/og-image.png", "branding/legacy/runtime-black-v1/website/og-image.png")
+))
+{
+    $active = Join-Path $repositoryRoot $pair[0]
+    $legacy = Join-Path $repositoryRoot $pair[1]
+    if ((Get-FileHash $active -Algorithm SHA256).Hash -eq (Get-FileHash $legacy -Algorithm SHA256).Hash)
+    {
+        throw "An active brand output still contains its archived predecessor: $($pair[0])"
+    }
+}
+
+Add-Type -AssemblyName System.Drawing.Common
+$runtimeMasterPath = Join-Path $repositoryRoot "branding/master/transparent/DropSpace-Logo-Transparent-Final.png"
+$runtimeMaster = [System.Drawing.Bitmap]::new($runtimeMasterPath)
+try
+{
+    if ($runtimeMaster.Width -ne 1254 -or $runtimeMaster.Height -ne 1254 -or
+        $runtimeMaster.GetPixel(0, 0).A -ne 0 -or $runtimeMaster.GetPixel(600, 500).A -eq 0)
+    {
+        throw "Transparent Final must remain the supplied 1254 x 1254 true-alpha artwork."
+    }
+}
+finally
+{
+    $runtimeMaster.Dispose()
 }
 
 foreach ($retired in @(
@@ -104,7 +171,7 @@ finally
 $requiredSizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
 if ($sizes.Count -ne $requiredSizes.Count)
 {
-    throw "AppIcon.ico must contain exactly nine Black Main frames; found $($sizes.Count)."
+    throw "AppIcon.ico must contain exactly nine transparent Final frames; found $($sizes.Count)."
 }
 foreach ($required in $requiredSizes)
 {
@@ -119,8 +186,9 @@ $references = @{
     "src/DropSpace.App/DropSpace.App.csproj" = 'Assets\AppIcon.ico'
     "installer/DropSpace.iss" = 'SetupIconFile=..\src\DropSpace.App\Assets\AppIcon.ico'
     "src/DropSpace.App/MainWindow.xaml.cs" = 'NativeApplicationIcon.ApplyToWindow'
-    "scripts/Generate-BrandAssets.ps1" = 'black/DropSpace-Black-Main-Original.png'
-    "README.md" = 'branding/generated/docs/DropSpace-Logo-Black.png'
+    "scripts/Generate-BrandAssets.ps1" = 'transparent/DropSpace-Logo-Transparent-Final.png'
+    "README.md" = 'branding/generated/docs/DropSpace-Logo-Transparent.png'
+    "website/_source/src/index.html" = './assets/dropspace-logo.png'
 }
 foreach ($entry in $references.GetEnumerator())
 {
@@ -132,7 +200,7 @@ foreach ($entry in $references.GetEnumerator())
 }
 
 foreach ($asset in @(
-    "branding/generated/docs/DropSpace-Logo-Black.png",
+    "branding/generated/docs/DropSpace-Logo-Transparent.png",
     "src/DropSpace.App/Assets/StoreLogo.png"))
 {
     if (-not (Test-Path (Join-Path $repositoryRoot $asset) -PathType Leaf))
@@ -160,7 +228,6 @@ function Assert-EmbeddedIcon
         throw "Icon verification executable is missing: $resolved"
     }
 
-    Add-Type -AssemblyName System.Drawing.Common
     $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($resolved)
     if ($null -eq $icon -or $icon.Width -lt 16 -or $icon.Height -lt 16)
     {
@@ -171,4 +238,4 @@ function Assert-EmbeddedIcon
 
 Assert-EmbeddedIcon $PortableExecutable
 Assert-EmbeddedIcon $InstallerExecutable
-Write-Host "Brand assets passed: immutable Black/White source hashes, Black Main default, White Backup retained, nine-frame ICO, PE resource 101, WinUI, tray, installer, README, and MSIX references."
+Write-Host "Brand assets passed: immutable transparent Final source, inactive Black/White legacy sources and exports, nine-frame alpha ICO, PE resource 101, WinUI, tray, installer, README, website, and MSIX references."

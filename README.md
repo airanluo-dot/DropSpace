@@ -1,4 +1,4 @@
-<img alt="DropSpace" src="branding/generated/docs/DropSpace-Logo-Black.png" width="220">
+<img alt="DropSpace" src="branding/generated/docs/DropSpace-Logo-Transparent.png" width="220">
 
 # DropSpace
 

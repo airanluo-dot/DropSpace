@@ -109,6 +109,17 @@ test("generated assets are content-versioned", async () => {
   }
 });
 
+test("active website logo and favicon retain true PNG alpha", async () => {
+  const files = await readdir(new URL("../dist/assets/", import.meta.url));
+  for (const prefix of ["dropspace-logo", "favicon"]) {
+    const name = files.find((file) => new RegExp(`^${prefix}\\.[a-f0-9]{12}\\.png$`).test(file));
+    assert.ok(name, `missing versioned ${prefix}`);
+    const png = await readFile(new URL(`../dist/assets/${name}`, import.meta.url));
+    assert.equal(png.subarray(1, 4).toString("ascii"), "PNG");
+    assert.equal(png[25], 6, `${prefix} must use PNG color type 6 (RGBA)`);
+  }
+});
+
 test("root, error page, robots and sitemap are production-safe", async () => {
   const root = await read("index.html");
   const notFound = await read("404.html");
