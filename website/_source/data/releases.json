@@ -1,11 +1,47 @@
 {
-  "syncedAt": "2026-08-12T10:06:48.106Z",
+  "syncedAt": "2026-08-12T10:56:04.290Z",
   "source": "github",
   "api": {
     "schemaVersion": 1,
-    "generatedAt": "2026-08-12T10:06:48.102Z",
+    "generatedAt": "2026-08-12T10:56:04.283Z",
     "source": "github-releases",
     "releases": [
+      {
+        "tagName": "v0.2.0-preview.2",
+        "name": "DropSpace v0.2.0-preview.2",
+        "body": "# DropSpace v0.2.0-preview.2\n\nThis is an experimental Preview hotfix for DropSpace's new **smart file-drag wake** architecture. It is not a replacement for v0.1.0 Stable for important work.\n\nOfficial website: https://dropspace.pages.dev/\n\n## Smart drag recognition fix\n\n- Fixes a Preview.1 threading defect where Explorer/Desktop source inspection ran on an asynchronous thread without initializing COM on that actual thread. UI Automation therefore commonly rejected every candidate before the Island could appear.\n- Explorer file icons may expose an image or text element under the pointer. Recognition now walks a bounded UI Automation ancestor chain to find the enclosing ListItem/DataItem instead of requiring the deepest element itself to be a file item.\n- The existing safety gates remain: the pointer must begin in a known Explorer/Desktop file view, cross the Windows drag threshold, and the temporary visible OLE target must finally receive a real `CF_HDROP` data object.\n- Hidden idle still owns no top-edge hit-test window. Classic top-edge mode remains an explicit compatibility fallback for unsupported third-party and virtual-file sources.\n\n## Update and website reliability\n\n- Fixes in-app checks that failed when the anonymous GitHub REST API was unavailable or rate-limited on a shared network.\n- Adds the versioned official release contract at `/api/v1/releases.json`. The app tries `dropspace.pages.dev`, the GitHub Pages mirror, then GitHub REST.\n- The website refreshes Stable downloads and Changelog entries from the same contract at runtime. Cloudflare Pages serves a short-cached dynamic endpoint, while GitHub Pages keeps a build-time fallback.\n- Website metadata cannot redirect DropSpace to an arbitrary executable: every release and asset must still match the official GitHub repository, tag, and asset name. Existing manifest, size, SHA-256, deployment-mode, and unsigned-install safeguards remain unchanged.\n\n## Preview limitations\n\n- Real Explorer/Desktop UI Automation provider behavior, false-positive rate, mixed-DPI placement, and Windows Drop Tray coexistence still require Windows 11 desktop testing.\n- Some third-party apps and virtual-file providers may not expose enough public evidence for Smart mode. Use **Traditional top-edge zone (compatibility mode)** when needed.\n- This Preview is unsigned. Unattended automatic installation remains disabled; verified updates require explicit user action.\n- Preview.1's broken metadata path cannot repair its own installed binary. Preview.1 users must download and install Preview.2 manually once; releases after Preview.2 can use the repaired in-app source chain.\n\nStable-channel users will not receive this Preview. Select the Preview channel only to test experimental builds.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-12T10:47:47Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.2",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 32215207,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 231172785,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "size": 63268141,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "size": 786,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/update-manifest.json"
+          }
+        ]
+      },
       {
         "tagName": "v0.2.0-preview.1",
         "name": "DropSpace v0.2.0-preview.1",
@@ -247,6 +283,26 @@
   },
   "previews": [
     {
+      "tag": "v0.2.0-preview.2",
+      "name": "DropSpace v0.2.0-preview.2",
+      "title": "DropSpace v0.2.0-preview.2",
+      "publishedAt": "2026-08-12T10:47:47Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.2",
+      "summary": [
+        "Fixes a Preview.1 threading defect where Explorer/Desktop source inspection ran on an asynchronous thread without initializing COM on that actual thread. UI Automation therefore commonly rejected every candidate before the Island could appear.",
+        "Explorer file icons may expose an image or text element under the pointer. Recognition now walks a bounded UI Automation ancestor chain to find the enclosing ListItem/DataItem instead of requiring the deepest element itself to be a file item.",
+        "The existing safety gates remain: the pointer must begin in a known Explorer/Desktop file view, cross the Windows drag threshold, and the temporary visible OLE target must finally receive a real CFHDROP data object.",
+        "Hidden idle still owns no top-edge hit-test window. Classic top-edge mode remains an explicit compatibility fallback for unsupported third-party and virtual-file sources.",
+        "Fixes in-app checks that failed when the anonymous GitHub REST API was unavailable or rate-limited on a shared network."
+      ],
+      "assets": {
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/SHA256SUMS.txt"
+      }
+    },
+    {
       "tag": "v0.2.0-preview.1",
       "name": "DropSpace v0.2.0-preview.1",
       "title": "DropSpace v0.2.0-preview.1",
@@ -324,25 +380,6 @@
         "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace.exe",
         "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace-x64.msix",
         "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/SHA256SUMS.txt"
-      }
-    },
-    {
-      "tag": "v0.1.0-preview.2",
-      "name": "DropSpace v0.1.0-preview.2",
-      "title": "DropSpace v0.1.0-preview.2",
-      "publishedAt": "2026-08-09T02:11:31Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.2",
-      "summary": [
-        "剪贴板通知改为 Windows 桌面标准的 AddClipboardFormatListener / WMCLIPBOARDUPDATE，增加有限重试、序列号去重、Pause/Resume、自写入抑制和监听健康诊断。",
-        "顶部视觉 Overlay 与文件拖拽 Activation Host 完全分离。Temporary Space 为空时视觉 HWND 真正隐藏，不再用 3 像素 XAML 窗口冒充 Hidden。",
-        "每个显示器使用独立、零 Alpha、无焦点的 Win32/OLE IDropTarget 激活区域；Explorer/Desktop 文件通过 CFHDROP 进入现有 Temporary Space 添加流程，原文件不会被移动或删除。",
-        "移除 XAML 白边，并清除 HWND/DWM border、frame、shadow 痕迹；Hidden 时清空窗口 region 后 SWHIDE。",
-        "Width、Height、Top Offset、上下圆角、Opacity、内容 Reveal 和 Drop Feedback 改为可中断的真实时间 spring 目标，不再先跳到最终矩形后只做 Scale。"
-      ],
-      "assets": {
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/SHA256SUMS.txt"
       }
     }
   ]
