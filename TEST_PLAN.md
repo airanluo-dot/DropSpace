@@ -41,6 +41,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Overlay state transitions for empty/drag/compact/expanded/dismiss/mode-transition paths, including interruption and count preservation.
 - One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
 - Smart drag policy: click, stationary press, below-threshold movement, unknown/text/window sources, Explorer/Desktop left/right candidate drags, duplicate UIA/mouse signals, Escape/completion and 1,000 sequential sessions.
+- Smart UIA adapter: COM initialization occurs on the actual classifier thread, nested text/image leaves can resolve through a bounded ancestor chain, and all returned COM objects have bounded lifetime.
 
 ## Integration tests
 
@@ -204,6 +205,7 @@ Automation does not claim visual quality or Explorer/UIA provider coverage. Befo
 - Process-start automatic check once, repeatable manual check, disabled automatic check, and single-flight overlap.
 - Exact/bounded update manifest failures: schema, tag, channel, version code, size, SHA, missing/duplicate/unexpected assets, malformed JSON, oversized input, and arbitrary URL field.
 - Streaming update download success plus hash/size/interruption/cancellation/transport/path-containment failures; no partial payload reaches executable state.
+- Official website release API schema/host/tag/asset validation and resilient website → mirror → GitHub REST fallback without public-network access in tests.
 - Brand generator, nine ICO frames, resource ID 101, EXE/Setup embedded icon, MSIX asset matrix, and no retired icon reference.
 - Installer `/UPDATE` graceful maintenance shutdown, custom-path/data/startup preservation, automatic restart marker, installed smoke, both uninstall modes, and external sentinel protection.
 

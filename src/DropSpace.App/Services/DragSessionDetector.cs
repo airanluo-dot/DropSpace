@@ -37,6 +37,7 @@ public sealed class DragSessionDetector : IDisposable
     private const int SystemMetricHorizontalDrag = 68;
     private const int SystemMetricVerticalDrag = 69;
     private const uint CoInitializeMultithreaded = 0;
+    private const int RpcEChangedMode = unchecked((int)0x80010106);
     private static readonly TimeSpan PointerReleaseGrace = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(30);
     private readonly MonitorLayoutService _monitorLayout;
@@ -68,6 +69,9 @@ public sealed class DragSessionDetector : IDisposable
     private bool _disposed;
     private long _observedSignals;
     private long _droppedSignals;
+    private long _recognizedSourceCount;
+    private long _rejectedSourceCount;
+    private long _comInitializationFailureCount;
     private int _pointerObservationActive;
 
     public DragSessionDetector(
@@ -90,6 +94,12 @@ public sealed class DragSessionDetector : IDisposable
     public long ObservedSignalCount => Interlocked.Read(ref _observedSignals);
 
     public long DroppedSignalCount => Interlocked.Read(ref _droppedSignals);
+
+    public long RecognizedSourceCount => Interlocked.Read(ref _recognizedSourceCount);
+
+    public long RejectedSourceCount => Interlocked.Read(ref _rejectedSourceCount);
+
+    public long ComInitializationFailureCount => Interlocked.Read(ref _comInitializationFailureCount);
 
     public void SetMode(FileDragWakeMode mode)
     {
@@ -332,7 +342,7 @@ public sealed class DragSessionDetector : IDisposable
                 {
                     case DetectorSignalKind.LeftPressed:
                     case DetectorSignalKind.RightPressed:
-                        var source = ShellDragSourceInspector.Classify(signal.Point);
+                        var source = ClassifySource(signal.Point);
                         _policy.PointerPressed(
                             signal.Point,
                             signal.Kind == DetectorSignalKind.LeftPressed
@@ -353,7 +363,7 @@ public sealed class DragSessionDetector : IDisposable
                     case DetectorSignalKind.UiAutomationStarted:
                         transition = _policy.UiAutomationDragStarted(
                             signal.Point,
-                            ShellDragSourceInspector.Classify(signal.Point));
+                            ClassifySource(signal.Point));
                         break;
                     case DetectorSignalKind.LeftReleased:
                     case DetectorSignalKind.RightReleased:
@@ -478,6 +488,42 @@ public sealed class DragSessionDetector : IDisposable
         if (!_signals.Writer.TryWrite(signal))
         {
             Interlocked.Increment(ref _droppedSignals);
+        }
+    }
+
+    private DragSourceKind ClassifySource(DragScreenPoint point)
+    {
+        // ProcessSignalsAsync resumes on arbitrary thread-pool threads. UI Automation is COM and
+        // therefore must be initialized on the exact thread that performs ElementFromPoint. The
+        // Preview.1 implementation initialized only the hook/message thread, so the asynchronous
+        // classifier commonly returned Unknown before the drag threshold could reveal the Island.
+        var result = CoInitializeEx(nint.Zero, CoInitializeMultithreaded);
+        var mustUninitialize = result >= 0;
+        if (result < 0 && result != RpcEChangedMode)
+        {
+            Interlocked.Increment(ref _comInitializationFailureCount);
+            return DragSourceKind.Unknown;
+        }
+
+        try
+        {
+            var source = ShellDragSourceInspector.Classify(point);
+            if (source == DragSourceKind.Unknown)
+            {
+                Interlocked.Increment(ref _rejectedSourceCount);
+            }
+            else
+            {
+                Interlocked.Increment(ref _recognizedSourceCount);
+            }
+            return source;
+        }
+        finally
+        {
+            if (mustUninitialize)
+            {
+                CoUninitialize();
+            }
         }
     }
 
@@ -735,7 +781,6 @@ public sealed class DragSessionDetector : IDisposable
         private const int UiAutomationControlTypeTreeItem = 50024;
         private const int UiAutomationControlTypeDataItem = 50029;
         private static readonly Guid CUiAutomation8ClassId = new("E22AD333-B25F-460C-83D0-0581107395C9");
-        private static readonly ThreadLocal<IUiAutomation?> Automation = new(CreateAutomation);
         private static readonly HashSet<string> FileViewClasses = new(StringComparer.OrdinalIgnoreCase)
         {
             "SysListView32",
@@ -806,10 +851,12 @@ public sealed class DragSessionDetector : IDisposable
 
         private static bool IsFileItemAtPoint(DragScreenPoint point)
         {
+            IUiAutomation? automation = null;
+            IUiAutomationTreeWalker? walker = null;
             IUiAutomationElement? element = null;
             try
             {
-                var automation = Automation.Value;
+                automation = CreateAutomation();
                 if (automation is null || automation.ElementFromPoint(
                         new NativePoint { X = point.X, Y = point.Y },
                         out element) < 0 || element is null)
@@ -817,16 +864,38 @@ public sealed class DragSessionDetector : IDisposable
                     return false;
                 }
 
-                if (element.GetCurrentPropertyValue(
-                        UiAutomationControlTypePropertyId,
-                        out var value) < 0 || value is not int controlType)
+                if (automation.GetRawViewWalker(out walker) < 0 || walker is null)
                 {
                     return false;
                 }
 
-                return controlType is UiAutomationControlTypeListItem or
-                    UiAutomationControlTypeTreeItem or
-                    UiAutomationControlTypeDataItem;
+                // ElementFromPoint may return the image or text child inside an Explorer item.
+                // Walk a bounded raw-view ancestor chain instead of requiring the deepest element
+                // itself to be ListItem/DataItem. This still rejects blank file-view space, text
+                // selection, window moves and arbitrary controls; OLE CF_HDROP remains authoritative.
+                for (var depth = 0; depth < 8 && element is not null; depth++)
+                {
+                    if (element.GetCurrentPropertyValue(
+                            UiAutomationControlTypePropertyId,
+                            out var value) >= 0 &&
+                        value is int controlType &&
+                        controlType is UiAutomationControlTypeListItem or
+                            UiAutomationControlTypeTreeItem or
+                            UiAutomationControlTypeDataItem)
+                    {
+                        return true;
+                    }
+
+                    if (walker.GetParentElement(element, out var parent) < 0 || parent is null)
+                    {
+                        break;
+                    }
+
+                    ReleaseComObject(element);
+                    element = parent;
+                }
+
+                return false;
             }
             catch (Exception exception) when (exception is COMException or InvalidCastException)
             {
@@ -834,10 +903,17 @@ public sealed class DragSessionDetector : IDisposable
             }
             finally
             {
-                if (element is not null && Marshal.IsComObject(element))
-                {
-                    _ = Marshal.ReleaseComObject(element);
-                }
+                ReleaseComObject(element);
+                ReleaseComObject(walker);
+                ReleaseComObject(automation);
+            }
+        }
+
+        private static void ReleaseComObject(object? value)
+        {
+            if (value is not null && Marshal.IsComObject(value))
+            {
+                _ = Marshal.ReleaseComObject(value);
             }
         }
 
@@ -893,6 +969,42 @@ public sealed class DragSessionDetector : IDisposable
 
             [PreserveSig]
             int ElementFromPoint(NativePoint point, out IUiAutomationElement element);
+
+            [PreserveSig]
+            int GetFocusedElement(out IUiAutomationElement element);
+
+            [PreserveSig]
+            int GetRootElementBuildCache(nint cacheRequest, out IUiAutomationElement element);
+
+            [PreserveSig]
+            int ElementFromHandleBuildCache(nint window, nint cacheRequest, out IUiAutomationElement element);
+
+            [PreserveSig]
+            int ElementFromPointBuildCache(NativePoint point, nint cacheRequest, out IUiAutomationElement element);
+
+            [PreserveSig]
+            int GetFocusedElementBuildCache(nint cacheRequest, out IUiAutomationElement element);
+
+            [PreserveSig]
+            int CreateTreeWalker(nint condition, out IUiAutomationTreeWalker walker);
+
+            [PreserveSig]
+            int GetControlViewWalker(out IUiAutomationTreeWalker walker);
+
+            [PreserveSig]
+            int GetContentViewWalker(out IUiAutomationTreeWalker walker);
+
+            [PreserveSig]
+            int GetRawViewWalker(out IUiAutomationTreeWalker walker);
+        }
+
+        [ComImport]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        [Guid("4042C624-389C-4AFC-A630-9DF854A541FC")]
+        private interface IUiAutomationTreeWalker
+        {
+            [PreserveSig]
+            int GetParentElement(IUiAutomationElement element, out IUiAutomationElement parent);
         }
 
         [ComImport]

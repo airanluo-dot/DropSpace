@@ -1,6 +1,230 @@
 {
-  "syncedAt": "2026-08-12T07:25:11.034Z",
+  "syncedAt": "2026-08-12T10:06:48.106Z",
   "source": "github",
+  "api": {
+    "schemaVersion": 1,
+    "generatedAt": "2026-08-12T10:06:48.102Z",
+    "source": "github-releases",
+    "releases": [
+      {
+        "tagName": "v0.2.0-preview.1",
+        "name": "DropSpace v0.2.0-preview.1",
+        "body": "# DropSpace v0.2.0-preview.1\n\nThis is an experimental Preview of DropSpace's new **smart file-drag wake** architecture. It is not a replacement for the existing v0.1.0 Stable release for important work.\n\nWebsite: https://dropspace.pages.dev/\n\n## What is being tested\n\n- The default Smart mode no longer leaves an invisible, topmost OLE window at the top of every display while idle.\n- Public UI Automation drag events and a bounded, read-only mouse observer combine with Windows drag thresholds to recognize candidate Explorer/Desktop file drags.\n- A temporary Dynamic Island or Notch appears on the display where the drag was recognized, below the Windows 11 Drop Tray area.\n- The visible Overlay becomes the temporary OLE target; actual acceptance still requires a valid `CF_HDROP` data object and uses the existing Temporary Space pipeline.\n- Left- and right-button Explorer/Desktop file drags are supported by the candidate detector.\n- A new setting switches immediately between Smart mode, the traditional top-edge compatibility zone, and disabled automatic wake.\n\n## Compatibility and known limits\n\n- This Preview may not recognize drags from some third-party apps, virtual-file providers, browser downloads, or software that exposes neither a standard Explorer/Desktop source nor useful UI Automation drag signals.\n- Windows decides whether and how Share Targets appear in Windows Share and Drop Tray surfaces; DropSpace does not modify or fight the Shell.\n- If Smart mode does not recognize a source, switch to **Traditional top-edge zone (compatibility mode)** in Settings. That mode restores the previous invisible top-edge target and can conflict with Windows Drop Tray or top-edge controls.\n- Unsigned builds cannot enable trusted external-location package identity automatically. Standard drag-and-drop remains available.\n- Automated tests validate the state policy, temporary OLE lifetime, hit-test pass-through, settings migration and synthetic `CF_HDROP`; real Explorer/Desktop behavior and visual feel still require Windows 11 desktop testing.\n\n## Safety\n\n- DropSpace never moves or deletes an original file added to Temporary Space.\n- The observer does not inject into Explorer, suppress input, modify Shell settings, read undocumented Drop Tray state, or install a continuous polling/render loop.\n- Diagnostics record signal categories, monitor identity and counts only—not dragged file names or full paths.\n\nStable users will not receive this Preview automatically. Select the Preview update channel only if you want to test experimental builds.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-12T09:38:45Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.1",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 32207774,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 231152305,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "size": 63253797,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "size": 705,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.1.0",
+        "name": "DropSpace v0.1.0",
+        "body": "# DropSpace v0.1.0 — First Stable Release\r\n\r\nDropSpace v0.1.0 is the first Stable release of the native Windows 11 temporary content workspace.\r\n\r\n## Highlights\r\n\r\n- Final new DropSpace branding: the black-background Logo is the primary official presentation across the EXE, taskbar, tray, shortcuts, installer, uninstaller, MSIX, Share identity, and documentation. The supplied white-background version is retained as a fallback source and is not enabled by default.\r\n- Temporary Space with the top-center Dynamic Island or Notch, Compact/Expanded direct file drops, Explorer/Desktop drag and drop, pinning, external drag-out, and safe reference-only removal.\r\n- Clipboard History for text, URLs, images, files, and folders, with pause, retention, configurable capture limits, and local SQLite persistence. Consecutive copies of identical content now create one history entry; after different content is copied, the original content is stored normally again.\r\n- Windows 11 Drop Tray compatibility guidance. Windows may own the same top-edge gesture; Settings links to the official Multitasking page, while signed deployments can expose DropSpace through the standard Windows Share contract.\r\n- A standard per-user Inno Setup installer, custom install path, graceful in-place upgrades, independent uninstall, preserve-data uninstall, and explicit complete uninstall.\r\n\r\n## In-app updates\r\n\r\nv0.1.0 introduces DropSpace's in-app update system:\r\n\r\n- One non-blocking automatic check per application process start, plus repeatable manual checks.\r\n- Stable channel: Stable releases only.\r\n- Preview channel: all Stable and Preview releases, selecting the highest eligible SemVer without downgrades or channel preference.\r\n- Streaming download to `%LOCALAPPDATA%\\DropSpace\\Updates`, exact size verification, SHA-256 verification, and atomic promotion.\r\n- Installer deployments use the existing graceful maintenance shutdown and Inno `/UPDATE` mode. Portable builds only download/verify; MSIX/package deployments remain Windows-managed.\r\n\r\nThe public v0.1.0 build is currently unsigned. Integrity-verified updates can be installed only after an explicit user action; unattended automatic installation remains disabled until a trusted Authenticode publisher policy is available. SmartScreen may show an unknown-app prompt—download DropSpace only from this official GitHub Release.\r\n\r\nExisting `v0.1.0-preview.5` installations do not contain the updater and must install v0.1.0 manually once. Releases after v0.1.0 can be discovered from within DropSpace.\r\n\r\n## Downloads\r\n\r\n- **Recommended:** `DropSpaceSetup.exe` — normal per-user Windows installation and future in-place updates.\r\n- **Portable:** `DropSpace.exe` — self-contained, no installation; updater is notify/download-only.\r\n- **Alternative:** `DropSpace-x64.msix` — unsigned package for managed/test environments with an appropriate trust policy.\r\n- `SHA256SUMS.txt` and `update-manifest.json` provide machine-readable integrity metadata.\r\n\r\nRequires Windows 11 build 26100 or later. No separate .NET runtime or Windows App SDK runtime is required.\r\n\r\n\r\n## Official website\r\n\r\nhttps://airanluo-dot.github.io/DropSpace/",
+        "isDraft": false,
+        "isPrerelease": false,
+        "publishedAt": "2026-08-11T07:05:27Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 32192923,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 231106375,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "size": 63283603,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt"
+          },
+          {
+            "name": "update-manifest.json",
+            "size": 642,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/update-manifest.json"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.1.0-preview.5",
+        "name": "DropSpace v0.1.0-preview.5",
+        "body": "# DropSpace v0.1.0-preview.5\n\nPreview.5 focuses on Windows 11 drag compatibility and Temporary Space stability.\n\n## Highlights\n\n- Visible Compact and Expanded Dynamic Island/Notch surfaces are now direct Explorer/Desktop file drop targets. Compact morphs into Drop Ready; Expanded stays open and displays an in-place drop highlight.\n- The passive top-edge activation HWND yields ownership while a visible Overlay is present, eliminating two OLE targets competing for the same pixels.\n- Temporary Space projections now use one authoritative mutation revision and a serialized/coalesced refresh coordinator. Removing the only item while Main Window and Expanded Overlay are both open no longer starts overlapping `ObservableCollection` resets.\n- Settings explains the Windows 11 Drop Tray conflict and opens the official **Settings → System → Multitasking** page. DropSpace does not probe undocumented feature flags.\n- The packaged app declares a Windows Share Target for `StorageItems`. A stable external-location identity package and signed-installer registration path are included for future trusted Artifact Signing.\n\n## Windows Share limitation in this unsigned Preview\n\nMicrosoft requires a trusted signature before an external-location identity package can be registered on ordinary user PCs. This release does not install a self-signed certificate and therefore does not register the sparse identity from the unsigned recommended Setup. Top-edge drag (when Drop Tray does not own the edge) and direct drag onto a visible DropSpace Island remain available.\n\nOn supported Windows builds, registered Share Targets are available in the Windows Share UI reached from Drop Tray's **More…** action. Windows does not publicly guarantee that every third-party target is directly pinned in the Drop Tray peek; that ordering is system/version/relevance dependent.\n\n## Verification\n\nThe clean Windows release job runs Core and Infrastructure tests, real executable smoke, Win32 clipboard integration, Compact/Expanded `WindowFromPoint` ownership probes, synthetic CF_HDROP drops through both visible Overlay states, 200 alternating Main/Overlay deletion cycles, 1,000 Notch geometry cycles, installer lifecycle/upgrade/uninstall tests, portable publish, MSIX build, identity package validation and SHA-256 generation.\n\n`DropSpaceSetup.exe` remains the recommended download. `DropSpace.exe` is the portable build and `DropSpace-x64.msix` is the alternative unsigned package. Preview binaries are not commercially signed; download only from this official release and verify `SHA256SUMS.txt`.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-09T14:28:09Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.5",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 30019355,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 229135878,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "size": 61473311,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/SHA256SUMS.txt"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.1.0-preview.4",
+        "name": "DropSpace v0.1.0-preview.4",
+        "body": "# DropSpace v0.1.0-preview.4\n\nPreview.4 is a reliability release driven by Windows 11 desktop testing.\n\n## Recommended download\n\nDownload **`DropSpaceSetup.exe`** for the normal per-user Windows installation. It supports a custom install directory, Start Menu/Desktop shortcuts, in-place upgrades, and an independent uninstaller. No administrator rights, .NET installation, Windows App Runtime installation, PowerShell, or certificate installation is required.\n\n`DropSpace.exe` remains the self-contained portable build. `DropSpace-x64.msix` remains an alternative package.\n\n## Fixed and added\n\n- Enlarged the event-driven OLE top-edge activation band and retained one native target from Explorer `DragEnter` through `Drop`, fixing hidden reveal and drop acceptance at the animated edge.\n- Kept the already-visible Island/Notch registered as an OLE target and routed every accepted path through the same Temporary Space repository pipeline as the main window.\n- Added a responsive two-row header below 860 effective pixels so high DPI, text scaling, and narrower windows no longer collapse the title and description into a one-character column.\n- Unified window, taskbar, tray, shortcut, installer, and uninstaller icon loading around the canonical multi-resolution icon embedded in `DropSpace.exe`.\n- Fixed identity-based projection updates so removing or pinning an item from the Overlay immediately updates the main window, and vice versa.\n- Added Clipboard History capture for Explorer file/folder copies, including multiple and mixed selections, without moving or copying original user files.\n- Added configurable image capture, file/folder capture, image byte/pixel limits, file item/per-file/total-known-byte limits, and validation.\n- Added a default-on, user-controllable per-user Windows startup setting. Uninstall removes only DropSpace's own startup value.\n- Preserved the Preview.3 per-user installer, custom path, in-place upgrade, data-preserving uninstall, complete uninstall, settings recovery, Clipboard listener, Notch safety, Portable EXE, and MSIX paths.\n\n## Preview and signature notice\n\nThis Preview is not commercially code-signed. Windows Defender SmartScreen may show an unknown-app warning the first time it runs. Obtain DropSpace only from this official GitHub Release. If SmartScreen appears, review the publisher/file source and use the normal **More info → Run anyway** path only if you trust this download.\n\n## Verification\n\nThe clean Windows release workflow runs unit tests, SQLite/settings tests, WinUI Release build, self-contained Portable smoke (including Win32 clipboard text plus mixed multi-file/folder capture), 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry switches, icon-chain validation, silent install, running-app in-place upgrade, installed-app smoke, normal uninstall, complete uninstall with external-file sentinel protection, and unsigned MSIX regression before publishing.\n\nExplorer/Desktop drag hit routing, animation feel, taskbar icon caching, responsive layout across physical monitors/scaling combinations, and startup after a real interactive Windows sign-in still require final manual Windows 11 acceptance.\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-09T12:25:30Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.4",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 29994082,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 229052606,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "size": 61462506,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/SHA256SUMS.txt"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.1.0-preview.3",
+        "name": "DropSpace v0.1.0-preview.3",
+        "body": "# DropSpace v0.1.0-preview.3\n\n## 推荐下载：DropSpaceSetup.exe\n\n`DropSpaceSetup.exe` 是本版本推荐给普通用户的标准 Windows 11 x64 安装器。它按用户安装、默认不需要管理员权限，允许自定义安装目录，创建开始菜单入口，并在 Windows“已安装的应用”中注册独立卸载器。以后运行新版 Setup 可原位升级，并保留 `%LOCALAPPDATA%\\DropSpace` 中的数据库、设置和 Payload。\n\nPreview.3 修复了真实 Windows 11 验收中的核心阻断问题：\n\n- Desktop、`Progman`、`WorkerW` 和任务栏等 Shell surface 不再被误判为全屏应用；Temporary Space 有项目时点击桌面仍保持 Compact Island。\n- fullscreen suppress/restore、Drag reveal/leave、最后项目移除继续使用可中断 spring，不再一帧跳变。\n- 移除导致 Explorer/OLE 跳过目标的 `HTTRANSPARENT`。隐藏时使用 960 DIP 宽、仅 1 个物理像素高的可发现热边；真实 `CF_HDROP` 进入后，同一 HWND 扩展到 760 × 112 DIP 并持有到 Drop/Leave。\n- 隐藏激活拖拽与已显示 Compact/Expanded Island 的直接 Drop 拥有明确且不重叠的 HWND target ownership；两者都进入现有 `MainViewModel.AddPathsAsync`，不会移动或删除原文件。\n- 所有 spring frame 输出先投影到 XAML/HRGN 安全范围，圆角不再因 Notch overshoot 变成负值；新增 1000 次中途反向模式压力验证。\n- Overlay/UI 设置改为“先验证并成功应用、再原子持久化”。损坏设置会单独隔离到 quarantine，回退 Dynamic Island/System Motion/Automatic Monitor，不删除 SQLite 或 Temporary Space；也可使用 `--reset-ui-settings` / `--safe-mode`。\n\n## 安装、升级与卸载\n\n- 固定 Inno Setup AppId：`E11EC281-BCE7-4F98-8EEF-2387E202CF0F`\n- 默认目录：`%LOCALAPPDATA%\\Programs\\DropSpace`\n- 运行中升级先请求 DropSpace 正常释放 Overlay、Clipboard、Tray、SQLite、Settings 和 Logs；不会默认 `taskkill /f`\n- 普通卸载保留 `%LOCALAPPDATA%\\DropSpace`\n- “同时删除所有本地数据和设置”只删除 DropSpace 自有目录、注册表和快捷方式；不会读取数据库中的外部路径或删除用户原始文件\n\n## 其他下载\n\n- `DropSpace.exe`：Portable / 免安装、自包含 x64 版本\n- `DropSpace-x64.msix`：Alternative package / 无签名备用包\n- `SHA256SUMS.txt`：全部三个可执行资产的 SHA-256\n\n## 自动验证\n\n- Core / Infrastructure tests、Release WinUI build、unsigned x64 MSIX regression\n- Portable 与安装版启动、Windows App SDK、SQLite、AppData、single-instance、clean exit smoke\n- `AddClipboardFormatListener` / `WM_CLIPBOARDUPDATE` 文本持久化、Pause/Resume、自写入抑制\n- 100 次 Overlay 资源生命周期、1000 次真实 XAML/HRGN Notch 中途反向、零 HRGN failure、无残留 frame callback\n- Activation HWND 的 `WindowFromPoint` 可发现性\n- 静默自定义路径安装、Installed Apps/shortcut/x64 metadata\n- 运行中 graceful maintenance upgrade、自定义路径和用户数据保留\n- 普通卸载保留数据、Complete uninstall 删除 app-owned data、外部 sentinel 原始文件保护\n\n## 仍需真实 Windows 11 人工验收\n\nGitHub Actions 不代替 Explorer 的真实跨进程拖拽与人眼视觉判断。仍需人工确认：Desktop 焦点下 Island 保持、Explorer/Desktop Drag Approaching 与 `CF_HDROP` Drop、直接放到 Compact/Expanded、顶部单像素热边对普通顶栏点击的实际影响、Hidden 零像素、Island/Notch 手感、真实混合 DPI/多显示器、全屏游戏/视频、Installer GUI，以及 Windows Installed Apps 卸载体验。\n\n本 Preview 尚未使用商业可信代码签名。SmartScreen 首次运行可能提示未知应用；请只从本项目官方 GitHub Release 下载并核对 SHA-256，不要关闭 Defender 或修改系统安全策略。\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-09T08:27:20Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.3",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 29983956,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 229012518,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace.exe"
+          },
+          {
+            "name": "DropSpaceSetup.exe",
+            "size": 61458994,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpaceSetup.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 253,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/SHA256SUMS.txt"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.1.0-preview.2",
+        "name": "DropSpace v0.1.0-preview.2",
+        "body": "# DropSpace v0.1.0-preview.2\n\n## 推荐下载：DropSpace.exe\n\n`DropSpace.exe` 是面向普通用户的免安装、自包含 Windows 11 x64 版本。下载后直接双击运行；不需要 Visual Studio、单独安装 .NET Runtime 或 Windows App SDK Runtime，也不需要 PowerShell、证书或管理员权限。\n\nPreview.2 是针对 Preview.1 真机阻断缺陷的修复版：\n\n- 剪贴板通知改为 Windows 桌面标准的 `AddClipboardFormatListener` / `WM_CLIPBOARDUPDATE`，增加有限重试、序列号去重、Pause/Resume、自写入抑制和监听健康诊断。\n- 顶部视觉 Overlay 与文件拖拽 Activation Host 完全分离。Temporary Space 为空时视觉 HWND 真正隐藏，不再用 3 像素 XAML 窗口冒充 Hidden。\n- 每个显示器使用独立、零 Alpha、无焦点的 Win32/OLE `IDropTarget` 激活区域；Explorer/Desktop 文件通过 `CF_HDROP` 进入现有 Temporary Space 添加流程，原文件不会被移动或删除。\n- 移除 XAML 白边，并清除 HWND/DWM border、frame、shadow 痕迹；Hidden 时清空窗口 region 后 `SW_HIDE`。\n- Width、Height、Top Offset、上下圆角、Opacity、内容 Reveal 和 Drop Feedback 改为可中断的真实时间 spring 目标，不再先跳到最终矩形后只做 Scale。\n- 新增显示器拓扑变化后的 per-monitor Host/Overlay 重建，以及不含剪贴板内容和完整文件路径的分层诊断。\n\n### 自动验证\n\n- Core / Infrastructure 自动测试、Release WinUI build\n- clean checkout 的 win-x64 unpackaged、自包含、single-file publish\n- `DropSpace.exe` 启动、Windows App SDK、SQLite、AppData、第二实例和正常退出 smoke\n- 真实 Windows clipboard listener smoke：系统写入两段唯一文本、收到 `WM_CLIPBOARDUPDATE`、读取并写入 SQLite、Pause、Resume、自写入抑制与测试数据清理\n- 每显示器 Activation Host 创建/注册检查\n- 100 次 Overlay reveal/dismiss、compact/expanded、mode transition 资源生命周期与无残留 frame subscription 检查\n- unsigned x64 MSIX 回归构建、版本信息与 SHA-256 清单\n\n### 仍需真实桌面人工验收\n\nGitHub Actions 无法替代真实 Explorer 指针路径和人眼判断。请在 Windows 11 上最终确认：空状态顶部零残留像素、Activation Host 不阻挡普通点击、Explorer/Desktop 拖入和放下、Expanded 拖出、Dynamic Island/Notch 动画手感、混合 DPI 多显示器以及全屏应用行为。\n\n### Preview 安全说明\n\n本版本尚未使用商业可信代码签名。Windows Defender SmartScreen 首次运行时可能提示未知应用；请只从本项目官方 GitHub Release 获取并核对 `SHA256SUMS.txt`。不要关闭 Defender 或修改系统安全策略。\n\n`DropSpace-x64.msix` 同时提供为备用无签名安装包。\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-09T02:11:31Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.2",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 29969777,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 228979750,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 167,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/SHA256SUMS.txt"
+          }
+        ]
+      },
+      {
+        "tagName": "v0.1.0-preview.1",
+        "name": "DropSpace v0.1.0-preview.1",
+        "body": "# DropSpace v0.1.0-preview.1\n\n## 推荐下载：DropSpace.exe\n\n`DropSpace.exe` 是推荐给普通用户的免安装、自包含 Windows 11 x64 版本。下载后直接双击运行；不需要 Visual Studio、.NET Runtime、Windows App SDK Runtime、PowerShell、证书安装或管理员权限。\n\n这是首个 Preview 版本，包含完整 Temporary Space、Clipboard History、Pinned、Search、Settings、系统托盘，以及可在“灵动岛 / 刘海”之间即时切换的顶部拖放界面。Temporary Space 为空时顶部界面隐藏；拖动 Explorer 或 Desktop 中的文件到屏幕顶部中央即可唤醒；添加项目后保持 Compact，点击可展开最近项目和快速操作。\n\n### 备用下载\n\n`DropSpace-x64.msix` 是保留的无签名 MSIX 备用包。Preview 阶段推荐使用 `DropSpace.exe`。\n\n### Preview 安全说明\n\n本版本尚未使用商业可信代码签名。Windows Defender SmartScreen 首次运行时可能提示未知应用；请只从本项目官方 GitHub Release 下载，并核对 `SHA256SUMS.txt`。系统允许时可通过“更多信息 → 仍要运行”继续。DropSpace 不会要求关闭 Defender、修改 SmartScreen 或获取管理员权限。\n\n### 自动验证\n\n- Clean checkout restore、Release build、Core/Infrastructure tests\n- win-x64 unpackaged、自包含、single-file publish\n- 启动、Windows App SDK、SQLite、AppData 写入、第二实例重定向和正常退出 smoke test\n- 100 次真实 Overlay 状态/窗口动画循环，检查 HWND/GDI/USER/private-bytes 增长和残留 frame subscription\n- unsigned x64 MSIX build\n- 版本元数据、文件存在性与 SHA-256 校验\n\nExplorer 真实拖入/拖出、混合 DPI、多显示器几何、动画手感、托盘恢复、全屏游戏/视频行为仍需在真实 Windows 11 桌面做最终人工目视验收。\n",
+        "isDraft": false,
+        "isPrerelease": true,
+        "publishedAt": "2026-08-08T15:12:05Z",
+        "htmlUrl": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.1",
+        "assets": [
+          {
+            "name": "DropSpace-x64.msix",
+            "size": 29951757,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace-x64.msix"
+          },
+          {
+            "name": "DropSpace.exe",
+            "size": 228926494,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace.exe"
+          },
+          {
+            "name": "SHA256SUMS.txt",
+            "size": 167,
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/SHA256SUMS.txt"
+          }
+        ]
+      }
+    ]
+  },
   "stable": {
     "tag": "v0.1.0",
     "name": "DropSpace v0.1.0",
@@ -22,6 +246,26 @@
     }
   },
   "previews": [
+    {
+      "tag": "v0.2.0-preview.1",
+      "name": "DropSpace v0.2.0-preview.1",
+      "title": "DropSpace v0.2.0-preview.1",
+      "publishedAt": "2026-08-12T09:38:45Z",
+      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0-preview.1",
+      "summary": [
+        "The default Smart mode no longer leaves an invisible, topmost OLE window at the top of every display while idle.",
+        "Public UI Automation drag events and a bounded, read-only mouse observer combine with Windows drag thresholds to recognize candidate Explorer/Desktop file drags.",
+        "A temporary Dynamic Island or Notch appears on the display where the drag was recognized, below the Windows 11 Drop Tray area.",
+        "The visible Overlay becomes the temporary OLE target; actual acceptance still requires a valid CFHDROP data object and uses the existing Temporary Space pipeline.",
+        "Left- and right-button Explorer/Desktop file drags are supported by the candidate detector."
+      ],
+      "assets": {
+        "installer": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpaceSetup.exe",
+        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace.exe",
+        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace-x64.msix",
+        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/SHA256SUMS.txt"
+      }
+    },
     {
       "tag": "v0.1.0-preview.5",
       "name": "DropSpace v0.1.0-preview.5",
@@ -99,25 +343,6 @@
         "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace.exe",
         "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace-x64.msix",
         "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/SHA256SUMS.txt"
-      }
-    },
-    {
-      "tag": "v0.1.0-preview.1",
-      "name": "DropSpace v0.1.0-preview.1",
-      "title": "DropSpace v0.1.0-preview.1",
-      "publishedAt": "2026-08-08T15:12:05Z",
-      "url": "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0-preview.1",
-      "summary": [
-        "Clean checkout restore、Release build、Core/Infrastructure tests",
-        "win-x64 unpackaged、自包含、single-file publish",
-        "启动、Windows App SDK、SQLite、AppData 写入、第二实例重定向和正常退出 smoke test",
-        "100 次真实 Overlay 状态/窗口动画循环，检查 HWND/GDI/USER/private-bytes 增长和残留 frame subscription",
-        "unsigned x64 MSIX build"
-      ],
-      "assets": {
-        "portable": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace.exe",
-        "msix": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace-x64.msix",
-        "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/SHA256SUMS.txt"
       }
     }
   ]

@@ -14,9 +14,9 @@ $releaseSummary = if (-not [string]::IsNullOrWhiteSpace($Summary))
 {
     $Summary
 }
-elseif ($releaseInfo.Tag -eq "v0.2.0-preview.1")
+elseif ($releaseInfo.Tag -like "v0.2.0-preview.*")
 {
-    "Experimental smart file-drag wake Preview. Some third-party or virtual-file drags may require Classic top-edge compatibility mode."
+    "Experimental smart file-drag wake Preview with Explorer/Desktop recognition and resilient official website update metadata. Some third-party or virtual-file drags may require Classic top-edge compatibility mode."
 }
 else
 {

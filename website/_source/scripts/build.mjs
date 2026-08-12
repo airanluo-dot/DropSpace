@@ -28,6 +28,7 @@ const formatDate = (value, locale) => new Intl.DateTimeFormat(locale, {
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(path.join(dist, "assets"), { recursive: true });
+await mkdir(path.join(dist, "api", "v1"), { recursive: true });
 
 const assetSources = {
   css: "styles.css",
@@ -162,7 +163,7 @@ function applyMetadata(document, route, kind) {
     const inlineHash = createHash("sha256").update(structured.textContent).digest("base64");
     const csp = document.createElement("meta");
     csp.httpEquiv = "Content-Security-Policy";
-    csp.content = `default-src 'self'; script-src 'self' 'sha256-${inlineHash}'; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests`;
+    csp.content = `default-src 'self'; script-src 'self' 'sha256-${inlineHash}'; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self' https://airanluo-dot.github.io; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests`;
     document.head.prepend(csp);
   }
 }
@@ -227,6 +228,7 @@ const rootStyleHash = createHash("sha256").update(rootStyle).digest("base64");
 await writeFile(path.join(dist, "index.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#050506"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-${rootScriptHash}'; style-src 'sha256-${rootStyleHash}'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><title>DropSpace</title><link rel="canonical" href="${siteOrigin}/en/"><style>${rootStyle}</style><script>${rootRedirect}</script></head><body><main><img src="${assetUrls.logo}" width="88" height="88" alt="DropSpace logo"><h1>DropSpace</h1><p>Choose your language · 选择语言</p><nav aria-label="Language"><a href="${basePath}en/">English</a><a href="${basePath}zh-cn/">简体中文</a></nav></main></body></html>\n`);
 await writeFile(path.join(dist, "404.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found — DropSpace</title><link rel="icon" href="${assetUrls.favicon}"><link rel="stylesheet" href="${assetUrls.css}"></head><body><main class="not-found shell"><div><img src="${assetUrls.logo}" width="96" height="96" alt="DropSpace logo"><p class="section-index">404</p><h1>Nothing dropped here.</h1><p>This page is not in Temporary Space.</p><a class="button button-primary" href="${basePath}en/">Back to DropSpace</a></div></main></body></html>\n`);
 await writeFile(path.join(dist, "release-data.json"), `${JSON.stringify(releases, null, 2)}\n`);
+await writeFile(path.join(dist, "api", "v1", "releases.json"), `${JSON.stringify(releases.api, null, 2)}\n`);
 await writeFile(path.join(dist, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${siteOrigin}/sitemap.xml\n`);
 await writeFile(path.join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${siteOrigin}/en/</loc></url><url><loc>${siteOrigin}/zh-cn/</loc></url><url><loc>${siteOrigin}/en/changelog/</loc></url><url><loc>${siteOrigin}/zh-cn/changelog/</loc></url></urlset>\n`);
 const manifest = JSON.parse(await readFile(path.join(src, "site.webmanifest"), "utf8"));

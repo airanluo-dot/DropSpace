@@ -39,7 +39,7 @@ Space file records store references and metadata only. Clipboard images and larg
 4. User-controlled paths/removable/network/cloud storage → file services.
 5. UI process → SQLite/payload/cache directories.
 6. Future network/AI providers are outside MVP and require a new explicit boundary.
-7. Public GitHub Release metadata/downloads → bounded update parser/cache → optional installer execution.
+7. Public DropSpace website/GitHub Release metadata and GitHub downloads → bounded update parser/cache → optional installer execution.
 
 ### Assumptions
 
@@ -48,7 +48,7 @@ Space file records store references and metadata only. Clipboard images and larg
 - Source files remain owned and protected by their existing file-system/provider permissions.
 - Windows, WinUI, clipboard, image codec, SQLite, and shell components are trusted platform dependencies but can fail on malformed or unavailable input.
 - Same-account malware or an administrator can generally access local app data; MVP does not claim protection from that attacker.
-- Ordinary content features make no network calls. If update checks are enabled, DropSpace contacts only the public GitHub Releases API and official GitHub asset URLs without a user or device identifier.
+- Ordinary content features make no network calls. If update checks are enabled, DropSpace contacts only the public versioned DropSpace website API, its GitHub Pages mirror, the GitHub Releases API, and official GitHub asset URLs without a user or device identifier.
 
 ### Threat actors and conditions
 
@@ -189,7 +189,7 @@ Out of scope for MVP severity claims: an attacker with administrator/kernel acce
 
 ### Updater privacy and network behavior
 
-Automatic update checking is enabled by default and can be disabled. It runs at most once per process start, with no timer, service, scheduled task, network-change listener, or machine identifier. Manual checks remain user-invoked. Requests contain only normal HTTPS/GitHub headers and `User-Agent: DropSpace/<version>`. Diagnostics may record version, state, HTTP status, integrity outcome and installer exit status; they never record Clipboard content, Temporary Space paths, filenames, search queries, tokens, or GitHub credentials.
+Automatic update checking is enabled by default and can be disabled. It runs at most once per process start, with no timer, service, scheduled task, network-change listener, or machine identifier. Manual checks remain user-invoked. Requests contain only normal HTTPS headers and `User-Agent: DropSpace/<version>`. Diagnostics may record endpoint type, version, state, HTTP status, integrity outcome and installer exit status; they never record Clipboard content, Temporary Space paths, filenames, search queries, tokens, or GitHub credentials.
 
 ### Smart drag observer privacy
 
