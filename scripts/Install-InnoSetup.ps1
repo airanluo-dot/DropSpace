@@ -25,12 +25,53 @@ $downloadUrl = "https://github.com/jrsoftware/issrc/releases/download/is-7_0_2/i
 $expectedSha256 = "5ad54ca3def786f8f4212552e54cc6d8d61329e2d24a1cfee0571d42c2684ff1"
 $downloadDirectory = Join-Path $repositoryRoot "artifacts/tools/downloads"
 $downloadPath = Join-Path $downloadDirectory "innosetup-7.0.2-x64.exe"
+$partialDownloadPath = "$downloadPath.download"
 New-Item -ItemType Directory -Path $downloadDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $resolvedInstallDirectory -Force | Out-Null
 
+if (Test-Path $downloadPath -PathType Leaf)
+{
+    $cachedSha256 = (Get-FileHash $downloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($cachedSha256 -ne $expectedSha256)
+    {
+        Write-Warning "Discarding an incomplete or invalid cached Inno Setup download."
+        Remove-Item $downloadPath -Force
+    }
+}
+
 if (-not (Test-Path $downloadPath -PathType Leaf))
 {
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath
+    $maximumAttempts = 3
+    for ($attempt = 1; $attempt -le $maximumAttempts; $attempt++)
+    {
+        try
+        {
+            Remove-Item $partialDownloadPath -Force -ErrorAction SilentlyContinue
+            Write-Host "Downloading pinned Inno Setup 7.0.2 (attempt $attempt of $maximumAttempts)..."
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $partialDownloadPath
+
+            $downloadSha256 = (Get-FileHash $partialDownloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($downloadSha256 -ne $expectedSha256)
+            {
+                throw "Inno Setup download SHA-256 mismatch: $downloadSha256"
+            }
+
+            Move-Item $partialDownloadPath $downloadPath -Force
+            break
+        }
+        catch
+        {
+            Remove-Item $partialDownloadPath -Force -ErrorAction SilentlyContinue
+            if ($attempt -eq $maximumAttempts)
+            {
+                throw "Failed to download the pinned Inno Setup package after $maximumAttempts attempts: $($_.Exception.Message)"
+            }
+
+            $retryDelaySeconds = [Math]::Pow(2, $attempt)
+            Write-Warning "Inno Setup download attempt $attempt failed: $($_.Exception.Message). Retrying in $retryDelaySeconds seconds."
+            Start-Sleep -Seconds $retryDelaySeconds
+        }
+    }
 }
 
 $actualSha256 = (Get-FileHash $downloadPath -Algorithm SHA256).Hash.ToLowerInvariant()
