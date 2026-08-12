@@ -6,6 +6,11 @@ on:
     paths:
       - "website/**"
       - ".github/workflows/deploy-website.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/deploy-website.yml"
   release:
     types: [published, edited, released, prereleased]
   workflow_dispatch:
@@ -27,7 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RELEASE_BODY: ${{ github.event.release.body }}
       RELEASE_ID: ${{ github.event.release.id }}
-      WEBSITE_URL: https://airanluo-dot.github.io/DropSpace/
+      WEBSITE_URL: https://dropspace.pages.dev/
     steps:
       - name: Add the official website to Release notes
         shell: bash
@@ -51,6 +56,7 @@ jobs:
         working-directory: website/_source
         run: npm ci
       - name: Sync GitHub Releases
+        if: github.event_name != 'pull_request'
         working-directory: website/_source
         run: npm run sync-releases
       - name: Build and test static output
@@ -70,6 +76,7 @@ jobs:
           path: website/_source/dist
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

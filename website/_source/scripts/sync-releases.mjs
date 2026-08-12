@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { normalizeGitHubReleases } from "./release-contract.mjs";
 
 const API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=20";
 const OUTPUT = new URL("../data/releases.json", import.meta.url);
@@ -42,11 +43,13 @@ try {
   });
   if (!response.ok) throw new Error(`GitHub API returned ${response.status}`);
   const releases = (await response.json()).filter((release) => !release.draft);
+  const api = normalizeGitHubReleases(releases);
   const stable = releases.find((release) => !release.prerelease);
   if (!stable) throw new Error("No Stable release found");
   const data = {
     syncedAt: new Date().toISOString(),
     source: "github",
+    api,
     stable: normalize(stable),
     previews: releases.filter((release) => release.prerelease).slice(0, 5).map(normalize)
   };

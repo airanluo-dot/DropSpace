@@ -64,6 +64,7 @@ DropSpace separates two lifecycles per enabled display:
 
 - Smart mode is the default Preview setting. While idle, every visual Overlay is `SW_HIDE`, has an empty HRGN and has revoked `RegisterDragDrop`; no DropSpace HWND owns the monitor's top-center hit point. Display-topology broadcasts use a never-shown, zero-sized ordinary message window, not a topmost edge surface.
 - A dedicated observer thread listens for `UIA_Drag_DragStart`, `DragCancel` and `DragComplete` when providers expose them. `WH_MOUSE_LL`/`WH_KEYBOARD_LL` are observation-only fallbacks: callbacks enqueue bounded point/button signals, call `CallNextHookEx`, and do no source inspection or blocking work. The worker requires an Explorer/Desktop file-view source and movement beyond `SM_CXDRAG`/`SM_CYDRAG` before starting a candidate.
+- The asynchronous worker initializes COM on the exact thread used for each UIA inspection. `ElementFromPoint` may be a nested icon/text child, so the worker walks a maximum of eight raw-view parents to locate the enclosing Explorer ListItem/DataItem. Blank file-view space remains rejected.
 - A candidate reveals the Island/Notch on the pointer's display, offset about 76 physical pixels below the top so it does not compete for the primary Windows Drop Tray strip. The visible HWND registers an OLE target at reveal and revokes it on Hidden. Final acceptance still requires `CF_HDROP`; a candidate never reads or stores files itself.
 - Classic mode retains the former uniform-alpha 1/255, 960-DIP × 12-physical-pixel `HTCLIENT` top-edge host for compatibility. It is default-off, explicitly warns about title-bar/Drop Tray conflicts, and is destroyed immediately when the user changes mode. Disabled mode provides only main-window, already-visible Overlay and Windows Share entry points.
 
@@ -185,6 +186,8 @@ Official references: [Receive content with the Share Target contract](https://le
 ## In-app update integration
 
 Installer deployments are identified by exact `HKCU\Software\DropSpace\Install\InstallPath` ownership before sparse package identity is considered. Portable has neither a matching installer registration nor package identity. Full MSIX/package deployments remain Windows-managed. The updater launches Inno with structured arguments `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /LOG=<owned path>`; Setup then owns graceful maintenance shutdown and post-success restart. Windows Authenticode validation uses `WinVerifyTrust`, but unattended installation additionally requires the exact compiled DropSpace publisher identity rather than any valid certificate.
+
+Release discovery uses `https://dropspace.pages.dev/api/v1/releases.json`, the GitHub Pages mirror, then GitHub REST. The official website contract is schema-versioned, bounded to 20 entries and contains only release metadata plus official same-tag GitHub asset identities. Cloudflare Pages refreshes it from GitHub with a short cache; the static mirror is rebuilt by release automation. A response cannot supply an arbitrary executable URL, and later manifest/download verification is unchanged.
 
 ## Visible Overlay file drop
 

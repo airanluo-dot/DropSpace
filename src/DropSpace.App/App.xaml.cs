@@ -231,9 +231,35 @@ public partial class App : Application
         services.AddSingleton<IUpdateVerifier, UpdateFileVerifier>();
         services.AddSingleton<ITrustedUpdateVerifier, AuthenticodeTrustedUpdateVerifier>();
         services.AddSingleton<IUpdateInstallerLauncher, InnoUpdateInstallerLauncher>();
-        services.AddSingleton<IUpdateSource>(provider => new GitHubReleaseUpdateSource(
-            new HttpClient { Timeout = TimeSpan.FromSeconds(15) },
-            provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion));
+        services.AddSingleton<IUpdateSource>(provider =>
+        {
+            var version = provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion;
+            IUpdateSource[] websiteReplicas =
+            [
+                new OfficialWebsiteReleaseUpdateSource(
+                    new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+                    version,
+                    new Uri("https://dropspace.pages.dev/api/v1/releases.json")),
+                new OfficialWebsiteReleaseUpdateSource(
+                    new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+                    version,
+                    new Uri("https://airanluo-dot.github.io/DropSpace/api/v1/releases.json")),
+            ];
+            var websiteSource = new ResilientUpdateSource(
+                websiteReplicas,
+                provider.GetRequiredService<ILogger<ResilientUpdateSource>>(),
+                mergeReleaseMetadata: true);
+            IUpdateSource[] sources =
+            [
+                websiteSource,
+                new GitHubReleaseUpdateSource(
+                    new HttpClient { Timeout = TimeSpan.FromSeconds(15) },
+                    version),
+            ];
+            return new ResilientUpdateSource(
+                sources,
+                provider.GetRequiredService<ILogger<ResilientUpdateSource>>());
+        });
         services.AddSingleton<IUpdateDownloader>(provider => new HttpUpdateDownloader(
             new HttpClient { Timeout = TimeSpan.FromMinutes(30) },
             paths,

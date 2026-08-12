@@ -4,7 +4,7 @@
 
 DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island/Notch provides a fast file drop surface over the same Temporary Space.
 
-Official website: https://airanluo-dot.github.io/DropSpace/
+Official website: https://dropspace.pages.dev/ (GitHub Pages mirror: https://airanluo-dot.github.io/DropSpace/)
 
 [![Windows CI](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml/badge.svg)](https://github.com/airanluo-dot/DropSpace/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
@@ -15,7 +15,7 @@ DropSpace **v0.1.0 is the first Stable release**. The repository contains the Wi
 
 Latest Stable: [v0.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
-Experimental Preview: **v0.2.0-preview.1** tests a new smart file-drag wake architecture. Smart mode leaves no top-edge activation HWND while idle, recognizes bounded Explorer/Desktop candidate drags, and reveals a temporary OLE target below Windows Drop Tray. It may not recognize every third-party or virtual-file source; the previous top-edge target remains an opt-in compatibility mode. Stable-channel users do not receive this Preview.
+Experimental Preview: **v0.2.0-preview.2** fixes the first smart-wake field failure by initializing UI Automation COM on the actual classifier thread and recognizing the enclosing Explorer item rather than only its deepest text/image child. Smart mode still leaves no top-edge activation HWND while idle. The previous top-edge target remains an opt-in compatibility mode, and Stable-channel users do not receive this Preview.
 
 The implemented vertical slice includes:
 
@@ -32,7 +32,7 @@ The implemented vertical slice includes:
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 - A pinned Inno Setup 7.0.2 `DropSpaceSetup.exe` with custom per-user install path, independent uninstaller, stable product identity, graceful in-place upgrades, preserve-data uninstall, and explicit complete-uninstall mode.
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
-- Process-lifetime in-app update checks, repeatable manual checks, Stable/Preview channels, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
+- Process-lifetime in-app update checks, repeatable manual checks, Stable/Preview channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
 Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/consecutive-only duplicate suppression/Pause/Resume/self-write suppression, hidden top-edge pass-through, temporary visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, 1,000 deduplicated candidate sessions, settings migration, 200 serialized deletion cycles, 100 Overlay lifecycle cycles, 1,000 interruptible Notch geometry cycles, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Real Explorer/Desktop UIA/provider coverage, cross-process pointer routing, false-positive rate, Drop Tray coexistence, zero-pixel Hidden appearance, accessibility, mixed-DPI geometry, and animation feel remain manual Preview gates and are not claimed by automation.
 
@@ -62,7 +62,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 
 - Windows 11 native desktop application.
 - C#, .NET, WinUI 3, Windows App SDK, and MVVM.
-- Local content storage; the updater sends no user content and reads only public GitHub Release metadata when enabled.
+- Local content storage; the updater sends no user content and reads only the public versioned DropSpace website/GitHub Release metadata when enabled.
 - File records are references; removing a record never deletes or moves its source file.
 - Clipboard source-app exclusions are best effort and are not treated as a privacy guarantee.
 - AI, OCR, accounts, cloud sync, and browser extensions are outside the MVP and V1.1 scope.

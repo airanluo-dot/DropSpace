@@ -9,11 +9,26 @@ const en = await read("en/index.html");
 const zh = await read("zh-cn/index.html");
 const enChangelog = await read("en/changelog/index.html");
 const zhChangelog = await read("zh-cn/changelog/index.html");
+const releaseApi = JSON.parse(await read("api/v1/releases.json"));
 
 test("fallback has all Stable downloads", () => {
   assert.equal(releases.stable.tag, "v0.1.0");
   for (const key of ["installer", "portable", "msix", "checksums"]) {
     assert.match(releases.stable.assets[key], /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\//);
+  }
+});
+
+test("versioned release API is emitted for the app and runtime website", () => {
+  assert.equal(releaseApi.schemaVersion, 1);
+  assert.ok(releaseApi.generatedAt);
+  assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.1.0" && !release.isPrerelease));
+  assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.2.0-preview.1" && release.isPrerelease));
+  for (const release of releaseApi.releases) {
+    assert.match(release.htmlUrl, /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/tag\//);
+    for (const asset of release.assets) {
+      assert.ok(asset.size > 0);
+      assert.equal(asset.downloadUrl, `https://github.com/airanluo-dot/DropSpace/releases/download/${release.tagName}/${asset.name}`);
+    }
   }
 });
 
@@ -33,6 +48,7 @@ test("localized metadata, canonical, hreflang, OG and structured data are comple
     assert.equal(document.querySelector('link[rel="canonical"]')?.href, `https://airanluo-dot.github.io/DropSpace/${route}/`);
     assert.equal(document.querySelector('meta[property="og:url"]')?.content, `https://airanluo-dot.github.io/DropSpace/${route}/`);
     assert.ok(document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content.includes("sha256-"));
+    assert.ok(document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content.includes("connect-src 'self'"));
     const structured = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
     assert.equal(structured.inLanguage, route === "en" ? "en" : "zh-CN");
     assert.equal(structured.softwareVersion, releases.stable.tag);

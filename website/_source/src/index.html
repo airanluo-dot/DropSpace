@@ -57,7 +57,7 @@
           </a>
           <a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace" target="_blank" rel="noopener noreferrer">View on GitHub</a>
         </div>
-        <p class="stable-line"><span aria-hidden="true"></span> Latest Stable · {{STABLE_TAG}}</p>
+        <p class="stable-line"><span aria-hidden="true"></span> <span data-stable-version>Latest Stable · {{STABLE_TAG}}</span></p>
       </div>
 
       <div class="desktop-demo" data-demo aria-label="Animated demonstration: drag a file to the top of the screen to place it in DropSpace">
@@ -154,7 +154,7 @@
     </section>
 
     <section class="download band shell" id="download">
-      <div class="download-intro"><p class="section-index">DOWNLOAD</p><h2>Ready when<br>you are.</h2><p>Latest Stable · {{STABLE_TAG}}</p><p>Windows 11 build 26100 or later</p><a href="{{STABLE_URL}}" target="_blank" rel="noopener noreferrer">View all releases <span>↗</span></a><a href="{{CHECKSUM_URL}}">SHA-256 checksums <span>↗</span></a></div>
+      <div class="download-intro"><p class="section-index">DOWNLOAD</p><h2>Ready when<br>you are.</h2><p data-stable-version>Latest Stable · {{STABLE_TAG}}</p><p>Windows 11 build 26100 or later</p><a href="{{STABLE_URL}}" data-release-url target="_blank" rel="noopener noreferrer">View all releases <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums">SHA-256 checksums <span>↗</span></a></div>
       <div class="download-options">
         <a class="download-card recommended" href="{{INSTALLER_URL}}" data-download="installer"><img src="./assets/favicon.png" alt=""><div><strong>Download Installer</strong><span>Recommended for most users</span><small>DropSpaceSetup.exe</small></div><b>↓</b><em>RECOMMENDED</em></a>
         <a class="download-card" href="{{PORTABLE_URL}}" data-download="portable"><span class="download-icon">▱</span><div><strong>Portable</strong><span>Run without installing</span><small>DropSpace.exe</small></div><b>↓</b></a>
@@ -169,7 +169,7 @@
     </section>
 
     <section class="whats-new shell" id="changelog">
-      <div><p class="section-index">WHAT'S NEW</p><h2>First Stable.</h2><a class="release-title" href="{{STABLE_URL}}" target="_blank" rel="noopener noreferrer">{{STABLE_TAG}} — {{STABLE_TITLE}}</a><p>{{STABLE_DATE}}</p></div>
+      <div><p class="section-index">WHAT'S NEW</p><h2>First Stable.</h2><a class="release-title" href="{{STABLE_URL}}" data-release-url target="_blank" rel="noopener noreferrer"><span data-stable-tag>{{STABLE_TAG}}</span> — {{STABLE_TITLE}}</a><p>{{STABLE_DATE}}</p></div>
       <div class="release-list"><span>Final official branding</span><span>Temporary Space with Dynamic Island or Notch</span><span>Clipboard History with consecutive duplicate suppression</span><span>In-app Stable and Preview update channels</span><span>Installer, Portable, and MSIX downloads</span><a class="button button-ghost" href="./changelog/index.html">View full changelog</a></div>
     </section>
 

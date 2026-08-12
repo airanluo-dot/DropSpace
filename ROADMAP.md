@@ -417,3 +417,10 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Smart, Classic top-edge and Disabled modes switch immediately with safe schema migration.
 - Graduation gate: real Windows 11 evidence for false positives, Explorer/Desktop coverage, cancellation, Drop Tray on/off, multi-monitor DPI and third-party limitations.
 - Serialized Temporary Space projections and Main + Expanded deletion crash stress coverage.
+
+### v0.2.0-preview.2 field hotfix
+
+- Correct Smart detector COM apartment ownership on the asynchronous classifier thread.
+- Recognize Explorer/Desktop file item ancestors without accepting blank Shell surfaces; retain system threshold and final OLE validation.
+- Add a versioned official website release API, runtime website refresh, GitHub Pages mirror and resilient in-app metadata fallback.
+- Graduation remains blocked on new real Windows 11 Explorer/Desktop evidence; Stable stays v0.1.0.

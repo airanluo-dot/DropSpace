@@ -282,9 +282,15 @@ public sealed class UpdateService : IUpdateService
         catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or JsonException or TaskCanceledException)
         {
             _logger.LogWarning(exception, "{UpdateCheckKind} update check failed.", automatic ? "Automatic" : "Manual");
+            var message = exception switch
+            {
+                InvalidDataException or JsonException => "更新服务返回的数据未通过安全验证；已保持当前版本。",
+                TaskCanceledException => "更新服务响应超时；请检查网络后重试。",
+                _ => "无法连接官网或 GitHub 更新服务；请检查网络后重试。",
+            };
             return Publish(new UpdateStatusSnapshot(
                 UpdateState.Failed,
-                automatic ? "上次自动检查失败。" : "暂时无法检查更新，请稍后重试。",
+                automatic ? $"上次自动检查失败。{message}" : message,
                 _deploymentMode.Current,
                 DateTimeOffset.UtcNow));
         }
