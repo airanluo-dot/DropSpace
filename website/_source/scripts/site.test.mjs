@@ -26,6 +26,7 @@ test("versioned release API is emitted for the app and runtime website", () => {
   assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.1.0" && !release.isPrerelease));
   assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.2.0-preview.1" && release.isPrerelease));
   for (const release of releaseApi.releases) {
+    assert.doesNotMatch(release.body, /dropspace\.pages\.dev/);
     assert.match(release.htmlUrl, /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/tag\//);
     for (const asset of release.assets) {
       assert.ok(asset.size > 0);

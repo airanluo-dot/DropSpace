@@ -32,7 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RELEASE_BODY: ${{ github.event.release.body }}
       RELEASE_ID: ${{ github.event.release.id }}
-      WEBSITE_URL: https://dropspace.pages.dev/
+      WEBSITE_URL: https://airanluo-dot.github.io/DropSpace/
     steps:
       - name: Add the official website to Release notes
         shell: bash

@@ -39,9 +39,8 @@ if (systemCheck) {
   systemCheck.dataset.result = isWindows ? "windows" : "other";
 }
 
-// Release data is refreshed at runtime so Cloudflare Pages can reflect a newly published GitHub
-// Release without waiting for a second static-site deployment. Build-time data remains a complete,
-// offline-safe fallback. The app consumes the same versioned contract.
+// Release data is refreshed from the versioned GitHub Pages contract. Build-time data remains a
+// complete, offline-safe fallback, and the app consumes the same validated contract.
 const isGitHubPages = location.hostname.endsWith("github.io");
 const isLocalPreview = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
 const releaseApiPaths = isGitHubPages

@@ -234,24 +234,12 @@ public partial class App : Application
         services.AddSingleton<IUpdateSource>(provider =>
         {
             var version = provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion;
-            IUpdateSource[] websiteReplicas =
+            IUpdateSource[] sources =
             [
-                new OfficialWebsiteReleaseUpdateSource(
-                    new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
-                    version,
-                    new Uri("https://dropspace.pages.dev/api/v1/releases.json")),
                 new OfficialWebsiteReleaseUpdateSource(
                     new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
                     version,
                     new Uri("https://airanluo-dot.github.io/DropSpace/api/v1/releases.json")),
-            ];
-            var websiteSource = new ResilientUpdateSource(
-                websiteReplicas,
-                provider.GetRequiredService<ILogger<ResilientUpdateSource>>(),
-                mergeReleaseMetadata: true);
-            IUpdateSource[] sources =
-            [
-                websiteSource,
                 new GitHubReleaseUpdateSource(
                     new HttpClient { Timeout = TimeSpan.FromSeconds(15) },
                     version),
