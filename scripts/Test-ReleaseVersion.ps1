@@ -51,6 +51,12 @@ $smartDragSignalHotfix = Get-DropSpaceReleaseInfo "v0.2.0-preview.3"
 Assert-Equal $smartDragSignalHotfix.SemanticVersion "0.2.0-preview.3" "Smart-drag signal hotfix semantic version"
 Assert-Equal $smartDragSignalHotfix.GitHubPrerelease $true "Smart-drag signal hotfix prerelease flag"
 Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $smartDragSignalHotfix) "0.2.0-preview.2" "Signal hotfix lifecycle baseline"
+$singleIslandPreview = Get-DropSpaceReleaseInfo "v0.2.0-preview.4"
+Assert-Equal $singleIslandPreview.SemanticVersion "0.2.0-preview.4" "Single-Island Preview semantic version"
+Assert-Equal $singleIslandPreview.FileVersion "0.2.0.4" "Single-Island Preview file version"
+Assert-Equal $singleIslandPreview.PackageVersion "0.2.0.4" "Single-Island Preview package version"
+Assert-Equal $singleIslandPreview.GitHubPrerelease $true "Single-Island Preview prerelease flag"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $singleIslandPreview) "0.2.0-preview.3" "Single-Island Preview lifecycle baseline"
 Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $stable) "0.1.0-preview.5" "Stable lifecycle baseline"
 
 foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1.0-preview.9999"))
