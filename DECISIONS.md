@@ -316,7 +316,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 ## D-038 — Repair Smart source evidence and publish a versioned release API
 
-**Decision:** Explorer/Desktop source classification initializes COM on every actual asynchronous classifier thread and walks a bounded UI Automation raw-view ancestor chain from `ElementFromPoint` to the enclosing ListItem/TreeItem/DataItem. It does not accept blank Shell surfaces. The official website exposes schema-v1 release metadata with a short-lived Cloudflare cache and a static GitHub Pages mirror; the app uses those endpoints before GitHub REST but still requires exact same-release GitHub asset identities.
+**Decision:** Explorer/Desktop source classification initializes COM on every actual asynchronous classifier thread and walks a bounded UI Automation raw-view ancestor chain from `ElementFromPoint` to the enclosing ListItem/TreeItem/DataItem. It does not accept blank Shell surfaces. The initial Preview.2 website architecture exposed schema-v1 release metadata through Cloudflare and GitHub Pages while requiring exact same-release GitHub asset identities. The Cloudflare implementation was later retired when GitHub Pages became the single official website; D-041 records the current deployment authority.
 
 **Rationale:** Preview.1 initialized COM only on the hook/message thread while classification ran after an `await` on a thread-pool thread. It also assumed the deepest hit-tested UIA element was the item, although Explorer commonly returns a nested text/image child. Both caused safe evidence to collapse to `Unknown`, so no Island appeared. Separately, anonymous GitHub REST requests share a per-IP rate limit and may be blocked even when public Release downloads work. A first-party, versioned read-only contract provides a stable future integration seam without weakening the network-to-execution boundary.
 
@@ -341,3 +341,11 @@ Smart placement is also state-independent. A single DPI-aware policy computes th
 **Rationale:** Maintaining two shapes added a second geometry/lifecycle branch without changing Temporary Space semantics, and field use showed that the attached-edge variant was disproportionately fragile. A single surface reduces native-region, animation, recovery, and product-explanation complexity while retaining the interaction users actually use.
 
 **Constraints:** This decision does not alter Smart drag detection, Classic compatibility mode, file acceptance, source-file safety, display selection, motion preference, or the truly Hidden lifecycle. Historical release notes and prior decision rationale remain factual records of older releases.
+
+## D-041 — Fail closed when producing official website release metadata
+
+**Decision:** GitHub Releases is the only production authority for website release metadata. A GitHub Pages production job must fetch the first 20 releases, validate schema-v1 official release and same-tag asset URLs, require a Stable release plus the standard assets on the latest Stable and Preview, and only then write the build input. Any network, HTTP, JSON, contract, or required-asset failure terminates the job before the Pages artifact is built or deployed. The committed release JSON is an explicit local/PR fixture only and is forbidden in production mode. The obsolete Cloudflare Pages Function is removed.
+
+**Rationale:** Rebuilding from a stale committed snapshot after an upstream failure can redeploy older metadata and make the official API appear to move backwards. Keeping the last successfully deployed Pages artifact is safer and more truthful than publishing a new artifact whose release data was not freshly verified.
+
+**Constraints:** The public schema remains version 1; the App continues to prefer the official GitHub Pages API and fall back to GitHub Releases REST. Release and asset URL allow-lists, update-manifest verification, filenames, channels, and historical GitHub Releases remain unchanged.

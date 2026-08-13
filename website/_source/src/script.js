@@ -39,8 +39,8 @@ if (systemCheck) {
   systemCheck.dataset.result = isWindows ? "windows" : "other";
 }
 
-// Release data is refreshed from the versioned GitHub Pages contract. Build-time data remains a
-// complete, offline-safe fallback, and the app consumes the same validated contract.
+// Release data is refreshed from the versioned GitHub Pages contract. The generated page already
+// contains the last successfully deployed, validated snapshot; failed production syncs are not deployed.
 const isGitHubPages = location.hostname.endsWith("github.io");
 const isLocalPreview = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
 const releaseApiPaths = isGitHubPages
@@ -80,8 +80,8 @@ async function refreshReleaseData() {
     document.documentElement.dataset.releaseApi = "current";
     return;
   }
-  // The static build remains fully usable when runtime metadata is unavailable.
-  document.documentElement.dataset.releaseApi = "build-fallback";
+  // The last successfully deployed snapshot remains usable when a runtime refresh is unavailable.
+  document.documentElement.dataset.releaseApi = "build-snapshot";
 }
 
 function isValidRelease(release) {
