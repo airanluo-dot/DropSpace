@@ -85,10 +85,8 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         string.IsNullOrEmpty(value.UserInfo) &&
         string.IsNullOrEmpty(value.Query) &&
         string.IsNullOrEmpty(value.Fragment) &&
-        (string.Equals(value.Host, "dropspace.pages.dev", StringComparison.OrdinalIgnoreCase) &&
-         string.Equals(value.AbsolutePath, "/api/v1/releases.json", StringComparison.Ordinal) ||
-         string.Equals(value.Host, "airanluo-dot.github.io", StringComparison.OrdinalIgnoreCase) &&
-         string.Equals(value.AbsolutePath, "/DropSpace/api/v1/releases.json", StringComparison.Ordinal));
+        string.Equals(value.Host, "airanluo-dot.github.io", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(value.AbsolutePath, "/DropSpace/api/v1/releases.json", StringComparison.Ordinal);
 
     private HttpRequestMessage CreateRequest(Uri uri, string accept)
     {

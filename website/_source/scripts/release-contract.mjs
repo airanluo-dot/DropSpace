@@ -53,7 +53,7 @@ function normalizeRelease(release) {
   const normalized = {
     tagName,
     name: String(release.name ?? tagName),
-    body: String(release.body ?? ""),
+    body: normalizeOfficialWebsiteReferences(String(release.body ?? "")),
     isDraft: false,
     isPrerelease: Boolean(release.prerelease),
     publishedAt: release.published_at ?? null,
@@ -62,4 +62,15 @@ function normalizeRelease(release) {
   };
   validateReleaseApi({ schemaVersion: RELEASE_API_SCHEMA_VERSION, releases: [normalized] });
   return normalized;
+}
+
+function normalizeOfficialWebsiteReferences(body) {
+  return body
+    .replaceAll("https://dropspace.pages.dev/", "https://airanluo-dot.github.io/DropSpace/")
+    .replace(
+      "The app tries `dropspace.pages.dev`, the GitHub Pages mirror, then GitHub REST.",
+      "The app tries the official GitHub Pages endpoint, then GitHub REST.")
+    .replace(
+      "Cloudflare Pages serves a short-cached dynamic endpoint, while GitHub Pages keeps a build-time fallback.",
+      "GitHub Pages serves the versioned contract with complete build-time metadata as an offline-safe fallback.");
 }

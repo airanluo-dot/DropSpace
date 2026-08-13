@@ -61,16 +61,16 @@ public sealed class OfficialWebsiteReleaseUpdateSourceTests
     }
 
     [TestMethod]
-    public void EndpointAllowlist_ContainsOnlyTheTwoOfficialWebsiteRoutes()
+    public void EndpointAllowlist_ContainsOnlyTheOfficialGitHubPagesRoute()
     {
-        Assert.IsTrue(OfficialWebsiteReleaseUpdateSource.IsOfficialEndpoint(
-            new Uri("https://dropspace.pages.dev/api/v1/releases.json")));
         Assert.IsTrue(OfficialWebsiteReleaseUpdateSource.IsOfficialEndpoint(
             new Uri("https://airanluo-dot.github.io/DropSpace/api/v1/releases.json")));
         Assert.IsFalse(OfficialWebsiteReleaseUpdateSource.IsOfficialEndpoint(
-            new Uri("https://dropspace.pages.dev.attacker.invalid/api/v1/releases.json")));
+            new Uri("https://airanluo-dot.github.io.attacker.invalid/DropSpace/api/v1/releases.json")));
         Assert.IsFalse(OfficialWebsiteReleaseUpdateSource.IsOfficialEndpoint(
-            new Uri("https://dropspace.pages.dev/api/v2/releases.json")));
+            new Uri("https://airanluo-dot.github.io/DropSpace/api/v2/releases.json")));
+        Assert.IsFalse(OfficialWebsiteReleaseUpdateSource.IsOfficialEndpoint(
+            new Uri("https://dropspace.pages.dev/api/v1/releases.json")));
     }
 
     [TestMethod]
@@ -112,7 +112,7 @@ public sealed class OfficialWebsiteReleaseUpdateSourceTests
     private static OfficialWebsiteReleaseUpdateSource Create(string json) => new(
         new HttpClient(new ResponseHandler(json)),
         ReleaseVersion.Parse("0.2.0-preview.1"),
-        new Uri("https://dropspace.pages.dev/api/v1/releases.json"));
+        new Uri("https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"));
 
     private static UpdateRelease Release(string tag) => new(
         tag,
