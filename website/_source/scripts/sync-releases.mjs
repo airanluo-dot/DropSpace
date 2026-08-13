@@ -1,62 +1,68 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { normalizeGitHubReleases } from "./release-contract.mjs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createWebsiteReleaseData, validateWebsiteReleaseData } from "./release-contract.mjs";
 
-const API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=20";
-const OUTPUT = new URL("../data/releases.json", import.meta.url);
+const OFFICIAL_API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=20&page=1";
+const DEFAULT_OUTPUT = fileURLToPath(new URL("../data/releases.json", import.meta.url));
 
-function assetMap(assets = []) {
-  const byName = Object.fromEntries(assets.map((asset) => [asset.name, asset.browser_download_url]));
-  return {
-    installer: byName["DropSpaceSetup.exe"],
-    portable: byName["DropSpace.exe"],
-    msix: byName["DropSpace-x64.msix"],
-    checksums: byName["SHA256SUMS.txt"]
+export async function syncAuthoritativeReleases({
+  apiUrl = OFFICIAL_API,
+  output = DEFAULT_OUTPUT,
+  fetchImpl = fetch,
+  token = process.env.GITHUB_TOKEN
+} = {}) {
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "DropSpace-Website"
   };
-}
+  if (token) headers.Authorization = `Bearer ${token}`;
 
-function summary(body = "") {
-  return body
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => /^[-*] /.test(line))
-    .map((line) => line.replace(/^[-*] +/, "").replace(/[*_`]/g, ""))
-    .slice(0, 5);
-}
-
-function normalize(release) {
-  const title = release.body?.match(/^#.+?—\s*(.+)$/m)?.[1] ?? release.name ?? release.tag_name;
-  return {
-    tag: release.tag_name,
-    name: release.name ?? release.tag_name,
-    title,
-    publishedAt: release.published_at,
-    url: release.html_url,
-    summary: summary(release.body),
-    assets: assetMap(release.assets)
-  };
-}
-
-try {
-  const response = await fetch(API, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "DropSpace-Website" },
+  const response = await fetchImpl(apiUrl, {
+    headers,
     signal: AbortSignal.timeout(12000)
   });
-  if (!response.ok) throw new Error(`GitHub API returned ${response.status}`);
-  const releases = (await response.json()).filter((release) => !release.draft);
-  const api = normalizeGitHubReleases(releases);
-  const stable = releases.find((release) => !release.prerelease);
-  if (!stable) throw new Error("No Stable release found");
-  const data = {
-    syncedAt: new Date().toISOString(),
-    source: "github",
-    api,
-    stable: normalize(stable),
-    previews: releases.filter((release) => release.prerelease).slice(0, 5).map(normalize)
+  if (!response.ok) throw new Error(`GitHub Releases API returned HTTP ${response.status}.`);
+
+  const data = createWebsiteReleaseData(await response.json());
+  await writeFile(output, `${JSON.stringify(data, null, 2)}\n`);
+  return data;
+}
+
+export async function loadExplicitFixture(fixture, { output = DEFAULT_OUTPUT, validateOnly = false } = {}) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Fixture mode is forbidden in production.");
+  }
+  const data = validateWebsiteReleaseData(JSON.parse(await readFile(fixture, "utf8")));
+  if (!validateOnly) await writeFile(output, `${JSON.stringify(data, null, 2)}\n`);
+  return data;
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const valueAfter = (flag) => {
+    const index = args.indexOf(flag);
+    return index >= 0 ? args[index + 1] : undefined;
   };
-  await writeFile(OUTPUT, `${JSON.stringify(data, null, 2)}\n`);
-  console.log(`Synced ${data.stable.tag} and ${data.previews.length} Preview releases.`);
-} catch (error) {
-  const fallback = JSON.parse(await readFile(OUTPUT, "utf8"));
-  if (!fallback.stable?.assets?.installer) throw error;
-  console.warn(`Release sync unavailable; using committed fallback (${error.message}).`);
+  const fixture = valueAfter("--fixture");
+  const validateOnly = args.includes("--validate-only");
+  const testOutput = process.env.NODE_ENV === "test" ? process.env.DROPSPACE_TEST_RELEASES_OUTPUT : undefined;
+  const output = path.resolve(valueAfter("--output") ?? testOutput ?? DEFAULT_OUTPUT);
+
+  let data;
+  if (fixture) {
+    data = await loadExplicitFixture(path.resolve(fixture), { output, validateOnly });
+    console.log(`Validated explicit release fixture (${data.stable.tag}).`);
+    return;
+  }
+  if (validateOnly) throw new Error("--validate-only requires --fixture.");
+
+  const testApi = process.env.NODE_ENV === "test" ? process.env.DROPSPACE_TEST_RELEASES_API : undefined;
+  data = await syncAuthoritativeReleases({ apiUrl: testApi ?? OFFICIAL_API, output });
+  console.log(`Synced ${data.stable.tag} and ${data.previews.length} Preview releases from GitHub Releases.`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
 }

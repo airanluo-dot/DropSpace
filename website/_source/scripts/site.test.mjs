@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import { JSDOM } from "jsdom";
+import { validateReleaseApi } from "./release-contract.mjs";
 
 const read = (relative) => readFile(new URL(`../dist/${relative}`, import.meta.url), "utf8");
 const releases = JSON.parse(await readFile(new URL("../data/releases.json", import.meta.url), "utf8"));
@@ -13,7 +14,7 @@ const cssHref = (en.match(/href="([^"]*styles\.[^"]+\.css)"/) ?? [])[1];
 const css = await read(new URL(cssHref, "https://airanluo-dot.github.io/DropSpace/en/").pathname.replace(/^\/DropSpace\//, ""));
 const releaseApi = JSON.parse(await read("api/v1/releases.json"));
 
-test("fallback has all Stable downloads", () => {
+test("explicit development fixture has all Stable downloads", () => {
   assert.equal(releases.stable.tag, "v0.1.0");
   for (const key of ["installer", "portable", "msix", "checksums"]) {
     assert.match(releases.stable.assets[key], /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\//);
@@ -21,6 +22,7 @@ test("fallback has all Stable downloads", () => {
 });
 
 test("versioned release API is emitted for the app and runtime website", () => {
+  assert.equal(validateReleaseApi(releaseApi), releaseApi);
   assert.equal(releaseApi.schemaVersion, 1);
   assert.ok(releaseApi.generatedAt);
   assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.1.0" && !release.isPrerelease));

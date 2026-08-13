@@ -4,11 +4,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { changelogMeta, site, zh } from "./i18n.mjs";
+import { validateWebsiteReleaseData } from "./release-contract.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const src = path.join(root, "src");
 const dist = path.join(root, "dist");
-const releases = JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8"));
+const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
 const stable = releases.stable;
 const siteOrigin = (process.env.SITE_ORIGIN ?? "https://airanluo-dot.github.io/DropSpace").replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;

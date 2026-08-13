@@ -58,6 +58,9 @@ jobs:
       - name: Sync GitHub Releases
         if: github.event_name != 'pull_request'
         working-directory: website/_source
+        env:
+          NODE_ENV: production
+          GITHUB_TOKEN: ${{ github.token }}
         run: npm run sync-releases
       - name: Build and test static output
         working-directory: website/_source
