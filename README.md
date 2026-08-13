@@ -15,7 +15,7 @@ DropSpace **v0.1.0 is the first Stable release**. The repository contains the Wi
 
 Latest Stable: [v0.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
-Experimental Preview: **v0.2.0-preview.3** repairs the remaining no-response path with a non-blocking native message pump, two independent documented accessibility drag signal ranges, and bounded UI Automation/MSAA file-item hit-testing. The deprecated root-wide `UiaAddEvent` subscription no longer delays observer startup. It also gives every Dynamic Island lifecycle state one DPI-aware Smart-mode anchor below Windows Drop Tray. Smart idle still leaves no top-edge activation HWND, the old top-edge target remains opt-in, and Stable-channel users do not receive this Preview.
+Experimental Preview: **v0.2.0-preview.4** keeps the confirmed Smart drag detector unchanged, removes the former Notch visual mode and selector, and standardizes every quick-access state on one Dynamic Island. It also adopts the final transparent logo across all active App, installer, package, documentation, and website surfaces; fixes the live Stable status layout; refreshes the Dynamic Island showcase; and makes GitHub Pages the single official website and release API endpoint. Stable-channel users do not receive this Preview.
 
 The implemented vertical slice includes:
 

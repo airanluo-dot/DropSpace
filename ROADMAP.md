@@ -432,3 +432,12 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Use one DPI-aware Drop Tray-safe anchor for every Dynamic Island state; enlarge the host so offset Expanded geometry and the native target region cannot diverge.
 - Add Windows smoke health gates for the observation-only mouse hook and object-drag event hook plus Core placement/DPI regressions.
 - Graduation remains blocked on real Windows 11 Explorer/Desktop event delivery, false-positive evidence, mixed-DPI visual alignment, and Drop Tray coexistence; Stable stays v0.1.0.
+
+### v0.2.0-preview.4 single-Island and brand refresh
+
+- Keep the field-confirmed Smart drag detector unchanged while removing the former Notch visual mode, Settings selector, transition state, asymmetric region path, and mode-specific geometry.
+- Migrate legacy settings safely to one rounded Dynamic Island surface without changing Smart, Classic compatibility, Disabled, OLE `CF_HDROP`, source-file safety, DPI placement, or Hidden behavior.
+- Adopt the final true-alpha transparent logo across every active App, taskbar, tray, installer, MSIX, Share identity, documentation, and website surface while retaining prior generated assets only in an inactive provenance archive.
+- Fix the API-updated Stable status to one 7-pixel green dot with horizontal copy, and redesign the website showcase around Compact, Drop Ready, and Expanded Dynamic Island states.
+- Promote GitHub Pages to the single official website and versioned release API, remove the unavailable Cloudflare endpoint from App update checks, and preserve GitHub Releases as the validated fallback.
+- Publish the Preview installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest after the full Windows release and lifecycle suite passes; Stable remains v0.1.0.
