@@ -2,13 +2,11 @@
 
 These rules apply to the entire repository. User and system instructions take precedence.
 
-## Maintainer skill
+## DropSpace maintainer skill
 
-For any DropSpace implementation, maintenance, bug fix, refactor, release, deployment, updater, website/API, packaging, CI/CD, repository cleanup, or release-validation task, use the `$dropspace-maintainer` skill before making changes.
+For any repository implementation, maintenance, bug fix, refactor, release, deployment, updater, website/API, packaging, CI/CD, or release-validation task, use the `$dropspace-maintainer` skill before making changes.
 
-The repository-level skill is located at `.agents/skills/dropspace-maintainer/SKILL.md`. Treat it as the execution playbook, while this `AGENTS.md`, current repository code/tests/workflows, and accepted decision records remain authoritative according to the skill's precedence rules.
-
-For read-only questions, audits, or repository inspection, use the skill whenever its workflow is relevant, but do not modify the repository unless the user explicitly asks for changes.
+The skill is located at `.agents/skills/dropspace-maintainer/SKILL.md`.
 
 ## Before changing anything
 
