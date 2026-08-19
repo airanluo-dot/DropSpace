@@ -1,5 +1,7 @@
 export const RELEASE_API_SCHEMA_VERSION = 1;
 export const RELEASE_API_MAX_ITEMS = 20;
+export const LATEST_CHANGE_API_SCHEMA_VERSION = 1;
+export const LATEST_CHANGE_MAX_HIGHLIGHTS = 6;
 
 export const REQUIRED_RELEASE_ASSETS = Object.freeze([
   "DropSpaceSetup.exe",
@@ -53,6 +55,67 @@ export function validateReleaseApi(payload) {
         throw new TypeError("Release asset is not an official same-release download.");
       }
     }
+  }
+  return payload;
+}
+
+export function createLatestChangeApi(releaseApi) {
+  validateReleaseApi(releaseApi);
+  const release = [...releaseApi.releases]
+    .filter((candidate) => !candidate.isDraft)
+    .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt))[0];
+  if (!release) throw new TypeError("Release API did not contain a published release.");
+
+  const title = releaseDisplayTitle(release);
+  const englishHighlights = releaseHighlights(release.body);
+  const chineseHighlights = releaseHighlights(release.body, "中文说明");
+  const payload = {
+    schemaVersion: LATEST_CHANGE_API_SCHEMA_VERSION,
+    generatedAt: releaseApi.generatedAt,
+    source: "github-releases",
+    release: {
+      tagName: release.tagName,
+      channel: release.isPrerelease ? "preview" : "stable",
+      headline: {
+        en: release.isPrerelease ? "Latest Preview." : "Current Stable.",
+        "zh-CN": release.isPrerelease ? "最新预览版。" : "当前稳定版。"
+      },
+      title,
+      publishedAt: release.publishedAt,
+      htmlUrl: release.htmlUrl,
+      highlights: {
+        en: englishHighlights,
+        "zh-CN": chineseHighlights.length > 0 ? chineseHighlights : englishHighlights
+      }
+    }
+  };
+  return validateLatestChangeApi(payload);
+}
+
+export function validateLatestChangeApi(payload) {
+  if (!payload || payload.schemaVersion !== LATEST_CHANGE_API_SCHEMA_VERSION ||
+      payload.source !== "github-releases" || !isIsoDate(payload.generatedAt)) {
+    throw new TypeError("Unsupported latest-change API payload.");
+  }
+  const release = payload.release;
+  if (!release || !/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release.tagName ?? "") ||
+      !["stable", "preview"].includes(release.channel) ||
+      release.channel !== (release.tagName.includes("-preview.") ? "preview" : "stable") ||
+      !isIsoDate(release.publishedAt)) {
+    throw new TypeError("Invalid latest-change release metadata.");
+  }
+  const releaseMatch = OFFICIAL_RELEASE.exec(release.htmlUrl ?? "");
+  if (!releaseMatch || decodeURIComponent(releaseMatch[1]) !== release.tagName) {
+    throw new TypeError("Invalid latest-change release URL.");
+  }
+  validateDisplayText(release.title, "latest-change title", 160);
+  for (const locale of ["en", "zh-CN"]) {
+    validateDisplayText(release.headline?.[locale], `${locale} latest-change headline`, 80);
+    const highlights = release.highlights?.[locale];
+    if (!Array.isArray(highlights) || highlights.length < 1 || highlights.length > LATEST_CHANGE_MAX_HIGHLIGHTS) {
+      throw new TypeError(`Invalid ${locale} latest-change highlights.`);
+    }
+    for (const highlight of highlights) validateDisplayText(highlight, `${locale} latest-change highlight`, 500);
   }
   return payload;
 }
@@ -138,6 +201,44 @@ function normalizeWebsiteRelease(release) {
       checksums: byName["SHA256SUMS.txt"]
     }
   };
+}
+
+function releaseDisplayTitle(release) {
+  const heading = release.body.match(/^#\s+(.+)$/m)?.[1] ?? release.name ?? release.tagName;
+  const withoutProduct = heading.replace(new RegExp(`^DropSpace\\s+${escapeRegExp(release.tagName)}\\s*`, "i"), "");
+  return withoutProduct.replace(/^[—–:-]+\s*/, "").trim() || release.name || release.tagName;
+}
+
+function releaseHighlights(body, sectionName) {
+  const lines = String(body ?? "").split(/\r?\n/);
+  let inSection = sectionName === undefined;
+  const highlights = [];
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    const heading = /^##\s+(.+)$/.exec(line);
+    if (heading) {
+      if (sectionName === undefined && heading[1] === "中文说明") break;
+      if (sectionName !== undefined) {
+        if (inSection) break;
+        inSection = heading[1] === sectionName;
+      }
+      continue;
+    }
+    if (!inSection || !/^[-*]\s+/.test(line)) continue;
+    highlights.push(line.replace(/^[-*]\s+/, "").replace(/[*`]/g, "").trim());
+    if (highlights.length === LATEST_CHANGE_MAX_HIGHLIGHTS) break;
+  }
+  return highlights.filter(Boolean);
+}
+
+function validateDisplayText(value, label, maxLength) {
+  if (typeof value !== "string" || value.trim() !== value || value.length < 1 || value.length > maxLength || /[\u0000-\u001f]/.test(value)) {
+    throw new TypeError(`Invalid ${label}.`);
+  }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function validateWebsiteEntry(entry, apiByTag, prerelease) {

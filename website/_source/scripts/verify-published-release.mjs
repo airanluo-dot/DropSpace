@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateLatestChangeApi } from "./release-contract.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const tag = process.argv[2]?.trim();
@@ -78,6 +79,7 @@ if (checksumMap.size !== 3 || checksumMap.get("DropSpaceSetup.exe") !== manifest
 }
 
 let api;
+let latestChangeApi;
 do {
   try {
     api = await (await fetchOk(`${siteOrigin}/api/v1/releases.json?verify=${Date.now()}`)).json();
@@ -87,6 +89,11 @@ do {
     const siteAssets = new Map(item.assets.map((asset) => [asset.name, asset]));
     for (const name of expectedAssets) {
       if (siteAssets.get(name)?.downloadUrl !== assets.get(name).browser_download_url) throw new Error(`Website API ${name} URL disagrees with GitHub.`);
+    }
+    latestChangeApi = validateLatestChangeApi(await (await fetchOk(`${siteOrigin}/api/v1/latest-change.json?verify=${Date.now()}`)).json());
+    if (latestChangeApi.release.tagName !== tag || latestChangeApi.release.htmlUrl !== release.html_url ||
+        latestChangeApi.release.channel !== (release.prerelease ? "preview" : "stable")) {
+      throw new Error("Latest-change API does not present the newly published release.");
     }
     lastError = undefined;
     break;
@@ -98,11 +105,15 @@ do {
 } while (Date.now() <= deadline);
 if (lastError) throw lastError;
 
+const latestHome = await (await fetchOk(`${siteOrigin}/en/?verify=${Date.now()}`)).text();
+if (!latestHome.includes(`data-latest-change-tag="">${tag}<`)) {
+  throw new Error(`The live website does not present ${tag} in the latest-change design.`);
+}
+
 if (!release.prerelease) {
-  const home = await (await fetchOk(`${siteOrigin}/en/?verify=${Date.now()}`)).text();
-  if (!home.includes(`Latest Stable · ${tag}`) || !home.includes(`/releases/download/${tag}/DropSpaceSetup.exe`)) {
+  if (!latestHome.includes(`Latest Stable · ${tag}`) || !latestHome.includes(`/releases/download/${tag}/DropSpaceSetup.exe`)) {
     throw new Error(`The live website does not present ${tag} as the latest Stable release.`);
   }
 }
 
-console.log(`Verified ${tag}: GitHub Release, five public assets, manifest, checksums, website API${release.prerelease ? "" : ", and Stable website"}.`);
+console.log(`Verified ${tag}: GitHub Release, five public assets, manifest, checksums, release API, latest-change API, and live website${release.prerelease ? "" : " Stable state"}.`);

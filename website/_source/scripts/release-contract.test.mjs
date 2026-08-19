@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createWebsiteReleaseData, normalizeGitHubReleases, validateReleaseApi } from "./release-contract.mjs";
+import { createLatestChangeApi, createWebsiteReleaseData, normalizeGitHubReleases, validateLatestChangeApi, validateReleaseApi } from "./release-contract.mjs";
 
 const valid = {
   tag_name: "v0.2.0-preview.2",
@@ -29,6 +29,38 @@ test("rejects mismatched release, asset and schema identities", () => {
   assert.throws(() => normalizeGitHubReleases([{ ...valid, html_url: "https://attacker.invalid/release" }]));
   assert.throws(() => normalizeGitHubReleases([{ ...valid, assets: [{ ...valid.assets[0], browser_download_url: "https://attacker.invalid/update.exe" }] }]));
   assert.throws(() => validateReleaseApi({ schemaVersion: 2, releases: [] }));
+});
+
+test("latest-change contract follows the newest published release with a variable highlight count", () => {
+  const body = `# DropSpace v0.2.1-preview.1 — Release-driven website\n\n## Highlights\n\n- API-driven headline\n- Variable summary list\n- Build snapshot fallback\n\n## 中文说明\n\n- 标题由接口更新\n- 摘要数量可变`;
+  const preview = {
+    ...valid,
+    tag_name: "v0.2.1-preview.1",
+    name: "DropSpace v0.2.1-preview.1",
+    body,
+    published_at: "2026-08-20T00:00:00Z",
+    html_url: "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1-preview.1",
+    assets: valid.assets.map((asset) => ({
+      ...asset,
+      browser_download_url: "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.1-preview.1/DropSpaceSetup.exe"
+    }))
+  };
+  const payload = createLatestChangeApi(normalizeGitHubReleases([valid, preview], "2026-08-20T00:01:00Z"));
+  assert.equal(validateLatestChangeApi(payload), payload);
+  assert.equal(payload.release.tagName, "v0.2.1-preview.1");
+  assert.equal(payload.release.headline["zh-CN"], "最新预览版。");
+  assert.equal(payload.release.title, "Release-driven website");
+  assert.deepEqual(payload.release.highlights.en, ["API-driven headline", "Variable summary list", "Build snapshot fallback"]);
+  assert.deepEqual(payload.release.highlights["zh-CN"], ["标题由接口更新", "摘要数量可变"]);
+});
+
+test("latest-change contract rejects unofficial identity and unbounded summaries", () => {
+  const payload = createLatestChangeApi(normalizeGitHubReleases([valid]));
+  assert.throws(() => validateLatestChangeApi({ ...payload, release: { ...payload.release, htmlUrl: "https://attacker.invalid/release" } }));
+  assert.throws(() => validateLatestChangeApi({
+    ...payload,
+    release: { ...payload.release, highlights: { ...payload.release.highlights, en: Array(7).fill("Too many") } }
+  }));
 });
 
 test("requires complete current Stable and Preview assets", () => {
