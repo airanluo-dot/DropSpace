@@ -14,8 +14,8 @@ const cssHref = (en.match(/href="([^"]*styles\.[^"]+\.css)"/) ?? [])[1];
 const css = await read(new URL(cssHref, "https://airanluo-dot.github.io/DropSpace/en/").pathname.replace(/^\/DropSpace\//, ""));
 const releaseApi = JSON.parse(await read("api/v1/releases.json"));
 
-test("explicit development fixture has all Stable downloads", () => {
-  assert.equal(releases.stable.tag, "v0.1.0");
+test("release data has a SemVer Stable with all downloads", () => {
+  assert.match(releases.stable.tag, /^v\d+\.\d+\.\d+$/);
   for (const key of ["installer", "portable", "msix", "checksums"]) {
     assert.match(releases.stable.assets[key], /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\//);
   }
@@ -25,8 +25,9 @@ test("versioned release API is emitted for the app and runtime website", () => {
   assert.equal(validateReleaseApi(releaseApi), releaseApi);
   assert.equal(releaseApi.schemaVersion, 1);
   assert.ok(releaseApi.generatedAt);
-  assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.1.0" && !release.isPrerelease));
-  assert.ok(releaseApi.releases.some((release) => release.tagName === "v0.2.0-preview.1" && release.isPrerelease));
+  assert.ok(releaseApi.releases.some((release) => release.tagName === releases.stable.tag && !release.isPrerelease));
+  assert.ok(releases.previews.length > 0);
+  assert.ok(releaseApi.releases.some((release) => release.tagName === releases.previews[0].tag && release.isPrerelease));
   for (const release of releaseApi.releases) {
     assert.doesNotMatch(release.body, /dropspace\.pages\.dev/);
     assert.match(release.htmlUrl, /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/tag\//);
