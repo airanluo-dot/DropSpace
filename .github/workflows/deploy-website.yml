@@ -91,7 +91,10 @@ jobs:
         uses: actions/deploy-pages@v4
 
   verify:
-    if: github.event_name != 'pull_request'
+    # A main push can contain the next RELEASE_VERSION before its Windows build
+    # has published that Release. The release workflow dispatches this workflow
+    # again after publication, which is the authoritative live-verification run.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     runs-on: ubuntu-latest
     needs: deploy
     steps:

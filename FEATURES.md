@@ -145,7 +145,7 @@ Unicode, case folding, paths, punctuation, very long text, stale index after mig
 
 ### User behavior
 
-In experimental Smart mode, a recognized Explorer/Desktop file drag reveals a temporary Dynamic Island below the top edge without a permanent activation window. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge and disabled automatic-wake modes remain available.
+In Smart mode, a recognized Explorer/Desktop file drag reveals a temporary Dynamic Island below the top edge without a permanent activation window. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge compatibility and disabled automatic-wake modes remain available.
 
 ### App behavior
 

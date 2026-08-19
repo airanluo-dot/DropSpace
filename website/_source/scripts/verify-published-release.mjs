@@ -21,7 +21,21 @@ async function fetchOk(url, options = {}) {
   return response;
 }
 
-const release = await (await fetchOk(`https://api.github.com/repos/${repository}/releases/tags/${tag}`, { headers })).json();
+const deadline = Date.now() + waitSeconds * 1000;
+let release;
+let lastError;
+do {
+  try {
+    release = await (await fetchOk(`https://api.github.com/repos/${repository}/releases/tags/${tag}`, { headers })).json();
+    lastError = undefined;
+    break;
+  } catch (error) {
+    lastError = error;
+    if (Date.now() >= deadline) break;
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+  }
+} while (Date.now() <= deadline);
+if (lastError) throw lastError;
 if (release.draft) throw new Error(`${tag} is still a draft.`);
 if (release.prerelease !== tag.includes("-preview.")) throw new Error(`${tag} has the wrong prerelease flag.`);
 const assets = new Map(release.assets.map((asset) => [asset.name, asset]));
@@ -57,9 +71,7 @@ if (checksumMap.size !== 3 || checksumMap.get("DropSpaceSetup.exe") !== manifest
   throw new Error("Published checksums and update manifest disagree.");
 }
 
-const deadline = Date.now() + waitSeconds * 1000;
 let api;
-let lastError;
 do {
   try {
     api = await (await fetchOk(`${siteOrigin}/api/v1/releases.json?verify=${Date.now()}`)).json();

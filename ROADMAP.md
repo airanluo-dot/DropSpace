@@ -2,11 +2,11 @@
 
 ## Current implementation snapshot
 
-The v0.1.0 Stable production slice covers Phases 1–10 plus file capture, startup, branding, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, Dynamic Island, configurable limits, default-on startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.0 Stable production slice covers Phases 1–10 plus file capture, startup, branding, Smart drag, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, one Dynamic Island, configurable limits, default-on startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
-Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Their real-target manual matrix—especially hidden-zone Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart—remains explicit manual Preview evidence.
+Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
-v0.2.0-preview.1 replaces the default permanent top-edge input band with an experimental, event-driven Smart drag candidate detector and temporary visual OLE target. The old band remains an explicit compatibility option. Real Explorer/Desktop provider coverage and false-positive evidence determine whether Smart mode can graduate beyond Preview.
+v0.2.0 promotes the user-confirmed, event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option for unsupported sources; Smart continues to prefer false negatives over false positives and still requires real `CF_HDROP` content before accepting a drop.
 
 ## Delivery rule
 
@@ -454,3 +454,9 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Verify every publication end to end across the GitHub Release, five public assets, checksums, manifest, official website API, and Stable website presentation.
 - Apply explicit short retention to disposable Actions artifacts while preserving public GitHub Release assets.
 - Keep the user-confirmed Smart drag detector and single Dynamic Island behavior unchanged as the final v0.2.0 Stable candidate.
+
+### v0.2.0 Stable
+
+- Promote the user-confirmed Smart drag architecture without changing its bounded signal, cancellation, final `CF_HDROP`, privacy, or compatibility-mode behavior.
+- Ship the Dynamic-Island-only interface, final transparent branding, GitHub Pages release API, GitHub Releases fallback, fail-closed production synchronization, and cross-surface release consistency as one Stable build.
+- Publish a separately built Stable installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest; Stable and Preview channels both select v0.2.0 over the older Preview sequence.

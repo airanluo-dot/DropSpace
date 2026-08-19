@@ -295,4 +295,4 @@ jobs:
       - name: Verify published Release and official website end to end
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node website/_source/scripts/verify-published-release.mjs "${{ needs.validate-release.outputs.tag }}" 900
+        run: node website/_source/scripts/verify-published-release.mjs "${{ needs.validate-release.outputs.tag }}" 1200
