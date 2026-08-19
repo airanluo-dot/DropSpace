@@ -8,6 +8,12 @@ For any repository implementation, maintenance, bug fix, refactor, release, depl
 
 The skill is located at `.agents/skills/dropspace-maintainer/SKILL.md`.
 
+## Mandatory skill synchronization
+
+Every mutating DropSpace task must finish with the Skill synchronization gate defined in the maintainer skill. Keep the repository copy and the installed `dropspace-codex` Skill current in the same update flow whenever product behavior, architecture, paths, commands, APIs, tests, release/deployment procedures, or completion criteria change.
+
+Do not declare a change or release complete until required Skill updates are validated and published. If review proves that no Skill text needs to change, record that verification explicitly in the completion report. This requirement also applies recursively when either Skill itself is changed. Skill-only maintenance does not require an App version bump unless the user or current release policy explicitly requests one.
+
 ## Before changing anything
 
 1. Read `PRODUCT.md`, the relevant feature/UX document, `ARCHITECTURE.md`, and current phase in `ROADMAP.md`.
