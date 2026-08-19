@@ -5,8 +5,10 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const tag = process.argv[2]?.trim();
 const waitSeconds = Number(process.argv[3] ?? "0");
+const verificationMode = process.argv[4] ?? "release";
 if (!/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(tag ?? "")) throw new Error("Pass a valid release tag.");
 if (!Number.isInteger(waitSeconds) || waitSeconds < 0 || waitSeconds > 1200) throw new Error("Wait seconds must be between 0 and 1200.");
+if (!["release", "live"].includes(verificationMode)) throw new Error("Verification mode must be release or live.");
 
 const repository = "airanluo-dot/DropSpace";
 const siteOrigin = "https://airanluo-dot.github.io/DropSpace";
@@ -48,16 +50,20 @@ for (const [name, asset] of assets) {
   if (!asset.browser_download_url.startsWith(expectedPrefix)) throw new Error(`${name} has an unofficial download URL.`);
 }
 
-const notes = await readFile(path.join(root, `.github/release-notes/${tag}.md`), "utf8");
-const summaryMatches = [...notes.matchAll(/^\s*<!--\s*update-summary:\s*([^\r\n]*?)\s*-->\s*$/gim)];
-if (summaryMatches.length !== 1) throw new Error(`${tag} release notes do not have exactly one update summary.`);
-const expectedSummary = summaryMatches[0][1].trim();
+let expectedSummary;
+if (verificationMode === "release") {
+  const notes = await readFile(path.join(root, `.github/release-notes/${tag}.md`), "utf8");
+  const summaryMatches = [...notes.matchAll(/^\s*<!--\s*update-summary:\s*([^\r\n]*?)\s*-->\s*$/gim)];
+  if (summaryMatches.length !== 1) throw new Error(`${tag} release notes do not have exactly one update summary.`);
+  expectedSummary = summaryMatches[0][1].trim();
+}
 const manifest = await (await fetchOk(assets.get("update-manifest.json").browser_download_url)).json();
 const semanticVersion = tag.slice(1);
 if (manifest.version !== semanticVersion || manifest.channel !== (release.prerelease ? "preview" : "stable")) {
   throw new Error("Published manifest version/channel does not match the GitHub Release.");
 }
-if (manifest.summary !== expectedSummary) throw new Error("Published manifest summary does not match release notes.");
+if (verificationMode === "release" && manifest.summary !== expectedSummary) throw new Error("Published manifest summary does not match release notes.");
+if (verificationMode === "live" && (typeof manifest.summary !== "string" || !manifest.summary.trim())) throw new Error("Published manifest summary is empty.");
 if (manifest.installer?.assetName !== "DropSpaceSetup.exe" || manifest.portable?.assetName !== "DropSpace.exe") {
   throw new Error("Published manifest uses unexpected executable asset names.");
 }
