@@ -71,7 +71,9 @@ jobs:
 
       - name: Validate Stable and Preview release metadata
         shell: pwsh
-        run: ./scripts/Test-ReleaseVersion.ps1
+        run: |
+          ./scripts/Test-ReleaseVersion.ps1
+          ./scripts/Test-ReleaseConsistency.ps1
 
       - name: Generate brand assets from canonical masters
         shell: pwsh
@@ -228,6 +230,7 @@ jobs:
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
           if-no-files-found: error
+          retention-days: 2
 
       - name: Upload identity registration artifact
         uses: actions/upload-artifact@v4
@@ -235,6 +238,7 @@ jobs:
           name: DropSpace-identity-${{ steps.version.outputs.tag }}
           path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
+          retention-days: 3
 
       - name: Upload release test results
         if: always()
@@ -243,6 +247,7 @@ jobs:
           name: release-test-results-${{ steps.version.outputs.tag }}
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
+          retention-days: 14
 
   publish-release:
     name: Publish GitHub Release
@@ -286,3 +291,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run deploy-website.yml --ref main
+
+      - name: Verify published Release and official website end to end
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node website/_source/scripts/verify-published-release.mjs "${{ needs.validate-release.outputs.tag }}" 900

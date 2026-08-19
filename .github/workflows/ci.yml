@@ -46,7 +46,9 @@ jobs:
 
       - name: Validate Stable and Preview release metadata
         shell: pwsh
-        run: ./scripts/Test-ReleaseVersion.ps1
+        run: |
+          ./scripts/Test-ReleaseVersion.ps1
+          ./scripts/Test-ReleaseConsistency.ps1
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
@@ -70,6 +72,7 @@ jobs:
           name: dropspace-portable-win-x64
           path: artifacts/release/DropSpace.exe
           if-no-files-found: error
+          retention-days: 3
 
       - name: Build pinned Inno Setup installer
         shell: pwsh
@@ -93,6 +96,7 @@ jobs:
           name: dropspace-setup-win-x64
           path: artifacts/installer/DropSpaceSetup.exe
           if-no-files-found: error
+          retention-days: 3
 
       - name: Build unsigned MSIX package
         shell: pwsh
@@ -108,6 +112,7 @@ jobs:
           name: dropspace-msix-unsigned-x64
           path: artifacts/msix/**
           if-no-files-found: error
+          retention-days: 3
 
       - name: Upload unsigned identity package for signing pipeline
         uses: actions/upload-artifact@v4
@@ -115,6 +120,7 @@ jobs:
           name: dropspace-identity-unsigned-x64
           path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
+          retention-days: 3
 
       - name: Upload test results
         if: always()
@@ -123,3 +129,4 @@ jobs:
           name: test-results
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
+          retention-days: 7

@@ -441,3 +441,16 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Fix the API-updated Stable status to one 7-pixel green dot with horizontal copy, and redesign the website showcase around Compact, Drop Ready, and Expanded Dynamic Island states.
 - Promote GitHub Pages to the single official website and versioned release API, remove the unavailable Cloudflare endpoint from App update checks, and preserve GitHub Releases as the validated fallback.
 - Publish the Preview installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest after the full Windows release and lifecycle suite passes; Stable remains v0.1.0.
+
+### v0.2.0-preview.5 fail-closed website release metadata
+
+- Require a fresh, contract-validated GitHub Releases response before the official GitHub Pages site can deploy.
+- Keep the previous known-good Pages deployment live instead of rebuilding from stale fixture data when synchronization fails.
+- Remove the obsolete Cloudflare Pages release API and add network, HTTP, JSON, provenance, asset, and fixture-isolation regressions.
+
+### v0.2.0-preview.6 release consistency and Stable candidate
+
+- Derive the updater summary from the matching release notes and reject mismatches across the canonical version, notes, README, ROADMAP, and generated manifest.
+- Verify every publication end to end across the GitHub Release, five public assets, checksums, manifest, official website API, and Stable website presentation.
+- Apply explicit short retention to disposable Actions artifacts while preserving public GitHub Release assets.
+- Keep the user-confirmed Smart drag detector and single Dynamic Island behavior unchanged as the final v0.2.0 Stable candidate.

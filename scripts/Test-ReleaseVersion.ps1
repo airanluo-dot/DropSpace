@@ -57,7 +57,13 @@ Assert-Equal $singleIslandPreview.FileVersion "0.2.0.4" "Single-Island Preview f
 Assert-Equal $singleIslandPreview.PackageVersion "0.2.0.4" "Single-Island Preview package version"
 Assert-Equal $singleIslandPreview.GitHubPrerelease $true "Single-Island Preview prerelease flag"
 Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $singleIslandPreview) "0.2.0-preview.3" "Single-Island Preview lifecycle baseline"
-Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $stable) "0.1.0-preview.5" "Stable lifecycle baseline"
+$releaseSyncPreview = Get-DropSpaceReleaseInfo "v0.2.0-preview.5"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $releaseSyncPreview) "0.2.0-preview.4" "Release-sync Preview lifecycle baseline"
+$releaseConsistencyPreview = Get-DropSpaceReleaseInfo "v0.2.0-preview.6"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $releaseConsistencyPreview) "0.2.0-preview.5" "Release-consistency Preview lifecycle baseline"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $stable) "0.1.0-preview.5" "v0.1.0 Stable lifecycle baseline"
+$smartDragStable = Get-DropSpaceReleaseInfo "v0.2.0"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $smartDragStable) "0.2.0-preview.6" "v0.2.0 Stable lifecycle baseline"
 
 foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1.0-preview.9999"))
 {
