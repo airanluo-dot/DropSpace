@@ -45,6 +45,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    outputs:
+      stable_tag: ${{ steps.release_metadata.outputs.stable_tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,12 +64,14 @@ jobs:
           NODE_ENV: production
           GITHUB_TOKEN: ${{ github.token }}
         run: npm run sync-releases
+      - name: Capture synchronized Stable tag
+        id: release_metadata
+        working-directory: website/_source
+        shell: bash
+        run: node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('data/releases.json','utf8')); console.log('stable_tag='+data.stable.tag)" >> "$GITHUB_OUTPUT"
       - name: Build and test static output
         working-directory: website/_source
         run: npm test
-      - name: Install Chromium
-        working-directory: website/_source
-        run: npx playwright install --with-deps chromium
       - name: Test language routes in a real browser
         working-directory: website/_source
         run: npm run test:browser
@@ -93,10 +97,19 @@ jobs:
   verify:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: [build, deploy]
     steps:
       - uses: actions/checkout@v4
       - name: Verify live Release and website metadata
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node website/_source/scripts/verify-published-release.mjs "$(tr -d '\r\n' < RELEASE_VERSION)" 180
+        shell: bash
+        run: |
+          expected_tag="$(tr -d '\r\n' < RELEASE_VERSION)"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # A version-promotion push can deploy before its Windows Release is
+            # published. Verify the Stable metadata that this build actually
+            # synchronized; the post-publication dispatch verifies RELEASE_VERSION.
+            expected_tag="${{ needs.build.outputs.stable_tag }}"
+          fi
+          node website/_source/scripts/verify-published-release.mjs "$expected_tag" 180

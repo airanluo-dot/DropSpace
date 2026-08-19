@@ -11,11 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.1.0 is the first Stable release**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.0 is the current Stable release**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.1.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.0](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.0). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
-Latest Preview: **v0.2.0-preview.6** is the final v0.2.0 Stable candidate. It keeps the user-confirmed Smart drag detector unchanged, standardizes every quick-access state on one Dynamic Island, and closes the release-consistency gaps between GitHub Releases, the official website API, update manifests, checksums, and documentation. Stable-channel users do not receive this Preview.
+The completed **v0.2.0-preview.6** test sequence confirmed the Smart drag detector, single Dynamic Island, release consistency, and official website/update chain now shipped by v0.2.0. Preview-channel users also receive this Stable release because it is the highest eligible SemVer.
 
 The implemented vertical slice includes:
 
@@ -48,7 +48,7 @@ Normal uninstall keeps local DropSpace data for reinstall. Select “also delete
 
 Download `DropSpace.exe` from the official [GitHub Releases](https://github.com/airanluo-dot/DropSpace/releases) page and double-click it. It is self-contained and requires no Visual Studio, separate .NET runtime, Windows App SDK runtime installation, PowerShell, certificate installation, or administrator rights.
 
-The first Stable build is not commercially code-signed. SmartScreen may show an unknown-app warning on first launch; obtain the file only from the official release and compare it with `SHA256SUMS.txt`.
+The current Stable build is not commercially code-signed. SmartScreen may show an unknown-app warning on first launch; obtain the file only from the official release and compare it with `SHA256SUMS.txt`.
 
 ### 3. MSIX — alternative package
 

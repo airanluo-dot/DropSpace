@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+
+const releases = JSON.parse(await readFile(new URL("../data/releases.json", import.meta.url), "utf8"));
 
 test("root redirects before rendering a separate unstyled page", async ({ browser }) => {
   const english = await browser.newContext({ locale: "en-US" });
@@ -41,10 +44,10 @@ test("localized changelog and Stable downloads are real", async ({ page }) => {
   await page.goto("/DropSpace/zh-cn/changelog/");
   await expect(page).toHaveTitle("更新日志 — DropSpace");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.locator("main")).toContainText("v0.1.0");
+  await expect(page.locator("main")).toContainText(releases.stable.tag);
   const installer = page.locator('a[href*="DropSpaceSetup.exe"]').first();
   await expect(installer).toBeVisible();
-  await expect(installer).toHaveAttribute("href", "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe");
+  await expect(installer).toHaveAttribute("href", releases.stable.assets.installer);
 });
 
 test("live Stable status and Dynamic Island showcase keep their intended layout", async ({ page }) => {
