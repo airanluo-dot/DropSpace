@@ -380,7 +380,25 @@ Ask or stop only when a decision cannot be safely inferred, such as:
 
 Otherwise make the safest repository-consistent choice, implement it, validate it, and report any bounded assumption.
 
-## 19. Completion gate
+## 19. Mandatory Skill synchronization gate
+
+Treat Skill freshness as part of every mutating DropSpace workflow, not as optional follow-up documentation.
+
+Before declaring an App, website, API, updater, packaging, CI/CD, release, documentation, or repository change complete:
+
+1. Compare the completed change with both DropSpace maintenance Skills:
+   - the repository copy at `.agents/skills/dropspace-maintainer/SKILL.md`;
+   - the installed personal Skill whose frontmatter name is `dropspace-codex`, resolved from the personal-skills checkout rather than from a remembered internal directory name.
+2. Update both Skills in the same task whenever the change affects product facts, architecture, invariants, paths, commands, API contracts, test expectations, release/deployment procedures, live-verification rules, or the definition of done.
+3. Keep durable workflow knowledge in the Skills. Rediscover volatile version numbers and live state unless a current implementation snapshot is intentionally documented and updated with the release.
+4. Validate both Skill folders after editing. Publish the repository copy through the normal DropSpace branch/PR/check/merge flow, save the installed Skill through its supported personal-skills workflow, and verify both remote results.
+5. If neither Skill needs a semantic edit, explicitly report `Skill sync: verified current` in the completion report. The synchronization check is mandatory even when the outcome is no file change.
+6. If either Skill changes, apply this same gate recursively: inspect and synchronize its counterpart before finishing. Updating only one copy is incomplete.
+7. If one destination cannot be updated or verified, report the exact blocked destination and do not describe the overall update or release as fully complete.
+
+Skill-only maintenance does not require an App version bump or Preview release unless the user or current repository policy explicitly requests one.
+
+## 20. Completion gate
 
 Before declaring success, perform a final pass:
 
@@ -396,7 +414,7 @@ Before declaring success, perform a final pass:
 
 Do not claim “done” when the repository is only locally modified, when CI is still deterministically failing, when a requested release is not published, or when a requested live deployment has not been verified.
 
-## 20. Final report format
+## 21. Final report format
 
 Return a concise, evidence-based completion report with these sections when applicable:
 
@@ -407,6 +425,7 @@ Return a concise, evidence-based completion report with these sections when appl
 - **GitHub** — branch, commit, PR, merge state, and relevant CI runs.
 - **Release** — version/channel/tag/assets/signing state when shipped.
 - **Website/API** — deployment and live metadata verification when affected.
+- **Skill sync** — both Skill copies updated and verified, or explicitly verified current with no edit required.
 - **Risks / limitations** — remaining bounded issues, unsupported cases, or external blockers.
 
 Report concrete failures rather than vague statements such as “permissions issue.” State the exact unavailable capability, what was still completed, and what final state could not be verified.
