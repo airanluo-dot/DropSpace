@@ -90,3 +90,33 @@ test("reduced motion, system detection and narrow layout remain usable", async (
   expect(overflow).toBe(false);
   await expect(page.locator("[data-language-switch]")).toBeVisible();
 });
+
+test("latest-change API updates the large release story with any supported summary count", async ({ page }) => {
+  await page.route("**/api/v1/latest-change.json", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: "2026-08-20T00:01:00Z",
+        source: "github-releases",
+        release: {
+          tagName: "v0.2.1-preview.1",
+          channel: "preview",
+          headline: { en: "Latest Preview.", "zh-CN": "最新预览版。" },
+          title: "Release-driven latest changes",
+          publishedAt: "2026-08-20T00:00:00Z",
+          htmlUrl: "https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1-preview.1",
+          highlights: { en: ["One", "Two", "Three"], "zh-CN": ["第一项", "第二项", "第三项"] }
+        }
+      })
+    });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/DropSpace/zh-cn/");
+  await expect(page.locator("html")).toHaveAttribute("data-latest-change-api", "current");
+  await expect(page.locator("[data-latest-change-headline]")).toHaveText("最新预览版。");
+  await expect(page.locator("[data-latest-change-tag]")).toHaveText("v0.2.1-preview.1");
+  await expect(page.locator("[data-latest-change-highlights] > span")).toHaveCount(3);
+  await expect(page.locator("[data-latest-change-url]")).toHaveAttribute("href", /v0\.2\.1-preview\.1$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});

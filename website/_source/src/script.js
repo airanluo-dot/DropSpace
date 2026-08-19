@@ -48,8 +48,9 @@ const releaseApiPaths = isGitHubPages
   : isLocalPreview
     ? ["/api/v1/releases.json"]
     : ["/api/v1/releases.json", "https://airanluo-dot.github.io/DropSpace/api/v1/releases.json"];
+const latestChangeApiPaths = releaseApiPaths.map((path) => path.replace(/releases\.json$/, "latest-change.json"));
 
-void refreshReleaseData();
+void Promise.all([refreshReleaseData(), refreshLatestChangeData()]);
 
 async function refreshReleaseData() {
   const responses = await Promise.allSettled(releaseApiPaths.map(async (endpoint) => {
@@ -92,6 +93,68 @@ function isValidRelease(release) {
     Number.isSafeInteger(asset.size) && asset.size > 0 &&
     !names.has(asset.name) && names.add(asset.name) &&
     asset.downloadUrl === `https://github.com/airanluo-dot/DropSpace/releases/download/${release.tagName}/${asset.name}`);
+}
+
+async function refreshLatestChangeData() {
+  for (const endpoint of latestChangeApiPaths) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { Accept: "application/json" },
+        cache: "no-cache",
+        signal: AbortSignal.timeout(6000)
+      });
+      if (!response.ok) continue;
+      const payload = await response.json();
+      if (!isValidLatestChange(payload)) continue;
+      applyLatestChange(payload.release);
+      document.documentElement.dataset.latestChangeApi = "current";
+      return;
+    } catch {
+      // Try the next official replica and retain the validated build snapshot on failure.
+    }
+  }
+  document.documentElement.dataset.latestChangeApi = "build-snapshot";
+}
+
+function isValidLatestChange(payload) {
+  const release = payload?.release;
+  if (payload?.schemaVersion !== 1 || payload.source !== "github-releases" ||
+      !Number.isFinite(Date.parse(payload.generatedAt)) ||
+      !/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release?.tagName ?? "") ||
+      release.htmlUrl !== `https://github.com/airanluo-dot/DropSpace/releases/tag/${release.tagName}` ||
+      !Number.isFinite(Date.parse(release.publishedAt)) ||
+      release.channel !== (release.tagName.includes("-preview.") ? "preview" : "stable") ||
+      !isBoundedText(release.title, 160)) return false;
+  return ["en", "zh-CN"].every((locale) =>
+    isBoundedText(release.headline?.[locale], 80) &&
+    Array.isArray(release.highlights?.[locale]) &&
+    release.highlights[locale].length >= 1 && release.highlights[locale].length <= 6 &&
+    release.highlights[locale].every((item) => isBoundedText(item, 500)));
+}
+
+function isBoundedText(value, maxLength) {
+  return typeof value === "string" && value.length >= 1 && value.length <= maxLength &&
+    value.trim() === value && !/[\u0000-\u001f]/.test(value);
+}
+
+function applyLatestChange(release) {
+  const locale = document.documentElement.lang.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+  const setText = (selector, value) => document.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
+  setText("[data-latest-change-headline]", release.headline[locale]);
+  setText("[data-latest-change-tag]", release.tagName);
+  setText("[data-latest-change-title]", release.title);
+  setText("[data-latest-change-date]", new Date(release.publishedAt).toLocaleDateString(locale, { dateStyle: "long", timeZone: "UTC" }));
+  document.querySelectorAll("[data-latest-change-url]").forEach((link) => { link.href = release.htmlUrl; });
+
+  const container = document.querySelector("[data-latest-change-highlights]");
+  if (!container) return;
+  const fragment = document.createDocumentFragment();
+  for (const value of release.highlights[locale]) {
+    const item = document.createElement("span");
+    item.textContent = value;
+    fragment.append(item);
+  }
+  container.replaceChildren(fragment);
 }
 
 function applyCurrentReleases(releases) {

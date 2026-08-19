@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import { JSDOM } from "jsdom";
-import { validateReleaseApi } from "./release-contract.mjs";
+import { validateLatestChangeApi, validateReleaseApi } from "./release-contract.mjs";
 
 const read = (relative) => readFile(new URL(`../dist/${relative}`, import.meta.url), "utf8");
 const releases = JSON.parse(await readFile(new URL("../data/releases.json", import.meta.url), "utf8"));
@@ -13,6 +13,7 @@ const zhChangelog = await read("zh-cn/changelog/index.html");
 const cssHref = (en.match(/href="([^"]*styles\.[^"]+\.css)"/) ?? [])[1];
 const css = await read(new URL(cssHref, "https://airanluo-dot.github.io/DropSpace/en/").pathname.replace(/^\/DropSpace\//, ""));
 const releaseApi = JSON.parse(await read("api/v1/releases.json"));
+const latestChangeApi = JSON.parse(await read("api/v1/latest-change.json"));
 
 test("release data has a SemVer Stable with all downloads", () => {
   assert.match(releases.stable.tag, /^v\d+\.\d+\.\d+$/);
@@ -35,6 +36,19 @@ test("versioned release API is emitted for the app and runtime website", () => {
       assert.ok(asset.size > 0);
       assert.equal(asset.downloadUrl, `https://github.com/airanluo-dot/DropSpace/releases/download/${release.tagName}/${asset.name}`);
     }
+  }
+});
+
+test("latest-change API drives the large headline and variable summary list", () => {
+  assert.equal(validateLatestChangeApi(latestChangeApi), latestChangeApi);
+  for (const [html, locale] of [[en, "en"], [zh, "zh-CN"]]) {
+    const document = new JSDOM(html).window.document;
+    const release = latestChangeApi.release;
+    assert.equal(document.querySelector("[data-latest-change-headline]")?.textContent, release.headline[locale]);
+    assert.equal(document.querySelector("[data-latest-change-tag]")?.textContent, release.tagName);
+    assert.equal(document.querySelector("[data-latest-change-title]")?.textContent, release.title);
+    assert.equal(document.querySelector("[data-latest-change-url]")?.href, release.htmlUrl);
+    assert.equal(document.querySelectorAll("[data-latest-change-highlights] > span").length, release.highlights[locale].length);
   }
 });
 

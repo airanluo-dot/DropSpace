@@ -4,13 +4,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { changelogMeta, site, zh } from "./i18n.mjs";
-import { validateWebsiteReleaseData } from "./release-contract.mjs";
+import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-contract.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const src = path.join(root, "src");
 const dist = path.join(root, "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
 const stable = releases.stable;
+const latestChange = createLatestChangeApi(releases.api);
 const siteOrigin = (process.env.SITE_ORIGIN ?? "https://airanluo-dot.github.io/DropSpace").replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;
 
@@ -208,6 +209,15 @@ function rewriteLinks(document, route, kind) {
 async function render(templatePath, route, kind) {
   let template = replaceTokens(await readFile(path.join(src, templatePath), "utf8"));
   template = template.replace("{{RELEASE_ENTRIES}}", releaseEntries(route));
+  const locale = route === "zh-cn" ? "zh-CN" : "en";
+  const change = latestChange.release;
+  template = template
+    .replace("{{LATEST_CHANGE_HEADLINE}}", escapeHtml(change.headline[locale]))
+    .replace("{{LATEST_CHANGE_TAG}}", escapeHtml(change.tagName))
+    .replace("{{LATEST_CHANGE_TITLE}}", escapeHtml(change.title))
+    .replace("{{LATEST_CHANGE_DATE}}", escapeHtml(formatDate(change.publishedAt, locale === "zh-CN" ? "zh-CN" : "en-US")))
+    .replace("{{LATEST_CHANGE_URL}}", escapeHtml(change.htmlUrl))
+    .replace("{{LATEST_CHANGE_HIGHLIGHTS}}", change.highlights[locale].map((item) => `<span>${escapeHtml(item)}</span>`).join(""));
   const dom = new JSDOM(template);
   const { document } = dom.window;
   translateDocument(document, route);
@@ -230,6 +240,7 @@ await writeFile(path.join(dist, "index.html"), `<!doctype html><html lang="en"><
 await writeFile(path.join(dist, "404.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found — DropSpace</title><link rel="icon" href="${assetUrls.favicon}"><link rel="stylesheet" href="${assetUrls.css}"></head><body><main class="not-found shell"><div><img src="${assetUrls.logo}" width="96" height="96" alt="DropSpace logo"><p class="section-index">404</p><h1>Nothing dropped here.</h1><p>This page is not in Temporary Space.</p><a class="button button-primary" href="${basePath}en/">Back to DropSpace</a></div></main></body></html>\n`);
 await writeFile(path.join(dist, "release-data.json"), `${JSON.stringify(releases, null, 2)}\n`);
 await writeFile(path.join(dist, "api", "v1", "releases.json"), `${JSON.stringify(releases.api, null, 2)}\n`);
+await writeFile(path.join(dist, "api", "v1", "latest-change.json"), `${JSON.stringify(latestChange, null, 2)}\n`);
 await writeFile(path.join(dist, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${siteOrigin}/sitemap.xml\n`);
 await writeFile(path.join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${siteOrigin}/en/</loc></url><url><loc>${siteOrigin}/zh-cn/</loc></url><url><loc>${siteOrigin}/en/changelog/</loc></url><url><loc>${siteOrigin}/zh-cn/changelog/</loc></url></urlset>\n`);
 const manifest = JSON.parse(await readFile(path.join(src, "site.webmanifest"), "utf8"));

@@ -64,6 +64,10 @@ Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $releaseConsistencyPreview) 
 Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $stable) "0.1.0-preview.5" "v0.1.0 Stable lifecycle baseline"
 $smartDragStable = Get-DropSpaceReleaseInfo "v0.2.0"
 Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $smartDragStable) "0.2.0-preview.6" "v0.2.0 Stable lifecycle baseline"
+$latestChangePreview = Get-DropSpaceReleaseInfo "v0.2.1-preview.1"
+Assert-Equal $latestChangePreview.SemanticVersion "0.2.1-preview.1" "Latest-change Preview semantic version"
+Assert-Equal $latestChangePreview.FileVersion "0.2.1.1" "Latest-change Preview file version"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $latestChangePreview) "0.2.0" "Latest-change Preview lifecycle baseline"
 
 foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1.0-preview.9999"))
 {

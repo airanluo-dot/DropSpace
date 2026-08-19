@@ -460,3 +460,10 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Promote the user-confirmed Smart drag architecture without changing its bounded signal, cancellation, final `CF_HDROP`, privacy, or compatibility-mode behavior.
 - Ship the Dynamic-Island-only interface, final transparent branding, GitHub Pages release API, GitHub Releases fallback, fail-closed production synchronization, and cross-surface release consistency as one Stable build.
 - Publish a separately built Stable installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest; Stable and Preview channels both select v0.2.0 over the older Preview sequence.
+
+### v0.2.1-preview.1 API-driven latest changes
+
+- Add a dedicated, versioned `/api/v1/latest-change.json` website presentation contract derived from validated GitHub Releases without changing the App's schema-v1 update API.
+- Keep the large “What's new” headline design while updating its channel-aware headline, release title, date, official link, and variable-length bilingual highlights at build time and runtime.
+- Preserve the last validated build snapshot when runtime refresh fails, and verify the new endpoint plus live homepage after every release.
+- Keep Smart drag, the Dynamic-Island-only App interface, local data behavior, packaging, and update selection unchanged.
