@@ -111,5 +111,8 @@ jobs:
             # published. Verify the Stable metadata that this build actually
             # synchronized; the post-publication dispatch verifies RELEASE_VERSION.
             expected_tag="${{ needs.build.outputs.stable_tag }}"
+            verification_mode="live"
+          else
+            verification_mode="release"
           fi
-          node website/_source/scripts/verify-published-release.mjs "$expected_tag" 180
+          node website/_source/scripts/verify-published-release.mjs "$expected_tag" 180 "$verification_mode"
