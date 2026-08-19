@@ -9,18 +9,19 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+. (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
 $releaseSummary = if (-not [string]::IsNullOrWhiteSpace($Summary))
 {
-    $Summary
-}
-elseif ($releaseInfo.Tag -like "v0.2.0-preview.*")
-{
-    "Experimental smart file-drag wake Preview with Explorer/Desktop recognition and resilient official website update metadata. Some third-party or virtual-file drags may require Classic top-edge compatibility mode."
+    $Summary.Trim()
 }
 else
 {
-    "DropSpace stable and preview updates are selected with strict SemVer ordering."
+    Get-DropSpaceUpdateSummary -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
+}
+if ($releaseSummary.Length -gt 500)
+{
+    throw "The update summary must not exceed 500 characters."
 }
 $directory = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDirectory))
 $output = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $OutputPath))

@@ -7,7 +7,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+. (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
+$expectedSummary = Get-DropSpaceUpdateSummary -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
 $manifestFile = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ManifestPath))
 $releaseRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDirectory))
 if (-not (Test-Path $manifestFile -PathType Leaf) -or (Get-Item $manifestFile).Length -gt 65536)
@@ -24,7 +26,8 @@ if (@(Compare-Object ($expectedTop | Sort-Object) ($actualTop | Sort-Object)).Co
 }
 if ($manifest.schemaVersion -ne 1 -or $manifest.version -ne $releaseInfo.SemanticVersion -or
     $manifest.versionCode -ne $releaseInfo.VersionCode -or $manifest.channel -ne $releaseInfo.Channel -or
-    $manifest.minimumWindowsBuild -lt 26100 -or $manifest.mandatory -ne $false)
+    $manifest.minimumWindowsBuild -lt 26100 -or $manifest.mandatory -ne $false -or
+    $manifest.summary -ne $expectedSummary)
 {
     throw "update-manifest.json release metadata is inconsistent."
 }

@@ -49,7 +49,22 @@ function Get-DropSpaceLifecycleBaselineVersion
 
     if (-not $ReleaseInfo.IsPreview)
     {
-        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch)-preview.5"
+        $notesRoot = Join-Path (Split-Path $PSScriptRoot -Parent) ".github/release-notes"
+        $prefix = "v$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch)-preview."
+        $latestPreview = Get-ChildItem $notesRoot -File -Filter "$prefix*.md" |
+            ForEach-Object {
+                if ($_.BaseName -match "^$([regex]::Escape($prefix))(?<number>[1-9][0-9]*)$")
+                {
+                    [PSCustomObject]@{ Number = [int]$Matches.number; Version = $_.BaseName.Substring(1) }
+                }
+            } |
+            Sort-Object Number -Descending |
+            Select-Object -First 1
+        if ($null -eq $latestPreview)
+        {
+            throw "Stable release $($ReleaseInfo.Tag) has no same-line Preview lifecycle baseline."
+        }
+        return $latestPreview.Version
     }
 
     # A first Preview has no same-line predecessor. Use the nearest lower
