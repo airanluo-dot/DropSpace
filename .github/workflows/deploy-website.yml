@@ -72,9 +72,6 @@ jobs:
       - name: Build and test static output
         working-directory: website/_source
         run: npm test
-      - name: Install Chromium
-        working-directory: website/_source
-        run: npx playwright install --with-deps chromium
       - name: Test language routes in a real browser
         working-directory: website/_source
         run: npm run test:browser
