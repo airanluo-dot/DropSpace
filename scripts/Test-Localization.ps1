@@ -100,12 +100,14 @@ foreach ($file in $sourceFiles | Where-Object Extension -eq ".xaml")
 }
 
 $windowOverrides = @(
-    @{ Uid = "MainWindow"; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
-    @{ Uid = "OverlayWindow"; CodeBehind = Join-Path $appRoot "OverlayWindow.xaml.cs" }
+    @{ Uid = "MainTitleBar"; Target = "AppTitleBar"; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
+    @{ Uid = "MainWindow"; Target = "this"; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
+    @{ Uid = "OverlayWindow"; Target = "this"; CodeBehind = Join-Path $appRoot "OverlayWindow.xaml.cs" }
 )
 foreach ($windowOverride in $windowOverrides)
 {
     $uid = $windowOverride.Uid
+    $target = $windowOverride.Target
     $codeBehindPath = $windowOverride.CodeBehind
     if (-not (Test-Path $codeBehindPath -PathType Leaf))
     {
@@ -113,7 +115,7 @@ foreach ($windowOverride in $windowOverrides)
     }
 
     $codeBehind = Get-Content -Path $codeBehindPath -Raw
-    $applyPattern = 'XamlResourceOverride\.Apply\(this,\s*"' + [regex]::Escape($uid) + '"\)'
+    $applyPattern = 'XamlResourceOverride\.Apply\(\s*' + [regex]::Escape($target) + '\s*,\s*"' + [regex]::Escape($uid) + '"\)'
     if ($codeBehind -notmatch $applyPattern)
     {
         throw "Window localization identifier '$uid' must be applied directly after XAML initialization."

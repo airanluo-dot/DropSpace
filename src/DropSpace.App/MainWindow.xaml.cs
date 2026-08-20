@@ -38,6 +38,7 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException("Main-window XAML initialization failed.", exception);
         }
 
+        XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
         XamlResourceOverride.Apply(this, "MainWindow");
 
         ExtendsContentIntoTitleBar = true;
