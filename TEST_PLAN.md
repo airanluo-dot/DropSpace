@@ -11,7 +11,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Schema migration fixtures pass from every supported prior version.
 - No high-severity privacy/security finding remains unexplained.
 - Critical manual matrix has evidence for the release candidate.
-- `en-US` and `zh-CN` `.resw` key sets are identical; every `x:Uid` and imperative localizer key resolves in the English base resource file; source `.cs` and `.xaml` files contain no CJK hardcoded UI text.
+- `en-US` and `zh-CN` `.resw` key sets are identical; every `x:Uid`, imperative localizer key, and package-manifest string resolves in the English base resource file; source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and bundles its packaging-free `resources.pri` before the runtime smoke.
 
 ## Unit tests
 

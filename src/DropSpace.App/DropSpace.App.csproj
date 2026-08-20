@@ -49,6 +49,7 @@
   <ItemGroup>
     <Content Include="Assets\*.png" />
     <Content Include="Assets\AppIcon.ico" />
+    <DropSpaceStringResource Include="Strings\**\*.resw" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
@@ -81,5 +82,28 @@
       <Win32Manifest />
       <NoWin32Manifest>true</NoWin32Manifest>
     </PropertyGroup>
+  </Target>
+  <Target
+    Name="GenerateDropSpacePortableResourceIndex"
+    BeforeTargets="PrepareForBundle"
+    Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'"
+    Inputs="@(DropSpaceStringResource);$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1"
+    Outputs="$(IntermediateOutputPath)resources.pri">
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot; -OutputPath &quot;$(IntermediateOutputPath)resources.pri&quot; -ConfigurationPath &quot;$(IntermediateOutputPath)resources.priconfig.xml&quot;" />
+  </Target>
+  <Target
+    Name="BundleDropSpacePortableResourceIndex"
+    AfterTargets="PrepareForBundle"
+    BeforeTargets="GenerateSingleFileBundle"
+    DependsOnTargets="GenerateDropSpacePortableResourceIndex"
+    Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'">
+    <Error Condition="!Exists('$(IntermediateOutputPath)resources.pri')" Text="The portable resource index was not generated before single-file bundling." />
+    <ItemGroup>
+      <FilesToBundle Include="$(IntermediateOutputPath)resources.pri">
+        <RelativePath>resources.pri</RelativePath>
+      </FilesToBundle>
+    </ItemGroup>
   </Target>
 </Project>

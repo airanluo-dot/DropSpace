@@ -112,6 +112,36 @@ if ((Get-Content -Path $projectFile -Raw) -notmatch '<DefaultLanguage>en-US</Def
     throw "DropSpace.App.csproj must declare en-US as the default resource language."
 }
 
+$projectText = Get-Content -Path $projectFile -Raw
+if ($projectText -notmatch 'GenerateDropSpacePortableResourceIndex' -or
+    $projectText -notmatch 'BundleDropSpacePortableResourceIndex')
+{
+    throw "DropSpace.App must generate and bundle resources.pri for unpackaged single-file builds."
+}
+
+$portablePriScript = Join-Path $repositoryRoot "scripts/Generate-PortableResourcesPri.ps1"
+if (-not (Test-Path $portablePriScript -PathType Leaf) -or
+    (Get-Content -Path $portablePriScript -Raw) -notmatch 'RemoveChild\(\$packagingNode\)')
+{
+    throw "The portable resource index generator must remove the MakePri packaging section."
+}
+
+$packageManifest = Join-Path $appRoot "Package.appxmanifest"
+$manifestText = Get-Content -Path $packageManifest -Raw
+if ($manifestText -notmatch 'DisplayName="ms-resource:AppDisplayName"' -or
+    $manifestText -notmatch 'Description="ms-resource:AppDescription"')
+{
+    throw "The package manifest must resolve its display name and description from localized resources."
+}
+
+foreach ($manifestResource in "AppDisplayName", "AppDescription")
+{
+    if (-not $englishLookup.Contains($manifestResource))
+    {
+        throw "The package manifest resource '$manifestResource' is missing from Resources.resw."
+    }
+}
+
 $mainPage = Get-Content -Path (Join-Path $appRoot "Views/MainPage.xaml") -Raw
 foreach ($tag in "System", "English", "SimplifiedChinese")
 {

@@ -266,6 +266,7 @@ Typical expectations:
 - Put user-facing Chinese only in `.resw` resources; do not add CJK UI text to production `.cs` or `.xaml` files.
 - Cover the main window, Dynamic Island, tray, error paths, accessibility names, and update feedback—not only static page labels.
 - Preserve `System`/`English`/`SimplifiedChinese` settings behavior: System maps a Chinese Windows display language to `zh-CN` and uses the English base for other not-yet-shipped languages; apply a changed resource context at the documented restart boundary.
+- Preserve the portable resource-index build: stage only `Strings` so MakePri creates the unpackaged `Application` root, generate one packaging-free `resources.pri`, bundle it into the self-extracting single EXE, and use an explicit resource context for imperative lookup.
 - Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 11 validation as a manual release gate.
 
 ### Workflow-only changes

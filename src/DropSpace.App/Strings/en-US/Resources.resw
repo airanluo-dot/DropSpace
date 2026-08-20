@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- Imperative UI, status, error, update, and accessibility strings. -->
+  <data name="AppDescription" xml:space="preserve"><value>A local temporary workspace for files and clipboard history.</value></data>
+  <data name="AppDisplayName" xml:space="preserve"><value>DropSpace</value></data>
   <data name="AppUpdated" xml:space="preserve"><value>DropSpace was updated to {0}.</value></data>
   <data name="Bytes" xml:space="preserve"><value>{0:0} B</value></data>
   <data name="ClearConfirmButton" xml:space="preserve"><value>Clear</value></data>

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 命令式界面、状态、错误、更新和辅助功能文本。 -->
+  <data name="AppDescription" xml:space="preserve"><value>用于文件和剪贴板历史记录的本地临时工作区。</value></data>
+  <data name="AppDisplayName" xml:space="preserve"><value>DropSpace</value></data>
   <data name="AppUpdated" xml:space="preserve"><value>DropSpace 已更新至 {0}。</value></data>
   <data name="Bytes" xml:space="preserve"><value>{0:0} B</value></data>
   <data name="ClearConfirmButton" xml:space="preserve"><value>清除</value></data>

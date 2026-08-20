@@ -170,23 +170,35 @@ public partial class App : Application
             catch (Exception exception)
             {
                 WriteCrashMarker("startup", exception);
+                _services.GetService<ILogger<App>>()?.LogCritical(exception, "Application startup failed.");
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     WriteSmokeFailureMarker("startup", exception);
                 }
 
-                await _window.ShowRecoveryAsync();
+                if (_window is not null)
+                {
+                    await _window.ShowRecoveryAsync();
+                }
+                else
+                {
+                    await ShutdownAsync();
+                    Environment.Exit(1);
+                }
             }
         }
         catch (Exception exception)
         {
             WriteCrashMarker("launch", exception);
+            _services?.GetService<ILogger<App>>()?.LogCritical(exception, "Application launch failed.");
             if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
             {
                 WriteSmokeFailureMarker("launch", exception);
             }
 
             Debug.WriteLine(exception);
+            await ShutdownAsync();
+            Environment.Exit(1);
         }
     }
 

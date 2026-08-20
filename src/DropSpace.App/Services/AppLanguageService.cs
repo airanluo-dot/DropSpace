@@ -1,3 +1,4 @@
+using System.Globalization;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
 using Microsoft.Windows.Globalization;
@@ -25,12 +26,16 @@ public sealed class AppLanguageService
     public void Apply(AppLanguagePreference preference)
     {
         Preference = preference;
-        // Clear an earlier process's explicit choice before querying the OS preference list.
+        // System leaves WinUI's resource context untouched so unpackaged MRT uses the Windows
+        // display language. CurrentUICulture is first so imperative strings use that same choice.
         ApplicationLanguages.PrimaryLanguageOverride = string.Empty;
         EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(
             preference,
-            ApplicationLanguages.Languages);
-        ApplicationLanguages.PrimaryLanguageOverride = EffectiveLanguageTag;
+            [CultureInfo.CurrentUICulture.Name, .. ApplicationLanguages.Languages]);
+        if (preference != AppLanguagePreference.System)
+        {
+            ApplicationLanguages.PrimaryLanguageOverride = EffectiveLanguageTag;
+        }
     }
 
     public static bool TryParseSupportedLanguage(string? value, out AppLanguagePreference preference)

@@ -157,6 +157,7 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 - `AppSettings` schema v7 persists `AppLanguagePreference` as `System`, `English`, or `SimplifiedChinese`; legacy settings default to `System`.
 - `AppLanguageService` applies the preference before the main window, Dynamic Island, tray, and services are created. System reads the Windows display-language preference, selects `zh-CN` for `zh-*`, and uses the shipped `en-US` base resource set for every other language.
 - `Strings/en-US/Resources.resw` is the complete base resource set; `Strings/zh-CN/Resources.resw` has an exact matching key set. XAML uses `x:Uid`; imperative UI, service status, error prompts, and update feedback use the narrow Core `IAppStringLocalizer` contract.
+- Portable/unpackaged publishing stages only `Strings` (so the MSIX manifest cannot change the unpackaged Application root), regenerates a single `resources.pri` with MakePri without its packaging section, bundles it into the self-extracting EXE, and opens it through an explicit `ResourceManager` context. This preserves the single-EXE distribution contract while avoiding the missing default resource view in unpackaged WinUI.
 - Language selection is deliberately startup-scoped: Settings persists the next choice and presents a restart-required confirmation instead of mutating a live visual tree, tray menu, or resource context midway through a process.
 
 ### Installation and maintenance
