@@ -166,6 +166,15 @@ if (-not (Test-Path $portablePriScript -PathType Leaf) -or
     throw "The portable resource index generator must omit package identity while staging XAML and asset resources with Windows PowerShell-compatible paths."
 }
 
+$resourceLocalizerPath = Join-Path $appRoot "Services/ResourceStringLocalizer.cs"
+$resourceLocalizerText = Get-Content -Path $resourceLocalizerPath -Raw
+if ($resourceLocalizerText -notmatch 'ToResourceMapPath' -or
+    $resourceLocalizerText -notmatch 'bracketDepth' -or
+    $resourceLocalizerText -match "key\.Replace\('\.',\s*'/'\)")
+{
+    throw "MRT resource lookup must preserve dots inside XAML [using:] type qualifiers for accessibility names."
+}
+
 $packageManifest = Join-Path $appRoot "Package.appxmanifest"
 $manifestText = Get-Content -Path $packageManifest -Raw
 if ($manifestText -notmatch 'DisplayName="ms-resource:AppDisplayName"' -or

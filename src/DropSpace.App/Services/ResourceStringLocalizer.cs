@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using DropSpace.Core.Abstractions;
 using Microsoft.Windows.ApplicationModel.Resources;
 
@@ -47,7 +48,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
 
         try
         {
-            value = _resourceMap.GetValue(key.Replace('.', '/'), _resourceContext).ValueAsString ?? string.Empty;
+            value = _resourceMap.GetValue(ToResourceMapPath(key), _resourceContext).ValueAsString ?? string.Empty;
             return !string.IsNullOrWhiteSpace(value);
         }
         catch (Exception)
@@ -59,6 +60,27 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
 
     public string Format(string key, params object?[] arguments) =>
         string.Format(Culture, Get(key), arguments);
+
+    private static string ToResourceMapPath(string key)
+    {
+        var path = new StringBuilder(key.Length);
+        var bracketDepth = 0;
+        foreach (var character in key)
+        {
+            if (character == '[')
+            {
+                bracketDepth++;
+            }
+            else if (character == ']')
+            {
+                bracketDepth = Math.Max(0, bracketDepth - 1);
+            }
+
+            path.Append(character == '.' && bracketDepth == 0 ? '/' : character);
+        }
+
+        return path.ToString();
+    }
 
     private static string ResolveResourceIndexPath()
     {
