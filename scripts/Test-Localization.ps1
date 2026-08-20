@@ -83,57 +83,56 @@ if ($missingImperativeKeys.Count -gt 0)
     throw "Imperative localized strings are missing from Resources.resw: $($missingImperativeKeys -join ', ')"
 }
 
-$xamlUids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$xamlResourceIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($file in $sourceFiles | Where-Object Extension -eq ".xaml")
 {
     $content = Get-Content -Path $file.FullName -Raw
-    foreach ($match in [regex]::Matches($content, 'x:Uid="(?<uid>[^"]+)"'))
+    if ($content -match '\bx:Uid=')
     {
-        [void]$xamlUids.Add($match.Groups["uid"].Value)
+        $relativePath = $file.FullName.Substring($repositoryRoot.Length + 1)
+        throw "Unpackaged XAML must use XamlResourceOverride.Uid instead of x:Uid: $relativePath"
     }
 
-    foreach ($tag in [regex]::Matches($content, '<[^<>]*x:Uid="(?<uid>[^"]+)"[^<>]*>'))
+    foreach ($match in [regex]::Matches($content, 'services:XamlResourceOverride\.Uid="(?<uid>[^"]+)"'))
     {
-        $uid = $tag.Groups["uid"].Value
-        $elementName = [regex]::Match($tag.Value, '^<\s*(?<name>[^\s/>]+)').Groups["name"].Value
-        if ($elementName -eq "Window")
-        {
-            $codeBehindPath = "$($file.FullName).cs"
-            if (-not (Test-Path $codeBehindPath -PathType Leaf))
-            {
-                throw "Window localization identifier '$uid' in $($file.FullName) has no code-behind override."
-            }
-
-            $codeBehind = Get-Content -Path $codeBehindPath -Raw
-            $applyPattern = 'XamlResourceOverride\.Apply\(this,\s*"' + [regex]::Escape($uid) + '"\)'
-            if ($codeBehind -notmatch $applyPattern)
-            {
-                throw "Window localization identifier '$uid' must be applied directly after XAML initialization."
-            }
-
-            continue
-        }
-
-        $expectedOverride = 'services:XamlResourceOverride.Uid="' + $uid + '"'
-        if ($tag.Value -notmatch [regex]::Escape($expectedOverride))
-        {
-            $relativePath = $file.FullName.Substring($repositoryRoot.Length + 1)
-            throw "XAML localization identifier '$uid' in $relativePath must have the matching XamlResourceOverride UID."
-        }
+        [void]$xamlResourceIds.Add($match.Groups["uid"].Value)
     }
 }
 
-$uidsWithoutResources = @(
-    $xamlUids |
+$windowOverrides = @(
+    @{ Uid = "MainWindow"; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
+    @{ Uid = "OverlayWindow"; CodeBehind = Join-Path $appRoot "OverlayWindow.xaml.cs" }
+)
+foreach ($windowOverride in $windowOverrides)
+{
+    $uid = $windowOverride.Uid
+    $codeBehindPath = $windowOverride.CodeBehind
+    if (-not (Test-Path $codeBehindPath -PathType Leaf))
+    {
+        throw "Window localization identifier '$uid' has no code-behind override."
+    }
+
+    $codeBehind = Get-Content -Path $codeBehindPath -Raw
+    $applyPattern = 'XamlResourceOverride\.Apply\(this,\s*"' + [regex]::Escape($uid) + '"\)'
+    if ($codeBehind -notmatch $applyPattern)
+    {
+        throw "Window localization identifier '$uid' must be applied directly after XAML initialization."
+    }
+
+    [void]$xamlResourceIds.Add($uid)
+}
+
+$resourceIdsWithoutResources = @(
+    $xamlResourceIds |
         Where-Object {
             $prefix = "$($_)."
             -not @($englishNames | Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) }).Count
         } |
         Sort-Object
 )
-if ($uidsWithoutResources.Count -gt 0)
+if ($resourceIdsWithoutResources.Count -gt 0)
 {
-    throw "XAML localization identifiers have no English resource entries: $($uidsWithoutResources -join ', ')"
+    throw "XAML localization identifiers have no English resource entries: $($resourceIdsWithoutResources -join ', ')"
 }
 
 $projectFile = Join-Path $appRoot "DropSpace.App.csproj"
@@ -182,4 +181,4 @@ foreach ($tag in "System", "English", "SimplifiedChinese")
     }
 }
 
-Write-Host "Localization policy passed: $($englishNames.Count) synchronized resource keys, $($imperativeResourceKeys.Count) imperative references, $($xamlUids.Count) XAML UIDs, and no Chinese hardcoding in source."
+Write-Host "Localization policy passed: $($englishNames.Count) synchronized resource keys, $($imperativeResourceKeys.Count) imperative references, $($xamlResourceIds.Count) XAML resource identifiers, and no Chinese hardcoding in source."

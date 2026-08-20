@@ -23,12 +23,12 @@
     PaneDisplayMode="LeftCompact"
     SelectionChanged="OnNavigationSelectionChanged">
     <NavigationView.MenuItems>
-      <NavigationViewItem x:Name="SpaceNavigationItem" x:Uid="NavSpace" services:XamlResourceOverride.Uid="NavSpace" Icon="Folder" Tag="Space" />
-      <NavigationViewItem x:Name="ClipboardNavigationItem" x:Uid="NavClipboard" services:XamlResourceOverride.Uid="NavClipboard" Icon="Paste" Tag="Clipboard" />
-      <NavigationViewItem x:Name="PinnedNavigationItem" x:Uid="NavPinned" services:XamlResourceOverride.Uid="NavPinned" Icon="Pin" Tag="Pinned" />
+      <NavigationViewItem x:Name="SpaceNavigationItem" services:XamlResourceOverride.Uid="NavSpace" Icon="Folder" Tag="Space" />
+      <NavigationViewItem x:Name="ClipboardNavigationItem" services:XamlResourceOverride.Uid="NavClipboard" Icon="Paste" Tag="Clipboard" />
+      <NavigationViewItem x:Name="PinnedNavigationItem" services:XamlResourceOverride.Uid="NavPinned" Icon="Pin" Tag="Pinned" />
     </NavigationView.MenuItems>
     <NavigationView.FooterMenuItems>
-      <NavigationViewItem x:Name="SettingsNavigationItem" x:Uid="NavSettings" services:XamlResourceOverride.Uid="NavSettings" Icon="Setting" Tag="Settings" />
+      <NavigationViewItem x:Name="SettingsNavigationItem" services:XamlResourceOverride.Uid="NavSettings" Icon="Setting" Tag="Settings" />
     </NavigationView.FooterMenuItems>
 
     <Grid>
@@ -99,7 +99,7 @@
 
         <AutoSuggestBox
           x:Name="SearchBox"
-          x:Uid="SearchBox" services:XamlResourceOverride.Uid="SearchBox"
+ services:XamlResourceOverride.Uid="SearchBox"
           Grid.Column="1"
           VerticalAlignment="Top"
           QueryIcon="Find"
@@ -108,18 +108,18 @@
 
         <DropDownButton
           x:Name="AddButton"
-          x:Uid="AddButton" services:XamlResourceOverride.Uid="AddButton"
+ services:XamlResourceOverride.Uid="AddButton"
           Grid.Column="2"
           VerticalAlignment="Top"
           >
           <DropDownButton.Flyout>
             <MenuFlyout>
-              <MenuFlyoutItem x:Uid="AddFilesMenuItem" services:XamlResourceOverride.Uid="AddFilesMenuItem" Click="OnAddFilesClicked">
+              <MenuFlyoutItem services:XamlResourceOverride.Uid="AddFilesMenuItem" Click="OnAddFilesClicked">
                 <MenuFlyoutItem.Icon>
                   <SymbolIcon Symbol="Document" />
                 </MenuFlyoutItem.Icon>
               </MenuFlyoutItem>
-              <MenuFlyoutItem x:Uid="AddFolderMenuItem" services:XamlResourceOverride.Uid="AddFolderMenuItem" Click="OnAddFolderClicked">
+              <MenuFlyoutItem services:XamlResourceOverride.Uid="AddFolderMenuItem" Click="OnAddFolderClicked">
                 <MenuFlyoutItem.Icon>
                   <SymbolIcon Symbol="Folder" />
                 </MenuFlyoutItem.Icon>
@@ -149,7 +149,7 @@
         <Grid Padding="28,0,28,28">
           <ListView
             x:Name="ItemsList"
-            x:Uid="ItemsList" services:XamlResourceOverride.Uid="ItemsList"
+ services:XamlResourceOverride.Uid="ItemsList"
             CanDragItems="True"
             DoubleTapped="OnItemDoubleTapped"
             DragItemsStarting="OnDragItemsStarting"
@@ -219,37 +219,37 @@
 
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="6">
                     <Button
-                      x:Uid="OpenItemButton" services:XamlResourceOverride.Uid="OpenItemButton"
+ services:XamlResourceOverride.Uid="OpenItemButton"
                       Click="OnOpenItemClicked"
                       IsEnabled="{Binding CanOpen}"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}" />
                     <Button
-                      x:Uid="CopyItemButton" services:XamlResourceOverride.Uid="CopyItemButton"
+ services:XamlResourceOverride.Uid="CopyItemButton"
                       Click="OnCopyItemClicked"
                       IsEnabled="{Binding CanCopy}"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}" />
                     <Button
-                      x:Uid="PinItemButton" services:XamlResourceOverride.Uid="PinItemButton"
+ services:XamlResourceOverride.Uid="PinItemButton"
                       Click="OnPinItemClicked"
                       Content="{Binding PinActionLabel}"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}" />
                     <Button
-                      x:Uid="LocateItemButton" services:XamlResourceOverride.Uid="LocateItemButton"
+ services:XamlResourceOverride.Uid="LocateItemButton"
                       Click="OnLocateItemClicked"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}"
                       Visibility="{Binding IsMissing, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <Button
-                      x:Uid="ExportItemButton" services:XamlResourceOverride.Uid="ExportItemButton"
+ services:XamlResourceOverride.Uid="ExportItemButton"
                       Click="OnExportItemClicked"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}"
                       Visibility="{Binding CanExport, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <Button
-                      x:Uid="MoreItemButton" services:XamlResourceOverride.Uid="MoreItemButton"
+ services:XamlResourceOverride.Uid="MoreItemButton"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}">
                       <Button.Content>
@@ -257,9 +257,9 @@
                       </Button.Content>
                       <Button.Flyout>
                         <MenuFlyout>
-                          <MenuFlyoutItem x:Uid="ShowInFolderMenuItem" services:XamlResourceOverride.Uid="ShowInFolderMenuItem" Click="OnShowInFolderClicked" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ShowInFolderMenuItem" Click="OnShowInFolderClicked" Tag="{Binding}" />
                           <MenuFlyoutSeparator />
-                          <MenuFlyoutItem x:Uid="RemoveItemMenuItem" services:XamlResourceOverride.Uid="RemoveItemMenuItem" Click="OnRemoveItemClicked" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="RemoveItemMenuItem" Click="OnRemoveItemClicked" Tag="{Binding}" />
                         </MenuFlyout>
                       </Button.Flyout>
                     </Button>
@@ -295,8 +295,8 @@
             Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
               <FontIcon FontSize="40" Glyph="&#xECC8;" />
-              <TextBlock x:Uid="DropHintTitle" services:XamlResourceOverride.Uid="DropHintTitle" FontSize="20" FontWeight="SemiBold" />
-              <TextBlock x:Uid="DropHintDescription" services:XamlResourceOverride.Uid="DropHintDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+              <TextBlock services:XamlResourceOverride.Uid="DropHintTitle" FontSize="20" FontWeight="SemiBold" />
+              <TextBlock services:XamlResourceOverride.Uid="DropHintDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
           </Border>
 
@@ -316,17 +316,17 @@
         Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
         <StackPanel MaxWidth="780" HorizontalAlignment="Left" Spacing="28">
           <StackPanel Spacing="12">
-            <TextBlock x:Uid="ClipboardPrivacySection" services:XamlResourceOverride.Uid="ClipboardPrivacySection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="ClipboardPrivacySection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="PauseRecordingTitle" services:XamlResourceOverride.Uid="PauseRecordingTitle" FontWeight="SemiBold" />
-                <TextBlock x:Uid="PauseRecordingDescription" services:XamlResourceOverride.Uid="PauseRecordingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="PauseRecordingTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="PauseRecordingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="PauseToggle" x:Uid="PauseToggle" services:XamlResourceOverride.Uid="PauseToggle" Grid.Column="1" Toggled="OnPauseToggled" />
+              <ToggleSwitch x:Name="PauseToggle" services:XamlResourceOverride.Uid="PauseToggle" Grid.Column="1" Toggled="OnPauseToggled" />
             </Grid>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -334,17 +334,17 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="CaptureImagesTitle" services:XamlResourceOverride.Uid="CaptureImagesTitle" FontWeight="SemiBold" />
-                <TextBlock x:Uid="CaptureImagesDescription" services:XamlResourceOverride.Uid="CaptureImagesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="CaptureImagesTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="CaptureImagesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="CaptureImagesToggle" x:Uid="CaptureImagesToggle" services:XamlResourceOverride.Uid="CaptureImagesToggle" Grid.Column="1" Toggled="OnCaptureImagesToggled" />
+              <ToggleSwitch x:Name="CaptureImagesToggle" services:XamlResourceOverride.Uid="CaptureImagesToggle" Grid.Column="1" Toggled="OnCaptureImagesToggled" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="MaxImageMegabytesLabel" services:XamlResourceOverride.Uid="MaxImageMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock services:XamlResourceOverride.Uid="MaxImageMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <NumberBox x:Name="MaxImageMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="256" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -352,7 +352,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="MaxImageMegapixelsLabel" services:XamlResourceOverride.Uid="MaxImageMegapixelsLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock services:XamlResourceOverride.Uid="MaxImageMegapixelsLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <NumberBox x:Name="MaxImageMegapixelsNumber" Grid.Column="1" Minimum="1" Maximum="200" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="24">
@@ -361,10 +361,10 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="CaptureFilesTitle" services:XamlResourceOverride.Uid="CaptureFilesTitle" FontWeight="SemiBold" />
-                <TextBlock x:Uid="CaptureFilesDescription" services:XamlResourceOverride.Uid="CaptureFilesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="CaptureFilesTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="CaptureFilesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="CaptureFilesToggle" x:Uid="CaptureFilesToggle" services:XamlResourceOverride.Uid="CaptureFilesToggle" Grid.Column="1" Toggled="OnCaptureFilesToggled" />
+              <ToggleSwitch x:Name="CaptureFilesToggle" services:XamlResourceOverride.Uid="CaptureFilesToggle" Grid.Column="1" Toggled="OnCaptureFilesToggled" />
             </Grid>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -372,17 +372,17 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="CaptureFoldersTitle" services:XamlResourceOverride.Uid="CaptureFoldersTitle" FontWeight="SemiBold" />
-                <TextBlock x:Uid="CaptureFoldersDescription" services:XamlResourceOverride.Uid="CaptureFoldersDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="CaptureFoldersTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="CaptureFoldersDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="CaptureFoldersToggle" x:Uid="CaptureFoldersToggle" services:XamlResourceOverride.Uid="CaptureFoldersToggle" Grid.Column="1" Toggled="OnCaptureFoldersToggled" />
+              <ToggleSwitch x:Name="CaptureFoldersToggle" services:XamlResourceOverride.Uid="CaptureFoldersToggle" Grid.Column="1" Toggled="OnCaptureFoldersToggled" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="MaxClipboardFileItemsLabel" services:XamlResourceOverride.Uid="MaxClipboardFileItemsLabel" VerticalAlignment="Center" />
+              <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileItemsLabel" VerticalAlignment="Center" />
               <NumberBox x:Name="MaxClipboardFileItemsNumber" Grid.Column="1" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -390,7 +390,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="MaxClipboardFileMegabytesLabel" services:XamlResourceOverride.Uid="MaxClipboardFileMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <NumberBox x:Name="MaxClipboardFileMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="1048576" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -399,26 +399,26 @@
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="MaxClipboardFileTotalMegabytesLabel" services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesLabel" TextWrapping="Wrap" />
-                <TextBlock x:Uid="MaxClipboardFileTotalMegabytesDescription" services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesDescription" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesLabel" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="MaxClipboardFileTotalMegabytesDescription" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <NumberBox x:Name="MaxClipboardFileTotalMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="4194304" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <InfoBar
-              x:Uid="ClipboardPrivacyWarning" services:XamlResourceOverride.Uid="ClipboardPrivacyWarning"
+ services:XamlResourceOverride.Uid="ClipboardPrivacyWarning"
               IsClosable="False"
               IsOpen="True"
               Severity="Warning" />
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock x:Uid="RetentionSection" services:XamlResourceOverride.Uid="RetentionSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="RetentionSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="160" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="RetentionDaysLabel" services:XamlResourceOverride.Uid="RetentionDaysLabel" VerticalAlignment="Center" />
+              <TextBlock services:XamlResourceOverride.Uid="RetentionDaysLabel" VerticalAlignment="Center" />
               <NumberBox x:Name="RetentionDaysNumber" Grid.Column="1" Minimum="1" Maximum="3650" SpinButtonPlacementMode="Compact" ValueChanged="OnRetentionChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -426,13 +426,13 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="160" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="RetentionCountLabel" services:XamlResourceOverride.Uid="RetentionCountLabel" VerticalAlignment="Center" />
+              <TextBlock services:XamlResourceOverride.Uid="RetentionCountLabel" VerticalAlignment="Center" />
               <NumberBox x:Name="RetentionCountNumber" Grid.Column="1" Minimum="10" Maximum="100000" SpinButtonPlacementMode="Compact" ValueChanged="OnRetentionChanged" />
             </Grid>
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock x:Uid="AppearanceSection" services:XamlResourceOverride.Uid="AppearanceSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="AppearanceSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Border
               Padding="16"
               Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -440,9 +440,9 @@
               BorderThickness="1"
               CornerRadius="8">
               <StackPanel Spacing="10">
-                <TextBlock x:Uid="DropTrayCompatibilityTitle" services:XamlResourceOverride.Uid="DropTrayCompatibilityTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="DropTrayCompatibilityTitle" FontWeight="SemiBold" />
                 <TextBlock
-                  x:Uid="DropTrayCompatibilityDescription" services:XamlResourceOverride.Uid="DropTrayCompatibilityDescription"
+ services:XamlResourceOverride.Uid="DropTrayCompatibilityDescription"
                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                   TextWrapping="Wrap" />
                 <TextBlock
@@ -450,12 +450,12 @@
                   Text="{Binding WindowsShareIntegrationStatus}"
                   TextWrapping="Wrap" />
                 <TextBlock
-                  x:Uid="DropTrayApiNotice" services:XamlResourceOverride.Uid="DropTrayApiNotice"
+ services:XamlResourceOverride.Uid="DropTrayApiNotice"
                   FontSize="12"
                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                   TextWrapping="Wrap" />
                 <Button
-                  x:Uid="OpenDropTraySettingsButton" services:XamlResourceOverride.Uid="OpenDropTraySettingsButton"
+ services:XamlResourceOverride.Uid="OpenDropTraySettingsButton"
                   HorizontalAlignment="Left"
                   Click="OnOpenDropTraySettingsClicked" />
               </StackPanel>
@@ -466,9 +466,9 @@
                 <ColumnDefinition Width="240" />
               </Grid.ColumnDefinitions>
               <StackPanel Spacing="3">
-                <TextBlock x:Uid="FileDragWakeModeTitle" services:XamlResourceOverride.Uid="FileDragWakeModeTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="FileDragWakeModeTitle" />
                 <TextBlock
-                  x:Uid="FileDragWakeModeDescription" services:XamlResourceOverride.Uid="FileDragWakeModeDescription"
+ services:XamlResourceOverride.Uid="FileDragWakeModeDescription"
                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                   TextWrapping="Wrap" />
               </StackPanel>
@@ -477,13 +477,13 @@
                 Grid.Column="1"
                 HorizontalAlignment="Stretch"
                 SelectionChanged="OnFileDragWakeModeChanged">
-                <ComboBoxItem x:Uid="FileDragWakeModeSmart" services:XamlResourceOverride.Uid="FileDragWakeModeSmart" Tag="SmartExperimental" />
-                <ComboBoxItem x:Uid="FileDragWakeModeClassic" services:XamlResourceOverride.Uid="FileDragWakeModeClassic" Tag="ClassicTopEdge" />
-                <ComboBoxItem x:Uid="FileDragWakeModeDisabled" services:XamlResourceOverride.Uid="FileDragWakeModeDisabled" Tag="Disabled" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="FileDragWakeModeSmart" Tag="SmartExperimental" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="FileDragWakeModeClassic" Tag="ClassicTopEdge" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="FileDragWakeModeDisabled" Tag="Disabled" />
               </ComboBox>
             </Grid>
             <InfoBar
-              x:Uid="ExperimentalDragDetectionInfo" services:XamlResourceOverride.Uid="ExperimentalDragDetectionInfo"
+ services:XamlResourceOverride.Uid="ExperimentalDragDetectionInfo"
               IsClosable="False"
               IsOpen="True"
               Severity="Informational" />
@@ -493,10 +493,10 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="StartWithWindowsTitle" services:XamlResourceOverride.Uid="StartWithWindowsTitle" />
-                <TextBlock x:Uid="StartWithWindowsDescription" services:XamlResourceOverride.Uid="StartWithWindowsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="StartWithWindowsTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="StartWithWindowsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="StartWithWindowsToggle" x:Uid="StartWithWindowsToggle" services:XamlResourceOverride.Uid="StartWithWindowsToggle" Grid.Column="1" Toggled="OnStartWithWindowsToggled" />
+              <ToggleSwitch x:Name="StartWithWindowsToggle" services:XamlResourceOverride.Uid="StartWithWindowsToggle" Grid.Column="1" Toggled="OnStartWithWindowsToggled" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
@@ -504,13 +504,13 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="LanguageTitle" services:XamlResourceOverride.Uid="LanguageTitle" />
-                <TextBlock x:Uid="LanguageDescription" services:XamlResourceOverride.Uid="LanguageDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="LanguageTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="LanguageDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ComboBox x:Name="LanguageCombo" x:Uid="LanguageCombo" services:XamlResourceOverride.Uid="LanguageCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnLanguageChanged">
-                <ComboBoxItem x:Uid="LanguageSystem" services:XamlResourceOverride.Uid="LanguageSystem" Tag="System" />
-                <ComboBoxItem x:Uid="LanguageEnglish" services:XamlResourceOverride.Uid="LanguageEnglish" Tag="English" />
-                <ComboBoxItem x:Uid="LanguageSimplifiedChinese" services:XamlResourceOverride.Uid="LanguageSimplifiedChinese" Tag="SimplifiedChinese" />
+              <ComboBox x:Name="LanguageCombo" services:XamlResourceOverride.Uid="LanguageCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnLanguageChanged">
+                <ComboBoxItem services:XamlResourceOverride.Uid="LanguageSystem" Tag="System" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="LanguageEnglish" Tag="English" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="LanguageSimplifiedChinese" Tag="SimplifiedChinese" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -518,11 +518,11 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
-              <TextBlock x:Uid="ThemeTitle" services:XamlResourceOverride.Uid="ThemeTitle" VerticalAlignment="Center" />
+              <TextBlock services:XamlResourceOverride.Uid="ThemeTitle" VerticalAlignment="Center" />
               <ComboBox x:Name="ThemeCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnThemeChanged">
-                <ComboBoxItem x:Uid="ThemeSystem" services:XamlResourceOverride.Uid="ThemeSystem" Tag="System" />
-                <ComboBoxItem x:Uid="ThemeLight" services:XamlResourceOverride.Uid="ThemeLight" Tag="Light" />
-                <ComboBoxItem x:Uid="ThemeDark" services:XamlResourceOverride.Uid="ThemeDark" Tag="Dark" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="ThemeSystem" Tag="System" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="ThemeLight" Tag="Light" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="ThemeDark" Tag="Dark" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -531,13 +531,13 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="MotionTitle" services:XamlResourceOverride.Uid="MotionTitle" />
-                <TextBlock x:Uid="MotionDescription" services:XamlResourceOverride.Uid="MotionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="MotionTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="MotionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="OverlayMotionCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayMotionChanged">
-                <ComboBoxItem x:Uid="MotionSystem" services:XamlResourceOverride.Uid="MotionSystem" Tag="System" />
-                <ComboBoxItem x:Uid="MotionFull" services:XamlResourceOverride.Uid="MotionFull" Tag="Full" />
-                <ComboBoxItem x:Uid="MotionReduced" services:XamlResourceOverride.Uid="MotionReduced" Tag="Reduced" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="MotionSystem" Tag="System" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="MotionFull" Tag="Full" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="MotionReduced" Tag="Reduced" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -546,12 +546,12 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="MonitorTitle" services:XamlResourceOverride.Uid="MonitorTitle" />
-                <TextBlock x:Uid="MonitorDescription" services:XamlResourceOverride.Uid="MonitorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="MonitorTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="MonitorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="OverlayMonitorCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayMonitorChanged">
-                <ComboBoxItem x:Uid="MonitorAutomatic" services:XamlResourceOverride.Uid="MonitorAutomatic" Tag="Automatic" />
-                <ComboBoxItem x:Uid="MonitorPrimary" services:XamlResourceOverride.Uid="MonitorPrimary" Tag="Primary" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="MonitorAutomatic" Tag="Automatic" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="MonitorPrimary" Tag="Primary" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -560,26 +560,26 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="CloseBehaviorTitle" services:XamlResourceOverride.Uid="CloseBehaviorTitle" />
-                <TextBlock x:Uid="CloseBehaviorDescription" services:XamlResourceOverride.Uid="CloseBehaviorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock services:XamlResourceOverride.Uid="CloseBehaviorTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="CloseBehaviorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
               </StackPanel>
               <ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnCloseBehaviorChanged">
-                <ComboBoxItem x:Uid="CloseBehaviorHideToTray" services:XamlResourceOverride.Uid="CloseBehaviorHideToTray" Tag="HideToTray" />
-                <ComboBoxItem x:Uid="CloseBehaviorExit" services:XamlResourceOverride.Uid="CloseBehaviorExit" Tag="Exit" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="CloseBehaviorHideToTray" Tag="HideToTray" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="CloseBehaviorExit" Tag="Exit" />
               </ComboBox>
             </Grid>
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock x:Uid="UpdatesSection" services:XamlResourceOverride.Uid="UpdatesSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="UpdatesSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="AutoCheckUpdatesTitle" services:XamlResourceOverride.Uid="AutoCheckUpdatesTitle" />
-                <TextBlock x:Uid="AutoCheckUpdatesDescription" services:XamlResourceOverride.Uid="AutoCheckUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="AutoCheckUpdatesTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="AutoCheckUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="AutoCheckUpdatesToggle" Grid.Column="1" Toggled="OnAutoCheckUpdatesToggled" />
             </Grid>
@@ -589,8 +589,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="AutoDownloadUpdatesTitle" services:XamlResourceOverride.Uid="AutoDownloadUpdatesTitle" />
-                <TextBlock x:Uid="AutoDownloadUpdatesDescription" services:XamlResourceOverride.Uid="AutoDownloadUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="AutoDownloadUpdatesTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="AutoDownloadUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="AutoDownloadUpdatesToggle" Grid.Column="1" Toggled="OnAutoDownloadUpdatesToggled" />
             </Grid>
@@ -600,8 +600,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="AutoInstallUpdatesTitle" services:XamlResourceOverride.Uid="AutoInstallUpdatesTitle" />
-                <TextBlock x:Uid="AutoInstallUpdatesDescription" services:XamlResourceOverride.Uid="AutoInstallUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="AutoInstallUpdatesTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="AutoInstallUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch
                 x:Name="AutoInstallUpdatesToggle"
@@ -615,12 +615,12 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock x:Uid="UpdateChannelTitle" services:XamlResourceOverride.Uid="UpdateChannelTitle" />
-                <TextBlock x:Uid="UpdateChannelDescription" services:XamlResourceOverride.Uid="UpdateChannelDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock services:XamlResourceOverride.Uid="UpdateChannelTitle" />
+                <TextBlock services:XamlResourceOverride.Uid="UpdateChannelDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="UpdateChannelCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnUpdateChannelChanged">
-                <ComboBoxItem x:Uid="UpdateChannelStable" services:XamlResourceOverride.Uid="UpdateChannelStable" Tag="Stable" />
-                <ComboBoxItem x:Uid="UpdateChannelPreview" services:XamlResourceOverride.Uid="UpdateChannelPreview" Tag="Preview" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="UpdateChannelStable" Tag="Stable" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="UpdateChannelPreview" Tag="Preview" />
               </ComboBox>
             </Grid>
             <Border
@@ -636,27 +636,27 @@
                 <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding UpdateProgressText}" />
                 <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{Binding LastUpdateCheckDisplayText}" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button x:Uid="CheckUpdatesButton" services:XamlResourceOverride.Uid="CheckUpdatesButton" IsEnabled="{Binding CanCheckForUpdates}" Click="OnCheckForUpdatesClicked" />
-                  <Button x:Uid="DownloadUpdateButton" services:XamlResourceOverride.Uid="DownloadUpdateButton" Visibility="{Binding CanDownloadUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnDownloadUpdateClicked" />
-                  <Button x:Uid="InstallUpdateButton" services:XamlResourceOverride.Uid="InstallUpdateButton" Visibility="{Binding CanInstallUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnInstallUpdateClicked" />
-                  <Button x:Uid="OpenUpdateLocationButton" services:XamlResourceOverride.Uid="OpenUpdateLocationButton" Visibility="{Binding CanOpenUpdateLocation, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnOpenUpdateLocationClicked" />
-                  <Button x:Uid="ViewReleaseNotesButton" services:XamlResourceOverride.Uid="ViewReleaseNotesButton" Visibility="{Binding CanViewReleaseNotes, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnViewReleaseNotesClicked" />
+                  <Button services:XamlResourceOverride.Uid="CheckUpdatesButton" IsEnabled="{Binding CanCheckForUpdates}" Click="OnCheckForUpdatesClicked" />
+                  <Button services:XamlResourceOverride.Uid="DownloadUpdateButton" Visibility="{Binding CanDownloadUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnDownloadUpdateClicked" />
+                  <Button services:XamlResourceOverride.Uid="InstallUpdateButton" Visibility="{Binding CanInstallUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnInstallUpdateClicked" />
+                  <Button services:XamlResourceOverride.Uid="OpenUpdateLocationButton" Visibility="{Binding CanOpenUpdateLocation, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnOpenUpdateLocationClicked" />
+                  <Button services:XamlResourceOverride.Uid="ViewReleaseNotesButton" Visibility="{Binding CanViewReleaseNotes, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnViewReleaseNotesClicked" />
                 </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock x:Uid="LocalDataSection" services:XamlResourceOverride.Uid="LocalDataSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
-            <TextBlock x:Uid="StorageLocationTitle" services:XamlResourceOverride.Uid="StorageLocationTitle" FontWeight="SemiBold" />
+            <TextBlock services:XamlResourceOverride.Uid="LocalDataSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="StorageLocationTitle" FontWeight="SemiBold" />
             <TextBox IsReadOnly="True" Text="{Binding StoragePath}" TextWrapping="Wrap" />
             <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding StorageSummaryText}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button x:Uid="ClearLastHourButton" services:XamlResourceOverride.Uid="ClearLastHourButton" Click="OnClearLastHourClicked" />
-              <Button x:Uid="ClearTodayButton" services:XamlResourceOverride.Uid="ClearTodayButton" Click="OnClearTodayClicked" />
-              <Button x:Uid="ClearAllButton" services:XamlResourceOverride.Uid="ClearAllButton" Click="OnClearAllClicked" />
+              <Button services:XamlResourceOverride.Uid="ClearLastHourButton" Click="OnClearLastHourClicked" />
+              <Button services:XamlResourceOverride.Uid="ClearTodayButton" Click="OnClearTodayClicked" />
+              <Button services:XamlResourceOverride.Uid="ClearAllButton" Click="OnClearAllClicked" />
             </StackPanel>
-            <TextBlock x:Uid="ClearHistoryDescription" services:XamlResourceOverride.Uid="ClearHistoryDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock services:XamlResourceOverride.Uid="ClearHistoryDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
           </StackPanel>
         </StackPanel>
       </ScrollViewer>

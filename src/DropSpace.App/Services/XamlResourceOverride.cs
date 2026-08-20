@@ -7,9 +7,9 @@ namespace DropSpace.App.Services;
 
 /// <summary>
 /// Applies the selected language through the app's explicit MRT resource context after XAML has
-/// created an element. Windows are applied directly after InitializeComponent because they do
-/// not derive from DependencyObject. This keeps unpackaged WinUI language selection independent
-/// of the unsupported ApplicationLanguages.PrimaryLanguageOverride API.
+/// created an element. It replaces WinUI's implicit x:Uid lookup, which has no usable default
+/// resource context in the unpackaged app. Windows are applied directly after InitializeComponent
+/// because they do not derive from DependencyObject.
 /// </summary>
 public static class XamlResourceOverride
 {

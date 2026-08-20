@@ -6,7 +6,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:services="using:DropSpace.App.Services"
-  x:Uid="MainWindow"
+
   mc:Ignorable="d">
   <Window.SystemBackdrop>
     <MicaBackdrop />
@@ -16,7 +16,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <TitleBar x:Name="AppTitleBar" x:Uid="MainTitleBar" services:XamlResourceOverride.Uid="MainTitleBar">
+    <TitleBar x:Name="AppTitleBar" services:XamlResourceOverride.Uid="MainTitleBar">
       <TitleBar.IconSource>
         <ImageIconSource ImageSource="Assets/AppIcon.ico" />
       </TitleBar.IconSource>
