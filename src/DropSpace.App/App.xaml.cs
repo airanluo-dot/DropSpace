@@ -363,13 +363,25 @@ public partial class App : Application
         {
             var paths = AppStoragePaths.CreateForCurrentUser();
             Directory.CreateDirectory(paths.Logs);
-            var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={exception.GetType().Name}";
+            var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={SummarizeExceptionChain(exception)}";
             File.WriteAllText(Path.Combine(paths.Logs, "crash.marker"), marker);
         }
         catch (Exception markerException) when (markerException is IOException or UnauthorizedAccessException)
         {
             Debug.WriteLine(markerException.GetType().Name);
         }
+    }
+
+    private static string SummarizeExceptionChain(Exception exception)
+    {
+        var summaries = new List<string>();
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            var message = current.Message.ReplaceLineEndings(" ");
+            summaries.Add($"{current.GetType().Name}(0x{current.HResult:X8}):{message}");
+        }
+
+        return string.Join(" -> ", summaries);
     }
 
     private static string? GetCommandLineArgumentValue(IReadOnlyList<string> commandLine, string name)
