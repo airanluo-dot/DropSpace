@@ -60,6 +60,7 @@ public partial class App : Application
 
             _mainInstance.Activated += OnInstanceActivated;
             _services = BuildServices();
+            var isStartupLaunch = commandLine.Contains("--startup", StringComparer.OrdinalIgnoreCase);
             var isShareActivation = activation.Kind == ExtendedActivationKind.ShareTarget;
             _services.GetRequiredService<CrashDiagnosticsService>().Start();
             var settingsService = _services.GetRequiredService<ISettingsService>();
@@ -90,10 +91,9 @@ public partial class App : Application
                 _services.GetRequiredService<ILogger<MainWindow>>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
-            _window.Activate();
-            if (isShareActivation)
+            if (!isStartupLaunch && !isShareActivation)
             {
-                _window.Hide();
+                _window.Activate();
             }
             _services.GetRequiredService<ClipboardNotificationService>().Initialize(
                 WinRT.Interop.WindowNative.GetWindowHandle(_window));
@@ -119,11 +119,6 @@ public partial class App : Application
                     await _services.GetRequiredService<ShareTargetActivationService>()
                         .HandleAsync(activation);
                 }
-                if (commandLine.Contains("--startup", StringComparer.OrdinalIgnoreCase))
-                {
-                    _window.Hide();
-                }
-
                 var updatedArgument = Array.FindIndex(commandLine, value =>
                     string.Equals(value, "--updated", StringComparison.OrdinalIgnoreCase));
                 if (updatedArgument >= 0 && updatedArgument + 1 < commandLine.Length &&

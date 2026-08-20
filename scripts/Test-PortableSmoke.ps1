@@ -27,7 +27,55 @@ if (-not (Test-Path $resolvedExecutable -PathType Leaf))
 
 $first = $null
 $second = $null
+$startup = $null
+$startupSecond = $null
 $markerPath = $null
+$startupMarkerPath = $null
+
+Add-Type @"
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+
+public static class DropSpaceWindowVisibility
+{
+    private delegate bool EnumWindowsCallback(IntPtr window, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, char[] text, int capacity);
+
+    public static int[] GetVisibleMainWindows(int processId)
+    {
+        var windows = new List<int>();
+        EnumWindows((window, _) =>
+        {
+            GetWindowThreadProcessId(window, out var windowProcessId);
+            if (windowProcessId == processId && IsWindowVisible(window))
+            {
+                var title = new char[256];
+                var length = GetWindowText(window, title, title.Length);
+                if (new string(title, 0, length) == "DropSpace")
+                {
+                    windows.Add(window.ToInt32());
+                }
+            }
+
+            return true;
+        }, IntPtr.Zero);
+        return windows.ToArray();
+    }
+}
+"@
+
 try
 {
     $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold", "--smoke-language", $Language -PassThru
@@ -149,7 +197,90 @@ try
         throw "The primary DropSpace smoke process exited with code $($first.ExitCode)."
     }
 
+    $startup = Start-Process -FilePath $resolvedExecutable -ArgumentList "--startup", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -PassThru
+    $startupMarkerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($startup.Id).json"
+    $startupDeadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
+    $startupLastStage = "process-launch"
+    $startupMarker = $null
+    while ($true)
+    {
+        if (Test-Path $startupMarkerPath -PathType Leaf)
+        {
+            try
+            {
+                $startupMarker = Get-Content -Path $startupMarkerPath -Raw | ConvertFrom-Json
+                if ($null -ne $startupMarker.stage)
+                {
+                    $startupLastStage = [string]$startupMarker.stage
+                }
+
+                if ($startupMarker.failed -eq $true)
+                {
+                    $detail = if ([string]::IsNullOrWhiteSpace([string]$startupMarker.errorDetail)) { "" } else { "`n$($startupMarker.errorDetail)" }
+                    throw "DropSpace.exe --startup smoke failed during '$startupLastStage' ($($startupMarker.exceptionType), HRESULT $($startupMarker.errorCode)): $($startupMarker.error)$detail"
+                }
+
+                if ($startupMarker.ready -eq $true)
+                {
+                    break
+                }
+            }
+            catch [System.Management.Automation.PipelineStoppedException]
+            {
+                throw
+            }
+            catch
+            {
+                if ($_.Exception.Message -like "DropSpace.exe --startup smoke failed*")
+                {
+                    throw
+                }
+            }
+        }
+
+        $startup.Refresh()
+        if ($startup.HasExited)
+        {
+            throw "DropSpace.exe --startup exited before reporting startup readiness (exit $($startup.ExitCode))."
+        }
+
+        if ([DateTime]::UtcNow -ge $startupDeadline)
+        {
+            throw "DropSpace.exe --startup did not report startup readiness within $StartupTimeoutSeconds seconds (last stage '$startupLastStage')."
+        }
+
+        Start-Sleep -Milliseconds 200
+    }
+
+    $visibleWindows = [DropSpaceWindowVisibility]::GetVisibleMainWindows($startup.Id)
+    if ($visibleWindows.Count -gt 0)
+    {
+        throw "DropSpace.exe --startup exposed visible top-level window(s) after readiness: $($visibleWindows -join ', ')."
+    }
+
+    $startupSecond = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test" -PassThru
+    if (-not $startupSecond.WaitForExit(15000))
+    {
+        throw "The redirected activation against the startup instance did not exit within 15 seconds."
+    }
+
+    if ($startupSecond.ExitCode -ne 0)
+    {
+        throw "The redirected activation against the startup instance exited with code $($startupSecond.ExitCode)."
+    }
+
+    if (-not $startup.WaitForExit(30000))
+    {
+        throw "The primary DropSpace --startup smoke process did not exit cleanly."
+    }
+
+    if ($startup.ExitCode -ne 0)
+    {
+        throw "The primary DropSpace --startup smoke process exited with code $($startup.ExitCode)."
+    }
+
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
+    Write-Host "Startup visibility regression passed: --startup initialized the process without a visible top-level window, and redirected activation remained functional."
     Write-Host "Localized resource context: $($marker.resourceLanguage); XAML resource resolution=passed"
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
@@ -160,7 +291,7 @@ try
 }
 finally
 {
-    foreach ($process in @($second, $first))
+    foreach ($process in @($second, $startupSecond, $startup, $first))
     {
         if ($null -ne $process -and -not $process.HasExited)
         {
@@ -171,5 +302,10 @@ finally
     if ($null -ne $markerPath -and (Test-Path $markerPath))
     {
         Remove-Item -Path $markerPath -Force
+    }
+
+    if ($null -ne $startupMarkerPath -and (Test-Path $startupMarkerPath))
+    {
+        Remove-Item -Path $startupMarkerPath -Force
     }
 }

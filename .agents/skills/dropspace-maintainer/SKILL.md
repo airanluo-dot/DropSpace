@@ -5,6 +5,10 @@ description: Maintain, debug, refactor, test, release, deploy, or validate the D
 
 # DropSpace Maintainer
 
+Startup window invariant: `--startup` must create the main HWND for backend services without an initial `Show`/`Activate`; only normal and redirected activation may show it. Keep this covered by the portable smoke test.
+
+**Mandatory shipping rule:** Every user-visible DropSpace update, including bug fixes, must finish with a new Preview release and the normal website/API synchronization workflow. This is not optional unless the user explicitly requests investigation-only work or explicitly says not to publish.
+
 Use this skill as the execution playbook for end-to-end DropSpace repository work. It is intentionally version-independent and context-independent: every run must rediscover the current repository state before acting.
 
 ## 1. Authority and freshness
