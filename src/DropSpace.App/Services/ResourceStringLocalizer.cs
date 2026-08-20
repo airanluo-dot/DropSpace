@@ -24,7 +24,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
         // PRI beside the extracted application and resolves strings through an explicit context.
         _resourceManager = new ResourceManager(resourceIndexPath);
         _resourceContext = _resourceManager.CreateResourceContext();
-        _resourceContext.Languages = [_language.EffectiveLanguageTag];
+        _resourceContext.QualifierValues["Language"] = _language.EffectiveLanguageTag;
         _resourceMap = _resourceManager.MainResourceMap.GetSubtree("Resources");
     }
 
