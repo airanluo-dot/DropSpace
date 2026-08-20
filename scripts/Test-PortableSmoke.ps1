@@ -37,11 +37,6 @@ try
     $marker = $null
     while ($true)
     {
-        if ($first.HasExited)
-        {
-            throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode))."
-        }
-
         if (Test-Path $markerPath -PathType Leaf)
         {
             try
@@ -54,7 +49,8 @@ try
 
                 if ($marker.failed -eq $true)
                 {
-                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode)): $($marker.error)"
+                    $detail = if ([string]::IsNullOrWhiteSpace([string]$marker.errorDetail)) { "" } else { "`n$($marker.errorDetail)" }
+                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode)): $($marker.error)$detail"
                 }
 
                 if ($marker.ready -eq $true)
@@ -76,6 +72,11 @@ try
                 # The app replaces the marker atomically, but antivirus/file-system filters can
                 # still expose a transient read race. Retry until the bounded deadline.
             }
+        }
+
+        if ($first.HasExited)
+        {
+            throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode))."
         }
 
         if ([DateTime]::UtcNow -ge $deadline)

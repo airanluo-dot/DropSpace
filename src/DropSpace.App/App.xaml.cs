@@ -356,6 +356,10 @@ public partial class App : Application
     {
         WriteCrashMarker("unhandled", args.Exception);
         _services?.GetService<ILogger<App>>()?.LogCritical(args.Exception, "Unhandled UI exception.");
+        if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+        {
+            WriteSmokeFailureMarker("unhandled", args.Exception);
+        }
     }
 
     private static void WriteCrashMarker(string stage, Exception exception)
@@ -484,6 +488,7 @@ public partial class App : Application
             exceptionType = exception.GetType().Name,
             errorCode = exception.HResult,
             error = LogRedactor.Redact(exception.Message),
+            errorDetail = LogRedactor.Redact(exception.ToString()),
         });
     }
 
