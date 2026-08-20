@@ -83,7 +83,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 - Dangerous clear actions live in Privacy, separated from ordinary toggles.
 - “Exclude apps” (V1.1) includes the copy: “Best effort. Some clipboard changes cannot be attributed to an app.”
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
-- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, and Automatic/Primary monitor. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`.
+- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, Automatic/Primary monitor, and display language: System default, English, or Simplified Chinese. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`; System language uses the Windows display language, maps Chinese to Simplified Chinese, and falls back to English for the other shipped-language cases. The language selection is announced to assistive technology and takes effect after restart.
 
 ## System tray
 

@@ -81,5 +81,5 @@ public sealed record UpdateStatusSnapshot(
     bool PreviousInstallIncomplete = false)
 {
     public static UpdateStatusSnapshot Initial(DeploymentMode mode) =>
-        new(UpdateState.Idle, "尚未检查更新。", mode);
+        new(UpdateState.Idle, string.Empty, mode);
 }

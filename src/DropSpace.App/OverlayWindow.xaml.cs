@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -21,6 +23,7 @@ public sealed partial class OverlayWindow : Window
     private const double HostWidth = 600;
     private const double HostHeight = OverlayPlacementPolicy.MinimumHostHeightDips;
     private readonly OverlayViewModel _viewModel;
+    private readonly IAppStringLocalizer _strings;
     private readonly MonitorDescriptor _monitor;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly Action _openMainWindow;
@@ -42,6 +45,7 @@ public sealed partial class OverlayWindow : Window
 
     public OverlayWindow(
         OverlayViewModel viewModel,
+        IAppStringLocalizer strings,
         MonitorDescriptor monitor,
         MonitorLayoutService monitorLayout,
         OleDragDropService dragDropService,
@@ -50,13 +54,23 @@ public sealed partial class OverlayWindow : Window
         ILogger<OverlayWindow> logger)
     {
         _viewModel = viewModel;
+        _strings = strings;
         _monitor = monitor;
         _monitorLayout = monitorLayout;
         _openMainWindow = openMainWindow;
         _logger = logger;
         _visualDragCallbacks = dragCallbacks;
         _dragDropService = dragDropService;
-        InitializeComponent();
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Overlay-window XAML initialization failed.", exception);
+        }
+
+        XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
 
         var presenter = OverlappedPresenter.Create();
@@ -80,6 +94,21 @@ public sealed partial class OverlayWindow : Window
 
     internal long RegionFailureCount => Interlocked.Read(ref _regionFailureCount);
 
+    internal void VerifyLocalizedResources()
+    {
+        VerifyResourceValue(Title, "OverlayWindow.Title");
+        VerifyResourceValue(CompactSubtitleText.Text, "OverlayCompactSubtitle.Text");
+        VerifyResourceValue(ExpandedTitleText.Text, "OverlayExpandedTitle.Text");
+        VerifyResourceValue(ExpandedSubtitleText.Text, "OverlayExpandedSubtitle.Text");
+        VerifyResourceValue(RemoveHintText.Text, "OverlayRemoveHint.Text");
+        VerifyResourceValue(OpenMainButton.Content, "OverlayOpenMainButton.Content");
+        VerifyResourceValue(DropTargetTitleText.Text, "OverlayDropTargetTitle.Text");
+        if (string.IsNullOrWhiteSpace(AutomationProperties.GetName(CompactPanel)))
+        {
+            throw new InvalidOperationException("Localized overlay accessibility name did not resolve.");
+        }
+    }
+
     internal VisibleWindowProbe ProbeVisibleCenter()
     {
         var values = _motion.Current.ProjectToSafeRange();
@@ -96,6 +125,14 @@ public sealed partial class OverlayWindow : Window
             probe.WindowClassName,
             probe.IsRootOrDescendant);
         return probe;
+    }
+
+    private void VerifyResourceValue(object? actual, string key)
+    {
+        if (!string.Equals(actual as string, _strings.Get(key), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Localized Overlay XAML resource '{key}' did not resolve.");
+        }
     }
 
     internal Task RunSyntheticCfHDropAsync(

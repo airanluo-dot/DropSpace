@@ -96,6 +96,7 @@ public sealed class UpdateCoordinatorTests
             new Win32FailingLauncher(),
             new FakeDeploymentMode(DeploymentMode.Installer),
             store,
+            IdentityAppStringLocalizer.Instance,
             NullLogger<UpdateService>.Instance);
 
         Assert.AreEqual(UpdateState.ReadyToInstall, (await service.RecoverPendingAsync()).State);
@@ -123,6 +124,7 @@ public sealed class UpdateCoordinatorTests
             new NeverLauncher(),
             mode,
             store,
+            IdentityAppStringLocalizer.Instance,
             NullLogger<UpdateService>.Instance);
     }
 

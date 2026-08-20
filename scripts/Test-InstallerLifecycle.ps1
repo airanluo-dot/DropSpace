@@ -142,6 +142,27 @@ function Get-UninstallerPath
     return $path
 }
 
+function Write-ApplicationStartupDiagnostics
+{
+    $logDirectory = Join-Path $dataRoot "logs"
+    if (-not (Test-Path $logDirectory -PathType Container))
+    {
+        Write-Host "DropSpace startup diagnostics were not created."
+        return
+    }
+
+    Write-Host "---- DropSpace startup diagnostics ----"
+    foreach ($fileName in "crash.marker", "dropspace.log", "dropspace.log.1")
+    {
+        $path = Join-Path $logDirectory $fileName
+        if (Test-Path $path -PathType Leaf)
+        {
+            Write-Host "[$fileName]"
+            Get-Content -Path $path -Tail 40 | Write-Host
+        }
+    }
+}
+
 function Wait-ForMaintenanceEndpoint
 {
     param(
@@ -155,6 +176,7 @@ function Wait-ForMaintenanceEndpoint
         $Process.Refresh()
         if ($Process.HasExited)
         {
+            Write-ApplicationStartupDiagnostics
             throw "Installed baseline app exited before its maintenance endpoint became ready."
         }
 

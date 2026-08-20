@@ -103,6 +103,27 @@ public sealed class PolicyTests
                 MaxClipboardFileBytes = 3L * 1024 * 1024 * 1024,
                 MaxClipboardFileTotalBytes = 2L * 1024 * 1024 * 1024,
             }).Validate());
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            (valid with { Language = (AppLanguagePreference)99 }).Validate());
+    }
+
+    [TestMethod]
+    public void AppLanguagePolicy_MapsSystemAndExplicitPreferencesToShippedResourceSets()
+    {
+        Assert.AreEqual(
+            AppLanguagePolicy.EnglishLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag(AppLanguagePreference.System, ["en-US", "zh-CN"]));
+        Assert.AreEqual(
+            AppLanguagePolicy.SimplifiedChineseLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag(AppLanguagePreference.System, ["zh-Hans-CN", "en-US"]));
+        Assert.AreEqual(
+            AppLanguagePolicy.EnglishLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag(AppLanguagePreference.English, ["zh-CN"]));
+        Assert.AreEqual(
+            AppLanguagePolicy.SimplifiedChineseLanguageTag,
+            AppLanguagePolicy.ResolveEffectiveLanguageTag(AppLanguagePreference.SimplifiedChinese, ["en-US"]));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            AppLanguagePolicy.ResolveEffectiveLanguageTag((AppLanguagePreference)99, ["en-US"]));
     }
 
     [TestMethod]

@@ -1,6 +1,9 @@
 param(
     [string]$ExecutablePath = "artifacts/release/DropSpace.exe",
 
+    [ValidateSet("en-US", "zh-CN")]
+    [string]$Language = "en-US",
+
     [int]$StartupTimeoutSeconds = 120
 )
 
@@ -27,18 +30,13 @@ $second = $null
 $markerPath = $null
 try
 {
-    $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold" -PassThru
+    $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold", "--smoke-language", $Language -PassThru
     $markerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($first.Id).json"
     $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
     $lastStage = "process-launch"
     $marker = $null
     while ($true)
     {
-        if ($first.HasExited)
-        {
-            throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode))."
-        }
-
         if (Test-Path $markerPath -PathType Leaf)
         {
             try
@@ -51,7 +49,8 @@ try
 
                 if ($marker.failed -eq $true)
                 {
-                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode)): $($marker.error)"
+                    $detail = if ([string]::IsNullOrWhiteSpace([string]$marker.errorDetail)) { "" } else { "`n$($marker.errorDetail)" }
+                    throw "DropSpace.exe smoke failed during '$lastStage' ($($marker.exceptionType), HRESULT $($marker.errorCode)): $($marker.error)$detail"
                 }
 
                 if ($marker.ready -eq $true)
@@ -73,6 +72,11 @@ try
                 # The app replaces the marker atomically, but antivirus/file-system filters can
                 # still expose a transient read race. Retry until the bounded deadline.
             }
+        }
+
+        if ($first.HasExited)
+        {
+            throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode))."
         }
 
         if ([DateTime]::UtcNow -ge $deadline)
@@ -117,7 +121,9 @@ try
         [int]$marker.projectionDeletionStressCycles -ne 200 -or
         [long]$marker.projectionUnhandledExceptionDelta -ne 0 -or
         [long]$marker.projectionUnobservedTaskExceptionDelta -ne 0 -or
-        $marker.projectionExternalSentinelPreserved -ne $true)
+        $marker.projectionExternalSentinelPreserved -ne $true -or
+        $marker.localizedUiResourcesResolved -ne $true -or
+        [string]$marker.resourceLanguage -ne $Language)
     {
         throw "DropSpace.exe produced an invalid startup marker."
     }
@@ -144,6 +150,7 @@ try
     }
 
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
+    Write-Host "Localized resource context: $($marker.resourceLanguage); XAML resource resolution=passed"
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
     Write-Host "Overlay geometry stress: transitions=$($marker.overlayGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"

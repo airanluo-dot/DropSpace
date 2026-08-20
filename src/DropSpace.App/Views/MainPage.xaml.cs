@@ -1,4 +1,5 @@
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Updates;
 using Microsoft.UI.Xaml;
@@ -16,16 +17,29 @@ public sealed partial class MainPage : Page
 {
     private readonly MainViewModel _viewModel;
     private readonly nint _windowHandle;
+    private readonly IAppStringLocalizer _strings;
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
     private bool _syncingNavigation;
     private bool _syncingSettings;
 
-    public MainPage(MainViewModel viewModel, nint windowHandle)
+    public MainPage(
+        MainViewModel viewModel,
+        nint windowHandle,
+        IAppStringLocalizer strings)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
         _windowHandle = windowHandle;
-        InitializeComponent();
+        _strings = strings;
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Main-page XAML initialization failed.", exception);
+        }
+
         DataContext = viewModel;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -39,20 +53,20 @@ public sealed partial class MainPage : Page
             var count = await _viewModel.GetClearPreviewCountAsync(range);
             if (count == 0)
             {
-                await ShowMessageAsync("无需清理", "所选时间范围内没有可清理的未固定项目。");
+                await ShowMessageAsync(_strings.Get("ClearNothingTitle"), _strings.Get("ClearNothingContent"));
                 return;
             }
 
             var rangeLabel = range switch
             {
-                ClearRange.LastHour => "最近一小时",
-                ClearRange.Today => "今天",
-                _ => "全部历史",
+                ClearRange.LastHour => _strings.Get("ClearRangeLastHour"),
+                ClearRange.Today => _strings.Get("ClearRangeToday"),
+                _ => _strings.Get("ClearRangeAll"),
             };
             var result = await ShowConfirmationAsync(
-                $"清除{rangeLabel}？",
-                $"将从 Clipboard 移除 {count} 项未固定记录。固定项目会保留，Space 中的原始文件不会受影响。",
-                "清除");
+                _strings.Format("ClearConfirmTitle", rangeLabel),
+                _strings.Format("ClearConfirmContent", count),
+                _strings.Get("ClearConfirmButton"));
             if (result)
             {
                 await _viewModel.ClearClipboardAsync(range);
@@ -255,11 +269,11 @@ public sealed partial class MainPage : Page
         await RunAsync(async () =>
         {
             var confirmed = await ShowConfirmationAsync(
-                "从 DropSpace 移除？",
+                _strings.Get("RemoveConfirmTitle"),
                 card.IsFileReference
-                    ? $"只会移除“{card.Title}”的引用，原始文件不会被移动或删除。"
-                    : $"将移除“{card.Title}”及 DropSpace 保存的本地副本。",
-                "移除");
+                    ? _strings.Format("RemoveFileReferenceContent", card.Title)
+                    : _strings.Format("RemoveStoredItemContent", card.Title),
+                _strings.Get("RemoveConfirmButton"));
             if (confirmed)
             {
                 await _viewModel.RemoveAsync(card);
@@ -315,7 +329,9 @@ public sealed partial class MainPage : Page
             {
                 SuggestedFileName = $"DropSpace-{DateTime.Now:yyyyMMdd-HHmmss}",
             };
-            picker.FileTypeChoices.Add(extension == ".jpg" ? "JPEG 图片" : "PNG 图片", [extension]);
+            picker.FileTypeChoices.Add(
+                extension == ".jpg" ? _strings.Get("ExportJpegImage") : _strings.Get("ExportPngImage"),
+                [extension]);
             InitializeWithWindow.Initialize(picker, _windowHandle);
             var file = await picker.PickSaveFileAsync();
             if (file is not null)
@@ -428,8 +444,8 @@ public sealed partial class MainPage : Page
             if (!await _viewModel.OpenDropTraySettingsAsync())
             {
                 await ShowMessageAsync(
-                    "无法打开系统设置",
-                    "请手动打开 Windows 设置 → 系统 → 多任务处理，查看 Drop Tray 选项。");
+                    _strings.Get("DropTraySettingsUnavailableTitle"),
+                    _strings.Get("DropTraySettingsUnavailableContent"));
             }
         });
     }
@@ -450,7 +466,7 @@ public sealed partial class MainPage : Page
         var totalFileMegabytes = (long)Math.Round(MaxClipboardFileTotalMegabytesNumber.Value);
         if (totalFileMegabytes < singleFileMegabytes)
         {
-            await ShowMessageAsync("限制值无效", "单次文件总大小上限不能小于单个文件大小上限。");
+            await ShowMessageAsync(_strings.Get("ClipboardLimitInvalidTitle"), _strings.Get("ClipboardLimitInvalidContent"));
             SyncSettingsControls();
             return;
         }
@@ -487,6 +503,16 @@ public sealed partial class MainPage : Page
             Enum.TryParse<ThemePreference>(value, out var theme))
         {
             await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with { Theme = theme }));
+        }
+    }
+
+    private async void OnLanguageChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && LanguageCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<AppLanguagePreference>(value, out var language))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { Language = language }));
         }
     }
 
@@ -626,6 +652,7 @@ public sealed partial class MainPage : Page
             RetentionDaysNumber.Value = _viewModel.RetentionDays;
             RetentionCountNumber.Value = _viewModel.RetentionItemCount;
             SelectComboItem(ThemeCombo, _viewModel.Theme.ToString());
+            SelectComboItem(LanguageCombo, _viewModel.Language.ToString());
             SelectComboItem(CloseBehaviorCombo, _viewModel.CloseBehavior.ToString());
             SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
             SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
@@ -647,16 +674,16 @@ public sealed partial class MainPage : Page
         switch (section)
         {
             case "Clipboard":
-                EmptyTitle.Text = "暂无剪贴板记录";
-                EmptyDescription.Text = "复制文本、图片、文件或文件夹后，支持的内容会出现在这里。";
+                EmptyTitle.Text = _strings.Get("EmptyClipboardTitle");
+                EmptyDescription.Text = _strings.Get("EmptyClipboardDescription");
                 break;
             case "Pinned":
-                EmptyTitle.Text = "暂无固定项目";
-                EmptyDescription.Text = "固定 Space 或 Clipboard 中的项目，它们就会集中显示在这里。";
+                EmptyTitle.Text = _strings.Get("EmptyPinnedTitle");
+                EmptyDescription.Text = _strings.Get("EmptyPinnedDescription");
                 break;
             default:
-                EmptyTitle.Text = "把文件或文件夹拖到这里";
-                EmptyDescription.Text = "DropSpace 只保存引用，不会移动或删除原始文件。";
+                EmptyTitle.Text = _strings.Get("EmptySpaceTitle");
+                EmptyDescription.Text = _strings.Get("EmptySpaceDescription");
                 break;
         }
     }
@@ -668,7 +695,7 @@ public sealed partial class MainPage : Page
         DropHint.Visibility = visible && acceptsItems ? Visibility.Visible : Visibility.Collapsed;
         if (acceptsItems)
         {
-            args.DragUIOverride.Caption = "添加到 DropSpace";
+            args.DragUIOverride.Caption = _strings.Get("DragCaptionAddToDropSpace");
             args.DragUIOverride.IsCaptionVisible = true;
         }
     }
@@ -698,7 +725,7 @@ public sealed partial class MainPage : Page
                 Title = title,
                 Content = content,
                 PrimaryButtonText = primaryText,
-                CloseButtonText = "取消",
+                CloseButtonText = _strings.Get("CommonCancel"),
                 DefaultButton = ContentDialogButton.Close,
             };
             return await dialog.ShowAsync() == ContentDialogResult.Primary;
@@ -719,7 +746,7 @@ public sealed partial class MainPage : Page
                 XamlRoot = XamlRoot,
                 Title = title,
                 Content = content,
-                CloseButtonText = "知道了",
+                CloseButtonText = _strings.Get("CommonAcknowledge"),
             };
             await dialog.ShowAsync();
         }
@@ -739,9 +766,30 @@ public sealed partial class MainPage : Page
         {
             return;
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            await ShowMessageAsync("操作未完成", $"{exception.GetType().Name}：{exception.Message}");
+            await ShowMessageAsync(
+                _strings.Get("OperationIncompleteTitle"),
+                _strings.Get("OperationIncompleteContent"));
+        }
+    }
+
+    public void VerifyLocalizedResources()
+    {
+        VerifyResourceValue(SpaceNavigationItem.Content, "NavSpace.Content");
+        VerifyResourceValue(ClipboardNavigationItem.Content, "NavClipboard.Content");
+        VerifyResourceValue(PinnedNavigationItem.Content, "NavPinned.Content");
+        VerifyResourceValue(SettingsNavigationItem.Content, "NavSettings.Content");
+        VerifyResourceValue(SearchBox.PlaceholderText, "SearchBox.PlaceholderText");
+        VerifyResourceValue(AddButton.Content, "AddButton.Content");
+    }
+
+    private void VerifyResourceValue(object? actual, string key)
+    {
+        var expected = _strings.Get(key);
+        if (!string.Equals(actual as string, expected, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Localized XAML resource '{key}' did not resolve.");
         }
     }
 }

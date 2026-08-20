@@ -3,6 +3,7 @@ using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
@@ -29,6 +30,7 @@ public partial class App : Application
 
     public App()
     {
+        XamlResourceOverride.RegisterDependencyProperties();
         InitializeComponent();
         UnhandledException += OnUnhandledException;
     }
@@ -67,8 +69,25 @@ public partial class App : Application
                 await settingsService.ResetUiSettingsAsync();
             }
 
+            var persistedSettings = await settingsService.LoadAsync();
+            var language = _services.GetRequiredService<AppLanguageService>();
+            var requestedSmokeLanguage = GetCommandLineArgumentValue(commandLine, "--smoke-language");
+            var smokeLanguage = AppLanguagePreference.System;
+            if (requestedSmokeLanguage is not null &&
+                !AppLanguageService.TryParseSupportedLanguage(requestedSmokeLanguage, out smokeLanguage))
+            {
+                throw new ArgumentException($"Unsupported smoke-test language '{requestedSmokeLanguage}'.", nameof(commandLine));
+            }
+
+            language.Apply(requestedSmokeLanguage is null ? persistedSettings.Language : smokeLanguage);
+
             var viewModel = _services.GetRequiredService<MainViewModel>();
-            _window = new MainWindow(viewModel, _services.GetRequiredService<ILogger<MainWindow>>());
+            var strings = _services.GetRequiredService<IAppStringLocalizer>();
+            XamlResourceOverride.Initialize(strings);
+            _window = new MainWindow(
+                viewModel,
+                strings,
+                _services.GetRequiredService<ILogger<MainWindow>>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             _window.Activate();
@@ -116,6 +135,8 @@ public partial class App : Application
 
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
+                    _window.VerifyLocalizedResources();
+                    _overlayWindows.VerifyLocalizedResources();
                     WriteSmokeProgressMarker("clipboard-integration");
                     var clipboardMetrics = await _services.GetRequiredService<ClipboardIntegrationSmoke>()
                         .RunAsync();
@@ -131,7 +152,8 @@ public partial class App : Application
                         visibleDropMetrics,
                         projectionMetrics,
                         clipboardMetrics,
-                        _services.GetRequiredService<IStartupRegistrationService>().IsEnabled);
+                        _services.GetRequiredService<IStartupRegistrationService>().IsEnabled,
+                        language.EffectiveLanguageTag);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -151,23 +173,37 @@ public partial class App : Application
             catch (Exception exception)
             {
                 WriteCrashMarker("startup", exception);
+                _services.GetService<ILogger<App>>()?.LogCritical(exception, "Application startup failed.");
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     WriteSmokeFailureMarker("startup", exception);
+                    Environment.Exit(1);
+                    return;
                 }
 
-                await _window.ShowRecoveryAsync(exception.GetType().Name);
+                if (_window is not null)
+                {
+                    await _window.ShowRecoveryAsync();
+                }
+                else
+                {
+                    await ShutdownAsync();
+                    Environment.Exit(1);
+                }
             }
         }
         catch (Exception exception)
         {
             WriteCrashMarker("launch", exception);
+            _services?.GetService<ILogger<App>>()?.LogCritical(exception, "Application launch failed.");
             if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
             {
                 WriteSmokeFailureMarker("launch", exception);
             }
 
             Debug.WriteLine(exception);
+            await ShutdownAsync();
+            Environment.Exit(1);
         }
     }
 
@@ -195,6 +231,8 @@ public partial class App : Application
         var fileLogger = new RedactingFileLoggerProvider(paths);
         var services = new ServiceCollection();
         services.AddSingleton(paths);
+        services.AddSingleton<AppLanguageService>();
+        services.AddSingleton<IAppStringLocalizer, ResourceStringLocalizer>();
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
@@ -262,6 +300,7 @@ public partial class App : Application
             provider.GetRequiredService<IUpdateInstallerLauncher>(),
             provider.GetRequiredService<IDeploymentModeService>(),
             provider.GetRequiredService<UpdateStateStore>(),
+            provider.GetRequiredService<IAppStringLocalizer>(),
             provider.GetRequiredService<ILogger<UpdateService>>()));
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
@@ -319,6 +358,10 @@ public partial class App : Application
     {
         WriteCrashMarker("unhandled", args.Exception);
         _services?.GetService<ILogger<App>>()?.LogCritical(args.Exception, "Unhandled UI exception.");
+        if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+        {
+            WriteSmokeFailureMarker("unhandled", args.Exception);
+        }
     }
 
     private static void WriteCrashMarker(string stage, Exception exception)
@@ -327,7 +370,11 @@ public partial class App : Application
         {
             var paths = AppStoragePaths.CreateForCurrentUser();
             Directory.CreateDirectory(paths.Logs);
-            var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={exception.GetType().Name}";
+            var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={SummarizeExceptionChain(exception)}";
+            if (!string.IsNullOrWhiteSpace(exception.StackTrace))
+            {
+                marker += $"{Environment.NewLine}stack={exception.StackTrace.ReplaceLineEndings(" | ")}";
+            }
             File.WriteAllText(Path.Combine(paths.Logs, "crash.marker"), marker);
         }
         catch (Exception markerException) when (markerException is IOException or UnauthorizedAccessException)
@@ -336,13 +383,39 @@ public partial class App : Application
         }
     }
 
+    private static string SummarizeExceptionChain(Exception exception)
+    {
+        var summaries = new List<string>();
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            var message = current.Message.ReplaceLineEndings(" ");
+            summaries.Add($"{current.GetType().Name}(0x{current.HResult:X8}):{message}");
+        }
+
+        return string.Join(" -> ", summaries);
+    }
+
+    private static string? GetCommandLineArgumentValue(IReadOnlyList<string> commandLine, string name)
+    {
+        for (var index = 0; index + 1 < commandLine.Count; index++)
+        {
+            if (string.Equals(commandLine[index], name, StringComparison.OrdinalIgnoreCase))
+            {
+                return commandLine[index + 1];
+            }
+        }
+
+        return null;
+    }
+
     private static void WriteSmokeMarker(
         AppStoragePaths paths,
         OverlayLifecycleMetrics metrics,
         VisibleOverlayDropSmokeMetrics visibleDrop,
         ProjectionDeletionStressMetrics projection,
         ClipboardIntegrationMetrics clipboard,
-        bool startupRegistrationEnabled)
+        bool startupRegistrationEnabled,
+        string resourceLanguage)
     {
         var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
         var marker = JsonSerializer.Serialize(new
@@ -391,6 +464,8 @@ public partial class App : Application
             clipboardResumeVerified = clipboard.ResumeVerified,
             clipboardSelfWriteSuppressionVerified = clipboard.SelfWriteSuppressionVerified,
             startupRegistrationEnabled,
+            resourceLanguage,
+            localizedUiResourcesResolved = true,
         });
         File.WriteAllText(markerPath, marker);
     }
@@ -415,6 +490,7 @@ public partial class App : Application
             exceptionType = exception.GetType().Name,
             errorCode = exception.HResult,
             error = LogRedactor.Redact(exception.Message),
+            errorDetail = LogRedactor.Redact(exception.ToString()),
         });
     }
 

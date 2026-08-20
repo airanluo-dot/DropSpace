@@ -13,6 +13,7 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
     <RootNamespace>DropSpace.App</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64;ARM64</Platforms>
     <PlatformTarget Condition="'$(Platform)' == ''">x64</PlatformTarget>
@@ -48,6 +49,7 @@
   <ItemGroup>
     <Content Include="Assets\*.png" />
     <Content Include="Assets\AppIcon.ico" />
+    <DropSpaceStringResource Include="Strings\**\*.resw" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
@@ -80,5 +82,28 @@
       <Win32Manifest />
       <NoWin32Manifest>true</NoWin32Manifest>
     </PropertyGroup>
+  </Target>
+  <Target
+    Name="GenerateDropSpacePortableResourceIndex"
+    BeforeTargets="PrepareForBundle"
+    Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'"
+    Inputs="@(DropSpaceStringResource);$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1"
+    Outputs="$(IntermediateOutputPath)DropSpace.resources.pri">
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot; -OutputPath &quot;$(IntermediateOutputPath)DropSpace.resources.pri&quot; -ConfigurationPath &quot;$(IntermediateOutputPath)resources.priconfig.xml&quot;" />
+  </Target>
+  <Target
+    Name="BundleDropSpacePortableResourceIndex"
+    AfterTargets="PrepareForBundle"
+    BeforeTargets="GenerateSingleFileBundle"
+    DependsOnTargets="GenerateDropSpacePortableResourceIndex"
+    Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'">
+    <Error Condition="!Exists('$(IntermediateOutputPath)DropSpace.resources.pri')" Text="The portable localization resource index was not generated before single-file bundling." />
+    <ItemGroup>
+      <FilesToBundle Include="$(IntermediateOutputPath)DropSpace.resources.pri">
+        <RelativePath>DropSpace.resources.pri</RelativePath>
+      </FilesToBundle>
+    </ItemGroup>
   </Target>
 </Project>

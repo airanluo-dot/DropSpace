@@ -152,6 +152,16 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 - Small preferences use app-local settings; complex policies can live in SQLite.
 - Never stores clipboard payloads in settings.
 
+### Localization
+
+- `AppSettings` schema v7 persists `AppLanguagePreference` as `System`, `English`, or `SimplifiedChinese`; legacy settings default to `System`.
+- `AppLanguageService` applies the preference before the main window, Dynamic Island, tray, and services are created. System reads the Windows display-language preference, selects `zh-CN` for `zh-*`, and uses the shipped `en-US` base resource set for every other language.
+- `Strings/en-US/Resources.resw` is the complete base resource set; `Strings/zh-CN/Resources.resw` has an exact matching key set. Dependency-object XAML uses `XamlResourceOverride.Uid`, which reapplies every supported property and automation name from the same explicit localizer context instead of WinUI's implicit `x:Uid` lookup; `Window` roots use the same override directly after XAML initialization, while the `TitleBar` waits for `Loaded` because it needs a `XamlRoot`. Imperative UI, service status, error prompts, and update feedback use the narrow Core `IAppStringLocalizer` contract.
+- `App` registers the custom XAML attached property in its constructor before any page is parsed, as required by WinUI; its provider is a `DependencyObject` service type with static attached-property accessors, and the app then initializes the resource-backed localizer before creating the first window.
+- Portable/unpackaged publishing stages `Strings`, XAML, and assets while excluding the MSIX manifest (so it keeps the unpackaged `Application` root), regenerates a single packaging-free `DropSpace.resources.pri` with MakePri, bundles it into the self-extracting EXE, and opens it only through an explicit `ResourceManager` context. The non-default filename avoids replacing WinUI's framework resource index while preserving the single-EXE distribution contract.
+- The portable app does not call `ApplicationLanguages.PrimaryLanguageOverride`: that Windows App SDK API is unsupported for unpackaged processes. The app-owned resource context therefore supplies both the selected XAML surface and imperative text after startup, while native tray and service strings use the same localizer.
+- Language selection is deliberately startup-scoped: Settings persists the next choice and presents a restart-required confirmation instead of mutating a live visual tree, tray menu, or resource context midway through a process.
+
 ### Installation and maintenance
 
 - `DropSpaceSetup.exe` is produced by pinned Inno Setup 7.0.2 from the exact portable `DropSpace.exe` payload. Stable AppId `E11EC281-BCE7-4F98-8EEF-2387E202CF0F` and `UsePreviousAppDir` make later installers the same per-user application and preserve a custom path.

@@ -260,6 +260,22 @@ Typical expectations:
 - real-browser tests when supported;
 - production-mode metadata sync behavior when release data is affected.
 
+### Localization changes
+
+- Keep `src/DropSpace.App/Strings/en-US/Resources.resw` as the complete shipped base and keep `zh-CN` keys exactly synchronized.
+- Put user-facing Chinese only in `.resw` resources; do not add CJK UI text to production `.cs` or `.xaml` files.
+- Cover the main window, Dynamic Island, tray, error paths, accessibility names, and update feedback—not only static page labels.
+- Preserve `System`/`English`/`SimplifiedChinese` settings behavior: System maps a Chinese Windows display language to `zh-CN` and uses the English base for other not-yet-shipped languages; apply a changed resource context at the documented restart boundary.
+- Preserve the portable resource-index build: stage `Strings`, XAML, and assets while excluding `Package.appxmanifest`, so MakePri creates the unpackaged `Application` root; generate a packaging-free, non-default `DropSpace.resources.pri`, bundle it into the self-extracting single EXE, and open it only through an explicit resource context so it cannot replace WinUI's default `resources.pri` or starve framework XAML/theme lookup.
+- Keep scripts called through `powershell.exe` compatible with Windows PowerShell/.NET Framework APIs; do not use newer `System.IO.Path.GetRelativePath` there.
+- Do not use `ApplicationLanguages.PrimaryLanguageOverride` or implicit `x:Uid` lookup in the unpackaged app. Use the app-owned XAML resource override for dependency-object resource identifiers so the selected explicit resource context applies properties and automation names after XAML construction, and apply `Window` roots directly because they are not dependency objects.
+- Apply a `TitleBar`'s resource values only from `Loaded`: it has no `XamlRoot` during the window constructor even though the `Window` title can be set after `InitializeComponent`.
+- Preserve the original exception in executable smoke failures: never open a recovery `ContentDialog` before its page has a `XamlRoot`, and let smoke mode report/exit rather than masking the root cause with a second UI exception.
+- When resolving MRT map paths for XAML automation resources, convert property-separator dots to slashes but preserve dots inside `[using:…]` type qualifiers; otherwise accessibility names silently miss their resources.
+- Register the custom XAML attached property from the `App` constructor before any XAML page that uses it is parsed; late registration causes a runtime `XamlParseException` even when compilation succeeds.
+- Keep the attached-property provider as a constructible `DependencyObject` service type with static `Get`/`Set` accessors, matching the WinUI custom-attached-property pattern.
+- Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 11 validation as a manual release gate.
+
 ### Workflow-only changes
 
 - syntax/config review;

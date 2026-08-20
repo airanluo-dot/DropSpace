@@ -1,4 +1,5 @@
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
@@ -17,15 +18,18 @@ public sealed class ShareTargetActivationService
     private const int MaximumSharedItems = 1_000;
     private readonly MainViewModel _mainViewModel;
     private readonly DispatcherQueue _dispatcher;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<ShareTargetActivationService> _logger;
 
     public ShareTargetActivationService(
         MainViewModel mainViewModel,
         DispatcherQueue dispatcher,
+        IAppStringLocalizer strings,
         ILogger<ShareTargetActivationService> logger)
     {
         _mainViewModel = mainViewModel;
         _dispatcher = dispatcher;
+        _strings = strings;
         _logger = logger;
     }
 
@@ -48,7 +52,7 @@ public sealed class ShareTargetActivationService
             operation.ReportStarted();
             if (!operation.Data.Contains(StandardDataFormats.StorageItems))
             {
-                operation.ReportError("DropSpace 只接受 Windows 分享中的文件和文件夹。");
+                operation.ReportError(_strings.Get("ShareFilesFoldersOnly"));
                 return 0;
             }
 
@@ -62,7 +66,7 @@ public sealed class ShareTargetActivationService
                 .ToArray();
             if (paths.Length == 0)
             {
-                operation.ReportError("分享内容中没有 DropSpace 可以访问的文件或文件夹。");
+                operation.ReportError(_strings.Get("ShareNoAccessibleItems"));
                 return 0;
             }
 
@@ -70,7 +74,7 @@ public sealed class ShareTargetActivationService
                 () => _mainViewModel.AddPathsAsync(paths, cancellationToken));
             if (accepted == 0)
             {
-                operation.ReportError("文件或文件夹未能加入 Temporary Space。");
+                operation.ReportError(_strings.Get("ShareItemsNotAdded"));
                 return 0;
             }
 
@@ -87,7 +91,7 @@ public sealed class ShareTargetActivationService
             _logger.LogError(exception, "Windows Share Target activation failed before completion.");
             try
             {
-                operation.ReportError("DropSpace 无法处理本次分享。请重试或使用顶部拖放入口。");
+                operation.ReportError(_strings.Get("ShareProcessingFailed"));
             }
             catch (Exception reportException)
             {

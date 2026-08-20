@@ -25,14 +25,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DragStorageItemService _dragStorageItems;
     private readonly IUpdateService _updates;
     private readonly DispatcherQueue _dispatcher;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
     private string _currentSection = "Space";
     private string _searchText = string.Empty;
-    private string _pageTitle = "Space";
-    private string _pageDescription = "把暂时无处归类的文件与文件夹拖到这里。";
+    private string _pageTitle = string.Empty;
+    private string _pageDescription = string.Empty;
     private string _statusMessage = string.Empty;
-    private string _clipboardStatusText = "正在启动…";
+    private string _clipboardStatusText = string.Empty;
     private bool _isBusy;
     private bool _isEmpty = true;
     private bool _isSettingsVisible;
@@ -41,7 +42,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private long _spaceRevision;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
-    private string _storageSummary = "正在计算…";
+    private string _storageSummary = string.Empty;
     private UpdateStatusSnapshot _updateStatus;
     private bool _disposed;
 
@@ -59,6 +60,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DragStorageItemService dragStorageItems,
         IUpdateService updates,
         DispatcherQueue dispatcher,
+        IAppStringLocalizer strings,
         ILogger<MainViewModel> logger)
     {
         _repository = repository;
@@ -75,7 +77,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _updates = updates;
         _updateStatus = updates.Status;
         _dispatcher = dispatcher;
+        _strings = strings;
         _logger = logger;
+        _pageTitle = _strings.Get("PageTitleSpace");
+        _pageDescription = _strings.Get("PageDescriptionSpace");
+        _clipboardStatusText = _strings.Get("ClipboardStarting");
+        _storageSummary = _strings.Get("StorageCalculating");
         _clipboard.ItemCaptured += OnItemCaptured;
         _clipboard.StatusChanged += OnClipboardStatusChanged;
         _updates.StatusChanged += OnUpdateStatusChanged;
@@ -180,7 +187,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string ItemCountText => $"{ItemCount} 项";
+    public string ItemCountText => _strings.Format("ItemCount", ItemCount);
 
     public int SpaceItemCount
     {
@@ -224,6 +231,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(AutoDownloadUpdates));
                 OnPropertyChanged(nameof(AutoInstallUpdates));
                 OnPropertyChanged(nameof(UpdateChannel));
+                OnPropertyChanged(nameof(Language));
                 OnPropertyChanged(nameof(LastUpdateCheckText));
                 OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
             }
@@ -272,9 +280,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public UpdateChannel UpdateChannel => Settings.UpdateChannel;
 
+    public AppLanguagePreference Language => Settings.Language;
+
     public string CurrentVersionText => _updates.CurrentVersion.ToString();
 
-    public string CurrentVersionDisplayText => $"DropSpace {CurrentVersionText}";
+    public string CurrentVersionDisplayText => _strings.Format("CurrentVersion", CurrentVersionText);
 
     public UpdateStatusSnapshot UpdateStatus
     {
@@ -298,10 +308,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string UpdateStatusText => UpdateStatus.Message;
+    public string UpdateStatusText => string.IsNullOrWhiteSpace(UpdateStatus.Message)
+        ? _strings.Get("UpdateNotChecked")
+        : UpdateStatus.Message;
 
     public string UpdateProgressText => UpdateStatus.Progress is { } progress
-        ? $"{progress.Percentage:0}% · {FormatBytes(progress.BytesReceived)} / {FormatBytes(progress.TotalBytes)}"
+        ? _strings.Format("UpdateProgress", progress.Percentage, FormatBytes(progress.BytesReceived), FormatBytes(progress.TotalBytes))
         : string.Empty;
 
     public bool CanCheckForUpdates => UpdateStatus.State is not UpdateState.Checking and not UpdateState.Downloading and not UpdateState.Installing;
@@ -322,17 +334,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string DeploymentModeText => UpdateStatus.DeploymentMode switch
     {
-        DeploymentMode.Installer => "安装版",
-        DeploymentMode.Portable => "便携版（仅下载并验证，不会自动安装）",
-        DeploymentMode.Packaged => "Windows 包（由 Windows 管理更新）",
-        _ => "未知",
+        DeploymentMode.Installer => _strings.Get("DeploymentInstaller"),
+        DeploymentMode.Portable => _strings.Get("DeploymentPortable"),
+        DeploymentMode.Packaged => _strings.Get("DeploymentPackaged"),
+        _ => _strings.Get("DeploymentUnknown"),
     };
 
     public string LastUpdateCheckText => Settings.LastUpdateCheckUtc is { } value
-        ? value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-        : "尚未检查";
+        ? value.ToLocalTime().ToString(_strings.Get("LastUpdateCheckDateFormat"), _strings.Culture)
+        : _strings.Get("UpdateNotChecked");
 
-    public string LastUpdateCheckDisplayText => $"上次检查：{LastUpdateCheckText}";
+    public string LastUpdateCheckDisplayText => _strings.Format("LastUpdateCheck", LastUpdateCheckText);
 
     public bool HasWindowsShareIdentity => _windowsShareIntegration.HasPackageIdentity;
 
@@ -355,7 +367,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string StorageSummaryText => $"当前占用：{StorageSummary}";
+    public string StorageSummaryText => _strings.Format("StorageSummary", StorageSummary);
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -409,7 +421,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             : Task.FromResult(false);
 
     public void ShowUpdatedVersion(ReleaseVersion version) =>
-        StatusMessage = $"DropSpace 已更新至 {version}。";
+        StatusMessage = _strings.Format("AppUpdated", version);
 
     public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
     {
@@ -418,24 +430,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         switch (section)
         {
             case "Clipboard":
-                PageTitle = "Clipboard";
-                PageDescription = "自动记录复制的文本、图片、文件与文件夹引用。";
+                PageTitle = _strings.Get("PageTitleClipboard");
+                PageDescription = _strings.Get("PageDescriptionClipboard");
                 break;
             case "Pinned":
-                PageTitle = "Pinned";
-                PageDescription = "来自 Space 和 Clipboard 的固定项目，不会因保留期限自动清理。";
+                PageTitle = _strings.Get("PageTitlePinned");
+                PageDescription = _strings.Get("PageDescriptionPinned");
                 break;
             case "Settings":
-                PageTitle = "Settings";
-                PageDescription = "本地存储、隐私、外观和窗口行为。";
+                PageTitle = _strings.Get("PageTitleSettings");
+                PageDescription = _strings.Get("PageDescriptionSettings");
                 Items.Clear();
                 ItemCount = 0;
                 IsEmpty = true;
                 return;
             default:
                 CurrentSection = "Space";
-                PageTitle = "Space";
-                PageDescription = "把暂时无处归类的文件与文件夹拖到这里。";
+                PageTitle = _strings.Get("PageTitleSpace");
+                PageDescription = _strings.Get("PageDescriptionSpace");
                 break;
         }
 
@@ -461,7 +473,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Items.Clear();
             foreach (var item in items)
             {
-                var card = new ItemCardViewModel(item);
+                var card = new ItemCardViewModel(item, _strings);
                 Items.Add(card);
                 _ = LoadThumbnailSafelyAsync(card, cancellationToken);
             }
@@ -473,7 +485,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 SpaceItemCount = Items.Count;
             }
 
-            StatusMessage = hasGlobalSearch && Items.Count == 0 ? "没有找到匹配项目。" : string.Empty;
+            StatusMessage = hasGlobalSearch && Items.Count == 0 ? _strings.Get("SearchNoMatches") : string.Empty;
         }
         finally
         {
@@ -501,7 +513,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         }
 
-        StatusMessage = rejected == 0 ? $"已添加 {accepted} 项。" : $"已添加 {accepted} 项，另有 {rejected} 项无法加入。";
+        StatusMessage = rejected == 0
+            ? _strings.Format("ItemsAdded", accepted)
+            : _strings.Format("ItemsAddedWithRejected", accepted, rejected);
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
         return accepted;
@@ -560,7 +574,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
 
-        StatusMessage = "已从 DropSpace 移除；原始文件未被修改。";
+        StatusMessage = _strings.Get("ItemRemoved");
     }
 
     public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSpaceItemsAsync(
@@ -575,7 +589,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var items = await _repository.QueryAsync(
             new ItemQuery(Source: ItemSource.Space, Limit: limit),
             cancellationToken);
-        var cards = items.Select(item => new ItemCardViewModel(item)).ToArray();
+        var cards = items.Select(item => new ItemCardViewModel(item, _strings)).ToArray();
         await Task.WhenAll(cards.Select(card => LoadThumbnailSafelyAsync(card, cancellationToken)));
         return cards;
     }
@@ -591,7 +605,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         else
         {
-            StatusMessage = item.File is null ? "此项目无法打开。" : "文件当前不可用，请重新定位。";
+            StatusMessage = item.File is null
+                ? _strings.Get("ItemCannotOpen")
+                : _strings.Get("FileUnavailableRelocate");
         }
 
         return opened;
@@ -602,7 +618,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(card);
         await _shell.CopyAsync(card.Item, cancellationToken);
         await _repository.MarkUsedAsync(card.Id, cancellationToken);
-        StatusMessage = "已复制。";
+        StatusMessage = _strings.Get("ItemCopied");
     }
 
     public async Task ShowInFolderAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -610,7 +626,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(card);
         if (!await _shell.ShowInFolderAsync(card.Item, cancellationToken))
         {
-            StatusMessage = "无法在文件夹中显示此项目。";
+            StatusMessage = _strings.Get("ItemCannotShowInFolder");
         }
     }
 
@@ -635,7 +651,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
 
-        StatusMessage = "文件引用已更新。";
+        StatusMessage = _strings.Get("FileReferenceUpdated");
     }
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
@@ -668,7 +684,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
             await _settingsService.SaveAsync(settings, cancellationToken);
             Settings = settings;
-            StatusMessage = "设置已验证并保存。";
+            StatusMessage = settings.Language == previous.Language
+                ? _strings.Get("SettingsSaved")
+                : _strings.Get("LanguageChangeRestartRequired");
         }
         catch
         {
@@ -706,7 +724,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         }
 
-        StatusMessage = $"已清除 {result.RemovedCount} 项；固定项目已保留。";
+        StatusMessage = _strings.Format("ItemsCleared", result.RemovedCount);
         if (CurrentSection is "Clipboard" or "Pinned")
         {
             await ReloadAsync(cancellationToken);
@@ -733,11 +751,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         if (card.Item.Kind != ItemKind.Image || card.Item.Payload is null)
         {
-            throw new InvalidOperationException("Only clipboard images can be exported.");
+            throw new InvalidOperationException(_strings.Get("ExportOnlyClipboardImages"));
         }
 
         await _payloadStore.ExportAsync(card.Item.Payload.RelativePath, destinationPath, cancellationToken);
-        StatusMessage = "图片已导出。";
+        StatusMessage = _strings.Get("ImageExported");
     }
 
     public void Dispose()
@@ -800,7 +818,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "Search refresh failed.");
-            StatusMessage = "搜索暂时不可用。";
+            StatusMessage = _strings.Get("SearchUnavailable");
         }
     }
 
@@ -860,7 +878,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
                 else
                 {
-                    var card = new ItemCardViewModel(item);
+                    var card = new ItemCardViewModel(item, _strings);
                     Items.Insert(0, card);
                     _ = LoadThumbnailSafelyAsync(card, CancellationToken.None);
                 }
@@ -916,20 +934,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private static string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch
+    private string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch
     {
-        ClipboardRecordingState.Recording => $"正在记录 · 已捕获 {status.CapturedItems} 项",
-        ClipboardRecordingState.Paused => "已暂停记录",
-        ClipboardRecordingState.Error => "记录发生错误",
+        ClipboardRecordingState.Recording => _strings.Format("ClipboardRecording", status.CapturedItems),
+        ClipboardRecordingState.Paused => _strings.Get("ClipboardPausedStatus"),
+        ClipboardRecordingState.Error => _strings.Get("ClipboardErrorStatus"),
         _ => string.Empty,
     };
 
-    private static string FormatBytes(long value) => value switch
+    private string FormatBytes(long value) => value switch
     {
-        < 1024 => $"{value} B",
-        < 1024 * 1024 => $"{value / 1024d:0.0} KB",
-        < 1024L * 1024 * 1024 => $"{value / (1024d * 1024):0.0} MB",
-        _ => $"{value / (1024d * 1024 * 1024):0.00} GB",
+        < 1024 => _strings.Format("Bytes", value),
+        < 1024 * 1024 => _strings.Format("Kilobytes", value / 1024d),
+        < 1024L * 1024 * 1024 => _strings.Format("Megabytes", value / (1024d * 1024)),
+        _ => _strings.Format("Gigabytes", value / (1024d * 1024 * 1024)),
     };
 
     private static DateTimeOffset? GetClearFromUtc(ClearRange range) => range switch
@@ -948,17 +966,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var bytes = await _storageMetrics.GetByteLengthAsync(cancellationToken);
             if (bytes is null)
             {
-                StorageSummary = "暂时无法计算";
+                StorageSummary = _strings.Get("StorageUnavailable");
                 return;
             }
 
-            StorageSummary = bytes.Value switch
-            {
-                < 1024 => $"{bytes.Value} B",
-                < 1024 * 1024 => $"{bytes.Value / 1024d:0.0} KB",
-                < 1024L * 1024 * 1024 => $"{bytes.Value / (1024d * 1024):0.0} MB",
-                _ => $"{bytes.Value / (1024d * 1024 * 1024):0.00} GB",
-            };
+            StorageSummary = FormatBytes(bytes.Value);
         }
         catch (OperationCanceledException)
         {
@@ -966,7 +978,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            StorageSummary = "暂时无法计算";
+            StorageSummary = _strings.Get("StorageUnavailable");
         }
     }
 }

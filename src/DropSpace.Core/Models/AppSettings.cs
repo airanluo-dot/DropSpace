@@ -9,6 +9,13 @@ public enum ThemePreference
     Dark,
 }
 
+public enum AppLanguagePreference
+{
+    System,
+    English,
+    SimplifiedChinese,
+}
+
 public enum CloseBehavior
 {
     HideToTray,
@@ -37,7 +44,7 @@ public enum FileDragWakeMode
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -69,6 +76,8 @@ public sealed record AppSettings
 
     public ThemePreference Theme { get; init; } = ThemePreference.System;
 
+    public AppLanguagePreference Language { get; init; } = AppLanguagePreference.System;
+
     public CloseBehavior CloseBehavior { get; init; } = CloseBehavior.HideToTray;
 
     public bool CloseExplanationShown { get; init; }
@@ -94,6 +103,7 @@ public sealed record AppSettings
     public AppSettings WithSafeUiPreferences() => this with
     {
         Theme = ThemePreference.System,
+        Language = AppLanguagePreference.System,
         OverlayMotion = OverlayMotionPreference.System,
         OverlayMonitor = OverlayMonitorPreference.Automatic,
         FileDragWakeMode = FileDragWakeMode.SmartExperimental,
@@ -150,6 +160,11 @@ public sealed record AppSettings
         if (!Enum.IsDefined(Theme))
         {
             throw new ArgumentOutOfRangeException(nameof(Theme));
+        }
+
+        if (!Enum.IsDefined(Language))
+        {
+            throw new ArgumentOutOfRangeException(nameof(Language));
         }
 
         if (!Enum.IsDefined(CloseBehavior))

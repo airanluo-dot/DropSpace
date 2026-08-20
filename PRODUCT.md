@@ -96,7 +96,7 @@ The first shippable MVP is deliberately smaller than the original list.
 - Unified keyword search over stored metadata and text.
 - SQLite persistence, schema migrations, and thumbnail/payload cache.
 - Retention by age and count; pause, resume, clear-last-hour/today/all.
-- Light/dark/system theme and accessible keyboard navigation.
+- Light/dark/system theme, System default/English/Simplified Chinese display language, and accessible keyboard navigation.
 - Tray menu and close-to-tray behavior.
 - Logging, recoverable startup, basic migration backup, and MSIX packaging.
 
