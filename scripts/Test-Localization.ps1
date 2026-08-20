@@ -52,14 +52,16 @@ $sourceFiles = @(
     Get-ChildItem -Path (Join-Path $repositoryRoot "src") -Recurse -File |
         Where-Object { $_.Extension -in ".cs", ".xaml" }
 )
-$hardcodedChinese = foreach ($file in $sourceFiles)
-{
-    $matches = Select-String -Path $file.FullName -Pattern "[\p{IsCJKUnifiedIdeographs}\p{IsCJKCompatibilityIdeographs}]" -AllMatches
-    foreach ($match in $matches)
+$hardcodedChinese = @(
+    foreach ($file in $sourceFiles)
     {
-        "{0}:{1}:{2}" -f $file.FullName.Substring($repositoryRoot.Length + 1), $match.LineNumber, $match.Line.Trim()
+        $matches = Select-String -Path $file.FullName -Pattern "[\p{IsCJKUnifiedIdeographs}\p{IsCJKCompatibilityIdeographs}]" -AllMatches
+        foreach ($match in $matches)
+        {
+            "{0}:{1}:{2}" -f $file.FullName.Substring($repositoryRoot.Length + 1), $match.LineNumber, $match.Line.Trim()
+        }
     }
-}
+)
 if ($hardcodedChinese.Count -gt 0)
 {
     throw "Chinese UI text must be placed in .resw resources, not source files:`n$($hardcodedChinese -join [Environment]::NewLine)"
