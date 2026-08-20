@@ -50,7 +50,10 @@ public static class DropSpaceWindowVisibility
     [DllImport("user32.dll")]
     private static extern bool IsWindowVisible(IntPtr window);
 
-    public static int[] GetVisibleTopLevelWindows(int processId)
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, char[] text, int capacity);
+
+    public static int[] GetVisibleMainWindows(int processId)
     {
         var windows = new List<int>();
         EnumWindows((window, _) =>
@@ -58,7 +61,12 @@ public static class DropSpaceWindowVisibility
             GetWindowThreadProcessId(window, out var windowProcessId);
             if (windowProcessId == processId && IsWindowVisible(window))
             {
-                windows.Add(window.ToInt32());
+                var title = new char[256];
+                var length = GetWindowText(window, title, title.Length);
+                if (new string(title, 0, length) == "DropSpace")
+                {
+                    windows.Add(window.ToInt32());
+                }
             }
 
             return true;
@@ -244,7 +252,7 @@ try
         Start-Sleep -Milliseconds 200
     }
 
-    $visibleWindows = [DropSpaceWindowVisibility]::GetVisibleTopLevelWindows($startup.Id)
+    $visibleWindows = [DropSpaceWindowVisibility]::GetVisibleMainWindows($startup.Id)
     if ($visibleWindows.Count -gt 0)
     {
         throw "DropSpace.exe --startup exposed visible top-level window(s) after readiness: $($visibleWindows -join ', ')."
