@@ -177,6 +177,8 @@ public partial class App : Application
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
                     WriteSmokeFailureMarker("startup", exception);
+                    Environment.Exit(1);
+                    return;
                 }
 
                 if (_window is not null)

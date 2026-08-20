@@ -130,6 +130,12 @@ public sealed partial class MainWindow : Window
 
     public async Task ShowRecoveryAsync()
     {
+        if (_mainPage.XamlRoot is null)
+        {
+            _logger.LogError("A startup recovery dialog could not be shown before the main page received a XamlRoot.");
+            return;
+        }
+
         ShowAndActivate();
         var dialog = new ContentDialog
         {
