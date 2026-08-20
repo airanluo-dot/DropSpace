@@ -11,7 +11,7 @@ namespace DropSpace.App.Services;
 /// resource context in the unpackaged app. Windows are applied directly after InitializeComponent
 /// because they do not derive from DependencyObject.
 /// </summary>
-public static class XamlResourceOverride
+public sealed class XamlResourceOverride : DependencyObject
 {
     private const string AutomationNameSuffix =
         ".[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name";
