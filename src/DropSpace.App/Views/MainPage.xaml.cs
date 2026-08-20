@@ -31,7 +31,15 @@ public sealed partial class MainPage : Page
         _viewModel = viewModel;
         _windowHandle = windowHandle;
         _strings = strings;
-        InitializeComponent();
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Main-page XAML initialization failed.", exception);
+        }
+
         DataContext = viewModel;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

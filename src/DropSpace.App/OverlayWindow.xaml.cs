@@ -61,7 +61,15 @@ public sealed partial class OverlayWindow : Window
         _logger = logger;
         _visualDragCallbacks = dragCallbacks;
         _dragDropService = dragDropService;
-        InitializeComponent();
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Overlay-window XAML initialization failed.", exception);
+        }
+
         XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
 

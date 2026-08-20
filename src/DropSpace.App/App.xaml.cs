@@ -364,6 +364,10 @@ public partial class App : Application
             var paths = AppStoragePaths.CreateForCurrentUser();
             Directory.CreateDirectory(paths.Logs);
             var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={SummarizeExceptionChain(exception)}";
+            if (!string.IsNullOrWhiteSpace(exception.StackTrace))
+            {
+                marker += $"{Environment.NewLine}stack={exception.StackTrace.ReplaceLineEndings(" | ")}";
+            }
             File.WriteAllText(Path.Combine(paths.Logs, "crash.marker"), marker);
         }
         catch (Exception markerException) when (markerException is IOException or UnauthorizedAccessException)

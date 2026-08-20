@@ -29,7 +29,15 @@ public sealed partial class MainWindow : Window
         _viewModel = viewModel;
         _strings = strings;
         _logger = logger;
-        InitializeComponent();
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Main-window XAML initialization failed.", exception);
+        }
+
         XamlResourceOverride.Apply(this, "MainWindow");
 
         ExtendsContentIntoTitleBar = true;
