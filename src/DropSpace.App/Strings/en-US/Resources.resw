@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Imperative UI, status, error, update, and accessibility strings. -->
+  <data name="AppUpdated" xml:space="preserve"><value>DropSpace was updated to {0}.</value></data>
+  <data name="Bytes" xml:space="preserve"><value>{0:0} B</value></data>
+  <data name="ClearConfirmButton" xml:space="preserve"><value>Clear</value></data>
+  <data name="ClearConfirmContent" xml:space="preserve"><value>{0} unpinned Clipboard item(s) will be removed. Pinned items remain, and original files in Temporary Space are unaffected.</value></data>
+  <data name="ClearConfirmTitle" xml:space="preserve"><value>Clear {0}?</value></data>
+  <data name="ClearNothingContent" xml:space="preserve"><value>There are no unpinned items to clear in the selected time range.</value></data>
+  <data name="ClearNothingTitle" xml:space="preserve"><value>Nothing to clear</value></data>
+  <data name="ClearRangeAll" xml:space="preserve"><value>all history</value></data>
+  <data name="ClearRangeLastHour" xml:space="preserve"><value>the last hour</value></data>
+  <data name="ClearRangeToday" xml:space="preserve"><value>today</value></data>
+  <data name="ClipboardBusyRetrying" xml:space="preserve"><value>The clipboard is temporarily in use by another app. Retrying.</value></data>
+  <data name="ClipboardCaptureStopped" xml:space="preserve"><value>Clipboard recording stopped because of an internal error.</value></data>
+  <data name="ClipboardErrorStatus" xml:space="preserve"><value>Recording error</value></data>
+  <data name="ClipboardEventDropped" xml:space="preserve"><value>Clipboard activity was too frequent; one event was skipped.</value></data>
+  <data name="ClipboardItemCaptureFailed" xml:space="preserve"><value>A clipboard item could not be recorded. Recording is still running.</value></data>
+  <data name="ClipboardLimitInvalidContent" xml:space="preserve"><value>The total size limit for a capture cannot be lower than the single-file size limit.</value></data>
+  <data name="ClipboardLimitInvalidTitle" xml:space="preserve"><value>Invalid limit</value></data>
+  <data name="ClipboardListenerRegistrationFailed" xml:space="preserve"><value>The system clipboard listener could not be registered. See the diagnostic log.</value></data>
+  <data name="ClipboardListenerUnavailable" xml:space="preserve"><value>The system clipboard listener is unavailable. See the diagnostic log.</value></data>
+  <data name="ClipboardPaused" xml:space="preserve"><value>Clipboard recording paused.</value></data>
+  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>Clipboard recording remains paused from the previous session.</value></data>
+  <data name="ClipboardPausedStatus" xml:space="preserve"><value>Recording paused</value></data>
+  <data name="ClipboardRecording" xml:space="preserve"><value>Recording · {0} captured</value></data>
+  <data name="ClipboardResumed" xml:space="preserve"><value>Clipboard recording resumed.</value></data>
+  <data name="ClipboardStarting" xml:space="preserve"><value>Starting…</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>When you close the window, DropSpace stays in the system tray and continues recording the clipboard. You can change this to exit directly in Settings.</value></data>
+  <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace will continue running in the background</value></data>
+  <data name="CommonAcknowledge" xml:space="preserve"><value>Got it</value></data>
+  <data name="CommonCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="CommonClose" xml:space="preserve"><value>Close</value></data>
+  <data name="CurrentVersion" xml:space="preserve"><value>DropSpace {0}</value></data>
+  <data name="DeploymentInstaller" xml:space="preserve"><value>Installer</value></data>
+  <data name="DeploymentPackaged" xml:space="preserve"><value>Windows package (updated by Windows)</value></data>
+  <data name="DeploymentPortable" xml:space="preserve"><value>Portable (downloads and verifies only; it will not install automatically)</value></data>
+  <data name="DeploymentUnknown" xml:space="preserve"><value>Unknown deployment</value></data>
+  <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>Add to DropSpace</value></data>
+  <data name="DropTraySettingsUnavailableContent" xml:space="preserve"><value>Open Windows Settings → System → Multitasking manually to review the Drop Tray option.</value></data>
+  <data name="DropTraySettingsUnavailableTitle" xml:space="preserve"><value>Unable to open system settings</value></data>
+  <data name="EmptyClipboardDescription" xml:space="preserve"><value>Copy text, images, files, or folders and supported content will appear here.</value></data>
+  <data name="EmptyClipboardTitle" xml:space="preserve"><value>No clipboard history</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>Pin items from Temporary Space or Clipboard and they will appear together here.</value></data>
+  <data name="EmptyPinnedTitle" xml:space="preserve"><value>No pinned items</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace stores references only. It never moves or deletes your original files.</value></data>
+  <data name="EmptySpaceTitle" xml:space="preserve"><value>Drop files or folders here</value></data>
+  <data name="ExportJpegImage" xml:space="preserve"><value>JPEG image</value></data>
+  <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>Only clipboard images can be exported.</value></data>
+  <data name="ExportPngImage" xml:space="preserve"><value>PNG image</value></data>
+  <data name="FileReferenceUpdated" xml:space="preserve"><value>File reference updated.</value></data>
+  <data name="FileUnavailableRelocate" xml:space="preserve"><value>The file is currently unavailable. Locate it again.</value></data>
+  <data name="Gigabytes" xml:space="preserve"><value>{0:0.00} GB</value></data>
+  <data name="ImageExported" xml:space="preserve"><value>Image exported.</value></data>
+  <data name="ImagePreview" xml:space="preserve"><value>{0} × {1} · {2}</value></data>
+  <data name="ItemCannotOpen" xml:space="preserve"><value>This item cannot be opened.</value></data>
+  <data name="ItemCannotShowInFolder" xml:space="preserve"><value>This item cannot be shown in its folder.</value></data>
+  <data name="ItemCopied" xml:space="preserve"><value>Copied.</value></data>
+  <data name="ItemCount" xml:space="preserve"><value>{0} item(s)</value></data>
+  <data name="ItemCreatedDateFormat" xml:space="preserve"><value>MMM d, HH:mm</value></data>
+  <data name="ItemCreatedTodayFormat" xml:space="preserve"><value>HH:mm</value></data>
+  <data name="ItemKindCode" xml:space="preserve"><value>Code</value></data>
+  <data name="ItemKindColor" xml:space="preserve"><value>Color</value></data>
+  <data name="ItemKindFile" xml:space="preserve"><value>File</value></data>
+  <data name="ItemKindFolder" xml:space="preserve"><value>Folder</value></data>
+  <data name="ItemKindImage" xml:space="preserve"><value>Image</value></data>
+  <data name="ItemKindText" xml:space="preserve"><value>Text</value></data>
+  <data name="ItemKindUnknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="ItemKindUrl" xml:space="preserve"><value>Link</value></data>
+  <data name="ItemPin" xml:space="preserve"><value>Pin</value></data>
+  <data name="ItemRemoved" xml:space="preserve"><value>Removed from DropSpace; the original file was not changed.</value></data>
+  <data name="ItemSourceClipboard" xml:space="preserve"><value>Clipboard</value></data>
+  <data name="ItemSourceSpace" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="ItemStatusError" xml:space="preserve"><value>Read failed</value></data>
+  <data name="ItemStatusMissing" xml:space="preserve"><value>File not found</value></data>
+  <data name="ItemStatusProcessing" xml:space="preserve"><value>Processing</value></data>
+  <data name="ItemStatusUnavailable" xml:space="preserve"><value>Temporarily unavailable</value></data>
+  <data name="ItemUnpin" xml:space="preserve"><value>Unpin</value></data>
+  <data name="ItemsAdded" xml:space="preserve"><value>{0} item(s) added.</value></data>
+  <data name="ItemsAddedWithRejected" xml:space="preserve"><value>{0} item(s) added; {1} could not be added.</value></data>
+  <data name="ItemsCleared" xml:space="preserve"><value>{0} item(s) cleared; pinned items were kept.</value></data>
+  <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
+  <data name="LanguageChangeRestartRequired" xml:space="preserve"><value>Language preference saved. Restart DropSpace to apply the new display language.</value></data>
+  <data name="LastUpdateCheck" xml:space="preserve"><value>Last checked: {0}</value></data>
+  <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy-MM-dd HH:mm</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
+  <data name="OperationIncompleteContent" xml:space="preserve"><value>The requested operation did not finish. If the problem continues, see the local diagnostic log.</value></data>
+  <data name="OperationIncompleteTitle" xml:space="preserve"><value>Operation incomplete</value></data>
+  <data name="OverlayClassicDragTitle" xml:space="preserve"><value>Drag to the top to save</value></data>
+  <data name="OverlayDragSubtitle" xml:space="preserve"><value>Original files will not be moved or deleted</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>Release to add file or folder references</value></data>
+  <data name="OverlayDropTitle" xml:space="preserve"><value>Drop on DropSpace</value></data>
+  <data name="OverlayItemCount" xml:space="preserve"><value>{0} item(s)</value></data>
+  <data name="OverlaySmartDragTitle" xml:space="preserve"><value>Drag to the appearing DropSpace</value></data>
+  <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="PageDescriptionClipboard" xml:space="preserve"><value>Automatically records copied text, images, files, and folder references.</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>Pinned items from Temporary Space and Clipboard are not cleared automatically by retention rules.</value></data>
+  <data name="PageDescriptionSettings" xml:space="preserve"><value>Local storage, privacy, appearance, and window behavior.</value></data>
+  <data name="PageDescriptionSpace" xml:space="preserve"><value>Drag files and folders here when they do not have a permanent home yet.</value></data>
+  <data name="PageTitleClipboard" xml:space="preserve"><value>Clipboard</value></data>
+  <data name="PageTitlePinned" xml:space="preserve"><value>Pinned</value></data>
+  <data name="PageTitleSettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="PageTitleSpace" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="RemoveConfirmButton" xml:space="preserve"><value>Remove</value></data>
+  <data name="RemoveConfirmTitle" xml:space="preserve"><value>Remove from DropSpace?</value></data>
+  <data name="RemoveFileReferenceContent" xml:space="preserve"><value>Only the reference to “{0}” will be removed. The original file will not be moved or deleted.</value></data>
+  <data name="RemoveStoredItemContent" xml:space="preserve"><value>“{0}” and the local copy kept by DropSpace will be removed.</value></data>
+  <data name="SearchNoMatches" xml:space="preserve"><value>No matching items found.</value></data>
+  <data name="SearchUnavailable" xml:space="preserve"><value>Search is temporarily unavailable.</value></data>
+  <data name="SettingsSaved" xml:space="preserve"><value>Settings validated and saved.</value></data>
+  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace accepts only files and folders from Windows Share.</value></data>
+  <data name="ShareItemsNotAdded" xml:space="preserve"><value>The files or folders could not be added to Temporary Space.</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>The shared content contains no files or folders that DropSpace can access.</value></data>
+  <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace could not process this share. Try again or use the top-edge drop target.</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>Local data initialization failed. To avoid overwriting history, the app stopped writing. Keep the data directory and see the local diagnostic log.</value></data>
+  <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace could not start safely</value></data>
+  <data name="StorageCalculating" xml:space="preserve"><value>Calculating…</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>Using: {0}</value></data>
+  <data name="StorageUnavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="TrayClearClipboard" xml:space="preserve"><value>Clear clipboard history…</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>Exit</value></data>
+  <data name="TrayOpen" xml:space="preserve"><value>Open DropSpace</value></data>
+  <data name="TrayPauseClipboard" xml:space="preserve"><value>Pause clipboard recording</value></data>
+  <data name="TrayResumeClipboard" xml:space="preserve"><value>Resume clipboard recording</value></data>
+  <data name="TrayTipPaused" xml:space="preserve"><value>DropSpace — clipboard recording paused</value></data>
+  <data name="TrayTipRecording" xml:space="preserve"><value>DropSpace — recording clipboard</value></data>
+  <data name="UpdateAutomaticCheckFailed" xml:space="preserve"><value>Automatic update check failed: {0}</value></data>
+  <data name="UpdateCheckCancelled" xml:space="preserve"><value>Update check cancelled.</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>Checking for updates…</value></data>
+  <data name="UpdateDownloadCancelled" xml:space="preserve"><value>Update download cancelled.</value></data>
+  <data name="UpdateDownloadFailed" xml:space="preserve"><value>Update download failed. Check your connection and try again.</value></data>
+  <data name="UpdateDownloadIntegrityFailed" xml:space="preserve"><value>The update download did not pass integrity verification.</value></data>
+  <data name="UpdateDownloadedReadyToInstall" xml:space="preserve"><value>Update downloaded and verified. Ready to install.</value></data>
+  <data name="UpdateDownloadedVerified" xml:space="preserve"><value>Update downloaded and verified.</value></data>
+  <data name="UpdateDownloading" xml:space="preserve"><value>Downloading update…</value></data>
+  <data name="UpdateFound" xml:space="preserve"><value>Update {0} is available.</value></data>
+  <data name="UpdateFoundManaged" xml:space="preserve"><value>Update {0} is available and will be managed by Windows.</value></data>
+  <data name="UpdateInstallIntegrityFailed" xml:space="preserve"><value>The update cannot be installed because integrity verification failed.</value></data>
+  <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>The verified installer could not be started.</value></data>
+  <data name="UpdateInstalling" xml:space="preserve"><value>Starting update installer…</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>The previous update download was incomplete and has been discarded.</value></data>
+  <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>The previous update installation did not finish. The verified update is ready to retry.</value></data>
+  <data name="UpdateManagedByWindows" xml:space="preserve"><value>This Windows package is updated by Windows.</value></data>
+  <data name="UpdateNoDowngrade" xml:space="preserve"><value>No newer stable update is available. DropSpace will not downgrade this build.</value></data>
+  <data name="UpdateNotChecked" xml:space="preserve"><value>Not checked yet</value></data>
+  <data name="UpdatePortableManualReplacement" xml:space="preserve"><value>Portable builds must be replaced manually after the verified download completes.</value></data>
+  <data name="UpdatePortableVerified" xml:space="preserve"><value>Update downloaded and verified. Replace the portable executable manually.</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>{0:0}% · {1} / {2}</value></data>
+  <data name="UpdateServiceTimedOut" xml:space="preserve"><value>The update service timed out.</value></data>
+  <data name="UpdateServiceUnavailable" xml:space="preserve"><value>The update service is temporarily unavailable.</value></data>
+  <data name="UpdateServiceValidationFailed" xml:space="preserve"><value>The update response could not be validated.</value></data>
+  <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>Unattended installation is unavailable because the update publisher is not trusted.</value></data>
+  <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace is up to date.</value></data>
+  <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>DropSpace has package identity and is declared as a Windows Share target. Whether it appears directly in the Drop Tray suggestions depends on the Windows version and system relevance ranking; use More to open the full Share interface.</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>This deployment has no trusted package identity, so Windows Share integration is unavailable. Top-edge drops and direct drops onto the visible DropSpace panel remain available. A signed installer enables the Share target automatically.</value></data>
+
+  <!-- XAML surface strings, including automation names. -->
+  <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Subtitle" xml:space="preserve"><value>Temporary content workspace</value></data>
+  <data name="OverlayWindow.Title" xml:space="preserve"><value>DropSpace Dynamic Island</value></data>
+  <data name="OverlayCompactPanel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Expand the DropSpace top panel</value></data>
+  <data name="OverlayCompactSubtitle.Text" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="OverlayExpandedTitle.Text" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="OverlayExpandedSubtitle.Text" xml:space="preserve"><value>Recent items · drag directly to Explorer</value></data>
+  <data name="OverlayCollapseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Collapse the top panel</value></data>
+  <data name="OverlayOpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open item</value></data>
+  <data name="OverlayPinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Pin item</value></data>
+  <data name="OverlayRemoveItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Remove from DropSpace</value></data>
+  <data name="OverlayRemoveHint.Text" xml:space="preserve"><value>Removing a reference does not delete the original file</value></data>
+  <data name="OverlayOpenMainButton.Content" xml:space="preserve"><value>Open DropSpace</value></data>
+  <data name="OverlayDropTargetTitle.Text" xml:space="preserve"><value>Drop on DropSpace</value></data>
+  <data name="OverlayDropTargetSubtitle.Text" xml:space="preserve"><value>Release to add to Temporary Space</value></data>
+  <data name="NavSpace.Content" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="NavSpace.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="NavClipboard.Content" xml:space="preserve"><value>Clipboard</value></data>
+  <data name="NavClipboard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Clipboard history</value></data>
+  <data name="NavPinned.Content" xml:space="preserve"><value>Pinned</value></data>
+  <data name="NavPinned.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Pinned items</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>Settings</value></data>
+  <data name="NavSettings.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Settings</value></data>
+  <data name="SearchBox.PlaceholderText" xml:space="preserve"><value>Search files, text, or links</value></data>
+  <data name="SearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Search all DropSpace items</value></data>
+  <data name="AddButton.Content" xml:space="preserve"><value>Add</value></data>
+  <data name="AddButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Add to Temporary Space</value></data>
+  <data name="AddFilesMenuItem.Text" xml:space="preserve"><value>Choose files…</value></data>
+  <data name="AddFolderMenuItem.Text" xml:space="preserve"><value>Choose folder…</value></data>
+  <data name="ItemsList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace items</value></data>
+  <data name="OpenItemButton.Content" xml:space="preserve"><value>Open</value></data>
+  <data name="OpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open item</value></data>
+  <data name="CopyItemButton.Content" xml:space="preserve"><value>Copy</value></data>
+  <data name="CopyItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Copy item</value></data>
+  <data name="PinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Pin or unpin item</value></data>
+  <data name="LocateItemButton.Content" xml:space="preserve"><value>Locate</value></data>
+  <data name="LocateItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Locate missing file</value></data>
+  <data name="ExportItemButton.Content" xml:space="preserve"><value>Export</value></data>
+  <data name="ExportItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Export image</value></data>
+  <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>More item actions</value></data>
+  <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>Show in folder</value></data>
+  <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>Remove from DropSpace</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>Release to add references</value></data>
+  <data name="DropHintDescription.Text" xml:space="preserve"><value>Original files will not be moved</value></data>
+  <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>Clipboard and privacy</value></data>
+  <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>Pause recording</value></data>
+  <data name="PauseRecordingDescription.Text" xml:space="preserve"><value>The paused state is retained after restart until you resume it.</value></data>
+  <data name="PauseToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Pause clipboard recording</value></data>
+  <data name="CaptureImagesTitle.Text" xml:space="preserve"><value>Record images</value></data>
+  <data name="CaptureImagesDescription.Text" xml:space="preserve"><value>Adjust the size and pixel limits below; images over the limits are skipped.</value></data>
+  <data name="CaptureImagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Record clipboard images</value></data>
+  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>Maximum image size (MB)</value></data>
+  <data name="MaxImageMegapixelsLabel.Text" xml:space="preserve"><value>Maximum image pixels (millions)</value></data>
+  <data name="CaptureFilesTitle.Text" xml:space="preserve"><value>Record files and folders</value></data>
+  <data name="CaptureFilesDescription.Text" xml:space="preserve"><value>Explorer copies are recorded as Clipboard references; original files are not moved or copied.</value></data>
+  <data name="CaptureFilesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Record clipboard files</value></data>
+  <data name="CaptureFoldersTitle.Text" xml:space="preserve"><value>Include folder references</value></data>
+  <data name="CaptureFoldersDescription.Text" xml:space="preserve"><value>Folders are not scanned recursively or copied; only external references are recorded.</value></data>
+  <data name="CaptureFoldersToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Record clipboard folders</value></data>
+  <data name="MaxClipboardFileItemsLabel.Text" xml:space="preserve"><value>Maximum items per capture</value></data>
+  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>Maximum individual file size (MB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>Maximum known total size per capture (MB)</value></data>
+  <data name="MaxClipboardFileTotalMegabytesDescription.Text" xml:space="preserve"><value>Must be at least the individual file limit; folders are not counted recursively.</value></data>
+  <data name="ClipboardPrivacyWarning.Message" xml:space="preserve"><value>DropSpace cannot reliably identify every clipboard source and does not treat sensitive-content detection as a safety guarantee. Pause recording or clear history when needed.</value></data>
+  <data name="RetentionSection.Text" xml:space="preserve"><value>Retention</value></data>
+  <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>Maximum retention days</value></data>
+  <data name="RetentionCountLabel.Text" xml:space="preserve"><value>Maximum unpinned items retained</value></data>
+  <data name="AppearanceSection.Text" xml:space="preserve"><value>Appearance and window</value></data>
+  <data name="DropTrayCompatibilityTitle.Text" xml:space="preserve"><value>Top-edge drag compatibility</value></data>
+  <data name="DropTrayCompatibilityDescription.Text" xml:space="preserve"><value>Windows 11 Drop Tray and DropSpace use the same top-edge drag area. When system Drop Tray is enabled, it can receive files dragged to the top first and prevent the DropSpace panel from expanding automatically. Disable Drop Tray for the full “drag to top → DropSpace expands → drop into Temporary Space” experience.</value></data>
+  <data name="DropTrayApiNotice.Text" xml:space="preserve"><value>Windows does not offer a public, stable API to read the Drop Tray switch. DropSpace does not read internal feature flags or change system settings for you.</value></data>
+  <data name="OpenDropTraySettingsButton.Content" xml:space="preserve"><value>Open Windows Drop Tray settings</value></data>
+  <data name="OpenDropTraySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open Windows Drop Tray settings</value></data>
+  <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>File drag wake mode</value></data>
+  <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>Smart detection does not occupy the top edge while idle. Classic mode may be more compatible but keeps an invisible top input area active.</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>Smart detection (experimental)</value></data>
+  <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>Classic top-edge zone (compatible)</value></data>
+  <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>Disable automatic wake</value></data>
+  <data name="ExperimentalDragDetectionInfo.Title" xml:space="preserve"><value>Experimental drag detection</value></data>
+  <data name="ExperimentalDragDetectionInfo.Message" xml:space="preserve"><value>Smart detection currently prioritizes real file and folder drags from Explorer and the desktop. Some third-party apps, virtual files, or sources without standard signals may not wake it automatically; the visible DropSpace panel can still receive standard file drops directly.</value></data>
+  <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Enabled by default. Uses the current-user startup entry and does not require administrator privileges.</value></data>
+  <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="LanguageTitle.Text" xml:space="preserve"><value>Display language</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default. Restart DropSpace after changing this setting.</value></data>
+  <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Display language</value></data>
+  <data name="LanguageSystem.Content" xml:space="preserve"><value>System default</value></data>
+  <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageSimplifiedChinese.Content" xml:space="preserve"><value>简体中文</value></data>
+  <data name="ThemeTitle.Text" xml:space="preserve"><value>Theme</value></data>
+  <data name="ThemeSystem.Content" xml:space="preserve"><value>System default</value></data>
+  <data name="ThemeLight.Content" xml:space="preserve"><value>Light</value></data>
+  <data name="ThemeDark.Content" xml:space="preserve"><value>Dark</value></data>
+  <data name="MotionTitle.Text" xml:space="preserve"><value>Motion</value></data>
+  <data name="MotionDescription.Text" xml:space="preserve"><value>System default respects Windows reduce-motion settings.</value></data>
+  <data name="MotionSystem.Content" xml:space="preserve"><value>System default</value></data>
+  <data name="MotionFull.Content" xml:space="preserve"><value>Full</value></data>
+  <data name="MotionReduced.Content" xml:space="preserve"><value>Reduce motion</value></data>
+  <data name="MonitorTitle.Text" xml:space="preserve"><value>Monitor</value></data>
+  <data name="MonitorDescription.Text" xml:space="preserve"><value>Automatic mode appears on the screen where a file drag occurs.</value></data>
+  <data name="MonitorAutomatic.Content" xml:space="preserve"><value>Automatic</value></data>
+  <data name="MonitorPrimary.Content" xml:space="preserve"><value>Primary monitor</value></data>
+  <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>When closing the window</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Clipboard recording continues when the app is hidden to the tray.</value></data>
+  <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>Hide to tray</value></data>
+  <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>Exit directly</value></data>
+  <data name="UpdatesSection.Text" xml:space="preserve"><value>Updates</value></data>
+  <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>Check for updates automatically</value></data>
+  <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>Checks at most once per DropSpace process launch; no background timer runs.</value></data>
+  <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>Download updates automatically</value></data>
+  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>Downloads only to DropSpace’s own cache and installs only after size and SHA-256 verification.</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Unattended automatic installation</value></data>
+  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Available only when the update passes trusted Authenticode publisher verification; it remains off for unsigned builds.</value></data>
+  <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Update channel</value></data>
+  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable receives release versions only. Preview receives all versions and strictly selects the highest SemVer version.</value></data>
+  <data name="UpdateChannelStable.Content" xml:space="preserve"><value>Stable</value></data>
+  <data name="UpdateChannelPreview.Content" xml:space="preserve"><value>Preview</value></data>
+  <data name="CheckUpdatesButton.Content" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="DownloadUpdateButton.Content" xml:space="preserve"><value>Download now</value></data>
+  <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Update now</value></data>
+  <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>Open download location</value></data>
+  <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>View release notes</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>Local data</value></data>
+  <data name="StorageLocationTitle.Text" xml:space="preserve"><value>Storage location</value></data>
+  <data name="ClearLastHourButton.Content" xml:space="preserve"><value>Clear last hour</value></data>
+  <data name="ClearTodayButton.Content" xml:space="preserve"><value>Clear today</value></data>
+  <data name="ClearAllButton.Content" xml:space="preserve"><value>Clear all history</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>Cleanup keeps pinned items by default and never deletes original files referenced in Temporary Space.</value></data>
+</root>

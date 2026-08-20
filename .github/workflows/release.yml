@@ -75,6 +75,10 @@ jobs:
           ./scripts/Test-ReleaseVersion.ps1
           ./scripts/Test-ReleaseConsistency.ps1
 
+      - name: Enforce localization resource policy
+        shell: pwsh
+        run: ./scripts/Test-Localization.ps1
+
       - name: Generate brand assets from canonical masters
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1
@@ -191,9 +195,13 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
 
-      - name: Smoke test portable EXE without public network access
+      - name: Smoke test portable EXE (en-US resource context) without public network access
         shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1
+        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US
+
+      - name: Smoke test portable EXE (zh-CN resource context) without public network access
+        shell: pwsh
+        run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
 
       - name: Freeze bytes, verify signatures, and generate release metadata
         shell: pwsh

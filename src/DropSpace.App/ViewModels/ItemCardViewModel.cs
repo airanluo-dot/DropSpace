@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage;
@@ -8,12 +9,14 @@ namespace DropSpace.App.ViewModels;
 public sealed class ItemCardViewModel : ObservableObject
 {
     private DropItem _item;
+    private readonly IAppStringLocalizer _strings;
     private BitmapImage? _thumbnail;
     private IStorageItem? _dragStorageItem;
 
-    public ItemCardViewModel(DropItem item)
+    public ItemCardViewModel(DropItem item, IAppStringLocalizer strings)
     {
         _item = item;
+        _strings = strings;
     }
 
     public DropItem Item
@@ -35,29 +38,33 @@ public sealed class ItemCardViewModel : ObservableObject
     public string Preview => Item.File?.OriginalPath
         ?? Item.Url?.DisplayUrl
         ?? CreateTextPreview(Item.Text?.InlineText)
-        ?? (Item.Image is null ? string.Empty : $"{Item.Image.PixelWidth} × {Item.Image.PixelHeight} · {FormatBytes(Item.Image.EncodedBytes)}");
+        ?? (Item.Image is null
+            ? string.Empty
+            : _strings.Format("ImagePreview", Item.Image.PixelWidth, Item.Image.PixelHeight, FormatBytes(Item.Image.EncodedBytes)));
 
-    public string SourceLabel => Item.Source == ItemSource.Space ? "Space" : "Clipboard";
+    public string SourceLabel => Item.Source == ItemSource.Space
+        ? _strings.Get("ItemSourceSpace")
+        : _strings.Get("ItemSourceClipboard");
 
     public string KindLabel => Item.Kind switch
     {
-        ItemKind.File => "文件",
-        ItemKind.Folder => "文件夹",
-        ItemKind.Text => "文本",
-        ItemKind.Image => "图片",
-        ItemKind.Url => "链接",
-        ItemKind.Color => "颜色",
-        ItemKind.Code => "代码",
-        _ => "未知",
+        ItemKind.File => _strings.Get("ItemKindFile"),
+        ItemKind.Folder => _strings.Get("ItemKindFolder"),
+        ItemKind.Text => _strings.Get("ItemKindText"),
+        ItemKind.Image => _strings.Get("ItemKindImage"),
+        ItemKind.Url => _strings.Get("ItemKindUrl"),
+        ItemKind.Color => _strings.Get("ItemKindColor"),
+        ItemKind.Code => _strings.Get("ItemKindCode"),
+        _ => _strings.Get("ItemKindUnknown"),
     };
 
     public string StatusLabel => Item.Status switch
     {
         ItemStatus.Available => string.Empty,
-        ItemStatus.Missing => "文件不存在",
-        ItemStatus.Unavailable => "暂时不可用",
-        ItemStatus.Processing => "处理中",
-        ItemStatus.Error => "读取失败",
+        ItemStatus.Missing => _strings.Get("ItemStatusMissing"),
+        ItemStatus.Unavailable => _strings.Get("ItemStatusUnavailable"),
+        ItemStatus.Processing => _strings.Get("ItemStatusProcessing"),
+        ItemStatus.Error => _strings.Get("ItemStatusError"),
         _ => string.Empty,
     };
 
@@ -68,8 +75,8 @@ public sealed class ItemCardViewModel : ObservableObject
             var local = Item.CreatedAtUtc.ToLocalTime();
             var now = DateTimeOffset.Now;
             return local.Date == now.Date
-                ? local.ToString("HH:mm", System.Globalization.CultureInfo.CurrentCulture)
-                : local.ToString("M月d日 HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+                ? local.ToString(_strings.Get("ItemCreatedTodayFormat"), _strings.Culture)
+                : local.ToString(_strings.Get("ItemCreatedDateFormat"), _strings.Culture);
         }
     }
 
@@ -87,7 +94,9 @@ public sealed class ItemCardViewModel : ObservableObject
 
     public bool IsPinned => Item.IsPinned;
 
-    public string PinActionLabel => Item.IsPinned ? "取消固定" : "固定";
+    public string PinActionLabel => Item.IsPinned
+        ? _strings.Get("ItemUnpin")
+        : _strings.Get("ItemPin");
 
     public bool IsFileReference => Item.File is not null;
 
@@ -124,17 +133,14 @@ public sealed class ItemCardViewModel : ObservableObject
         return singleLine.Length <= 220 ? singleLine : string.Concat(singleLine.AsSpan(0, 219), "…");
     }
 
-    private static string FormatBytes(long bytes)
+    private string FormatBytes(long bytes)
     {
-        string[] units = ["B", "KB", "MB", "GB"];
-        var value = (double)bytes;
-        var index = 0;
-        while (value >= 1024 && index < units.Length - 1)
+        return bytes switch
         {
-            value /= 1024;
-            index++;
-        }
-
-        return $"{value:0.#} {units[index]}";
+            < 1024 => _strings.Format("Bytes", bytes),
+            < 1024 * 1024 => _strings.Format("Kilobytes", bytes / 1024d),
+            < 1024L * 1024 * 1024 => _strings.Format("Megabytes", bytes / (1024d * 1024)),
+            _ => _strings.Format("Gigabytes", bytes / (1024d * 1024 * 1024)),
+        };
     }
 }

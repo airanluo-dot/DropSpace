@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
+using DropSpace.Core.Abstractions;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
@@ -15,6 +16,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     private readonly MainViewModel _mainViewModel;
     private readonly OverlayStateMachine _stateMachine;
     private readonly DispatcherQueue _dispatcher;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<OverlayViewModel> _logger;
     private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
@@ -26,11 +28,13 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         MainViewModel mainViewModel,
         OverlayStateMachine stateMachine,
         DispatcherQueue dispatcher,
+        IAppStringLocalizer strings,
         ILogger<OverlayViewModel> logger)
     {
         _mainViewModel = mainViewModel;
         _stateMachine = stateMachine;
         _dispatcher = dispatcher;
+        _strings = strings;
         _logger = logger;
         _snapshot = stateMachine.Snapshot;
         _projectionRefresh = new SerializedProjectionRefreshCoordinator<ItemCardViewModel>(
@@ -86,21 +90,20 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public string CompactTitle => Snapshot.TemporaryItemCount switch
     {
-        0 => "DropSpace",
+        0 => _strings.Get("OverlayTitle"),
         1 when RecentItems.FirstOrDefault() is { } item => item.Title,
-        1 => "1 个项目",
-        _ => $"{Snapshot.TemporaryItemCount} 个项目",
+        _ => _strings.Format("OverlayItemCount", Snapshot.TemporaryItemCount),
     };
 
     public string DragTitle => Snapshot.State == OverlayState.DragReady
-        ? "放到 DropSpace"
+        ? _strings.Get("OverlayDropTitle")
         : FileDragWakeMode == DropSpace.Core.Models.FileDragWakeMode.ClassicTopEdge
-            ? "拖到顶部以暂存"
-            : "拖到出现的 DropSpace";
+            ? _strings.Get("OverlayClassicDragTitle")
+            : _strings.Get("OverlaySmartDragTitle");
 
     public string DragSubtitle => Snapshot.State == OverlayState.DragReady
-        ? "松开即可添加文件或文件夹引用"
-        : "原始文件不会被移动或删除";
+        ? _strings.Get("OverlayDropSubtitle")
+        : _strings.Get("OverlayDragSubtitle");
 
     public async Task InitializeAsync(string initialMonitorId, CancellationToken cancellationToken = default)
     {

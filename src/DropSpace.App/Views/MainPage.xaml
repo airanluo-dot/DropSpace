@@ -22,12 +22,12 @@
     PaneDisplayMode="LeftCompact"
     SelectionChanged="OnNavigationSelectionChanged">
     <NavigationView.MenuItems>
-      <NavigationViewItem x:Name="SpaceNavigationItem" Content="暂存空间" Icon="Folder" Tag="Space" AutomationProperties.Name="暂存空间" />
-      <NavigationViewItem x:Name="ClipboardNavigationItem" Content="剪贴板" Icon="Paste" Tag="Clipboard" AutomationProperties.Name="剪贴板历史" />
-      <NavigationViewItem x:Name="PinnedNavigationItem" Content="已固定" Icon="Pin" Tag="Pinned" AutomationProperties.Name="已固定项目" />
+      <NavigationViewItem x:Name="SpaceNavigationItem" x:Uid="NavSpace" Icon="Folder" Tag="Space" />
+      <NavigationViewItem x:Name="ClipboardNavigationItem" x:Uid="NavClipboard" Icon="Paste" Tag="Clipboard" />
+      <NavigationViewItem x:Name="PinnedNavigationItem" x:Uid="NavPinned" Icon="Pin" Tag="Pinned" />
     </NavigationView.MenuItems>
     <NavigationView.FooterMenuItems>
-      <NavigationViewItem x:Name="SettingsNavigationItem" Content="设置" Icon="Setting" Tag="Settings" AutomationProperties.Name="设置" />
+      <NavigationViewItem x:Name="SettingsNavigationItem" x:Uid="NavSettings" Icon="Setting" Tag="Settings" />
     </NavigationView.FooterMenuItems>
 
     <Grid>
@@ -98,28 +98,27 @@
 
         <AutoSuggestBox
           x:Name="SearchBox"
+          x:Uid="SearchBox"
           Grid.Column="1"
           VerticalAlignment="Top"
-          AutomationProperties.Name="搜索所有 DropSpace 项目"
-          PlaceholderText="搜索文件、文本或链接"
           QueryIcon="Find"
           TextChanged="OnSearchTextChanged"
           KeyDown="OnSearchKeyDown" />
 
         <DropDownButton
           x:Name="AddButton"
+          x:Uid="AddButton"
           Grid.Column="2"
           VerticalAlignment="Top"
-          AutomationProperties.Name="添加到暂存空间"
-          Content="添加">
+          >
           <DropDownButton.Flyout>
             <MenuFlyout>
-              <MenuFlyoutItem Text="选择文件…" Click="OnAddFilesClicked">
+              <MenuFlyoutItem x:Uid="AddFilesMenuItem" Click="OnAddFilesClicked">
                 <MenuFlyoutItem.Icon>
                   <SymbolIcon Symbol="Document" />
                 </MenuFlyoutItem.Icon>
               </MenuFlyoutItem>
-              <MenuFlyoutItem Text="选择文件夹…" Click="OnAddFolderClicked">
+              <MenuFlyoutItem x:Uid="AddFolderMenuItem" Click="OnAddFolderClicked">
                 <MenuFlyoutItem.Icon>
                   <SymbolIcon Symbol="Folder" />
                 </MenuFlyoutItem.Icon>
@@ -149,7 +148,7 @@
         <Grid Padding="28,0,28,28">
           <ListView
             x:Name="ItemsList"
-            AutomationProperties.Name="DropSpace 项目"
+            x:Uid="ItemsList"
             CanDragItems="True"
             DoubleTapped="OnItemDoubleTapped"
             DragItemsStarting="OnDragItemsStarting"
@@ -219,41 +218,37 @@
 
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="6">
                     <Button
-                      AutomationProperties.Name="打开项目"
+                      x:Uid="OpenItemButton"
                       Click="OnOpenItemClicked"
-                      Content="打开"
                       IsEnabled="{Binding CanOpen}"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}" />
                     <Button
-                      AutomationProperties.Name="复制项目"
+                      x:Uid="CopyItemButton"
                       Click="OnCopyItemClicked"
-                      Content="复制"
                       IsEnabled="{Binding CanCopy}"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}" />
                     <Button
-                      AutomationProperties.Name="固定或取消固定项目"
+                      x:Uid="PinItemButton"
                       Click="OnPinItemClicked"
                       Content="{Binding PinActionLabel}"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}" />
                     <Button
-                      AutomationProperties.Name="定位丢失的文件"
+                      x:Uid="LocateItemButton"
                       Click="OnLocateItemClicked"
-                      Content="定位"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}"
                       Visibility="{Binding IsMissing, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <Button
-                      AutomationProperties.Name="导出图片"
+                      x:Uid="ExportItemButton"
                       Click="OnExportItemClicked"
-                      Content="导出"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}"
                       Visibility="{Binding CanExport, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <Button
-                      AutomationProperties.Name="更多项目操作"
+                      x:Uid="MoreItemButton"
                       Style="{StaticResource DropSpaceItemButtonStyle}"
                       Tag="{Binding}">
                       <Button.Content>
@@ -261,9 +256,9 @@
                       </Button.Content>
                       <Button.Flyout>
                         <MenuFlyout>
-                          <MenuFlyoutItem Text="在文件夹中显示" Click="OnShowInFolderClicked" Tag="{Binding}" />
+                          <MenuFlyoutItem x:Uid="ShowInFolderMenuItem" Click="OnShowInFolderClicked" Tag="{Binding}" />
                           <MenuFlyoutSeparator />
-                          <MenuFlyoutItem Text="从 DropSpace 移除" Click="OnRemoveItemClicked" Tag="{Binding}" />
+                          <MenuFlyoutItem x:Uid="RemoveItemMenuItem" Click="OnRemoveItemClicked" Tag="{Binding}" />
                         </MenuFlyout>
                       </Button.Flyout>
                     </Button>
@@ -280,12 +275,11 @@
             Spacing="12"
             Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
             <FontIcon HorizontalAlignment="Center" FontSize="42" Glyph="&#xE8B7;" />
-            <TextBlock x:Name="EmptyTitle" HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" Text="把文件或文件夹拖到这里" />
+            <TextBlock x:Name="EmptyTitle" HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" />
             <TextBlock
               x:Name="EmptyDescription"
               HorizontalAlignment="Center"
               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-              Text="DropSpace 只保存引用，不会移动或删除原始文件。"
               TextAlignment="Center"
               TextWrapping="Wrap" />
           </StackPanel>
@@ -300,8 +294,8 @@
             Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
               <FontIcon FontSize="40" Glyph="&#xECC8;" />
-              <TextBlock FontSize="20" FontWeight="SemiBold" Text="松开以添加引用" />
-              <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="原始文件不会被移动" />
+              <TextBlock x:Uid="DropHintTitle" FontSize="20" FontWeight="SemiBold" />
+              <TextBlock x:Uid="DropHintDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
           </Border>
 
@@ -321,17 +315,17 @@
         Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
         <StackPanel MaxWidth="780" HorizontalAlignment="Left" Spacing="28">
           <StackPanel Spacing="12">
-            <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="剪贴板与隐私" />
+            <TextBlock x:Uid="ClipboardPrivacySection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock FontWeight="SemiBold" Text="暂停记录" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="暂停状态会在重启后保留，直到你手动恢复。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="PauseRecordingTitle" FontWeight="SemiBold" />
+                <TextBlock x:Uid="PauseRecordingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="PauseToggle" Grid.Column="1" Toggled="OnPauseToggled" AutomationProperties.Name="暂停剪贴板记录" />
+              <ToggleSwitch x:Name="PauseToggle" x:Uid="PauseToggle" Grid.Column="1" Toggled="OnPauseToggled" />
             </Grid>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -339,17 +333,17 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock FontWeight="SemiBold" Text="记录图片" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="大小和像素上限可在下方调整；超限图片会被跳过。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="CaptureImagesTitle" FontWeight="SemiBold" />
+                <TextBlock x:Uid="CaptureImagesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="CaptureImagesToggle" Grid.Column="1" Toggled="OnCaptureImagesToggled" AutomationProperties.Name="记录剪贴板图片" />
+              <ToggleSwitch x:Name="CaptureImagesToggle" x:Uid="CaptureImagesToggle" Grid.Column="1" Toggled="OnCaptureImagesToggled" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="单张图片最大大小（MB）" TextWrapping="Wrap" />
+              <TextBlock x:Uid="MaxImageMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <NumberBox x:Name="MaxImageMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="256" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -357,7 +351,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="单张图片最大像素（百万）" TextWrapping="Wrap" />
+              <TextBlock x:Uid="MaxImageMegapixelsLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <NumberBox x:Name="MaxImageMegapixelsNumber" Grid.Column="1" Minimum="1" Maximum="200" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="24">
@@ -366,10 +360,10 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock FontWeight="SemiBold" Text="记录文件与文件夹" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Explorer 的复制操作会作为 Clipboard 引用记录，不会移动或复制原始文件。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="CaptureFilesTitle" FontWeight="SemiBold" />
+                <TextBlock x:Uid="CaptureFilesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="CaptureFilesToggle" Grid.Column="1" Toggled="OnCaptureFilesToggled" AutomationProperties.Name="记录剪贴板文件" />
+              <ToggleSwitch x:Name="CaptureFilesToggle" x:Uid="CaptureFilesToggle" Grid.Column="1" Toggled="OnCaptureFilesToggled" />
             </Grid>
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -377,17 +371,17 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock FontWeight="SemiBold" Text="包含文件夹引用" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="文件夹不会被递归扫描或复制；只记录外部引用。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="CaptureFoldersTitle" FontWeight="SemiBold" />
+                <TextBlock x:Uid="CaptureFoldersDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="CaptureFoldersToggle" Grid.Column="1" Toggled="OnCaptureFoldersToggled" AutomationProperties.Name="记录剪贴板文件夹" />
+              <ToggleSwitch x:Name="CaptureFoldersToggle" x:Uid="CaptureFoldersToggle" Grid.Column="1" Toggled="OnCaptureFoldersToggled" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="单次最多项目数" />
+              <TextBlock x:Uid="MaxClipboardFileItemsLabel" VerticalAlignment="Center" />
               <NumberBox x:Name="MaxClipboardFileItemsNumber" Grid.Column="1" Minimum="1" Maximum="1000" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -395,7 +389,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="单个文件最大大小（MB）" TextWrapping="Wrap" />
+              <TextBlock x:Uid="MaxClipboardFileMegabytesLabel" VerticalAlignment="Center" TextWrapping="Wrap" />
               <NumberBox x:Name="MaxClipboardFileMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="1048576" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -404,26 +398,26 @@
                 <ColumnDefinition Width="180" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="单次已知总大小上限（MB）" TextWrapping="Wrap" />
-                <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="必须不小于单文件上限；文件夹不递归计入。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="MaxClipboardFileTotalMegabytesLabel" TextWrapping="Wrap" />
+                <TextBlock x:Uid="MaxClipboardFileTotalMegabytesDescription" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <NumberBox x:Name="MaxClipboardFileTotalMegabytesNumber" Grid.Column="1" Minimum="1" Maximum="4194304" SpinButtonPlacementMode="Compact" ValueChanged="OnClipboardLimitsChanged" />
             </Grid>
             <InfoBar
+              x:Uid="ClipboardPrivacyWarning"
               IsClosable="False"
               IsOpen="True"
-              Message="DropSpace 无法可靠识别所有剪贴板来源，也不会把“敏感内容检测”当作安全保证。需要时请暂停记录或清除历史。"
               Severity="Warning" />
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="保留期限" />
+            <TextBlock x:Uid="RetentionSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="160" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="最多保留天数" />
+              <TextBlock x:Uid="RetentionDaysLabel" VerticalAlignment="Center" />
               <NumberBox x:Name="RetentionDaysNumber" Grid.Column="1" Minimum="1" Maximum="3650" SpinButtonPlacementMode="Compact" ValueChanged="OnRetentionChanged" />
             </Grid>
             <Grid ColumnSpacing="20">
@@ -431,13 +425,13 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="160" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="最多保留未固定项目" />
+              <TextBlock x:Uid="RetentionCountLabel" VerticalAlignment="Center" />
               <NumberBox x:Name="RetentionCountNumber" Grid.Column="1" Minimum="10" Maximum="100000" SpinButtonPlacementMode="Compact" ValueChanged="OnRetentionChanged" />
             </Grid>
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="外观与窗口" />
+            <TextBlock x:Uid="AppearanceSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Border
               Padding="16"
               Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -445,25 +439,24 @@
               BorderThickness="1"
               CornerRadius="8">
               <StackPanel Spacing="10">
-                <TextBlock FontWeight="SemiBold" Text="顶部拖放兼容性" />
+                <TextBlock x:Uid="DropTrayCompatibilityTitle" FontWeight="SemiBold" />
                 <TextBlock
+                  x:Uid="DropTrayCompatibilityDescription"
                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                  Text="Windows 11 的 Drop Tray 与 DropSpace 使用相同的屏幕顶部拖放区域。开启系统 Drop Tray 时，它可能优先接收拖到顶部的文件，从而阻止 DropSpace 灵动岛自动展开。关闭 Drop Tray 可获得完整的“拖到顶部 → 灵动岛展开 → 放入 Temporary Space”体验。"
                   TextWrapping="Wrap" />
                 <TextBlock
                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                   Text="{Binding WindowsShareIntegrationStatus}"
                   TextWrapping="Wrap" />
                 <TextBlock
+                  x:Uid="DropTrayApiNotice"
                   FontSize="12"
                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                  Text="Windows 未提供公开、稳定的 API 读取 Drop Tray 开关；DropSpace 不读取内部 Feature Flag，也不会替你更改系统设置。"
                   TextWrapping="Wrap" />
                 <Button
+                  x:Uid="OpenDropTraySettingsButton"
                   HorizontalAlignment="Left"
-                  AutomationProperties.Name="打开 Windows Drop Tray 设置"
-                  Click="OnOpenDropTraySettingsClicked"
-                  Content="打开 Windows Drop Tray 设置" />
+                  Click="OnOpenDropTraySettingsClicked" />
               </StackPanel>
             </Border>
             <Grid ColumnSpacing="20">
@@ -472,10 +465,10 @@
                 <ColumnDefinition Width="240" />
               </Grid.ColumnDefinitions>
               <StackPanel Spacing="3">
-                <TextBlock Text="文件拖拽唤醒方式" />
+                <TextBlock x:Uid="FileDragWakeModeTitle" />
                 <TextBlock
+                  x:Uid="FileDragWakeModeDescription"
                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                  Text="智能检测空闲时不占用屏幕顶部；传统模式兼容范围可能更广，但会长期保留不可见顶部输入区域。"
                   TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox
@@ -483,38 +476,52 @@
                 Grid.Column="1"
                 HorizontalAlignment="Stretch"
                 SelectionChanged="OnFileDragWakeModeChanged">
-                <ComboBoxItem Content="智能检测（实验性）" Tag="SmartExperimental" />
-                <ComboBoxItem Content="传统顶部感应区（兼容）" Tag="ClassicTopEdge" />
-                <ComboBoxItem Content="关闭自动唤醒" Tag="Disabled" />
+                <ComboBoxItem x:Uid="FileDragWakeModeSmart" Tag="SmartExperimental" />
+                <ComboBoxItem x:Uid="FileDragWakeModeClassic" Tag="ClassicTopEdge" />
+                <ComboBoxItem x:Uid="FileDragWakeModeDisabled" Tag="Disabled" />
               </ComboBox>
             </Grid>
             <InfoBar
+              x:Uid="ExperimentalDragDetectionInfo"
               IsClosable="False"
               IsOpen="True"
-              Message="智能检测目前优先支持 Explorer 与桌面的真实文件/文件夹拖拽。部分第三方软件、虚拟文件或不提供标准信号的来源可能无法自动唤醒；已显示的 DropSpace 仍可直接接收标准文件拖放。"
-              Severity="Informational"
-              Title="实验性拖拽检测" />
+              Severity="Informational" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="开机自启动" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="默认开启；使用当前用户启动项，不需要管理员权限。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="StartWithWindowsTitle" />
+                <TextBlock x:Uid="StartWithWindowsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <ToggleSwitch x:Name="StartWithWindowsToggle" Grid.Column="1" Toggled="OnStartWithWindowsToggled" AutomationProperties.Name="开机自启动" />
+              <ToggleSwitch x:Name="StartWithWindowsToggle" x:Uid="StartWithWindowsToggle" Grid.Column="1" Toggled="OnStartWithWindowsToggled" />
             </Grid>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
-              <TextBlock VerticalAlignment="Center" Text="主题" />
+              <StackPanel>
+                <TextBlock x:Uid="LanguageTitle" />
+                <TextBlock x:Uid="LanguageDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <ComboBox x:Name="LanguageCombo" x:Uid="LanguageCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnLanguageChanged">
+                <ComboBoxItem x:Uid="LanguageSystem" Tag="System" />
+                <ComboBoxItem x:Uid="LanguageEnglish" Tag="English" />
+                <ComboBoxItem x:Uid="LanguageSimplifiedChinese" Tag="SimplifiedChinese" />
+              </ComboBox>
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+              </Grid.ColumnDefinitions>
+              <TextBlock x:Uid="ThemeTitle" VerticalAlignment="Center" />
               <ComboBox x:Name="ThemeCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnThemeChanged">
-                <ComboBoxItem Content="跟随系统" Tag="System" />
-                <ComboBoxItem Content="浅色" Tag="Light" />
-                <ComboBoxItem Content="深色" Tag="Dark" />
+                <ComboBoxItem x:Uid="ThemeSystem" Tag="System" />
+                <ComboBoxItem x:Uid="ThemeLight" Tag="Light" />
+                <ComboBoxItem x:Uid="ThemeDark" Tag="Dark" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -523,13 +530,13 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="动画" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="跟随系统会尊重 Windows 减少动态效果。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="MotionTitle" />
+                <TextBlock x:Uid="MotionDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="OverlayMotionCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayMotionChanged">
-                <ComboBoxItem Content="跟随系统" Tag="System" />
-                <ComboBoxItem Content="完整" Tag="Full" />
-                <ComboBoxItem Content="减少动态效果" Tag="Reduced" />
+                <ComboBoxItem x:Uid="MotionSystem" Tag="System" />
+                <ComboBoxItem x:Uid="MotionFull" Tag="Full" />
+                <ComboBoxItem x:Uid="MotionReduced" Tag="Reduced" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -538,12 +545,12 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="显示器" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="自动模式会在文件拖拽所在屏幕出现。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="MonitorTitle" />
+                <TextBlock x:Uid="MonitorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="OverlayMonitorCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnOverlayMonitorChanged">
-                <ComboBoxItem Content="自动" Tag="Automatic" />
-                <ComboBoxItem Content="主显示器" Tag="Primary" />
+                <ComboBoxItem x:Uid="MonitorAutomatic" Tag="Automatic" />
+                <ComboBoxItem x:Uid="MonitorPrimary" Tag="Primary" />
               </ComboBox>
             </Grid>
             <Grid ColumnSpacing="20">
@@ -552,26 +559,26 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="关闭窗口时" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="隐藏到托盘时会继续记录剪贴板。" />
+                <TextBlock x:Uid="CloseBehaviorTitle" />
+                <TextBlock x:Uid="CloseBehaviorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
               </StackPanel>
               <ComboBox x:Name="CloseBehaviorCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnCloseBehaviorChanged">
-                <ComboBoxItem Content="隐藏到托盘" Tag="HideToTray" />
-                <ComboBoxItem Content="直接退出" Tag="Exit" />
+                <ComboBoxItem x:Uid="CloseBehaviorHideToTray" Tag="HideToTray" />
+                <ComboBoxItem x:Uid="CloseBehaviorExit" Tag="Exit" />
               </ComboBox>
             </Grid>
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="更新" />
+            <TextBlock x:Uid="UpdatesSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="自动检查更新" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="每次 DropSpace 进程启动最多检查一次；不会运行后台定时器。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="AutoCheckUpdatesTitle" />
+                <TextBlock x:Uid="AutoCheckUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="AutoCheckUpdatesToggle" Grid.Column="1" Toggled="OnAutoCheckUpdatesToggled" />
             </Grid>
@@ -581,8 +588,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="自动下载更新" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="仅下载到 DropSpace 自有缓存，完成大小与 SHA-256 验证后才可安装。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="AutoDownloadUpdatesTitle" />
+                <TextBlock x:Uid="AutoDownloadUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="AutoDownloadUpdatesToggle" Grid.Column="1" Toggled="OnAutoDownloadUpdatesToggled" />
             </Grid>
@@ -592,8 +599,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="无人值守自动安装" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="只有更新通过可信 Authenticode 发布者验证时才可用；当前未签名构建保持关闭。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="AutoInstallUpdatesTitle" />
+                <TextBlock x:Uid="AutoInstallUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch
                 x:Name="AutoInstallUpdatesToggle"
@@ -607,12 +614,12 @@
                 <ColumnDefinition Width="200" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="更新通道" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="稳定版只接收正式版；预览版接收全部版本并严格选择最高 SemVer。" TextWrapping="Wrap" />
+                <TextBlock x:Uid="UpdateChannelTitle" />
+                <TextBlock x:Uid="UpdateChannelDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ComboBox x:Name="UpdateChannelCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnUpdateChannelChanged">
-                <ComboBoxItem Content="稳定版" Tag="Stable" />
-                <ComboBoxItem Content="预览版" Tag="Preview" />
+                <ComboBoxItem x:Uid="UpdateChannelStable" Tag="Stable" />
+                <ComboBoxItem x:Uid="UpdateChannelPreview" Tag="Preview" />
               </ComboBox>
             </Grid>
             <Border
@@ -628,27 +635,27 @@
                 <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding UpdateProgressText}" />
                 <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{Binding LastUpdateCheckDisplayText}" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Content="检查更新" IsEnabled="{Binding CanCheckForUpdates}" Click="OnCheckForUpdatesClicked" />
-                  <Button Content="立即下载" Visibility="{Binding CanDownloadUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnDownloadUpdateClicked" />
-                  <Button Content="立即更新" Visibility="{Binding CanInstallUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnInstallUpdateClicked" />
-                  <Button Content="打开下载位置" Visibility="{Binding CanOpenUpdateLocation, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnOpenUpdateLocationClicked" />
-                  <Button Content="查看更新内容" Visibility="{Binding CanViewReleaseNotes, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnViewReleaseNotesClicked" />
+                  <Button x:Uid="CheckUpdatesButton" IsEnabled="{Binding CanCheckForUpdates}" Click="OnCheckForUpdatesClicked" />
+                  <Button x:Uid="DownloadUpdateButton" Visibility="{Binding CanDownloadUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnDownloadUpdateClicked" />
+                  <Button x:Uid="InstallUpdateButton" Visibility="{Binding CanInstallUpdate, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnInstallUpdateClicked" />
+                  <Button x:Uid="OpenUpdateLocationButton" Visibility="{Binding CanOpenUpdateLocation, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnOpenUpdateLocationClicked" />
+                  <Button x:Uid="ViewReleaseNotesButton" Visibility="{Binding CanViewReleaseNotes, Converter={StaticResource BoolToVisibilityConverter}}" Click="OnViewReleaseNotesClicked" />
                 </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
 
           <StackPanel Spacing="12">
-            <TextBlock Style="{StaticResource DropSpaceSectionTitleStyle}" Text="本地数据" />
-            <TextBlock FontWeight="SemiBold" Text="存储位置" />
+            <TextBlock x:Uid="LocalDataSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock x:Uid="StorageLocationTitle" FontWeight="SemiBold" />
             <TextBox IsReadOnly="True" Text="{Binding StoragePath}" TextWrapping="Wrap" />
             <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding StorageSummaryText}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="清除最近一小时" Click="OnClearLastHourClicked" />
-              <Button Content="清除今天" Click="OnClearTodayClicked" />
-              <Button Content="清除全部历史" Click="OnClearAllClicked" />
+              <Button x:Uid="ClearLastHourButton" Click="OnClearLastHourClicked" />
+              <Button x:Uid="ClearTodayButton" Click="OnClearTodayClicked" />
+              <Button x:Uid="ClearAllButton" Click="OnClearAllClicked" />
             </StackPanel>
-            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="清理默认保留固定项目；不会删除 Space 中引用的原始文件。" TextWrapping="Wrap" />
+            <TextBlock x:Uid="ClearHistoryDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
           </StackPanel>
         </StackPanel>
       </ScrollViewer>

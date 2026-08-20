@@ -349,3 +349,13 @@ Smart placement is also state-independent. A single DPI-aware policy computes th
 **Rationale:** Rebuilding from a stale committed snapshot after an upstream failure can redeploy older metadata and make the official API appear to move backwards. Keeping the last successfully deployed Pages artifact is safer and more truthful than publishing a new artifact whose release data was not freshly verified.
 
 **Constraints:** The public schema remains version 1; the App continues to prefer the official GitHub Pages API and fall back to GitHub Releases REST. Release and asset URL allow-lists, update-manifest verification, filenames, channels, and historical GitHub Releases remain unchanged.
+
+## D-042 — English base resources with a bounded System language mapping
+
+**Status:** Accepted
+
+**Decision:** Keep one complete `en-US` resource file as the default display-language source, ship an exactly keyed `zh-CN` companion, and prohibit CJK UI hardcoding in production `.cs` and `.xaml` files. Persist `System`, `English`, and `SimplifiedChinese` choices in settings schema 7. On startup, System maps a Windows `zh-*` display-language preference to `zh-CN`; all other system languages use `en-US` until another resource set is deliberately shipped. XAML identifiers and imperative user-facing strings—including tray, Dynamic Island, update status, errors, and accessibility names—resolve from the same resource collection.
+
+**Rationale:** English must be a predictable complete base and fallback resource set while Chinese Windows users retain a full native-language surface through the System choice. A narrow, explicit mapping avoids pretending that untranslated Windows languages are fully localized, and an app-restart boundary avoids mixed resource contexts in existing XAML, native tray, and service objects.
+
+**Constraints:** CI validates resource-key parity, blocks new CJK hardcoding, and executes the Windows workload under both resource contexts. It does not claim the hosted runner's operating-system display language has been switched; complete validation still requires separate English and Simplified Chinese Windows 11 manual evidence.

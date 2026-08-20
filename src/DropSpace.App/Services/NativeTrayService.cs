@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
@@ -31,6 +32,7 @@ public sealed class NativeTrayService : IDisposable
     private const uint SubclassId = 0x4453;
 
     private readonly IntPtr _windowHandle;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<NativeTrayService> _logger;
     private readonly SubclassProc _subclassProc;
     private readonly uint _taskbarCreatedMessage;
@@ -39,7 +41,10 @@ public sealed class NativeTrayService : IDisposable
     private bool _paused;
     private bool _disposed;
 
-    public NativeTrayService(IntPtr windowHandle, ILogger<NativeTrayService> logger)
+    public NativeTrayService(
+        IntPtr windowHandle,
+        IAppStringLocalizer strings,
+        ILogger<NativeTrayService> logger)
     {
         if (windowHandle == IntPtr.Zero)
         {
@@ -47,6 +52,7 @@ public sealed class NativeTrayService : IDisposable
         }
 
         _windowHandle = windowHandle;
+        _strings = strings;
         _logger = logger;
         _subclassProc = WindowSubclassProc;
         _taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
@@ -71,6 +77,24 @@ public sealed class NativeTrayService : IDisposable
     public event EventHandler? ExitRequested;
 
     public bool IsAvailable => _added;
+
+    public void VerifyLocalizedResources()
+    {
+        var data = CreateData();
+        var expectedTooltip = _paused ? _strings.Get("TrayTipPaused") : _strings.Get("TrayTipRecording");
+        if (!string.Equals(data.Tip, expectedTooltip, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Localized tray tooltip did not resolve.");
+        }
+
+        foreach (var key in new[] { "TrayOpen", "TrayPauseClipboard", "TrayResumeClipboard", "TrayClearClipboard", "TrayExit" })
+        {
+            if (string.IsNullOrWhiteSpace(_strings.Get(key)))
+            {
+                throw new InvalidOperationException($"Localized tray menu resource '{key}' did not resolve.");
+            }
+        }
+    }
 
     public bool Add()
     {
@@ -174,11 +198,11 @@ public sealed class NativeTrayService : IDisposable
 
         try
         {
-            AppendMenu(menu, MfString, MenuOpen, "打开 DropSpace");
-            AppendMenu(menu, MfString | (_paused ? MfChecked : 0), MenuPause, _paused ? "恢复剪贴板记录" : "暂停剪贴板记录");
-            AppendMenu(menu, MfString, MenuClear, "清除剪贴板历史…");
+            AppendMenu(menu, MfString, MenuOpen, _strings.Get("TrayOpen"));
+            AppendMenu(menu, MfString | (_paused ? MfChecked : 0), MenuPause, _paused ? _strings.Get("TrayResumeClipboard") : _strings.Get("TrayPauseClipboard"));
+            AppendMenu(menu, MfString, MenuClear, _strings.Get("TrayClearClipboard"));
             AppendMenu(menu, MfSeparator, 0, null);
-            AppendMenu(menu, MfString, MenuExit, "退出");
+            AppendMenu(menu, MfString, MenuExit, _strings.Get("TrayExit"));
             GetCursorPos(out var point);
             SetForegroundWindow(_windowHandle);
             var selected = TrackPopupMenuEx(menu, TpmRightButton | TpmReturnCmd | TpmNonotify, point.X, point.Y, _windowHandle, IntPtr.Zero);
@@ -213,7 +237,7 @@ public sealed class NativeTrayService : IDisposable
         Flags = NifMessage | NifIcon | NifTip,
         CallbackMessage = CallbackMessage,
         IconHandle = _iconHandle,
-        Tip = _paused ? "DropSpace — 剪贴板记录已暂停" : "DropSpace — 正在记录剪贴板",
+        Tip = _paused ? _strings.Get("TrayTipPaused") : _strings.Get("TrayTipRecording"),
         Info = string.Empty,
         InfoTitle = string.Empty,
     };

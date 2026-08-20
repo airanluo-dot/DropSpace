@@ -1,5 +1,6 @@
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
@@ -13,15 +14,20 @@ namespace DropSpace.App;
 public sealed partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainWindow> _logger;
     private readonly Views.MainPage _mainPage;
     private NativeTrayService? _tray;
     private bool _allowClose;
     private bool _closeExplanationInProgress;
 
-    public MainWindow(MainViewModel viewModel, ILogger<MainWindow> logger)
+    public MainWindow(
+        MainViewModel viewModel,
+        IAppStringLocalizer strings,
+        ILogger<MainWindow> logger)
     {
         _viewModel = viewModel;
+        _strings = strings;
         _logger = logger;
         InitializeComponent();
 
@@ -30,7 +36,7 @@ public sealed partial class MainWindow : Window
         NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
         AppWindow.Resize(new SizeInt32(980, 680));
         AppWindow.Closing += OnAppWindowClosing;
-        _mainPage = new Views.MainPage(viewModel, WindowNative.GetWindowHandle(this));
+        _mainPage = new Views.MainPage(viewModel, WindowNative.GetWindowHandle(this), strings);
         RootContent.Content = _mainPage;
     }
 
@@ -45,7 +51,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            _tray = new NativeTrayService(WindowNative.GetWindowHandle(this), logger);
+            _tray = new NativeTrayService(WindowNative.GetWindowHandle(this), _strings, logger);
             _tray.OpenRequested += (_, _) => DispatcherQueue.TryEnqueue(ShowAndActivate);
             _tray.TogglePauseRequested += OnTrayTogglePauseRequested;
             _tray.ClearRequested += (_, _) => DispatcherQueue.TryEnqueue(async () =>
@@ -87,6 +93,21 @@ public sealed partial class MainWindow : Window
 
     public void Hide() => AppWindow.Hide();
 
+    public void VerifyLocalizedResources()
+    {
+        VerifyResourceValue(Title, "MainWindow.Title");
+        _mainPage.VerifyLocalizedResources();
+        _tray?.VerifyLocalizedResources();
+    }
+
+    private void VerifyResourceValue(object? actual, string key)
+    {
+        if (!string.Equals(actual as string, _strings.Get(key), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Localized main-window resource '{key}' did not resolve.");
+        }
+    }
+
     public void AllowCloseAndClose()
     {
         _allowClose = true;
@@ -97,15 +118,15 @@ public sealed partial class MainWindow : Window
         Close();
     }
 
-    public async Task ShowRecoveryAsync(string errorCategory)
+    public async Task ShowRecoveryAsync()
     {
         ShowAndActivate();
         var dialog = new ContentDialog
         {
             XamlRoot = _mainPage.XamlRoot,
-            Title = "DropSpace 无法安全启动",
-            Content = $"本地数据初始化失败（{errorCategory}）。为避免覆盖历史记录，应用已停止写入。请保留数据目录并查看本地诊断日志。",
-            CloseButtonText = "关闭",
+            Title = _strings.Get("StartupRecoveryTitle"),
+            Content = _strings.Get("StartupRecoveryContent"),
+            CloseButtonText = _strings.Get("CommonClose"),
         };
         await dialog.ShowAsync();
     }
@@ -143,9 +164,9 @@ public sealed partial class MainWindow : Window
             var dialog = new ContentDialog
             {
                 XamlRoot = _mainPage.XamlRoot,
-                Title = "DropSpace 将在后台继续运行",
-                Content = "窗口关闭后，DropSpace 会留在系统托盘并继续记录剪贴板。你可以在设置中改为直接退出。",
-                PrimaryButtonText = "知道了",
+                Title = _strings.Get("CloseToTrayTitle"),
+                Content = _strings.Get("CloseToTrayContent"),
+                PrimaryButtonText = _strings.Get("CommonAcknowledge"),
             };
             await dialog.ShowAsync();
             await _viewModel.UpdateSettingsAsync(_viewModel.Settings with { CloseExplanationShown = true });

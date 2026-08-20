@@ -17,6 +17,7 @@ public sealed class UpdateService : IUpdateService
     private readonly IUpdateInstallerLauncher _installerLauncher;
     private readonly IDeploymentModeService _deploymentMode;
     private readonly UpdateStateStore _stateStore;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<UpdateService> _logger;
     private Task<UpdateStatusSnapshot>? _activeCheck;
     private int _startupCheckStarted;
@@ -32,6 +33,7 @@ public sealed class UpdateService : IUpdateService
         IUpdateInstallerLauncher installerLauncher,
         IDeploymentModeService deploymentMode,
         UpdateStateStore stateStore,
+        IAppStringLocalizer strings,
         ILogger<UpdateService> logger)
     {
         CurrentVersion = currentVersion;
@@ -43,6 +45,7 @@ public sealed class UpdateService : IUpdateService
         _installerLauncher = installerLauncher;
         _deploymentMode = deploymentMode;
         _stateStore = stateStore;
+        _strings = strings;
         _logger = logger;
         _status = UpdateStatusSnapshot.Initial(deploymentMode.Current);
     }
@@ -68,7 +71,7 @@ public sealed class UpdateService : IUpdateService
             return Publish(Status with
             {
                 State = UpdateState.Failed,
-                Message = "上次下载的更新不完整，已保持当前版本。",
+                Message = _strings.Get("UpdateLastDownloadIncomplete"),
                 PreviousInstallIncomplete = true,
             });
         }
@@ -76,7 +79,7 @@ public sealed class UpdateService : IUpdateService
         var incomplete = string.Equals(state, "Installing", StringComparison.OrdinalIgnoreCase);
         return Publish(new UpdateStatusSnapshot(
             UpdateState.ReadyToInstall,
-            incomplete ? "上次更新未完成，可重新手动安装。" : "已下载更新，可立即安装。",
+            incomplete ? _strings.Get("UpdateLastInstallIncomplete") : _strings.Get("UpdateDownloadedReadyToInstall"),
             _deploymentMode.Current,
             Candidate: download.Candidate,
             Download: download,
@@ -109,14 +112,14 @@ public sealed class UpdateService : IUpdateService
         var candidate = Status.Candidate ?? throw new InvalidOperationException("No validated update is available.");
         if (_deploymentMode.Current == DeploymentMode.Packaged)
         {
-            return Publish(Status with { Message = "此安装由 Windows 管理更新。" });
+            return Publish(Status with { Message = _strings.Get("UpdateManagedByWindows") });
         }
 
-        Publish(Status with { State = UpdateState.Downloading, Message = "正在下载更新…", Progress = null });
+        Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = null });
         try
         {
             var progress = new InlineProgress<UpdateDownloadProgress>(value =>
-                Publish(Status with { State = UpdateState.Downloading, Message = "正在下载更新…", Progress = value }));
+                Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = value }));
             var download = await _downloader.DownloadAsync(candidate, progress, cancellationToken).ConfigureAwait(false);
             if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
             {
@@ -130,8 +133,8 @@ public sealed class UpdateService : IUpdateService
             {
                 State = UpdateState.ReadyToInstall,
                 Message = _deploymentMode.Current == DeploymentMode.Portable
-                    ? "便携版更新已验证；请打开下载位置手动替换。"
-                    : "更新已下载并通过完整性验证。",
+                    ? _strings.Get("UpdatePortableVerified")
+                    : _strings.Get("UpdateDownloadedVerified"),
                 Download = download,
                 Progress = new UpdateDownloadProgress(download.Size, download.Size),
                 TrustedAutoInstallAvailable = trust.IsTrusted,
@@ -139,7 +142,7 @@ public sealed class UpdateService : IUpdateService
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return Publish(Status with { State = UpdateState.UpdateAvailable, Message = "更新下载已取消。", Progress = null });
+            return Publish(Status with { State = UpdateState.UpdateAvailable, Message = _strings.Get("UpdateDownloadCancelled"), Progress = null });
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException or InvalidDataException or TaskCanceledException)
         {
@@ -148,8 +151,8 @@ public sealed class UpdateService : IUpdateService
             {
                 State = UpdateState.Failed,
                 Message = exception is InvalidDataException
-                    ? "下载的更新未通过完整性验证，已拒绝安装。"
-                    : "更新下载失败；当前版本可继续正常使用。",
+                    ? _strings.Get("UpdateDownloadIntegrityFailed")
+                    : _strings.Get("UpdateDownloadFailed"),
                 Progress = null,
             });
         }
@@ -165,15 +168,15 @@ public sealed class UpdateService : IUpdateService
             return Publish(Status with
             {
                 Message = _deploymentMode.Current == DeploymentMode.Packaged
-                    ? "此安装由 Windows 管理更新。"
-                    : "便携版不会转换为安装版；请手动替换便携文件。",
+                    ? _strings.Get("UpdateManagedByWindows")
+                    : _strings.Get("UpdatePortableManualReplacement"),
             });
         }
 
         if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
         {
             TryDelete(download.FilePath);
-            return Publish(Status with { State = UpdateState.Failed, Message = "更新文件在安装前完整性验证失败，已拒绝执行。" });
+            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallIntegrityFailed") });
         }
 
         var trust = await _trustedVerifier.VerifyPublisherAsync(download.FilePath, cancellationToken).ConfigureAwait(false);
@@ -181,12 +184,12 @@ public sealed class UpdateService : IUpdateService
         {
             return Publish(Status with
             {
-                Message = "当前构建尚未启用可信代码签名；无人值守自动安装不可用。",
+                Message = _strings.Get("UpdateUntrustedAutoInstall"),
                 TrustedAutoInstallAvailable = false,
             });
         }
 
-        Publish(Status with { State = UpdateState.Installing, Message = "正在启动安全升级…" });
+        Publish(Status with { State = UpdateState.Installing, Message = _strings.Get("UpdateInstalling") });
         await _stateStore.SaveAsync(download, "Installing", cancellationToken).ConfigureAwait(false);
         try
         {
@@ -201,7 +204,7 @@ public sealed class UpdateService : IUpdateService
         {
             _logger.LogError(exception, "The verified update installer could not be launched.");
             await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);
-            return Publish(Status with { State = UpdateState.ReadyToInstall, Message = "安装器未能启动；DropSpace 将继续保持当前版本。" });
+            return Publish(Status with { State = UpdateState.ReadyToInstall, Message = _strings.Get("UpdateInstallerLaunchFailed") });
         }
     }
 
@@ -233,7 +236,7 @@ public sealed class UpdateService : IUpdateService
         bool automatic,
         CancellationToken cancellationToken)
     {
-        Publish(new UpdateStatusSnapshot(UpdateState.Checking, "正在检查更新…", _deploymentMode.Current));
+        Publish(new UpdateStatusSnapshot(UpdateState.Checking, _strings.Get("UpdateChecking"), _deploymentMode.Current));
         try
         {
             var releases = await _source.GetReleasesAsync(cancellationToken).ConfigureAwait(false);
@@ -243,8 +246,8 @@ public sealed class UpdateService : IUpdateService
             {
                 var stable = UpdateReleaseSelector.HighestStable(releases);
                 var message = settings.UpdateChannel == UpdateChannel.Stable && stable is { } highest && highest < CurrentVersion
-                    ? "当前版本高于最新稳定版；DropSpace 不会自动降级。"
-                    : "当前已是最新版本。";
+                    ? _strings.Get("UpdateNoDowngrade")
+                    : _strings.Get("UpdateUpToDate");
                 return Publish(new UpdateStatusSnapshot(UpdateState.UpToDate, message, _deploymentMode.Current, checkedAt));
             }
 
@@ -256,8 +259,8 @@ public sealed class UpdateService : IUpdateService
             var available = Publish(new UpdateStatusSnapshot(
                 UpdateState.UpdateAvailable,
                 _deploymentMode.Current == DeploymentMode.Packaged
-                    ? $"发现 {manifest.Version}；此安装由 Windows 管理更新。"
-                    : $"发现 DropSpace {manifest.Version}。",
+                    ? _strings.Format("UpdateFoundManaged", manifest.Version)
+                    : _strings.Format("UpdateFound", manifest.Version),
                 _deploymentMode.Current,
                 checkedAt,
                 candidate));
@@ -277,20 +280,20 @@ public sealed class UpdateService : IUpdateService
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return Publish(Status with { State = UpdateState.Idle, Message = "更新检查已取消。" });
+            return Publish(Status with { State = UpdateState.Idle, Message = _strings.Get("UpdateCheckCancelled") });
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or JsonException or TaskCanceledException)
         {
             _logger.LogWarning(exception, "{UpdateCheckKind} update check failed.", automatic ? "Automatic" : "Manual");
             var message = exception switch
             {
-                InvalidDataException or JsonException => "更新服务返回的数据未通过安全验证；已保持当前版本。",
-                TaskCanceledException => "更新服务响应超时；请检查网络后重试。",
-                _ => "无法连接官网或 GitHub 更新服务；请检查网络后重试。",
+                InvalidDataException or JsonException => _strings.Get("UpdateServiceValidationFailed"),
+                TaskCanceledException => _strings.Get("UpdateServiceTimedOut"),
+                _ => _strings.Get("UpdateServiceUnavailable"),
             };
             return Publish(new UpdateStatusSnapshot(
                 UpdateState.Failed,
-                automatic ? $"上次自动检查失败。{message}" : message,
+                automatic ? _strings.Format("UpdateAutomaticCheckFailed", message) : message,
                 _deploymentMode.Current,
                 DateTimeOffset.UtcNow));
         }

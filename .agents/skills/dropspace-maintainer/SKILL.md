@@ -260,6 +260,14 @@ Typical expectations:
 - real-browser tests when supported;
 - production-mode metadata sync behavior when release data is affected.
 
+### Localization changes
+
+- Keep `src/DropSpace.App/Strings/en-US/Resources.resw` as the complete shipped base and keep `zh-CN` keys exactly synchronized.
+- Put user-facing Chinese only in `.resw` resources; do not add CJK UI text to production `.cs` or `.xaml` files.
+- Cover the main window, Dynamic Island, tray, error paths, accessibility names, and update feedback—not only static page labels.
+- Preserve `System`/`English`/`SimplifiedChinese` settings behavior: System maps a Chinese Windows display language to `zh-CN` and uses the English base for other not-yet-shipped languages; apply a changed resource context at the documented restart boundary.
+- Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 11 validation as a manual release gate.
+
 ### Workflow-only changes
 
 - syntax/config review;

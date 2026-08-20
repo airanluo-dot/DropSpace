@@ -3,6 +3,7 @@ using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
@@ -67,8 +68,23 @@ public partial class App : Application
                 await settingsService.ResetUiSettingsAsync();
             }
 
+            var persistedSettings = await settingsService.LoadAsync();
+            var language = _services.GetRequiredService<AppLanguageService>();
+            var requestedSmokeLanguage = GetCommandLineArgumentValue(commandLine, "--smoke-language");
+            var smokeLanguage = AppLanguagePreference.System;
+            if (requestedSmokeLanguage is not null &&
+                !AppLanguageService.TryParseSupportedLanguage(requestedSmokeLanguage, out smokeLanguage))
+            {
+                throw new ArgumentException($"Unsupported smoke-test language '{requestedSmokeLanguage}'.", nameof(commandLine));
+            }
+
+            language.Apply(requestedSmokeLanguage is null ? persistedSettings.Language : smokeLanguage);
+
             var viewModel = _services.GetRequiredService<MainViewModel>();
-            _window = new MainWindow(viewModel, _services.GetRequiredService<ILogger<MainWindow>>());
+            _window = new MainWindow(
+                viewModel,
+                _services.GetRequiredService<IAppStringLocalizer>(),
+                _services.GetRequiredService<ILogger<MainWindow>>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             _window.Activate();
@@ -116,6 +132,8 @@ public partial class App : Application
 
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
                 {
+                    _window.VerifyLocalizedResources();
+                    _overlayWindows.VerifyLocalizedResources();
                     WriteSmokeProgressMarker("clipboard-integration");
                     var clipboardMetrics = await _services.GetRequiredService<ClipboardIntegrationSmoke>()
                         .RunAsync();
@@ -131,7 +149,8 @@ public partial class App : Application
                         visibleDropMetrics,
                         projectionMetrics,
                         clipboardMetrics,
-                        _services.GetRequiredService<IStartupRegistrationService>().IsEnabled);
+                        _services.GetRequiredService<IStartupRegistrationService>().IsEnabled,
+                        language.EffectiveLanguageTag);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -156,7 +175,7 @@ public partial class App : Application
                     WriteSmokeFailureMarker("startup", exception);
                 }
 
-                await _window.ShowRecoveryAsync(exception.GetType().Name);
+                await _window.ShowRecoveryAsync();
             }
         }
         catch (Exception exception)
@@ -195,6 +214,8 @@ public partial class App : Application
         var fileLogger = new RedactingFileLoggerProvider(paths);
         var services = new ServiceCollection();
         services.AddSingleton(paths);
+        services.AddSingleton<AppLanguageService>();
+        services.AddSingleton<IAppStringLocalizer, ResourceStringLocalizer>();
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
@@ -262,6 +283,7 @@ public partial class App : Application
             provider.GetRequiredService<IUpdateInstallerLauncher>(),
             provider.GetRequiredService<IDeploymentModeService>(),
             provider.GetRequiredService<UpdateStateStore>(),
+            provider.GetRequiredService<IAppStringLocalizer>(),
             provider.GetRequiredService<ILogger<UpdateService>>()));
         services.AddSingleton<OverlayStateMachine>();
         services.AddSingleton<MonitorLayoutService>();
@@ -336,13 +358,27 @@ public partial class App : Application
         }
     }
 
+    private static string? GetCommandLineArgumentValue(IReadOnlyList<string> commandLine, string name)
+    {
+        for (var index = 0; index + 1 < commandLine.Count; index++)
+        {
+            if (string.Equals(commandLine[index], name, StringComparison.OrdinalIgnoreCase))
+            {
+                return commandLine[index + 1];
+            }
+        }
+
+        return null;
+    }
+
     private static void WriteSmokeMarker(
         AppStoragePaths paths,
         OverlayLifecycleMetrics metrics,
         VisibleOverlayDropSmokeMetrics visibleDrop,
         ProjectionDeletionStressMetrics projection,
         ClipboardIntegrationMetrics clipboard,
-        bool startupRegistrationEnabled)
+        bool startupRegistrationEnabled,
+        string resourceLanguage)
     {
         var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
         var marker = JsonSerializer.Serialize(new
@@ -391,6 +427,8 @@ public partial class App : Application
             clipboardResumeVerified = clipboard.ResumeVerified,
             clipboardSelfWriteSuppressionVerified = clipboard.SelfWriteSuppressionVerified,
             startupRegistrationEnabled,
+            resourceLanguage,
+            localizedUiResourcesResolved = true,
         });
         File.WriteAllText(markerPath, marker);
     }

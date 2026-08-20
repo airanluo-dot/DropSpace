@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 命令式界面、状态、错误、更新和辅助功能文本。 -->
+  <data name="AppUpdated" xml:space="preserve"><value>DropSpace 已更新至 {0}。</value></data>
+  <data name="Bytes" xml:space="preserve"><value>{0:0} B</value></data>
+  <data name="ClearConfirmButton" xml:space="preserve"><value>清除</value></data>
+  <data name="ClearConfirmContent" xml:space="preserve"><value>将从剪贴板移除 {0} 项未固定记录。固定项目会保留，临时空间中的原始文件不会受影响。</value></data>
+  <data name="ClearConfirmTitle" xml:space="preserve"><value>清除{0}？</value></data>
+  <data name="ClearNothingContent" xml:space="preserve"><value>所选时间范围内没有可清理的未固定项目。</value></data>
+  <data name="ClearNothingTitle" xml:space="preserve"><value>无需清理</value></data>
+  <data name="ClearRangeAll" xml:space="preserve"><value>全部历史</value></data>
+  <data name="ClearRangeLastHour" xml:space="preserve"><value>最近一小时</value></data>
+  <data name="ClearRangeToday" xml:space="preserve"><value>今天</value></data>
+  <data name="ClipboardBusyRetrying" xml:space="preserve"><value>剪贴板暂时被其他程序占用，正在重试。</value></data>
+  <data name="ClipboardCaptureStopped" xml:space="preserve"><value>剪贴板记录因内部错误停止。</value></data>
+  <data name="ClipboardErrorStatus" xml:space="preserve"><value>记录发生错误</value></data>
+  <data name="ClipboardEventDropped" xml:space="preserve"><value>剪贴板活动过于频繁，已跳过一个事件。</value></data>
+  <data name="ClipboardItemCaptureFailed" xml:space="preserve"><value>一个剪贴板项目未能记录；记录功能仍在运行。</value></data>
+  <data name="ClipboardLimitInvalidContent" xml:space="preserve"><value>单次文件总大小上限不能小于单个文件大小上限。</value></data>
+  <data name="ClipboardLimitInvalidTitle" xml:space="preserve"><value>限制值无效</value></data>
+  <data name="ClipboardListenerRegistrationFailed" xml:space="preserve"><value>系统剪贴板监听注册失败；请查看诊断日志。</value></data>
+  <data name="ClipboardListenerUnavailable" xml:space="preserve"><value>系统剪贴板监听不可用；请查看诊断日志。</value></data>
+  <data name="ClipboardPaused" xml:space="preserve"><value>已暂停剪贴板记录。</value></data>
+  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>仍保持上次退出时的暂停状态。</value></data>
+  <data name="ClipboardPausedStatus" xml:space="preserve"><value>已暂停记录</value></data>
+  <data name="ClipboardRecording" xml:space="preserve"><value>正在记录 · 已捕获 {0} 项</value></data>
+  <data name="ClipboardResumed" xml:space="preserve"><value>已恢复剪贴板记录。</value></data>
+  <data name="ClipboardStarting" xml:space="preserve"><value>正在启动…</value></data>
+  <data name="CloseToTrayContent" xml:space="preserve"><value>窗口关闭后，DropSpace 会留在系统托盘并继续记录剪贴板。你可以在设置中改为直接退出。</value></data>
+  <data name="CloseToTrayTitle" xml:space="preserve"><value>DropSpace 将在后台继续运行</value></data>
+  <data name="CommonAcknowledge" xml:space="preserve"><value>知道了</value></data>
+  <data name="CommonCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="CommonClose" xml:space="preserve"><value>关闭</value></data>
+  <data name="CurrentVersion" xml:space="preserve"><value>DropSpace {0}</value></data>
+  <data name="DeploymentInstaller" xml:space="preserve"><value>安装版</value></data>
+  <data name="DeploymentPackaged" xml:space="preserve"><value>Windows 包（由 Windows 管理更新）</value></data>
+  <data name="DeploymentPortable" xml:space="preserve"><value>便携版（仅下载并验证，不会自动安装）</value></data>
+  <data name="DeploymentUnknown" xml:space="preserve"><value>未知部署方式</value></data>
+  <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>添加到 DropSpace</value></data>
+  <data name="DropTraySettingsUnavailableContent" xml:space="preserve"><value>请手动打开 Windows 设置 → 系统 → 多任务处理，查看 Drop Tray 选项。</value></data>
+  <data name="DropTraySettingsUnavailableTitle" xml:space="preserve"><value>无法打开系统设置</value></data>
+  <data name="EmptyClipboardDescription" xml:space="preserve"><value>复制文本、图片、文件或文件夹后，支持的内容会出现在这里。</value></data>
+  <data name="EmptyClipboardTitle" xml:space="preserve"><value>暂无剪贴板记录</value></data>
+  <data name="EmptyPinnedDescription" xml:space="preserve"><value>固定临时空间或剪贴板中的项目，它们就会集中显示在这里。</value></data>
+  <data name="EmptyPinnedTitle" xml:space="preserve"><value>暂无固定项目</value></data>
+  <data name="EmptySpaceDescription" xml:space="preserve"><value>DropSpace 只保存引用，不会移动或删除原始文件。</value></data>
+  <data name="EmptySpaceTitle" xml:space="preserve"><value>把文件或文件夹拖到这里</value></data>
+  <data name="ExportJpegImage" xml:space="preserve"><value>JPEG 图片</value></data>
+  <data name="ExportOnlyClipboardImages" xml:space="preserve"><value>只能导出剪贴板图片。</value></data>
+  <data name="ExportPngImage" xml:space="preserve"><value>PNG 图片</value></data>
+  <data name="FileReferenceUpdated" xml:space="preserve"><value>文件引用已更新。</value></data>
+  <data name="FileUnavailableRelocate" xml:space="preserve"><value>文件当前不可用，请重新定位。</value></data>
+  <data name="Gigabytes" xml:space="preserve"><value>{0:0.00} GB</value></data>
+  <data name="ImageExported" xml:space="preserve"><value>图片已导出。</value></data>
+  <data name="ImagePreview" xml:space="preserve"><value>{0} × {1} · {2}</value></data>
+  <data name="ItemCannotOpen" xml:space="preserve"><value>此项目无法打开。</value></data>
+  <data name="ItemCannotShowInFolder" xml:space="preserve"><value>无法在文件夹中显示此项目。</value></data>
+  <data name="ItemCopied" xml:space="preserve"><value>已复制。</value></data>
+  <data name="ItemCount" xml:space="preserve"><value>{0} 项</value></data>
+  <data name="ItemCreatedDateFormat" xml:space="preserve"><value>M月d日 HH:mm</value></data>
+  <data name="ItemCreatedTodayFormat" xml:space="preserve"><value>HH:mm</value></data>
+  <data name="ItemKindCode" xml:space="preserve"><value>代码</value></data>
+  <data name="ItemKindColor" xml:space="preserve"><value>颜色</value></data>
+  <data name="ItemKindFile" xml:space="preserve"><value>文件</value></data>
+  <data name="ItemKindFolder" xml:space="preserve"><value>文件夹</value></data>
+  <data name="ItemKindImage" xml:space="preserve"><value>图片</value></data>
+  <data name="ItemKindText" xml:space="preserve"><value>文本</value></data>
+  <data name="ItemKindUnknown" xml:space="preserve"><value>未知</value></data>
+  <data name="ItemKindUrl" xml:space="preserve"><value>链接</value></data>
+  <data name="ItemPin" xml:space="preserve"><value>固定</value></data>
+  <data name="ItemRemoved" xml:space="preserve"><value>已从 DropSpace 移除；原始文件未被修改。</value></data>
+  <data name="ItemSourceClipboard" xml:space="preserve"><value>剪贴板</value></data>
+  <data name="ItemSourceSpace" xml:space="preserve"><value>临时空间</value></data>
+  <data name="ItemStatusError" xml:space="preserve"><value>读取失败</value></data>
+  <data name="ItemStatusMissing" xml:space="preserve"><value>文件不存在</value></data>
+  <data name="ItemStatusProcessing" xml:space="preserve"><value>处理中</value></data>
+  <data name="ItemStatusUnavailable" xml:space="preserve"><value>暂时不可用</value></data>
+  <data name="ItemUnpin" xml:space="preserve"><value>取消固定</value></data>
+  <data name="ItemsAdded" xml:space="preserve"><value>已添加 {0} 项。</value></data>
+  <data name="ItemsAddedWithRejected" xml:space="preserve"><value>已添加 {0} 项，另有 {1} 项无法加入。</value></data>
+  <data name="ItemsCleared" xml:space="preserve"><value>已清除 {0} 项；固定项目已保留。</value></data>
+  <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
+  <data name="LanguageChangeRestartRequired" xml:space="preserve"><value>语言设置已保存。重启 DropSpace 后将应用新的显示语言。</value></data>
+  <data name="LastUpdateCheck" xml:space="preserve"><value>上次检查：{0}</value></data>
+  <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy-MM-dd HH:mm</value></data>
+  <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
+  <data name="OperationIncompleteContent" xml:space="preserve"><value>请求的操作未能完成。如果问题持续存在，请查看本地诊断日志。</value></data>
+  <data name="OperationIncompleteTitle" xml:space="preserve"><value>操作未完成</value></data>
+  <data name="OverlayClassicDragTitle" xml:space="preserve"><value>拖到顶部以暂存</value></data>
+  <data name="OverlayDragSubtitle" xml:space="preserve"><value>原始文件不会被移动或删除</value></data>
+  <data name="OverlayDropSubtitle" xml:space="preserve"><value>松开即可添加文件或文件夹引用</value></data>
+  <data name="OverlayDropTitle" xml:space="preserve"><value>放到 DropSpace</value></data>
+  <data name="OverlayItemCount" xml:space="preserve"><value>{0} 个项目</value></data>
+  <data name="OverlaySmartDragTitle" xml:space="preserve"><value>拖到出现的 DropSpace</value></data>
+  <data name="OverlayTitle" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="PageDescriptionClipboard" xml:space="preserve"><value>自动记录复制的文本、图片、文件与文件夹引用。</value></data>
+  <data name="PageDescriptionPinned" xml:space="preserve"><value>来自临时空间和剪贴板的固定项目，不会因保留期限自动清理。</value></data>
+  <data name="PageDescriptionSettings" xml:space="preserve"><value>本地存储、隐私、外观和窗口行为。</value></data>
+  <data name="PageDescriptionSpace" xml:space="preserve"><value>把暂时无处归类的文件与文件夹拖到这里。</value></data>
+  <data name="PageTitleClipboard" xml:space="preserve"><value>剪贴板</value></data>
+  <data name="PageTitlePinned" xml:space="preserve"><value>已固定</value></data>
+  <data name="PageTitleSettings" xml:space="preserve"><value>设置</value></data>
+  <data name="PageTitleSpace" xml:space="preserve"><value>临时空间</value></data>
+  <data name="RemoveConfirmButton" xml:space="preserve"><value>移除</value></data>
+  <data name="RemoveConfirmTitle" xml:space="preserve"><value>从 DropSpace 移除？</value></data>
+  <data name="RemoveFileReferenceContent" xml:space="preserve"><value>只会移除“{0}”的引用，原始文件不会被移动或删除。</value></data>
+  <data name="RemoveStoredItemContent" xml:space="preserve"><value>将移除“{0}”及 DropSpace 保存的本地副本。</value></data>
+  <data name="SearchNoMatches" xml:space="preserve"><value>没有找到匹配项目。</value></data>
+  <data name="SearchUnavailable" xml:space="preserve"><value>搜索暂时不可用。</value></data>
+  <data name="SettingsSaved" xml:space="preserve"><value>设置已验证并保存。</value></data>
+  <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace 只接受 Windows 分享中的文件和文件夹。</value></data>
+  <data name="ShareItemsNotAdded" xml:space="preserve"><value>文件或文件夹未能加入临时空间。</value></data>
+  <data name="ShareNoAccessibleItems" xml:space="preserve"><value>分享内容中没有 DropSpace 可以访问的文件或文件夹。</value></data>
+  <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace 无法处理本次分享。请重试或使用顶部拖放入口。</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>本地数据初始化失败。为避免覆盖历史记录，应用已停止写入。请保留数据目录并查看本地诊断日志。</value></data>
+  <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace 无法安全启动</value></data>
+  <data name="StorageCalculating" xml:space="preserve"><value>正在计算…</value></data>
+  <data name="StorageSummary" xml:space="preserve"><value>当前占用：{0}</value></data>
+  <data name="StorageUnavailable" xml:space="preserve"><value>暂时无法计算</value></data>
+  <data name="TrayClearClipboard" xml:space="preserve"><value>清除剪贴板历史…</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>退出</value></data>
+  <data name="TrayOpen" xml:space="preserve"><value>打开 DropSpace</value></data>
+  <data name="TrayPauseClipboard" xml:space="preserve"><value>暂停剪贴板记录</value></data>
+  <data name="TrayResumeClipboard" xml:space="preserve"><value>恢复剪贴板记录</value></data>
+  <data name="TrayTipPaused" xml:space="preserve"><value>DropSpace — 剪贴板记录已暂停</value></data>
+  <data name="TrayTipRecording" xml:space="preserve"><value>DropSpace — 正在记录剪贴板</value></data>
+  <data name="UpdateAutomaticCheckFailed" xml:space="preserve"><value>自动检查更新失败：{0}</value></data>
+  <data name="UpdateCheckCancelled" xml:space="preserve"><value>更新检查已取消。</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>正在检查更新…</value></data>
+  <data name="UpdateDownloadCancelled" xml:space="preserve"><value>更新下载已取消。</value></data>
+  <data name="UpdateDownloadFailed" xml:space="preserve"><value>更新下载失败。请检查网络后重试。</value></data>
+  <data name="UpdateDownloadIntegrityFailed" xml:space="preserve"><value>更新下载未通过完整性验证。</value></data>
+  <data name="UpdateDownloadedReadyToInstall" xml:space="preserve"><value>更新已下载并验证，可以安装。</value></data>
+  <data name="UpdateDownloadedVerified" xml:space="preserve"><value>更新已下载并验证。</value></data>
+  <data name="UpdateDownloading" xml:space="preserve"><value>正在下载更新…</value></data>
+  <data name="UpdateFound" xml:space="preserve"><value>发现可用更新 {0}。</value></data>
+  <data name="UpdateFoundManaged" xml:space="preserve"><value>发现可用更新 {0}，将由 Windows 管理。</value></data>
+  <data name="UpdateInstallIntegrityFailed" xml:space="preserve"><value>更新未通过完整性验证，无法安装。</value></data>
+  <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>已验证的安装程序无法启动。</value></data>
+  <data name="UpdateInstalling" xml:space="preserve"><value>正在启动更新安装程序…</value></data>
+  <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>上次更新下载未完成，已丢弃不完整文件。</value></data>
+  <data name="UpdateLastInstallIncomplete" xml:space="preserve"><value>上次更新安装未完成；已验证的更新可以重试。</value></data>
+  <data name="UpdateManagedByWindows" xml:space="preserve"><value>此 Windows 包由 Windows 管理更新。</value></data>
+  <data name="UpdateNoDowngrade" xml:space="preserve"><value>没有更新的稳定版可用。DropSpace 不会降级当前构建。</value></data>
+  <data name="UpdateNotChecked" xml:space="preserve"><value>尚未检查</value></data>
+  <data name="UpdatePortableManualReplacement" xml:space="preserve"><value>便携版在已验证下载完成后必须手动替换。</value></data>
+  <data name="UpdatePortableVerified" xml:space="preserve"><value>更新已下载并验证，请手动替换便携版可执行文件。</value></data>
+  <data name="UpdateProgress" xml:space="preserve"><value>{0:0}% · {1} / {2}</value></data>
+  <data name="UpdateServiceTimedOut" xml:space="preserve"><value>更新服务已超时。</value></data>
+  <data name="UpdateServiceUnavailable" xml:space="preserve"><value>更新服务暂时不可用。</value></data>
+  <data name="UpdateServiceValidationFailed" xml:space="preserve"><value>更新响应无法通过验证。</value></data>
+  <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>更新发布者不受信任，无法无人值守安装。</value></data>
+  <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace 已是最新版本。</value></data>
+  <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>DropSpace 已拥有 Package Identity，并已声明为 Windows 分享目标。是否直接显示在 Drop Tray 建议区由 Windows 版本和系统相关性排序决定；可通过“更多”打开完整分享界面。</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>当前部署没有可信 Package Identity，Windows 分享集成不可用；顶部拖放和已显示灵动岛直接拖放仍然可用。正式签名安装包会自动启用分享目标。</value></data>
+
+  <!-- XAML 界面文本，包括辅助功能名称。 -->
+  <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Title" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="MainTitleBar.Subtitle" xml:space="preserve"><value>临时内容工作台</value></data>
+  <data name="OverlayWindow.Title" xml:space="preserve"><value>DropSpace 灵动岛</value></data>
+  <data name="OverlayCompactPanel.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>展开 DropSpace 顶部面板</value></data>
+  <data name="OverlayCompactSubtitle.Text" xml:space="preserve"><value>临时空间</value></data>
+  <data name="OverlayExpandedTitle.Text" xml:space="preserve"><value>临时空间</value></data>
+  <data name="OverlayExpandedSubtitle.Text" xml:space="preserve"><value>最近项目 · 可直接拖到资源管理器</value></data>
+  <data name="OverlayCollapseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>收起顶部面板</value></data>
+  <data name="OverlayOpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开项目</value></data>
+  <data name="OverlayPinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>固定项目</value></data>
+  <data name="OverlayRemoveItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>从 DropSpace 移除</value></data>
+  <data name="OverlayRemoveHint.Text" xml:space="preserve"><value>移除引用不会删除原始文件</value></data>
+  <data name="OverlayOpenMainButton.Content" xml:space="preserve"><value>打开 DropSpace</value></data>
+  <data name="OverlayDropTargetTitle.Text" xml:space="preserve"><value>放到 DropSpace</value></data>
+  <data name="OverlayDropTargetSubtitle.Text" xml:space="preserve"><value>松开即可加入临时空间</value></data>
+  <data name="NavSpace.Content" xml:space="preserve"><value>临时空间</value></data>
+  <data name="NavSpace.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>临时空间</value></data>
+  <data name="NavClipboard.Content" xml:space="preserve"><value>剪贴板</value></data>
+  <data name="NavClipboard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>剪贴板历史</value></data>
+  <data name="NavPinned.Content" xml:space="preserve"><value>已固定</value></data>
+  <data name="NavPinned.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>已固定项目</value></data>
+  <data name="NavSettings.Content" xml:space="preserve"><value>设置</value></data>
+  <data name="NavSettings.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>设置</value></data>
+  <data name="SearchBox.PlaceholderText" xml:space="preserve"><value>搜索文件、文本或链接</value></data>
+  <data name="SearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>搜索所有 DropSpace 项目</value></data>
+  <data name="AddButton.Content" xml:space="preserve"><value>添加</value></data>
+  <data name="AddButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>添加到临时空间</value></data>
+  <data name="AddFilesMenuItem.Text" xml:space="preserve"><value>选择文件…</value></data>
+  <data name="AddFolderMenuItem.Text" xml:space="preserve"><value>选择文件夹…</value></data>
+  <data name="ItemsList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>DropSpace 项目</value></data>
+  <data name="OpenItemButton.Content" xml:space="preserve"><value>打开</value></data>
+  <data name="OpenItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开项目</value></data>
+  <data name="CopyItemButton.Content" xml:space="preserve"><value>复制</value></data>
+  <data name="CopyItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>复制项目</value></data>
+  <data name="PinItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>固定或取消固定项目</value></data>
+  <data name="LocateItemButton.Content" xml:space="preserve"><value>定位</value></data>
+  <data name="LocateItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>定位丢失的文件</value></data>
+  <data name="ExportItemButton.Content" xml:space="preserve"><value>导出</value></data>
+  <data name="ExportItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>导出图片</value></data>
+  <data name="MoreItemButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>更多项目操作</value></data>
+  <data name="ShowInFolderMenuItem.Text" xml:space="preserve"><value>在文件夹中显示</value></data>
+  <data name="RemoveItemMenuItem.Text" xml:space="preserve"><value>从 DropSpace 移除</value></data>
+  <data name="DropHintTitle.Text" xml:space="preserve"><value>松开以添加引用</value></data>
+  <data name="DropHintDescription.Text" xml:space="preserve"><value>原始文件不会被移动</value></data>
+  <data name="ClipboardPrivacySection.Text" xml:space="preserve"><value>剪贴板与隐私</value></data>
+  <data name="PauseRecordingTitle.Text" xml:space="preserve"><value>暂停记录</value></data>
+  <data name="PauseRecordingDescription.Text" xml:space="preserve"><value>暂停状态会在重启后保留，直到你手动恢复。</value></data>
+  <data name="PauseToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>暂停剪贴板记录</value></data>
+  <data name="CaptureImagesTitle.Text" xml:space="preserve"><value>记录图片</value></data>
+  <data name="CaptureImagesDescription.Text" xml:space="preserve"><value>大小和像素上限可在下方调整；超限图片会被跳过。</value></data>
+  <data name="CaptureImagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>记录剪贴板图片</value></data>
+  <data name="MaxImageMegabytesLabel.Text" xml:space="preserve"><value>单张图片最大大小（MB）</value></data>
+  <data name="MaxImageMegapixelsLabel.Text" xml:space="preserve"><value>单张图片最大像素（百万）</value></data>
+  <data name="CaptureFilesTitle.Text" xml:space="preserve"><value>记录文件与文件夹</value></data>
+  <data name="CaptureFilesDescription.Text" xml:space="preserve"><value>资源管理器的复制操作会作为剪贴板引用记录，不会移动或复制原始文件。</value></data>
+  <data name="CaptureFilesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>记录剪贴板文件</value></data>
+  <data name="CaptureFoldersTitle.Text" xml:space="preserve"><value>包含文件夹引用</value></data>
+  <data name="CaptureFoldersDescription.Text" xml:space="preserve"><value>文件夹不会被递归扫描或复制；只记录外部引用。</value></data>
+  <data name="CaptureFoldersToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>记录剪贴板文件夹</value></data>
+  <data name="MaxClipboardFileItemsLabel.Text" xml:space="preserve"><value>单次最多项目数</value></data>
+  <data name="MaxClipboardFileMegabytesLabel.Text" xml:space="preserve"><value>单个文件最大大小（MB）</value></data>
+  <data name="MaxClipboardFileTotalMegabytesLabel.Text" xml:space="preserve"><value>单次已知总大小上限（MB）</value></data>
+  <data name="MaxClipboardFileTotalMegabytesDescription.Text" xml:space="preserve"><value>必须不小于单文件上限；文件夹不递归计入。</value></data>
+  <data name="ClipboardPrivacyWarning.Message" xml:space="preserve"><value>DropSpace 无法可靠识别所有剪贴板来源，也不会把“敏感内容检测”当作安全保证。需要时请暂停记录或清除历史。</value></data>
+  <data name="RetentionSection.Text" xml:space="preserve"><value>保留期限</value></data>
+  <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>最多保留天数</value></data>
+  <data name="RetentionCountLabel.Text" xml:space="preserve"><value>最多保留未固定项目</value></data>
+  <data name="AppearanceSection.Text" xml:space="preserve"><value>外观与窗口</value></data>
+  <data name="DropTrayCompatibilityTitle.Text" xml:space="preserve"><value>顶部拖放兼容性</value></data>
+  <data name="DropTrayCompatibilityDescription.Text" xml:space="preserve"><value>Windows 11 的 Drop Tray 与 DropSpace 使用相同的屏幕顶部拖放区域。开启系统 Drop Tray 时，它可能优先接收拖到顶部的文件，从而阻止 DropSpace 面板自动展开。关闭 Drop Tray 可获得完整的“拖到顶部 → DropSpace 展开 → 放入临时空间”体验。</value></data>
+  <data name="DropTrayApiNotice.Text" xml:space="preserve"><value>Windows 未提供公开、稳定的 API 读取 Drop Tray 开关；DropSpace 不读取内部 Feature Flag，也不会替你更改系统设置。</value></data>
+  <data name="OpenDropTraySettingsButton.Content" xml:space="preserve"><value>打开 Windows Drop Tray 设置</value></data>
+  <data name="OpenDropTraySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开 Windows Drop Tray 设置</value></data>
+  <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>文件拖拽唤醒方式</value></data>
+  <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>智能检测空闲时不占用屏幕顶部；传统模式兼容范围可能更广，但会长期保留不可见顶部输入区域。</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>智能检测（实验性）</value></data>
+  <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>传统顶部感应区（兼容）</value></data>
+  <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>关闭自动唤醒</value></data>
+  <data name="ExperimentalDragDetectionInfo.Title" xml:space="preserve"><value>实验性拖拽检测</value></data>
+  <data name="ExperimentalDragDetectionInfo.Message" xml:space="preserve"><value>智能检测目前优先支持资源管理器与桌面的真实文件/文件夹拖拽。部分第三方软件、虚拟文件或不提供标准信号的来源可能无法自动唤醒；已显示的 DropSpace 仍可直接接收标准文件拖放。</value></data>
+  <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>开机自启动</value></data>
+  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>默认开启；使用当前用户启动项，不需要管理员权限。</value></data>
+  <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>开机自启动</value></data>
+  <data name="LanguageTitle.Text" xml:space="preserve"><value>显示语言</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>选择跟随系统时使用 Windows 显示语言。更改此设置后请重启 DropSpace。</value></data>
+  <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示语言</value></data>
+  <data name="LanguageSystem.Content" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageSimplifiedChinese.Content" xml:space="preserve"><value>简体中文</value></data>
+  <data name="ThemeTitle.Text" xml:space="preserve"><value>主题</value></data>
+  <data name="ThemeSystem.Content" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="ThemeLight.Content" xml:space="preserve"><value>浅色</value></data>
+  <data name="ThemeDark.Content" xml:space="preserve"><value>深色</value></data>
+  <data name="MotionTitle.Text" xml:space="preserve"><value>动画</value></data>
+  <data name="MotionDescription.Text" xml:space="preserve"><value>跟随系统会尊重 Windows 减少动态效果。</value></data>
+  <data name="MotionSystem.Content" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="MotionFull.Content" xml:space="preserve"><value>完整</value></data>
+  <data name="MotionReduced.Content" xml:space="preserve"><value>减少动态效果</value></data>
+  <data name="MonitorTitle.Text" xml:space="preserve"><value>显示器</value></data>
+  <data name="MonitorDescription.Text" xml:space="preserve"><value>自动模式会在文件拖拽所在屏幕出现。</value></data>
+  <data name="MonitorAutomatic.Content" xml:space="preserve"><value>自动</value></data>
+  <data name="MonitorPrimary.Content" xml:space="preserve"><value>主显示器</value></data>
+  <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>关闭窗口时</value></data>
+  <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>隐藏到托盘时会继续记录剪贴板。</value></data>
+  <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>隐藏到托盘</value></data>
+  <data name="CloseBehaviorExit.Content" xml:space="preserve"><value>直接退出</value></data>
+  <data name="UpdatesSection.Text" xml:space="preserve"><value>更新</value></data>
+  <data name="AutoCheckUpdatesTitle.Text" xml:space="preserve"><value>自动检查更新</value></data>
+  <data name="AutoCheckUpdatesDescription.Text" xml:space="preserve"><value>每次 DropSpace 进程启动最多检查一次；不会运行后台定时器。</value></data>
+  <data name="AutoDownloadUpdatesTitle.Text" xml:space="preserve"><value>自动下载更新</value></data>
+  <data name="AutoDownloadUpdatesDescription.Text" xml:space="preserve"><value>仅下载到 DropSpace 自有缓存，完成大小与 SHA-256 验证后才可安装。</value></data>
+  <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>无人值守自动安装</value></data>
+  <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>只有更新通过可信 Authenticode 发布者验证时才可用；当前未签名构建保持关闭。</value></data>
+  <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>更新通道</value></data>
+  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>稳定版只接收正式版；预览版接收全部版本并严格选择最高 SemVer。</value></data>
+  <data name="UpdateChannelStable.Content" xml:space="preserve"><value>稳定版</value></data>
+  <data name="UpdateChannelPreview.Content" xml:space="preserve"><value>预览版</value></data>
+  <data name="CheckUpdatesButton.Content" xml:space="preserve"><value>检查更新</value></data>
+  <data name="DownloadUpdateButton.Content" xml:space="preserve"><value>立即下载</value></data>
+  <data name="InstallUpdateButton.Content" xml:space="preserve"><value>立即更新</value></data>
+  <data name="OpenUpdateLocationButton.Content" xml:space="preserve"><value>打开下载位置</value></data>
+  <data name="ViewReleaseNotesButton.Content" xml:space="preserve"><value>查看更新内容</value></data>
+  <data name="LocalDataSection.Text" xml:space="preserve"><value>本地数据</value></data>
+  <data name="StorageLocationTitle.Text" xml:space="preserve"><value>存储位置</value></data>
+  <data name="ClearLastHourButton.Content" xml:space="preserve"><value>清除最近一小时</value></data>
+  <data name="ClearTodayButton.Content" xml:space="preserve"><value>清除今天</value></data>
+  <data name="ClearAllButton.Content" xml:space="preserve"><value>清除全部历史</value></data>
+  <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>清理默认保留固定项目；不会删除临时空间中引用的原始文件。</value></data>
+</root>

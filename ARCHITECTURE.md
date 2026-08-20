@@ -152,6 +152,13 @@ Typed payloads (`FileReference`, `TextPayload`, `ImagePayload`, `UrlMetadata`) a
 - Small preferences use app-local settings; complex policies can live in SQLite.
 - Never stores clipboard payloads in settings.
 
+### Localization
+
+- `AppSettings` schema v7 persists `AppLanguagePreference` as `System`, `English`, or `SimplifiedChinese`; legacy settings default to `System`.
+- `AppLanguageService` applies the preference before the main window, Dynamic Island, tray, and services are created. System reads the Windows display-language preference, selects `zh-CN` for `zh-*`, and uses the shipped `en-US` base resource set for every other language.
+- `Strings/en-US/Resources.resw` is the complete base resource set; `Strings/zh-CN/Resources.resw` has an exact matching key set. XAML uses `x:Uid`; imperative UI, service status, error prompts, and update feedback use the narrow Core `IAppStringLocalizer` contract.
+- Language selection is deliberately startup-scoped: Settings persists the next choice and presents a restart-required confirmation instead of mutating a live visual tree, tray menu, or resource context midway through a process.
+
 ### Installation and maintenance
 
 - `DropSpaceSetup.exe` is produced by pinned Inno Setup 7.0.2 from the exact portable `DropSpace.exe` payload. Stable AppId `E11EC281-BCE7-4F98-8EEF-2387E202CF0F` and `UsePreviousAppDir` make later installers the same per-user application and preserve a custom path.

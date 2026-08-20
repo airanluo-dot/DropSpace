@@ -53,6 +53,7 @@ public sealed class StorageAndRepositoryTests
             RetentionDays = 14,
             RetentionItemCount = 250,
             Theme = ThemePreference.Dark,
+            Language = AppLanguagePreference.SimplifiedChinese,
             CloseBehavior = CloseBehavior.Exit,
             OverlayMotion = OverlayMotionPreference.Reduced,
             OverlayMonitor = OverlayMonitorPreference.Primary,
@@ -91,6 +92,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
         Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
+        Assert.AreEqual(AppLanguagePreference.System, actual.Language);
         Assert.IsTrue(actual.ClipboardPaused);
         Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
     }
@@ -200,6 +202,7 @@ public sealed class StorageAndRepositoryTests
         Assert.IsTrue(fresh.AutoCheckForUpdates);
         Assert.IsTrue(fresh.AutoDownloadUpdates);
         Assert.IsFalse(fresh.AutoInstallUpdates);
+        Assert.AreEqual(AppLanguagePreference.System, fresh.Language);
 
         _paths.EnsureCreated();
         await File.WriteAllTextAsync(
@@ -303,6 +306,7 @@ public sealed class StorageAndRepositoryTests
             MaxClipboardFileItems = 12,
             RetentionDays = 45,
             Theme = ThemePreference.Dark,
+            Language = AppLanguagePreference.SimplifiedChinese,
             OverlayMotion = OverlayMotionPreference.Full,
             OverlayMonitor = OverlayMonitorPreference.Primary,
         });
@@ -317,6 +321,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(12, actual.MaxClipboardFileItems);
         Assert.AreEqual(45, actual.RetentionDays);
         Assert.AreEqual(ThemePreference.System, actual.Theme);
+        Assert.AreEqual(AppLanguagePreference.System, actual.Language);
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
     }

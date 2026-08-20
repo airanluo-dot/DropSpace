@@ -467,3 +467,10 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Keep the large “What's new” headline design while updating its channel-aware headline, release title, date, official link, and variable-length bilingual highlights at build time and runtime.
 - Preserve the last validated build snapshot when runtime refresh fails, and verify the new endpoint plus live homepage after every release.
 - Keep Smart drag, the Dynamic-Island-only App interface, local data behavior, packaging, and update selection unchanged.
+
+### v0.2.1-preview.2 English localization foundation
+
+- Establish `en-US` as the complete base resource set and ship a synchronized `zh-CN` resource set for the main window, Dynamic Island, native tray, update feedback, error dialogs, and accessibility names.
+- Persist System default, English, and Simplified Chinese display-language choices; System follows Windows display language for Chinese and uses English for the other currently shipped-language cases. The selection takes effect on restart.
+- Add a localization policy gate that rejects new CJK hardcoding in source, proves resource-key parity, and runs the full Windows CI workload in both resource contexts.
+- Require actual English and Simplified Chinese Windows 11 display-language validation as Preview evidence; CI resource contexts do not substitute for operating-system locale testing.

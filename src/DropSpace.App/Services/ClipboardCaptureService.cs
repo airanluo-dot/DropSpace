@@ -39,6 +39,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly IFileReferenceService _fileReferences;
     private readonly ClipboardNotificationService _notifications;
     private readonly DispatcherQueue _dispatcher;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<ClipboardCaptureService> _logger;
     private readonly Channel<CaptureSignal> _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
     {
@@ -73,6 +74,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         IFileReferenceService fileReferences,
         ClipboardNotificationService notifications,
         DispatcherQueue dispatcher,
+        IAppStringLocalizer strings,
         ILogger<ClipboardCaptureService> logger)
     {
         _repository = repository;
@@ -81,6 +83,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _fileReferences = fileReferences;
         _notifications = notifications;
         _dispatcher = dispatcher;
+        _strings = strings;
         _logger = logger;
     }
 
@@ -113,8 +116,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _initialized = true;
             PublishStatus(
                 _notifications.Status.IsRegistered
-                    ? _paused ? "仍保持上次退出时的暂停状态。" : null
-                    : "系统剪贴板监听注册失败；请查看诊断日志。",
+                    ? _paused ? _strings.Get("ClipboardPausedAtStartup") : null
+                    : _strings.Get("ClipboardListenerRegistrationFailed"),
                 _notifications.Status.IsRegistered ? null : ClipboardRecordingState.Error);
         }
         finally
@@ -139,7 +142,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _commitGate.Release();
             _settings = _settings with { ClipboardPaused = true };
             await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
-            PublishStatus("已暂停剪贴板记录。");
+            PublishStatus(_strings.Get("ClipboardPaused"));
         }
         finally
         {
@@ -171,7 +174,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
             _paused = false;
             Interlocked.Increment(ref _pauseGeneration);
-            PublishStatus("已恢复剪贴板记录。");
+            PublishStatus(_strings.Get("ClipboardResumed"));
         }
         finally
         {
@@ -339,7 +342,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         if (!_signals.Writer.TryWrite(signal))
         {
             Interlocked.Increment(ref _droppedEvents);
-            PublishStatus("剪贴板活动过于频繁，已跳过一个事件。");
+            PublishStatus(_strings.Get("ClipboardEventDropped"));
         }
     }
 
@@ -347,7 +350,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         if (!status.IsRegistered)
         {
-            PublishStatus("系统剪贴板监听不可用；请查看诊断日志。", ClipboardRecordingState.Error);
+            PublishStatus(_strings.Get("ClipboardListenerUnavailable"), ClipboardRecordingState.Error);
         }
     }
 
@@ -444,7 +447,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 {
                     _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                     _logger.LogWarning(exception, "Clipboard event could not be captured.");
-                    PublishStatus("一个剪贴板项目未能记录；记录功能仍在运行。");
+                    PublishStatus(_strings.Get("ClipboardItemCaptureFailed"));
                 }
             }
         }
@@ -455,7 +458,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         catch (Exception exception)
         {
             _logger.LogError(exception, "Clipboard capture worker stopped unexpectedly.");
-            PublishStatus("剪贴板记录因内部错误停止。", ClipboardRecordingState.Error);
+            PublishStatus(_strings.Get("ClipboardCaptureStopped"), ClipboardRecordingState.Error);
         }
     }
 
@@ -508,7 +511,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             {
                 lastException = exception;
                 Interlocked.Increment(ref _failedReads);
-                PublishStatus("剪贴板暂时被其他程序占用，正在重试。");
+                PublishStatus(_strings.Get("ClipboardBusyRetrying"));
                 _logger.LogWarning(
                     exception,
                     "Transient clipboard read failure for sequence {SequenceNumber}, attempt {Attempt}.",

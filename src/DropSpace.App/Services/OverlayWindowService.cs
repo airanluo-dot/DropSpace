@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace DropSpace.App.Services;
 public sealed class OverlayWindowService : IDisposable
 {
     private readonly OverlayViewModel _viewModel;
+    private readonly IAppStringLocalizer _strings;
     private readonly MainViewModel _mainViewModel;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
@@ -34,6 +36,7 @@ public sealed class OverlayWindowService : IDisposable
 
     public OverlayWindowService(
         OverlayViewModel viewModel,
+        IAppStringLocalizer strings,
         MainViewModel mainViewModel,
         MonitorLayoutService monitorLayout,
         ForegroundWindowMonitor foregroundWindowMonitor,
@@ -45,6 +48,7 @@ public sealed class OverlayWindowService : IDisposable
         CrashDiagnosticsService crashDiagnostics)
     {
         _viewModel = viewModel;
+        _strings = strings;
         _mainViewModel = mainViewModel;
         _monitorLayout = monitorLayout;
         _foregroundWindowMonitor = foregroundWindowMonitor;
@@ -194,6 +198,19 @@ public sealed class OverlayWindowService : IDisposable
             metrics.UserObjectDelta,
             metrics.PrivateBytesDelta);
         return metrics;
+    }
+
+    public void VerifyLocalizedResources()
+    {
+        if (_windows.Count == 0)
+        {
+            throw new InvalidOperationException("Overlay localization cannot be verified before initialization.");
+        }
+
+        foreach (var window in _windows)
+        {
+            window.VerifyLocalizedResources();
+        }
     }
 
     public async Task<VisibleOverlayDropSmokeMetrics> RunVisibleOverlayDropSmokeAsync(
@@ -505,6 +522,7 @@ public sealed class OverlayWindowService : IDisposable
         {
             _windows.Add(new OverlayWindow(
                 _viewModel,
+                _strings,
                 monitor,
                 _monitorLayout,
                 _dragDropService,

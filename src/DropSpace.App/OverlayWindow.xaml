@@ -5,7 +5,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  Title="DropSpace Overlay"
+  x:Uid="OverlayWindow"
   mc:Ignorable="d">
   <Grid
     x:Name="Root"
@@ -35,10 +35,10 @@
       <Grid>
         <Button
           x:Name="CompactPanel"
+          x:Uid="OverlayCompactPanel"
           Padding="18,0"
           HorizontalContentAlignment="Stretch"
           VerticalContentAlignment="Stretch"
-          AutomationProperties.Name="展开 DropSpace 顶部面板"
           Background="Transparent"
           BorderThickness="0"
           Click="OnCompactClicked">
@@ -58,7 +58,7 @@
                 Foreground="White"
                 Text="{Binding CompactTitle}"
                 TextTrimming="CharacterEllipsis" />
-              <TextBlock FontSize="11" Foreground="#BFFFFFFF" Text="Temporary Space" />
+              <TextBlock x:Name="CompactSubtitleText" x:Uid="OverlayCompactSubtitle" FontSize="11" Foreground="#BFFFFFFF" />
             </StackPanel>
             <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="#BFFFFFFF" Glyph="&#xE70D;" />
           </Grid>
@@ -96,14 +96,14 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="White" Text="Temporary Space" />
-              <TextBlock FontSize="12" Foreground="#BFFFFFFF" Text="最近项目 · 可直接拖到 Explorer" />
+              <TextBlock x:Name="ExpandedTitleText" x:Uid="OverlayExpandedTitle" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+              <TextBlock x:Name="ExpandedSubtitleText" x:Uid="OverlayExpandedSubtitle" FontSize="12" Foreground="#BFFFFFFF" />
             </StackPanel>
             <Button
+              x:Uid="OverlayCollapseButton"
               Grid.Column="1"
               Width="34"
               Height="34"
-              AutomationProperties.Name="收起顶部面板"
               Background="Transparent"
               BorderThickness="0"
               Click="OnCollapseClicked">
@@ -165,8 +165,8 @@
                   </StackPanel>
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
                     <Button
+                      x:Uid="OverlayOpenItemButton"
                       Padding="9,4"
-                      AutomationProperties.Name="打开项目"
                       Background="Transparent"
                       BorderThickness="0"
                       Click="OnOpenItemClicked"
@@ -175,8 +175,8 @@
                       <FontIcon FontSize="13" Glyph="&#xE8A7;" />
                     </Button>
                     <Button
+                      x:Uid="OverlayPinItemButton"
                       Padding="9,4"
-                      AutomationProperties.Name="固定项目"
                       Background="Transparent"
                       BorderThickness="0"
                       Click="OnPinItemClicked"
@@ -185,8 +185,8 @@
                       <FontIcon FontSize="13" Glyph="&#xE718;" />
                     </Button>
                     <Button
+                      x:Uid="OverlayRemoveItemButton"
                       Padding="9,4"
-                      AutomationProperties.Name="从 DropSpace 移除"
                       Background="Transparent"
                       BorderThickness="0"
                       Click="OnRemoveItemClicked"
@@ -205,8 +205,8 @@
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="#AFFFFFFF" Text="移除引用不会删除原始文件" />
-            <Button Grid.Column="1" Content="打开 DropSpace" Click="OnOpenMainWindowClicked" />
+            <TextBlock x:Name="RemoveHintText" x:Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="#AFFFFFFF" />
+            <Button x:Name="OpenMainButton" x:Uid="OverlayOpenMainButton" Grid.Column="1" Click="OnOpenMainWindowClicked" />
           </Grid>
         </Grid>
 
@@ -221,8 +221,8 @@
           Visibility="{Binding IsExpandedDropTargetActive, Converter={StaticResource BoolToVisibilityConverter}}">
           <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="5">
             <FontIcon FontSize="24" Foreground="White" Glyph="&#xECC8;" />
-            <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="White" Text="放到 DropSpace" />
-            <TextBlock FontSize="12" Foreground="#DFFFFFFF" Text="松开即可加入 Temporary Space" />
+            <TextBlock x:Name="DropTargetTitleText" x:Uid="OverlayDropTargetTitle" FontSize="17" FontWeight="SemiBold" Foreground="White" />
+            <TextBlock x:Uid="OverlayDropTargetSubtitle" FontSize="12" Foreground="#DFFFFFFF" />
           </StackPanel>
         </Border>
       </Grid>

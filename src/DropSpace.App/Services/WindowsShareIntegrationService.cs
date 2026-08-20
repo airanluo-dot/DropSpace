@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using DropSpace.Core.Abstractions;
 using Microsoft.Extensions.Logging;
 using Windows.System;
 
@@ -13,10 +14,14 @@ public sealed class WindowsShareIntegrationService
 {
     private const int AppModelErrorNoPackage = 15700;
     private const int ErrorInsufficientBuffer = 122;
+    private readonly IAppStringLocalizer _strings;
     private readonly ILogger<WindowsShareIntegrationService> _logger;
 
-    public WindowsShareIntegrationService(ILogger<WindowsShareIntegrationService> logger)
+    public WindowsShareIntegrationService(
+        IAppStringLocalizer strings,
+        ILogger<WindowsShareIntegrationService> logger)
     {
+        _strings = strings;
         _logger = logger;
         HasPackageIdentity = DetectPackageIdentity();
     }
@@ -24,8 +29,8 @@ public sealed class WindowsShareIntegrationService
     public bool HasPackageIdentity { get; }
 
     public string StatusText => HasPackageIdentity
-        ? "DropSpace 已拥有 Package Identity，并已声明为 Windows 分享目标。是否直接显示在 Drop Tray 建议区由 Windows 版本和系统相关性排序决定；可通过“更多”打开完整分享界面。"
-        : "当前部署没有可信 Package Identity，Windows 分享集成不可用；顶部拖放和已显示灵动岛直接拖放仍然可用。正式签名安装包会自动启用分享目标。";
+        ? _strings.Get("WindowsSharePackagedStatus")
+        : _strings.Get("WindowsSharePortableStatus");
 
     public async Task<bool> OpenDropTraySettingsAsync()
     {

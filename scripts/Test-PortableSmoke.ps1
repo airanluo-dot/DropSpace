@@ -1,6 +1,9 @@
 param(
     [string]$ExecutablePath = "artifacts/release/DropSpace.exe",
 
+    [ValidateSet("en-US", "zh-CN")]
+    [string]$Language = "en-US",
+
     [int]$StartupTimeoutSeconds = 120
 )
 
@@ -27,7 +30,7 @@ $second = $null
 $markerPath = $null
 try
 {
-    $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold" -PassThru
+    $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold", "--smoke-language", $Language -PassThru
     $markerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($first.Id).json"
     $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
     $lastStage = "process-launch"
@@ -117,7 +120,9 @@ try
         [int]$marker.projectionDeletionStressCycles -ne 200 -or
         [long]$marker.projectionUnhandledExceptionDelta -ne 0 -or
         [long]$marker.projectionUnobservedTaskExceptionDelta -ne 0 -or
-        $marker.projectionExternalSentinelPreserved -ne $true)
+        $marker.projectionExternalSentinelPreserved -ne $true -or
+        $marker.localizedUiResourcesResolved -ne $true -or
+        [string]$marker.resourceLanguage -ne $Language)
     {
         throw "DropSpace.exe produced an invalid startup marker."
     }
@@ -144,6 +149,7 @@ try
     }
 
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
+    Write-Host "Localized resource context: $($marker.resourceLanguage); XAML resource resolution=passed"
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
     Write-Host "Overlay geometry stress: transitions=$($marker.overlayGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"
