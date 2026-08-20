@@ -27,11 +27,11 @@ public sealed class AppLanguageService
     {
         Preference = preference;
         // System leaves WinUI's resource context untouched so unpackaged MRT uses the Windows
-        // display language. CurrentUICulture is first so imperative strings use that same choice.
-        ApplicationLanguages.PrimaryLanguageOverride = string.Empty;
+        // display language. Do not clear PrimaryLanguageOverride in an unpackaged process: the
+        // runtime has no default resource view to accept that reset.
         EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(
             preference,
-            [CultureInfo.CurrentUICulture.Name, .. ApplicationLanguages.Languages]);
+            [CultureInfo.CurrentUICulture.Name]);
         if (preference != AppLanguagePreference.System)
         {
             ApplicationLanguages.PrimaryLanguageOverride = EffectiveLanguageTag;
