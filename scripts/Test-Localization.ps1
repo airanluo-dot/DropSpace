@@ -152,9 +152,11 @@ if ($projectText -notmatch 'GenerateDropSpacePortableResourceIndex' -or
 
 $portablePriScript = Join-Path $repositoryRoot "scripts/Generate-PortableResourcesPri.ps1"
 if (-not (Test-Path $portablePriScript -PathType Leaf) -or
-    (Get-Content -Path $portablePriScript -Raw) -notmatch 'RemoveChild\(\$packagingNode\)')
+    (Get-Content -Path $portablePriScript -Raw) -notmatch 'RemoveChild\(\$packagingNode\)' -or
+    (Get-Content -Path $portablePriScript -Raw) -notmatch 'Copy-ProjectFile' -or
+    (Get-Content -Path $portablePriScript -Raw) -notmatch '"Assets"')
 {
-    throw "The portable resource index generator must remove the MakePri packaging section."
+    throw "The portable resource index generator must omit package identity while staging XAML and asset resources."
 }
 
 $packageManifest = Join-Path $appRoot "Package.appxmanifest"

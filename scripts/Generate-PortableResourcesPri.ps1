@@ -57,7 +57,31 @@ foreach ($path in @($resolvedOutputPath, $resolvedConfigurationPath, $resourcePr
     }
 }
 New-Item -ItemType Directory -Path $resourceProjectRoot -Force | Out-Null
+
+function Copy-ProjectFile([string]$SourcePath)
+{
+    $relativePath = [System.IO.Path]::GetRelativePath($resolvedProjectRoot, $SourcePath)
+    $destinationPath = Join-Path $resourceProjectRoot $relativePath
+    New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null
+    Copy-Item -Path $SourcePath -Destination $destinationPath -Force
+}
+
+# The PRI is also the source of the unpackaged app's WinUI XAML and file-resource lookup.
+# Stage all resource-bearing project inputs, but deliberately leave out Package.appxmanifest so
+# MakePri uses the unpackaged Application root namespace instead of a package identity.
 Copy-Item -Path $sourceStringsPath -Destination (Join-Path $resourceProjectRoot "Strings") -Recurse -Force
+$assetsPath = Join-Path $resolvedProjectRoot "Assets"
+if (Test-Path $assetsPath -PathType Container)
+{
+    Copy-Item -Path $assetsPath -Destination (Join-Path $resourceProjectRoot "Assets") -Recurse -Force
+}
+
+$xamlFiles = Get-ChildItem -Path $resolvedProjectRoot -Filter "*.xaml" -File -Recurse |
+    Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }
+foreach ($xamlFile in $xamlFiles)
+{
+    Copy-ProjectFile $xamlFile.FullName
+}
 
 $makePri = Find-MakePri
 & $makePri createconfig /cf $resolvedConfigurationPath /dq en-US
@@ -80,7 +104,8 @@ foreach ($packagingNode in $packagingNodes)
 
 $configuration.Save($resolvedConfigurationPath)
 # The source project also contains a package manifest for MSIX. Build the unpackaged PRI from
-# the staged strings only so MakePri gives the index the Application root namespace.
+# staged strings, XAML, and assets—but not that manifest—so MakePri keeps the Application root
+# while WinUI can still resolve its XAML and file resources at runtime.
 & $makePri new /pr $resourceProjectRoot /cf $resolvedConfigurationPath /of $resolvedOutputPath
 if ($LASTEXITCODE -ne 0)
 {
