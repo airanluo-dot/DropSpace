@@ -267,7 +267,7 @@ Typical expectations:
 - Cover the main window, Dynamic Island, tray, error paths, accessibility names, and update feedback—not only static page labels.
 - Preserve `System`/`English`/`SimplifiedChinese` settings behavior: System maps a Chinese Windows display language to `zh-CN` and uses the English base for other not-yet-shipped languages; apply a changed resource context at the documented restart boundary.
 - Preserve the portable resource-index build: stage only `Strings` so MakePri creates the unpackaged `Application` root, generate one packaging-free `resources.pri`, bundle it into the self-extracting single EXE, and use an explicit resource context for imperative lookup.
-- Do not use `ApplicationLanguages.PrimaryLanguageOverride` in the unpackaged app. It is unsupported there; mirror each `x:Uid` to the app-owned XAML resource override so the selected explicit resource context applies properties and automation names after XAML construction.
+- Do not use `ApplicationLanguages.PrimaryLanguageOverride` in the unpackaged app. It is unsupported there; mirror dependency-object `x:Uid` values to the app-owned XAML resource override so the selected explicit resource context applies properties and automation names after XAML construction, and apply `Window` roots directly because they are not dependency objects.
 - Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 11 validation as a manual release gate.
 
 ### Workflow-only changes

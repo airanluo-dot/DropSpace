@@ -95,6 +95,25 @@ foreach ($file in $sourceFiles | Where-Object Extension -eq ".xaml")
     foreach ($tag in [regex]::Matches($content, '<[^<>]*x:Uid="(?<uid>[^"]+)"[^<>]*>'))
     {
         $uid = $tag.Groups["uid"].Value
+        $elementName = [regex]::Match($tag.Value, '^<\s*(?<name>[^\s/>]+)').Groups["name"].Value
+        if ($elementName -eq "Window")
+        {
+            $codeBehindPath = "$($file.FullName).cs"
+            if (-not (Test-Path $codeBehindPath -PathType Leaf))
+            {
+                throw "Window localization identifier '$uid' in $($file.FullName) has no code-behind override."
+            }
+
+            $codeBehind = Get-Content -Path $codeBehindPath -Raw
+            $applyPattern = 'XamlResourceOverride\.Apply\(this,\s*"' + [regex]::Escape($uid) + '"\)'
+            if ($codeBehind -notmatch $applyPattern)
+            {
+                throw "Window localization identifier '$uid' must be applied directly after XAML initialization."
+            }
+
+            continue
+        }
+
         $expectedOverride = 'services:XamlResourceOverride.Uid="' + $uid + '"'
         if ($tag.Value -notmatch [regex]::Escape($expectedOverride))
         {
