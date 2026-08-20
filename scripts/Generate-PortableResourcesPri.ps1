@@ -60,7 +60,15 @@ New-Item -ItemType Directory -Path $resourceProjectRoot -Force | Out-Null
 
 function Copy-ProjectFile([string]$SourcePath)
 {
-    $relativePath = [System.IO.Path]::GetRelativePath($resolvedProjectRoot, $SourcePath)
+    $projectRootWithSeparator = $resolvedProjectRoot.TrimEnd('\\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $SourcePath.StartsWith($projectRootWithSeparator, [StringComparison]::OrdinalIgnoreCase))
+    {
+        throw "PRI source is outside the project root: $SourcePath"
+    }
+
+    # This script is invoked by powershell.exe during the MSBuild publish target. Avoid the newer
+    # .NET relative-path API, which is not available in Windows PowerShell's .NET Framework.
+    $relativePath = $SourcePath.Substring($projectRootWithSeparator.Length)
     $destinationPath = Join-Path $resourceProjectRoot $relativePath
     New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null
     Copy-Item -Path $SourcePath -Destination $destinationPath -Force

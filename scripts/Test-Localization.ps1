@@ -154,9 +154,10 @@ $portablePriScript = Join-Path $repositoryRoot "scripts/Generate-PortableResourc
 if (-not (Test-Path $portablePriScript -PathType Leaf) -or
     (Get-Content -Path $portablePriScript -Raw) -notmatch 'RemoveChild\(\$packagingNode\)' -or
     (Get-Content -Path $portablePriScript -Raw) -notmatch 'Copy-ProjectFile' -or
-    (Get-Content -Path $portablePriScript -Raw) -notmatch '"Assets"')
+    (Get-Content -Path $portablePriScript -Raw) -notmatch '"Assets"' -or
+    (Get-Content -Path $portablePriScript -Raw) -match 'GetRelativePath')
 {
-    throw "The portable resource index generator must omit package identity while staging XAML and asset resources."
+    throw "The portable resource index generator must omit package identity while staging XAML and asset resources with Windows PowerShell-compatible paths."
 }
 
 $packageManifest = Join-Path $appRoot "Package.appxmanifest"
