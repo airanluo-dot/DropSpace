@@ -45,7 +45,7 @@ public static class XamlResourceOverride
         _strings = strings ?? throw new ArgumentNullException(nameof(strings));
     }
 
-    public static void Apply(DependencyObject target, string uid)
+    public static void Apply(object target, string uid)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentException.ThrowIfNullOrWhiteSpace(uid);
@@ -64,9 +64,10 @@ public static class XamlResourceOverride
             }
         }
 
-        if (strings.TryGet($"{uid}{AutomationNameSuffix}", out var automationName))
+        if (target is DependencyObject dependencyObject &&
+            strings.TryGet($"{uid}{AutomationNameSuffix}", out var automationName))
         {
-            AutomationProperties.SetName(target, automationName);
+            AutomationProperties.SetName(dependencyObject, automationName);
         }
     }
 
