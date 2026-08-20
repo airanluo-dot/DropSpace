@@ -60,7 +60,7 @@ New-Item -ItemType Directory -Path $resourceProjectRoot -Force | Out-Null
 
 function Copy-ProjectFile([string]$SourcePath)
 {
-    $projectRootWithSeparator = $resolvedProjectRoot.TrimEnd('\\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    $projectRootWithSeparator = $resolvedProjectRoot.TrimEnd([char]92, [char]47) + [System.IO.Path]::DirectorySeparatorChar
     if (-not $SourcePath.StartsWith($projectRootWithSeparator, [StringComparison]::OrdinalIgnoreCase))
     {
         throw "PRI source is outside the project root: $SourcePath"
