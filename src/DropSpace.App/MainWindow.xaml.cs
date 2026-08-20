@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window
         _strings = strings;
         _logger = logger;
         InitializeComponent();
+        XamlResourceOverride.Apply(this, "MainWindow");
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);

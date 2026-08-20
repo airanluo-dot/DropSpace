@@ -81,9 +81,11 @@ public partial class App : Application
             language.Apply(requestedSmokeLanguage is null ? persistedSettings.Language : smokeLanguage);
 
             var viewModel = _services.GetRequiredService<MainViewModel>();
+            var strings = _services.GetRequiredService<IAppStringLocalizer>();
+            XamlResourceOverride.Initialize(strings);
             _window = new MainWindow(
                 viewModel,
-                _services.GetRequiredService<IAppStringLocalizer>(),
+                strings,
                 _services.GetRequiredService<ILogger<MainWindow>>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);

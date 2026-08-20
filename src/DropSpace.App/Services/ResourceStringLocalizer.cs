@@ -33,13 +33,28 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
     public string Get(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        var value = _resourceMap.GetValue(key.Replace('.', '/'), _resourceContext).ValueAsString;
-        if (string.IsNullOrWhiteSpace(value))
+        if (!TryGet(key, out var value))
         {
             throw new InvalidOperationException($"Missing DropSpace localized resource '{key}'.");
         }
 
         return value;
+    }
+
+    public bool TryGet(string key, out string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        try
+        {
+            value = _resourceMap.GetValue(key.Replace('.', '/'), _resourceContext).ValueAsString ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(value);
+        }
+        catch (Exception)
+        {
+            value = string.Empty;
+            return false;
+        }
     }
 
     public string Format(string key, params object?[] arguments) =>

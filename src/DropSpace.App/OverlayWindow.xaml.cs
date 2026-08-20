@@ -62,6 +62,7 @@ public sealed partial class OverlayWindow : Window
         _visualDragCallbacks = dragCallbacks;
         _dragDropService = dragDropService;
         InitializeComponent();
+        XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
 
         var presenter = OverlappedPresenter.Create();

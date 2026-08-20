@@ -5,7 +5,8 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  x:Uid="OverlayWindow"
+  xmlns:services="using:DropSpace.App.Services"
+  x:Uid="OverlayWindow" services:XamlResourceOverride.Uid="OverlayWindow"
   mc:Ignorable="d">
   <Grid
     x:Name="Root"
@@ -35,7 +36,7 @@
       <Grid>
         <Button
           x:Name="CompactPanel"
-          x:Uid="OverlayCompactPanel"
+          x:Uid="OverlayCompactPanel" services:XamlResourceOverride.Uid="OverlayCompactPanel"
           Padding="18,0"
           HorizontalContentAlignment="Stretch"
           VerticalContentAlignment="Stretch"
@@ -58,7 +59,7 @@
                 Foreground="White"
                 Text="{Binding CompactTitle}"
                 TextTrimming="CharacterEllipsis" />
-              <TextBlock x:Name="CompactSubtitleText" x:Uid="OverlayCompactSubtitle" FontSize="11" Foreground="#BFFFFFFF" />
+              <TextBlock x:Name="CompactSubtitleText" x:Uid="OverlayCompactSubtitle" services:XamlResourceOverride.Uid="OverlayCompactSubtitle" FontSize="11" Foreground="#BFFFFFFF" />
             </StackPanel>
             <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="#BFFFFFFF" Glyph="&#xE70D;" />
           </Grid>
@@ -96,11 +97,11 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-              <TextBlock x:Name="ExpandedTitleText" x:Uid="OverlayExpandedTitle" FontSize="18" FontWeight="SemiBold" Foreground="White" />
-              <TextBlock x:Name="ExpandedSubtitleText" x:Uid="OverlayExpandedSubtitle" FontSize="12" Foreground="#BFFFFFFF" />
+              <TextBlock x:Name="ExpandedTitleText" x:Uid="OverlayExpandedTitle" services:XamlResourceOverride.Uid="OverlayExpandedTitle" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+              <TextBlock x:Name="ExpandedSubtitleText" x:Uid="OverlayExpandedSubtitle" services:XamlResourceOverride.Uid="OverlayExpandedSubtitle" FontSize="12" Foreground="#BFFFFFFF" />
             </StackPanel>
             <Button
-              x:Uid="OverlayCollapseButton"
+              x:Uid="OverlayCollapseButton" services:XamlResourceOverride.Uid="OverlayCollapseButton"
               Grid.Column="1"
               Width="34"
               Height="34"
@@ -165,7 +166,7 @@
                   </StackPanel>
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
                     <Button
-                      x:Uid="OverlayOpenItemButton"
+                      x:Uid="OverlayOpenItemButton" services:XamlResourceOverride.Uid="OverlayOpenItemButton"
                       Padding="9,4"
                       Background="Transparent"
                       BorderThickness="0"
@@ -175,7 +176,7 @@
                       <FontIcon FontSize="13" Glyph="&#xE8A7;" />
                     </Button>
                     <Button
-                      x:Uid="OverlayPinItemButton"
+                      x:Uid="OverlayPinItemButton" services:XamlResourceOverride.Uid="OverlayPinItemButton"
                       Padding="9,4"
                       Background="Transparent"
                       BorderThickness="0"
@@ -185,7 +186,7 @@
                       <FontIcon FontSize="13" Glyph="&#xE718;" />
                     </Button>
                     <Button
-                      x:Uid="OverlayRemoveItemButton"
+                      x:Uid="OverlayRemoveItemButton" services:XamlResourceOverride.Uid="OverlayRemoveItemButton"
                       Padding="9,4"
                       Background="Transparent"
                       BorderThickness="0"
@@ -205,8 +206,8 @@
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="RemoveHintText" x:Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="#AFFFFFFF" />
-            <Button x:Name="OpenMainButton" x:Uid="OverlayOpenMainButton" Grid.Column="1" Click="OnOpenMainWindowClicked" />
+            <TextBlock x:Name="RemoveHintText" x:Uid="OverlayRemoveHint" services:XamlResourceOverride.Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="#AFFFFFFF" />
+            <Button x:Name="OpenMainButton" x:Uid="OverlayOpenMainButton" services:XamlResourceOverride.Uid="OverlayOpenMainButton" Grid.Column="1" Click="OnOpenMainWindowClicked" />
           </Grid>
         </Grid>
 
@@ -221,8 +222,8 @@
           Visibility="{Binding IsExpandedDropTargetActive, Converter={StaticResource BoolToVisibilityConverter}}">
           <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="5">
             <FontIcon FontSize="24" Foreground="White" Glyph="&#xECC8;" />
-            <TextBlock x:Name="DropTargetTitleText" x:Uid="OverlayDropTargetTitle" FontSize="17" FontWeight="SemiBold" Foreground="White" />
-            <TextBlock x:Uid="OverlayDropTargetSubtitle" FontSize="12" Foreground="#DFFFFFFF" />
+            <TextBlock x:Name="DropTargetTitleText" x:Uid="OverlayDropTargetTitle" services:XamlResourceOverride.Uid="OverlayDropTargetTitle" FontSize="17" FontWeight="SemiBold" Foreground="White" />
+            <TextBlock x:Uid="OverlayDropTargetSubtitle" services:XamlResourceOverride.Uid="OverlayDropTargetSubtitle" FontSize="12" Foreground="#DFFFFFFF" />
           </StackPanel>
         </Border>
       </Grid>

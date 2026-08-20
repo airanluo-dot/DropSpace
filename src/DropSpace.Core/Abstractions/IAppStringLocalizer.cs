@@ -12,6 +12,8 @@ public interface IAppStringLocalizer
 
     string Get(string key);
 
+    bool TryGet(string key, out string value);
+
     string Format(string key, params object?[] arguments);
 }
 
@@ -33,6 +35,13 @@ public sealed class IdentityAppStringLocalizer : IAppStringLocalizer
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return key;
+    }
+
+    public bool TryGet(string key, out string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        value = string.Empty;
+        return false;
     }
 
     public string Format(string key, params object?[] arguments) =>

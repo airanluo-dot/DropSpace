@@ -1,12 +1,11 @@
 using System.Globalization;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
-using Microsoft.Windows.Globalization;
 
 namespace DropSpace.App.Services;
 
 /// <summary>
-/// Applies the persisted display-language choice before WinUI creates any localized surface.
+/// Resolves the persisted display-language choice before the application creates localized surfaces.
 /// System maps the current Windows display language to the localized resource set DropSpace ships.
 /// </summary>
 public sealed class AppLanguageService
@@ -26,16 +25,12 @@ public sealed class AppLanguageService
     public void Apply(AppLanguagePreference preference)
     {
         Preference = preference;
-        // System leaves WinUI's resource context untouched so unpackaged MRT uses the Windows
-        // display language. Do not clear PrimaryLanguageOverride in an unpackaged process: the
-        // runtime has no default resource view to accept that reset.
+        // ApplicationLanguages.PrimaryLanguageOverride is unsupported for unpackaged Windows App
+        // SDK processes. ResourceStringLocalizer and XamlResourceOverride therefore use this
+        // effective tag through an explicit resource context for every display-language choice.
         EffectiveLanguageTag = AppLanguagePolicy.ResolveEffectiveLanguageTag(
             preference,
             [CultureInfo.CurrentUICulture.Name]);
-        if (preference != AppLanguagePreference.System)
-        {
-            ApplicationLanguages.PrimaryLanguageOverride = EffectiveLanguageTag;
-        }
     }
 
     public static bool TryParseSupportedLanguage(string? value, out AppLanguagePreference preference)

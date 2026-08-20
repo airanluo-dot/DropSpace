@@ -11,7 +11,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Schema migration fixtures pass from every supported prior version.
 - No high-severity privacy/security finding remains unexplained.
 - Critical manual matrix has evidence for the release candidate.
-- `en-US` and `zh-CN` `.resw` key sets are identical; every `x:Uid`, imperative localizer key, and package-manifest string resolves in the English base resource file; source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and bundles its packaging-free `resources.pri` before the runtime smoke.
+- `en-US` and `zh-CN` `.resw` key sets are identical; every `x:Uid` has the matching app-owned XAML override, every imperative localizer key and package-manifest string resolves in the English base resource file, and source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and bundles its packaging-free `resources.pri` before the runtime smoke.
 
 ## Unit tests
 
@@ -108,7 +108,7 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 - Run the complete critical flow on an English Windows 11 display-language installation and a Simplified Chinese Windows 11 display-language installation; record OS build, display-language setting, application build, and result.
 - In each installation, choose **System default**, restart DropSpace, and verify that the main window, Dynamic Island, tray tooltip/menu, update states, dialogs/errors, and accessibility names resolve to the expected resource set.
-- In each installation, explicitly choose **English**, restart, and verify the same surfaces are English; explicitly choose **Simplified Chinese**, restart, and verify the same surfaces are Simplified Chinese.
+- In each installation, explicitly choose **English**, restart, and verify the same surfaces are English; explicitly choose **Simplified Chinese**, restart, and verify the same surfaces are Simplified Chinese. This verifies the app-owned XAML override as well as imperative and native surfaces.
 - Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; ensure no stale language or raw exception message is announced.
 - CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; the two real Windows 11 installations remain required release evidence.
 

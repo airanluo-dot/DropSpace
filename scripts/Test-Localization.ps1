@@ -91,6 +91,17 @@ foreach ($file in $sourceFiles | Where-Object Extension -eq ".xaml")
     {
         [void]$xamlUids.Add($match.Groups["uid"].Value)
     }
+
+    foreach ($tag in [regex]::Matches($content, '<[^<>]*x:Uid="(?<uid>[^"]+)"[^<>]*>'))
+    {
+        $uid = $tag.Groups["uid"].Value
+        $expectedOverride = 'services:XamlResourceOverride.Uid="' + $uid + '"'
+        if ($tag.Value -notmatch [regex]::Escape($expectedOverride))
+        {
+            $relativePath = $file.FullName.Substring($repositoryRoot.Length + 1)
+            throw "XAML localization identifier '$uid' in $relativePath must have the matching XamlResourceOverride UID."
+        }
+    }
 }
 
 $uidsWithoutResources = @(
