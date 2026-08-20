@@ -100,9 +100,9 @@ foreach ($file in $sourceFiles | Where-Object Extension -eq ".xaml")
 }
 
 $windowOverrides = @(
-    @{ Uid = "MainTitleBar"; Target = "AppTitleBar"; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
-    @{ Uid = "MainWindow"; Target = "this"; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
-    @{ Uid = "OverlayWindow"; Target = "this"; CodeBehind = Join-Path $appRoot "OverlayWindow.xaml.cs" }
+    @{ Uid = "MainTitleBar"; Target = "AppTitleBar"; RequireLoaded = $true; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
+    @{ Uid = "MainWindow"; Target = "this"; RequireLoaded = $false; CodeBehind = Join-Path $appRoot "MainWindow.xaml.cs" },
+    @{ Uid = "OverlayWindow"; Target = "this"; RequireLoaded = $false; CodeBehind = Join-Path $appRoot "OverlayWindow.xaml.cs" }
 )
 foreach ($windowOverride in $windowOverrides)
 {
@@ -118,7 +118,12 @@ foreach ($windowOverride in $windowOverrides)
     $applyPattern = 'XamlResourceOverride\.Apply\(\s*' + [regex]::Escape($target) + '\s*,\s*"' + [regex]::Escape($uid) + '"\)'
     if ($codeBehind -notmatch $applyPattern)
     {
-        throw "Window localization identifier '$uid' must be applied directly after XAML initialization."
+        throw "Window localization identifier '$uid' must be applied from code-behind."
+    }
+
+    if ($windowOverride.RequireLoaded -and $codeBehind -notmatch 'AppTitleBar\.Loaded\s*\+=')
+    {
+        throw "MainTitleBar localization must wait for the TitleBar Loaded event."
     }
 
     [void]$xamlResourceIds.Add($uid)
