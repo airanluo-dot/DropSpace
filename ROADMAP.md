@@ -474,3 +474,9 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Persist System default, English, and Simplified Chinese display-language choices; System follows Windows display language for Chinese and uses English for the other currently shipped-language cases. The selection takes effect on restart.
 - Add a localization policy gate that rejects new CJK hardcoding in source, proves resource-key parity, and runs the full Windows CI workload in both resource contexts.
 - Require actual English and Simplified Chinese Windows 11 display-language validation as Preview evidence; CI resource contexts do not substitute for operating-system locale testing.
+
+### v0.2.1-preview.3 Zero-flicker Windows startup
+
+- Keep the main-window HWND available to background services without initially showing or activating it for `--startup`.
+- Preserve normal launch, tray Open, redirected activation, Share Target, clipboard, and Dynamic Island behavior.
+- Add Win32 startup main-window visibility regression coverage in English and Simplified Chinese portable smoke runs.
