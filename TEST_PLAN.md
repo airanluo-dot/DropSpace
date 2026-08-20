@@ -11,7 +11,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Schema migration fixtures pass from every supported prior version.
 - No high-severity privacy/security finding remains unexplained.
 - Critical manual matrix has evidence for the release candidate.
-- `en-US` and `zh-CN` `.resw` key sets are identical; every XAML resource identifier uses the app-owned override or an explicit `Window` application path, every imperative localizer key and package-manifest string resolves in the English base resource file, and source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and bundles its packaging-free `resources.pri` before the runtime smoke.
+- `en-US` and `zh-CN` `.resw` key sets are identical; every XAML resource identifier uses the app-owned override or an explicit `Window` application path, every imperative localizer key and package-manifest string resolves in the English base resource file, and source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and explicitly bundles its packaging-free `DropSpace.resources.pri` before the runtime smoke without replacing WinUI's default resource index.
 
 ## Unit tests
 

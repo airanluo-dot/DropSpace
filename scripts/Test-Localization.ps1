@@ -145,9 +145,10 @@ if ((Get-Content -Path $projectFile -Raw) -notmatch '<DefaultLanguage>en-US</Def
 
 $projectText = Get-Content -Path $projectFile -Raw
 if ($projectText -notmatch 'GenerateDropSpacePortableResourceIndex' -or
-    $projectText -notmatch 'BundleDropSpacePortableResourceIndex')
+    $projectText -notmatch 'BundleDropSpacePortableResourceIndex' -or
+    $projectText -notmatch 'DropSpace\.resources\.pri')
 {
-    throw "DropSpace.App must generate and bundle resources.pri for unpackaged single-file builds."
+    throw "DropSpace.App must generate and explicitly bundle its non-default localization PRI for unpackaged single-file builds."
 }
 
 $portablePriScript = Join-Path $repositoryRoot "scripts/Generate-PortableResourcesPri.ps1"

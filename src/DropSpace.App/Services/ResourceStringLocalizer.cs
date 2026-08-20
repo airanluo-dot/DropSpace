@@ -62,7 +62,9 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
 
     private static string ResolveResourceIndexPath()
     {
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, "resources.pri");
+        // Do not name this explicit, app-owned PRI "resources.pri": WinUI treats that special
+        // filename as its default index and would lose the framework theme resource maps.
+        var bundledPath = Path.Combine(AppContext.BaseDirectory, "DropSpace.resources.pri");
         if (File.Exists(bundledPath))
         {
             return bundledPath;

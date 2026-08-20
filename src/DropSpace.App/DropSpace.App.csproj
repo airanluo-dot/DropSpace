@@ -88,10 +88,10 @@
     BeforeTargets="PrepareForBundle"
     Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'"
     Inputs="@(DropSpaceStringResource);$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1"
-    Outputs="$(IntermediateOutputPath)resources.pri">
+    Outputs="$(IntermediateOutputPath)DropSpace.resources.pri">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot; -OutputPath &quot;$(IntermediateOutputPath)resources.pri&quot; -ConfigurationPath &quot;$(IntermediateOutputPath)resources.priconfig.xml&quot;" />
+      Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Generate-PortableResourcesPri.ps1&quot; -ProjectRoot &quot;$(MSBuildProjectDirectory)&quot; -OutputPath &quot;$(IntermediateOutputPath)DropSpace.resources.pri&quot; -ConfigurationPath &quot;$(IntermediateOutputPath)resources.priconfig.xml&quot;" />
   </Target>
   <Target
     Name="BundleDropSpacePortableResourceIndex"
@@ -99,10 +99,10 @@
     BeforeTargets="GenerateSingleFileBundle"
     DependsOnTargets="GenerateDropSpacePortableResourceIndex"
     Condition="'$(DropSpaceDeployment)' == 'Portable' and '$(OS)' == 'Windows_NT'">
-    <Error Condition="!Exists('$(IntermediateOutputPath)resources.pri')" Text="The portable resource index was not generated before single-file bundling." />
+    <Error Condition="!Exists('$(IntermediateOutputPath)DropSpace.resources.pri')" Text="The portable localization resource index was not generated before single-file bundling." />
     <ItemGroup>
-      <FilesToBundle Include="$(IntermediateOutputPath)resources.pri">
-        <RelativePath>resources.pri</RelativePath>
+      <FilesToBundle Include="$(IntermediateOutputPath)DropSpace.resources.pri">
+        <RelativePath>DropSpace.resources.pri</RelativePath>
       </FilesToBundle>
     </ItemGroup>
   </Target>
