@@ -46,6 +46,14 @@ public static class XamlResourceOverride
         _strings = strings ?? throw new ArgumentNullException(nameof(strings));
     }
 
+    /// <summary>
+    /// Registers the attached property before WinUI parses any page that uses it.
+    /// </summary>
+    public static void RegisterDependencyProperties()
+    {
+        _ = UidProperty;
+    }
+
     public static void Apply(object target, string uid)
     {
         ArgumentNullException.ThrowIfNull(target);

@@ -30,6 +30,7 @@ public partial class App : Application
 
     public App()
     {
+        XamlResourceOverride.RegisterDependencyProperties();
         InitializeComponent();
         UnhandledException += OnUnhandledException;
     }

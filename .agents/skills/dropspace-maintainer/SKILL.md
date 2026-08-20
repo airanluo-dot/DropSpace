@@ -268,6 +268,7 @@ Typical expectations:
 - Preserve `System`/`English`/`SimplifiedChinese` settings behavior: System maps a Chinese Windows display language to `zh-CN` and uses the English base for other not-yet-shipped languages; apply a changed resource context at the documented restart boundary.
 - Preserve the portable resource-index build: stage only `Strings` so MakePri creates the unpackaged `Application` root, generate one packaging-free `resources.pri`, bundle it into the self-extracting single EXE, and use an explicit resource context for imperative lookup.
 - Do not use `ApplicationLanguages.PrimaryLanguageOverride` or implicit `x:Uid` lookup in the unpackaged app. Use the app-owned XAML resource override for dependency-object resource identifiers so the selected explicit resource context applies properties and automation names after XAML construction, and apply `Window` roots directly because they are not dependency objects.
+- Register the custom XAML attached property from the `App` constructor before any XAML page that uses it is parsed; late registration causes a runtime `XamlParseException` even when compilation succeeds.
 - Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 11 validation as a manual release gate.
 
 ### Workflow-only changes
