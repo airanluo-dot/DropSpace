@@ -62,7 +62,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private Timer? _lifetimeTimer;
     private OleDragProbeResult? _pendingResult;
     private bool _registered;
-    private bool _disposed;
+    private int _disposeState;
 
     public EphemeralOleDragProbe(
         long sessionId,
@@ -159,11 +159,11 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
     public long SessionId => _sessionId;
 
-    public bool IsDisposed => _disposed;
+    public bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
 
     internal bool VerifyNativeContract()
     {
-        if (_disposed || WindowHandle == nint.Zero || !IsWindowVisible(WindowHandle))
+        if (IsDisposed || WindowHandle == nint.Zero || !IsWindowVisible(WindowHandle))
         {
             return false;
         }
@@ -208,12 +208,10 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
         {
             return;
         }
-
-        _disposed = true;
         _lifetimeTimer?.Dispose();
         _lifetimeTimer = null;
         if (_registered)
@@ -303,7 +301,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     {
         lock (_completionGate)
         {
-            if (_disposed || _pendingResult is not null)
+            if (IsDisposed || _pendingResult is not null)
             {
                 return;
             }
@@ -334,7 +332,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             _pendingResult = null;
         }
 
-        if (result is null || _disposed)
+        if (result is null || IsDisposed)
         {
             return;
         }
