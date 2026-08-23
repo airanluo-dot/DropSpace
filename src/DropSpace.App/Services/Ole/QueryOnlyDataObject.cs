@@ -14,14 +14,27 @@ internal sealed class QueryOnlyDataObject(params OleFormatAdvertisement[] format
     private const int NotImplemented = unchecked((int)0x80004001);
     private readonly OleFormatAdvertisement[] _formats = formats;
 
-    public int QueryGetData(ref FORMATETC format) =>
-        format.dwAspect == DVASPECT.DVASPECT_CONTENT &&
-        _formats.Any(candidate =>
-            candidate.Format == format.cfFormat &&
-            candidate.Index == format.lindex &&
-            (candidate.Medium & format.tymed) != 0)
-            ? 0
-            : FormatNotSupported;
+    public int QueryGetData(ref FORMATETC format)
+    {
+        if (format.dwAspect != DVASPECT.DVASPECT_CONTENT)
+        {
+            return FormatNotSupported;
+        }
+
+        // FORMATETC is supplied by ref through the COM contract. C# intentionally forbids
+        // capturing ref parameters in a lambda, so keep the negotiation explicit here.
+        foreach (OleFormatAdvertisement candidate in _formats)
+        {
+            if (candidate.Format == format.cfFormat &&
+                candidate.Index == format.lindex &&
+                (candidate.Medium & format.tymed) != 0)
+            {
+                return 0;
+            }
+        }
+
+        return FormatNotSupported;
+    }
 
     public void GetData(ref FORMATETC format, out STGMEDIUM medium)
     {
