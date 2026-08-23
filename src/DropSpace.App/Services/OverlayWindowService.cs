@@ -769,7 +769,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnVisibleDragLeft(string monitorId)
     {
-        if (_activeDragOwner == DragTargetOwner.VisualOverlay &&
+        if ((_activeDragOwner is DragTargetOwner.VisualOverlay or DragTargetOwner.SmartDetector) &&
             string.Equals(_viewModel.ActiveMonitorId, monitorId, StringComparison.Ordinal))
         {
             _viewModel.CancelDrag();

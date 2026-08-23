@@ -733,7 +733,20 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     {
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
-        _classification = _fileDataClassifier.Classify(dataObject);
+        try
+        {
+            _classification = _fileDataClassifier.Classify(dataObject);
+        }
+        catch (Exception exception)
+        {
+            _classification = OleFileDataClassification.None;
+            _logger.LogWarning(
+                exception,
+                "OLE DragEnter classification failed closed for {SurfaceKind} on monitor {MonitorId}.",
+                _surfaceKind,
+                _monitorId);
+        }
+
         _canAccept = _classification.CanAccept;
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         _logger.LogInformation(
