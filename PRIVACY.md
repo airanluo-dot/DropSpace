@@ -191,9 +191,11 @@ Out of scope for MVP severity claims: an attacker with administrator/kernel acce
 
 Automatic update checking is enabled by default and can be disabled. It runs at most once per process start, with no timer, service, scheduled task, network-change listener, or machine identifier. Manual checks remain user-invoked. Requests contain only normal HTTPS headers and `User-Agent: DropSpace/<version>`. Diagnostics may record endpoint type, version, state, HTTP status, integrity outcome and installer exit status; they never record Clipboard content, Temporary Space paths, filenames, search queries, tokens, or GitHub credentials.
 
-### Smart drag observer privacy
+### Smart drag observer and verification privacy
 
-The experimental Smart drag detector observes UI Automation drag event identifiers and global mouse/key transition metadata (button, screen point, threshold crossing and cancellation) only while the process is running. It does not suppress input, inject into another process, record typed keys, upload telemetry, or log dragged file names/full paths. File paths are read only after the visible OLE target receives a valid `CF_HDROP`, then follow the existing local Temporary Space reference pipeline.
+Smart Drag Detection v2 observes documented accessibility drag event identifiers and global mouse/key transition metadata (button, physical screen point, threshold crossing, release and Escape cancellation) only while the process is running. Unknown sources are not identified by application-name telemetry. The detector does not suppress input, inject into another process, record typed keys, poll the cursor, require elevation, upload telemetry, or log dragged file names/full paths.
+
+A generic candidate may create one 60 ms hollow local OLE verification target. Verification calls only `IDataObject.QueryGetData` for bounded file-format evidence and never reads virtual file content, filenames, or full paths. The accepting visible/Classic target reads bounded file-system paths only after OLE Drop and routes them through the existing local Temporary Space reference pipeline. CIDA/PIDL counts, offsets and segment walks are bounded and fail closed. Diagnostics are limited to session/evidence/classification/counter/elapsed metadata; a known path or payload sample must remain absent from automated log scans.
 
 ## Severity Calibration (Critical, High, Medium, Low)
 

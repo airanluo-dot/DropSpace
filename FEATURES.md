@@ -145,7 +145,7 @@ Unicode, case folding, paths, punctuation, very long text, stale index after mig
 
 ### User behavior
 
-In Smart mode, a recognized Explorer/Desktop file drag reveals a temporary Dynamic Island below the top edge without a permanent activation window. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge compatibility and disabled automatic-wake modes remain available.
+In Smart mode, an exact Explorer/Desktop item, a strong accessibility drag signal, or an OLE-verified generic threshold candidate reveals a temporary Dynamic Island below the top edge without a permanent activation window. Generic candidates use one 60 ms hollow local verification probe while reveal begins in parallel. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge compatibility and disabled automatic-wake modes remain available.
 
 ### App behavior
 
@@ -153,7 +153,7 @@ Keep the surface hidden when Temporary Space is empty, reveal from standard file
 
 ### Edge cases
 
-Cancelled drag, last-item dismissal interrupted by a new drag, rapid mode retargeting, full-screen apps, elevated integrity boundaries, multiple displays/DPI, display removal, remote desktop, and system Reduced Motion.
+Cancelled/rejected/timed-out candidate, stale probe callback, last-item dismissal interrupted by a new drag, rapid mode retargeting, full-screen apps, elevated integrity boundaries, multiple displays/DPI, display removal, remote desktop, virtual-only OLE data, and system Reduced Motion.
 
 ## Settings
 

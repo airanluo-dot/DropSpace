@@ -13,12 +13,15 @@ public sealed record DragSessionCandidate(
     long SessionId,
     string MonitorId,
     DragScreenPoint Point,
-    DragSourceKind Source);
+    DragSourceKind Source,
+    DragEvidenceLevel EvidenceLevel,
+    DragEvidenceFlags Evidence,
+    bool RequiresOleVerification);
 
 /// <summary>
-/// Event-driven, non-injecting observer for candidate Explorer/Desktop file drags. It never blocks
-/// input and never reads a dragged path. A visible, temporary OLE target performs final CF_HDROP
-/// validation after a candidate has revealed the Overlay.
+/// Event-driven, non-injecting observer for source-agnostic candidate file drags. It never blocks
+/// input and never reads dragged content. Explorer/Desktop item evidence and documented drag-start
+/// events take the fast path; generic threshold candidates require bounded OLE verification.
 /// </summary>
 public sealed class DragSessionDetector : IDisposable
 {
@@ -84,6 +87,10 @@ public sealed class DragSessionDetector : IDisposable
     private long _comInitializationFailureCount;
     private long _objectDragStartSignalCount;
     private long _systemDragStartSignalCount;
+    private long _genericCandidateCount;
+    private long _verifiedCandidateCount;
+    private long _rejectedCandidateCount;
+    private long _probeTimeoutCount;
     private int _mouseHookRegistrationError;
     private int _keyboardHookRegistrationError;
     private int _objectDragHookRegistrationError;
@@ -125,6 +132,14 @@ public sealed class DragSessionDetector : IDisposable
 
     public long SystemDragStartSignalCount => Interlocked.Read(ref _systemDragStartSignalCount);
 
+    public long GenericCandidateCount => Interlocked.Read(ref _genericCandidateCount);
+
+    public long VerifiedCandidateCount => Interlocked.Read(ref _verifiedCandidateCount);
+
+    public long RejectedCandidateCount => Interlocked.Read(ref _rejectedCandidateCount);
+
+    public long ProbeTimeoutCount => Interlocked.Read(ref _probeTimeoutCount);
+
     public string ObserverRegistrationDiagnostics =>
         $"ready={_observerRegistrationReady.IsSet}; " +
         $"mouse={MouseObserverRegistered}/error={Volatile.Read(ref _mouseHookRegistrationError)}; " +
@@ -158,9 +173,36 @@ public sealed class DragSessionDetector : IDisposable
         }
     }
 
-    public void NotifyOleSessionCompleted()
+    public void NotifyOleSessionCompleted(long sessionId)
     {
-        TryWrite(new DetectorSignal(DetectorSignalKind.OleCompleted, GetCursorPoint()));
+        TryWrite(new DetectorSignal(
+            DetectorSignalKind.OleCompleted,
+            GetCursorPoint(),
+            SessionId: sessionId));
+    }
+
+    public void NotifyProbeVerified(long sessionId, DragScreenPoint point)
+    {
+        TryWrite(new DetectorSignal(
+            DetectorSignalKind.ProbeVerified,
+            point,
+            SessionId: sessionId));
+    }
+
+    public void NotifyProbeRejected(long sessionId, DragScreenPoint point)
+    {
+        TryWrite(new DetectorSignal(
+            DetectorSignalKind.ProbeRejected,
+            point,
+            SessionId: sessionId));
+    }
+
+    public void NotifyProbeTimedOut(long sessionId, DragScreenPoint point)
+    {
+        TryWrite(new DetectorSignal(
+            DetectorSignalKind.ProbeTimedOut,
+            point,
+            SessionId: sessionId));
     }
 
     public void Dispose()
@@ -493,15 +535,8 @@ public sealed class DragSessionDetector : IDisposable
                             signal.Kind == DetectorSignalKind.LeftPressed
                                 ? DragPointerButton.Left
                                 : DragPointerButton.Right,
-                            inspection.ItemSource);
-                        if (pressedShellSurface == DragSourceKind.Unknown)
-                        {
-                            // Stop forwarding global mouse moves only when the press did not occur
-                            // inside an Explorer/Desktop file surface. Exact UIA item inspection can
-                            // transiently fail as Explorer enters its modal OLE loop; retaining the
-                            // bounded press origin lets a documented drag event promote the session.
-                            Interlocked.Exchange(ref _pointerObservationActive, 0);
-                        }
+                            inspection.SurfaceSource,
+                            exactFileItem: inspection.ItemSource != DragSourceKind.Unknown);
                         continue;
                     case DetectorSignalKind.PointerMoved:
                         transition = _policy.PointerMoved(signal.Point);
@@ -534,20 +569,32 @@ public sealed class DragSessionDetector : IDisposable
                             : DragSessionTransition.None;
                         break;
                     case DetectorSignalKind.OleCompleted:
-                        transition = _policy.DragCompleted(signal.Point);
+                        transition = _policy.IsActive && _policy.ActiveSessionId == signal.SessionId
+                            ? _policy.DragCompleted(signal.Point)
+                            : DragSessionTransition.None;
                         pressedShellSurface = DragSourceKind.Unknown;
                         break;
+                    case DetectorSignalKind.ProbeVerified:
+                        transition = _policy.ProbeVerified(signal.SessionId, signal.Point);
+                        break;
+                    case DetectorSignalKind.ProbeRejected:
+                        transition = _policy.ProbeRejected(signal.SessionId, signal.Point);
+                        break;
+                    case DetectorSignalKind.ProbeTimedOut:
+                        transition = _policy.ProbeTimedOut(signal.SessionId, signal.Point);
+                        break;
                     case DetectorSignalKind.Timeout:
-                        transition = _policy.IsActive && _policy.ActiveSessionId == signal.SessionId
-                            ? _policy.Timeout(signal.Point)
-                            : DragSessionTransition.None;
+                        transition = _policy.Timeout(signal.SessionId, signal.Point);
                         break;
                     default:
                         continue;
                 }
 
                 PublishTransition(transition);
-                if (transition.Kind is DragSessionTransitionKind.Completed or DragSessionTransitionKind.Cancelled)
+                if (transition.Kind is DragSessionTransitionKind.Completed or
+                    DragSessionTransitionKind.Cancelled or
+                    DragSessionTransitionKind.Rejected or
+                    DragSessionTransitionKind.TimedOut)
                 {
                     pressedShellSurface = DragSourceKind.Unknown;
                 }
@@ -566,6 +613,11 @@ public sealed class DragSessionDetector : IDisposable
     {
         if (transition.Kind == DragSessionTransitionKind.Started)
         {
+            if (transition.RequiresOleVerification)
+            {
+                Interlocked.Increment(ref _genericCandidateCount);
+            }
+
             _completionGrace?.Cancel();
             _sessionTimeout?.Cancel();
             _sessionTimeout?.Dispose();
@@ -573,20 +625,49 @@ public sealed class DragSessionDetector : IDisposable
             ScheduleTimeout(transition.SessionId, transition.Point, _sessionTimeout.Token);
             var monitor = _monitorLayout.GetMonitorAtPoint(transition.Point.X, transition.Point.Y);
             _logger.LogInformation(
-                "Smart file-drag candidate session {SessionId} started on monitor {MonitorId}: source={Source}; no user path was inspected.",
+                "Smart file-drag candidate session {SessionId} started on monitor {MonitorId}: source={Source}, evidenceLevel={EvidenceLevel}, evidence={Evidence}, requiresOleVerification={RequiresOleVerification}; no user path was inspected.",
                 transition.SessionId,
                 monitor.Id,
-                transition.Source);
+                transition.Source,
+                transition.EvidenceLevel,
+                transition.Evidence,
+                transition.RequiresOleVerification);
             CandidateStarted?.Invoke(this, new DragSessionCandidate(
                 transition.SessionId,
                 monitor.Id,
                 transition.Point,
-                transition.Source));
+                transition.Source,
+                transition.EvidenceLevel,
+                transition.Evidence,
+                transition.RequiresOleVerification));
             return;
         }
 
-        if (transition.Kind is DragSessionTransitionKind.Completed or DragSessionTransitionKind.Cancelled)
+        if (transition.Kind == DragSessionTransitionKind.Verified)
         {
+            Interlocked.Increment(ref _verifiedCandidateCount);
+            _logger.LogInformation(
+                "Smart drag candidate session {SessionId} was verified: evidenceLevel={EvidenceLevel}, evidence={Evidence}.",
+                transition.SessionId,
+                transition.EvidenceLevel,
+                transition.Evidence);
+            return;
+        }
+
+        if (transition.Kind is DragSessionTransitionKind.Completed or
+            DragSessionTransitionKind.Cancelled or
+            DragSessionTransitionKind.Rejected or
+            DragSessionTransitionKind.TimedOut)
+        {
+            if (transition.Kind == DragSessionTransitionKind.Rejected)
+            {
+                Interlocked.Increment(ref _rejectedCandidateCount);
+            }
+            else if (transition.Kind == DragSessionTransitionKind.TimedOut)
+            {
+                Interlocked.Increment(ref _probeTimeoutCount);
+            }
+
             _completionGrace?.Cancel();
             _sessionTimeout?.Cancel();
             _logger.LogInformation(
@@ -717,6 +798,9 @@ public sealed class DragSessionDetector : IDisposable
         CompletionGraceElapsed,
         Cancelled,
         OleCompleted,
+        ProbeVerified,
+        ProbeRejected,
+        ProbeTimedOut,
         Timeout,
     }
 

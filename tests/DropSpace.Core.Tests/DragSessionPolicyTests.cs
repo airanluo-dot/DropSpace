@@ -17,13 +17,17 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
-    public void UnknownSourcesNeverStartAfterThreshold()
+    public void UnknownThresholdCreatesGenericCandidateRequiringProbe()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
 
-        Assert.AreEqual(DragSessionTransitionKind.None, policy.PointerMoved(new(300, 300)).Kind);
-        Assert.IsFalse(policy.IsActive);
+        var transition = policy.PointerMoved(new(300, 300));
+
+        Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
+        Assert.AreEqual(DragEvidenceLevel.GenericCandidate, transition.EvidenceLevel);
+        Assert.IsTrue(transition.RequiresOleVerification);
+        Assert.IsTrue(policy.IsActive);
     }
 
     [TestMethod]
@@ -43,6 +47,25 @@ public sealed class DragSessionPolicyTests
         Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
         Assert.AreEqual(source, transition.Source);
         Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void RecognizedShellSurfaceWithoutExactItemStillRequiresOleVerification()
+    {
+        var policy = Create();
+        policy.PointerPressed(
+            new(100, 100),
+            DragPointerButton.Left,
+            DragSourceKind.ExplorerFileView,
+            exactFileItem: false);
+
+        var transition = policy.PointerMoved(new(120, 100));
+
+        Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
+        Assert.AreEqual(DragEvidenceLevel.GenericCandidate, transition.EvidenceLevel);
+        Assert.IsTrue(transition.RequiresOleVerification);
+        Assert.IsTrue(transition.Evidence.HasFlag(DragEvidenceFlags.TrustedFileSurface));
+        Assert.IsFalse(transition.Evidence.HasFlag(DragEvidenceFlags.ExactFileItem));
     }
 
     [TestMethod]
@@ -70,6 +93,39 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
+    public void AccessibilityDragStartAllowsUnknownProviderWithoutProcessHardcoding()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+
+        var transition = policy.AccessibilityDragStarted(new(120, 120), DragSourceKind.Unknown);
+
+        Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
+        Assert.AreEqual(DragEvidenceLevel.Strong, transition.EvidenceLevel);
+        Assert.IsFalse(transition.RequiresOleVerification);
+        Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void StrongSignalPromotesGenericCandidateAndMakesStaleProbeFailureHarmless()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var started = policy.PointerMoved(new(120, 100));
+
+        var promoted = policy.AccessibilityDragStarted(new(125, 100), DragSourceKind.Unknown);
+        var staleRejection = policy.ProbeRejected(started.SessionId, new(130, 100));
+        var staleTimeout = policy.ProbeTimedOut(started.SessionId, new(130, 100));
+
+        Assert.AreEqual(DragSessionTransitionKind.Verified, promoted.Kind);
+        Assert.AreEqual(DragEvidenceLevel.Strong, promoted.EvidenceLevel);
+        Assert.IsFalse(promoted.RequiresOleVerification);
+        Assert.AreEqual(DragSessionTransitionKind.None, staleRejection.Kind);
+        Assert.AreEqual(DragSessionTransitionKind.None, staleTimeout.Kind);
+        Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
     public void DocumentedObjectDragSignalCanPromoteARecognizedShellSurface()
     {
         var policy = Create();
@@ -85,15 +141,76 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
-    public void DocumentedObjectDragSignalStillRejectsUnknownApplications()
+    public void ProbeVerifiedFileCommitsSpeculativeSessionWithoutRestartingIt()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
 
-        var transition = policy.AccessibilityDragStarted(new(140, 120), DragSourceKind.Unknown);
+        var started = policy.PointerMoved(new(140, 120));
+        var transition = policy.ProbeVerified(started.SessionId, new(145, 125));
 
-        Assert.AreEqual(DragSessionTransitionKind.None, transition.Kind);
+        Assert.AreEqual(DragSessionTransitionKind.Verified, transition.Kind);
+        Assert.AreEqual(started.SessionId, transition.SessionId);
+        Assert.AreEqual(DragEvidenceLevel.VerifiedFile, transition.EvidenceLevel);
+        Assert.IsFalse(transition.RequiresOleVerification);
+        Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void ProbeRejectCancelsGenericCandidate()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var started = policy.PointerMoved(new(140, 120));
+
+        var rejected = policy.ProbeRejected(started.SessionId, new(145, 125));
+
+        Assert.AreEqual(DragSessionTransitionKind.Rejected, rejected.Kind);
         Assert.IsFalse(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void ProbeTimeoutCancelsOnlyGenericCandidate()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var started = policy.PointerMoved(new(140, 120));
+
+        var timedOut = policy.ProbeTimedOut(started.SessionId, new(145, 125));
+
+        Assert.AreEqual(DragSessionTransitionKind.TimedOut, timedOut.Kind);
+        Assert.IsFalse(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void ReleaseWhileProbePendingCancelsSession()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var started = policy.PointerMoved(new(140, 120));
+
+        var released = policy.PointerReleased(new(145, 125));
+
+        Assert.AreEqual(started.SessionId, released.SessionId);
+        Assert.AreEqual(DragSessionTransitionKind.Cancelled, released.Kind);
+        Assert.IsFalse(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void OldTimeoutCannotCancelNewSession()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(10, 10), DragPointerButton.Left, DragSourceKind.Unknown);
+        var first = policy.PointerMoved(new(30, 10));
+        _ = policy.DragCancelled(new(30, 10));
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var second = policy.PointerMoved(new(120, 100));
+
+        var staleTimeout = policy.Timeout(first.SessionId, new(30, 10));
+
+        Assert.AreEqual(DragSessionTransitionKind.None, staleTimeout.Kind);
+        Assert.AreEqual(second.SessionId, policy.ActiveSessionId);
+        Assert.IsTrue(policy.IsActive);
     }
 
     [TestMethod]
