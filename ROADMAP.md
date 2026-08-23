@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.0 Stable production slice covers Phases 1–10 plus file capture, startup, branding, Smart drag, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, one Dynamic Island, configurable limits, default-on startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice covers Phases 1–10 plus file capture, startup, branding, Smart drag, localization, release-driven website presentation, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, one Dynamic Island, configurable limits, default-on zero-flicker startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -480,3 +480,9 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Keep the main-window HWND available to background services without initially showing or activating it for `--startup`.
 - Preserve normal launch, tray Open, redirected activation, Share Target, clipboard, and Dynamic Island behavior.
 - Add Win32 startup main-window visibility regression coverage in English and Simplified Chinese portable smoke runs.
+
+### v0.2.1 Stable
+
+- Promote the release-driven latest-changes presentation, complete English/Simplified Chinese resource foundation, and zero-flicker Windows sign-in startup from the validated v0.2.1 Preview sequence.
+- Preserve the v0.2.0 Smart drag, single Dynamic Island, local-first data boundaries, installer/portable/MSIX paths, and strict Stable/Preview update ordering without behavior changes.
+- Rebuild and publish a separate Stable installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest from the v0.2.1 source commit; do not rename or reuse Preview assets.
