@@ -118,6 +118,14 @@ Treat the current `AGENTS.md` and accepted decisions as the detailed source of t
 - Accessibility, keyboard behavior, focus, high contrast, reduced motion, DPI, mixed-display behavior, and honest unsupported states are acceptance criteria.
 - Historical releases and user data are not disposable implementation details.
 
+### Smart Drag Detection v2 boundary
+
+- Smart idle must own no permanent top-edge/full-screen target. Classic alone may create the disclosed bounded edge host after explicit user selection; Smart must never switch to it implicitly.
+- Keep Explorer/Desktop exact-item and documented accessibility drag-start fast paths, but do not hardcode third-party provider process names. An unknown/non-exact press may form only a generic threshold candidate and must be verified by real OLE file-format evidence.
+- The generic verification target is ephemeral and local: one 144-pixel hollow Region, 12-pixel center hole, 60 ms hard lifetime, `NOACTIVATE|TOOLWINDOW|TOPMOST`, `DROPEFFECT_NONE`, no foreground/taskbar/Alt+Tab, and revoke/destroy queued outside the COM callback. Keep these values in typed options and permit at most one instance.
+- Use one bounded `OleFileDataClassifier` across probe, Classic and visible targets. Query formats only during verification. Accept `CF_HDROP` and resolvable Shell IDLists; treat virtual descriptors as evidence but fail closed until bounded, cancellable staging materialization exists.
+- Gate probe, timeout, release, OLE completion, mode/display change and shutdown work by session ID so stale callbacks cannot alter a newer reveal. Never log paths, filenames or payload content.
+
 When a requested change conflicts with an accepted invariant, surface the conflict and update the relevant decision/documentation as part of the same work if the user has authorized the change.
 
 ## 5. Investigate before fixing
@@ -248,6 +256,7 @@ Typical expectations:
 - unit/policy coverage where possible;
 - application build;
 - targeted executable/manual integration matrix on real Windows for behaviors that mocks cannot prove.
+- for Smart drag changes, executable smoke must verify the real hollow Region, native no-activate/tool-window/topmost styles, single-probe ownership, OLE registration/revoke, 60 ms cleanup, double-dispose and query-only file-format classification; manual evidence must cover actual provider behavior, focus/cursor feedback, false reveals, mixed DPI and races.
 
 ### Installer/package/update changes
 

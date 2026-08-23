@@ -2,11 +2,29 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice covers Phases 1–10 plus file capture, startup, branding, Smart drag, localization, release-driven website presentation, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, one Dynamic Island, configurable limits, default-on zero-flicker startup, MSIX, portable x64, and Inno Setup. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice covers Phases 1–10 plus file capture, startup, branding, Smart drag, localization, release-driven website presentation, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, one Dynamic Island, configurable limits, default-on zero-flicker startup, MSIX, portable x64, and Inno Setup. v0.3.0-preview.1 begins the Smart Drag Detection v2 sequence with source-agnostic generic candidates, strong unknown-provider accessibility evidence, one bounded 60 ms hollow OLE verification probe, session-safe speculative reveal, and one shared OLE file classifier. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
-v0.2.0 promotes the user-confirmed, event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option for unsupported sources; Smart continues to prefer false negatives over false positives and still requires real `CF_HDROP` content before accepting a drop.
+v0.2.0 promotes the original event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option; v0.3 Smart never falls back to it implicitly. Smart v2 accepts only real file-like OLE evidence: Preview.1 consumes `CF_HDROP` and Shell IDLists that resolve to bounded file-system paths, recognizes virtual-file descriptors without reading them, and defers safe virtual-file streaming/materialization to a later Preview.
+
+## v0.3 — Smart Drag Detection v2 Preview sequence
+
+### v0.3.0-preview.1 — Evidence, probe, and classifier foundation
+
+- Keep observing unknown press origins until threshold/release; do not hardcode provider process names.
+- Preserve Explorer/Desktop exact-item and documented accessibility drag-start fast paths.
+- Model evidence/state/session transitions in Core and reject stale timeout/probe callbacks.
+- Reveal speculatively while one 144-pixel hollow, no-activate OLE probe performs query-only verification for at most 60 ms.
+- Centralize `CF_HDROP`, Shell IDList, and virtual-file descriptor classification across every native OLE target.
+- Prove native styles, real Region hole, registration/revoke, timeout cleanup, double-dispose, and synthetic format negotiation in the Windows executable smoke.
+
+### Remaining v0.3 Preview goals
+
+- Add bounded, cancellable, staging-root-confined virtual-file materialization for `FileGroupDescriptorW` + `FileContents` only after a real Drop.
+- Record the real-Windows provider matrix for Explorer/Desktop, WeChat, QQ, Feishu/Electron, Office/Outlook attachments, mixed DPI, display changes, cursor feedback, race cases, and false reveals.
+- Tune probe geometry/lifetime only from evidence; never introduce a permanent Smart hot edge, full-screen transparent target, polling, injection, or elevation.
+- Promote to v0.3 Stable only after the provider matrix, privacy/performance gates, upgrade paths, release assets, updater discovery, and website API all pass.
 
 ## Delivery rule
 

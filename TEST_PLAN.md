@@ -41,7 +41,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Settings validation/revert on failure.
 - Overlay state transitions for empty/drag/compact/expanded/dismiss/mode-transition paths, including interruption and count preservation.
 - One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
-- Smart drag policy: click, stationary press, below-threshold movement, unknown/text/window sources, Explorer/Desktop left/right candidate drags, documented object/system-event promotion after an exact-item miss, duplicate WinEvent/mouse signals, Escape/completion and 1,000 sequential sessions.
+- Smart drag policy: click, stationary press, below-threshold movement, unknown threshold → generic candidate, Explorer/Desktop exact item → strong candidate, recognized blank Shell surface → generic candidate, unknown accessibility drag-start → strong candidate, probe verify/reject/timeout, strong-signal promotion while a probe is pending, release/Escape/completion, stale-session timeout/reject, duplicate WinEvent/mouse signals, and 1,000 sequential sessions.
 - Smart accessibility adapter: `SetWinEventHook` registers the documented object-drag and system drag/drop ranges before the observer message pump is declared ready; callbacks remain bounded; deprecated root-wide `UiaAddEvent` registration cannot block startup; COM initialization occurs on the actual classifier thread; UIA/MSAA nested item leaves can resolve through bounded inspection; and all returned COM objects have bounded lifetime.
 - Overlay placement policy: one Smart physical offset at 100%, 125%, 150%, 175%, and 200% DPI; Dynamic Island top gap; Classic/Disabled top-edge anchors; offset 340-DIP Expanded geometry remains inside the fixed host.
 
@@ -85,6 +85,8 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Unsupported virtual/mixed package partial success.
 - Outgoing package advertises storage items and copy operation.
 - Missing/permission/network errors map to correct domain state.
+- Query-only OLE classification for `CF_HDROP`, Shell IDList, `FileGroupDescriptorW` + indexed `FileContents`, plain text, and unsupported formats; no content read during verification.
+- Ephemeral probe HWND creation with real hollow Region, physical monitor coordinates, `NOACTIVATE|TOOLWINDOW|TOPMOST`, one active instance, `DROPEFFECT_NONE`, 60 ms timeout, callback-posted revoke/destroy, double-dispose, mode-switch/shutdown cleanup, and stale-session isolation.
 
 ## UI automation
 
@@ -120,10 +122,12 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 ### Drag and drop
 
-- In from Explorer/Desktop/network/OneDrive/removable drive.
+- In from Explorer/Desktop/network/OneDrive/removable drive plus WeChat, QQ, Feishu/Electron, Office/Outlook attachment, and at least one custom-drawn/Qt source where safely available.
 - Out to Explorer/Desktop, browser upload, Office, VS Code, Photoshop/available editor.
-- Single/multiple, file/folder, missing during drag, cancellation, elevated boundary.
-- Record actual target version and result.
+- Single/multiple, file/folder, resolvable Shell item, virtual-only attachment, missing during drag, cancellation, right-button drag, elevated boundary.
+- For every source, start away from the top edge and record threshold-to-Reveal latency, whether the probe verified/timed out, cursor feedback/flicker, source focus, taskbar/Alt+Tab presence, accepted item count, false reveal, cleanup, and final result. Confirm non-file text/window selection reverses speculative reveal and Classic is never enabled implicitly.
+- Race matrix: timeout vs DragEnter, DragEnter vs release, rejection vs new session, monitor switch vs probe creation, Smart → Classic, shutdown while active, OLE callback during cleanup, and accessibility completion before/after pointer release.
+- Record Windows build, source application/version, DropSpace build, display/DPI and result; Preview automation alone is not provider compatibility evidence.
 
 ### File missing/resilience
 
@@ -177,6 +181,7 @@ Reference device specifications are recorded with results.
 - Database/payload size after retention cleanup.
 - 100 Overlay reveal/dismiss and compact/expanded cycles with window count, working set, handlers, and Composition resource observations.
 - Hidden/idle CPU and GPU observation: no continuous `CompositionTarget.Rendering`, DispatcherTimer, high-frequency loop or polling. Smart mode's event-driven observer hooks must remain idle and never suppress input.
+- Smart candidate latency and false-reveal rate by evidence path; prove zero probe HWNDs at idle, at most one during a generic session, the configured 60 ms lifetime, and no handle/GDI/USER growth after 1,000 probe lifecycles.
 - Interrupt a width/height/radius/content spring in both directions and prove every channel settles with no retained frame subscription.
 
 No performance number is accepted without hardware, build configuration, dataset, and measurement method.
@@ -189,6 +194,7 @@ No performance number is accepted without hardware, build configuration, dataset
 - Malformed relative payload paths cannot escape root.
 - Crafted URL schemes are not auto-opened.
 - Huge/malformed inputs cannot cause unbounded allocation or queue growth.
+- Malformed/oversized CIDA offsets, item counts and PIDLs fail closed; probe classification never calls `GetData` for virtual content and diagnostics contain no dragged path, filename or payload.
 - App exclusions, when introduced, are tested for false attribution and accompanied by limitation copy.
 
 ## Release evidence
@@ -203,11 +209,11 @@ For each phase/release retain:
 - Accessibility and privacy review notes.
 - Clean workflow SHA, test totals/TRX, exact EXE/MSIX sizes, Authenticode status, SHA-256 manifest, smoke marker result, release URL, and final default-branch SHA.
 
-The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, resolves the selected resource context across XAML and imperative strings, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, verifies zero classic activation hosts in the fresh Smart default, verifies the observation-only mouse hook and at least one documented accessibility drag WinEvent source are registered, proves hidden top-center `WindowFromPoint` pass-through, proves temporary Compact/Expanded target discovery and synthetic `CF_HDROP`, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Dynamic Island real XAML/HRGN geometry transitions with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
+The portable smoke harness must prove that the published single `DropSpace.exe` starts, initializes Windows App SDK and SQLite, creates/writes the user AppData tree, resolves the selected resource context across XAML and imperative strings, registers `AddClipboardFormatListener`, writes `A,A,B,A` unique-token text plus a mixed set of two real `StorageFile` objects and one `StorageFolder` through the Windows clipboard, observes `WM_CLIPBOARDUPDATE`, proves the adjacent A is suppressed while the final non-consecutive A is persisted, reads and persists three `Source=Clipboard` file/folder references, verifies Pause/Resume and self-write suppression, removes its test rows, verifies zero classic activation hosts in the fresh Smart default, verifies the observation-only mouse hook and at least one documented accessibility drag WinEvent source are registered, proves hidden top-center `WindowFromPoint` pass-through, proves temporary Compact/Expanded target discovery and synthetic `CF_HDROP`, creates an ephemeral probe and verifies its real hollow Region/native no-activate styles/single ownership/60 ms cleanup/double-dispose plus query-only `CF_HDROP`/Shell/virtual/text classification, executes 100 real Overlay lifecycle/resource cycles and 1,000 interruptible Dynamic Island real XAML/HRGN geometry transitions with zero region failures and no retained frame subscription, redirects a second instance, and exits cleanly. A successful `dotnet publish` without this runtime probe is not release evidence.
 
 The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
 
-Automation does not claim visual quality or Explorer/UIA provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags never reveal Smart mode; Explorer/Desktop file/folder/multi-select left/right drags do; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct.
+Automation does not claim visual quality or real Explorer/UIA/third-party provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags reverse speculative reveal without lasting obstruction; Explorer/Desktop file/folder/multi-select left/right drags and available WeChat/QQ/Feishu/Electron/Office sources are recorded; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; the probe creates no visible flash/focus/taskbar/Alt+Tab entry or unacceptable cursor feedback; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct.
 
 ## v0.1.0 Stable automated gates
 

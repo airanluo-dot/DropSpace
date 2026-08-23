@@ -70,7 +70,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 
 ## Top Overlay
 
-- With zero Temporary Space items and no drag, Smart mode leaves every visual Overlay hidden with an empty region and no registered OLE target. It does not create a top-edge input window. A recognized Explorer/Desktop file-drag candidate reveals the target on the pointer display about 76 physical pixels below the edge; final acceptance still requires real `CF_HDROP` data. Traditional top-edge mode restores the former 1/255-alpha 12-physical-pixel compatibility band only when the user explicitly selects it.
+- With zero Temporary Space items and no drag, Smart mode leaves every visual Overlay hidden with an empty region and no registered OLE target. It does not create a top-edge input window. Exact Explorer/Desktop item evidence and strong accessibility drag-start evidence take the fast path. An unknown/non-exact press crossing the Windows drag threshold begins speculative reveal about 76 physical pixels below the edge and concurrently creates one 60 ms hollow local OLE verification ring. File evidence commits the matching reveal; non-file/timeout reverses it. Traditional top-edge mode restores the former 1/255-alpha 12-physical-pixel compatibility band only when the user explicitly selects it.
 - A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
@@ -105,7 +105,7 @@ Order: primary action; Copy/Open variants; Pin; Locate/Replace when relevant; Re
 3. On drop, read storage items, normalize references, and create one batch.
 4. Report accepted and rejected counts without blocking successful items.
 
-The main Space well continues to use WinUI `StorageItems`; the hidden top host accepts shell `CF_HDROP` through OLE and both converge on `MainViewModel.AddPathsAsync`. On multiple displays, the host receiving the drag becomes the active Overlay display unless Primary is selected.
+The main Space well continues to use WinUI `StorageItems`; every native target shares one classifier for `CF_HDROP`, Shell IDLists and virtual-file descriptors. File-system paths and Shell items that resolve to paths converge on `MainViewModel.AddPathsAsync`; Preview.1 recognizes but does not materialize virtual-only data. On multiple displays, the candidate/host receiving the drag becomes the active Overlay display unless Primary is selected.
 
 ### Drag out
 
@@ -185,3 +185,5 @@ Privacy/Clipboard menu → select range → show affected unpinned count → con
 When Compact is visible, its complete black surface is a direct file target: valid DragEnter morphs continuously to DragReady, DragLeave reverses to Compact and Drop gives a short confirmation before Compact. When Expanded is visible, its geometry remains Expanded; a contained highlight says “放到 DropSpace”, the list updates immediately after Drop, and the panel remains open.
 
 Settings explains that Windows 11 Drop Tray can own the same top edge. “打开 Windows Drop Tray 设置” opens System → Multitasking. DropSpace never guesses the toggle state. Trusted identity builds additionally state that Windows Share is registered; unsigned/portable deployments state that Share integration is unavailable without weakening the two native drag paths.
+
+The Smart verification ring is never a visible product surface: it must not flash, focus, enter taskbar/Alt+Tab, block the source loop, or remain after its 60 ms budget. A brief forbidden-cursor change from `DROPEFFECT_NONE`, third-party provider coverage, mixed-DPI placement, and false-reveal latency remain explicit hands-on Preview checks rather than automated claims.

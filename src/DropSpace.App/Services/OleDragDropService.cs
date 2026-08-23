@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using DropSpace.Core.DragDrop;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
@@ -21,7 +22,10 @@ public sealed class OleDragDropService : IDisposable
     private const int SuccessAlreadyInitialized = 1;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OleDragDropService> _logger;
+    private readonly OleFileDataClassifier _fileDataClassifier = new();
+    private readonly SmartDragProbeOptions _probeOptions = SmartDragProbeOptions.Default;
     private readonly List<IDisposable> _registrations = [];
+    private EphemeralOleDragProbe? _activeProbe;
     private bool _oleInitialized;
     private bool _disposed;
 
@@ -40,6 +44,7 @@ public sealed class OleDragDropService : IDisposable
         var host = new DragActivationHost(
             monitor,
             callbacks,
+            _fileDataClassifier,
             _loggerFactory.CreateLogger<DragActivationHost>());
         _registrations.Add(host);
         return host;
@@ -57,9 +62,118 @@ public sealed class OleDragDropService : IDisposable
             monitorId,
             callbacks,
             _loggerFactory.CreateLogger<OleDropTargetRegistration>(),
+            _fileDataClassifier,
             _ => true,
             "visual-overlay");
         return registration;
+    }
+
+    internal int ActiveVerificationProbeCount => _activeProbe is { IsDisposed: false } ? 1 : 0;
+
+    internal EphemeralOleDragProbe StartVerificationProbe(
+        long sessionId,
+        DragScreenPoint point,
+        Action<OleDragProbeResult> completed)
+    {
+        EnsureOleInitialized();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(completed);
+
+        _activeProbe?.Dispose();
+        _activeProbe = null;
+        EphemeralOleDragProbe? probe = null;
+        probe = new EphemeralOleDragProbe(
+            sessionId,
+            point,
+            _probeOptions,
+            _fileDataClassifier,
+            result =>
+            {
+                if (ReferenceEquals(_activeProbe, probe))
+                {
+                    _activeProbe = null;
+                }
+
+                completed(result);
+            },
+            _loggerFactory.CreateLogger<EphemeralOleDragProbe>());
+        _activeProbe = probe;
+        return probe;
+    }
+
+    internal void CancelVerificationProbe(long sessionId)
+    {
+        if (_activeProbe is not { } probe || (sessionId != 0 && probe.SessionId != sessionId))
+        {
+            return;
+        }
+
+        _activeProbe = null;
+        probe.Dispose();
+    }
+
+    internal async Task RunVerificationProbeSmokeAsync(
+        DragScreenPoint point,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureOleInitialized();
+        using var dataObject = new CfHDropDataObject([@"C:\DropSpace-probe-smoke.txt"]);
+        var classification = _fileDataClassifier.Classify(dataObject);
+        if (classification.Kind != OleFileDataKind.FileSystemPaths || !classification.CanAccept)
+        {
+            throw new InvalidOperationException("The shared OLE classifier rejected synthetic CF_HDROP data.");
+        }
+
+        var shellItems = _fileDataClassifier.Classify(new QueryOnlyDataObject(
+            new OleFormatAdvertisement(
+                _fileDataClassifier.ShellIdListClipboardFormat,
+                TYMED.TYMED_HGLOBAL)));
+        var virtualFiles = _fileDataClassifier.Classify(new QueryOnlyDataObject(
+            new OleFormatAdvertisement(
+                _fileDataClassifier.FileGroupDescriptorWClipboardFormat,
+                TYMED.TYMED_HGLOBAL),
+            new OleFormatAdvertisement(
+                _fileDataClassifier.FileContentsClipboardFormat,
+                TYMED.TYMED_ISTREAM,
+                0)));
+        var unsupported = _fileDataClassifier.Classify(new QueryOnlyDataObject(
+            new OleFormatAdvertisement(13, TYMED.TYMED_HGLOBAL)));
+        if (shellItems.Kind != OleFileDataKind.ShellItems || !shellItems.CanAccept ||
+            virtualFiles.Kind != OleFileDataKind.VirtualFiles || !virtualFiles.IsFileLike || virtualFiles.CanAccept ||
+            unsupported.Kind != OleFileDataKind.None || unsupported.CanAccept)
+        {
+            throw new InvalidOperationException(
+                "The shared OLE classifier did not distinguish Shell items, virtual files, and unsupported text formats.");
+        }
+
+        var completion = new TaskCompletionSource<OleDragProbeResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var probe = StartVerificationProbe(
+            long.MaxValue,
+            point,
+            result => completion.TrySetResult(result));
+        if (!probe.VerifyNativeContract() || ActiveVerificationProbeCount != 1)
+        {
+            CancelVerificationProbe(probe.SessionId);
+            throw new InvalidOperationException(
+                "The Smart OLE probe did not satisfy its hollow Region, NOACTIVATE, TOOLWINDOW and TOPMOST contract.");
+        }
+
+        var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
+        await Task.Yield();
+        probe.Dispose();
+        probe.Dispose();
+        if (result.Outcome != OleDragProbeOutcome.TimedOut ||
+            result.SessionId != probe.SessionId ||
+            !probe.IsDisposed ||
+            ActiveVerificationProbeCount != 0)
+        {
+            throw new InvalidOperationException(
+                "The Smart OLE probe did not enforce timeout cleanup, single ownership and idempotent disposal.");
+        }
+
+        _logger.LogInformation(
+            "Smart OLE verification probe smoke passed: native contract, CF_HDROP/Shell/virtual/unsupported classification, timeout cleanup, and double-dispose were verified.");
     }
 
     public void Dispose()
@@ -75,6 +189,7 @@ public sealed class OleDragDropService : IDisposable
         }
 
         _registrations.Clear();
+        CancelVerificationProbe(0);
         if (_oleInitialized)
         {
             OleUninitialize();
@@ -146,9 +261,10 @@ public sealed class DragActivationHost : IDisposable
     private bool _dragActive;
     private bool _disposed;
 
-    public DragActivationHost(
+    internal DragActivationHost(
         MonitorDescriptor monitor,
         DragActivationCallbacks callbacks,
+        OleFileDataClassifier fileDataClassifier,
         ILogger<DragActivationHost> logger)
     {
         _monitor = monitor;
@@ -234,6 +350,7 @@ public sealed class DragActivationHost : IDisposable
             monitor.Id,
             ownedCallbacks,
             logger,
+            fileDataClassifier,
             IsDropReady,
             "activation-host");
         _logger.LogInformation(
@@ -570,19 +687,18 @@ internal readonly struct NativePoint
 internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 {
     private const int Success = 0;
-    private const int DragDropAlreadyRegistered = unchecked((int)0x80040101);
     private const uint DropEffectNone = 0;
     private const uint DropEffectCopy = 1;
-    private const short ClipboardFormatHDrop = 15;
-    private const uint QueryAllFiles = 0xFFFFFFFF;
     private readonly nint _windowHandle;
     private readonly string _monitorId;
     private readonly DragActivationCallbacks _callbacks;
     private readonly ILogger _logger;
+    private readonly OleFileDataClassifier _fileDataClassifier;
     private readonly Func<NativePoint, bool> _isReady;
     private readonly string _surfaceKind;
     private IDataObject? _currentDataObject;
     private bool _canAccept;
+    private OleFileDataClassification _classification;
     private bool _lastReady;
     private long _dragOverCount;
     private Task? _lastDropCompletion;
@@ -593,6 +709,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         string monitorId,
         DragActivationCallbacks callbacks,
         ILogger logger,
+        OleFileDataClassifier fileDataClassifier,
         Func<NativePoint, bool> isReady,
         string surfaceKind)
     {
@@ -600,18 +717,10 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         _monitorId = monitorId;
         _callbacks = callbacks;
         _logger = logger;
+        _fileDataClassifier = fileDataClassifier;
         _isReady = isReady;
         _surfaceKind = surfaceKind;
-        var result = RegisterDragDrop(windowHandle, this);
-        if (result == DragDropAlreadyRegistered)
-        {
-            throw new InvalidOperationException($"HWND {windowHandle} already has an OLE drop target.");
-        }
-
-        if (result < 0)
-        {
-            Marshal.ThrowExceptionForHR(result);
-        }
+        OleDropTargetNative.Register(windowHandle, this);
 
         _logger.LogInformation(
             "RegisterDragDrop succeeded for {SurfaceKind} on monitor {MonitorId}, HWND {WindowHandle}.",
@@ -624,17 +733,15 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     {
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
-        var cfHDrop = HasFormat(dataObject, ClipboardFormatHDrop);
-        var shellIdListFormat = unchecked((short)RegisterClipboardFormat("Shell IDList Array"));
-        var storageItems = shellIdListFormat != 0 && HasFormat(dataObject, shellIdListFormat);
-        _canAccept = cfHDrop;
+        _classification = _fileDataClassifier.Classify(dataObject);
+        _canAccept = _classification.CanAccept;
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         _logger.LogInformation(
-            "OLE DragEnter received by {SurfaceKind} on monitor {MonitorId}: CF_HDROP={CfHDrop}, StorageItems={StorageItems}, accepted={Accepted}, WindowFromPoint={DiscoveredWindow}, targetMatches={TargetMatches}.",
+            "OLE DragEnter received by {SurfaceKind} on monitor {MonitorId}: classification={Classification}, fileLike={FileLike}, accepted={Accepted}, WindowFromPoint={DiscoveredWindow}, targetMatches={TargetMatches}.",
             _surfaceKind,
             _monitorId,
-            cfHDrop,
-            storageItems,
+            _classification.Kind,
+            _classification.IsFileLike,
             _canAccept,
             discoveredWindow,
             discoveredWindow == _windowHandle);
@@ -681,6 +788,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             Interlocked.Read(ref _dragOverCount));
         _currentDataObject = null;
         _canAccept = false;
+        _classification = OleFileDataClassification.None;
         _callbacks.DragLeft(_monitorId);
         return Success;
     }
@@ -689,7 +797,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     {
         try
         {
-            var paths = ReadDropPaths(dataObject);
+            var paths = _fileDataClassifier.ReadFileSystemPaths(dataObject, _classification);
             // Once OLE selected this HWND and CF_HDROP was accepted, keep target ownership through
             // Drop. Re-evaluating a smaller visual-ready rectangle here made a valid Explorer drop
             // fail with DROPEFFECT_NONE when the final cursor sample landed on an animated edge.
@@ -722,6 +830,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         {
             _currentDataObject = null;
             _canAccept = false;
+            _classification = OleFileDataClassification.None;
         }
 
         return Success;
@@ -757,7 +866,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             return;
         }
 
-        var result = RevokeDragDrop(_windowHandle);
+        var result = OleDropTargetNative.Revoke(_windowHandle);
         if (result < 0)
         {
             _logger.LogWarning(
@@ -782,79 +891,6 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             _callbacks.DragLeft(_monitorId);
         }
     }
-
-    private static bool HasFormat(IDataObject dataObject, short format)
-    {
-        var formatEtc = CreateFormat(format);
-        return dataObject.QueryGetData(ref formatEtc) == Success;
-    }
-
-    private static IReadOnlyList<string> ReadDropPaths(IDataObject dataObject)
-    {
-        var format = CreateFormat(ClipboardFormatHDrop);
-        if (dataObject.QueryGetData(ref format) != Success)
-        {
-            return [];
-        }
-
-        dataObject.GetData(ref format, out var medium);
-        try
-        {
-            if (medium.tymed != TYMED.TYMED_HGLOBAL || medium.unionmember == nint.Zero)
-            {
-                return [];
-            }
-
-            var count = DragQueryFile(medium.unionmember, QueryAllFiles, null, 0);
-            var paths = new List<string>(checked((int)count));
-            for (uint index = 0; index < count; index++)
-            {
-                var length = DragQueryFile(medium.unionmember, index, null, 0);
-                if (length == 0)
-                {
-                    continue;
-                }
-
-                var buffer = new char[length + 1];
-                if (DragQueryFile(medium.unionmember, index, buffer, (uint)buffer.Length) > 0)
-                {
-                    paths.Add(new string(buffer, 0, checked((int)length)));
-                }
-            }
-
-            return paths;
-        }
-        finally
-        {
-            ReleaseStgMedium(ref medium);
-        }
-    }
-
-    private static FORMATETC CreateFormat(short format) => new()
-    {
-        cfFormat = format,
-        dwAspect = DVASPECT.DVASPECT_CONTENT,
-        lindex = -1,
-        ptd = nint.Zero,
-        tymed = TYMED.TYMED_HGLOBAL,
-    };
-
-    [DllImport("ole32.dll")]
-    private static extern int RegisterDragDrop(
-        nint window,
-        [MarshalAs(UnmanagedType.Interface)] IOleDropTarget dropTarget);
-
-    [DllImport("ole32.dll")]
-    private static extern int RevokeDragDrop(nint window);
-
-    [DllImport("ole32.dll")]
-    private static extern void ReleaseStgMedium(ref STGMEDIUM medium);
-
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    private static extern uint DragQueryFile(nint drop, uint file, [Out] char[]? fileName, uint characterCount);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern uint RegisterClipboardFormat(string format);
 
     [DllImport("user32.dll")]
     private static extern nint WindowFromPoint(NativePoint point);

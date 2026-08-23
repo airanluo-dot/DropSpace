@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
@@ -30,6 +31,8 @@ public sealed class OverlayWindowService : IDisposable
     private MonitorDescriptor? _primaryMonitor;
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
+    private long _activeSmartSessionId;
+    private DragScreenPoint _activeSmartSessionPoint;
     private FileDragWakeMode? _configuredWakeMode;
     private bool _topologyRefreshPending;
     private bool _disposed;
@@ -148,6 +151,14 @@ public sealed class OverlayWindowService : IDisposable
                 "The Smart detector did not register its observation-only mouse and accessibility drag signal sources: " +
                 _dragSessionDetector.ObserverRegistrationDiagnostics);
         }
+
+        var probeMonitor = _primaryMonitor
+            ?? throw new InvalidOperationException("The primary monitor was unavailable for Smart probe verification.");
+        await _dragDropService.RunVerificationProbeSmokeAsync(
+            new DragScreenPoint(
+                probeMonitor.Left + probeMonitor.Width / 2,
+                probeMonitor.Top + probeMonitor.Height / 2),
+            cancellationToken);
 
         await Task.Delay(300, cancellationToken);
         CollectReleasedResources();
@@ -414,6 +425,8 @@ public sealed class OverlayWindowService : IDisposable
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
         _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
         _dragSessionDetector.CandidateEnded -= OnSmartDragCandidateEnded;
+        _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
+        _activeSmartSessionId = 0;
         _dragSessionDetector.SetMode(FileDragWakeMode.Disabled);
         if (_displayTopologyWatcher is not null)
         {
@@ -546,6 +559,14 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _activationHosts.Clear();
+        _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
+        _activeSmartSessionId = 0;
+        if (_activeDragOwner == DragTargetOwner.SmartDetector)
+        {
+            _viewModel.CancelDrag();
+            _activeDragOwner = DragTargetOwner.None;
+        }
+
         _dragSessionDetector.SetMode(mode);
         _configuredWakeMode = mode;
         if (mode == FileDragWakeMode.ClassicTopEdge)
@@ -578,13 +599,42 @@ public sealed class OverlayWindowService : IDisposable
                 return;
             }
 
+            if (_activeSmartSessionId != 0 && _activeSmartSessionId != candidate.SessionId)
+            {
+                _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
+            }
+
+            _activeSmartSessionId = candidate.SessionId;
+            _activeSmartSessionPoint = candidate.Point;
             _activeDragOwner = DragTargetOwner.SmartDetector;
             _viewModel.BeginDragApproach(candidate.MonitorId);
             _logger.LogInformation(
-                "Smart drag candidate {SessionId} revealed a temporary visual OLE target on monitor {MonitorId}; source={Source}.",
+                "Smart drag candidate {SessionId} began speculative reveal on monitor {MonitorId}; source={Source}, evidenceLevel={EvidenceLevel}, requiresOleVerification={RequiresOleVerification}.",
                 candidate.SessionId,
                 candidate.MonitorId,
-                candidate.Source);
+                candidate.Source,
+                candidate.EvidenceLevel,
+                candidate.RequiresOleVerification);
+            if (!candidate.RequiresOleVerification)
+            {
+                return;
+            }
+
+            try
+            {
+                _dragDropService.StartVerificationProbe(
+                    candidate.SessionId,
+                    candidate.Point,
+                    OnSmartProbeCompleted);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Smart OLE verification probe could not start for session {SessionId}; the speculative reveal will fail closed.",
+                    candidate.SessionId);
+                _dragSessionDetector.NotifyProbeTimedOut(candidate.SessionId, candidate.Point);
+            }
         });
     }
 
@@ -592,7 +642,14 @@ public sealed class OverlayWindowService : IDisposable
     {
         _dispatcher.TryEnqueue(() =>
         {
-            if (_disposed || _activeDragOwner != DragTargetOwner.SmartDetector)
+            if (_disposed || _activeSmartSessionId != sessionId)
+            {
+                return;
+            }
+
+            _dragDropService.CancelVerificationProbe(sessionId);
+            _activeSmartSessionId = 0;
+            if (_activeDragOwner != DragTargetOwner.SmartDetector)
             {
                 return;
             }
@@ -604,6 +661,33 @@ public sealed class OverlayWindowService : IDisposable
                 "Smart drag candidate {SessionId} ended before a visual OLE target accepted ownership.",
                 sessionId);
         });
+    }
+
+    private void OnSmartProbeCompleted(OleDragProbeResult result)
+    {
+        if (_disposed || result.SessionId != _activeSmartSessionId)
+        {
+            return;
+        }
+
+        _logger.LogInformation(
+            "Smart OLE probe completed for session {SessionId}: outcome={Outcome}, classification={Classification}, elapsed={ElapsedMilliseconds:F1}ms.",
+            result.SessionId,
+            result.Outcome,
+            result.Classification.Kind,
+            result.Elapsed.TotalMilliseconds);
+        switch (result.Outcome)
+        {
+            case OleDragProbeOutcome.VerifiedFile:
+                _dragSessionDetector.NotifyProbeVerified(result.SessionId, result.Point);
+                break;
+            case OleDragProbeOutcome.Rejected:
+                _dragSessionDetector.NotifyProbeRejected(result.SessionId, result.Point);
+                break;
+            case OleDragProbeOutcome.TimedOut:
+                _dragSessionDetector.NotifyProbeTimedOut(result.SessionId, result.Point);
+                break;
+        }
     }
 
     private void OnDragApproaching(string monitorId)
@@ -633,7 +717,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _activeDragOwner = DragTargetOwner.None;
-        _dragSessionDetector.NotifyOleSessionCompleted();
+        CompleteSmartDetectorSession();
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -651,13 +735,21 @@ public sealed class OverlayWindowService : IDisposable
         finally
         {
             _activeDragOwner = DragTargetOwner.None;
-            _dragSessionDetector.NotifyOleSessionCompleted();
+            CompleteSmartDetectorSession();
             ApplySnapshot(_viewModel.Snapshot);
         }
     }
 
     private void OnVisibleDragApproaching(string monitorId)
     {
+        if (_activeSmartSessionId != 0)
+        {
+            _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
+            _dragSessionDetector.NotifyProbeVerified(
+                _activeSmartSessionId,
+                _activeSmartSessionPoint);
+        }
+
         _activeDragOwner = DragTargetOwner.VisualOverlay;
         _logger.LogInformation(
             "Visible Overlay accepted direct drag ownership on monitor {MonitorId}; passive activation hosts are disabled until Drop/Leave.",
@@ -684,7 +776,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _activeDragOwner = DragTargetOwner.None;
-        _dragSessionDetector.NotifyOleSessionCompleted();
+        CompleteSmartDetectorSession();
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -703,9 +795,22 @@ public sealed class OverlayWindowService : IDisposable
         finally
         {
             _activeDragOwner = DragTargetOwner.None;
-            _dragSessionDetector.NotifyOleSessionCompleted();
+            CompleteSmartDetectorSession();
             ApplySnapshot(_viewModel.Snapshot);
         }
+    }
+
+    private void CompleteSmartDetectorSession()
+    {
+        var sessionId = _activeSmartSessionId;
+        if (sessionId == 0)
+        {
+            return;
+        }
+
+        _dragDropService.CancelVerificationProbe(sessionId);
+        _activeSmartSessionId = 0;
+        _dragSessionDetector.NotifyOleSessionCompleted(sessionId);
     }
 
     private void OnDisplayTopologyChanged(object? sender, EventArgs args)
