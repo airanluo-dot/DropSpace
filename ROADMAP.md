@@ -2,11 +2,11 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice covers Phases 1–10 plus file capture, startup, branding, Smart drag, localization, release-driven website presentation, and the update foundation from Phases 12–13: application composition, persistence, Space, external drag-out, text/image/file Clipboard, unified search/Pinned, tray/privacy lifecycle, one Dynamic Island, configurable limits, default-on zero-flicker startup, MSIX, portable x64, and Inno Setup. v0.3.0-preview.1 begins the Smart Drag Detection v2 sequence with source-agnostic generic candidates, strong unknown-provider accessibility evidence, one bounded 60 ms hollow OLE verification probe, session-safe speculative reveal, and one shared OLE file classifier. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.2 is the consolidated Preview target: Smart Drag Detection v2, Universal Access, virtual-file materialization, Drop Batch grouping, Quick Panel, best-effort exclusions, Windows Share for file/image/text/URL, and per-monitor Dynamic Island placement ship together. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
-v0.2.0 promotes the original event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option; v0.3 Smart never falls back to it implicitly. Smart v2 accepts only real file-like OLE evidence: Preview.1 consumes `CF_HDROP` and Shell IDLists that resolve to bounded file-system paths, recognizes virtual-file descriptors without reading them, and defers safe virtual-file streaming/materialization to a later Preview.
+v0.2.0 promotes the original event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option; v0.3 Smart never falls back to it implicitly. Preview.2 separates drag intent from payload proof, uses official Shell item resolution before its bounded CIDA fallback, and materializes virtual content only after a real Drop.
 
 ## v0.3 — Smart Drag Detection v2 Preview sequence
 
@@ -19,9 +19,12 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 - Centralize `CF_HDROP`, Shell IDList, and virtual-file descriptor classification across every native OLE target.
 - Prove native styles, real Region hole, registration/revoke, timeout cleanup, double-dispose, and synthetic format negotiation in the Windows executable smoke.
 
-### Remaining v0.3 Preview goals
+### v0.3.0-preview.2 — Consolidated Smart Drag and Universal Access
 
-- Add bounded, cancellable, staging-root-confined virtual-file materialization for `FileGroupDescriptorW` + `FileContents` only after a real Drop.
+- Ship bounded, cancellable, staging-root-confined virtual-file materialization for `FileGroupDescriptorW` + `FileContents` only after a real Drop.
+- Split `DragIntentConfidence` from `PayloadConfidence`; accessibility proves intent but unknown payloads still require OLE verification.
+- Split lossy coalesced pointer movement from reliable press/cancel/completion/probe signals; new pointer-down supersedes completion grace immediately.
+- Ship file/image/text/URL drag-out, manual text/URL intake, packaged Windows Share, Drop Batch metadata/group actions, Quick Panel, exclusions, diagnostics, and custom placement.
 - Record the real-Windows provider matrix for Explorer/Desktop, WeChat, QQ, Feishu/Electron, Office/Outlook attachments, mixed DPI, display changes, cursor feedback, race cases, and false reveals.
 - Tune probe geometry/lifetime only from evidence; never introduce a permanent Smart hot edge, full-screen transparent target, polling, injection, or elevation.
 - Promote to v0.3 Stable only after the provider matrix, privacy/performance gates, upgrade paths, release assets, updater discovery, and website API all pass.
@@ -341,7 +344,7 @@ Empty idle is visually hidden without a frame loop; standard file drag reveals a
 
 ## V1.1 phases
 
-### Phase 11 — Global hotkey and Overlay refinements
+### Phase 11 — Global hotkey and Overlay refinements (Preview.2 foundation delivered)
 
 #### Goal
 
@@ -349,7 +352,7 @@ Provide optional keyboard access and field-driven refinements without creating a
 
 #### Features
 
-Configurable `RegisterHotKey`, keyboard-first Overlay expansion, focus restoration, and measured animation/placement refinements.
+Preview.2 delivers configurable `RegisterHotKey`, keyboard-first Overlay expansion, interruptible geometry/shadow motion, and per-monitor custom placement. Focus restoration, explicit hotkey-conflict UI, and broader compatibility measurements remain follow-up refinements.
 
 #### Files/modules
 
@@ -375,7 +378,7 @@ Expand clipboard compatibility without turning attribution into a privacy promis
 
 #### Features
 
-Delivered in Preview.4: Storage-item clipboard capture, separate Clipboard source semantics, folder/reference policy, and configurable item/byte/image limits. Remaining: exclusion settings, Unknown-source attribution behavior, and manual Space intake for text/URLs.
+Delivered through v0.3.0-preview.2: Storage-item clipboard capture, separate Clipboard source semantics, folder/reference policy, configurable item/byte/image limits, best-effort Smart Drag exclusions, and manual Space intake for text/URLs. Unknown clipboard-owner attribution remains explicitly non-authoritative.
 
 #### Files/modules
 

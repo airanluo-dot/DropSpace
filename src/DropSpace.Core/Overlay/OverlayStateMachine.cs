@@ -145,6 +145,13 @@ public sealed class OverlayStateMachine
         }
     }
 
+    public void OpenQuickPanel()
+    {
+        _expandedDropActive = false;
+        _state = OverlayState.Expanded;
+        Publish();
+    }
+
     public void Collapse()
     {
         if (_state != OverlayState.Expanded)

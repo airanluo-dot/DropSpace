@@ -59,4 +59,34 @@ public sealed class OverlayPlacementPolicyTests
                 FileDragWakeMode.SmartExperimental,
                 0));
     }
+
+    [TestMethod]
+    public void CustomPlacementClampsTransientlyWithoutMutatingSavedCoordinates()
+    {
+        var saved = new OverlayCustomPlacement(-500, 9_000);
+        var resolved = OverlayPlacementPolicy.Resolve(
+            new OverlayPlacementRequest(-1920, 0, 1920, 1080, 1.5, FileDragWakeMode.SmartExperimental),
+            OverlayPlacementMode.Custom,
+            saved);
+
+        Assert.IsTrue(resolved.WasClamped);
+        Assert.AreEqual(-500, saved.X);
+        Assert.AreEqual(9_000, saved.Y);
+        Assert.IsTrue(resolved.HostLeftPixels >= -1920 - (int)(OverlayPlacementPolicy.HostWidthDips * 1.5 / 2));
+        Assert.AreEqual(0, resolved.SurfaceTopOffsetDips);
+    }
+
+    [TestMethod]
+    public void EveryVisualStateCanReuseOneResolvedAnchor()
+    {
+        var request = new OverlayPlacementRequest(0, 40, 2560, 1400, 2, FileDragWakeMode.Disabled);
+        var placement = OverlayPlacementPolicy.Resolve(
+            request,
+            OverlayPlacementMode.Custom,
+            new OverlayCustomPlacement(640, 24));
+
+        Assert.AreEqual(40 + 48, placement.HostTopPixels);
+        Assert.AreEqual(0, placement.SurfaceTopOffsetDips);
+        Assert.IsFalse(placement.WasClamped);
+    }
 }

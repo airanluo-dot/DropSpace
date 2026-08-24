@@ -124,6 +124,22 @@ public sealed class OverlayMotionControllerTests
         Assert.AreEqual(OverlayMotionValues.MaximumDropTargetScale, projected.DropTargetScale);
     }
 
+    [TestMethod]
+    public void GeometryOpacityAndShadowReverseFromTheCurrentFrame()
+    {
+        var controller = new OverlayMotionController(OverlayMotionValues.Hidden);
+        var visible = new OverlayMotionValues(430, 92, 8, 30, 30, 1, 0, 1, 0, 1, 1);
+        controller.SetTarget(visible, reducedMotion: false);
+        controller.Step(TimeSpan.FromMilliseconds(16));
+        var interrupted = controller.Current;
+
+        controller.SetTarget(OverlayMotionValues.Hidden, reducedMotion: false);
+
+        Assert.AreEqual(interrupted, controller.Current);
+        Assert.IsTrue(controller.Current.Opacity > 0);
+        Assert.IsTrue(controller.Current.ShadowOpacity > 0);
+    }
+
     private static void StepAndAssertSafe(OverlayMotionController controller, int frames)
     {
         for (var frame = 0; frame < frames; frame++)

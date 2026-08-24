@@ -26,6 +26,7 @@ public sealed class AppStoragePaths
         Logs = Path.Combine(Root, "logs");
         Quarantine = Path.Combine(Root, "quarantine");
         Updates = Path.Combine(Root, "Updates");
+        Staging = Path.Combine(Root, "staging");
         Database = Path.Combine(Data, "dropspace.db");
         Settings = Path.Combine(Data, "settings.json");
     }
@@ -46,6 +47,8 @@ public sealed class AppStoragePaths
 
     public string Updates { get; }
 
+    public string Staging { get; }
+
     public string Database { get; }
 
     public string Settings { get; }
@@ -59,5 +62,6 @@ public sealed class AppStoragePaths
         Directory.CreateDirectory(Logs);
         Directory.CreateDirectory(Quarantine);
         Directory.CreateDirectory(Updates);
+        Directory.CreateDirectory(Staging);
     }
 }

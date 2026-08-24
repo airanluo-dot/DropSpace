@@ -260,6 +260,8 @@
   <data name="MonitorDescription.Text" xml:space="preserve"><value>自动模式会在文件拖拽所在屏幕出现。</value></data>
   <data name="MonitorAutomatic.Content" xml:space="preserve"><value>自动</value></data>
   <data name="MonitorPrimary.Content" xml:space="preserve"><value>主显示器</value></data>
+  <data name="OverlayMonitorChoice" xml:space="preserve"><value>显示器 {0}</value></data>
+  <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>显示器 {0}（主显示器）</value></data>
   <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>关闭窗口时</value></data>
   <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>隐藏到托盘时会继续记录剪贴板。</value></data>
   <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>隐藏到托盘</value></data>
@@ -286,4 +288,28 @@
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>清除今天</value></data>
   <data name="ClearAllButton.Content" xml:space="preserve"><value>清除全部历史</value></data>
   <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>清理默认保留固定项目；不会删除临时空间中引用的原始文件。</value></data>
+  <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>添加文本或网址…</value></data>
+  <data name="AddTextUrlTitle" xml:space="preserve"><value>添加文本或网址到临时空间</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>粘贴或输入文本，或 https:// 网址</value></data>
+  <data name="AddTextUrlConfirm" xml:space="preserve"><value>添加</value></data>
+  <data name="Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="DropBatchLabel" xml:space="preserve"><value>拖放批次 · {0} 项</value></data>
+  <data name="CollapseBatch" xml:space="preserve"><value>收起</value></data>
+  <data name="ExpandBatch" xml:space="preserve"><value>展开</value></data>
+  <data name="PinBatchButton.Content" xml:space="preserve"><value>固定整组</value></data>
+  <data name="RemoveBatchButton.Content" xml:space="preserve"><value>移除整组</value></data>
+  <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>灵动岛位置</value></data>
+  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>自定义 X/Y 使用相对于所选显示器工作区的 DIP。临时夹取不会覆盖保存值。方向键移动 1 DIP，Shift+方向键移动 10，Enter 应用，Esc 回滚编辑。</value></data>
+  <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>自动</value></data>
+  <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>自定义</value></data>
+  <data name="IslandPlacementX.Header" xml:space="preserve"><value>X（DIP）</value></data>
+  <data name="IslandPlacementY.Header" xml:space="preserve"><value>Y（DIP）</value></data>
+  <data name="ApplyIslandPlacementButton.Content" xml:space="preserve"><value>应用位置</value></data>
+  <data name="ResetIslandPlacementButton.Content" xml:space="preserve"><value>重置</value></data>
+  <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>快捷面板热键</value></data>
+  <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>用键盘打开现有灵动岛并导航。默认：Win+Shift+Space。</value></data>
+  <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>智能拖拽应用排除项</value></data>
+  <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>用逗号分隔进程名。此功能为尽力而为：部分提权、受保护或短暂存在的来源应用可能无法识别。</value></data>
+  <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>复制智能拖拽兼容性报告</value></data>
+  <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>已复制不含路径的智能拖拽兼容性报告。</value></data>
 </root>

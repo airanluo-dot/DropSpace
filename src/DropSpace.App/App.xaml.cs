@@ -302,6 +302,7 @@ public partial class App : Application
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<OleDragDropService>();
         services.AddSingleton<DragSessionDetector>();
+        services.AddSingleton<GlobalQuickPanelHotkeyService>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();

@@ -54,12 +54,16 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private readonly object _completionGate = new();
     private readonly long _sessionId;
     private readonly DragScreenPoint _origin;
+    private readonly DragScreenPoint _probeCenter;
     private readonly SmartDragProbeOptions _options;
     private readonly Action<OleDragProbeResult> _completed;
     private readonly ILogger _logger;
     private readonly ProbeDropTarget _dropTarget;
+    private readonly SynchronizationContext? _ownerContext;
+    private readonly Func<nint, uint, nint, nint, bool> _postCompletion;
     private readonly long _createdTimestamp = Stopwatch.GetTimestamp();
     private Timer? _lifetimeTimer;
+    private Timer? _cleanupWatchdog;
     private OleDragProbeResult? _pendingResult;
     private bool _registered;
     private int _disposeState;
@@ -67,13 +71,16 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     public EphemeralOleDragProbe(
         long sessionId,
         DragScreenPoint origin,
+        MonitorDescriptor monitor,
         SmartDragProbeOptions options,
         OleFileDataClassifier classifier,
         Action<OleDragProbeResult> completed,
-        ILogger logger)
+        ILogger logger,
+        Func<nint, uint, nint, nint, bool>? postCompletion = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sessionId);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(classifier);
         ArgumentNullException.ThrowIfNull(completed);
         ArgumentNullException.ThrowIfNull(logger);
@@ -81,14 +88,17 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
         _sessionId = sessionId;
         _origin = origin;
+        _probeCenter = CalculateMonitorAwareCenter(origin, monitor, options);
         _options = options;
         _completed = completed;
         _logger = logger;
+        _ownerContext = SynchronizationContext.Current;
+        _postCompletion = postCompletion ?? PostMessage;
         _dropTarget = new ProbeDropTarget(this, classifier, logger);
 
         EnsureWindowClass();
-        var left = origin.X - options.OuterSizePixels / 2;
-        var top = origin.Y - options.OuterSizePixels / 2;
+        var left = _probeCenter.X - options.OuterSizePixels / 2;
+        var top = _probeCenter.Y - options.OuterSizePixels / 2;
         WindowHandle = CreateWindowEx(
             unchecked((uint)(
                 ExtendedStyleTopmost |
@@ -195,8 +205,8 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
             var center = _options.OuterSizePixels / 2;
             var ringInset = Math.Max(1, (_options.OuterSizePixels - _options.CenterHolePixels) / 4);
-            return bounds.Left + center == _origin.X &&
-                   bounds.Top + center == _origin.Y &&
+            return bounds.Left + center == _probeCenter.X &&
+                   bounds.Top + center == _probeCenter.Y &&
                    !PtInRegion(region, center, center) &&
                    PtInRegion(region, ringInset, center);
         }
@@ -214,6 +224,8 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         }
         _lifetimeTimer?.Dispose();
         _lifetimeTimer = null;
+        _cleanupWatchdog?.Dispose();
+        _cleanupWatchdog = null;
         if (_registered)
         {
             var result = OleDropTargetNative.Revoke(WindowHandle);
@@ -294,6 +306,28 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         }
     }
 
+    internal static DragScreenPoint CalculateMonitorAwareCenter(
+        DragScreenPoint pointer,
+        MonitorDescriptor monitor,
+        SmartDragProbeOptions options)
+    {
+        var half = options.OuterSizePixels / 2;
+        var minimumX = monitor.Left + half;
+        var maximumX = monitor.Left + monitor.Width - half;
+        var minimumY = monitor.Top + half;
+        var maximumY = monitor.Top + monitor.Height - half;
+        if (maximumX < minimumX || maximumY < minimumY)
+        {
+            return pointer;
+        }
+
+        // Clamp the physical-pixel probe into the selected monitor. At an edge this creates an
+        // intentional inward/asymmetric ring instead of spilling onto a differently scaled display.
+        return new DragScreenPoint(
+            Math.Clamp(pointer.X, minimumX, maximumX),
+            Math.Clamp(pointer.Y, minimumY, maximumY));
+    }
+
     private void QueueCompletion(
         OleDragProbeOutcome outcome,
         OleFileDataClassification classification,
@@ -314,13 +348,37 @@ internal sealed class EphemeralOleDragProbe : IDisposable
                 Stopwatch.GetElapsedTime(_createdTimestamp));
         }
 
-        if (!PostMessage(WindowHandle, WindowMessageProbeComplete, nint.Zero, nint.Zero))
+        _cleanupWatchdog ??= new Timer(
+            static state => ((EphemeralOleDragProbe)state!).ForceCleanupAfterQueueFailure(),
+            this,
+            TimeSpan.FromMilliseconds(250),
+            Timeout.InfiniteTimeSpan);
+
+        if (!_postCompletion(WindowHandle, WindowMessageProbeComplete, nint.Zero, nint.Zero))
         {
             _logger.LogWarning(
-                "Smart OLE probe completion could not be queued for session {SessionId}; Win32 error {Error}.",
+                "Smart OLE probe PostMessage completion failed for session {SessionId}; Win32 error {Error}. Falling back to the owner work queue and forced cleanup watchdog.",
                 _sessionId,
                 Marshal.GetLastWin32Error());
+            if (_ownerContext is { } ownerContext)
+            {
+                ownerContext.Post(static state => ((EphemeralOleDragProbe)state!).CompleteOnOwnerThread(), this);
+            }
         }
+    }
+
+    private void ForceCleanupAfterQueueFailure()
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        _logger.LogWarning(
+            "Smart OLE probe forced cleanup watchdog fired for session {SessionId}; registry, timer, HWND and OLE registration will be released.",
+            _sessionId);
+        CompleteOnOwnerThread();
+        Dispose();
     }
 
     private void CompleteOnOwnerThread()

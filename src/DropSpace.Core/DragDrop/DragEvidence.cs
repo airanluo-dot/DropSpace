@@ -21,6 +21,26 @@ public enum DragEvidenceLevel
     VerifiedFile,
 }
 
+/// <summary>
+/// Describes evidence that a pointer gesture is an operating-system drag. This deliberately says
+/// nothing about the payload type: accessibility drag-start events prove intent, not files.
+/// </summary>
+public enum DragIntentConfidence
+{
+    None,
+    PointerThreshold,
+    AccessibilityConfirmed,
+    OleDragConfirmed,
+}
+
+/// <summary>Describes how far DropSpace has verified that a drag can safely be accepted.</summary>
+public enum PayloadConfidence
+{
+    Unknown,
+    FileLike,
+    FileVerified,
+}
+
 public enum DragSessionState
 {
     Idle,
@@ -29,6 +49,7 @@ public enum DragSessionState
     SpeculativeReveal,
     VisibleTargetActive,
     VerifiedFileDrag,
+    AwaitingOleCompletion,
     Completed,
     Cancelled,
     Rejected,

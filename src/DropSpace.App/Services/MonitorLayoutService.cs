@@ -13,9 +13,18 @@ public sealed record MonitorDescriptor(
     int Width,
     int Height,
     uint Dpi,
-    bool IsPrimary)
+    bool IsPrimary,
+    int? WorkLeft = null,
+    int? WorkTop = null,
+    int? WorkWidth = null,
+    int? WorkHeight = null)
 {
     public double Scale => Dpi / 96d;
+
+    public int EffectiveWorkLeft => WorkLeft ?? Left;
+    public int EffectiveWorkTop => WorkTop ?? Top;
+    public int EffectiveWorkWidth => WorkWidth ?? Width;
+    public int EffectiveWorkHeight => WorkHeight ?? Height;
 }
 
 public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
@@ -50,7 +59,11 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
                 info.Monitor.Right - info.Monitor.Left,
                 info.Monitor.Bottom - info.Monitor.Top,
                 dpi,
-                (info.Flags & MonitorInfoPrimary) != 0));
+                (info.Flags & MonitorInfoPrimary) != 0,
+                info.WorkArea.Left,
+                info.WorkArea.Top,
+                info.WorkArea.Right - info.WorkArea.Left,
+                info.WorkArea.Bottom - info.WorkArea.Top));
             return true;
         }, nint.Zero);
 

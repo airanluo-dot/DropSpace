@@ -30,7 +30,9 @@ internal sealed class OleFileDataClassifier
                 OleFileDataKind.FileSystemPaths,
                 0,
                 OlePreferredDropEffect.Copy,
-                true);
+                true,
+                true,
+                false);
         }
 
         if (ShellIdListFormat != 0 && HasFormat(dataObject, ShellIdListFormat, TYMED.TYMED_HGLOBAL))
@@ -39,7 +41,9 @@ internal sealed class OleFileDataClassifier
                 OleFileDataKind.ShellItems,
                 0,
                 OlePreferredDropEffect.Copy,
-                true);
+                true,
+                false,
+                false);
         }
 
         if (FileGroupDescriptorWFormat != 0 &&
@@ -51,13 +55,13 @@ internal sealed class OleFileDataClassifier
                 TYMED.TYMED_ISTREAM | TYMED.TYMED_HGLOBAL | TYMED.TYMED_ISTORAGE,
                 index: 0))
         {
-            // The first v2 Preview recognizes virtual-file evidence without reading its content.
-            // Materialization remains disabled until its bounded streaming/storage lifecycle ships.
             return new OleFileDataClassification(
                 OleFileDataKind.VirtualFiles,
                 0,
                 OlePreferredDropEffect.Copy,
-                false);
+                true,
+                false,
+                true);
         }
 
         return OleFileDataClassification.None;
@@ -72,6 +76,28 @@ internal sealed class OleFileDataClassifier
             OleFileDataKind.ShellItems => ReadShellItemPaths(dataObject),
             _ => [],
         };
+
+    public OleFileDataClassification ResolveAcceptance(
+        IDataObject dataObject,
+        OleFileDataClassification classification)
+    {
+        if (classification.Kind == OleFileDataKind.FileSystemPaths)
+        {
+            return classification;
+        }
+
+        if (classification.Kind == OleFileDataKind.ShellItems)
+        {
+            var paths = ReadShellItemPaths(dataObject);
+            return classification with
+            {
+                ItemCount = paths.Count,
+                CanAcceptNow = paths.Count > 0,
+            };
+        }
+
+        return classification;
+    }
 
     private static bool HasFormat(
         IDataObject dataObject,
@@ -126,6 +152,14 @@ internal sealed class OleFileDataClassifier
 
     private static IReadOnlyList<string> ReadShellItemPaths(IDataObject dataObject)
     {
+        var officialPaths = TryReadShellItemArrayPaths(dataObject);
+        if (officialPaths.Count > 0)
+        {
+            return officialPaths;
+        }
+
+        // Bounded CIDA parsing is retained only as a compatibility fallback for providers that
+        // advertise Shell IDList Array but do not implement SHCreateShellItemArrayFromDataObject.
         var format = CreateFormat(ShellIdListFormat, TYMED.TYMED_HGLOBAL);
         if (dataObject.QueryGetData(ref format) != Success)
         {
@@ -219,6 +253,61 @@ internal sealed class OleFileDataClassifier
         }
     }
 
+    private static IReadOnlyList<string> TryReadShellItemArrayPaths(IDataObject dataObject)
+    {
+        var interfaceId = typeof(IShellItemArray).GUID;
+        if (SHCreateShellItemArrayFromDataObject(dataObject, ref interfaceId, out var array) < 0 || array is null)
+        {
+            return [];
+        }
+        try
+        {
+            if (array.GetCount(out var count) < 0 || count > MaximumItemCount)
+            {
+                return [];
+            }
+            var paths = new List<string>((int)count);
+            for (uint index = 0; index < count; index++)
+            {
+                if (array.GetItemAt(index, out var item) < 0 || item is null)
+                {
+                    continue;
+                }
+                try
+                {
+                    if (item.GetDisplayName(0x80058000, out var value) >= 0 && value != nint.Zero)
+                    {
+                        try
+                        {
+                            var path = Marshal.PtrToStringUni(value);
+                            if (!string.IsNullOrWhiteSpace(path))
+                            {
+                                paths.Add(path);
+                            }
+                        }
+                        finally
+                        {
+                            Marshal.FreeCoTaskMem(value);
+                        }
+                    }
+                }
+                finally
+                {
+                    if (Marshal.IsComObject(item)) _ = Marshal.ReleaseComObject(item);
+                }
+            }
+            return paths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        }
+        catch (COMException)
+        {
+            return [];
+        }
+        finally
+        {
+            if (Marshal.IsComObject(array)) _ = Marshal.ReleaseComObject(array);
+        }
+    }
+
     private static bool IsPidlWithinBuffer(nint buffer, uint offset, long byteLength)
     {
         var cursor = (long)offset;
@@ -274,6 +363,12 @@ internal sealed class OleFileDataClassifier
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SHGetPathFromIDList(nint itemIdList, [Out] char[] path);
 
+    [DllImport("shell32.dll")]
+    private static extern int SHCreateShellItemArrayFromDataObject(
+        [MarshalAs(UnmanagedType.Interface)] IDataObject dataObject,
+        ref Guid interfaceId,
+        [MarshalAs(UnmanagedType.Interface)] out IShellItemArray? shellItemArray);
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern nint GlobalLock(nint memory);
 
@@ -286,4 +381,29 @@ internal sealed class OleFileDataClassifier
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern uint RegisterClipboardFormat(string format);
+
+    [ComImport]
+    [Guid("B63EA76D-1F85-456F-A19C-48159EFA858B")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IShellItemArray
+    {
+        [PreserveSig] int BindToHandler(nint bindContext, ref Guid handlerId, ref Guid interfaceId, out nint value);
+        [PreserveSig] int GetPropertyStore(int flags, ref Guid interfaceId, out nint value);
+        [PreserveSig] int GetPropertyDescriptionList(nint keyType, ref Guid interfaceId, out nint value);
+        [PreserveSig] int GetAttributes(uint flags, uint mask, out uint attributes);
+        [PreserveSig] int GetCount(out uint count);
+        [PreserveSig] int GetItemAt(uint index, out IShellItem? item);
+    }
+
+    [ComImport]
+    [Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IShellItem
+    {
+        [PreserveSig] int BindToHandler(nint bindContext, ref Guid handlerId, ref Guid interfaceId, out nint value);
+        [PreserveSig] int GetParent(out IShellItem? parent);
+        [PreserveSig] int GetDisplayName(uint displayNameType, out nint name);
+        [PreserveSig] int GetAttributes(uint mask, out uint attributes);
+        [PreserveSig] int Compare(IShellItem other, uint hint, out int order);
+    }
 }

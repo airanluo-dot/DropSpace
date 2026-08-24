@@ -10,6 +10,13 @@ public interface IPayloadStore
         long maximumBytes,
         CancellationToken cancellationToken = default);
 
+    Task<PayloadRecord> WriteFileAsync(
+        string kind,
+        string? extension,
+        Stream source,
+        long maximumBytes,
+        CancellationToken cancellationToken = default);
+
     Task<Stream> OpenReadAsync(string relativePath, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default);

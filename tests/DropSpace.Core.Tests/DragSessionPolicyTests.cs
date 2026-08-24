@@ -93,7 +93,7 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
-    public void AccessibilityDragStartAllowsUnknownProviderWithoutProcessHardcoding()
+    public void AccessibilityDragStartRevealsUnknownProviderButStillRequiresPayloadProof()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
@@ -102,12 +102,14 @@ public sealed class DragSessionPolicyTests
 
         Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
         Assert.AreEqual(DragEvidenceLevel.Strong, transition.EvidenceLevel);
-        Assert.IsFalse(transition.RequiresOleVerification);
+        Assert.AreEqual(DragIntentConfidence.AccessibilityConfirmed, transition.DragIntentConfidence);
+        Assert.AreEqual(PayloadConfidence.Unknown, transition.PayloadConfidence);
+        Assert.IsTrue(transition.RequiresOleVerification);
         Assert.IsTrue(policy.IsActive);
     }
 
     [TestMethod]
-    public void StrongSignalPromotesGenericCandidateAndMakesStaleProbeFailureHarmless()
+    public void AccessibilitySignalDoesNotPromoteUnknownPayloadToAFile()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
@@ -117,12 +119,10 @@ public sealed class DragSessionPolicyTests
         var staleRejection = policy.ProbeRejected(started.SessionId, new(130, 100));
         var staleTimeout = policy.ProbeTimedOut(started.SessionId, new(130, 100));
 
-        Assert.AreEqual(DragSessionTransitionKind.Verified, promoted.Kind);
-        Assert.AreEqual(DragEvidenceLevel.Strong, promoted.EvidenceLevel);
-        Assert.IsFalse(promoted.RequiresOleVerification);
-        Assert.AreEqual(DragSessionTransitionKind.None, staleRejection.Kind);
+        Assert.AreEqual(DragSessionTransitionKind.None, promoted.Kind);
+        Assert.AreEqual(DragSessionTransitionKind.Rejected, staleRejection.Kind);
         Assert.AreEqual(DragSessionTransitionKind.None, staleTimeout.Kind);
-        Assert.IsTrue(policy.IsActive);
+        Assert.IsFalse(policy.IsActive);
     }
 
     [TestMethod]
@@ -192,8 +192,48 @@ public sealed class DragSessionPolicyTests
         var released = policy.PointerReleased(new(145, 125));
 
         Assert.AreEqual(started.SessionId, released.SessionId);
-        Assert.AreEqual(DragSessionTransitionKind.Cancelled, released.Kind);
+        Assert.AreEqual(DragSessionTransitionKind.AwaitingCompletion, released.Kind);
+        Assert.AreEqual(DragSessionState.AwaitingOleCompletion, released.State);
+        Assert.IsTrue(policy.IsActive);
+
+        var expired = policy.CompletionGraceExpired(started.SessionId, new(145, 125));
+        Assert.AreEqual(DragSessionTransitionKind.Cancelled, expired.Kind);
         Assert.IsFalse(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void NewPointerDownSupersedesAwaitingCompletionImmediately()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(10, 10), DragPointerButton.Left, DragSourceKind.ExplorerFileView);
+        var first = policy.PointerMoved(new(30, 10));
+        _ = policy.PointerReleased(new(30, 10));
+
+        var superseded = policy.PointerPressed(
+            new(100, 100),
+            DragPointerButton.Left,
+            DragSourceKind.ExplorerFileView);
+        var second = policy.PointerMoved(new(120, 100));
+
+        Assert.AreEqual(DragSessionTransitionKind.Superseded, superseded.Kind);
+        Assert.AreEqual(first.SessionId, superseded.SessionId);
+        Assert.IsTrue(second.SessionId > first.SessionId);
+        Assert.AreEqual(DragSessionTransitionKind.None,
+            policy.CompletionGraceExpired(first.SessionId, new(30, 10)).Kind);
+    }
+
+    [TestMethod]
+    public void OleVerificationSeparatelyConfirmsIntentAndPayload()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(10, 10), DragPointerButton.Left, DragSourceKind.Unknown);
+        var started = policy.AccessibilityDragStarted(new(20, 20), DragSourceKind.Unknown);
+
+        var verified = policy.ProbeVerified(started.SessionId, new(25, 25));
+
+        Assert.AreEqual(DragIntentConfidence.OleDragConfirmed, verified.DragIntentConfidence);
+        Assert.AreEqual(PayloadConfidence.FileVerified, verified.PayloadConfidence);
+        Assert.IsFalse(verified.RequiresOleVerification);
     }
 
     [TestMethod]

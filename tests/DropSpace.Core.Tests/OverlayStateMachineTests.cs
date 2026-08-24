@@ -72,6 +72,19 @@ public sealed class OverlayStateMachineTests
     }
 
     [TestMethod]
+    public void GlobalHotkeyCanOpenAnEmptyQuickPanelAndEscapeBackToHidden()
+    {
+        var machine = Create(0);
+        machine.OpenQuickPanel();
+        Assert.AreEqual(OverlayState.Expanded, machine.Snapshot.State);
+
+        machine.Collapse();
+        Assert.AreEqual(OverlayState.Dismissing, machine.Snapshot.State);
+        machine.CompleteDismissal();
+        Assert.AreEqual(OverlayState.Hidden, machine.Snapshot.State);
+    }
+
+    [TestMethod]
     public void CompactVisibleDragUsesDragReadyAndReturnsCompact()
     {
         var machine = Create(1);

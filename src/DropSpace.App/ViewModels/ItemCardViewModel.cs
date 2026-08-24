@@ -3,6 +3,7 @@ using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage;
+using System.Text.Json;
 
 namespace DropSpace.App.ViewModels;
 
@@ -12,6 +13,9 @@ public sealed class ItemCardViewModel : ObservableObject
     private readonly IAppStringLocalizer _strings;
     private BitmapImage? _thumbnail;
     private IStorageItem? _dragStorageItem;
+    private bool _isBatchHeader;
+    private bool _isBatchMemberVisible = true;
+    private bool _isBatchExpanded = true;
 
     public ItemCardViewModel(DropItem item, IAppStringLocalizer strings)
     {
@@ -94,6 +98,44 @@ public sealed class ItemCardViewModel : ObservableObject
 
     public bool IsPinned => Item.IsPinned;
 
+    public DropBatchMetadata? BatchMetadata => TryReadBatchMetadata(Item.MetadataJson);
+
+    public Guid? DropBatchId => BatchMetadata?.DropBatchId;
+
+    public bool IsGrouped => BatchMetadata is { ItemCount: > 1 };
+
+    public bool IsBatchHeader
+    {
+        get => _isBatchHeader;
+        set => SetProperty(ref _isBatchHeader, value);
+    }
+
+    public bool IsBatchMemberVisible
+    {
+        get => _isBatchMemberVisible;
+        set => SetProperty(ref _isBatchMemberVisible, value);
+    }
+
+    public bool IsBatchExpanded
+    {
+        get => _isBatchExpanded;
+        set
+        {
+            if (SetProperty(ref _isBatchExpanded, value))
+            {
+                OnPropertyChanged(nameof(BatchToggleLabel));
+            }
+        }
+    }
+
+    public string BatchLabel => BatchMetadata is { ItemCount: var count }
+        ? _strings.Format("DropBatchLabel", count)
+        : string.Empty;
+
+    public string BatchToggleLabel => IsBatchExpanded
+        ? _strings.Get("CollapseBatch")
+        : _strings.Get("ExpandBatch");
+
     public string PinActionLabel => Item.IsPinned
         ? _strings.Get("ItemUnpin")
         : _strings.Get("ItemPin");
@@ -121,6 +163,22 @@ public sealed class ItemCardViewModel : ObservableObject
     }
 
     public void Update(DropItem item) => Item = item;
+
+    private static DropBatchMetadata? TryReadBatchMetadata(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+        try
+        {
+            return JsonSerializer.Deserialize<DropBatchMetadata>(json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private static string? CreateTextPreview(string? value)
     {

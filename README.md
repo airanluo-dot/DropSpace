@@ -11,13 +11,13 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.1 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.2 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.1). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.2](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.2). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
 The **v0.2.1 Stable** release promotes the release-driven latest-changes website, complete English/Simplified Chinese localization foundation, and zero-flicker Windows sign-in startup that were validated across the v0.2.1 Preview sequence.
 
-The **v0.3.0-preview.1** test build begins Smart Drag Detection v2: source-agnostic threshold candidates, unknown-provider accessibility fast paths, a single 60 ms hollow local OLE verification probe, session-safe speculative reveal, and shared `CF_HDROP`/Shell/virtual-file classification. Virtual-only content is recognized but intentionally not materialized until a later v0.3 Preview.
+The **v0.3.0-preview.2** test build consolidates Smart Drag Detection v2 and Universal Access: drag intent and payload confidence are independent, critical signals are reliable under pointer pressure, the monitor-aware OLE probe has three-layer cleanup, virtual files stream into confined staging on real Drop, and Space accepts files/images/text/URLs through drag, Share, manual intake, grouped batches, and the global Dynamic Island Quick Panel. Per-monitor custom placement preserves unclamped DIP coordinates.
 
 The implemented vertical slice includes:
 

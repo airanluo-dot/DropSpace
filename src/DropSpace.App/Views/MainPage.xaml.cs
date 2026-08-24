@@ -5,6 +5,8 @@ using DropSpace.Core.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Input;
+using Windows.UI.Core;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -157,6 +159,31 @@ public sealed partial class MainPage : Page
         });
     }
 
+    private async void OnAddTextUrlClicked(object sender, RoutedEventArgs args)
+    {
+        var editor = new TextBox
+        {
+            AcceptsReturn = true,
+            MinWidth = 420,
+            MinHeight = 140,
+            TextWrapping = TextWrapping.Wrap,
+            PlaceholderText = _strings.Get("AddTextUrlPlaceholder"),
+        };
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = _strings.Get("AddTextUrlTitle"),
+            Content = editor,
+            PrimaryButtonText = _strings.Get("AddTextUrlConfirm"),
+            CloseButtonText = _strings.Get("Cancel"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(editor.Text))
+        {
+            await RunAsync(() => _viewModel.AddTextToSpaceAsync(editor.Text, "manual-text-url"));
+        }
+    }
+
     private void OnDragEnter(object sender, DragEventArgs args) => SetDropHint(args, true);
 
     private void OnDragLeave(object sender, DragEventArgs args) => DropHint.Visibility = Visibility.Collapsed;
@@ -168,33 +195,86 @@ public sealed partial class MainPage : Page
         DropHint.Visibility = Visibility.Collapsed;
         await RunAsync(async () =>
         {
-            if (!args.DataView.Contains(StandardDataFormats.StorageItems))
+            if (args.DataView.Contains(StandardDataFormats.StorageItems))
             {
+                var storageItems = await args.DataView.GetStorageItemsAsync();
+                await _viewModel.AddPathsBatchAsync(
+                    storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path)).Select(item => item.Path),
+                    null,
+                    "main-window-drop");
                 return;
             }
 
-            var storageItems = await args.DataView.GetStorageItemsAsync();
-            await _viewModel.AddPathsAsync(
-                storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path)).Select(item => item.Path));
+            if (args.DataView.Contains(StandardDataFormats.WebLink))
+            {
+                await _viewModel.AddTextToSpaceAsync(
+                    (await args.DataView.GetWebLinkAsync()).AbsoluteUri,
+                    "main-window-url-drop");
+            }
+            else if (args.DataView.Contains(StandardDataFormats.Text))
+            {
+                await _viewModel.AddTextToSpaceAsync(
+                    await args.DataView.GetTextAsync(),
+                    "main-window-text-drop");
+            }
         });
     }
 
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs args)
     {
-        var storageItems = args.Items
-            .OfType<ItemCardViewModel>()
+        var cards = args.Items.OfType<ItemCardViewModel>().ToArray();
+        if (cards.Length == 1 && cards[0].DropBatchId is { } batchId)
+        {
+            cards = _viewModel.Items.Where(card => card.DropBatchId == batchId).ToArray();
+        }
+        var storageItems = cards
             .Select(card => card.DragStorageItem)
             .Where(item => item is not null)
             .Cast<IStorageItem>()
             .ToArray();
-        if (storageItems.Length == 0)
+        if (storageItems.Length > 0)
+        {
+            args.Data.SetStorageItems(storageItems, readOnly: true);
+        }
+        else if (cards.Length == 1 && cards[0].Item.Text?.InlineText is { } text)
+        {
+            args.Data.SetText(text);
+            if (cards[0].Item.Url is { NormalizedUrl: var url } && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                args.Data.SetWebLink(uri);
+            }
+        }
+        else
         {
             args.Cancel = true;
             return;
         }
 
         args.Data.RequestedOperation = DataPackageOperation.Copy;
-        args.Data.SetStorageItems(storageItems, readOnly: true);
+    }
+
+    private void OnToggleBatchClicked(object sender, RoutedEventArgs args)
+    {
+        if (GetCard(sender) is { } card)
+        {
+            _viewModel.ToggleBatchExpanded(card);
+        }
+    }
+
+    private async void OnPinBatchClicked(object sender, RoutedEventArgs args)
+    {
+        if (GetCard(sender) is { } card)
+        {
+            await RunAsync(() => _viewModel.ToggleBatchPinAsync(card));
+        }
+    }
+
+    private async void OnRemoveBatchClicked(object sender, RoutedEventArgs args)
+    {
+        if (GetCard(sender) is { } card)
+        {
+            await RunAsync(() => _viewModel.RemoveBatchAsync(card));
+        }
     }
 
     private async void OnItemDoubleTapped(object sender, DoubleTappedRoutedEventArgs args)
@@ -450,6 +530,9 @@ public sealed partial class MainPage : Page
         });
     }
 
+    private void OnCopyDragCompatibilityReportClicked(object sender, RoutedEventArgs args) =>
+        _viewModel.CopyDragCompatibilityReport();
+
     private async void OnClipboardLimitsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (_syncingSettings ||
@@ -556,6 +639,89 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnOverlayPlacementModeChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && OverlayPlacementModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<OverlayPlacementMode>(value, out var mode))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { OverlayPlacementMode = mode }));
+        }
+    }
+
+    private void OnOverlayPlacementMonitorChanged(object sender, SelectionChangedEventArgs args) =>
+        SyncPlacementCoordinates();
+
+    private async void OnApplyIslandPlacementClicked(object sender, RoutedEventArgs args)
+    {
+        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
+            !double.IsNaN(OverlayPlacementXNumber.Value) &&
+            !double.IsNaN(OverlayPlacementYNumber.Value))
+        {
+            await RunAsync(() => _viewModel.SetCustomOverlayPlacementAsync(
+                monitorId,
+                OverlayPlacementXNumber.Value,
+                OverlayPlacementYNumber.Value));
+        }
+    }
+
+    private async void OnResetIslandPlacementClicked(object sender, RoutedEventArgs args)
+    {
+        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId)
+        {
+            await RunAsync(() => _viewModel.ResetCustomOverlayPlacementAsync(monitorId));
+            SyncPlacementCoordinates();
+        }
+    }
+
+    private void OnPlacementNumberKeyDown(object sender, KeyRoutedEventArgs args)
+    {
+        if (args.Key == VirtualKey.Escape)
+        {
+            SyncPlacementCoordinates();
+            args.Handled = true;
+            return;
+        }
+        if (args.Key == VirtualKey.Enter)
+        {
+            OnApplyIslandPlacementClicked(sender, args);
+            args.Handled = true;
+            return;
+        }
+        var shift = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift)
+            .HasFlag(CoreVirtualKeyStates.Down);
+        if (shift && sender is NumberBox box && args.Key is VirtualKey.Up or VirtualKey.Down or VirtualKey.Left or VirtualKey.Right)
+        {
+            var direction = args.Key is VirtualKey.Up or VirtualKey.Right ? 1 : -1;
+            box.Value = (double.IsNaN(box.Value) ? 0 : box.Value) + direction * 10;
+            args.Handled = true;
+        }
+    }
+
+    private async void OnQuickPanelHotkeyLostFocus(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings && !string.Equals(QuickPanelHotkeyText.Text, _viewModel.QuickPanelHotkey, StringComparison.Ordinal))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { QuickPanelHotkey = QuickPanelHotkeyText.Text.Trim() }));
+        }
+    }
+
+    private async void OnSmartDragExclusionsLostFocus(object sender, RoutedEventArgs args)
+    {
+        if (_syncingSettings)
+        {
+            return;
+        }
+        var exclusions = SmartDragExclusionsText.Text
+            .Split([',', ';', '\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(Path.GetFileNameWithoutExtension)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        await RunAsync(() => _viewModel.UpdateSettingsAsync(
+            _viewModel.Settings with { SmartDragExcludedProcesses = exclusions }));
+    }
+
     private async void OnClearLastHourClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.LastHour);
 
     private async void OnClearTodayClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.Today);
@@ -657,12 +823,29 @@ public sealed partial class MainPage : Page
             SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
             SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
             SelectComboItem(FileDragWakeModeCombo, _viewModel.FileDragWakeMode.ToString());
+            SelectComboItem(OverlayPlacementModeCombo, _viewModel.OverlayPlacementMode.ToString());
+            OverlayPlacementMonitorCombo.ItemsSource = _viewModel.AvailableOverlayMonitors;
+            OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
+            QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
+            SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
+            SyncPlacementCoordinates();
             SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
         }
         finally
         {
             _syncingSettings = false;
         }
+    }
+
+    private void SyncPlacementCoordinates()
+    {
+        if (OverlayPlacementMonitorCombo.SelectedValue is not string monitorId)
+        {
+            return;
+        }
+        var placement = _viewModel.GetCustomOverlayPlacement(monitorId);
+        OverlayPlacementXNumber.Value = placement.X;
+        OverlayPlacementYNumber.Value = placement.Y;
     }
 
     private void UpdateSectionChrome()
@@ -690,7 +873,9 @@ public sealed partial class MainPage : Page
 
     private void SetDropHint(DragEventArgs args, bool visible)
     {
-        var acceptsItems = args.DataView.Contains(StandardDataFormats.StorageItems);
+        var acceptsItems = args.DataView.Contains(StandardDataFormats.StorageItems) ||
+                           args.DataView.Contains(StandardDataFormats.Text) ||
+                           args.DataView.Contains(StandardDataFormats.WebLink);
         args.AcceptedOperation = acceptsItems ? DataPackageOperation.Copy : DataPackageOperation.None;
         DropHint.Visibility = visible && acceptsItems ? Visibility.Visible : Visibility.Collapsed;
         if (acceptsItems)

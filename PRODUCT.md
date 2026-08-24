@@ -1,8 +1,8 @@
 # DropSpace Product Specification
 
-Status: Draft v1, product and architecture phase  
-Target: Windows 11 desktop, local-first  
-Last reviewed: 2026-08-07
+Status: v0.3 Preview product contract
+Target: Windows 11 desktop, local-first
+Last reviewed: 2026-08-24
 
 ## One-sentence definition
 
@@ -100,20 +100,24 @@ The first shippable MVP is deliberately smaller than the original list.
 - Tray menu and close-to-tray behavior.
 - Logging, recoverable startup, basic migration backup, and MSIX packaging.
 
-### Deferred to V1.1
+### Added in v0.3.0-preview.2
 
-- Quick Panel and global hotkey. They require separate window focus, multi-display positioning, conflict handling, and performance work.
-- App exclusion UI. Source attribution is best-effort and must be validated before presenting it as a privacy guarantee.
+- The existing Dynamic Island is the keyboard-first Quick Panel, opened by a configurable global hotkey (default `Win+Shift+Space`).
+- Best-effort Smart Drag process exclusions include explicit limitation copy; Pause remains the reliable privacy control.
+- Manual Space intake and Windows Share accept files, images, text, and URLs without writing Clipboard History.
+- Real virtual-file Drop streams `FileGroupDescriptorW`/`FileContents` into confined staging with cancellation, limits, duplicate-safe names, and rollback.
+- One Drop becomes one `DropBatchId`/`DropSessionId` group with expand/collapse, group drag, pin, and remove operations.
+- Dynamic Island placement supports Automatic/Custom mode and original per-monitor X/Y DIP values that survive transient clamping and topology changes.
+
+### Still deferred
 - Rich code detection, HSL editing, favicon download, Explorer context-menu integration.
 - Background update timers/services, forced updates, and portable self-replacement. v0.1.0 supports process-start/manual discovery, verified download, and installer-owned upgrade only.
 - UI automation suite breadth beyond critical smoke paths.
 
 ## V1.1
 
-- Quick Panel with configurable hotkey and keyboard actions.
-- Best-effort source-app labels and exclusions with explicit limitation copy.
+- Further Quick Panel actions beyond the shared Open/Pin/Remove/drag-out surface.
 - File clipboard history, duplicate controls, richer type filters.
-- Manual Space intake for pasted/dropped text and URLs, after file staging semantics are stable.
 - Startup preference, improved tray flyout, multi-monitor restore rules.
 - Optional local-at-rest protection for image/text payloads after threat and usability validation.
 

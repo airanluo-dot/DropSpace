@@ -47,7 +47,7 @@ Store normalized references and metadata without copying source content. Validat
 
 Mixed files/folders, shortcuts, duplicate paths, long paths, removable media, network drives, cloud placeholders, permission denial, symlinks/reparse points, and drag cancellation.
 
-Manual text and URL intake into Space is V1.1. In MVP those types enter through Clipboard; this avoids inventing ambiguous “drop text versus paste command” behavior before the file-staging workflow is proven.
+Preview.2 adds an explicit manual text/HTTPS URL command and accepts those formats through visible Drop and packaged Windows Share. These paths write directly to Space and never masquerade as Clipboard History.
 
 ## Clipboard
 
@@ -153,7 +153,7 @@ Keep the surface hidden when Temporary Space is empty, reveal from standard file
 
 ### Edge cases
 
-Cancelled/rejected/timed-out candidate, stale probe callback, last-item dismissal interrupted by a new drag, rapid mode retargeting, full-screen apps, elevated integrity boundaries, multiple displays/DPI, display removal, remote desktop, virtual-only OLE data, and system Reduced Motion.
+Cancelled/rejected/timed-out candidate, stale probe callback, last-item dismissal interrupted by a new drag, completion-grace supersession, rapid exit/reveal reversal, full-screen apps, elevated integrity boundaries, multiple displays/DPI, display removal, remote desktop, virtual-file staging rollback, and system Reduced Motion.
 
 ## Settings
 
@@ -163,7 +163,7 @@ Close behavior, run in background explanation, tray availability, default-on per
 
 ### Clipboard
 
-Master toggle, retention age/count, image capture, size limits, duplicate policy, file capture (V1.1), exclusions (V1.1).
+Master toggle, retention age/count, image/file capture, size limits, duplicate policy, and best-effort Smart Drag process exclusions with explicit limitation copy.
 
 ### Appearance
 
@@ -171,7 +171,7 @@ Display language: System default, English, or Simplified Chinese. System maps a 
 
 ### Privacy
 
-Current recording state, pause/resume, data location, clear ranges, exclusion limitation, optional diagnostics export without payloads.
+Current recording state, pause/resume, data location, clear ranges, exclusion limitation, and a copyable path-free Smart Drag report with P50/P90/P95/P99 probe latency, velocity buckets, timeout and false-reveal proxy counts.
 
 ### States
 

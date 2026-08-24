@@ -42,9 +42,17 @@ public enum FileDragWakeMode
     Disabled,
 }
 
+public enum OverlayPlacementMode
+{
+    Automatic,
+    Custom,
+}
+
+public sealed record OverlayCustomPlacement(double X, double Y);
+
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -90,6 +98,14 @@ public sealed record AppSettings
 
     public FileDragWakeMode FileDragWakeMode { get; init; } = FileDragWakeMode.SmartExperimental;
 
+    public OverlayPlacementMode OverlayPlacementMode { get; init; } = OverlayPlacementMode.Automatic;
+
+    public Dictionary<string, OverlayCustomPlacement> CustomOverlayPlacements { get; init; } = [];
+
+    public string QuickPanelHotkey { get; init; } = "Win+Shift+Space";
+
+    public string[] SmartDragExcludedProcesses { get; init; } = [];
+
     public bool AutoCheckForUpdates { get; init; } = true;
 
     public bool AutoDownloadUpdates { get; init; } = true;
@@ -107,6 +123,7 @@ public sealed record AppSettings
         OverlayMotion = OverlayMotionPreference.System,
         OverlayMonitor = OverlayMonitorPreference.Automatic,
         FileDragWakeMode = FileDragWakeMode.SmartExperimental,
+        OverlayPlacementMode = OverlayPlacementMode.Automatic,
     };
 
     public AppSettings Validate()
@@ -187,6 +204,32 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(FileDragWakeMode));
         }
 
+        if (!Enum.IsDefined(OverlayPlacementMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(OverlayPlacementMode));
+        }
+
+        if (CustomOverlayPlacements is null || CustomOverlayPlacements.Count > 64 || CustomOverlayPlacements.Any(entry =>
+                string.IsNullOrWhiteSpace(entry.Key) || entry.Key.Length > 256 ||
+                entry.Value is null ||
+                !double.IsFinite(entry.Value.X) || !double.IsFinite(entry.Value.Y) ||
+                Math.Abs(entry.Value.X) > 100_000 || Math.Abs(entry.Value.Y) > 100_000))
+        {
+            throw new ArgumentOutOfRangeException(nameof(CustomOverlayPlacements));
+        }
+
+        if (!IsSupportedHotkey(QuickPanelHotkey))
+        {
+            throw new ArgumentOutOfRangeException(nameof(QuickPanelHotkey));
+        }
+
+        if (SmartDragExcludedProcesses is null || SmartDragExcludedProcesses.Length > 128 || SmartDragExcludedProcesses.Any(value =>
+                string.IsNullOrWhiteSpace(value) || value.Length > 260 ||
+                value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0))
+        {
+            throw new ArgumentOutOfRangeException(nameof(SmartDragExcludedProcesses));
+        }
+
         if (!Enum.IsDefined(UpdateChannel))
         {
             throw new ArgumentOutOfRangeException(nameof(UpdateChannel));
@@ -198,5 +241,27 @@ public sealed record AppSettings
         }
 
         return this;
+    }
+
+    private static bool IsSupportedHotkey(string? gesture)
+    {
+        if (string.IsNullOrWhiteSpace(gesture) || gesture.Length > 128)
+        {
+            return false;
+        }
+        var parts = gesture.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var hasModifier = parts.Any(part => part.Equals("Win", StringComparison.OrdinalIgnoreCase) ||
+                                            part.Equals("Shift", StringComparison.OrdinalIgnoreCase) ||
+                                            part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
+                                            part.Equals("Alt", StringComparison.OrdinalIgnoreCase));
+        var keys = parts.Count(part => part.Equals("Space", StringComparison.OrdinalIgnoreCase) ||
+                                      part.Length == 1 && char.IsAsciiLetterOrDigit(part[0]));
+        return hasModifier && keys == 1 && parts.All(part =>
+            part.Equals("Win", StringComparison.OrdinalIgnoreCase) ||
+            part.Equals("Shift", StringComparison.OrdinalIgnoreCase) ||
+            part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
+            part.Equals("Alt", StringComparison.OrdinalIgnoreCase) ||
+            part.Equals("Space", StringComparison.OrdinalIgnoreCase) ||
+            part.Length == 1 && char.IsAsciiLetterOrDigit(part[0]));
     }
 }

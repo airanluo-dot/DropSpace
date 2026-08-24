@@ -18,6 +18,8 @@ public enum DragSessionTransitionKind
     None,
     Started,
     Verified,
+    AwaitingCompletion,
+    Superseded,
     Completed,
     Cancelled,
     Rejected,
@@ -34,7 +36,9 @@ public readonly record struct DragSessionTransition(
     DragSessionState State = DragSessionState.Idle,
     DragEvidenceLevel EvidenceLevel = DragEvidenceLevel.None,
     DragEvidenceFlags Evidence = DragEvidenceFlags.None,
-    bool RequiresOleVerification = false)
+    bool RequiresOleVerification = false,
+    DragIntentConfidence DragIntentConfidence = DragIntentConfidence.None,
+    PayloadConfidence PayloadConfidence = PayloadConfidence.Unknown)
 {
     public static DragSessionTransition None { get; } = new(
         DragSessionTransitionKind.None,
@@ -64,6 +68,8 @@ public sealed class DragSessionPolicy
     private DragEvidenceFlags _evidence;
     private bool _exactFileItem;
     private bool _requiresOleVerification;
+    private DragIntentConfidence _intentConfidence;
+    private PayloadConfidence _payloadConfidence;
     private long _nextSessionId;
     private long _activeSessionId;
 
@@ -83,15 +89,23 @@ public sealed class DragSessionPolicy
 
     public bool RequiresOleVerification => _requiresOleVerification;
 
-    public void PointerPressed(
+    public DragIntentConfidence ActiveIntentConfidence => _intentConfidence;
+
+    public PayloadConfidence ActivePayloadConfidence => _payloadConfidence;
+
+    public DragSessionTransition PointerPressed(
         DragScreenPoint point,
         DragPointerButton button,
         DragSourceKind source,
         bool exactFileItem = true)
     {
+        var superseded = DragSessionTransition.None;
         if (_active)
         {
-            return;
+            // A fresh press must never be swallowed by the previous session's completion grace.
+            // Supersede it immediately; stale callbacks are rejected by their old session id.
+            superseded = CreateTransition(DragSessionTransitionKind.Superseded, point);
+            ClearActiveState();
         }
 
         _pointerDown = true;
@@ -100,6 +114,8 @@ public sealed class DragSessionPolicy
         _exactFileItem = exactFileItem && IsSupportedFileSource(source);
         _state = DragSessionState.PointerCandidate;
         _evidenceLevel = DragEvidenceLevel.PointerCandidate;
+        _intentConfidence = DragIntentConfidence.None;
+        _payloadConfidence = _exactFileItem ? PayloadConfidence.FileLike : PayloadConfidence.Unknown;
         _evidence = DragEvidenceFlags.PointerPressed;
         if (IsSupportedFileSource(source))
         {
@@ -112,6 +128,7 @@ public sealed class DragSessionPolicy
         }
 
         _ = button;
+        return superseded;
     }
 
     public DragSessionTransition PointerMoved(DragScreenPoint point)
@@ -129,6 +146,7 @@ public sealed class DragSessionPolicy
         }
 
         _evidence |= DragEvidenceFlags.DragThresholdCrossed;
+        _intentConfidence = DragIntentConfidence.PointerThreshold;
         var trustedFileCandidate = IsSupportedFileSource(_source) && _exactFileItem;
         return Start(
             point,
@@ -142,14 +160,18 @@ public sealed class DragSessionPolicy
     {
         if (_active)
         {
-            var promotedGenericCandidate = _requiresOleVerification;
             _evidence |= DragEvidenceFlags.AccessibilityDragStarted;
+            _intentConfidence = DragIntentConfidence.AccessibilityConfirmed;
             _evidenceLevel = DragEvidenceLevel.Strong;
-            _requiresOleVerification = false;
-            _state = DragSessionState.VisibleTargetActive;
-            return promotedGenericCandidate
-                ? CreateTransition(DragSessionTransitionKind.Verified, point)
-                : DragSessionTransition.None;
+            // Accessibility confirms drag intent only. Unknown payloads must continue through the
+            // bounded OLE probe before DropSpace activates the accepting target.
+            if (_payloadConfidence == PayloadConfidence.Unknown)
+            {
+                _requiresOleVerification = true;
+                _state = DragSessionState.SpeculativeReveal;
+            }
+
+            return DragSessionTransition.None;
         }
 
         if (IsSupportedFileSource(source))
@@ -157,17 +179,35 @@ public sealed class DragSessionPolicy
             _source = source;
         }
         _evidence |= DragEvidenceFlags.AccessibilityDragStarted;
-        return Start(point, DragEvidenceLevel.Strong, requiresOleVerification: false);
+        _intentConfidence = DragIntentConfidence.AccessibilityConfirmed;
+        var fileLike = IsSupportedFileSource(_source) && _exactFileItem;
+        _payloadConfidence = fileLike ? PayloadConfidence.FileLike : PayloadConfidence.Unknown;
+        return Start(point, DragEvidenceLevel.Strong, requiresOleVerification: !fileLike);
     }
 
-    public DragSessionTransition PointerReleased(DragScreenPoint point) =>
-        Finish(point, DragSessionTransitionKind.Cancelled, DragSessionState.Cancelled);
+    public DragSessionTransition PointerReleased(DragScreenPoint point)
+    {
+        if (!_active)
+        {
+            Reset();
+            return DragSessionTransition.None;
+        }
+
+        _pointerDown = false;
+        _state = DragSessionState.AwaitingOleCompletion;
+        return CreateTransition(DragSessionTransitionKind.AwaitingCompletion, point);
+    }
 
     public DragSessionTransition DragCompleted(DragScreenPoint point) =>
         Finish(point, DragSessionTransitionKind.Completed, DragSessionState.Completed);
 
     public DragSessionTransition DragCancelled(DragScreenPoint point) =>
         Finish(point, DragSessionTransitionKind.Cancelled, DragSessionState.Cancelled);
+
+    public DragSessionTransition CompletionGraceExpired(long sessionId, DragScreenPoint point) =>
+        _active && _activeSessionId == sessionId && _state == DragSessionState.AwaitingOleCompletion
+            ? Finish(point, DragSessionTransitionKind.Cancelled, DragSessionState.Cancelled)
+            : DragSessionTransition.None;
 
     public DragSessionTransition ProbeVerified(long sessionId, DragScreenPoint point)
     {
@@ -180,6 +220,8 @@ public sealed class DragSessionPolicy
         _state = DragSessionState.VerifiedFileDrag;
         _evidenceLevel = DragEvidenceLevel.VerifiedFile;
         _evidence |= DragEvidenceFlags.OleVerifiedFile;
+        _intentConfidence = DragIntentConfidence.OleDragConfirmed;
+        _payloadConfidence = PayloadConfidence.FileVerified;
         return CreateTransition(DragSessionTransitionKind.Verified, point);
     }
 
@@ -208,6 +250,8 @@ public sealed class DragSessionPolicy
         _evidence = DragEvidenceFlags.None;
         _exactFileItem = false;
         _requiresOleVerification = false;
+        _intentConfidence = DragIntentConfidence.None;
+        _payloadConfidence = PayloadConfidence.Unknown;
         _activeSessionId = 0;
     }
 
@@ -240,14 +284,7 @@ public sealed class DragSessionPolicy
 
         _state = finalState;
         var transition = CreateTransition(kind, point);
-        _active = false;
-        _source = DragSourceKind.Unknown;
-        _state = DragSessionState.Idle;
-        _evidenceLevel = DragEvidenceLevel.None;
-        _evidence = DragEvidenceFlags.None;
-        _exactFileItem = false;
-        _requiresOleVerification = false;
-        _activeSessionId = 0;
+        ClearActiveState();
         return transition;
     }
 
@@ -262,7 +299,24 @@ public sealed class DragSessionPolicy
             _state,
             _evidenceLevel,
             _evidence,
-            _requiresOleVerification);
+            _requiresOleVerification,
+            _intentConfidence,
+            _payloadConfidence);
+
+    private void ClearActiveState()
+    {
+        _pointerDown = false;
+        _active = false;
+        _source = DragSourceKind.Unknown;
+        _state = DragSessionState.Idle;
+        _evidenceLevel = DragEvidenceLevel.None;
+        _evidence = DragEvidenceFlags.None;
+        _exactFileItem = false;
+        _requiresOleVerification = false;
+        _intentConfidence = DragIntentConfidence.None;
+        _payloadConfidence = PayloadConfidence.Unknown;
+        _activeSessionId = 0;
+    }
 
     private static bool IsSupportedFileSource(DragSourceKind source) =>
         source is DragSourceKind.ExplorerFileView or DragSourceKind.DesktopFileView;

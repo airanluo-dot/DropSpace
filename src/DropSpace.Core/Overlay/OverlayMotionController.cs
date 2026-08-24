@@ -10,7 +10,8 @@ public readonly record struct OverlayMotionValues(
     double CompactContent,
     double DragContent,
     double ExpandedContent,
-    double DropTargetScale)
+    double DropTargetScale,
+    double ShadowOpacity = 0)
 {
     public const double MinimumDimension = 1;
     public const double MinimumDropTargetScale = 0.75;
@@ -26,7 +27,8 @@ public readonly record struct OverlayMotionValues(
         0,
         0,
         0,
-        0.92);
+        0.92,
+        0);
 
     /// <summary>
     /// Projects spring output into the semantic range accepted by WinUI and Win32 geometry APIs.
@@ -51,7 +53,8 @@ public readonly record struct OverlayMotionValues(
             Math.Clamp(
                 FiniteOr(DropTargetScale, 1),
                 MinimumDropTargetScale,
-                MaximumDropTargetScale));
+                MaximumDropTargetScale),
+            Math.Clamp(FiniteOr(ShadowOpacity, 0), 0, 1));
     }
 
     public bool IsApiSafe()
@@ -68,6 +71,7 @@ public readonly record struct OverlayMotionValues(
             DragContent,
             ExpandedContent,
             DropTargetScale,
+            ShadowOpacity,
         };
         var maximumRadius = Math.Min(Width, Height) / 2;
         return values.All(double.IsFinite) &&
@@ -80,6 +84,7 @@ public readonly record struct OverlayMotionValues(
                CompactContent is >= 0 and <= 1 &&
                DragContent is >= 0 and <= 1 &&
                ExpandedContent is >= 0 and <= 1 &&
+               ShadowOpacity is >= 0 and <= 1 &&
                DropTargetScale is >= MinimumDropTargetScale and <= MaximumDropTargetScale;
     }
 
@@ -178,6 +183,7 @@ public sealed class OverlayMotionController
         values.DragContent,
         values.ExpandedContent,
         values.DropTargetScale,
+        values.ShadowOpacity,
     ];
 
     private static OverlayMotionValues FromChannels(SpringChannel[] channels) => new(
@@ -190,7 +196,8 @@ public sealed class OverlayMotionController
         channels[6].Value,
         channels[7].Value,
         channels[8].Value,
-        channels[9].Value);
+        channels[9].Value,
+        channels[10].Value);
 
     private static void Validate(OverlayMotionValues values)
     {
@@ -204,6 +211,7 @@ public sealed class OverlayMotionController
             values.CompactContent is < 0 or > 1 ||
             values.DragContent is < 0 or > 1 ||
             values.ExpandedContent is < 0 or > 1 ||
+            values.ShadowOpacity is < 0 or > 1 ||
             values.DropTargetScale is < OverlayMotionValues.MinimumDropTargetScale or > OverlayMotionValues.MaximumDropTargetScale ||
             values.TopRadius > Math.Min(values.Width, values.Height) / 2 ||
             values.BottomRadius > Math.Min(values.Width, values.Height) / 2)
@@ -258,4 +266,13 @@ public sealed class OverlayMotionController
             }
         }
     }
+}
+
+public enum OverlayVisualPhase
+{
+    Invisible,
+    Entering,
+    Visible,
+    Exiting,
+    Reversing,
 }
