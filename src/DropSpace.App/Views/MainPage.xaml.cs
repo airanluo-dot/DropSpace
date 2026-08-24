@@ -831,7 +831,21 @@ public sealed partial class MainPage : Page
             SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
             SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
             SelectComboItem(FileDragWakeModeCombo, _viewModel.FileDragWakeMode.ToString());
-            OverlayPlacementMonitorCombo.ItemsSource = _viewModel.AvailableOverlayMonitors;
+            IReadOnlyList<OverlayMonitorChoice> availableOverlayMonitors;
+            try
+            {
+                availableOverlayMonitors = _viewModel.AvailableOverlayMonitors;
+            }
+            catch (InvalidOperationException exception) when (
+                exception.Message.Contains("active display", StringComparison.OrdinalIgnoreCase))
+            {
+                // Display enumeration can briefly return no monitors during a headless or display
+                // reconnecting session. Keep the settings page usable; the overlay service will
+                // retry on its next topology refresh.
+                availableOverlayMonitors = Array.Empty<OverlayMonitorChoice>();
+            }
+
+            OverlayPlacementMonitorCombo.ItemsSource = availableOverlayMonitors;
             OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
             QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
             SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
