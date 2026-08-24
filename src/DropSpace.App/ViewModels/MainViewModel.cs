@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly WindowsShareIntegrationService _windowsShareIntegration;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly DragSessionDetector _dragSessionDetector;
+    private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
     private readonly ClipboardCaptureService _clipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
@@ -59,6 +60,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         WindowsShareIntegrationService windowsShareIntegration,
         MonitorLayoutService monitorLayout,
         DragSessionDetector dragSessionDetector,
+        GlobalQuickPanelHotkeyService quickPanelHotkey,
         ClipboardCaptureService clipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
@@ -77,6 +79,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _windowsShareIntegration = windowsShareIntegration;
         _monitorLayout = monitorLayout;
         _dragSessionDetector = dragSessionDetector;
+        _quickPanelHotkey = quickPanelHotkey;
         _clipboard = clipboard;
         _shell = shell;
         _thumbnails = thumbnails;
@@ -614,6 +617,88 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return accepted;
     }
 
+    public async Task<int> AddOwnedPathsBatchAsync(
+        IEnumerable<string> stagingPaths,
+        long? dropSessionId,
+        string acquisitionKind,
+        long maximumFileBytes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stagingPaths);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFileBytes);
+        var paths = stagingPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var batchId = Guid.NewGuid();
+        var accepted = 0;
+        var rejected = 0;
+        for (var index = 0; index < paths.Length; index++)
+        {
+            var stagingPath = paths[index];
+            PayloadRecord? payload = null;
+            try
+            {
+                var stagedCandidate = await _fileReferences.InspectAsync(stagingPath, cancellationToken);
+                await using var input = new FileStream(
+                    stagingPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    81_920,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                payload = await _payloadStore.WriteFileAsync(
+                    "files",
+                    stagedCandidate.Extension,
+                    input,
+                    maximumFileBytes,
+                    cancellationToken);
+                var ownedPath = _payloadStore.ResolvePath(payload.RelativePath);
+                var ownedCandidate = stagedCandidate with
+                {
+                    OriginalPath = ownedPath,
+                    NormalizedPath = Path.GetFullPath(ownedPath),
+                };
+                var metadata = JsonSerializer.Serialize(new DropBatchMetadata(
+                    batchId,
+                    dropSessionId,
+                    index,
+                    paths.Length,
+                    acquisitionKind));
+                await _repository.AddOwnedSpaceFileAsync(ownedCandidate, payload, metadata, cancellationToken);
+                payload = null;
+                accepted++;
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+            {
+                rejected++;
+                _logger.LogWarning(exception, "An app-owned staged item was rejected without logging its filename or path.");
+            }
+            finally
+            {
+                if (payload is not null)
+                {
+                    await _payloadStore.DeleteAsync(payload.RelativePath, CancellationToken.None);
+                }
+                try
+                {
+                    if (File.Exists(stagingPath))
+                    {
+                        File.Delete(stagingPath);
+                    }
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    _logger.LogWarning(exception, "A consumed staging file could not be removed immediately.");
+                }
+            }
+        }
+
+        StatusMessage = rejected == 0
+            ? _strings.Format("ItemsAdded", accepted)
+            : _strings.Format("ItemsAddedWithRejected", accepted, rejected);
+        await ReloadAsync(cancellationToken);
+        await PublishSpaceProjectionChangedAsync(cancellationToken);
+        return accepted;
+    }
+
     public async Task<DropItem> AddTextToSpaceAsync(
         string text,
         string acquisitionKind,
@@ -676,7 +761,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             await TogglePinAsync(card, cancellationToken);
             return;
         }
-        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
+        var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
         var pin = members.Any(item => !item.IsPinned);
         foreach (var member in members)
         {
@@ -693,7 +778,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             await RemoveAsync(card, cancellationToken);
             return;
         }
-        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
+        var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
         foreach (var member in members)
         {
             var payloadPath = await _repository.RemoveAsync(member.Id, cancellationToken);
@@ -861,6 +946,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var preflight = UiSettingsPreflightAsync;
         try
         {
+            if (!string.Equals(settings.QuickPanelHotkey, previous.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase) &&
+                !_quickPanelHotkey.CanRegister(settings.QuickPanelHotkey))
+            {
+                throw new InvalidOperationException("The requested Quick Panel hotkey is already registered by another application.");
+            }
             if (preflight is not null)
             {
                 await preflight(settings, cancellationToken);

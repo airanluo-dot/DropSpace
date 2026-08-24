@@ -159,13 +159,29 @@ public sealed class ShareTargetActivationService
                 81_920,
                 FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
-                await input.CopyToAsync(output, 81_920, cancellationToken);
+                var buffer = new byte[81_920];
+                long total = 0;
+                while (true)
+                {
+                    var read = await input.ReadAsync(buffer, cancellationToken);
+                    if (read == 0)
+                    {
+                        break;
+                    }
+                    total = checked(total + read);
+                    if (total > _mainViewModel.Settings.MaxImageBytes)
+                    {
+                        throw new InvalidDataException("The shared bitmap exceeded the configured image byte limit.");
+                    }
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
             }
 
-            return await OnDispatcherAsync(() => _mainViewModel.AddPathsBatchAsync(
+            return await OnDispatcherAsync(() => _mainViewModel.AddOwnedPathsBatchAsync(
                 [path],
                 null,
                 "windows-share-image",
+                _mainViewModel.Settings.MaxImageBytes,
                 cancellationToken));
         }
         catch

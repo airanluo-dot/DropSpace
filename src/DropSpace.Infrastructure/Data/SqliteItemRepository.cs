@@ -17,13 +17,20 @@ public sealed class SqliteItemRepository(
     public Task InitializeAsync(CancellationToken cancellationToken = default) => database.InitializeAsync(cancellationToken);
 
     public Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default) =>
-        AddFileCoreAsync(candidate, ItemSource.Space, null, null, cancellationToken);
+        AddFileCoreAsync(candidate, ItemSource.Space, null, null, null, cancellationToken);
 
     public Task<DropItem> AddSpaceFileAsync(
         FileCandidate candidate,
         string? metadataJson,
         CancellationToken cancellationToken = default) =>
-        AddFileCoreAsync(candidate, ItemSource.Space, null, metadataJson, cancellationToken);
+        AddFileCoreAsync(candidate, ItemSource.Space, null, metadataJson, null, cancellationToken);
+
+    public Task<DropItem> AddOwnedSpaceFileAsync(
+        FileCandidate candidate,
+        PayloadRecord payload,
+        string? metadataJson,
+        CancellationToken cancellationToken = default) =>
+        AddFileCoreAsync(candidate, ItemSource.Space, null, metadataJson, payload, cancellationToken);
 
     public Task<DropItem> AddClipboardFileAsync(
         FileCandidate candidate,
@@ -32,7 +39,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fingerprint);
-        return AddFileCoreAsync(candidate, ItemSource.Clipboard, fingerprint, metadataJson, cancellationToken);
+        return AddFileCoreAsync(candidate, ItemSource.Clipboard, fingerprint, metadataJson, null, cancellationToken);
     }
 
     private async Task<DropItem> AddFileCoreAsync(
@@ -40,6 +47,7 @@ public sealed class SqliteItemRepository(
         ItemSource source,
         string? fingerprint,
         string? metadataJson,
+        PayloadRecord? payload,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candidate);
@@ -60,6 +68,10 @@ public sealed class SqliteItemRepository(
             var now = DateTimeOffset.UtcNow;
             var itemId = Guid.NewGuid();
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            if (payload is not null)
+            {
+                await InsertPayloadAsync(connection, transaction, payload, cancellationToken).ConfigureAwait(false);
+            }
             await InsertBaseItemAsync(
                     connection,
                     transaction,
@@ -71,7 +83,7 @@ public sealed class SqliteItemRepository(
                     candidate.Status,
                     ContentClassifier.BuildSearchText(candidate.Title, candidate.OriginalPath),
                     fingerprint,
-                    null,
+                    payload?.Id,
                     cancellationToken,
                     metadataJson)
                 .ConfigureAwait(false);
@@ -302,6 +314,26 @@ public sealed class SqliteItemRepository(
             items.Add(ReadItem(reader));
         }
 
+        return items;
+    }
+
+    public async Task<IReadOnlyList<DropItem>> QueryDropBatchAsync(
+        Guid dropBatchId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = string.Concat(
+            SelectSql,
+            " WHERE i.source = @source AND json_valid(i.metadata_json) AND json_extract(i.metadata_json, '$.DropBatchId') = @batch ORDER BY i.created_at_utc, i.id;");
+        command.Parameters.AddWithValue("@source", (int)ItemSource.Space);
+        command.Parameters.AddWithValue("@batch", dropBatchId.ToString());
+        var items = new List<DropItem>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(ReadItem(reader));
+        }
         return items;
     }
 

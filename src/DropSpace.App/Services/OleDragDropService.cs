@@ -11,7 +11,8 @@ public sealed record DragActivationCallbacks(
     Action<string> DragApproaching,
     Action<string, bool> DragReadyChanged,
     Action<string> DragLeft,
-    Func<string, IReadOnlyList<string>, Task> Dropped);
+    Func<string, IReadOnlyList<string>, Task> Dropped,
+    Func<string, IReadOnlyList<string>, Task>? DroppedOwned = null);
 
 /// <summary>
 /// Owns OLE initialization and native drop-target registrations. Both the visually transparent reveal host
@@ -380,7 +381,20 @@ public sealed class DragActivationHost : IDisposable
                 {
                     CollapseAfterDrag();
                 }
-            });
+            },
+            callbacks.DroppedOwned is null
+                ? null
+                : async (monitorId, paths) =>
+                {
+                    try
+                    {
+                        await callbacks.DroppedOwned(monitorId, paths);
+                    }
+                    finally
+                    {
+                        CollapseAfterDrag();
+                    }
+                });
         _dropTarget = new OleDropTargetRegistration(
             WindowHandle,
             monitor.Id,
@@ -740,6 +754,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private bool _lastReady;
     private long _dragOverCount;
     private Task? _lastDropCompletion;
+    private CancellationTokenSource? _dropCancellation;
     private bool _disposed;
 
     public OleDropTargetRegistration(
@@ -851,9 +866,23 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     {
         try
         {
-            var paths = _classification.Kind == OleFileDataKind.VirtualFiles
-                ? _virtualFileMaterializer.Materialize(dataObject)
-                : _fileDataClassifier.ReadFileSystemPaths(dataObject, _classification);
+            if (_classification.Kind == OleFileDataKind.VirtualFiles)
+            {
+                _dropCancellation?.Cancel();
+                _dropCancellation?.Dispose();
+                _dropCancellation = new CancellationTokenSource();
+                effect = _canAccept ? DropEffectCopy : DropEffectNone;
+                _lastDropCompletion = effect == DropEffectCopy
+                    ? CompleteVirtualDropAsync(dataObject, _dropCancellation.Token)
+                    : null;
+                if (effect != DropEffectCopy)
+                {
+                    _callbacks.DragLeft(_monitorId);
+                }
+                return Success;
+            }
+
+            var paths = _fileDataClassifier.ReadFileSystemPaths(dataObject, _classification);
             // Once OLE selected this HWND and CF_HDROP was accepted, keep target ownership through
             // Drop. Re-evaluating a smaller visual-ready rectangle here made a valid Explorer drop
             // fail with DROPEFFECT_NONE when the final cursor sample landed on an animated edge.
@@ -932,7 +961,35 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 result);
         }
 
+        _dropCancellation?.Cancel();
+        _dropCancellation?.Dispose();
+        _dropCancellation = null;
         _disposed = true;
+    }
+
+    private async Task CompleteVirtualDropAsync(IDataObject dataObject, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var paths = await _virtualFileMaterializer.MaterializeAsync(dataObject, cancellationToken);
+            if (_callbacks.DroppedOwned is { } droppedOwned)
+            {
+                await droppedOwned(_monitorId, paths);
+            }
+            else
+            {
+                await _callbacks.Dropped(_monitorId, paths);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _callbacks.DragLeft(_monitorId);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Virtual-file materialization failed after the OLE callback returned.");
+            _callbacks.DragLeft(_monitorId);
+        }
     }
 
     private async Task CompleteDropAsync(IReadOnlyList<string> paths)

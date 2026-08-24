@@ -13,6 +13,12 @@ public interface IItemRepository
         string? metadataJson,
         CancellationToken cancellationToken = default);
 
+    Task<DropItem> AddOwnedSpaceFileAsync(
+        FileCandidate candidate,
+        PayloadRecord payload,
+        string? metadataJson,
+        CancellationToken cancellationToken = default);
+
     Task<DropItem> AddClipboardFileAsync(
         FileCandidate candidate,
         string fingerprint,
@@ -29,6 +35,10 @@ public interface IItemRepository
     Task<DropItem> AddImageAsync(ImageCandidate candidate, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<DropItem>> QueryAsync(ItemQuery query, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<DropItem>> QueryDropBatchAsync(
+        Guid dropBatchId,
+        CancellationToken cancellationToken = default);
 
     Task<DropItem?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 

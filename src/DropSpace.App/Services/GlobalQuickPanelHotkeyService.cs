@@ -18,6 +18,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
     private Thread? _thread;
     private uint _threadId;
     private HotkeyDefinition _definition;
+    private string? _gesture;
     private readonly ManualResetEventSlim _ready = new(false);
     private bool _disposed;
 
@@ -28,10 +29,61 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
 
     public bool IsRegistered { get; private set; }
 
-    public void Start(string gesture)
+    public bool CanRegister(string gesture)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        var definition = Parse(gesture);
+        if (IsRegistered && string.Equals(_gesture, gesture, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        const int probeId = HotkeyId + 1;
+        if (!RegisterHotKey(nint.Zero, probeId, definition.Modifiers | ModifierNoRepeat, definition.VirtualKey))
+        {
+            return false;
+        }
+        _ = UnregisterHotKey(nint.Zero, probeId);
+        return true;
+    }
+
+    public bool TryStart(string gesture)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _ = Parse(gesture);
+        if (IsRegistered && string.Equals(_gesture, gesture, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        if (!CanRegister(gesture))
+        {
+            return false;
+        }
+        var previous = _gesture;
         Stop();
+        StartCore(gesture);
+        _ = _ready.Wait(TimeSpan.FromSeconds(2));
+        if (IsRegistered)
+        {
+            _gesture = gesture;
+            return true;
+        }
+        if (!string.IsNullOrWhiteSpace(previous))
+        {
+            Stop();
+            StartCore(previous);
+            _ = _ready.Wait(TimeSpan.FromSeconds(2));
+            if (IsRegistered)
+            {
+                _gesture = previous;
+            }
+        }
+        return false;
+    }
+
+    public void Start(string gesture) => _ = TryStart(gesture);
+
+    private void StartCore(string gesture)
+    {
         _ready.Reset();
         _definition = Parse(gesture);
         _thread = new Thread(MessageThreadMain)

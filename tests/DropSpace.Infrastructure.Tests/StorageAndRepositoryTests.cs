@@ -507,6 +507,37 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
+    public async Task Repository_OwnedFileBatchIsAuthoritativeAndReturnsPayloadForCleanup()
+    {
+        var repository = CreateRepository();
+        var store = new FilePayloadStore(_paths);
+        await using var source = new MemoryStream([1, 2, 3, 4]);
+        var payload = await store.WriteFileAsync("files", ".bin", source, 1_024);
+        var ownedPath = store.ResolvePath(payload.RelativePath);
+        var batchId = Guid.NewGuid();
+        var metadata = System.Text.Json.JsonSerializer.Serialize(
+            new DropBatchMetadata(batchId, 9, 0, 1, "virtual-file"));
+        var item = await repository.AddOwnedSpaceFileAsync(
+            new FileCandidate(
+                ownedPath,
+                Path.GetFullPath(ownedPath),
+                FileEntryKind.File,
+                "attachment.bin",
+                ".bin",
+                4,
+                DateTimeOffset.UtcNow,
+                ItemStatus.Available,
+                null),
+            payload,
+            metadata);
+
+        var batch = await repository.QueryDropBatchAsync(batchId);
+        Assert.AreEqual(1, batch.Count);
+        Assert.AreEqual(item.Id, batch[0].Id);
+        Assert.AreEqual(payload.RelativePath, await repository.RemoveAsync(item.Id));
+    }
+
+    [TestMethod]
     public async Task Repository_ClearClipboardPreservesPinnedItemsAndReturnsPayloads()
     {
         var repository = CreateRepository();

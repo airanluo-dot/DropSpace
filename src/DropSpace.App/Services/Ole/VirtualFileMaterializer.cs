@@ -31,7 +31,7 @@ internal sealed class VirtualFileMaterializer
         _logger = logger;
     }
 
-    public IReadOnlyList<string> Materialize(
+    public async Task<IReadOnlyList<string>> MaterializeAsync(
         IDataObject dataObject,
         CancellationToken cancellationToken = default)
     {
@@ -50,6 +50,10 @@ internal sealed class VirtualFileMaterializer
         Directory.CreateDirectory(batchRoot);
         try
         {
+            // StartOperation and the first yield occur while Drop still owns the supplying STA.
+            // Returning the incomplete task lets the OLE callback finish promptly; continuation
+            // resumes on that same UI apartment and yields between bounded stream chunks.
+            await Task.Yield();
             var descriptors = ReadDescriptors(dataObject);
             var paths = new List<string>(descriptors.Count);
             long totalBytes = 0;
@@ -58,7 +62,7 @@ internal sealed class VirtualFileMaterializer
                 cancellationToken.ThrowIfCancellationRequested();
                 var descriptor = descriptors[index];
                 var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName);
-                var written = WriteContents(dataObject, index, destination, cancellationToken);
+                var written = await WriteContentsAsync(dataObject, index, destination, cancellationToken);
                 totalBytes = checked(totalBytes + written);
                 if (written > MaximumFileBytes || totalBytes > MaximumBatchBytes)
                 {
@@ -91,10 +95,6 @@ internal sealed class VirtualFileMaterializer
             if (asyncOperationStarted)
             {
                 _ = asyncCapability!.EndOperation(operationResult, nint.Zero, 1);
-            }
-            if (asyncCapability is not null && Marshal.IsComObject(asyncCapability))
-            {
-                _ = Marshal.ReleaseComObject(asyncCapability);
             }
         }
     }
@@ -160,7 +160,7 @@ internal sealed class VirtualFileMaterializer
         }
     }
 
-    private long WriteContents(
+    private async Task<long> WriteContentsAsync(
         IDataObject dataObject,
         int index,
         string destination,
@@ -184,11 +184,11 @@ internal sealed class VirtualFileMaterializer
                 FileAccess.Write,
                 FileShare.None,
                 BufferSize,
-                FileOptions.WriteThrough | FileOptions.SequentialScan);
+                FileOptions.Asynchronous | FileOptions.WriteThrough | FileOptions.SequentialScan);
             return medium.tymed switch
             {
-                TYMED.TYMED_ISTREAM => CopyComStream(medium.unionmember, output, cancellationToken),
-                TYMED.TYMED_HGLOBAL => CopyGlobalMemory(medium.unionmember, output, cancellationToken),
+                TYMED.TYMED_ISTREAM => await CopyComStreamAsync(medium.unionmember, output, cancellationToken),
+                TYMED.TYMED_HGLOBAL => await CopyGlobalMemoryAsync(medium.unionmember, output, cancellationToken),
                 _ => throw new InvalidDataException("The virtual-file content medium is unsupported."),
             };
         }
@@ -198,7 +198,10 @@ internal sealed class VirtualFileMaterializer
         }
     }
 
-    private static long CopyComStream(nint unknown, Stream destination, CancellationToken cancellationToken)
+    private static async Task<long> CopyComStreamAsync(
+        nint unknown,
+        Stream destination,
+        CancellationToken cancellationToken)
     {
         if (unknown == nint.Zero)
         {
@@ -224,7 +227,8 @@ internal sealed class VirtualFileMaterializer
                 {
                     throw new InvalidDataException("A virtual-file stream exceeded the per-file limit.");
                 }
-                destination.Write(buffer, 0, count);
+                await destination.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
+                await Task.Yield();
             }
             return total;
         }
@@ -238,7 +242,10 @@ internal sealed class VirtualFileMaterializer
         }
     }
 
-    private static long CopyGlobalMemory(nint memory, Stream destination, CancellationToken cancellationToken)
+    private static async Task<long> CopyGlobalMemoryAsync(
+        nint memory,
+        Stream destination,
+        CancellationToken cancellationToken)
     {
         if (memory == nint.Zero)
         {
@@ -263,8 +270,9 @@ internal sealed class VirtualFileMaterializer
                 cancellationToken.ThrowIfCancellationRequested();
                 var count = (int)Math.Min(buffer.Length, length - offset);
                 Marshal.Copy(pointer + checked((int)offset), buffer, 0, count);
-                destination.Write(buffer, 0, count);
+                await destination.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
                 offset += count;
+                await Task.Yield();
             }
             return length;
         }

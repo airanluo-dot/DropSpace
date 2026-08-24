@@ -179,6 +179,31 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         return accepted;
     }
 
+    public async Task<int> CompleteOwnedDropAsync(
+        string monitorId,
+        IEnumerable<string> paths,
+        bool visibleTarget,
+        CancellationToken cancellationToken = default)
+    {
+        ActiveMonitorId = monitorId;
+        var accepted = await _mainViewModel.AddOwnedPathsBatchAsync(
+            paths,
+            null,
+            "ole-virtual-file-drop",
+            2L * 1024 * 1024 * 1024,
+            cancellationToken);
+        await RefreshRecentItemsAsync(cancellationToken);
+        if (visibleTarget)
+        {
+            _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+        }
+        else
+        {
+            _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
+        }
+        return accepted;
+    }
+
     public async Task CompleteVisibleTextDropAsync(
         string monitorId,
         string text,

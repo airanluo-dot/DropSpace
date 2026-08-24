@@ -54,9 +54,10 @@ public sealed class DragSessionDetector : IDisposable
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(30);
     private readonly MonitorLayoutService _monitorLayout;
     private readonly ILogger<DragSessionDetector> _logger;
-    private readonly Channel<DetectorSignal> _criticalSignals = Channel.CreateUnbounded<DetectorSignal>(
-        new UnboundedChannelOptions
+    private readonly Channel<DetectorSignal> _criticalSignals = Channel.CreateBounded<DetectorSignal>(
+        new BoundedChannelOptions(1_024)
         {
+            FullMode = BoundedChannelFullMode.Wait,
             SingleReader = true,
             SingleWriter = false,
         });
@@ -854,12 +855,26 @@ public sealed class DragSessionDetector : IDisposable
     {
         while (true)
         {
-            if (_criticalSignals.Reader.TryRead(out var critical))
+            var hasCritical = _criticalSignals.Reader.TryPeek(out var critical);
+            var hasMove = _moveSignals.Reader.TryPeek(out var move);
+            if (hasCritical && hasMove)
+            {
+                // The lanes have different pressure policies, not different chronology. An older
+                // threshold-crossing move must be applied before a later release/cancel signal.
+                if (move.Timestamp < critical.Timestamp && _moveSignals.Reader.TryRead(out move))
+                {
+                    return move;
+                }
+                if (_criticalSignals.Reader.TryRead(out critical))
+                {
+                    return critical;
+                }
+            }
+            else if (hasCritical && _criticalSignals.Reader.TryRead(out critical))
             {
                 return critical;
             }
-
-            if (_moveSignals.Reader.TryRead(out var move))
+            else if (hasMove && _moveSignals.Reader.TryRead(out move))
             {
                 return move;
             }

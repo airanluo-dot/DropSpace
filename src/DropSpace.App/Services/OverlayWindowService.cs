@@ -499,7 +499,10 @@ public sealed class OverlayWindowService : IDisposable
         }
         else if (args.PropertyName == nameof(OverlayViewModel.QuickPanelHotkey))
         {
-            _quickPanelHotkey.Start(_viewModel.QuickPanelHotkey);
+            if (!_quickPanelHotkey.TryStart(_viewModel.QuickPanelHotkey))
+            {
+                _logger.LogWarning("Quick Panel retained its previous registered hotkey after a registration conflict.");
+            }
         }
         else if (args.PropertyName == nameof(OverlayViewModel.SmartDragExcludedProcesses))
         {
@@ -568,7 +571,8 @@ public sealed class OverlayWindowService : IDisposable
             OnVisibleDragApproaching,
             OnVisibleDragReadyChanged,
             OnVisibleDragLeft,
-            OnVisibleDroppedAsync);
+            OnVisibleDroppedAsync,
+            OnVisibleOwnedDroppedAsync);
         foreach (var monitor in monitors)
         {
             _windows.Add(new OverlayWindow(
@@ -613,7 +617,8 @@ public sealed class OverlayWindowService : IDisposable
                 OnDragApproaching,
                 OnDragReadyChanged,
                 OnDragLeft,
-                OnDroppedAsync);
+                OnDroppedAsync,
+                OnOwnedDroppedAsync);
             foreach (var monitor in _monitorLayout.GetMonitors())
             {
                 var host = _dragDropService.CreateActivationHost(monitor, callbacks);
@@ -779,6 +784,20 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
+    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    {
+        try
+        {
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, visibleTarget: false);
+        }
+        finally
+        {
+            _activeDragOwner = DragTargetOwner.None;
+            CompleteSmartDetectorSession();
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+    }
+
     private void OnVisibleDragApproaching(string monitorId)
     {
         if (_activeSmartSessionId != 0)
@@ -830,6 +849,20 @@ public sealed class OverlayWindowService : IDisposable
                 paths.Count,
                 accepted,
                 _viewModel.Snapshot.State);
+        }
+        finally
+        {
+            _activeDragOwner = DragTargetOwner.None;
+            CompleteSmartDetectorSession();
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+    }
+
+    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    {
+        try
+        {
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, visibleTarget: true);
         }
         finally
         {
