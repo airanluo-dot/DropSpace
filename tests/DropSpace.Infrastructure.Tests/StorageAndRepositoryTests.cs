@@ -314,6 +314,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(new AppSettings
         {
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
+            OverlayPlacements = actual.OverlayPlacements,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
         }, actual);
         Assert.IsTrue(service.LastLoadRecovery.Recovered);

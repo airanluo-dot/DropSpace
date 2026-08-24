@@ -58,24 +58,28 @@ public sealed class JsonSettingsService : ISettingsService
             AppSettings? settings = null;
             try
             {
-                await using var stream = new FileStream(
-                    _paths.Settings,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    16_384,
-                    FileOptions.Asynchronous | FileOptions.SequentialScan);
-                if (stream.Length > 1_048_576)
+                var hadUpdateChannel = false;
+                await using (var stream = new FileStream(
+                                 _paths.Settings,
+                                 FileMode.Open,
+                                 FileAccess.Read,
+                                 FileShare.Read,
+                                 16_384,
+                                 FileOptions.Asynchronous | FileOptions.SequentialScan))
                 {
-                    throw new JsonException("settings.json exceeds the supported size limit.");
+                    if (stream.Length > 1_048_576)
+                    {
+                        throw new JsonException("settings.json exceeds the supported size limit.");
+                    }
+
+                    using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                    hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
+                        document.RootElement.EnumerateObject().Any(property =>
+                            string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
+                    settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
                 }
 
-                using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-                var hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
-                    document.RootElement.EnumerateObject().Any(property =>
-                        string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
-                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
                 settings ??= CreateDefaults();
                 var migratedVersion = false;
                 if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
