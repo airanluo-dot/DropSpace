@@ -260,6 +260,8 @@
   <data name="MonitorDescription.Text" xml:space="preserve"><value>Automatic mode appears on the screen where a file drag occurs.</value></data>
   <data name="MonitorAutomatic.Content" xml:space="preserve"><value>Automatic</value></data>
   <data name="MonitorPrimary.Content" xml:space="preserve"><value>Primary monitor</value></data>
+  <data name="OverlayMonitorChoice" xml:space="preserve"><value>Display {0}</value></data>
+  <data name="OverlayMonitorPrimaryChoice" xml:space="preserve"><value>Display {0} (Primary)</value></data>
   <data name="CloseBehaviorTitle.Text" xml:space="preserve"><value>When closing the window</value></data>
   <data name="CloseBehaviorDescription.Text" xml:space="preserve"><value>Clipboard recording continues when the app is hidden to the tray.</value></data>
   <data name="CloseBehaviorHideToTray.Content" xml:space="preserve"><value>Hide to tray</value></data>
@@ -286,4 +288,28 @@
   <data name="ClearTodayButton.Content" xml:space="preserve"><value>Clear today</value></data>
   <data name="ClearAllButton.Content" xml:space="preserve"><value>Clear all history</value></data>
   <data name="ClearHistoryDescription.Text" xml:space="preserve"><value>Cleanup keeps pinned items by default and never deletes original files referenced in Temporary Space.</value></data>
+  <data name="AddTextUrlMenuItem.Text" xml:space="preserve"><value>Add text or URL…</value></data>
+  <data name="AddTextUrlTitle" xml:space="preserve"><value>Add text or URL to Temporary Space</value></data>
+  <data name="AddTextUrlPlaceholder" xml:space="preserve"><value>Paste or type text or an https:// URL</value></data>
+  <data name="AddTextUrlConfirm" xml:space="preserve"><value>Add</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="DropBatchLabel" xml:space="preserve"><value>Drop batch · {0} items</value></data>
+  <data name="CollapseBatch" xml:space="preserve"><value>Collapse</value></data>
+  <data name="ExpandBatch" xml:space="preserve"><value>Expand</value></data>
+  <data name="PinBatchButton.Content" xml:space="preserve"><value>Pin group</value></data>
+  <data name="RemoveBatchButton.Content" xml:space="preserve"><value>Remove group</value></data>
+  <data name="IslandPlacementTitle.Text" xml:space="preserve"><value>Dynamic Island position</value></data>
+  <data name="IslandPlacementDescription.Text" xml:space="preserve"><value>Custom X/Y values are DIPs relative to the selected monitor work area. Temporary clamping never overwrites your saved values. Arrow keys move 1 DIP; Shift+Arrow moves 10; Enter applies; Esc rolls back the editor.</value></data>
+  <data name="IslandPlacementAutomatic.Content" xml:space="preserve"><value>Automatic</value></data>
+  <data name="IslandPlacementCustom.Content" xml:space="preserve"><value>Custom</value></data>
+  <data name="IslandPlacementX.Header" xml:space="preserve"><value>X (DIP)</value></data>
+  <data name="IslandPlacementY.Header" xml:space="preserve"><value>Y (DIP)</value></data>
+  <data name="ApplyIslandPlacementButton.Content" xml:space="preserve"><value>Apply position</value></data>
+  <data name="ResetIslandPlacementButton.Content" xml:space="preserve"><value>Reset</value></data>
+  <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>Quick Panel hotkey</value></data>
+  <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>Opens the existing Dynamic Island with keyboard navigation. Default: Win+Shift+Space.</value></data>
+  <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>Smart drag app exclusions</value></data>
+  <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>Comma-separated process names. This is best-effort: some elevated, protected, or short-lived source apps may not be identifiable.</value></data>
+  <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>Copy Smart Drag compatibility report</value></data>
+  <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>Path-free Smart Drag compatibility report copied.</value></data>
 </root>

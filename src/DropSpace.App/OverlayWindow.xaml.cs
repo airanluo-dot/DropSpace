@@ -42,6 +42,8 @@ public sealed partial class OverlayWindow : Window
     private bool _suppressedForFullscreen;
     private long _regionFailureCount;
     private bool _visualDragActive;
+    private OverlayResolvedPlacement _resolvedPlacement;
+    private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -83,6 +85,10 @@ public sealed partial class OverlayWindow : Window
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
         OverlayWindowInterop.ConfigureVisualWindow(_windowHandle);
+        _resolvedPlacement = ResolvePlacement(
+            FileDragWakeMode.SmartExperimental,
+            OverlayPlacementMode.Automatic,
+            null);
         PositionFixedHost();
         OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
         OverlayWindowInterop.Hide(_windowHandle);
@@ -112,8 +118,8 @@ public sealed partial class OverlayWindow : Window
     internal VisibleWindowProbe ProbeVisibleCenter()
     {
         var values = _motion.Current.ProjectToSafeRange();
-        var x = _monitor.Left + _monitor.Width / 2;
-        var y = _monitor.Top + ToPixels(values.TopOffset + values.Height / 2);
+        var x = _resolvedPlacement.HostLeftPixels + ToPixels(HostWidth / 2);
+        var y = _resolvedPlacement.HostTopPixels + ToPixels(values.TopOffset + values.Height / 2);
         var probe = OverlayWindowInterop.ProbeWindowAtPoint(_windowHandle, x, y);
         _logger.LogInformation(
             "Visible Overlay center probe on monitor {MonitorId}: point {X},{Y}, root HWND {RootWindow}, WindowFromPoint {DiscoveredWindow}, class {WindowClassName}, root-or-descendant={Owned}.",
@@ -206,8 +212,23 @@ public sealed partial class OverlayWindow : Window
         OverlaySnapshot snapshot,
         bool isActiveWindow,
         bool activationEnabled,
-        FileDragWakeMode wakeMode)
+        FileDragWakeMode wakeMode,
+        OverlayPlacementMode placementMode,
+        OverlayCustomPlacement? customPlacement)
     {
+        if (_visualPhase == OverlayVisualPhase.Exiting && snapshot.State != OverlayState.Hidden)
+        {
+            _visualPhase = OverlayVisualPhase.Reversing;
+        }
+        else if (snapshot.State is OverlayState.Dismissing or OverlayState.Hidden)
+        {
+            _visualPhase = OverlayVisualPhase.Exiting;
+        }
+        else if (!_isVisible)
+        {
+            _visualPhase = OverlayVisualPhase.Entering;
+        }
+
         _isActiveWindow = isActiveWindow && activationEnabled;
         if (!_isActiveWindow)
         {
@@ -232,6 +253,8 @@ public sealed partial class OverlayWindow : Window
 
         _suppressedForFullscreen = false;
         _hideWhenSettled = false;
+        _resolvedPlacement = ResolvePlacement(wakeMode, placementMode, customPlacement);
+        PositionFixedHost();
 
         if (snapshot.State == OverlayState.Hidden)
         {
@@ -240,9 +263,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        var topOffset = OverlayPlacementPolicy.GetTopOffsetDips(
-            wakeMode,
-            _monitor.Scale);
+        var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
@@ -284,6 +305,7 @@ public sealed partial class OverlayWindow : Window
     {
         StopAnimationFrames();
         Surface.Opacity = 0;
+        ShadowSurface.Opacity = 0;
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
@@ -293,6 +315,7 @@ public sealed partial class OverlayWindow : Window
         _motion.SnapTo(OverlayMotionValues.Hidden);
         _isVisible = false;
         _hideWhenSettled = false;
+        _visualPhase = OverlayVisualPhase.Invisible;
     }
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
@@ -314,7 +337,7 @@ public sealed partial class OverlayWindow : Window
         _hideWhenSettled = true;
         var hiddenTarget = CreateMotionTarget(
             OverlayState.Hidden,
-            OverlayPlacementPolicy.GetTopOffsetDips(wakeMode, _monitor.Scale));
+            _resolvedPlacement.SurfaceTopOffsetDips);
         PrepareContentForTarget(hiddenTarget);
         _motion.SetTarget(hiddenTarget, IsReducedMotion());
         StartAnimationFrames();
@@ -324,9 +347,27 @@ public sealed partial class OverlayWindow : Window
     {
         var width = ToPixels(HostWidth);
         var height = ToPixels(HostHeight);
-        var x = _monitor.Left + (_monitor.Width - width) / 2;
-        AppWindow.MoveAndResize(new RectInt32(x, _monitor.Top, width, height));
+        AppWindow.MoveAndResize(new RectInt32(
+            _resolvedPlacement.HostLeftPixels,
+            _resolvedPlacement.HostTopPixels,
+            width,
+            height));
     }
+
+    private OverlayResolvedPlacement ResolvePlacement(
+        FileDragWakeMode wakeMode,
+        OverlayPlacementMode placementMode,
+        OverlayCustomPlacement? customPlacement) =>
+        OverlayPlacementPolicy.Resolve(
+            new OverlayPlacementRequest(
+                _monitor.EffectiveWorkLeft,
+                _monitor.EffectiveWorkTop,
+                _monitor.EffectiveWorkWidth,
+                _monitor.EffectiveWorkHeight,
+                _monitor.Scale,
+                wakeMode),
+            placementMode,
+            customPlacement);
 
     private void StartAnimationFrames()
     {
@@ -366,15 +407,28 @@ public sealed partial class OverlayWindow : Window
         StopAnimationFrames();
         if (_hideWhenSettled)
         {
+            var current = _motion.Current.ProjectToSafeRange();
+            var target = _motion.Target.ProjectToSafeRange();
+            if (current.Opacity > 0.01 ||
+                Math.Abs(current.Width - target.Width) > 4 ||
+                Math.Abs(current.Height - target.Height) > 4)
+            {
+                StartAnimationFrames();
+                return;
+            }
             _hideWhenSettled = false;
             Surface.Opacity = 0;
+            ShadowSurface.Opacity = 0;
             CollapseInvisibleContent(_motion.Current);
             OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
             OverlayWindowInterop.Hide(_windowHandle);
             RevokeNativeDropTarget();
             _isVisible = false;
+            _visualPhase = OverlayVisualPhase.Invisible;
             return;
         }
+
+        _visualPhase = OverlayVisualPhase.Visible;
 
         var state = _viewModel.Snapshot.State;
         if (!_isActiveWindow)
@@ -402,6 +456,13 @@ public sealed partial class OverlayWindow : Window
         SurfaceTransform.ScaleX = values.DropTargetScale;
         SurfaceTransform.ScaleY = values.DropTargetScale;
         Surface.Opacity = values.Opacity;
+        ShadowSurface.Width = values.Width;
+        ShadowSurface.Height = values.Height;
+        ShadowSurface.CornerRadius = Surface.CornerRadius;
+        ShadowTransform.TranslateY = values.TopOffset + 5;
+        ShadowTransform.ScaleX = values.DropTargetScale;
+        ShadowTransform.ScaleY = values.DropTargetScale;
+        ShadowSurface.Opacity = values.Opacity * values.ShadowOpacity * 0.35;
         CompactPanel.Opacity = values.CompactContent;
         DragPanel.Opacity = values.DragContent;
         ExpandedPanel.Opacity = values.ExpandedContent;
@@ -506,7 +567,8 @@ public sealed partial class OverlayWindow : Window
                 0,
                 0,
                 0,
-                0.92),
+                0.92,
+                0),
             _ => OverlayMotionValues.Hidden,
         };
     }
@@ -529,6 +591,7 @@ public sealed partial class OverlayWindow : Window
             compactContent,
             dragContent,
             expandedContent,
+            1,
             1);
 
     private void EnsureNativeDropTargetRegistered()
@@ -634,19 +697,30 @@ public sealed partial class OverlayWindow : Window
 
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs args)
     {
-        var storageItems = args.Items
-            .OfType<ItemCardViewModel>()
+        var cards = args.Items.OfType<ItemCardViewModel>().ToArray();
+        var storageItems = cards
             .Select(card => card.DragStorageItem)
             .Where(item => item is not null)
             .Cast<Windows.Storage.IStorageItem>()
             .ToArray();
-        if (storageItems.Length == 0)
+        if (storageItems.Length > 0)
+        {
+            args.Data.SetStorageItems(storageItems, readOnly: true);
+        }
+        else if (cards.Length == 1 && cards[0].Item.Text?.InlineText is { } text)
+        {
+            args.Data.SetText(text);
+            if (cards[0].Item.Url is { NormalizedUrl: var url } && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                args.Data.SetWebLink(uri);
+            }
+        }
+        else
         {
             args.Cancel = true;
             return;
         }
 
-        args.Data.SetStorageItems(storageItems, readOnly: true);
         args.Data.RequestedOperation = DataPackageOperation.Copy;
     }
 
@@ -665,7 +739,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfaceDragEnter(object sender, DragEventArgs args)
     {
-        var canAccept = args.DataView.Contains(StandardDataFormats.StorageItems);
+        var canAccept = CanAcceptData(args.DataView);
         args.AcceptedOperation = canAccept ? DataPackageOperation.Copy : DataPackageOperation.None;
         args.Handled = canAccept;
         if (!canAccept)
@@ -684,7 +758,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfaceDragOver(object sender, DragEventArgs args)
     {
-        var canAccept = args.DataView.Contains(StandardDataFormats.StorageItems);
+        var canAccept = CanAcceptData(args.DataView);
         args.AcceptedOperation = canAccept ? DataPackageOperation.Copy : DataPackageOperation.None;
         args.Handled = canAccept;
         if (canAccept)
@@ -709,7 +783,7 @@ public sealed partial class OverlayWindow : Window
 
     private async void OnSurfaceDrop(object sender, DragEventArgs args)
     {
-        if (!args.DataView.Contains(StandardDataFormats.StorageItems))
+        if (!CanAcceptData(args.DataView))
         {
             args.AcceptedOperation = DataPackageOperation.None;
             return;
@@ -719,6 +793,17 @@ public sealed partial class OverlayWindow : Window
         _visualDragActive = false;
         try
         {
+            if (args.DataView.Contains(StandardDataFormats.WebLink) ||
+                args.DataView.Contains(StandardDataFormats.Text))
+            {
+                var text = args.DataView.Contains(StandardDataFormats.WebLink)
+                    ? (await args.DataView.GetWebLinkAsync()).AbsoluteUri
+                    : await args.DataView.GetTextAsync();
+                await _viewModel.CompleteVisibleTextDropAsync(_monitor.Id, text);
+                args.AcceptedOperation = DataPackageOperation.Copy;
+                return;
+            }
+
             var items = await args.DataView.GetStorageItemsAsync();
             var paths = items
                 .Where(static item => item is IStorageFile or IStorageFolder)
@@ -749,6 +834,11 @@ public sealed partial class OverlayWindow : Window
             _visualDragCallbacks.DragLeft(_monitor.Id);
         }
     }
+
+    private static bool CanAcceptData(DataPackageView data) =>
+        data.Contains(StandardDataFormats.StorageItems) ||
+        data.Contains(StandardDataFormats.Text) ||
+        data.Contains(StandardDataFormats.WebLink);
 
     private static ItemCardViewModel? GetCard(object sender) => sender switch
     {

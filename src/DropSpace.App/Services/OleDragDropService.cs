@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using DropSpace.Core.DragDrop;
+using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
@@ -22,17 +23,27 @@ public sealed class OleDragDropService : IDisposable
     private const int SuccessAlreadyInitialized = 1;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OleDragDropService> _logger;
+    private readonly MonitorLayoutService _monitorLayout;
     private readonly OleFileDataClassifier _fileDataClassifier = new();
+    private readonly VirtualFileMaterializer _virtualFileMaterializer;
     private readonly SmartDragProbeOptions _probeOptions = SmartDragProbeOptions.Default;
     private readonly List<IDisposable> _registrations = [];
     private EphemeralOleDragProbe? _activeProbe;
     private bool _oleInitialized;
     private bool _disposed;
 
-    public OleDragDropService(ILoggerFactory loggerFactory)
+    public OleDragDropService(
+        ILoggerFactory loggerFactory,
+        MonitorLayoutService monitorLayout,
+        AppStoragePaths paths)
     {
         _loggerFactory = loggerFactory;
+        _monitorLayout = monitorLayout;
         _logger = loggerFactory.CreateLogger<OleDragDropService>();
+        _virtualFileMaterializer = new VirtualFileMaterializer(
+            paths,
+            _fileDataClassifier,
+            loggerFactory.CreateLogger<VirtualFileMaterializer>());
     }
 
     public DragActivationHost CreateActivationHost(
@@ -45,6 +56,7 @@ public sealed class OleDragDropService : IDisposable
             monitor,
             callbacks,
             _fileDataClassifier,
+            _virtualFileMaterializer,
             _loggerFactory.CreateLogger<DragActivationHost>());
         _registrations.Add(host);
         return host;
@@ -63,6 +75,7 @@ public sealed class OleDragDropService : IDisposable
             callbacks,
             _loggerFactory.CreateLogger<OleDropTargetRegistration>(),
             _fileDataClassifier,
+            _virtualFileMaterializer,
             _ => true,
             "visual-overlay");
         return registration;
@@ -85,6 +98,7 @@ public sealed class OleDragDropService : IDisposable
         probe = new EphemeralOleDragProbe(
             sessionId,
             point,
+            _monitorLayout.GetMonitorAtPoint(point.X, point.Y),
             _probeOptions,
             _fileDataClassifier,
             result =>
@@ -138,8 +152,9 @@ public sealed class OleDragDropService : IDisposable
                 0)));
         var unsupported = _fileDataClassifier.Classify(new QueryOnlyDataObject(
             new OleFormatAdvertisement(13, TYMED.TYMED_HGLOBAL)));
-        if (shellItems.Kind != OleFileDataKind.ShellItems || !shellItems.CanAccept ||
-            virtualFiles.Kind != OleFileDataKind.VirtualFiles || !virtualFiles.IsFileLike || virtualFiles.CanAccept ||
+        if (shellItems.Kind != OleFileDataKind.ShellItems || !shellItems.IsFileLikeEvidence || shellItems.CanAcceptNow ||
+            virtualFiles.Kind != OleFileDataKind.VirtualFiles || !virtualFiles.IsFileLikeEvidence ||
+            virtualFiles.CanAcceptNow || !virtualFiles.CanMaterialize ||
             unsupported.Kind != OleFileDataKind.None || unsupported.CanAccept)
         {
             throw new InvalidOperationException(
@@ -172,8 +187,28 @@ public sealed class OleDragDropService : IDisposable
                 "The Smart OLE probe did not enforce timeout cleanup, single ownership and idempotent disposal.");
         }
 
+        var fallbackCompletion = new TaskCompletionSource<OleDragProbeResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var monitor = _monitorLayout.GetMonitorAtPoint(point.X, point.Y);
+        using var fallbackProbe = new EphemeralOleDragProbe(
+            long.MaxValue - 1,
+            point,
+            monitor,
+            _probeOptions with { HardLifetimeMilliseconds = 10 },
+            _fileDataClassifier,
+            fallbackCompletion.SetResult,
+            _loggerFactory.CreateLogger<EphemeralOleDragProbe>(),
+            static (_, _, _, _) => false);
+        var fallbackResult = await fallbackCompletion.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
+        await Task.Delay(300, cancellationToken);
+        if (fallbackResult.Outcome != OleDragProbeOutcome.TimedOut || !fallbackProbe.IsDisposed)
+        {
+            throw new InvalidOperationException(
+                "The Smart OLE probe did not clean up after simulated PostMessage failure.");
+        }
+
         _logger.LogInformation(
-            "Smart OLE verification probe smoke passed: native contract, CF_HDROP/Shell/virtual/unsupported classification, timeout cleanup, and double-dispose were verified.");
+            "Smart OLE verification probe smoke passed: native contract, CF_HDROP/Shell/virtual/unsupported classification, timeout cleanup, PostMessage-failure fallback, and double-dispose were verified.");
     }
 
     public void Dispose()
@@ -265,6 +300,7 @@ public sealed class DragActivationHost : IDisposable
         MonitorDescriptor monitor,
         DragActivationCallbacks callbacks,
         OleFileDataClassifier fileDataClassifier,
+        VirtualFileMaterializer virtualFileMaterializer,
         ILogger<DragActivationHost> logger)
     {
         _monitor = monitor;
@@ -351,6 +387,7 @@ public sealed class DragActivationHost : IDisposable
             ownedCallbacks,
             logger,
             fileDataClassifier,
+            virtualFileMaterializer,
             IsDropReady,
             "activation-host");
         _logger.LogInformation(
@@ -694,6 +731,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private readonly DragActivationCallbacks _callbacks;
     private readonly ILogger _logger;
     private readonly OleFileDataClassifier _fileDataClassifier;
+    private readonly VirtualFileMaterializer _virtualFileMaterializer;
     private readonly Func<NativePoint, bool> _isReady;
     private readonly string _surfaceKind;
     private IDataObject? _currentDataObject;
@@ -710,6 +748,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         DragActivationCallbacks callbacks,
         ILogger logger,
         OleFileDataClassifier fileDataClassifier,
+        VirtualFileMaterializer virtualFileMaterializer,
         Func<NativePoint, bool> isReady,
         string surfaceKind)
     {
@@ -718,6 +757,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         _callbacks = callbacks;
         _logger = logger;
         _fileDataClassifier = fileDataClassifier;
+        _virtualFileMaterializer = virtualFileMaterializer;
         _isReady = isReady;
         _surfaceKind = surfaceKind;
         OleDropTargetNative.Register(windowHandle, this);
@@ -736,6 +776,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         try
         {
             _classification = _fileDataClassifier.Classify(dataObject);
+            _classification = _fileDataClassifier.ResolveAcceptance(dataObject, _classification);
         }
         catch (Exception exception)
         {
@@ -747,7 +788,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 _monitorId);
         }
 
-        _canAccept = _classification.CanAccept;
+        _canAccept = _classification.CanAcceptNow || _classification.CanMaterialize;
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         _logger.LogInformation(
             "OLE DragEnter received by {SurfaceKind} on monitor {MonitorId}: classification={Classification}, fileLike={FileLike}, accepted={Accepted}, WindowFromPoint={DiscoveredWindow}, targetMatches={TargetMatches}.",
@@ -810,7 +851,9 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     {
         try
         {
-            var paths = _fileDataClassifier.ReadFileSystemPaths(dataObject, _classification);
+            var paths = _classification.Kind == OleFileDataKind.VirtualFiles
+                ? _virtualFileMaterializer.Materialize(dataObject)
+                : _fileDataClassifier.ReadFileSystemPaths(dataObject, _classification);
             // Once OLE selected this HWND and CF_HDROP was accepted, keep target ownership through
             // Drop. Re-evaluating a smaller visual-ready rectangle here made a valid Explorer drop
             // fail with DROPEFFECT_NONE when the final cursor sample landed on an animated edge.

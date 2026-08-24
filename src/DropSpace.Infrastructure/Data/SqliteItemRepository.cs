@@ -19,6 +19,12 @@ public sealed class SqliteItemRepository(
     public Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default) =>
         AddFileCoreAsync(candidate, ItemSource.Space, null, null, cancellationToken);
 
+    public Task<DropItem> AddSpaceFileAsync(
+        FileCandidate candidate,
+        string? metadataJson,
+        CancellationToken cancellationToken = default) =>
+        AddFileCoreAsync(candidate, ItemSource.Space, null, metadataJson, cancellationToken);
+
     public Task<DropItem> AddClipboardFileAsync(
         FileCandidate candidate,
         string fingerprint,
@@ -99,7 +105,20 @@ public sealed class SqliteItemRepository(
         }
     }
 
-    public async Task<DropItem> AddTextAsync(TextCandidate candidate, CancellationToken cancellationToken = default)
+    public Task<DropItem> AddTextAsync(TextCandidate candidate, CancellationToken cancellationToken = default) =>
+        AddTextCoreAsync(candidate, ItemSource.Clipboard, null, cancellationToken);
+
+    public Task<DropItem> AddSpaceTextAsync(
+        TextCandidate candidate,
+        string? metadataJson = null,
+        CancellationToken cancellationToken = default) =>
+        AddTextCoreAsync(candidate, ItemSource.Space, metadataJson, cancellationToken);
+
+    private async Task<DropItem> AddTextCoreAsync(
+        TextCandidate candidate,
+        ItemSource source,
+        string? metadataJson,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -113,7 +132,7 @@ public sealed class SqliteItemRepository(
                     connection,
                     transaction,
                     itemId,
-                    ItemSource.Clipboard,
+                    source,
                     candidate.Kind,
                     candidate.Title,
                     now,
@@ -121,7 +140,8 @@ public sealed class SqliteItemRepository(
                     ContentClassifier.BuildSearchText(candidate.Title, candidate.Text),
                     candidate.Fingerprint,
                     null,
-                    cancellationToken)
+                    cancellationToken,
+                    metadataJson)
                 .ConfigureAwait(false);
 
             await using (var textCommand = connection.CreateCommand())

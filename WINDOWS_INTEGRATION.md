@@ -18,7 +18,7 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | Clipboard source app | Limited/best effort | Win32 clipboard-owner window may be absent/stale/indirect |
 | Drag files into app | Supported | XAML drag/drop with `StorageItems` |
 | Drag files out to Explorer/apps | Supported, compatibility test required | Standard data package/storage items; test targets |
-| Global hotkey | Supported with Win32 interop | `RegisterHotKey`, conflict handling; V1.1 |
+| Global hotkey | Supported with Win32 interop | Dedicated `RegisterHotKey` message thread; configurable Preview.2 Quick Panel shortcut |
 | Tray icon | Supported with Win32 interop | `Shell_NotifyIcon`, native menu and restart recovery |
 | Hide-to-tray background operation | Supported | Keep desktop process alive; not an OS background task |
 | Startup at sign-in | Supported | Per-user `HKCU` Run value, default on, Settings-controlled, `--startup` hidden launch |
@@ -52,7 +52,7 @@ Official references: [AddClipboardFormatListener](https://learn.microsoft.com/en
 
 Win32 `GetClipboardOwner` can return the window that owns the clipboard, but ownership may be null, may change, and may belong to an intermediary/broker rather than the app the user thinks of as the source. Mapping HWND → process → packaged app identity is also not universally stable.
 
-Therefore app exclusions are **best effort**, deferred to V1.1, and never marketed as a secure password-manager boundary. The UI must say that attribution can fail. Pause recording and clear history remain the reliable controls.
+Therefore Smart Drag app exclusions are **best effort** and never marketed as a secure password-manager boundary. Preview.2 exposes comma-separated process exclusions with explicit text that elevated, protected, or short-lived apps may evade identification. Pause recording and clear history remain the reliable controls.
 
 Official reference: [GetClipboardOwner](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboardowner).
 
@@ -69,7 +69,7 @@ DropSpace separates two lifecycles per enabled display:
 - The asynchronous worker initializes COM on the exact thread used for each UIA inspection. `ElementFromPoint` may be a deeply nested icon/text child, so the worker walks a maximum of sixteen raw-view parents to locate the enclosing Explorer ListItem/TreeItem/DataItem. Blank file-view movement without an accessibility drag signal remains rejected.
 - Every candidate begins speculative Dynamic Island reveal on the pointer's display, offset about 76 physical pixels below the top so it does not compete for the primary Windows Drop Tray strip. One placement policy supplies this same physical anchor to DragApproaching, DragReady, Compact, Expanded, and Dismissing. The fixed host is 440 DIP tall so the offset Expanded surface and native region remain aligned even at 100% DPI.
 - A generic candidate concurrently creates one `EphemeralOleDragProbe` centered on the physical pointer point. Its 144×144-pixel window has a real 12-pixel center hole cut with `SetWindowRgn`; the pointer begins in the hole and can cross the ring naturally. It uses `WS_POPUP`, `WS_EX_LAYERED|NOACTIVATE|TOOLWINDOW|TOPMOST`, uniform alpha 1/255 and `MA_NOACTIVATE`, exists for no more than 60 ms, always reports `DROPEFFECT_NONE`, and posts its result so revoke/destroy occur outside `DragEnter`. The service permits one probe and destroys it on result, timeout, release, mode switch, new session, display rebuild, or shutdown.
-- `OleFileDataClassifier` is shared by the probe, Classic host and visible Island. Query-only verification recognizes `CF_HDROP`, `Shell IDList Array`, and `FileGroupDescriptorW` + `FileContents` without reading content. The final Preview.1 Drop accepts bounded file-system paths and Shell IDLists that resolve to file-system paths. Virtual-only data is classified as file evidence but fails closed until a later v0.3 Preview adds cancellable streaming materialization into DropSpace-owned staging storage.
+- `OleFileDataClassifier` is shared by the probe, Classic host and visible Island. Query-only verification recognizes `CF_HDROP`, `Shell IDList Array`, and `FileGroupDescriptorW` + `FileContents` without reading content. Preview.2 prefers `SHCreateShellItemArrayFromDataObject`, accepts only resolved Shell paths immediately, and materializes virtual files after real Drop through bounded indexed streams into a confined, rollback-safe staging batch.
 - Classic mode retains the former uniform-alpha 1/255, 960-DIP × 12-physical-pixel `HTCLIENT` top-edge host for compatibility. It is default-off, explicitly warns about title-bar/Drop Tray conflicts, and is destroyed immediately when the user changes mode. Disabled mode provides only main-window, already-visible Overlay and Windows Share entry points.
 
 The accepting OLE targets advertise `DROPEFFECT_COPY`, extract bounded paths only on Drop, and report only monitor/DPI/bounds/classification/item-count diagnostics. Compact/Expanded and a Smart-revealed target use the same visual registration, classifier and `AddPathsAsync` business path. The low-level hooks observe only session boundaries; there is no injection, input suppression, permanent hot zone, full-screen transparent window, mouse-button scan or cursor polling loop.
@@ -86,7 +86,7 @@ Smart detection uses only documented observation surfaces: [drag event constants
 
 ### Drag in
 
-Set `AllowDrop`, inspect advertised formats during `DragOver`, accept copy/link semantics, and retrieve `StandardDataFormats.StorageItems` on Drop. Mixed batches and unsupported virtual files require partial-result behavior.
+Set `AllowDrop`, inspect advertised formats during `DragOver`, accept copy semantics, and retrieve StorageItems, text, WebLink, or bitmap on Drop/Share. Packaged Share Target advertises `StorageItems`, `Text`, `Uri`, and `Bitmap`; portable/installer builds without package identity disclose that the Windows Share target is unavailable while native DropSpace intake remains available.
 
 ### External drag out
 
@@ -101,7 +101,7 @@ Official reference: [Windows drag and drop](https://learn.microsoft.com/en-us/wi
 `RegisterHotKey` registers system-wide combinations and reports failure when unavailable. A WinUI window/message hook receives `WM_HOTKEY`; registration must be removed on exit. Reserved combinations and collisions are expected.
 
 - Do not default to `Alt+Space` because Windows window menus and PowerToys Run make it conflict-prone.
-- Proposed V1.1 default: `Win+Shift+V`, configurable.
+- Preview.2 default: `Win+Shift+Space`, configurable.
 - Show conflict state and retain a Settings button to test alternatives.
 - Elevated foreground apps may create focus/interaction limitations.
 

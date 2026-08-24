@@ -80,6 +80,23 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     public FileDragWakeMode FileDragWakeMode =>
         (_pendingSettings ?? _mainViewModel.Settings).FileDragWakeMode;
 
+    public OverlayPlacementMode PlacementMode =>
+        (_pendingSettings ?? _mainViewModel.Settings).OverlayPlacementMode;
+
+    public string QuickPanelHotkey =>
+        (_pendingSettings ?? _mainViewModel.Settings).QuickPanelHotkey;
+
+    public IReadOnlyList<string> SmartDragExcludedProcesses =>
+        (_pendingSettings ?? _mainViewModel.Settings).SmartDragExcludedProcesses;
+
+    public OverlayCustomPlacement? GetCustomPlacement(string monitorId)
+    {
+        var settings = _pendingSettings ?? _mainViewModel.Settings;
+        return settings.CustomOverlayPlacements.TryGetValue(monitorId, out var placement)
+            ? placement
+            : null;
+    }
+
     public bool IsDragPromptVisible => Snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
 
     public bool IsCompactVisible => Snapshot.State == OverlayState.Compact;
@@ -162,6 +179,17 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         return accepted;
     }
 
+    public async Task CompleteVisibleTextDropAsync(
+        string monitorId,
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        ActiveMonitorId = monitorId;
+        await _mainViewModel.AddTextToSpaceAsync(text, "overlay-text-url-drop", cancellationToken: cancellationToken);
+        await RefreshRecentItemsAsync(cancellationToken);
+        _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+    }
+
     public async Task ExpandAsync(CancellationToken cancellationToken = default)
     {
         await RefreshRecentItemsAsync(cancellationToken);
@@ -189,6 +217,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MonitorPreference));
         OnPropertyChanged(nameof(MotionPreference));
         OnPropertyChanged(nameof(FileDragWakeMode));
+        OnPropertyChanged(nameof(PlacementMode));
+        OnPropertyChanged(nameof(QuickPanelHotkey));
+        OnPropertyChanged(nameof(SmartDragExcludedProcesses));
         return Task.CompletedTask;
     }
 
@@ -306,6 +337,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(MonitorPreference));
             OnPropertyChanged(nameof(MotionPreference));
             OnPropertyChanged(nameof(FileDragWakeMode));
+            OnPropertyChanged(nameof(PlacementMode));
+            OnPropertyChanged(nameof(QuickPanelHotkey));
+            OnPropertyChanged(nameof(SmartDragExcludedProcesses));
         }
     }
 

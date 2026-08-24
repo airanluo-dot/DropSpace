@@ -82,7 +82,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 ### File/drag adapters
 
 - Multi-file/folder incoming package.
-- Unsupported virtual/mixed package partial success.
+- Virtual-file descriptor bounds, indexed stream materialization, cancellation, duplicate-safe names, staging containment, and whole-batch rollback.
 - Outgoing package advertises storage items and copy operation.
 - Missing/permission/network errors map to correct domain state.
 - Query-only OLE classification for `CF_HDROP`, Shell IDList, `FileGroupDescriptorW` + indexed `FileContents`, plain text, and unsupported formats; no content read during verification.
@@ -124,7 +124,7 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 - In from Explorer/Desktop/network/OneDrive/removable drive plus WeChat, QQ, Feishu/Electron, Office/Outlook attachment, and at least one custom-drawn/Qt source where safely available.
 - Out to Explorer/Desktop, browser upload, Office, VS Code, Photoshop/available editor.
-- Single/multiple, file/folder, resolvable Shell item, virtual-only attachment, missing during drag, cancellation, right-button drag, elevated boundary.
+- Single/multiple, file/folder, resolvable Shell item, virtual-only attachment, file/image/text/URL drag-out and Share, missing during drag, cancellation, right-button drag, elevated boundary.
 - For every source, start away from the top edge and record threshold-to-Reveal latency, whether the probe verified/timed out, cursor feedback/flicker, source focus, taskbar/Alt+Tab presence, accepted item count, false reveal, cleanup, and final result. Confirm non-file text/window selection reverses speculative reveal and Classic is never enabled implicitly.
 - Race matrix: timeout vs DragEnter, DragEnter vs release, rejection vs new session, monitor switch vs probe creation, Smart → Classic, shutdown while active, OLE callback during cleanup, and accessibility completion before/after pointer release.
 - Record Windows build, source application/version, DropSpace build, display/DPI and result; Preview automation alone is not provider compatibility evidence.
@@ -195,7 +195,11 @@ No performance number is accepted without hardware, build configuration, dataset
 - Crafted URL schemes are not auto-opened.
 - Huge/malformed inputs cannot cause unbounded allocation or queue growth.
 - Malformed/oversized CIDA offsets, item counts and PIDLs fail closed; probe classification never calls `GetData` for virtual content and diagnostics contain no dragged path, filename or payload.
-- App exclusions, when introduced, are tested for false attribution and accompanied by limitation copy.
+- Best-effort app exclusions are tested for false attribution and accompanied by limitation copy.
+- Repeat 100 drag/cancel cycles, 10–30 ms cancellation, Exit→new-drag reversal, and 350 ms completion-grace supersession; assert stale session IDs cannot hide or commit newer work.
+- Inject 1,000/4,000/8,000 Hz pointer pressure while delivering reliable cancel/completion/probe signals; assert critical dropped count stays zero.
+- Verify Quick Panel default/custom hotkey conflict behavior, keyboard navigation, and file/image/text/URL drag-out.
+- Verify Automatic/Custom placement on negative coordinates and mixed DPI; Arrow=1 DIP, Shift+Arrow=10, Enter=save, Esc=rollback, disconnect/update clamping never mutates saved values.
 
 ## Release evidence
 

@@ -8,6 +8,11 @@ public interface IItemRepository
 
     Task<DropItem> AddFileAsync(FileCandidate candidate, CancellationToken cancellationToken = default);
 
+    Task<DropItem> AddSpaceFileAsync(
+        FileCandidate candidate,
+        string? metadataJson,
+        CancellationToken cancellationToken = default);
+
     Task<DropItem> AddClipboardFileAsync(
         FileCandidate candidate,
         string fingerprint,
@@ -15,6 +20,11 @@ public interface IItemRepository
         CancellationToken cancellationToken = default);
 
     Task<DropItem> AddTextAsync(TextCandidate candidate, CancellationToken cancellationToken = default);
+
+    Task<DropItem> AddSpaceTextAsync(
+        TextCandidate candidate,
+        string? metadataJson = null,
+        CancellationToken cancellationToken = default);
 
     Task<DropItem> AddImageAsync(ImageCandidate candidate, CancellationToken cancellationToken = default);
 

@@ -1,9 +1,10 @@
 using DropSpace.Core.Models;
+using DropSpace.Core.Abstractions;
 using Windows.Storage;
 
 namespace DropSpace.App.Services;
 
-public sealed class DragStorageItemService
+public sealed class DragStorageItemService(IPayloadStore payloadStore)
 {
     private readonly SemaphoreSlim _gate = new(8, 8);
 
@@ -13,7 +14,7 @@ public sealed class DragStorageItemService
     {
         ArgumentNullException.ThrowIfNull(item);
         cancellationToken.ThrowIfCancellationRequested();
-        if (item.File is null || item.Status != ItemStatus.Available)
+        if (item.Status != ItemStatus.Available)
         {
             return null;
         }
@@ -21,9 +22,19 @@ public sealed class DragStorageItemService
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            return item.File.EntryKind == FileEntryKind.Folder
-                ? await StorageFolder.GetFolderFromPathAsync(item.File.OriginalPath)
-                : await StorageFile.GetFileFromPathAsync(item.File.OriginalPath);
+            if (item.File is { } file)
+            {
+                return file.EntryKind == FileEntryKind.Folder
+                    ? await StorageFolder.GetFolderFromPathAsync(file.OriginalPath)
+                    : await StorageFile.GetFileFromPathAsync(file.OriginalPath);
+            }
+
+            if (item.Kind == ItemKind.Image && item.Payload is { } payload)
+            {
+                return await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(payload.RelativePath));
+            }
+
+            return null;
         }
         finally
         {

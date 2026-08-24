@@ -38,6 +38,9 @@
               <uap:SupportsAnyFileType />
             </uap:SupportedFileTypes>
             <uap:DataFormat>StorageItems</uap:DataFormat>
+            <uap:DataFormat>Text</uap:DataFormat>
+            <uap:DataFormat>Uri</uap:DataFormat>
+            <uap:DataFormat>Bitmap</uap:DataFormat>
           </uap:ShareTarget>
         </uap:Extension>
       </Extensions>

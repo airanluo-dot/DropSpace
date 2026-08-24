@@ -16,7 +16,9 @@ public sealed record DragSessionCandidate(
     DragSourceKind Source,
     DragEvidenceLevel EvidenceLevel,
     DragEvidenceFlags Evidence,
-    bool RequiresOleVerification);
+    bool RequiresOleVerification,
+    DragIntentConfidence DragIntentConfidence,
+    PayloadConfidence PayloadConfidence);
 
 /// <summary>
 /// Event-driven, non-injecting observer for source-agnostic candidate file drags. It never blocks
@@ -52,12 +54,18 @@ public sealed class DragSessionDetector : IDisposable
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(30);
     private readonly MonitorLayoutService _monitorLayout;
     private readonly ILogger<DragSessionDetector> _logger;
-    private readonly Channel<DetectorSignal> _signals = Channel.CreateBounded<DetectorSignal>(
-        new BoundedChannelOptions(256)
+    private readonly Channel<DetectorSignal> _criticalSignals = Channel.CreateUnbounded<DetectorSignal>(
+        new UnboundedChannelOptions
         {
-            // Hooks must never wait. Wait mode makes TryWrite return false when the bounded queue
-            // is full, so overload is both non-blocking and visible in diagnostics.
-            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false,
+        });
+    private readonly Channel<DetectorSignal> _moveSignals = Channel.CreateBounded<DetectorSignal>(
+        new BoundedChannelOptions(1)
+        {
+            // Pointer moves are intentionally coalesced. Press, release, cancel, timeout and OLE
+            // results use the reliable channel and therefore cannot silently disappear.
+            FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,
             SingleWriter = false,
         });
@@ -96,6 +104,13 @@ public sealed class DragSessionDetector : IDisposable
     private int _objectDragHookRegistrationError;
     private int _systemDragHookRegistrationError;
     private int _pointerObservationActive;
+    private string[] _excludedProcessNames = [];
+    private readonly object _latencyGate = new();
+    private readonly Queue<double> _probeLatencyMilliseconds = new();
+    private long _velocitySlowCount;
+    private long _velocityMediumCount;
+    private long _velocityFastCount;
+    private long _velocityExtremeCount;
 
     public DragSessionDetector(
         MonitorLayoutService monitorLayout,
@@ -171,6 +186,52 @@ public sealed class DragSessionDetector : IDisposable
                 StopCore();
             }
         }
+    }
+
+    public void SetExcludedProcesses(IEnumerable<string> processNames)
+    {
+        ArgumentNullException.ThrowIfNull(processNames);
+        Volatile.Write(ref _excludedProcessNames, processNames
+            .Select(static name => Path.GetFileNameWithoutExtension(name.Trim()))
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray());
+    }
+
+    public void RecordProbeLatency(TimeSpan elapsed)
+    {
+        if (elapsed < TimeSpan.Zero || !double.IsFinite(elapsed.TotalMilliseconds))
+        {
+            return;
+        }
+        lock (_latencyGate)
+        {
+            while (_probeLatencyMilliseconds.Count >= 4_096)
+            {
+                _probeLatencyMilliseconds.Dequeue();
+            }
+            _probeLatencyMilliseconds.Enqueue(elapsed.TotalMilliseconds);
+        }
+    }
+
+    public string CreateCompatibilityReport()
+    {
+        double[] samples;
+        lock (_latencyGate)
+        {
+            samples = _probeLatencyMilliseconds.Order().ToArray();
+        }
+        static double Percentile(double[] values, double percentile) => values.Length == 0
+            ? 0
+            : values[(int)Math.Clamp(Math.Ceiling(percentile * values.Length) - 1, 0, values.Length - 1)];
+        return string.Join(Environment.NewLine,
+            "DropSpace Smart Drag compatibility report (path-free)",
+            $"observer: {ObserverRegistrationDiagnostics}",
+            $"signals: observed={ObservedSignalCount}; criticalDropped={DroppedSignalCount}",
+            $"candidates: generic={GenericCandidateCount}; verified={VerifiedCandidateCount}; rejected={RejectedCandidateCount}; timeout={ProbeTimeoutCount}",
+            $"probe-ms: p50={Percentile(samples, .50):F1}; p90={Percentile(samples, .90):F1}; p95={Percentile(samples, .95):F1}; p99={Percentile(samples, .99):F1}",
+            $"velocity-buckets: slow={Interlocked.Read(ref _velocitySlowCount)}; medium={Interlocked.Read(ref _velocityMediumCount)}; fast={Interlocked.Read(ref _velocityFastCount)}; extreme={Interlocked.Read(ref _velocityExtremeCount)}",
+            $"false-reveal-proxy: {RejectedCandidateCount + ProbeTimeoutCount}");
     }
 
     public void NotifyOleSessionCompleted(long sessionId)
@@ -296,7 +357,10 @@ public sealed class DragSessionDetector : IDisposable
         _runCancellation?.Dispose();
         _runCancellation = null;
         _processor = null;
-        while (_signals.Reader.TryRead(out _))
+        while (_criticalSignals.Reader.TryRead(out _))
+        {
+        }
+        while (_moveSignals.Reader.TryRead(out _))
         {
         }
         Interlocked.Exchange(ref _pointerObservationActive, 0);
@@ -518,30 +582,46 @@ public sealed class DragSessionDetector : IDisposable
     private async Task ProcessSignalsAsync(CancellationToken cancellationToken)
     {
         var pressedShellSurface = DragSourceKind.Unknown;
+        var pressedExcluded = false;
+        DragScreenPoint? previousMove = null;
+        long previousMoveTimestamp = 0;
         try
         {
-            await foreach (var signal in _signals.Reader.ReadAllAsync(cancellationToken))
+            while (!cancellationToken.IsCancellationRequested)
             {
+                var signal = await ReadNextSignalAsync(cancellationToken).ConfigureAwait(false);
                 Interlocked.Increment(ref _observedSignals);
                 DragSessionTransition transition;
                 switch (signal.Kind)
                 {
                     case DetectorSignalKind.LeftPressed:
                     case DetectorSignalKind.RightPressed:
+                        pressedExcluded = IsForegroundProcessExcluded();
+                        if (pressedExcluded)
+                        {
+                            pressedShellSurface = DragSourceKind.Unknown;
+                            continue;
+                        }
                         var inspection = InspectSource(signal.Point);
                         pressedShellSurface = inspection.SurfaceSource;
-                        _policy.PointerPressed(
+                        transition = _policy.PointerPressed(
                             signal.Point,
                             signal.Kind == DetectorSignalKind.LeftPressed
                                 ? DragPointerButton.Left
                                 : DragPointerButton.Right,
                             inspection.SurfaceSource,
                             exactFileItem: inspection.ItemSource != DragSourceKind.Unknown);
+                        PublishTransition(transition);
                         continue;
                     case DetectorSignalKind.PointerMoved:
+                        RecordVelocity(signal, ref previousMove, ref previousMoveTimestamp);
                         transition = _policy.PointerMoved(signal.Point);
                         break;
                     case DetectorSignalKind.AccessibleObjectStarted:
+                        if (pressedExcluded)
+                        {
+                            continue;
+                        }
                         var eventSource = ShellDragSourceInspector.ClassifyDragEvent(
                             signal.SourceWindow,
                             signal.Point);
@@ -552,21 +632,23 @@ public sealed class DragSessionDetector : IDisposable
                     case DetectorSignalKind.LeftReleased:
                     case DetectorSignalKind.RightReleased:
                     case DetectorSignalKind.AccessibleObjectCompleted:
+                        transition = _policy.PointerReleased(signal.Point);
+                        PublishTransition(transition);
                         ScheduleCompletion(signal.Point, cancellationToken);
                         if (!_policy.IsActive)
                         {
                             pressedShellSurface = DragSourceKind.Unknown;
+                            pressedExcluded = false;
                         }
                         continue;
                     case DetectorSignalKind.AccessibleObjectCancelled:
                     case DetectorSignalKind.Cancelled:
                         transition = _policy.DragCancelled(signal.Point);
                         pressedShellSurface = DragSourceKind.Unknown;
+                        pressedExcluded = false;
                         break;
                     case DetectorSignalKind.CompletionGraceElapsed:
-                        transition = _policy.IsActive && _policy.ActiveSessionId == signal.SessionId
-                            ? _policy.PointerReleased(signal.Point)
-                            : DragSessionTransition.None;
+                        transition = _policy.CompletionGraceExpired(signal.SessionId, signal.Point);
                         break;
                     case DetectorSignalKind.OleCompleted:
                         transition = _policy.IsActive && _policy.ActiveSessionId == signal.SessionId
@@ -592,11 +674,13 @@ public sealed class DragSessionDetector : IDisposable
 
                 PublishTransition(transition);
                 if (transition.Kind is DragSessionTransitionKind.Completed or
+                    DragSessionTransitionKind.Superseded or
                     DragSessionTransitionKind.Cancelled or
                     DragSessionTransitionKind.Rejected or
                     DragSessionTransitionKind.TimedOut)
                 {
                     pressedShellSurface = DragSourceKind.Unknown;
+                    pressedExcluded = false;
                 }
             }
         }
@@ -639,7 +723,9 @@ public sealed class DragSessionDetector : IDisposable
                 transition.Source,
                 transition.EvidenceLevel,
                 transition.Evidence,
-                transition.RequiresOleVerification));
+                transition.RequiresOleVerification,
+                transition.DragIntentConfidence,
+                transition.PayloadConfidence));
             return;
         }
 
@@ -655,6 +741,7 @@ public sealed class DragSessionDetector : IDisposable
         }
 
         if (transition.Kind is DragSessionTransitionKind.Completed or
+            DragSessionTransitionKind.Superseded or
             DragSessionTransitionKind.Cancelled or
             DragSessionTransitionKind.Rejected or
             DragSessionTransitionKind.TimedOut)
@@ -729,9 +816,63 @@ public sealed class DragSessionDetector : IDisposable
 
     private void TryWrite(DetectorSignal signal)
     {
-        if (!_signals.Writer.TryWrite(signal))
+        if (signal.Timestamp == 0)
+        {
+            signal = signal with { Timestamp = Stopwatch.GetTimestamp() };
+        }
+        var writer = signal.Kind == DetectorSignalKind.PointerMoved
+            ? _moveSignals.Writer
+            : _criticalSignals.Writer;
+        if (!writer.TryWrite(signal))
         {
             Interlocked.Increment(ref _droppedSignals);
+        }
+    }
+
+    private void RecordVelocity(
+        DetectorSignal signal,
+        ref DragScreenPoint? previousPoint,
+        ref long previousTimestamp)
+    {
+        if (previousPoint is { } previous && previousTimestamp > 0 && signal.Timestamp > previousTimestamp)
+        {
+            var seconds = (signal.Timestamp - previousTimestamp) / (double)Stopwatch.Frequency;
+            var distance = Math.Sqrt(
+                Math.Pow(signal.Point.X - previous.X, 2) +
+                Math.Pow(signal.Point.Y - previous.Y, 2));
+            var velocity = distance / seconds;
+            if (velocity < 500) Interlocked.Increment(ref _velocitySlowCount);
+            else if (velocity < 1_500) Interlocked.Increment(ref _velocityMediumCount);
+            else if (velocity < 3_000) Interlocked.Increment(ref _velocityFastCount);
+            else Interlocked.Increment(ref _velocityExtremeCount);
+        }
+        previousPoint = signal.Point;
+        previousTimestamp = signal.Timestamp;
+    }
+
+    private async ValueTask<DetectorSignal> ReadNextSignalAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            if (_criticalSignals.Reader.TryRead(out var critical))
+            {
+                return critical;
+            }
+
+            if (_moveSignals.Reader.TryRead(out var move))
+            {
+                return move;
+            }
+
+            // Cancel the losing wait after either channel becomes readable. Leaving one pending
+            // WaitToReadAsync per pointer move would retain registrations until the next critical
+            // signal and turn a long drag into avoidable pressure of its own.
+            using var waitCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var criticalReady = _criticalSignals.Reader.WaitToReadAsync(waitCancellation.Token).AsTask();
+            var moveReady = _moveSignals.Reader.WaitToReadAsync(waitCancellation.Token).AsTask();
+            _ = await Task.WhenAny(criticalReady, moveReady).ConfigureAwait(false);
+            await waitCancellation.CancelAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 
@@ -768,6 +909,30 @@ public sealed class DragSessionDetector : IDisposable
             {
                 CoUninitialize();
             }
+        }
+    }
+
+    private bool IsForegroundProcessExcluded()
+    {
+        var exclusions = Volatile.Read(ref _excludedProcessNames);
+        if (exclusions.Length == 0)
+        {
+            return false;
+        }
+        try
+        {
+            var window = GetForegroundWindow();
+            _ = GetWindowThreadProcessId(window, out var processId);
+            if (processId == 0)
+            {
+                return false;
+            }
+            using var process = Process.GetProcessById(checked((int)processId));
+            return exclusions.Contains(process.ProcessName, StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception)
+        {
+            return false;
         }
     }
 
@@ -808,7 +973,8 @@ public sealed class DragSessionDetector : IDisposable
         DetectorSignalKind Kind,
         DragScreenPoint Point,
         nint SourceWindow = default,
-        long SessionId = 0);
+        long SessionId = 0,
+        long Timestamp = 0);
 
     private delegate nint HookProcedure(int code, nint wParam, nint lParam);
 
@@ -908,6 +1074,12 @@ public sealed class DragSessionDetector : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern nint GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(nint window, out uint processId);
 
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentThreadId();

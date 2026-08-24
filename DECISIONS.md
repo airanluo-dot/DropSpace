@@ -20,7 +20,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Alternatives: Junction table or cloned item.
 - Trade-offs: Future multiple collections/tags need a separate model.
 
-## D-003 — Quick Panel moves to V1.1
+## D-003 — Quick Panel moves to V1.1 (superseded by D-044 for Preview.2)
 
 - Status: Accepted
 - Context: Quick Panel adds separate-window focus, hotkey conflicts, multi-display positioning, and performance work.
@@ -180,7 +180,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 - Alternatives: Timer polling; separate Windows service.
 - Trade-offs: Events can race with delayed/replaced content and require careful recovery.
 
-## D-009 — App exclusions are best effort and V1.1
+## D-009 — App exclusions are best effort and V1.1 (delivery timing superseded by D-044)
 
 - Status: Accepted
 - Context: Clipboard owner HWND/process attribution is incomplete and sometimes indirect.
@@ -371,3 +371,17 @@ One `OleFileDataClassifier` queries the `IDataObject` used by the probe, Classic
 **Rationale:** The v0.2 source allow-list safely avoided false reveals but stopped observation for unknown origins and rejected strong provider evidence, excluding many standard OLE sources. Real OLE format negotiation is a provider-agnostic authority. A tiny bounded ring can observe that authority only during an active candidate without reintroducing an idle hit surface or delaying Reveal.
 
 **Constraints:** No provider process-name rules, polling, input suppression, cross-process injection, administrator requirement, foreground activation, taskbar/Alt+Tab entry, content read during verification, or unbounded PIDL/item parsing is permitted. Real source compatibility, pointer feedback, mixed-DPI/display races and false-reveal rate remain manual Preview gates. Classic stays an explicit user-selected compatibility mode.
+
+## D-044 — Consolidate Preview.2 around independent proof, universal intake, and one Island
+
+**Status:** Accepted for v0.3.0-preview.2
+
+**Decision:** `DragIntentConfidence` and `PayloadConfidence` are separate axes. Accessibility drag-start proves intent only; an unknown payload remains speculative until OLE proves file-like data. High-frequency pointer moves use a one-slot coalescing lane, while press, release, cancel, completion, timeout, and probe results use a reliable lane. Pointer release enters `AwaitingOleCompletion`; a new pointer-down supersedes that session immediately within the 350 ms grace window. All visual and probe work remains session-gated.
+
+Shell IDList evidence is divided into `IsFileLikeEvidence`, `CanAcceptNow`, and `CanMaterialize`; only Shell items resolved to paths are immediately acceptable. The official `SHCreateShellItemArrayFromDataObject` API is preferred, with bounded CIDA parsing as fallback. A real Drop may materialize `FileGroupDescriptorW` plus indexed `FileContents` into one confined staging batch using bounded streaming, cancellation, duplicate-safe names, rollback, and `IDataObjectAsyncCapability` when supplied. Probe cleanup is three-layered: owner `PostMessage`, owner work queue, then forced watchdog.
+
+The existing Dynamic Island is also the Quick Panel, with a configurable default `Win+Shift+Space` hotkey and existing keyboard actions. Files, payload-backed images, text, and URLs may leave Space; manual intake and packaged Windows Share may add those types without writing Clipboard History. A single acquisition receives one `DropBatchId` and optional `DropSessionId`, enabling group expansion, drag, pin, and removal without duplicate records. Smart Drag process exclusions are explicitly best effort. Settings schema 8 stores the original per-monitor Custom X/Y DIP values; topology/DPI clamping is transient and every visual state uses one resolved anchor.
+
+**Rationale:** Intent signals, payload proof, content custody, and presentation placement have different trust and lifetime boundaries. Keeping them independent prevents false file acceptance, stale-session hides, whole-file buffering, and saved-coordinate corruption while allowing more providers and access paths.
+
+**Constraints:** No payload is read by the verification probe; materialization occurs only after Drop and only below DropSpace staging. No source path, filename, text, or payload appears in diagnostics. Portable builds disclose that Windows Share Target requires package identity. Real WeChat/QQ/Feishu/Outlook/Electron provider evidence remains a manual Windows gate and must never be inferred from hosted CI.

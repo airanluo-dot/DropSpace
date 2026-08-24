@@ -58,6 +58,13 @@ public sealed class StorageAndRepositoryTests
             OverlayMotion = OverlayMotionPreference.Reduced,
             OverlayMonitor = OverlayMonitorPreference.Primary,
             FileDragWakeMode = FileDragWakeMode.ClassicTopEdge,
+            OverlayPlacementMode = OverlayPlacementMode.Custom,
+            CustomOverlayPlacements = new Dictionary<string, OverlayCustomPlacement>
+            {
+                ["DISPLAY-1"] = new(640, 24),
+            },
+            QuickPanelHotkey = "Ctrl+Shift+D",
+            SmartDragExcludedProcesses = ["example"],
             AutoCheckForUpdates = false,
             AutoDownloadUpdates = false,
             UpdateChannel = UpdateChannel.Preview,
@@ -67,7 +74,13 @@ public sealed class StorageAndRepositoryTests
         await service.SaveAsync(expected);
         var actual = await service.LoadAsync();
 
-        Assert.AreEqual(expected, actual);
+        Assert.AreEqual(expected with
+        {
+            CustomOverlayPlacements = actual.CustomOverlayPlacements,
+            SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
+        }, actual);
+        Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
+        CollectionAssert.AreEqual(expected.SmartDragExcludedProcesses, actual.SmartDragExcludedProcesses);
         Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
     }
 
@@ -92,6 +105,8 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(OverlayMotionPreference.System, actual.OverlayMotion);
         Assert.AreEqual(OverlayMonitorPreference.Automatic, actual.OverlayMonitor);
         Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
+        Assert.AreEqual(OverlayPlacementMode.Automatic, actual.OverlayPlacementMode);
+        Assert.AreEqual("Win+Shift+Space", actual.QuickPanelHotkey);
         Assert.AreEqual(AppLanguagePreference.System, actual.Language);
         Assert.IsTrue(actual.ClipboardPaused);
         Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
@@ -285,7 +300,11 @@ public sealed class StorageAndRepositoryTests
 
         var actual = await service.LoadAsync();
 
-        Assert.AreEqual(new AppSettings(), actual);
+        Assert.AreEqual(new AppSettings
+        {
+            CustomOverlayPlacements = actual.CustomOverlayPlacements,
+            SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
+        }, actual);
         Assert.IsTrue(service.LastLoadRecovery.Recovered);
         Assert.IsFalse(service.LastLoadRecovery.PreservedNonUiPreferences);
         Assert.IsTrue(File.Exists(databaseSentinel));
@@ -466,6 +485,25 @@ public sealed class StorageAndRepositoryTests
         await repository.RemoveAsync(clipboard.Id);
         Assert.IsTrue(File.Exists(sourcePath));
         Assert.IsNotNull(await repository.GetAsync(space.Id));
+    }
+
+    [TestMethod]
+    public async Task Repository_SpaceTextAndDropBatchMetadataRemainSeparateFromClipboardHistory()
+    {
+        var repository = CreateRepository();
+        var batchId = Guid.NewGuid();
+        var metadata = System.Text.Json.JsonSerializer.Serialize(
+            new DropBatchMetadata(batchId, 42, 0, 1, "manual-text-url"));
+
+        var item = await repository.AddSpaceTextAsync(
+            ContentClassifier.CreateTextCandidate("https://example.com/path"),
+            metadata);
+
+        Assert.AreEqual(ItemSource.Space, item.Source);
+        Assert.AreEqual(ItemKind.Url, item.Kind);
+        Assert.AreEqual(metadata, item.MetadataJson);
+        Assert.AreEqual(1, await repository.CountAsync(ItemSource.Space));
+        Assert.AreEqual(0, await repository.CountAsync(ItemSource.Clipboard));
     }
 
     [TestMethod]

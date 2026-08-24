@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.Core.Collections;
 using DropSpace.App.Services;
@@ -19,6 +20,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly ILocalStorageMetrics _storageMetrics;
     private readonly IStartupRegistrationService _startupRegistration;
     private readonly WindowsShareIntegrationService _windowsShareIntegration;
+    private readonly MonitorLayoutService _monitorLayout;
+    private readonly DragSessionDetector _dragSessionDetector;
     private readonly ClipboardCaptureService _clipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
@@ -54,6 +57,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ILocalStorageMetrics storageMetrics,
         IStartupRegistrationService startupRegistration,
         WindowsShareIntegrationService windowsShareIntegration,
+        MonitorLayoutService monitorLayout,
+        DragSessionDetector dragSessionDetector,
         ClipboardCaptureService clipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
@@ -70,6 +75,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _storageMetrics = storageMetrics;
         _startupRegistration = startupRegistration;
         _windowsShareIntegration = windowsShareIntegration;
+        _monitorLayout = monitorLayout;
+        _dragSessionDetector = dragSessionDetector;
         _clipboard = clipboard;
         _shell = shell;
         _thumbnails = thumbnails;
@@ -227,6 +234,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(OverlayMotion));
                 OnPropertyChanged(nameof(OverlayMonitor));
                 OnPropertyChanged(nameof(FileDragWakeMode));
+                OnPropertyChanged(nameof(OverlayPlacementMode));
+                OnPropertyChanged(nameof(QuickPanelHotkey));
+                OnPropertyChanged(nameof(SmartDragExcludedProcessesText));
                 OnPropertyChanged(nameof(AutoCheckForUpdates));
                 OnPropertyChanged(nameof(AutoDownloadUpdates));
                 OnPropertyChanged(nameof(AutoInstallUpdates));
@@ -271,6 +281,62 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public OverlayMonitorPreference OverlayMonitor => Settings.OverlayMonitor;
 
     public FileDragWakeMode FileDragWakeMode => Settings.FileDragWakeMode;
+
+    public OverlayPlacementMode OverlayPlacementMode => Settings.OverlayPlacementMode;
+
+    public string QuickPanelHotkey => Settings.QuickPanelHotkey;
+
+    public string SmartDragExcludedProcessesText => string.Join(", ", Settings.SmartDragExcludedProcesses);
+
+    public IReadOnlyList<OverlayMonitorChoice> AvailableOverlayMonitors => _monitorLayout.GetMonitors()
+        .Select((monitor, index) => new OverlayMonitorChoice(
+            monitor.Id,
+            monitor.IsPrimary
+                ? _strings.Format("OverlayMonitorPrimaryChoice", index + 1)
+                : _strings.Format("OverlayMonitorChoice", index + 1)))
+        .ToArray();
+
+    public OverlayCustomPlacement GetCustomOverlayPlacement(string monitorId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(monitorId);
+        return Settings.CustomOverlayPlacements.TryGetValue(monitorId, out var placement)
+            ? placement
+            : new OverlayCustomPlacement(300, 8);
+    }
+
+    public Task SetCustomOverlayPlacementAsync(
+        string monitorId,
+        double x,
+        double y,
+        CancellationToken cancellationToken = default)
+    {
+        var placements = new Dictionary<string, OverlayCustomPlacement>(
+            Settings.CustomOverlayPlacements,
+            StringComparer.Ordinal);
+        placements[monitorId] = new OverlayCustomPlacement(x, y);
+        return UpdateSettingsAsync(Settings with
+        {
+            OverlayPlacementMode = OverlayPlacementMode.Custom,
+            CustomOverlayPlacements = placements,
+        }, cancellationToken);
+    }
+
+    public Task ResetCustomOverlayPlacementAsync(
+        string monitorId,
+        CancellationToken cancellationToken = default)
+    {
+        var placements = new Dictionary<string, OverlayCustomPlacement>(
+            Settings.CustomOverlayPlacements,
+            StringComparer.Ordinal);
+        placements.Remove(monitorId);
+        return UpdateSettingsAsync(Settings with
+        {
+            OverlayPlacementMode = placements.Count == 0
+                ? OverlayPlacementMode.Automatic
+                : Settings.OverlayPlacementMode,
+            CustomOverlayPlacements = placements,
+        }, cancellationToken);
+    }
 
     public bool AutoCheckForUpdates => Settings.AutoCheckForUpdates;
 
@@ -352,6 +418,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public Task<bool> OpenDropTraySettingsAsync() =>
         _windowsShareIntegration.OpenDropTraySettingsAsync();
+
+    public void CopyDragCompatibilityReport()
+    {
+        var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        package.SetText(_dragSessionDetector.CreateCompatibilityReport());
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+        StatusMessage = _strings.Get("DragCompatibilityReportCopied");
+    }
 
     public string StoragePath => _storageMetrics.RootPath;
 
@@ -477,6 +552,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 Items.Add(card);
                 _ = LoadThumbnailSafelyAsync(card, cancellationToken);
             }
+            ApplyBatchProjectionState();
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
@@ -494,16 +570,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public async Task<int> AddPathsAsync(IEnumerable<string> paths, CancellationToken cancellationToken = default)
+        => await AddPathsBatchAsync(paths, null, "file-drop", cancellationToken);
+
+    public async Task<int> AddPathsBatchAsync(
+        IEnumerable<string> paths,
+        long? dropSessionId,
+        string acquisitionKind,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
+        ArgumentException.ThrowIfNullOrWhiteSpace(acquisitionKind);
+        var uniquePaths = paths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var batchId = Guid.NewGuid();
         var accepted = 0;
         var rejected = 0;
-        foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
+        for (var index = 0; index < uniquePaths.Length; index++)
         {
+            var path = uniquePaths[index];
             try
             {
                 var candidate = await _fileReferences.InspectAsync(path, cancellationToken);
-                await _repository.AddFileAsync(candidate, cancellationToken);
+                var metadata = JsonSerializer.Serialize(new DropBatchMetadata(
+                    batchId,
+                    dropSessionId,
+                    index,
+                    uniquePaths.Length,
+                    acquisitionKind));
+                await _repository.AddSpaceFileAsync(candidate, metadata, cancellationToken);
                 accepted++;
             }
             catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
@@ -519,6 +612,32 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
         return accepted;
+    }
+
+    public async Task<DropItem> AddTextToSpaceAsync(
+        string text,
+        string acquisitionKind,
+        long? dropSessionId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (text.Length > Settings.MaxTextCharacters)
+        {
+            throw new ArgumentOutOfRangeException(nameof(text), "Text exceeds the configured local limit.");
+        }
+
+        var metadata = JsonSerializer.Serialize(new DropBatchMetadata(
+            Guid.NewGuid(),
+            dropSessionId,
+            0,
+            1,
+            acquisitionKind));
+        var item = await _repository.AddSpaceTextAsync(
+            DropSpace.Core.Policies.ContentClassifier.CreateTextCandidate(text),
+            metadata,
+            cancellationToken);
+        await ReloadAsync(cancellationToken);
+        await PublishSpaceProjectionChangedAsync(cancellationToken);
+        return item;
     }
 
     public async Task TogglePinAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
@@ -547,6 +666,73 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (card.Item.Source == ItemSource.Space)
         {
             await PublishSpaceProjectionChangedAsync(cancellationToken);
+        }
+    }
+
+    public async Task ToggleBatchPinAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
+    {
+        if (card.DropBatchId is not { } batchId)
+        {
+            await TogglePinAsync(card, cancellationToken);
+            return;
+        }
+        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
+        var pin = members.Any(item => !item.IsPinned);
+        foreach (var member in members)
+        {
+            await _repository.SetPinnedAsync(member.Id, pin, cancellationToken);
+        }
+        await ReloadAsync(cancellationToken);
+        await PublishSpaceProjectionChangedAsync(cancellationToken);
+    }
+
+    public async Task RemoveBatchAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
+    {
+        if (card.DropBatchId is not { } batchId)
+        {
+            await RemoveAsync(card, cancellationToken);
+            return;
+        }
+        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
+        foreach (var member in members)
+        {
+            var payloadPath = await _repository.RemoveAsync(member.Id, cancellationToken);
+            if (payloadPath is not null)
+            {
+                await _payloadStore.DeleteAsync(payloadPath, cancellationToken);
+            }
+        }
+        await ReloadAsync(cancellationToken);
+        await PublishSpaceProjectionChangedAsync(cancellationToken);
+    }
+
+    public void ToggleBatchExpanded(ItemCardViewModel card)
+    {
+        if (card.DropBatchId is not { } batchId)
+        {
+            return;
+        }
+        var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
+        var expanded = !card.IsBatchExpanded;
+        foreach (var member in members)
+        {
+            member.IsBatchExpanded = expanded;
+            member.IsBatchMemberVisible = member.IsBatchHeader || expanded;
+        }
+    }
+
+    private void ApplyBatchProjectionState()
+    {
+        foreach (var group in Items.Where(item => item.IsGrouped && item.DropBatchId is not null)
+                     .GroupBy(item => item.DropBatchId))
+        {
+            var first = true;
+            foreach (var card in group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue))
+            {
+                card.IsBatchHeader = first;
+                card.IsBatchMemberVisible = true;
+                first = false;
+            }
         }
     }
 
@@ -982,5 +1168,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 }
+
+public sealed record OverlayMonitorChoice(string Id, string DisplayName);
 
 public sealed record SpaceProjectionChangedEventArgs(long Revision, int ItemCount);
