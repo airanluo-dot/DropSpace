@@ -5,9 +5,11 @@ using DropSpace.Core.Collections;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Overlay;
 using DropSpace.Core.Updates;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
+using PlacementMode = DropSpace.Core.Models.OverlayPlacementMode;
 
 namespace DropSpace.App.ViewModels;
 
@@ -101,6 +103,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
 
     public event EventHandler<SpaceProjectionChangedEventArgs>? SpaceProjectionChanged;
+
+    public event EventHandler<string>? OverlayPlacementEditRequested;
 
     /// <summary>
     /// The visual overlay registers this transaction hook. UI preferences are preflighted and
@@ -285,7 +289,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public FileDragWakeMode FileDragWakeMode => Settings.FileDragWakeMode;
 
-    public OverlayPlacementMode OverlayPlacementMode => Settings.OverlayPlacementMode;
+    // Retained for existing view-model consumers; the active mode is now resolved per monitor.
+    public OverlayPlacementMode OverlayPlacementMode => PlacementMode.Automatic;
 
     public string QuickPanelHotkey => Settings.QuickPanelHotkey;
 
@@ -299,12 +304,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 : _strings.Format("OverlayMonitorChoice", index + 1)))
         .ToArray();
 
-    public OverlayCustomPlacement GetCustomOverlayPlacement(string monitorId)
+    public OverlayMonitorPlacement GetOverlayPlacement(
+        string monitorId,
+        AppSettings? settings = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(monitorId);
-        return Settings.CustomOverlayPlacements.TryGetValue(monitorId, out var placement)
-            ? placement
-            : new OverlayCustomPlacement(300, 8);
+        settings ??= Settings;
+        var monitor = _monitorLayout.GetMonitors().FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, monitorId, StringComparison.Ordinal));
+        if (monitor is { IsPersistent: false })
+        {
+            return new OverlayMonitorPlacement(PlacementMode.Automatic, 0, 0);
+        }
+
+        if (settings.OverlayPlacements.TryGetValue(monitorId, out var placement))
+        {
+            return placement;
+        }
+
+        if (monitor is null)
+        {
+            return new OverlayMonitorPlacement(PlacementMode.Automatic, 0, 0);
+        }
+
+        return new OverlayMonitorPlacement(
+            PlacementMode.Automatic,
+            monitor.EffectiveWorkWidth / monitor.Scale / 2,
+            OverlayPlacementPolicy.GetTopOffsetDips(settings.FileDragWakeMode, monitor.Scale));
     }
 
     public Task SetCustomOverlayPlacementAsync(
@@ -313,32 +339,80 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         double y,
         CancellationToken cancellationToken = default)
     {
-        var placements = new Dictionary<string, OverlayCustomPlacement>(
-            Settings.CustomOverlayPlacements,
+        if (!CanPersistPlacement(monitorId))
+        {
+            return Task.CompletedTask;
+        }
+
+        var placements = new Dictionary<string, OverlayMonitorPlacement>(
+            Settings.OverlayPlacements,
             StringComparer.Ordinal);
-        placements[monitorId] = new OverlayCustomPlacement(x, y);
+        placements[monitorId] = new OverlayMonitorPlacement(PlacementMode.Custom, x, y);
         return UpdateSettingsAsync(Settings with
         {
-            OverlayPlacementMode = OverlayPlacementMode.Custom,
-            CustomOverlayPlacements = placements,
+            OverlayPlacements = placements,
         }, cancellationToken);
     }
 
-    public Task ResetCustomOverlayPlacementAsync(
+    public Task SetOverlayPlacementModeAsync(
+        string monitorId,
+        OverlayPlacementMode mode,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(monitorId);
+        var placements = new Dictionary<string, OverlayMonitorPlacement>(
+            Settings.OverlayPlacements,
+            StringComparer.Ordinal);
+        if (mode == PlacementMode.Automatic)
+        {
+            placements.Remove(monitorId);
+        }
+        else
+        {
+            if (!CanPersistPlacement(monitorId))
+            {
+                return Task.CompletedTask;
+            }
+
+            var current = GetOverlayPlacement(monitorId);
+            placements[monitorId] = current.Mode == PlacementMode.Custom
+                ? current
+                : new OverlayMonitorPlacement(PlacementMode.Custom, current.X, current.Y);
+        }
+
+        return UpdateSettingsAsync(Settings with { OverlayPlacements = placements }, cancellationToken);
+    }
+
+    private bool CanPersistPlacement(string monitorId)
+    {
+        var monitor = _monitorLayout.GetMonitors().FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, monitorId, StringComparison.Ordinal));
+        if (monitor is { IsPersistent: false })
+        {
+            _logger.LogWarning(
+                "Display identity {MonitorId} is a runtime fallback; placement will remain session-only.",
+                monitorId);
+            return false;
+        }
+
+        return monitor is not null;
+    }
+
+    public Task ResetOverlayPlacementAsync(
         string monitorId,
         CancellationToken cancellationToken = default)
     {
-        var placements = new Dictionary<string, OverlayCustomPlacement>(
-            Settings.CustomOverlayPlacements,
+        var placements = new Dictionary<string, OverlayMonitorPlacement>(
+            Settings.OverlayPlacements,
             StringComparer.Ordinal);
         placements.Remove(monitorId);
-        return UpdateSettingsAsync(Settings with
-        {
-            OverlayPlacementMode = placements.Count == 0
-                ? OverlayPlacementMode.Automatic
-                : Settings.OverlayPlacementMode,
-            CustomOverlayPlacements = placements,
-        }, cancellationToken);
+        return UpdateSettingsAsync(Settings with { OverlayPlacements = placements }, cancellationToken);
+    }
+
+    public void RequestOverlayPlacementEdit(string monitorId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(monitorId);
+        OverlayPlacementEditRequested?.Invoke(this, monitorId);
     }
 
     public bool AutoCheckForUpdates => Settings.AutoCheckForUpdates;
@@ -450,6 +524,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         Settings = await _settingsService.LoadAsync(cancellationToken);
+        var migratedSettings = MigrateLegacyOverlayPlacements(Settings);
+        if (!ReferenceEquals(migratedSettings, Settings))
+        {
+            await _settingsService.SaveAsync(migratedSettings, cancellationToken);
+            Settings = migratedSettings;
+        }
         await _startupRegistration.SetEnabledAsync(Settings.StartWithWindows, cancellationToken);
         await _repository.InitializeAsync(cancellationToken);
         await RefreshSpaceItemCountAsync(cancellationToken);
@@ -458,6 +538,43 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         UpdateStatus = await _updates.RecoverPendingAsync(cancellationToken);
         _ = RefreshStorageSummaryAsync(cancellationToken);
         await NavigateAsync(Settings.LaunchPage, cancellationToken);
+    }
+
+    private AppSettings MigrateLegacyOverlayPlacements(AppSettings settings)
+    {
+        if (settings.OverlayPlacementMode == PlacementMode.Automatic &&
+            settings.CustomOverlayPlacements.Count == 0)
+        {
+            return settings;
+        }
+
+        var placements = new Dictionary<string, OverlayMonitorPlacement>(
+            settings.OverlayPlacements,
+            StringComparer.Ordinal);
+        foreach (var monitor in _monitorLayout.GetMonitors())
+        {
+            if (!monitor.IsPersistent)
+            {
+                continue;
+            }
+
+            var legacyId = monitor.Handle.ToInt64().ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+            if (settings.CustomOverlayPlacements.TryGetValue(legacyId, out var legacyPlacement))
+            {
+                placements[monitor.Id] = new OverlayMonitorPlacement(
+                    PlacementMode.Custom,
+                    legacyPlacement.X,
+                    legacyPlacement.Y);
+            }
+        }
+
+        return settings with
+        {
+            Version = AppSettings.CurrentVersion,
+            OverlayPlacementMode = PlacementMode.Automatic,
+            CustomOverlayPlacements = [],
+            OverlayPlacements = placements,
+        };
     }
 
     public async Task CheckForUpdatesAtStartupAsync(CancellationToken cancellationToken = default)

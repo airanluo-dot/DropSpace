@@ -17,7 +17,8 @@ public sealed record MonitorDescriptor(
     int? WorkLeft = null,
     int? WorkTop = null,
     int? WorkWidth = null,
-    int? WorkHeight = null)
+    int? WorkHeight = null,
+    bool IsPersistent = true)
 {
     public double Scale => Dpi / 96d;
 
@@ -27,7 +28,9 @@ public sealed record MonitorDescriptor(
     public int EffectiveWorkHeight => WorkHeight ?? Height;
 }
 
-public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
+public sealed class MonitorLayoutService(
+    DisplayIdentityService displayIdentity,
+    ILogger<MonitorLayoutService> logger)
 {
     private const uint MonitorInfoPrimary = 0x00000001;
     private const uint MonitorDefaultToNearest = 0x00000002;
@@ -41,9 +44,10 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
         var monitors = new List<MonitorDescriptor>();
         EnumDisplayMonitors(nint.Zero, nint.Zero, (monitor, _, _, _) =>
         {
-            var info = new MonitorInfo
+            var info = new MonitorInfoEx
             {
-                Size = (uint)Marshal.SizeOf<MonitorInfo>(),
+                Size = (uint)Marshal.SizeOf<MonitorInfoEx>(),
+                DeviceName = string.Empty,
             };
             if (!GetMonitorInfo(monitor, ref info))
             {
@@ -51,8 +55,9 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
             }
 
             var dpi = GetMonitorDpi(monitor);
+            var identity = displayIdentity.Resolve(monitor, info.DeviceName);
             monitors.Add(new MonitorDescriptor(
-                monitor.ToInt64().ToString("X", System.Globalization.CultureInfo.InvariantCulture),
+                identity.Id,
                 monitor,
                 info.Monitor.Left,
                 info.Monitor.Top,
@@ -63,7 +68,8 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
                 info.WorkArea.Left,
                 info.WorkArea.Top,
                 info.WorkArea.Right - info.WorkArea.Left,
-                info.WorkArea.Bottom - info.WorkArea.Top));
+                info.WorkArea.Bottom - info.WorkArea.Top,
+                identity.IsPersistent));
             return true;
         }, nint.Zero);
 
@@ -183,13 +189,16 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
         public int Bottom;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MonitorInfo
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MonitorInfoEx
     {
         public uint Size;
         public NativeRectangle Monitor;
         public NativeRectangle WorkArea;
         public uint Flags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
     }
 
     [DllImport("user32.dll")]
@@ -202,7 +211,7 @@ public sealed class MonitorLayoutService(ILogger<MonitorLayoutService> logger)
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
+    private static extern bool GetMonitorInfo(nint monitor, ref MonitorInfoEx info);
 
     [DllImport("shcore.dll")]
     private static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);

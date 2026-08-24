@@ -89,13 +89,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     public IReadOnlyList<string> SmartDragExcludedProcesses =>
         (_pendingSettings ?? _mainViewModel.Settings).SmartDragExcludedProcesses;
 
-    public OverlayCustomPlacement? GetCustomPlacement(string monitorId)
-    {
-        var settings = _pendingSettings ?? _mainViewModel.Settings;
-        return settings.CustomOverlayPlacements.TryGetValue(monitorId, out var placement)
-            ? placement
-            : null;
-    }
+    public OverlayMonitorPlacement GetOverlayPlacement(string monitorId) =>
+        _mainViewModel.GetOverlayPlacement(monitorId, _pendingSettings);
 
     public bool IsDragPromptVisible => Snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
 

@@ -58,25 +58,30 @@ public sealed class JsonSettingsService : ISettingsService
             AppSettings? settings = null;
             try
             {
-                await using var stream = new FileStream(
-                    _paths.Settings,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    16_384,
-                    FileOptions.Asynchronous | FileOptions.SequentialScan);
-                if (stream.Length > 1_048_576)
+                var hadUpdateChannel = false;
+                await using (var stream = new FileStream(
+                                 _paths.Settings,
+                                 FileMode.Open,
+                                 FileAccess.Read,
+                                 FileShare.Read,
+                                 16_384,
+                                 FileOptions.Asynchronous | FileOptions.SequentialScan))
                 {
-                    throw new JsonException("settings.json exceeds the supported size limit.");
+                    if (stream.Length > 1_048_576)
+                    {
+                        throw new JsonException("settings.json exceeds the supported size limit.");
+                    }
+
+                    using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                    hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
+                        document.RootElement.EnumerateObject().Any(property =>
+                            string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
+                    settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
                 }
 
-                using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-                var hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
-                    document.RootElement.EnumerateObject().Any(property =>
-                        string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
-                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
                 settings ??= CreateDefaults();
+                var migratedVersion = false;
                 if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
                 {
                     settings = settings with
@@ -86,9 +91,26 @@ public sealed class JsonSettingsService : ISettingsService
                         // installed population. Fresh builds use the channel selected by their release kind.
                         UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
                     };
+                    migratedVersion = true;
                 }
 
-                return settings.Validate();
+                var validated = settings.Validate();
+                if (migratedVersion)
+                {
+                    try
+                    {
+                        await SaveCoreAsync(validated, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                    {
+                        _logger.LogWarning(
+                            exception,
+                            "Settings schema migration reached version {Version} in memory but could not replace the persisted file.",
+                            validated.Version);
+                    }
+                }
+
+                return validated;
             }
             catch (Exception exception) when (IsRecoverableSettingsFailure(exception))
             {

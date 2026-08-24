@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
@@ -44,6 +45,8 @@ public sealed partial class OverlayWindow : Window
     private bool _visualDragActive;
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
+    private readonly OverlayPlacementEditSession _placementEdit = new();
+    private bool _placementEditActive;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -87,14 +90,19 @@ public sealed partial class OverlayWindow : Window
         OverlayWindowInterop.ConfigureVisualWindow(_windowHandle);
         _resolvedPlacement = ResolvePlacement(
             FileDragWakeMode.SmartExperimental,
-            OverlayPlacementMode.Automatic,
-            null);
+            new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
         PositionFixedHost();
         OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
         OverlayWindowInterop.Hide(_windowHandle);
     }
 
     public string MonitorId => _monitor.Id;
+
+    public bool IsPlacementEditing => _placementEditActive;
+
+    public event EventHandler<OverlayPlacementEditEventArgs>? PlacementCommitted;
+
+    public event EventHandler? PlacementCancelled;
 
     internal bool HasActiveFrameSubscription => _hasFrameSubscription;
 
@@ -109,6 +117,7 @@ public sealed partial class OverlayWindow : Window
         VerifyResourceValue(RemoveHintText.Text, "OverlayRemoveHint.Text");
         VerifyResourceValue(OpenMainButton.Content, "OverlayOpenMainButton.Content");
         VerifyResourceValue(DropTargetTitleText.Text, "OverlayDropTargetTitle.Text");
+        VerifyResourceValue(PlacementEditHintText.Text, "OverlayPlacementEditHint.Text");
         if (string.IsNullOrWhiteSpace(AutomationProperties.GetName(CompactPanel)))
         {
             throw new InvalidOperationException("Localized overlay accessibility name did not resolve.");
@@ -213,9 +222,18 @@ public sealed partial class OverlayWindow : Window
         bool isActiveWindow,
         bool activationEnabled,
         FileDragWakeMode wakeMode,
-        OverlayPlacementMode placementMode,
-        OverlayCustomPlacement? customPlacement)
+        OverlayMonitorPlacement placement)
     {
+        if (_placementEditActive)
+        {
+            _resolvedPlacement = ResolvePlacement(wakeMode, new OverlayMonitorPlacement(
+                OverlayPlacementMode.Custom,
+                _placementEdit.Preview.X,
+                _placementEdit.Preview.Y));
+            PositionFixedHost();
+            return;
+        }
+
         if (_visualPhase == OverlayVisualPhase.Exiting && snapshot.State != OverlayState.Hidden)
         {
             _visualPhase = OverlayVisualPhase.Reversing;
@@ -253,7 +271,7 @@ public sealed partial class OverlayWindow : Window
 
         _suppressedForFullscreen = false;
         _hideWhenSettled = false;
-        _resolvedPlacement = ResolvePlacement(wakeMode, placementMode, customPlacement);
+        _resolvedPlacement = ResolvePlacement(wakeMode, placement);
         PositionFixedHost();
 
         if (snapshot.State == OverlayState.Hidden)
@@ -280,6 +298,10 @@ public sealed partial class OverlayWindow : Window
 
     public void CloseForShutdown()
     {
+        if (_placementEditActive)
+        {
+            EndPlacementEditVisuals();
+        }
         StopAnimationFrames();
         RevokeNativeDropTarget();
         Close();
@@ -356,8 +378,7 @@ public sealed partial class OverlayWindow : Window
 
     private OverlayResolvedPlacement ResolvePlacement(
         FileDragWakeMode wakeMode,
-        OverlayPlacementMode placementMode,
-        OverlayCustomPlacement? customPlacement) =>
+        OverlayMonitorPlacement placement) =>
         OverlayPlacementPolicy.Resolve(
             new OverlayPlacementRequest(
                 _monitor.EffectiveWorkLeft,
@@ -366,8 +387,7 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
                 wakeMode),
-            placementMode,
-            customPlacement);
+            placement);
 
     private void StartAnimationFrames()
     {
@@ -622,6 +642,116 @@ public sealed partial class OverlayWindow : Window
         target?.Dispose();
     }
 
+    public void BeginPlacementEdit(OverlayCustomPlacement initial)
+    {
+        _placementEdit.Arm(initial);
+        _placementEditActive = true;
+        _isActiveWindow = true;
+        _suppressedForFullscreen = false;
+        _hideWhenSettled = false;
+        _resolvedPlacement = ResolvePlacement(
+            _viewModel.FileDragWakeMode,
+            new OverlayMonitorPlacement(OverlayPlacementMode.Custom, initial.X, initial.Y));
+        PositionFixedHost();
+        RevokeNativeDropTarget();
+        PlacementEditSurface.Visibility = Visibility.Visible;
+        PlacementEditSurface.IsHitTestVisible = true;
+        PrepareContentForTarget(CreateMotionTarget(OverlayState.Compact, 0));
+        _motion.SetTarget(CreateMotionTarget(OverlayState.Compact, 0), IsReducedMotion());
+        OverlayWindowInterop.SetNoActivate(_windowHandle, true);
+        if (!_isVisible)
+        {
+            ApplyMotionFrame(_motion.Current);
+            OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
+            _isVisible = true;
+        }
+        else
+        {
+            OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
+        }
+
+        StartAnimationFrames();
+    }
+
+    public void CancelPlacementEdit()
+    {
+        if (!_placementEditActive)
+        {
+            return;
+        }
+
+        _placementEdit.Cancel();
+        EndPlacementEditVisuals();
+        PlacementCancelled?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnPlacementEditPointerPressed(object sender, PointerRoutedEventArgs args)
+    {
+        if (!_placementEditActive || !OverlayWindowInterop.TryGetCursorPosition(out var point) ||
+            !_placementEdit.TryBeginDrag(point))
+        {
+            return;
+        }
+
+        PlacementEditSurface.CapturePointer(args.Pointer);
+        args.Handled = true;
+    }
+
+    private void OnPlacementEditPointerMoved(object sender, PointerRoutedEventArgs args)
+    {
+        if (!_placementEditActive || _placementEdit.State != OverlayPlacementEditState.Dragging ||
+            !OverlayWindowInterop.TryGetCursorPosition(out var point))
+        {
+            return;
+        }
+
+        _placementEdit.Move(point, _monitor.Scale);
+        _resolvedPlacement = ResolvePlacement(
+            _viewModel.FileDragWakeMode,
+            new OverlayMonitorPlacement(
+                OverlayPlacementMode.Custom,
+                _placementEdit.Preview.X,
+                _placementEdit.Preview.Y));
+        PositionFixedHost();
+        args.Handled = true;
+    }
+
+    private void OnPlacementEditPointerReleased(object sender, PointerRoutedEventArgs args)
+    {
+        if (!_placementEditActive || _placementEdit.State != OverlayPlacementEditState.Dragging)
+        {
+            return;
+        }
+
+        if (OverlayWindowInterop.TryGetCursorPosition(out var point))
+        {
+            _placementEdit.Move(point, _monitor.Scale);
+        }
+
+        var committed = _placementEdit.Commit();
+        PlacementEditSurface.ReleasePointerCapture(args.Pointer);
+        EndPlacementEditVisuals();
+        PlacementCommitted?.Invoke(this, new OverlayPlacementEditEventArgs(committed));
+        args.Handled = true;
+    }
+
+    private void OnPlacementEditPointerCaptureLost(object sender, PointerRoutedEventArgs args)
+    {
+        if (_placementEditActive && _placementEdit.State == OverlayPlacementEditState.Dragging)
+        {
+            _placementEdit.Cancel();
+            EndPlacementEditVisuals();
+            PlacementCancelled?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void EndPlacementEditVisuals()
+    {
+        PlacementEditSurface.IsHitTestVisible = false;
+        PlacementEditSurface.Visibility = Visibility.Collapsed;
+        _placementEditActive = false;
+    }
+
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {
         try
@@ -846,4 +976,9 @@ public sealed partial class OverlayWindow : Window
         FrameworkElement { DataContext: ItemCardViewModel card } => card,
         _ => null,
     };
+}
+
+public sealed class OverlayPlacementEditEventArgs(OverlayCustomPlacement placement) : EventArgs
+{
+    public OverlayCustomPlacement Placement { get; } = placement;
 }

@@ -584,6 +584,7 @@
                   <NumberBox x:Name="OverlayPlacementYNumber" services:XamlResourceOverride.Uid="IslandPlacementY" Grid.Column="1" Header="Y" SmallChange="1" SpinButtonPlacementMode="Compact" KeyDown="OnPlacementNumberKeyDown" />
                 </Grid>
                 <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button services:XamlResourceOverride.Uid="AdjustIslandPlacementButton" Click="OnAdjustIslandPlacementClicked" />
                   <Button services:XamlResourceOverride.Uid="ApplyIslandPlacementButton" Click="OnApplyIslandPlacementClicked" />
                   <Button services:XamlResourceOverride.Uid="ResetIslandPlacementButton" Click="OnResetIslandPlacementClicked" />
                 </StackPanel>

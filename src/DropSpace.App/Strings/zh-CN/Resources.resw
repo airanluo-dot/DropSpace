@@ -306,6 +306,9 @@
   <data name="IslandPlacementY.Header" xml:space="preserve"><value>Y（DIP）</value></data>
   <data name="ApplyIslandPlacementButton.Content" xml:space="preserve"><value>应用位置</value></data>
   <data name="ResetIslandPlacementButton.Content" xml:space="preserve"><value>重置</value></data>
+  <data name="AdjustIslandPlacementButton.Content" xml:space="preserve"><value>调整灵动岛位置…</value></data>
+  <data name="AdjustIslandPlacementButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>调整灵动岛位置</value></data>
+  <data name="OverlayPlacementEditHint.Text" xml:space="preserve"><value>拖动以移动 · Esc 取消</value></data>
   <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>快捷面板热键</value></data>
   <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>用键盘打开现有灵动岛并导航。默认：Win+Shift+Space。</value></data>
   <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>智能拖拽应用排除项</value></data>

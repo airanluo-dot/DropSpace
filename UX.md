@@ -77,6 +77,10 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 - Removing the last Temporary item enters an interruptible dismissal and returns to Hidden. A new drag or item can reverse the target before dismissal completes.
 - Dynamic Island has an 8-DIP top gap and full corners. Its Compact, Drop Ready and Expanded states morph without recreating business state.
 
+### Direct placement adjustment (Preview.3)
+
+Settings keeps the precise X/Y editor and adds **Adjust Island Position…** for the selected monitor. Activating it arms only that monitor's visible Dynamic Island; the fixed host remains no-activate and no full-screen overlay is created. A pointer press on the island captures the pointer, movement previews physical-pixel deltas converted to monitor-local DIP, and the hint says “Drag to move · Esc to cancel”. Release commits the unclamped user coordinates once through the normal settings transaction and switches that monitor to Custom. Escape restores the entry snapshot without writing settings. Smart Drag candidate creation, probe verification, and Classic activation surfaces are suppressed for the edit so the adjustment gesture cannot reveal or accept a file drop.
+
 ## Settings
 
 - Uses standard Windows settings rows with label, short description, and control.

@@ -35,6 +35,8 @@ public sealed class OverlayWindowService : IDisposable
     private long _activeSmartSessionId;
     private DragScreenPoint _activeSmartSessionPoint;
     private FileDragWakeMode? _configuredWakeMode;
+    private OverlayWindow? _placementEditingWindow;
+    private FileDragWakeMode? _placementInputRestoreMode;
     private bool _topologyRefreshPending;
     private bool _disposed;
 
@@ -83,6 +85,7 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
@@ -90,6 +93,7 @@ public sealed class OverlayWindowService : IDisposable
         _displayTopologyWatcher.Changed += OnDisplayTopologyChanged;
         _dragSessionDetector.CandidateStarted += OnSmartDragCandidateStarted;
         _dragSessionDetector.CandidateEnded += OnSmartDragCandidateEnded;
+        _dragSessionDetector.PlacementEditEscapeRequested += OnPlacementEditEscapeRequested;
         _quickPanelHotkey.Invoked += OnQuickPanelHotkeyInvoked;
         _quickPanelHotkey.Start(_viewModel.QuickPanelHotkey);
         _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
@@ -428,9 +432,12 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
         _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
         _dragSessionDetector.CandidateEnded -= OnSmartDragCandidateEnded;
+        _dragSessionDetector.PlacementEditEscapeRequested -= OnPlacementEditEscapeRequested;
+        _dragSessionDetector.SetPlacementEditing(false);
         _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
         _activeSmartSessionId = 0;
         _dragSessionDetector.SetMode(FileDragWakeMode.Disabled);
@@ -445,6 +452,8 @@ public sealed class OverlayWindowService : IDisposable
         _foregroundWindowMonitor.Dispose();
         foreach (var window in _windows)
         {
+            window.PlacementCommitted -= OnPlacementCommitted;
+            window.PlacementCancelled -= OnPlacementCancelled;
             window.CloseForShutdown();
         }
 
@@ -510,6 +519,128 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
+    private void OnOverlayPlacementEditRequested(object? sender, string monitorId)
+    {
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            var window = _windows.FirstOrDefault(candidate =>
+                string.Equals(candidate.MonitorId, monitorId, StringComparison.Ordinal));
+            if (window is null)
+            {
+                _logger.LogWarning("The requested placement monitor {MonitorId} is not currently available.", monitorId);
+                return;
+            }
+
+            if (_placementEditingWindow == window)
+            {
+                return;
+            }
+
+            if (_placementEditingWindow is not null && _placementEditingWindow != window)
+            {
+                _placementEditingWindow.CancelPlacementEdit();
+            }
+
+            _activeDragOwner = DragTargetOwner.None;
+            CompleteSmartDetectorSession();
+            _viewModel.CancelDrag();
+            foreach (var host in _activationHosts)
+            {
+                host.SetEnabled(false);
+            }
+
+            _placementInputRestoreMode = _configuredWakeMode ?? _viewModel.FileDragWakeMode;
+            _placementEditingWindow = window;
+            // Reset the serialized drag policy before arming the edit. The edit still needs the
+            // Smart observer's global Escape hook, so restart it after the old session is gone.
+            _dragSessionDetector.SetMode(FileDragWakeMode.Disabled);
+            _dragSessionDetector.SetPlacementEditing(true);
+            // The overlay remains no-activate during the edit, so use the observer's global
+            // Escape hook even when the user's configured wake mode is Classic or Disabled.
+            _dragSessionDetector.SetMode(FileDragWakeMode.SmartExperimental);
+
+            var placement = _viewModel.GetOverlayPlacement(monitorId);
+            window.BeginPlacementEdit(placement.CustomCoordinates);
+            _logger.LogInformation(
+                "Dynamic Island placement edit armed on monitor {MonitorId}; Smart Drag candidate creation is suppressed until the edit ends.",
+                monitorId);
+        });
+    }
+
+    private void OnPlacementEditEscapeRequested(object? sender, EventArgs args)
+    {
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_placementEditingWindow is null || _disposed)
+            {
+                return;
+            }
+
+            _placementEditingWindow.CancelPlacementEdit();
+        });
+    }
+
+    private async void OnPlacementCommitted(object? sender, OverlayPlacementEditEventArgs args)
+    {
+        if (sender is not OverlayWindow window || _disposed)
+        {
+            return;
+        }
+
+        _placementEditingWindow = null;
+        _dragSessionDetector.SetPlacementEditing(false);
+        RestorePlacementInputMode();
+        try
+        {
+            await _mainViewModel.SetCustomOverlayPlacementAsync(
+                window.MonitorId,
+                args.Placement.X,
+                args.Placement.Y);
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Dynamic Island placement could not be persisted on monitor {MonitorId}; the previous settings remain active.",
+                window.MonitorId);
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+    }
+
+    private void OnPlacementCancelled(object? sender, EventArgs args)
+    {
+        if (sender is not OverlayWindow window)
+        {
+            return;
+        }
+
+        if (_placementEditingWindow == window)
+        {
+            _placementEditingWindow = null;
+        }
+
+        _dragSessionDetector.SetPlacementEditing(false);
+        RestorePlacementInputMode();
+        ApplySnapshot(_viewModel.Snapshot);
+        _logger.LogInformation("Dynamic Island placement edit cancelled on monitor {MonitorId}.", window.MonitorId);
+    }
+
+    private void RestorePlacementInputMode()
+    {
+        var restoreMode = _placementInputRestoreMode;
+        _placementInputRestoreMode = null;
+        if (restoreMode is { } mode && mode != FileDragWakeMode.SmartExperimental)
+        {
+            _dragSessionDetector.SetMode(mode);
+        }
+    }
+
     private void OnQuickPanelHotkeyInvoked(object? sender, EventArgs args)
     {
         _dispatcher.TryEnqueue(() =>
@@ -558,8 +689,7 @@ public sealed class OverlayWindowService : IDisposable
                 string.Equals(window.MonitorId, activeMonitorId, StringComparison.Ordinal),
                 activationEnabled,
                 _viewModel.FileDragWakeMode,
-                _viewModel.PlacementMode,
-                _viewModel.GetCustomPlacement(window.MonitorId));
+                _viewModel.GetOverlayPlacement(window.MonitorId));
         }
     }
 
@@ -575,7 +705,7 @@ public sealed class OverlayWindowService : IDisposable
             OnVisibleOwnedDroppedAsync);
         foreach (var monitor in monitors)
         {
-            _windows.Add(new OverlayWindow(
+            var window = new OverlayWindow(
                 _viewModel,
                 _strings,
                 monitor,
@@ -583,7 +713,10 @@ public sealed class OverlayWindowService : IDisposable
                 _dragDropService,
                 visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
-                _loggerFactory.CreateLogger<OverlayWindow>()));
+                _loggerFactory.CreateLogger<OverlayWindow>());
+            window.PlacementCommitted += OnPlacementCommitted;
+            window.PlacementCancelled += OnPlacementCancelled;
+            _windows.Add(window);
         }
     }
 
@@ -903,8 +1036,17 @@ public sealed class OverlayWindowService : IDisposable
 
             try
             {
+                if (_placementEditingWindow is not null)
+                {
+                    _placementEditingWindow.CancelPlacementEdit();
+                    _placementEditingWindow = null;
+                    _dragSessionDetector.SetPlacementEditing(false);
+                }
+
                 foreach (var window in _windows)
                 {
+                    window.PlacementCommitted -= OnPlacementCommitted;
+                    window.PlacementCancelled -= OnPlacementCancelled;
                     window.CloseForShutdown();
                 }
 

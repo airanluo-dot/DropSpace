@@ -241,6 +241,24 @@
             <TextBlock services:XamlResourceOverride.Uid="OverlayDropTargetSubtitle" FontSize="12" Foreground="#DFFFFFFF" />
           </StackPanel>
         </Border>
+
+        <Border
+          x:Name="PlacementEditSurface"
+          Background="Transparent"
+          IsHitTestVisible="False"
+          Visibility="Collapsed"
+          PointerPressed="OnPlacementEditPointerPressed"
+          PointerMoved="OnPlacementEditPointerMoved"
+          PointerReleased="OnPlacementEditPointerReleased"
+          PointerCaptureLost="OnPlacementEditPointerCaptureLost">
+          <TextBlock
+            x:Name="PlacementEditHintText"
+            services:XamlResourceOverride.Uid="OverlayPlacementEditHint"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="12"
+            Foreground="#DFFFFFFF" />
+        </Border>
       </Grid>
     </Border>
   </Grid>

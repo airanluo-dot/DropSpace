@@ -642,10 +642,10 @@ public sealed partial class MainPage : Page
     private async void OnOverlayPlacementModeChanged(object sender, SelectionChangedEventArgs args)
     {
         if (!_syncingSettings && OverlayPlacementModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
             Enum.TryParse<OverlayPlacementMode>(value, out var mode))
         {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { OverlayPlacementMode = mode }));
+            await RunAsync(() => _viewModel.SetOverlayPlacementModeAsync(monitorId, mode));
         }
     }
 
@@ -669,8 +669,16 @@ public sealed partial class MainPage : Page
     {
         if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId)
         {
-            await RunAsync(() => _viewModel.ResetCustomOverlayPlacementAsync(monitorId));
+            await RunAsync(() => _viewModel.ResetOverlayPlacementAsync(monitorId));
             SyncPlacementCoordinates();
+        }
+    }
+
+    private void OnAdjustIslandPlacementClicked(object sender, RoutedEventArgs args)
+    {
+        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId)
+        {
+            _viewModel.RequestOverlayPlacementEdit(monitorId);
         }
     }
 
@@ -823,8 +831,21 @@ public sealed partial class MainPage : Page
             SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
             SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
             SelectComboItem(FileDragWakeModeCombo, _viewModel.FileDragWakeMode.ToString());
-            SelectComboItem(OverlayPlacementModeCombo, _viewModel.OverlayPlacementMode.ToString());
-            OverlayPlacementMonitorCombo.ItemsSource = _viewModel.AvailableOverlayMonitors;
+            IReadOnlyList<OverlayMonitorChoice> availableOverlayMonitors;
+            try
+            {
+                availableOverlayMonitors = _viewModel.AvailableOverlayMonitors;
+            }
+            catch (InvalidOperationException exception) when (
+                exception.Message.Contains("active display", StringComparison.OrdinalIgnoreCase))
+            {
+                // Display enumeration can briefly return no monitors during a headless or display
+                // reconnecting session. Keep the settings page usable; the overlay service will
+                // retry on its next topology refresh.
+                availableOverlayMonitors = Array.Empty<OverlayMonitorChoice>();
+            }
+
+            OverlayPlacementMonitorCombo.ItemsSource = availableOverlayMonitors;
             OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
             QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
             SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
@@ -843,7 +864,8 @@ public sealed partial class MainPage : Page
         {
             return;
         }
-        var placement = _viewModel.GetCustomOverlayPlacement(monitorId);
+        var placement = _viewModel.GetOverlayPlacement(monitorId);
+        SelectComboItem(OverlayPlacementModeCombo, placement.Mode.ToString());
         OverlayPlacementXNumber.Value = placement.X;
         OverlayPlacementYNumber.Value = placement.Y;
     }

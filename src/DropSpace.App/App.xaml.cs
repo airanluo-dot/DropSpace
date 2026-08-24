@@ -110,6 +110,18 @@ public partial class App : Application
                         recovery.PreservedNonUiPreferences);
                 }
 
+                var updatedArgument = Array.FindIndex(commandLine, value =>
+                    string.Equals(value, "--updated", StringComparison.OrdinalIgnoreCase));
+                if (updatedArgument >= 0 && updatedArgument + 1 < commandLine.Length &&
+                    ReleaseVersion.TryParse(commandLine[updatedArgument + 1], out var updatedVersion))
+                {
+                    // Record the update before display-dependent services initialize. A restarted
+                    // installer process must be able to confirm the new version even when Windows
+                    // is temporarily headless or the display topology is still reconnecting.
+                    await _services.GetRequiredService<IUpdateService>().MarkUpdatedLaunchAsync(updatedVersion);
+                    viewModel.ShowUpdatedVersion(updatedVersion);
+                }
+
                 _window.ApplyTheme(viewModel.Settings.Theme);
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
@@ -118,14 +130,6 @@ public partial class App : Application
                 {
                     await _services.GetRequiredService<ShareTargetActivationService>()
                         .HandleAsync(activation);
-                }
-                var updatedArgument = Array.FindIndex(commandLine, value =>
-                    string.Equals(value, "--updated", StringComparison.OrdinalIgnoreCase));
-                if (updatedArgument >= 0 && updatedArgument + 1 < commandLine.Length &&
-                    ReleaseVersion.TryParse(commandLine[updatedArgument + 1], out var updatedVersion))
-                {
-                    await _services.GetRequiredService<IUpdateService>().MarkUpdatedLaunchAsync(updatedVersion);
-                    viewModel.ShowUpdatedVersion(updatedVersion);
                 }
 
                 if (Environment.GetCommandLineArgs().Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
@@ -298,6 +302,7 @@ public partial class App : Application
             provider.GetRequiredService<IAppStringLocalizer>(),
             provider.GetRequiredService<ILogger<UpdateService>>()));
         services.AddSingleton<OverlayStateMachine>();
+        services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<OleDragDropService>();
