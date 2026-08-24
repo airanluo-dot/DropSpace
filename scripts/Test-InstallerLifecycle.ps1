@@ -272,9 +272,17 @@ try
     $runningProcess = Start-Process -FilePath $installedExe -PassThru
     Wait-ForMaintenanceEndpoint $runningProcess
 
-    Invoke-CheckedProcess $currentInstallerPath @(
-        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE"
-    ) "in-place /UPDATE upgrade" (Join-Path $testRoot "upgrade.log")
+    try
+    {
+        Invoke-CheckedProcess $currentInstallerPath @(
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE"
+        ) "in-place /UPDATE upgrade" (Join-Path $testRoot "upgrade.log")
+    }
+    catch
+    {
+        Write-ApplicationStartupDiagnostics
+        throw
+    }
     if (-not $runningProcess.WaitForExit(15000))
     {
         throw "In-place upgrade did not gracefully stop the running DropSpace process."
