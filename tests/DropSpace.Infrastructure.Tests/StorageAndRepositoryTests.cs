@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
@@ -63,6 +64,10 @@ public sealed class StorageAndRepositoryTests
             {
                 ["DISPLAY-1"] = new(640, 24),
             },
+            OverlayPlacements = new Dictionary<string, OverlayMonitorPlacement>
+            {
+                ["display:MONITOR-1"] = new(OverlayPlacementMode.Custom, 640, 24),
+            },
             QuickPanelHotkey = "Ctrl+Shift+D",
             SmartDragExcludedProcesses = ["example"],
             AutoCheckForUpdates = false,
@@ -77,9 +82,13 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(expected with
         {
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
+            OverlayPlacements = actual.OverlayPlacements,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
         }, actual);
         Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
+        Assert.AreEqual(
+            new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 640, 24),
+            actual.OverlayPlacements["display:MONITOR-1"]);
         CollectionAssert.AreEqual(expected.SmartDragExcludedProcesses, actual.SmartDragExcludedProcesses);
         Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
     }
@@ -110,6 +119,8 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(AppLanguagePreference.System, actual.Language);
         Assert.IsTrue(actual.ClipboardPaused);
         Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+        using var persisted = JsonDocument.Parse(await File.ReadAllTextAsync(_paths.Settings));
+        Assert.AreEqual(AppSettings.CurrentVersion, persisted.RootElement.GetProperty("Version").GetInt32());
     }
 
     [TestMethod]

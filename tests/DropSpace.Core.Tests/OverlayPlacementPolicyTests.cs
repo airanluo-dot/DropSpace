@@ -77,6 +77,21 @@ public sealed class OverlayPlacementPolicyTests
     }
 
     [TestMethod]
+    public void UnconfiguredMonitorPlacementRemainsAutomaticWithoutGlobalFallbackCoordinates()
+    {
+        var automatic = OverlayPlacementPolicy.Resolve(
+            new OverlayPlacementRequest(0, 0, 1920, 1080, 1.5, FileDragWakeMode.ClassicTopEdge),
+            new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 300, 8));
+
+        var expected = OverlayPlacementPolicy.Resolve(
+            new OverlayPlacementRequest(0, 0, 1920, 1080, 1.5, FileDragWakeMode.ClassicTopEdge),
+            new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
+
+        Assert.AreEqual(expected, automatic);
+        Assert.AreEqual(OverlayPlacementPolicy.DynamicIslandTopGapDips, automatic.SurfaceTopOffsetDips);
+    }
+
+    [TestMethod]
     public void EveryVisualStateCanReuseOneResolvedAnchor()
     {
         var request = new OverlayPlacementRequest(0, 40, 2560, 1400, 2, FileDragWakeMode.Disabled);

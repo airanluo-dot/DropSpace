@@ -77,6 +77,7 @@ public sealed class JsonSettingsService : ISettingsService
                         string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
                 settings ??= CreateDefaults();
+                var migratedVersion = false;
                 if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
                 {
                     settings = settings with
@@ -86,9 +87,26 @@ public sealed class JsonSettingsService : ISettingsService
                         // installed population. Fresh builds use the channel selected by their release kind.
                         UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
                     };
+                    migratedVersion = true;
                 }
 
-                return settings.Validate();
+                var validated = settings.Validate();
+                if (migratedVersion)
+                {
+                    try
+                    {
+                        await SaveCoreAsync(validated, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                    {
+                        _logger.LogWarning(
+                            exception,
+                            "Settings schema migration reached version {Version} in memory but could not replace the persisted file.",
+                            validated.Version);
+                    }
+                }
+
+                return validated;
             }
             catch (Exception exception) when (IsRecoverableSettingsFailure(exception))
             {

@@ -26,12 +26,21 @@ WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace suppo
 | Hidden file-drag reveal | Experimental Smart mode plus Classic fallback | Accessibility drag signals + bounded UIA/MSAA item and input observation reveal a temporary visible `IDropTarget`; legacy transparent top-edge target is opt-in |
 | Dynamic Island | Supported with WinUI Composition and shaped HWND | Single Compact/Drop Ready/Expanded visual surface |
 | Per-monitor DPI placement | Supported with Win32 interop | Physical monitor bounds + effective DPI; DIP-to-pixel conversion at window boundary |
+| Persistent monitor identity | Supported with DisplayConfig interop, fallback marked | `DisplayIdentityService` maps GDI/HMONITOR enumeration to a normalized target device path; hashed `MonitorDescriptor.Id` is the settings key and `Handle` remains runtime-only |
 | Portable single-file EXE | Supported on Windows App SDK 1.5+ | Unpackaged, Windows App SDK self-contained, .NET self-contained, content extraction enabled |
 | SQLite | Supported via library | `Microsoft.Data.Sqlite`, local database |
 | File picker | Supported | WinRT picker initialized with HWND where required |
 | System file thumbnails | Supported, async | Storage/Shell thumbnail APIs; bounded cache |
 | Track arbitrary file moves | Not reliably supported | Explicit Missing and Locate/Replace flow |
 | Explorer context menu | Complex | Not MVP/V1.1 unless strong evidence |
+
+## Persistent display identity and placement editing
+
+`MonitorLayoutService` owns runtime bounds, work area, effective DPI and the native `HMONITOR` handle. `DisplayIdentityService` separately calls `GetDisplayConfigBufferSizes`, `QueryDisplayConfig`, and `DisplayConfigGetDeviceInfo` to map the GDI device name to the active target's monitor device path. The normalized path is hashed into a `display:` settings key; if DisplayConfig cannot resolve it, the app uses an explicitly marked `runtime:` fallback for the current process rather than pretending that a handle is a durable identity.
+
+Settings schema 9 stores `OverlayPlacements` by that persistent ID. No entry means Automatic; only a `Custom` entry supplies saved X/Y DIP coordinates. Runtime projection clamps to the current work area without writing the clamp back. A schema-8 HMONITOR key is migrated only when its hexadecimal value matches a currently enumerated handle; an unresolved old key is ignored without blocking startup.
+
+The Settings **Adjust Island Position…** action keeps the selected visual window no-activate, revokes its native drop target while editing, captures only the fixed island host, and converts physical pointer deltas to monitor-local DIP. It commits on release and rolls back on Escape. The Smart observer remains available for the global Escape hook but suppresses candidate creation for the edit; Classic activation hosts are disabled until the edit ends.
 
 ## Clipboard monitoring
 

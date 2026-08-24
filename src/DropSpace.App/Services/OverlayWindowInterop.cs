@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using DropSpace.Core.DragDrop;
 
 namespace DropSpace.App.Services;
 
@@ -92,6 +93,18 @@ internal static class OverlayWindowInterop
     }
 
     public static void Hide(nint window) => ShowWindow(window, ShowHide);
+
+    public static bool TryGetCursorPosition(out DragScreenPoint point)
+    {
+        if (GetCursorPos(out var nativePoint))
+        {
+            point = new DragScreenPoint(nativePoint.X, nativePoint.Y);
+            return true;
+        }
+
+        point = default;
+        return false;
+    }
 
     public static VisibleWindowProbe ProbeWindowAtPoint(nint rootWindow, int x, int y)
     {
@@ -309,10 +322,21 @@ internal static class OverlayWindowInterop
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsChild(nint parent, nint window);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetClassName(nint window, System.Text.StringBuilder className, int maximumCount);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
 }
 
 internal sealed record VisibleWindowProbe(

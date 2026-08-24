@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Channels;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -54,22 +53,8 @@ public sealed class DragSessionDetector : IDisposable
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(30);
     private readonly MonitorLayoutService _monitorLayout;
     private readonly ILogger<DragSessionDetector> _logger;
-    private readonly Channel<DetectorSignal> _criticalSignals = Channel.CreateBounded<DetectorSignal>(
-        new BoundedChannelOptions(1_024)
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = true,
-            SingleWriter = false,
-        });
-    private readonly Channel<DetectorSignal> _moveSignals = Channel.CreateBounded<DetectorSignal>(
-        new BoundedChannelOptions(1)
-        {
-            // Pointer moves are intentionally coalesced. Press, release, cancel, timeout and OLE
-            // results use the reliable channel and therefore cannot silently disappear.
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
-            SingleWriter = false,
-        });
+    private readonly DragSignalQueue<DetectorSignal> _criticalSignals = new(reliable: true);
+    private readonly DragSignalQueue<DetectorSignal> _moveSignals = new(reliable: false, lossyCapacity: 1);
     private readonly DragSessionPolicy _policy;
     private readonly object _lifecycleGate = new();
     private readonly ManualResetEventSlim _hookMessageQueueReady = new(false);
@@ -90,7 +75,6 @@ public sealed class DragSessionDetector : IDisposable
     private FileDragWakeMode _mode = FileDragWakeMode.Disabled;
     private bool _disposed;
     private long _observedSignals;
-    private long _droppedSignals;
     private long _recognizedSourceCount;
     private long _rejectedSourceCount;
     private long _comInitializationFailureCount;
@@ -105,6 +89,7 @@ public sealed class DragSessionDetector : IDisposable
     private int _objectDragHookRegistrationError;
     private int _systemDragHookRegistrationError;
     private int _pointerObservationActive;
+    private int _candidateCreationSuppressed;
     private string[] _excludedProcessNames = [];
     private readonly object _latencyGate = new();
     private readonly Queue<double> _probeLatencyMilliseconds = new();
@@ -128,6 +113,8 @@ public sealed class DragSessionDetector : IDisposable
 
     public event EventHandler<long>? CandidateEnded;
 
+    public event EventHandler? PlacementEditEscapeRequested;
+
     public bool ObjectDragEventsRegistered => _dragWinEventHook != nint.Zero;
 
     public bool SystemDragEventsRegistered => _systemDragWinEventHook != nint.Zero;
@@ -136,7 +123,13 @@ public sealed class DragSessionDetector : IDisposable
 
     public long ObservedSignalCount => Interlocked.Read(ref _observedSignals);
 
-    public long DroppedSignalCount => Interlocked.Read(ref _droppedSignals);
+    public long DroppedMoveSignals => _moveSignals.ReplacedWriteCount;
+
+    public long CriticalSignalWriteFailures => _criticalSignals.WriteFailureCount;
+
+    // Kept as a compatibility alias for existing diagnostics consumers. The lossy lane is the
+    // only lane where replacement is expected during a healthy run.
+    public long DroppedSignalCount => DroppedMoveSignals;
 
     public long RecognizedSourceCount => Interlocked.Read(ref _recognizedSourceCount);
 
@@ -165,6 +158,14 @@ public sealed class DragSessionDetector : IDisposable
 
     public bool WaitForObserverRegistration(TimeSpan timeout) =>
         _observerRegistrationReady.Wait(timeout);
+
+    public bool CandidateCreationSuppressed => Volatile.Read(ref _candidateCreationSuppressed) != 0;
+
+    public void SetPlacementEditing(bool active)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        Volatile.Write(ref _candidateCreationSuppressed, active ? 1 : 0);
+    }
 
     public void SetMode(FileDragWakeMode mode)
     {
@@ -228,7 +229,7 @@ public sealed class DragSessionDetector : IDisposable
         return string.Join(Environment.NewLine,
             "DropSpace Smart Drag compatibility report (path-free)",
             $"observer: {ObserverRegistrationDiagnostics}",
-            $"signals: observed={ObservedSignalCount}; criticalDropped={DroppedSignalCount}",
+            $"signals: observed={ObservedSignalCount}; droppedMoves={DroppedMoveSignals}; criticalWriteFailures={CriticalSignalWriteFailures}",
             $"candidates: generic={GenericCandidateCount}; verified={VerifiedCandidateCount}; rejected={RejectedCandidateCount}; timeout={ProbeTimeoutCount}",
             $"probe-ms: p50={Percentile(samples, .50):F1}; p90={Percentile(samples, .90):F1}; p95={Percentile(samples, .95):F1}; p99={Percentile(samples, .99):F1}",
             $"velocity-buckets: slow={Interlocked.Read(ref _velocitySlowCount)}; medium={Interlocked.Read(ref _velocityMediumCount)}; fast={Interlocked.Read(ref _velocityFastCount)}; extreme={Interlocked.Read(ref _velocityExtremeCount)}",
@@ -278,6 +279,8 @@ public sealed class DragSessionDetector : IDisposable
         {
             StopCore();
             _disposed = true;
+            _criticalSignals.Complete();
+            _moveSignals.Complete();
             _hookMessageQueueReady.Dispose();
             _observerRegistrationReady.Dispose();
         }
@@ -358,13 +361,14 @@ public sealed class DragSessionDetector : IDisposable
         _runCancellation?.Dispose();
         _runCancellation = null;
         _processor = null;
-        while (_criticalSignals.Reader.TryRead(out _))
+        while (_criticalSignals.TryRead(out _))
         {
         }
-        while (_moveSignals.Reader.TryRead(out _))
+        while (_moveSignals.TryRead(out _))
         {
         }
         Interlocked.Exchange(ref _pointerObservationActive, 0);
+        Volatile.Write(ref _candidateCreationSuppressed, 0);
         _observerRegistrationReady.Reset();
         _policy.Reset();
         _logger.LogInformation("Smart file-drag detection disabled and all observer hooks were removed.");
@@ -592,6 +596,16 @@ public sealed class DragSessionDetector : IDisposable
             {
                 var signal = await ReadNextSignalAsync(cancellationToken).ConfigureAwait(false);
                 Interlocked.Increment(ref _observedSignals);
+                if (signal.CandidateCreationSuppressed || CandidateCreationSuppressed)
+                {
+                    if (signal.Kind == DetectorSignalKind.Cancelled && CandidateCreationSuppressed)
+                    {
+                        PlacementEditEscapeRequested?.Invoke(this, EventArgs.Empty);
+                    }
+
+                    continue;
+                }
+
                 DragSessionTransition transition;
                 switch (signal.Kind)
                 {
@@ -821,12 +835,20 @@ public sealed class DragSessionDetector : IDisposable
         {
             signal = signal with { Timestamp = Stopwatch.GetTimestamp() };
         }
-        var writer = signal.Kind == DetectorSignalKind.PointerMoved
-            ? _moveSignals.Writer
-            : _criticalSignals.Writer;
-        if (!writer.TryWrite(signal))
+        if (signal.Kind != DetectorSignalKind.None && CandidateCreationSuppressed)
         {
-            Interlocked.Increment(ref _droppedSignals);
+            signal = signal with { CandidateCreationSuppressed = true };
+        }
+
+        if (signal.Kind == DetectorSignalKind.PointerMoved)
+        {
+            _ = _moveSignals.TryWrite(signal);
+        }
+        else if (!_criticalSignals.TryWrite(signal))
+        {
+            _logger.LogDebug(
+                "Smart drag critical signal could not be queued because the detector is shutting down: {SignalKind}.",
+                signal.Kind);
         }
     }
 
@@ -855,26 +877,26 @@ public sealed class DragSessionDetector : IDisposable
     {
         while (true)
         {
-            var hasCritical = _criticalSignals.Reader.TryPeek(out var critical);
-            var hasMove = _moveSignals.Reader.TryPeek(out var move);
+            var hasCritical = _criticalSignals.TryPeek(out var critical);
+            var hasMove = _moveSignals.TryPeek(out var move);
             if (hasCritical && hasMove)
             {
                 // The lanes have different pressure policies, not different chronology. An older
                 // threshold-crossing move must be applied before a later release/cancel signal.
-                if (move.Timestamp < critical.Timestamp && _moveSignals.Reader.TryRead(out move))
+                if (move.Timestamp < critical.Timestamp && _moveSignals.TryRead(out move))
                 {
                     return move;
                 }
-                if (_criticalSignals.Reader.TryRead(out critical))
+                if (_criticalSignals.TryRead(out critical))
                 {
                     return critical;
                 }
             }
-            else if (hasCritical && _criticalSignals.Reader.TryRead(out critical))
+            else if (hasCritical && _criticalSignals.TryRead(out critical))
             {
                 return critical;
             }
-            else if (hasMove && _moveSignals.Reader.TryRead(out move))
+            else if (hasMove && _moveSignals.TryRead(out move))
             {
                 return move;
             }
@@ -883,8 +905,8 @@ public sealed class DragSessionDetector : IDisposable
             // WaitToReadAsync per pointer move would retain registrations until the next critical
             // signal and turn a long drag into avoidable pressure of its own.
             using var waitCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var criticalReady = _criticalSignals.Reader.WaitToReadAsync(waitCancellation.Token).AsTask();
-            var moveReady = _moveSignals.Reader.WaitToReadAsync(waitCancellation.Token).AsTask();
+            var criticalReady = _criticalSignals.WaitToReadAsync(waitCancellation.Token).AsTask();
+            var moveReady = _moveSignals.WaitToReadAsync(waitCancellation.Token).AsTask();
             _ = await Task.WhenAny(criticalReady, moveReady).ConfigureAwait(false);
             await waitCancellation.CancelAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -989,7 +1011,8 @@ public sealed class DragSessionDetector : IDisposable
         DragScreenPoint Point,
         nint SourceWindow = default,
         long SessionId = 0,
-        long Timestamp = 0);
+        long Timestamp = 0,
+        bool CandidateCreationSuppressed = false);
 
     private delegate nint HookProcedure(int code, nint wParam, nint lParam);
 

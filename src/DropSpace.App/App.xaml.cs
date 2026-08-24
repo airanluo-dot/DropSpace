@@ -298,6 +298,7 @@ public partial class App : Application
             provider.GetRequiredService<IAppStringLocalizer>(),
             provider.GetRequiredService<ILogger<UpdateService>>()));
         services.AddSingleton<OverlayStateMachine>();
+        services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<OleDragDropService>();

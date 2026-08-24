@@ -2,6 +2,13 @@
 
 This document is the behavior contract. MVP and V1.1 boundaries come from `PRODUCT.md`.
 
+## v0.3.0-preview.3 targeted hardening
+
+- Smart Drag lifecycle signals are reliable under burst pressure: `PointerMoved` may coalesce, while press/release/cancel/completion/probe signals enter an unbounded critical lane without hook-thread blocking.
+- Dynamic Island placement is per-monitor in settings schema 9. A monitor with no placement entry remains Automatic; Reset removes only the selected monitor's entry; runtime clamping never overwrites saved coordinates.
+- The Settings Island Placement section includes **Adjust Island Position…**. It keeps the selected island no-activate, translates physical pointer movement into monitor-local DIP preview coordinates, commits once on release, and cancels without persistence on Escape.
+- Monitor placement keys are derived from stable DisplayConfig target identities, with process-lifetime HMONITOR handles retained only for native calls and best-effort schema-8 migration.
+
 ## Shared item behavior
 
 ### User behavior

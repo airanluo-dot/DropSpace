@@ -44,6 +44,10 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Smart drag policy: click, stationary press, below-threshold movement, unknown threshold → generic candidate, Explorer/Desktop exact item → strong candidate, recognized blank Shell surface → generic candidate, unknown accessibility drag-start → strong candidate, probe verify/reject/timeout, strong-signal promotion while a probe is pending, release/Escape/completion, stale-session timeout/reject, duplicate WinEvent/mouse signals, and 1,000 sequential sessions.
 - Smart accessibility adapter: `SetWinEventHook` registers the documented object-drag and system drag/drop ranges before the observer message pump is declared ready; callbacks remain bounded; deprecated root-wide `UiaAddEvent` registration cannot block startup; COM initialization occurs on the actual classifier thread; UIA/MSAA nested item leaves can resolve through bounded inspection; and all returned COM objects have bounded lifetime.
 - Overlay placement policy: one Smart physical offset at 100%, 125%, 150%, 175%, and 200% DPI; Dynamic Island top gap; Classic/Disabled top-edge anchors; offset 340-DIP Expanded geometry remains inside the fixed host.
+- Reliable/lossy signal lanes: a reliable burst is fully readable, a one-slot move lane keeps the newest position, and a completed critical lane reports a write failure instead of blocking.
+- Schema-9 placement policy: an unconfigured monitor resolves Automatic, two monitors can retain different Custom coordinates, Reset removes only the selected entry, and transient clamping leaves saved DIP coordinates unchanged.
+- Stable display identity: normalized target-path inputs yield the same persistent ID and runtime fallback IDs remain explicitly distinguishable.
+- Direct placement session: physical pointer delta converts to DIP, release commits one final preview, and Escape restores the pre-edit snapshot.
 
 ## Integration tests
 
@@ -197,9 +201,9 @@ No performance number is accepted without hardware, build configuration, dataset
 - Malformed/oversized CIDA offsets, item counts and PIDLs fail closed; probe classification never calls `GetData` for virtual content and diagnostics contain no dragged path, filename or payload.
 - Best-effort app exclusions are tested for false attribution and accompanied by limitation copy.
 - Repeat 100 drag/cancel cycles, 10–30 ms cancellation, Exit→new-drag reversal, and 350 ms completion-grace supersession; assert stale session IDs cannot hide or commit newer work.
-- Inject 1,000/4,000/8,000 Hz pointer pressure while delivering reliable cancel/completion/probe signals; assert critical dropped count stays zero.
+- Inject bounded pointer pressure while delivering reliable cancel/completion/probe signals; assert critical write failures stay zero during a healthy run and move replacements remain separately diagnosed.
 - Verify Quick Panel default/custom hotkey conflict behavior, keyboard navigation, and file/image/text/URL drag-out.
-- Verify Automatic/Custom placement on negative coordinates and mixed DPI; Arrow=1 DIP, Shift+Arrow=10, Enter=save, Esc=rollback, disconnect/update clamping never mutates saved values.
+- Verify Automatic/Custom placement on negative coordinates and mixed DPI; Arrow=1 DIP, Shift+Arrow=10, Enter=save, Esc=rollback, direct Adjust Position release/rollback, disconnect/update clamping never mutates saved values, and an unconfigured second monitor remains Automatic.
 
 ## Release evidence
 

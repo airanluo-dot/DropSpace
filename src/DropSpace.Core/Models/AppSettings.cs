@@ -50,9 +50,17 @@ public enum OverlayPlacementMode
 
 public sealed record OverlayCustomPlacement(double X, double Y);
 
+public sealed record OverlayMonitorPlacement(
+    OverlayPlacementMode Mode,
+    double X,
+    double Y)
+{
+    public OverlayCustomPlacement CustomCoordinates => new(X, Y);
+}
+
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -98,9 +106,13 @@ public sealed record AppSettings
 
     public FileDragWakeMode FileDragWakeMode { get; init; } = FileDragWakeMode.SmartExperimental;
 
+    // These two fields remain deserializable for the one-time schema 8 migration. They are
+    // cleared after migration and are not used as an active source of truth.
     public OverlayPlacementMode OverlayPlacementMode { get; init; } = OverlayPlacementMode.Automatic;
 
     public Dictionary<string, OverlayCustomPlacement> CustomOverlayPlacements { get; init; } = [];
+
+    public Dictionary<string, OverlayMonitorPlacement> OverlayPlacements { get; init; } = [];
 
     public string QuickPanelHotkey { get; init; } = "Win+Shift+Space";
 
@@ -124,6 +136,8 @@ public sealed record AppSettings
         OverlayMonitor = OverlayMonitorPreference.Automatic,
         FileDragWakeMode = FileDragWakeMode.SmartExperimental,
         OverlayPlacementMode = OverlayPlacementMode.Automatic,
+        CustomOverlayPlacements = [],
+        OverlayPlacements = [],
     };
 
     public AppSettings Validate()
@@ -216,6 +230,16 @@ public sealed record AppSettings
                 Math.Abs(entry.Value.X) > 100_000 || Math.Abs(entry.Value.Y) > 100_000))
         {
             throw new ArgumentOutOfRangeException(nameof(CustomOverlayPlacements));
+        }
+
+        if (OverlayPlacements is null || OverlayPlacements.Count > 64 || OverlayPlacements.Any(entry =>
+                string.IsNullOrWhiteSpace(entry.Key) || entry.Key.Length > 256 ||
+                entry.Value is null ||
+                !Enum.IsDefined(entry.Value.Mode) ||
+                !double.IsFinite(entry.Value.X) || !double.IsFinite(entry.Value.Y) ||
+                Math.Abs(entry.Value.X) > 100_000 || Math.Abs(entry.Value.Y) > 100_000))
+        {
+            throw new ArgumentOutOfRangeException(nameof(OverlayPlacements));
         }
 
         if (!IsSupportedHotkey(QuickPanelHotkey))

@@ -385,3 +385,17 @@ The existing Dynamic Island is also the Quick Panel, with a configurable default
 **Rationale:** Intent signals, payload proof, content custody, and presentation placement have different trust and lifetime boundaries. Keeping them independent prevents false file acceptance, stale-session hides, whole-file buffering, and saved-coordinate corruption while allowing more providers and access paths.
 
 **Constraints:** No payload is read by the verification probe; materialization occurs only after Drop and only below DropSpace staging. No source path, filename, text, or payload appears in diagnostics. Portable builds disclose that Windows Share Target requires package identity. Real WeChat/QQ/Feishu/Outlook/Electron provider evidence remains a manual Windows gate and must never be inferred from hosted CI.
+
+## D-045 — Make Preview.3 signal and monitor placement boundaries explicit
+
+**Status:** Accepted for v0.3.0-preview.3
+
+**Decision:** Keep `PointerMoved` in a one-slot `DropOldest` lane, but move press/release/cancel/completion/probe/timeout lifecycle signals to an unbounded, single-reader reliable lane. Hook callbacks never wait; a critical write failure is recorded only when the lane is already completing or closed. The merge reader compares `Stopwatch` timestamps across both lanes so a pre-release movement cannot be overtaken by a later release.
+
+Replace HMONITOR string persistence keys with a `DisplayIdentityService` result derived from the normalized DisplayConfig target device path. `MonitorDescriptor.Id` is the hashed persistent identity and `Handle` is runtime-only; a `runtime:` fallback is explicitly non-persistent when resolution fails. Schema 9 stores `OverlayPlacements` per monitor. Missing entries are Automatic, Reset removes only the selected entry, and clamp is a runtime projection.
+
+The Settings placement editor is a transient no-activate state machine. It captures only the fixed island host, translates pointer deltas from physical pixels to monitor-local DIP, suppresses Smart candidate creation and Classic activation interference, commits one final Custom coordinate on release, and restores the entry snapshot on Escape. It reuses the normal settings transaction and preserves the precise X/Y editor.
+
+**Rationale:** The Preview.2 critical channel configured `Wait` but used `TryWrite`, so it could report a false reliable design while silently rejecting events at capacity. HMONITOR handles are valid runtime selectors but not durable display identities. A per-monitor mode eliminates the global Custom fallback that moved unconfigured displays, while a transient edit avoids settings writes on every pointer move and keeps file-drag semantics isolated.
+
+**Constraints:** DisplayConfig mapping is best effort and must fail to an explicit runtime fallback without blocking startup. The new editor does not create a full-screen surface, does not change the Smart classifier or payload boundary, and does not claim that hosted CI replaces real Windows 11 pointer/DPI/provider evidence.

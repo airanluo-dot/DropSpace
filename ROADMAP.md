@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.2 is the consolidated Preview target: Smart Drag Detection v2, Universal Access, virtual-file materialization, Drop Batch grouping, Quick Panel, best-effort exclusions, Windows Share for file/image/text/URL, and per-monitor Dynamic Island placement ship together. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.3 is the current targeted-hardening Preview: it tightens Smart Drag critical-signal reliability, adds direct Dynamic Island placement editing, replaces HMONITOR persistence keys with stable DisplayConfig identities, and makes placement mode/data per-monitor in schema 9. The v0.3.0-preview.2 capabilities remain the base: Universal Access, virtual-file materialization, Drop Batch grouping, Quick Panel, best-effort exclusions, Windows Share for file/image/text/URL, and per-monitor Dynamic Island placement. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -28,6 +28,14 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 - Record the real-Windows provider matrix for Explorer/Desktop, WeChat, QQ, Feishu/Electron, Office/Outlook attachments, mixed DPI, display changes, cursor feedback, race cases, and false reveals.
 - Tune probe geometry/lifetime only from evidence; never introduce a permanent Smart hot edge, full-screen transparent target, polling, injection, or elevation.
 - Promote to v0.3 Stable only after the provider matrix, privacy/performance gates, upgrade paths, release assets, updater discovery, and website API all pass.
+
+### v0.3.0-preview.3 — Targeted placement and signal hardening
+
+- Replace the bounded `TryWrite` critical lane with an unbounded reliable lifecycle queue while retaining one-slot coalescing for pointer movement and timestamp-ordered merge.
+- Add stable DisplayConfig target identity resolution and schema-9 `OverlayPlacements` with best-effort schema-8 HMONITOR migration.
+- Keep missing monitor entries Automatic, clamp only the runtime projection, and make Reset monitor-local.
+- Add the no-activate **Adjust Island Position…** workflow with physical-pointer-to-DIP preview, one-shot release commit, Smart Drag suppression, and Escape rollback.
+- Re-run the existing en-US/zh-CN CI, packaging, updater, and website/release gates; do not expand into a third-party compatibility matrix in this Preview.
 
 ## Delivery rule
 

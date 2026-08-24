@@ -36,8 +36,7 @@ public static class OverlayPlacementPolicy
 
     public static OverlayResolvedPlacement Resolve(
         OverlayPlacementRequest request,
-        OverlayPlacementMode mode,
-        OverlayCustomPlacement? custom)
+        OverlayMonitorPlacement placement)
     {
         if (!double.IsFinite(request.Scale) || request.Scale <= 0 ||
             request.WorkWidthPixels <= 0 || request.WorkHeightPixels <= 0)
@@ -45,7 +44,12 @@ public static class OverlayPlacementPolicy
             throw new ArgumentOutOfRangeException(nameof(request));
         }
 
-        if (mode != OverlayPlacementMode.Custom || custom is null)
+        if (placement is null)
+        {
+            throw new ArgumentNullException(nameof(placement));
+        }
+
+        if (placement.Mode != OverlayPlacementMode.Custom)
         {
             var width = ToPixels(HostWidthDips, request.Scale);
             return new OverlayResolvedPlacement(
@@ -58,16 +62,27 @@ public static class OverlayPlacementPolicy
         var workWidthDips = request.WorkWidthPixels / request.Scale;
         var workHeightDips = request.WorkHeightPixels / request.Scale;
         var halfSurface = Math.Min(MaximumSurfaceWidthDips, workWidthDips) / 2;
-        var clampedCenterX = Math.Clamp(custom.X, halfSurface, Math.Max(halfSurface, workWidthDips - halfSurface));
+        var clampedCenterX = Math.Clamp(placement.X, halfSurface, Math.Max(halfSurface, workWidthDips - halfSurface));
         var maxTop = Math.Max(0, workHeightDips - MaximumSurfaceHeightDips);
-        var clampedTop = Math.Clamp(custom.Y, 0, maxTop);
+        var clampedTop = Math.Clamp(placement.Y, 0, maxTop);
         var hostLeftDips = clampedCenterX - HostWidthDips / 2;
         return new OverlayResolvedPlacement(
             request.WorkLeftPixels + (int)Math.Round(hostLeftDips * request.Scale),
             request.WorkTopPixels + (int)Math.Round(clampedTop * request.Scale),
             0,
-            clampedCenterX != custom.X || clampedTop != custom.Y);
+            clampedCenterX != placement.X || clampedTop != placement.Y);
     }
+
+    public static OverlayResolvedPlacement Resolve(
+        OverlayPlacementRequest request,
+        OverlayPlacementMode mode,
+        OverlayCustomPlacement? custom) =>
+        Resolve(
+            request,
+            new OverlayMonitorPlacement(
+                mode,
+                custom?.X ?? 0,
+                custom?.Y ?? 0));
 
     private static int ToPixels(double dips, double scale) =>
         Math.Max(0, (int)Math.Round(dips * scale));
