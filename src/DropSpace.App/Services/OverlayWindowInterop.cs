@@ -108,7 +108,7 @@ internal static class OverlayWindowInterop
 
     public static VisibleWindowProbe ProbeWindowAtPoint(nint rootWindow, int x, int y)
     {
-        var discovered = WindowFromPoint(new NativePoint(x, y));
+        var discovered = WindowFromPoint(new NativePoint { X = x, Y = y });
         return new VisibleWindowProbe(
             rootWindow,
             discovered,
