@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 
 namespace DropSpace.Core.DragDrop;
@@ -62,9 +63,9 @@ public sealed class DragSignalQueue<T>
         }
     }
 
-    public bool TryPeek(out T value) => _channel.Reader.TryPeek(out value);
+    public bool TryPeek([MaybeNullWhen(false)] out T value) => _channel.Reader.TryPeek(out value);
 
-    public bool TryRead(out T value) => _channel.Reader.TryRead(out value);
+    public bool TryRead([MaybeNullWhen(false)] out T value) => _channel.Reader.TryRead(out value);
 
     public ValueTask<bool> WaitToReadAsync(CancellationToken cancellationToken) =>
         _channel.Reader.WaitToReadAsync(cancellationToken);
