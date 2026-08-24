@@ -189,7 +189,7 @@ public sealed class MonitorLayoutService(
         public int Bottom;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct MonitorInfoEx
     {
         public uint Size;
