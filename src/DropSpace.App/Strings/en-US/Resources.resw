@@ -309,6 +309,7 @@
   <data name="AdjustIslandPlacementButton.Content" xml:space="preserve"><value>Adjust Island Position…</value></data>
   <data name="AdjustIslandPlacementButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Adjust Dynamic Island position</value></data>
   <data name="OverlayPlacementEditHint.Text" xml:space="preserve"><value>Drag to move · Esc to cancel</value></data>
+  <data name="OverlayPlacementPersistenceWarning.Text" xml:space="preserve"><value>This display has a runtime-only identity. Custom placement is unavailable until a persistent display identity is available.</value></data>
   <data name="QuickPanelHotkeyTitle.Text" xml:space="preserve"><value>Quick Panel hotkey</value></data>
   <data name="QuickPanelHotkeyDescription.Text" xml:space="preserve"><value>Opens the existing Dynamic Island with keyboard navigation. Default: Win+Shift+Space.</value></data>
   <data name="SmartDragExclusionsTitle.Text" xml:space="preserve"><value>Smart drag app exclusions</value></data>

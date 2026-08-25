@@ -47,6 +47,7 @@ public sealed partial class OverlayWindow : Window
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
     private readonly OverlayPlacementEditSession _placementEdit = new();
     private bool _placementEditActive;
+    private bool _suppressedForPlacementEdit;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -224,6 +225,12 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
+        if (_suppressedForPlacementEdit)
+        {
+            HideImmediately();
+            return;
+        }
+
         if (_placementEditActive)
         {
             _resolvedPlacement = ResolvePlacement(wakeMode, new OverlayMonitorPlacement(
@@ -302,6 +309,7 @@ public sealed partial class OverlayWindow : Window
         {
             EndPlacementEditVisuals();
         }
+        _suppressedForPlacementEdit = false;
         StopAnimationFrames();
         RevokeNativeDropTarget();
         Close();
@@ -642,16 +650,35 @@ public sealed partial class OverlayWindow : Window
         target?.Dispose();
     }
 
-    public void BeginPlacementEdit(OverlayCustomPlacement initial)
+    public OverlayCustomPlacement GetProjectedPlacement(OverlayMonitorPlacement placement)
     {
-        _placementEdit.Arm(initial);
+        var resolved = ResolvePlacement(_viewModel.FileDragWakeMode, placement);
+        return new OverlayCustomPlacement(
+            (resolved.HostLeftPixels - _monitor.EffectiveWorkLeft) / _monitor.Scale + HostWidth / 2,
+            (resolved.HostTopPixels - _monitor.EffectiveWorkTop) / _monitor.Scale);
+    }
+
+    public void SuspendForPlacementEdit()
+    {
+        _suppressedForPlacementEdit = true;
+        _isActiveWindow = false;
+        EndPlacementEditVisuals();
+        HideImmediately();
+    }
+
+    public void ResumeAfterPlacementEdit() => _suppressedForPlacementEdit = false;
+
+    public void BeginPlacementEdit(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart)
+    {
+        _suppressedForPlacementEdit = false;
+        _placementEdit.Arm(savedOriginal, projectedStart);
         _placementEditActive = true;
         _isActiveWindow = true;
         _suppressedForFullscreen = false;
         _hideWhenSettled = false;
         _resolvedPlacement = ResolvePlacement(
             _viewModel.FileDragWakeMode,
-            new OverlayMonitorPlacement(OverlayPlacementMode.Custom, initial.X, initial.Y));
+            new OverlayMonitorPlacement(OverlayPlacementMode.Custom, projectedStart.X, projectedStart.Y));
         PositionFixedHost();
         RevokeNativeDropTarget();
         PlacementEditSurface.Visibility = Visibility.Visible;

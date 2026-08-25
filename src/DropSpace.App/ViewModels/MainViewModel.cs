@@ -383,20 +383,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return UpdateSettingsAsync(Settings with { OverlayPlacements = placements }, cancellationToken);
     }
 
-    private bool CanPersistPlacement(string monitorId)
+    public bool CanPersistOverlayPlacement(string monitorId)
     {
         var monitor = _monitorLayout.GetMonitors().FirstOrDefault(candidate =>
             string.Equals(candidate.Id, monitorId, StringComparison.Ordinal));
         if (monitor is { IsPersistent: false })
         {
             _logger.LogWarning(
-                "Display identity {MonitorId} is a runtime fallback; placement will remain session-only.",
+                "Display identity {MonitorId} is a runtime fallback; custom placement edit rejected because the identity is not persistent.",
                 monitorId);
             return false;
         }
 
         return monitor is not null;
     }
+
+    private bool CanPersistPlacement(string monitorId) => CanPersistOverlayPlacement(monitorId);
 
     public Task ResetOverlayPlacementAsync(
         string monitorId,
