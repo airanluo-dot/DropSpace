@@ -438,6 +438,7 @@ public sealed class OverlayWindowService : IDisposable
         _dragSessionDetector.CandidateEnded -= OnSmartDragCandidateEnded;
         _dragSessionDetector.PlacementEditEscapeRequested -= OnPlacementEditEscapeRequested;
         _dragSessionDetector.SetPlacementEditing(false);
+        ResumePlacementSuppressedWindows();
         _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
         _activeSmartSessionId = 0;
         _dragSessionDetector.SetMode(FileDragWakeMode.Disabled);
@@ -541,6 +542,14 @@ public sealed class OverlayWindowService : IDisposable
                 return;
             }
 
+            if (!_mainViewModel.CanPersistOverlayPlacement(monitorId))
+            {
+                _logger.LogWarning(
+                    "Placement edit rejected on runtime-only monitor {MonitorId}; a persistent display identity is required.",
+                    monitorId);
+                return;
+            }
+
             if (_placementEditingWindow is not null && _placementEditingWindow != window)
             {
                 _placementEditingWindow.CancelPlacementEdit();
@@ -565,7 +574,15 @@ public sealed class OverlayWindowService : IDisposable
             _dragSessionDetector.SetMode(FileDragWakeMode.SmartExperimental);
 
             var placement = _viewModel.GetOverlayPlacement(monitorId);
-            window.BeginPlacementEdit(placement.CustomCoordinates);
+            foreach (var candidate in _windows)
+            {
+                if (!ReferenceEquals(candidate, window))
+                {
+                    candidate.SuspendForPlacementEdit();
+                }
+            }
+            var projected = window.GetProjectedPlacement(placement);
+            window.BeginPlacementEdit(placement.CustomCoordinates, projected);
             _logger.LogInformation(
                 "Dynamic Island placement edit armed on monitor {MonitorId}; Smart Drag candidate creation is suppressed until the edit ends.",
                 monitorId);
@@ -593,6 +610,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _placementEditingWindow = null;
+        ResumePlacementSuppressedWindows();
         _dragSessionDetector.SetPlacementEditing(false);
         RestorePlacementInputMode();
         try
@@ -626,6 +644,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _dragSessionDetector.SetPlacementEditing(false);
+        ResumePlacementSuppressedWindows();
         RestorePlacementInputMode();
         ApplySnapshot(_viewModel.Snapshot);
         _logger.LogInformation("Dynamic Island placement edit cancelled on monitor {MonitorId}.", window.MonitorId);
@@ -638,6 +657,14 @@ public sealed class OverlayWindowService : IDisposable
         if (restoreMode is { } mode && mode != FileDragWakeMode.SmartExperimental)
         {
             _dragSessionDetector.SetMode(mode);
+        }
+    }
+
+    private void ResumePlacementSuppressedWindows()
+    {
+        foreach (var window in _windows)
+        {
+            window.ResumeAfterPlacementEdit();
         }
     }
 
@@ -1042,6 +1069,7 @@ public sealed class OverlayWindowService : IDisposable
                     _placementEditingWindow = null;
                     _dragSessionDetector.SetPlacementEditing(false);
                 }
+                ResumePlacementSuppressedWindows();
 
                 foreach (var window in _windows)
                 {

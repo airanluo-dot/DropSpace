@@ -645,6 +645,11 @@ public sealed partial class MainPage : Page
             OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
             Enum.TryParse<OverlayPlacementMode>(value, out var mode))
         {
+            if (mode == OverlayPlacementMode.Custom && !_viewModel.CanPersistOverlayPlacement(monitorId))
+            {
+                SyncPlacementCoordinates();
+                return;
+            }
             await RunAsync(() => _viewModel.SetOverlayPlacementModeAsync(monitorId, mode));
         }
     }
@@ -655,6 +660,7 @@ public sealed partial class MainPage : Page
     private async void OnApplyIslandPlacementClicked(object sender, RoutedEventArgs args)
     {
         if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
+            _viewModel.CanPersistOverlayPlacement(monitorId) &&
             !double.IsNaN(OverlayPlacementXNumber.Value) &&
             !double.IsNaN(OverlayPlacementYNumber.Value))
         {
@@ -676,7 +682,8 @@ public sealed partial class MainPage : Page
 
     private void OnAdjustIslandPlacementClicked(object sender, RoutedEventArgs args)
     {
-        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId)
+        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
+            _viewModel.CanPersistOverlayPlacement(monitorId))
         {
             _viewModel.RequestOverlayPlacementEdit(monitorId);
         }
@@ -865,9 +872,18 @@ public sealed partial class MainPage : Page
             return;
         }
         var placement = _viewModel.GetOverlayPlacement(monitorId);
+        var canPersist = _viewModel.CanPersistOverlayPlacement(monitorId);
         SelectComboItem(OverlayPlacementModeCombo, placement.Mode.ToString());
+        OverlayPlacementCustomItem.IsEnabled = canPersist;
         OverlayPlacementXNumber.Value = placement.X;
         OverlayPlacementYNumber.Value = placement.Y;
+        OverlayPlacementXNumber.IsEnabled = canPersist;
+        OverlayPlacementYNumber.IsEnabled = canPersist;
+        AdjustIslandPlacementButton.IsEnabled = canPersist;
+        ApplyIslandPlacementButton.IsEnabled = canPersist;
+        OverlayPlacementPersistenceWarningText.Visibility = canPersist
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private void UpdateSectionChrome()

@@ -47,7 +47,8 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Reliable/lossy signal lanes: a reliable burst is fully readable, a one-slot move lane keeps the newest position, and a completed critical lane reports a write failure instead of blocking.
 - Schema-9 placement policy: an unconfigured monitor resolves Automatic, two monitors can retain different Custom coordinates, Reset removes only the selected entry, and transient clamping leaves saved DIP coordinates unchanged.
 - Stable display identity: normalized target-path inputs yield the same persistent ID and runtime fallback IDs remain explicitly distinguishable.
-- Direct placement session: physical pointer delta converts to DIP, release commits one final preview, and Escape restores the pre-edit snapshot.
+- Direct placement session: physical pointer delta converts to DIP from the clamped projection, release commits one final preview, and Escape restores the saved pre-edit coordinates; multi-monitor edit exclusivity revokes non-selected targets and restores them on every exit path.
+- Runtime-only monitor identity: Custom mode, X/Y, Apply, and Adjust are disabled in the localized settings UI and the service rejects direct edit/persist requests.
 
 ## Integration tests
 

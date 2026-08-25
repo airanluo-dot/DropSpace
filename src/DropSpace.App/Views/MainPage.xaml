@@ -570,9 +570,10 @@
               <StackPanel Spacing="10">
                 <TextBlock services:XamlResourceOverride.Uid="IslandPlacementTitle" FontWeight="SemiBold" />
                 <TextBlock services:XamlResourceOverride.Uid="IslandPlacementDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock x:Name="OverlayPlacementPersistenceWarningText" services:XamlResourceOverride.Uid="OverlayPlacementPersistenceWarning" Foreground="{ThemeResource SystemFillColorCautionBrush}" TextWrapping="Wrap" Visibility="Collapsed" />
                 <ComboBox x:Name="OverlayPlacementModeCombo" SelectionChanged="OnOverlayPlacementModeChanged">
                   <ComboBoxItem services:XamlResourceOverride.Uid="IslandPlacementAutomatic" Tag="Automatic" />
-                  <ComboBoxItem services:XamlResourceOverride.Uid="IslandPlacementCustom" Tag="Custom" />
+                  <ComboBoxItem x:Name="OverlayPlacementCustomItem" services:XamlResourceOverride.Uid="IslandPlacementCustom" Tag="Custom" />
                 </ComboBox>
                 <ComboBox x:Name="OverlayPlacementMonitorCombo" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="OnOverlayPlacementMonitorChanged" />
                 <Grid ColumnSpacing="10">
@@ -584,8 +585,8 @@
                   <NumberBox x:Name="OverlayPlacementYNumber" services:XamlResourceOverride.Uid="IslandPlacementY" Grid.Column="1" Header="Y" SmallChange="1" SpinButtonPlacementMode="Compact" KeyDown="OnPlacementNumberKeyDown" />
                 </Grid>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button services:XamlResourceOverride.Uid="AdjustIslandPlacementButton" Click="OnAdjustIslandPlacementClicked" />
-                  <Button services:XamlResourceOverride.Uid="ApplyIslandPlacementButton" Click="OnApplyIslandPlacementClicked" />
+                  <Button x:Name="AdjustIslandPlacementButton" services:XamlResourceOverride.Uid="AdjustIslandPlacementButton" Click="OnAdjustIslandPlacementClicked" />
+                  <Button x:Name="ApplyIslandPlacementButton" services:XamlResourceOverride.Uid="ApplyIslandPlacementButton" Click="OnApplyIslandPlacementClicked" />
                   <Button services:XamlResourceOverride.Uid="ResetIslandPlacementButton" Click="OnResetIslandPlacementClicked" />
                 </StackPanel>
               </StackPanel>

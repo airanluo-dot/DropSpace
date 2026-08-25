@@ -17,17 +17,20 @@ public sealed class OverlayPlacementEditSession
 {
     private OverlayCustomPlacement _original = new(0, 0);
     private OverlayCustomPlacement _preview = new(0, 0);
+    private OverlayCustomPlacement _dragOrigin = new(0, 0);
     private DragScreenPoint _pointerStart;
 
     public OverlayPlacementEditState State { get; private set; }
 
     public OverlayCustomPlacement Preview => _preview;
 
-    public void Arm(OverlayCustomPlacement initial)
+    public void Arm(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart)
     {
-        ValidatePlacement(initial);
-        _original = initial;
-        _preview = initial;
+        ValidatePlacement(savedOriginal);
+        ValidatePlacement(projectedStart);
+        _original = savedOriginal;
+        _dragOrigin = projectedStart;
+        _preview = projectedStart;
         _pointerStart = default;
         State = OverlayPlacementEditState.Armed;
     }
@@ -57,8 +60,8 @@ public sealed class OverlayPlacementEditSession
         }
 
         _preview = new OverlayCustomPlacement(
-            _original.X + (pointer.X - _pointerStart.X) / monitorScale,
-            _original.Y + (pointer.Y - _pointerStart.Y) / monitorScale);
+            _dragOrigin.X + (pointer.X - _pointerStart.X) / monitorScale,
+            _dragOrigin.Y + (pointer.Y - _pointerStart.Y) / monitorScale);
         return _preview;
     }
 

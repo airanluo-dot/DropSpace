@@ -10,7 +10,7 @@ public sealed class OverlayPlacementEditSessionTests
     public void ArmedSessionUsesPhysicalPointerDeltaConvertedToDips()
     {
         var session = new OverlayPlacementEditSession();
-        session.Arm(new OverlayCustomPlacement(500, 40));
+        session.Arm(new OverlayCustomPlacement(500, 40), new OverlayCustomPlacement(500, 40));
 
         Assert.IsTrue(session.TryBeginDrag(new DragScreenPoint(100, 200)));
         var preview = session.Move(new DragScreenPoint(250, 320), 1.5);
@@ -24,7 +24,7 @@ public sealed class OverlayPlacementEditSessionTests
     public void ReleaseCommitsOnlyTheFinalPreview()
     {
         var session = new OverlayPlacementEditSession();
-        session.Arm(new OverlayCustomPlacement(300, 8));
+        session.Arm(new OverlayCustomPlacement(300, 8), new OverlayCustomPlacement(300, 8));
         session.TryBeginDrag(new DragScreenPoint(0, 0));
         session.Move(new DragScreenPoint(30, 45), 1);
 
@@ -38,7 +38,7 @@ public sealed class OverlayPlacementEditSessionTests
     public void EscapeRestoresSnapshotWithoutChangingTheSavedCandidate()
     {
         var session = new OverlayPlacementEditSession();
-        session.Arm(new OverlayCustomPlacement(300, 8));
+        session.Arm(new OverlayCustomPlacement(300, 8), new OverlayCustomPlacement(300, 8));
         session.TryBeginDrag(new DragScreenPoint(50, 50));
         session.Move(new DragScreenPoint(200, 100), 2);
 
@@ -47,5 +47,41 @@ public sealed class OverlayPlacementEditSessionTests
         Assert.AreEqual(new OverlayCustomPlacement(300, 8), restored);
         Assert.AreEqual(new OverlayCustomPlacement(300, 8), session.Preview);
         Assert.AreEqual(OverlayPlacementEditState.Inactive, session.State);
+    }
+
+    [TestMethod]
+    public void FirstMoveUsesClampedProjectionAsDragOrigin()
+    {
+        var session = new OverlayPlacementEditSession();
+        session.Arm(new OverlayCustomPlacement(1800, 40), new OverlayCustomPlacement(1200, 40));
+
+        session.TryBeginDrag(new DragScreenPoint(100, 200));
+        var preview = session.Move(new DragScreenPoint(200, 200), 1);
+
+        Assert.AreEqual(new OverlayCustomPlacement(1300, 40), preview);
+    }
+
+    [TestMethod]
+    public void CancelRestoresSavedOriginalAfterProjectedDrag()
+    {
+        var session = new OverlayPlacementEditSession();
+        session.Arm(new OverlayCustomPlacement(1800, 40), new OverlayCustomPlacement(1200, 40));
+
+        session.TryBeginDrag(new DragScreenPoint(100, 200));
+        session.Move(new DragScreenPoint(200, 200), 1);
+
+        Assert.AreEqual(new OverlayCustomPlacement(1800, 40), session.Cancel());
+    }
+
+    [TestMethod]
+    public void CommitReturnsPreviewFromProjectedDrag()
+    {
+        var session = new OverlayPlacementEditSession();
+        session.Arm(new OverlayCustomPlacement(1000, 40), new OverlayCustomPlacement(1000, 40));
+
+        session.TryBeginDrag(new DragScreenPoint(100, 200));
+        session.Move(new DragScreenPoint(200, 200), 1);
+
+        Assert.AreEqual(new OverlayCustomPlacement(1100, 40), session.Commit());
     }
 }

@@ -9,6 +9,12 @@ This document is the behavior contract. MVP and V1.1 boundaries come from `PRODU
 - The Settings Island Placement section includes **Adjust Island Position…**. It keeps the selected island no-activate, translates physical pointer movement into monitor-local DIP preview coordinates, commits once on release, and cancels without persistence on Escape.
 - Monitor placement keys are derived from stable DisplayConfig target identities, with process-lifetime HMONITOR handles retained only for native calls and best-effort schema-8 migration.
 
+## v0.3.0-preview.4 targeted placement fix
+
+- Direct placement editing exclusively arms the selected monitor island. Other monitor islands are hidden and revoke native drop targets until Commit or Cancel, with suppression cleared on topology refresh and shutdown.
+- Dragging begins from the currently clamped projection while Cancel still restores the saved coordinates; the first movement therefore has no hidden jump.
+- Runtime-only display identities reject Custom placement defensively and expose Automatic-only, disabled coordinate/edit controls with a localized explanation.
+
 ## Shared item behavior
 
 ### User behavior
