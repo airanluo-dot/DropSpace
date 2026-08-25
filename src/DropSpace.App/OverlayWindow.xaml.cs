@@ -653,9 +653,11 @@ public sealed partial class OverlayWindow : Window
     public OverlayCustomPlacement GetProjectedPlacement(OverlayMonitorPlacement placement)
     {
         var resolved = ResolvePlacement(_viewModel.FileDragWakeMode, placement);
-        return new OverlayCustomPlacement(
-            (resolved.HostLeftPixels - _monitor.EffectiveWorkLeft) / _monitor.Scale + HostWidth / 2,
-            (resolved.HostTopPixels - _monitor.EffectiveWorkTop) / _monitor.Scale);
+        return OverlayPlacementPolicy.ProjectResolvedPlacement(
+            resolved,
+            _monitor.EffectiveWorkLeft,
+            _monitor.EffectiveWorkTop,
+            _monitor.Scale);
     }
 
     public void SuspendForPlacementEdit()

@@ -104,4 +104,40 @@ public sealed class OverlayPlacementPolicyTests
         Assert.AreEqual(0, placement.SurfaceTopOffsetDips);
         Assert.IsFalse(placement.WasClamped);
     }
+
+    [TestMethod]
+    public void AutomaticSmartProjectionIncludesVisibleSurfaceOffset()
+    {
+        var projected = OverlayPlacementPolicy.ProjectResolvedPlacement(
+            new OverlayResolvedPlacement(300, 0, 84, false),
+            0,
+            0,
+            1);
+
+        Assert.AreEqual(84, projected.Y, 0.001);
+    }
+
+    [TestMethod]
+    public void ProjectionPreservesDpiScaledSurfaceOffsetInDipCoordinates()
+    {
+        var projected = OverlayPlacementPolicy.ProjectResolvedPlacement(
+            new OverlayResolvedPlacement(300, 150, 8 + 76d / 1.5, false),
+            0,
+            0,
+            1.5);
+
+        Assert.AreEqual(8 + 76d / 1.5 + 100, projected.Y, 0.001);
+    }
+
+    [TestMethod]
+    public void CustomProjectionDoesNotAddAnExtraSurfaceOffset()
+    {
+        var projected = OverlayPlacementPolicy.ProjectResolvedPlacement(
+            new OverlayResolvedPlacement(300, 180, 0, false),
+            0,
+            0,
+            1.5);
+
+        Assert.AreEqual(120, projected.Y, 0.001);
+    }
 }

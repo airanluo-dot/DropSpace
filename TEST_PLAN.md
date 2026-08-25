@@ -49,6 +49,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Stable display identity: normalized target-path inputs yield the same persistent ID and runtime fallback IDs remain explicitly distinguishable.
 - Direct placement session: physical pointer delta converts to DIP from the clamped projection, release commits one final preview, and Escape restores the saved pre-edit coordinates; multi-monitor edit exclusivity revokes non-selected targets and restores them on every exit path.
 - Runtime-only monitor identity: Custom mode, X/Y, Apply, and Adjust are disabled in the localized settings UI and the service rejects direct edit/persist requests.
+- Automatic placement projection: Smart projection includes the visible surface offset at 100% DPI and with 1.5x DPI conversion; Custom projection remains unchanged.
 
 ## Integration tests
 

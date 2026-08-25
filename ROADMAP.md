@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.4 is the current targeted-hardening Preview: it tightens Smart Drag critical-signal reliability, adds exclusive direct Dynamic Island placement editing with clamped-drag rollback correctness, replaces HMONITOR persistence keys with stable DisplayConfig identities, and blocks Custom placement for runtime-only identities. The v0.3.0-preview.2 capabilities remain the base: Universal Access, virtual-file materialization, Drop Batch grouping, Quick Panel, best-effort exclusions, Windows Share for file/image/text/URL, and per-monitor Dynamic Island placement. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.5 is the current targeted-hardening Preview: it preserves Preview.4's exclusive direct Dynamic Island placement editing and fixes Automatic projection so the edit starts from the visible surface coordinate while existing Custom coordinates remain unchanged. It also retains stable DisplayConfig identities and runtime-only Custom rejection. The v0.3.0-preview.2 capabilities remain the base: Universal Access, virtual-file materialization, Drop Batch grouping, Quick Panel, best-effort exclusions, Windows Share for file/image/text/URL, and per-monitor Dynamic Island placement. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -42,6 +42,11 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 - Suppress every non-selected monitor island and native drop target for the full placement-edit session; restore all surfaces on commit, cancel, topology change, and shutdown.
 - Arm the edit from the clamped runtime projection while retaining saved coordinates as the Cancel rollback source.
 - Disable Custom placement, coordinates, Apply, and Adjust for runtime-only monitor identities, with service-level rejection and localized guidance.
+
+### v0.3.0-preview.5 — Automatic placement projection fix
+
+- Include `SurfaceTopOffsetDips` when projecting Automatic placement into Custom coordinates so Adjust begins at the visible Dynamic Island surface.
+- Keep Custom placement projection unchanged and limit validation to focused coordinate-conversion regressions.
 
 ## Delivery rule
 
