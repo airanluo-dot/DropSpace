@@ -210,3 +210,10 @@ Settings save immediately after validation. Failed saves revert the control and 
 - Prefer inline InfoBar or tray status over toast spam.
 - Notify only for actionable failures: recording paused, migration recovery, hotkey conflict, storage full.
 - Never display clipboard payload content in notifications by default.
+
+## 3.0 Preview additions
+
+- Quick Preview probes image, PDF, bounded text/code/JSON/Markdown, media metadata, URL metadata, and unknown fallback providers with cancellation and cache keys.
+- Quick Actions expose at most three available commands and keep hash, ZIP, QR, resize, conversion, and metadata handling source-safe.
+- DropLink provides opt-in Windows-only pairing, device handoff, resumable 4 MiB chunks, explicit receive approval, and cross-device clipboard modes.
+- Nearby Share uses a private address, 192-bit token, TTL, receiver cap, range reads, and revoke. Internet Share encrypts the manifest and chunks in the client; a missing Worker configuration is a hard unavailable state.

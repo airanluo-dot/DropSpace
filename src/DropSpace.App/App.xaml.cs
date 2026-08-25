@@ -3,14 +3,19 @@ using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Logging;
+using DropSpace.Infrastructure.Actions;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
+using DropSpace.Infrastructure.Network;
+using DropSpace.Infrastructure.Preview;
+using DropSpace.Infrastructure.Sharing;
 using DropSpace.Infrastructure.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -88,7 +93,13 @@ public partial class App : Application
             _window = new MainWindow(
                 viewModel,
                 strings,
-                _services.GetRequiredService<ILogger<MainWindow>>());
+                _services.GetRequiredService<ILogger<MainWindow>>(),
+                _services.GetRequiredService<QuickPreviewService>(),
+                _services.GetRequiredService<IItemActionRegistry>(),
+                _services.GetRequiredService<DeviceHandoffService>(),
+                _services.GetRequiredService<CrossDeviceClipboardService>(),
+                _services.GetRequiredService<DropLinkHost>(),
+                _services.GetRequiredService<ItemSharingService>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             if (!isStartupLaunch && !isShareActivation)
@@ -101,6 +112,22 @@ public partial class App : Application
             try
             {
                 await viewModel.InitializeAsync();
+                try
+                {
+                    await _services.GetRequiredService<DeviceHandoffService>().InitializeAsync(viewModel.Settings);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(exception, "Device Handoff initialization failed; the local workspace remains available.");
+                }
+                try
+                {
+                    await _services.GetRequiredService<CrossDeviceClipboardService>().InitializeAsync(viewModel.Settings);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(exception, "Cross-device clipboard initialization failed; local clipboard capture remains available.");
+                }
                 if (settingsService.LastLoadRecovery is { Recovered: true } recovery)
                 {
                     _services.GetRequiredService<ILogger<App>>().LogWarning(
@@ -242,6 +269,35 @@ public partial class App : Application
         services.AddSingleton<SqliteDatabase>();
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
+        services.AddSingleton<DeviceIdentityStore>();
+        services.AddSingleton<DeviceSecretStore>();
+        services.AddSingleton<DropLinkPairingService>();
+        services.AddSingleton<TransferRepository>();
+        services.AddSingleton<DropLinkHost>();
+        services.AddSingleton<DropLinkClient>();
+        services.AddSingleton<WindowsDnsSdDiscoveryService>();
+        services.AddSingleton<FirewallCapabilityService>();
+        services.AddSingleton<DeviceHandoffService>();
+        services.AddSingleton<CrossDeviceClipboardService>();
+        services.AddSingleton<IPreviewCache, FilePreviewCache>();
+        services.AddSingleton<IPreviewProvider, UrlPreviewProvider>();
+        services.AddSingleton<IPreviewProvider, ImagePreviewProvider>();
+        services.AddSingleton<IPreviewProvider, PdfPreviewProvider>();
+        services.AddSingleton<IPreviewProvider, TextPreviewProvider>();
+        services.AddSingleton<IPreviewProvider, MediaPreviewProvider>();
+        services.AddSingleton<IPreviewProvider, UnknownPreviewProvider>();
+        services.AddSingleton<IPreviewProviderRegistry, PreviewProviderRegistry>();
+        services.AddSingleton<QuickPreviewService>();
+        services.AddSingleton<IImageTransformService, WindowsImageTransformService>();
+        services.AddSingleton<IItemAction, HashActionService>();
+        services.AddSingleton<IItemAction, ZipActionService>();
+        services.AddSingleton<IItemAction, QrCodeActionService>();
+        services.AddSingleton<IItemAction, ImageTransformActionService>();
+        services.AddSingleton<IItemActionRegistry, ItemActionRegistry>();
+        services.AddSingleton<ShareCryptoService>();
+        services.AddSingleton<NearbyShareServer>();
+        services.AddSingleton<SecureInternetShareService>();
+        services.AddSingleton<ItemSharingService>();
         services.AddSingleton<ReleaseBuildInfo>();
         services.AddSingleton<ISettingsService>(provider => new JsonSettingsService(
             paths,

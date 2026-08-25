@@ -316,4 +316,69 @@
   <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>Comma-separated process names. This is best-effort: some elevated, protected, or short-lived source apps may not be identifiable.</value></data>
   <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>Copy Smart Drag compatibility report</value></data>
   <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>Path-free Smart Drag compatibility report copied.</value></data>
+  <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>Quick preview</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>No bounded preview is available for this item.</value></data>
+  <data name="ActionCompleted" xml:space="preserve"><value>The action completed successfully.</value></data>
+  <data name="ActionUnavailable" xml:space="preserve"><value>This action is unavailable for the current selection.</value></data>
+  <data name="ActionHashSha256" xml:space="preserve"><value>Calculate SHA-256 hash</value></data>
+  <data name="ActionHashSha256.Text" xml:space="preserve"><value>Calculate SHA-256 hash</value></data>
+  <data name="ActionCompressZip" xml:space="preserve"><value>Compress as ZIP</value></data>
+  <data name="ActionCompressZip.Text" xml:space="preserve"><value>Compress as ZIP</value></data>
+  <data name="ActionGenerateQr" xml:space="preserve"><value>Generate QR code</value></data>
+  <data name="ActionGenerateQr.Text" xml:space="preserve"><value>Generate QR code</value></data>
+  <data name="ActionResizeImage" xml:space="preserve"><value>Resize or convert image</value></data>
+  <data name="ActionResizeImage.Text" xml:space="preserve"><value>Resize or convert image</value></data>
+  <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
+  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows-to-Windows handoff and clipboard sync are opt-in. Nearby links stay on a private network; Internet Share needs an explicitly configured HTTPS backend.</value></data>
+  <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>Device Handoff</value></data>
+  <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>Pair trusted Windows devices to send files, folders, text, and URLs with approval and integrity checks.</value></data>
+  <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable Windows Device Handoff</value></data>
+  <data name="CrossDeviceClipboardTitle.Text" xml:space="preserve"><value>Cross-device Clipboard</value></data>
+  <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>Uses the existing event-driven clipboard watcher. Remote content is opt-in and protected by a bounded loop guard.</value></data>
+  <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable cross-device Clipboard</value></data>
+  <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>Default peer Clipboard mode</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>New peers start in the selected mode; pairing itself never enables automatic sync.</value></data>
+  <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>Off</value></data>
+  <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>Manual</value></data>
+  <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>Automatic text + URL</value></data>
+  <data name="ClipboardSyncModeTextUrlImage.Content" xml:space="preserve"><value>Automatic text + URL + image</value></data>
+  <data name="NearbySharingTitle.Text" xml:space="preserve"><value>Nearby Browser Share</value></data>
+  <data name="NearbySharingDescription.Text" xml:space="preserve"><value>Serve selected content over a tokenized, expiring private-network HTTP link for a browser receiver.</value></data>
+  <data name="NearbySharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable Nearby Browser Share</value></data>
+  <data name="InternetSharingTitle.Text" xml:space="preserve"><value>Secure Internet Share</value></data>
+  <data name="InternetSharingDescription.Text" xml:space="preserve"><value>Files are encrypted on this device before upload. Sharing is unavailable until DROPSPACE_SHARE_BACKEND_URL points to an HTTPS backend.</value></data>
+  <data name="InternetSharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable Secure Internet Share</value></data>
+  <data name="RefreshDevicesButton.Content" xml:space="preserve"><value>Find devices</value></data>
+  <data name="PairDeviceButton.Content" xml:space="preserve"><value>Pair selected device</value></data>
+  <data name="DevicesDisabledTitle" xml:space="preserve"><value>Devices are disabled</value></data>
+  <data name="DevicesDisabledContent" xml:space="preserve"><value>Enable Device Handoff before searching the local network.</value></data>
+  <data name="NoDevicesFound" xml:space="preserve"><value>No compatible DropSpace devices were found on the private network.</value></data>
+  <data name="DevicesFound" xml:space="preserve"><value>Found {0} compatible device(s).</value></data>
+  <data name="PairedDevice" xml:space="preserve"><value>Paired with {0}. The peer uses the selected default Clipboard mode.</value></data>
+  <data name="DeviceServiceUnavailable" xml:space="preserve"><value>Device service unavailable: {0}</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>Device Handoff is ready. Windows Firewall status still requires the explicit receive capability check.</value></data>
+  <data name="DeviceServiceBlocked" xml:space="preserve"><value>Receiving is unavailable: {0}</value></data>
+  <data name="DeviceServiceStarting" xml:space="preserve"><value>Starting the local DropLink service…</value></data>
+  <data name="PairingSasTitle" xml:space="preserve"><value>Confirm pairing code</value></data>
+  <data name="PairingSasContent" xml:space="preserve"><value>Verify that the other device shows the same six-digit code: {0}. Only continue if both screens match.</value></data>
+  <data name="PairingSasConfirm" xml:space="preserve"><value>Trust this device</value></data>
+  <data name="IncomingTransferTitle" xml:space="preserve"><value>Incoming transfer</value></data>
+  <data name="IncomingTransferContent" xml:space="preserve"><value>A trusted device wants to send {0} item(s), totaling {1} bytes. Files will be verified before they are committed to Downloads\DropSpace.</value></data>
+  <data name="IncomingTransferAccept" xml:space="preserve"><value>Accept</value></data>
+  <data name="IncomingTransferReject" xml:space="preserve"><value>Reject</value></data>
+  <data name="SendToDeviceAction.Text" xml:space="preserve"><value>Send to device</value></data>
+  <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Create Nearby link</value></data>
+  <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Create Secure Internet link</value></data>
+  <data name="TransferSentTitle" xml:space="preserve"><value>Transfer sent</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>The trusted device accepted the transfer and DropSpace verified the content before commit.</value></data>
+  <data name="TransferUnavailableTitle" xml:space="preserve"><value>Transfer unavailable</value></data>
+  <data name="NoPairedDevicesTitle" xml:space="preserve"><value>No paired devices</value></data>
+  <data name="NoPairedDevicesContent" xml:space="preserve"><value>Find and pair a trusted Windows device in Settings → Devices &amp; Sharing first.</value></data>
+  <data name="SelectDeviceTitle" xml:space="preserve"><value>Send to which device?</value></data>
+  <data name="ShareReadyTitle" xml:space="preserve"><value>Share ready</value></data>
+  <data name="NearbyShareReady" xml:space="preserve"><value>This Nearby link is HTTP and private-network only. It expires automatically; do not use it as an Internet-secure link.</value></data>
+  <data name="EncryptedShareReady" xml:space="preserve"><value>The manifest and file chunks are encrypted on this device. The decryption key is kept in the URL fragment.</value></data>
+  <data name="ShareExpires" xml:space="preserve"><value>Expires: {0}</value></data>
+  <data name="CopyShareLink" xml:space="preserve"><value>Copy link</value></data>
+  <data name="OpenShareQr" xml:space="preserve"><value>Open QR image</value></data>
 </root>

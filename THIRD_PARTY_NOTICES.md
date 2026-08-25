@@ -49,3 +49,5 @@ The workflows call the following external actions. They execute in CI and are no
 - [WinIsland](https://github.com/Eatgrapes/WinIsland) is GPL-3.0 and was reviewed only as a public behavioral and interaction reference. It is not a dependency. No WinIsland source, translated code, control flow, constants, algorithms, assets, or runtime were copied into DropSpace; the audit record is maintained in `DECISIONS.md`.
 
 If a future change incorporates third-party source or assets rather than merely depending on a package, its exact provenance, license text, required notices, and compatibility with Apache-2.0 must be reviewed before merge.
+
+Preview.6 adds the QRCoder NuGet package for local QR PNG generation and `System.Security.Cryptography.ProtectedData` for Windows DPAPI-backed identity/peer secrets. Both remain replaceable infrastructure dependencies; neither receives clipboard content or network credentials. The reference Cloudflare Worker is first-party repository code and has no runtime dependency in the Windows build.

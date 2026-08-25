@@ -1,4 +1,5 @@
 using DropSpace.Core.Updates;
+using DropSpace.Core.Transfer;
 
 namespace DropSpace.Core.Models;
 
@@ -60,7 +61,7 @@ public sealed record OverlayMonitorPlacement(
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 10;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -127,6 +128,16 @@ public sealed record AppSettings
     public UpdateChannel UpdateChannel { get; init; } = UpdateChannel.Stable;
 
     public DateTimeOffset? LastUpdateCheckUtc { get; init; }
+
+    public bool EnableDeviceHandoff { get; init; }
+
+    public bool EnableCrossDeviceClipboard { get; init; }
+
+    public bool EnableNearbySharing { get; init; }
+
+    public bool EnableInternetSharing { get; init; }
+
+    public ClipboardSyncMode DefaultClipboardSyncMode { get; init; } = ClipboardSyncMode.Off;
 
     public AppSettings WithSafeUiPreferences() => this with
     {
@@ -216,6 +227,11 @@ public sealed record AppSettings
         if (!Enum.IsDefined(FileDragWakeMode))
         {
             throw new ArgumentOutOfRangeException(nameof(FileDragWakeMode));
+        }
+
+        if (!Enum.IsDefined(DefaultClipboardSyncMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(DefaultClipboardSyncMode));
         }
 
         if (!Enum.IsDefined(OverlayPlacementMode))

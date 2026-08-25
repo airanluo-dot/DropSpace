@@ -129,3 +129,7 @@ Copyright 2026 Airan Luo.
 DropSpace's original source code, documentation, and repository-owned assets are licensed under the [Apache License 2.0](LICENSE) (`Apache-2.0`). You may use, modify, distribute, and use the project commercially subject to that license.
 
 Third-party dependencies remain under their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The Apache license does not grant a general right to present a modified distribution as an official DropSpace release; see [TRADEMARKS.md](TRADEMARKS.md).
+
+## v0.3.0-preview.6 feature boundary
+
+The 3.0 Preview adds bounded Quick Preview providers, up to three real Quick Actions, Windows-only DropLink handoff, opt-in cross-device clipboard, expiring Nearby browser links, and client-encrypted Internet Share. Network features are disabled until explicitly enabled, require trusted peers or configured backends, and remain subject to the [protocol](docs/protocol/droplink-v1.md) and [network threat model](docs/security/network-threat-model.md). macOS, iOS/iPadOS, Android, Linux, accounts, WebRTC, and native mobile clients remain out of scope.

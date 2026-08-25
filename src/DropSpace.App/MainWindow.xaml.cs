@@ -1,6 +1,7 @@
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
@@ -24,7 +25,13 @@ public sealed partial class MainWindow : Window
     public MainWindow(
         MainViewModel viewModel,
         IAppStringLocalizer strings,
-        ILogger<MainWindow> logger)
+        ILogger<MainWindow> logger,
+        QuickPreviewService previews,
+        IItemActionRegistry actions,
+        DeviceHandoffService deviceHandoff,
+        CrossDeviceClipboardService crossDeviceClipboard,
+        DropLinkHost dropLinkHost,
+        ItemSharingService sharing)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -46,7 +53,16 @@ public sealed partial class MainWindow : Window
         NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
         AppWindow.Resize(new SizeInt32(980, 680));
         AppWindow.Closing += OnAppWindowClosing;
-        _mainPage = new Views.MainPage(viewModel, WindowNative.GetWindowHandle(this), strings);
+        _mainPage = new Views.MainPage(
+            viewModel,
+            WindowNative.GetWindowHandle(this),
+            strings,
+            previews,
+            actions,
+            deviceHandoff,
+            crossDeviceClipboard,
+            dropLinkHost,
+            sharing);
         RootContent.Content = _mainPage;
     }
 

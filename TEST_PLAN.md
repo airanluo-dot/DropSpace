@@ -244,3 +244,5 @@ Automation does not claim visual quality or real Explorer/UIA/third-party provid
 - Identity build validates the stable Name/Publisher/version and Share Target manifest. Unsigned CI does not install it; trusted registration is exercised only when Artifact Signing credentials exist.
 
 Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.
+
+The v0.3.0-preview.6 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.6.md](docs/test-plan/v0.3.0-preview.6.md). It is a release gate: CI proves policy and crypto contracts; two real Windows devices are still required for pairing, firewall, reconnect/resume, clipboard modes, and browser decryption acceptance.

@@ -226,3 +226,7 @@ Migrations are forward-only in production. Downgrade means restoring a compatibl
 - Apply age cutoff, then count cap from newest to oldest.
 - Clear-range operations use `CreatedAtUtc`, display affected count, and default to preserving pinned items.
 - Space items have no automatic expiry in MVP.
+
+## v2 transfer schema
+
+Schema version 2 adds `paired_devices` and `transfer_sessions`. Peer rows contain only a device ID, display name, Windows platform, pinned certificate fingerprint, DPAPI secret-key ID, capability flags, timestamps, and blocked state. Transfer rows contain direction/mode/state, peer ID, item/byte totals, progress, completion time, and a coarse error category. Pairing secrets and receive staging bytes are stored outside SQLite under application data and are never included in search or diagnostics.

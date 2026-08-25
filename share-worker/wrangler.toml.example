@@ -1,0 +1,14 @@
+name = "dropspace-share-preview"
+main = "src/index.js"
+compatibility_date = "2026-08-26"
+
+[[r2_buckets]]
+binding = "SHARES"
+bucket_name = "dropspace-share-preview"
+
+[vars]
+# Set this to the deployed HTTPS origin, without a trailing slash.
+PUBLIC_ORIGIN = "https://share.example.invalid"
+
+# Set with: wrangler secret put UPLOAD_TOKEN_SECRET
+# UPLOAD_TOKEN_SECRET is deliberately not stored in this file.

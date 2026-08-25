@@ -153,3 +153,7 @@ The first shippable MVP is deliberately smaller than the original list.
 - Clipboard capture stops when the process exits.
 - Default clipboard retention: 30 days or 1,000 items, whichever limit is reached first; pinned items are exempt.
 - Default image limit: 25 MB encoded payload or 50 megapixels; larger items are skipped with a local notice.
+
+## v0.3.0-preview.6 3.0 boundary
+
+The 3.0 Preview keeps local-first storage while adding explicit Windows-to-Windows handoff and sharing. Quick Preview is bounded and provider-based; Quick Actions never mutate source files; DropLink pairing uses ECDH/SAS/certificate pinning; cross-device clipboard is opt-in and loop-guarded; Nearby links are private-LAN and expiring; Internet Share is client-encrypted and unavailable without an explicitly configured HTTPS Worker. These features do not change the non-scope for native Apple/Android/Linux clients, cloud accounts, WebRTC, or automatic public sharing.
