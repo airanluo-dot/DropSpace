@@ -84,6 +84,22 @@ public static class OverlayPlacementPolicy
                 custom?.X ?? 0,
                 custom?.Y ?? 0));
 
+    public static OverlayCustomPlacement ProjectResolvedPlacement(
+        OverlayResolvedPlacement resolved,
+        int workLeftPixels,
+        int workTopPixels,
+        double scale)
+    {
+        if (!double.IsFinite(scale) || scale <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(scale));
+        }
+
+        return new OverlayCustomPlacement(
+            (resolved.HostLeftPixels - workLeftPixels) / scale + HostWidthDips / 2,
+            (resolved.HostTopPixels - workTopPixels) / scale + resolved.SurfaceTopOffsetDips);
+    }
+
     private static int ToPixels(double dips, double scale) =>
         Math.Max(0, (int)Math.Round(dips * scale));
 }
