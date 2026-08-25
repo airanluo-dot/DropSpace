@@ -11,13 +11,13 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.3 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.4 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.3](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.3). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.4](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.4). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
 The **v0.2.1 Stable** release promotes the release-driven latest-changes website, complete English/Simplified Chinese localization foundation, and zero-flicker Windows sign-in startup that were validated across the v0.2.1 Preview sequence.
 
-The **v0.3.0-preview.3** test build is the targeted hardening Preview: critical lifecycle signals use a truly reliable lane while pointer movement remains coalesced, per-monitor placement uses schema 9 and stable DisplayConfig-derived monitor identities, unconfigured displays stay Automatic, and Settings can arm a no-activate direct Dynamic Island position edit with one-shot commit and Escape rollback.
+The **v0.3.0-preview.4** test build is the targeted placement Preview: placement editing is exclusive to the selected monitor, clamped drag projection avoids a first-movement jump while Cancel restores saved coordinates, and runtime-only display identities keep placement Automatic-only with localized guidance.
 
 The implemented vertical slice includes:
 
