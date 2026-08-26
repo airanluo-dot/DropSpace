@@ -79,6 +79,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
+      - name: Enforce Windows 10/11 compatibility baseline
+        shell: pwsh
+        run: ./scripts/Test-WindowsCompatibility.ps1
+
       - name: Generate brand assets from canonical masters
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1

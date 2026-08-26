@@ -18,6 +18,33 @@
 
 Exact versions are selected and recorded in Phase 0; do not write “latest” into project files without verification.
 
+## Windows compatibility boundary
+
+The supported runtime baseline is 64-bit Windows 10 version 1809 (Build
+17763) or later, including Windows 11. The app continues to compile against
+the pinned Windows SDK Build Tools 10.0.26100.8249; compile-time API availability
+is not treated as proof that an API exists on the current OS.
+
+`DropSpace.Core.Compatibility` owns the platform-neutral policy constants,
+capability states, and contracts (`IOsVersionPolicy`,
+`IApiAvailabilityService`, `IRuntimeDependencyProbe`, and
+`IWindowsCapabilityService`). `DropSpace.App` provides the Windows adapters:
+it reads the real kernel build, probes the Windows App SDK runtime and optional
+WinRT types, and gates Mica, modern DWM attributes, PDF/media preview, and the
+Windows Share contract. `DropSpace.Infrastructure` uses the same minimum-build
+policy when parsing update manifests. No platform capability check is allowed
+to move business ownership out of Core or to create a second drop/persistence
+path.
+
+On Windows 10, the main window uses its solid theme visual, modern DWM corner
+and border attributes are skipped, and optional APIs report an unavailable
+capability while normal Clipboard, Dynamic Island, visible OLE drop, and
+Classic/Smart Drag paths remain available. A direct Portable launch below
+Build 17763 exits with a diagnostic marker; MSIX and Inno Setup also declare
+the minimum so ordinary installation is blocked before launch. See
+[compatibility-baseline.md](compatibility-baseline.md) for the required OS,
+DPI, monitor, deployment, and evidence matrix.
+
 ## Solution structure
 
 ```text

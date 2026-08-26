@@ -58,6 +58,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
+      - name: Enforce Windows 10/11 compatibility baseline
+        shell: pwsh
+        run: ./scripts/Test-WindowsCompatibility.ps1
+
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release
 

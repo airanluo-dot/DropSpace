@@ -2,12 +2,14 @@ using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Network;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 using WinRT.Interop;
 
@@ -27,6 +29,7 @@ public sealed partial class MainWindow : Window
         MainViewModel viewModel,
         IAppStringLocalizer strings,
         ILogger<MainWindow> logger,
+        IWindowsCapabilityService capabilities,
         QuickPreviewService previews,
         IItemActionRegistry actions,
         DeviceHandoffService deviceHandoff,
@@ -49,6 +52,22 @@ public sealed partial class MainWindow : Window
         AppTitleBar.Loaded += (_, _) => XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
         XamlResourceOverride.Apply(this, "MainWindow");
 
+        if (capabilities.IsAvailable(WindowsCapability.ModernWindowAppearance))
+        {
+            try
+            {
+                SystemBackdrop = new MicaBackdrop();
+                // The Win10 base brush keeps the window opaque when Mica is unavailable.
+                // Remove it only after the optional Windows 11 backdrop has been installed so
+                // the material can show through on supported builds.
+                RootSurface.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            }
+            catch (Exception exception)
+            {
+                logger.LogInformation(exception, "Mica is unavailable at runtime; using the base window visual.");
+            }
+        }
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
@@ -58,6 +77,7 @@ public sealed partial class MainWindow : Window
             viewModel,
             WindowNative.GetWindowHandle(this),
             strings,
+            capabilities,
             previews,
             actions,
             deviceHandoff,

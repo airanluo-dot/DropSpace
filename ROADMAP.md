@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.7 is the current completion-hardening Preview: it preserves the Preview.5 placement fix and completes the bounded 3.0 contracts for Quick Preview/Actions, standard mDNS/DNS-SD, bilateral DropLink SAS pairing, explicit text/URL handoff, clipboard pause enforcement, Nearby Share hardening, and canonical client-encrypted Internet Share framing. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the official share backend and physical two-device evidence remain explicit operational gates.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.8 is the current compatibility Preview: it preserves the Preview.7 completion-hardening contracts and adds the Windows 10 version 1809 (Build 17763) baseline, runtime capability gates, Windows 10 visual fallbacks, and distribution/static checks. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor matrix, official share backend, and physical two-device evidence remain explicit operational gates.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -540,3 +540,13 @@ Actual Windows startup state matches UI, update failure preserves the working in
 ## v0.3.0-preview.7 delivery slice
 
 The 3.0 feature slice is implemented as one completion-hardening Preview release: Quick Preview/Quick Actions, Windows-only DropLink v1, opt-in cross-device clipboard, Nearby Share, and client-encrypted Internet Share reference backend. Remaining deployment work is operational rather than silently simulated: a Cloudflare operator must configure and deploy `share-worker/`, and two physical Windows 11 devices must complete the LAN/browser acceptance matrix, before those paths can be marked fully verified.
+
+## v0.3.0-preview.8 compatibility delivery slice
+
+The compatibility slice is implemented as a release-preserving boundary change:
+the app targets Windows 10 version 1809 and later, uses the pinned 26100 SDK
+for compilation, and gates newer Win11 presentation/optional API capabilities
+at runtime. The required historical Windows, DPI, monitor, Explorer/provider,
+and existing network/browser evidence is recorded in
+[compatibility-baseline.md](compatibility-baseline.md) and remains conditional
+until executable evidence is attached.

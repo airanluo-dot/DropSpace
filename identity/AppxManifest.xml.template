@@ -17,7 +17,7 @@
     <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
   </Properties>
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.26100.0" MaxVersionTested="10.0.26200.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26200.0" />
   </Dependencies>
   <Resources>
     <Resource Language="zh-CN" />
@@ -27,7 +27,7 @@
     <Application
       Id="DropSpace"
       Executable="DropSpace.exe"
-      uap10:RuntimeBehavior="win32App"
+      EntryPoint="Windows.FullTrustApplication"
       uap10:TrustLevel="mediumIL">
       <uap:VisualElements
         DisplayName="DropSpace"
