@@ -28,7 +28,6 @@
       Id="DropSpace"
       Executable="DropSpace.exe"
       EntryPoint="Windows.FullTrustApplication"
-      uap10:RuntimeBehavior="win32App"
       uap10:TrustLevel="mediumIL">
       <uap:VisualElements
         DisplayName="DropSpace"
