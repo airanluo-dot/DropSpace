@@ -133,14 +133,6 @@ internal sealed class WindowsApiAvailabilityService : IApiAvailabilityService
         {
             return false;
         }
-        catch (DllNotFoundException)
-        {
-            return false;
-        }
-        catch (EntryPointNotFoundException)
-        {
-            return false;
-        }
     }
 }
 
