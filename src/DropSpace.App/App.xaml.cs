@@ -555,8 +555,51 @@ public partial class App : Application
     private static void WriteSmokeDiagnosticMarker<T>(T marker)
     {
         var markerPath = Path.Combine(Path.GetTempPath(), $"DropSpace-smoke-{Environment.ProcessId}.json");
-        var temporaryPath = markerPath + ".tmp";
-        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(marker));
-        File.Move(temporaryPath, markerPath, true);
+        var temporaryPath = markerPath + $".{Guid.NewGuid():N}.tmp";
+        var payload = JsonSerializer.Serialize(marker);
+        const int maxAttempts = 20;
+
+        try
+        {
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                try
+                {
+                    File.WriteAllText(temporaryPath, payload);
+                    File.Move(temporaryPath, markerPath, true);
+                    return;
+                }
+                catch (IOException) when (attempt + 1 < maxAttempts)
+                {
+                    DeleteSmokeDiagnosticTemporaryFile(temporaryPath);
+                }
+                catch (UnauthorizedAccessException) when (attempt + 1 < maxAttempts)
+                {
+                    DeleteSmokeDiagnosticTemporaryFile(temporaryPath);
+                }
+
+                Thread.Sleep(TimeSpan.FromMilliseconds(50 + (attempt * 50)));
+            }
+        }
+        finally
+        {
+            DeleteSmokeDiagnosticTemporaryFile(temporaryPath);
+        }
+    }
+
+    private static void DeleteSmokeDiagnosticTemporaryFile(string temporaryPath)
+    {
+        try
+        {
+            File.Delete(temporaryPath);
+        }
+        catch (IOException)
+        {
+            // A concurrent antivirus or filesystem filter can briefly retain the temp file.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The original marker write is more useful than cleanup failure diagnostics.
+        }
     }
 }
