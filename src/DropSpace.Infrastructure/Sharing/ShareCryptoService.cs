@@ -108,10 +108,10 @@ public sealed class ShareCryptoService
     }
 
     private static byte[] DeriveFileKey(ReadOnlySpan<byte> masterKey, Guid shareId, Guid fileId) =>
-        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, 32, shareId.ToByteArray(), Encoding.UTF8.GetBytes(string.Concat("file:", fileId.ToString("N"))));
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, shareId.ToByteArray(), Encoding.UTF8.GetBytes(string.Concat("file:", fileId.ToString("N"))));
 
     private static byte[] DeriveManifestKey(ReadOnlySpan<byte> masterKey, Guid shareId) =>
-        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, 32, shareId.ToByteArray(), Encoding.UTF8.GetBytes("manifest"));
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, shareId.ToByteArray(), Encoding.UTF8.GetBytes("manifest"));
 
     private static byte[] CreateNonce(ReadOnlySpan<byte> noncePrefix, int index)
     {

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Runtime.Versioning;
 using System.Text;
 using DropSpace.Core.Transfer;
 using DropSpace.Infrastructure.Storage;
@@ -17,6 +18,7 @@ public sealed record DeviceIdentity(
         ?? throw new InvalidOperationException("The device certificate does not contain an ECDSA public key.");
 }
 
+[SupportedOSPlatform("windows")]
 public sealed class DeviceIdentityStore(AppStoragePaths paths)
 {
     private const string IdentityFileName = "device-identity.bin";

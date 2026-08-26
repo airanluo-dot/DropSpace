@@ -51,7 +51,7 @@ public sealed class DropLinkClient(
                 throw new UnauthorizedAccessException("Pairing confirmation was declined.");
             }
 
-            var confirmation = new PairingConfirmationRequest(offer.SessionId, sas, confirmed: true);
+            var confirmation = new PairingConfirmationRequest(offer.SessionId, sas, Confirmed: true);
             using var confirmationContent = JsonContent.Create(confirmation, options: JsonOptions);
             using var confirmationResponse = await client.PostAsync("/v1/pairing/confirm", confirmationContent, cancellationToken).ConfigureAwait(false);
             confirmationResponse.EnsureSuccessStatusCode();

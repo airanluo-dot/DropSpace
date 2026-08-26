@@ -101,12 +101,12 @@ public sealed class ImagePreviewProvider(PreviewLimits? limits = null) : FilePre
 
     private static (int? Width, int? Height) TryReadDimensions(ReadOnlySpan<byte> bytes, string extension)
     {
-        if (extension == ".png" && bytes.Length >= 24 && bytes[..8].SequenceEqual([137, 80, 78, 71, 13, 10, 26, 10]))
+        if (extension == ".png" && bytes.Length >= 24 && bytes[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
         {
             return (ReadInt32BigEndian(bytes[16..20]), ReadInt32BigEndian(bytes[20..24]));
         }
 
-        if (extension == ".bmp" && bytes.Length >= 26 && bytes[..2].SequenceEqual([(byte)'B', (byte)'M']) )
+        if (extension == ".bmp" && bytes.Length >= 26 && bytes[..2].SequenceEqual(new byte[] { (byte)'B', (byte)'M' }))
         {
             return (BitConverter.ToInt32(bytes[18..22]), Math.Abs(BitConverter.ToInt32(bytes[22..26])));
         }

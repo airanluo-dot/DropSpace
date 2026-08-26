@@ -56,17 +56,17 @@ public abstract class FilePreviewProviderBase(PreviewLimits limits)
 
     protected static string DecodeText(byte[] bytes)
     {
-        if (bytes.AsSpan().StartsWith([0xFF, 0xFE]))
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE }))
         {
             return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
         }
 
-        if (bytes.AsSpan().StartsWith([0xFE, 0xFF]))
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFE, 0xFF }))
         {
             return Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2);
         }
 
-        if (bytes.AsSpan().StartsWith([0xEF, 0xBB, 0xBF]))
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }))
         {
             return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
         }

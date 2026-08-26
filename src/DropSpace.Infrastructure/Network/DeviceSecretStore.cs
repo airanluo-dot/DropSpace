@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
+using System.Runtime.Versioning;
 using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Network;
 
+[SupportedOSPlatform("windows")]
 public sealed class DeviceSecretStore(AppStoragePaths paths)
 {
     public async Task SaveAsync(Guid peerId, ReadOnlyMemory<byte> secret, CancellationToken cancellationToken = default)

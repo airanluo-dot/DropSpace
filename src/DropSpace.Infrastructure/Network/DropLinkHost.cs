@@ -66,9 +66,9 @@ public sealed class DropLinkHost(
         MapRoutes(app);
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
-        var address = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>()
+        var serverAddress = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>()
             .Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var uri))
+        if (string.IsNullOrWhiteSpace(serverAddress) || !Uri.TryCreate(serverAddress, UriKind.Absolute, out var uri))
         {
             await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
             await app.DisposeAsync().ConfigureAwait(false);
@@ -76,8 +76,8 @@ public sealed class DropLinkHost(
             throw new InvalidOperationException("DropLink host did not expose a bound HTTPS endpoint.");
         }
 
-        _endpoint = TryGetPrivateAddress() is { } address
-            ? new Uri(string.Concat("https://", address, ":", uri.Port, "/"))
+        _endpoint = TryGetPrivateAddress() is { } privateAddress
+            ? new Uri(string.Concat("https://", privateAddress, ":", uri.Port, "/"))
             : uri;
         logger.LogInformation("DropLink host started on port {Port} with protocol {Protocol}.", uri.Port, DropLinkProtocolVersion.V1);
         return _endpoint!;

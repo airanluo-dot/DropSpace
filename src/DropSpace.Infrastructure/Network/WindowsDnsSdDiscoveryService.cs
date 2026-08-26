@@ -57,7 +57,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         socket.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
         socket.JoinMulticastGroup(MulticastAddress);
         var query = BuildQuery();
-        await socket.SendAsync(query, query.Length, new IPEndPoint(MulticastAddress, MulticastPort), cancellationToken).ConfigureAwait(false);
+        await socket.SendAsync(query.AsMemory(), new IPEndPoint(MulticastAddress, MulticastPort), cancellationToken).ConfigureAwait(false);
         var deadline = DateTimeOffset.UtcNow.Add(timeout);
         var results = new Dictionary<Guid, DeviceDescriptor>();
         while (DateTimeOffset.UtcNow < deadline)
@@ -269,7 +269,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             var packet = BuildAnnouncement(descriptor, hostName);
-            await socket.SendAsync(packet, packet.Length, new IPEndPoint(MulticastAddress, MulticastPort), cancellationToken).ConfigureAwait(false);
+            await socket.SendAsync(packet.AsMemory(), new IPEndPoint(MulticastAddress, MulticastPort), cancellationToken).ConfigureAwait(false);
             _loop = Task.Run(async () =>
             {
                 while (!_cancellation.IsCancellationRequested)
