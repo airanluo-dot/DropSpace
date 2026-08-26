@@ -9,6 +9,9 @@
     <NuGetAuditMode>all</NuGetAuditMode>
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
+    <DropSpaceMinimumWindowsBuild>17763</DropSpaceMinimumWindowsBuild>
+    <DropSpaceMinimumWindowsVersion>10.0.17763.0</DropSpaceMinimumWindowsVersion>
+    <DropSpaceCompileWindowsSdkBuild>26100</DropSpaceCompileWindowsSdkBuild>
     <DropSpaceReleaseTag Condition="Exists('$(MSBuildThisFileDirectory)RELEASE_VERSION')">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)RELEASE_VERSION').Trim())</DropSpaceReleaseTag>
     <DropSpaceReleaseVersion Condition="'$(DropSpaceReleaseTag)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(DropSpaceReleaseTag)', '^v', ''))</DropSpaceReleaseVersion>
     <DropSpaceVersionPrefix Condition="'$(DropSpaceReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DropSpaceReleaseVersion)', '^[0-9]+\.[0-9]+\.[0-9]+').Value)</DropSpaceVersionPrefix>

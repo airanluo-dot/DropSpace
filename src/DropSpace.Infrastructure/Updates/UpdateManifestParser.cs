@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Updates;
 
 namespace DropSpace.Infrastructure.Updates;
@@ -51,7 +52,8 @@ public sealed class UpdateManifestParser
             throw new InvalidDataException("The update channel does not match the release version.");
         }
 
-        if (dto.VersionCode != version.ToVersionCode() || dto.MinimumWindowsBuild < 26_100)
+        if (dto.VersionCode != version.ToVersionCode() ||
+            !WindowsCompatibilityPolicy.IsSupportedBuild(dto.MinimumWindowsBuild))
         {
             throw new InvalidDataException("The update manifest version code or Windows requirement is invalid.");
         }

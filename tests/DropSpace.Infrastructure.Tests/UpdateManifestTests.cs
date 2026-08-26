@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Updates;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -26,7 +27,7 @@ public sealed class UpdateManifestTests
     [DataRow("version", "\"invalid\"")]
     [DataRow("channel", "\"preview\"")]
     [DataRow("versionCode", "-1")]
-    [DataRow("minimumWindowsBuild", "22000")]
+    [DataRow("minimumWindowsBuild", "17762")]
     public void InvalidReleaseMetadata_FailsClosed(string property, string replacementJson)
     {
         var (release, json) = CreateValid();
@@ -108,7 +109,7 @@ public sealed class UpdateManifestTests
             ["version"] = "0.1.1",
             ["versionCode"] = ReleaseVersion.Parse("0.1.1").ToVersionCode(),
             ["publishedAt"] = "2026-08-10T00:00:00Z",
-            ["minimumWindowsBuild"] = 26100,
+            ["minimumWindowsBuild"] = WindowsCompatibilityPolicy.MinimumSupportedWindowsBuild,
             ["mandatory"] = false,
             ["summary"] = "Stable update",
             ["installer"] = new JsonObject { ["assetName"] = "DropSpaceSetup.exe", ["size"] = 100, ["sha256"] = installerHash },

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
@@ -54,6 +55,7 @@ public sealed partial class OverlayWindow : Window
         IAppStringLocalizer strings,
         MonitorDescriptor monitor,
         MonitorLayoutService monitorLayout,
+        IWindowsCapabilityService capabilities,
         OleDragDropService dragDropService,
         DragActivationCallbacks dragCallbacks,
         Action openMainWindow,
@@ -88,7 +90,9 @@ public sealed partial class OverlayWindow : Window
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
-        OverlayWindowInterop.ConfigureVisualWindow(_windowHandle);
+        OverlayWindowInterop.ConfigureVisualWindow(
+            _windowHandle,
+            capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
         _resolvedPlacement = ResolvePlacement(
             FileDragWakeMode.SmartExperimental,
             new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));

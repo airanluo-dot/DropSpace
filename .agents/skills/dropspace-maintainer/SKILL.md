@@ -291,7 +291,7 @@ Typical expectations:
 - When resolving MRT map paths for XAML automation resources, convert property-separator dots to slashes but preserve dots inside `[using:…]` type qualifiers; otherwise accessibility names silently miss their resources.
 - Register the custom XAML attached property from the `App` constructor before any XAML page that uses it is parsed; late registration causes a runtime `XamlParseException` even when compilation succeeds.
 - Keep the attached-property provider as a constructible `DependencyObject` service type with static `Get`/`Set` accessors, matching the WinUI custom-attached-property pattern.
-- Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 11 validation as a manual release gate.
+- Run resource-parity and hardcoding guards plus both `en-US`/`zh-CN` CI resource contexts. Do not claim those contexts changed the runner's operating-system display language; retain real English and Simplified Chinese Windows 10 and Windows 11 validation as a manual release gate.
 
 ### Workflow-only changes
 
@@ -465,6 +465,16 @@ Do not claim “done” when the repository is only locally modified, when CI is
 - PDF preview uses the Windows `Windows.Data.Pdf` renderer with bounded page dimensions/pixels/output and cancellation; media preview is non-autoplaying and releases its player when closed. Image conversion re-encodes to a DropSpace-owned output and does not mutate the source.
 - Encrypted Internet Share uses fixed cross-language framing: manifest `nonce | ciphertext | tag`, chunks `ciphertext | tag`, explicit GUID wire bytes, and HKDF/AES-256-GCM test vectors. Backend sessions include an origin-bound HTTPS revoke URL and explicit DELETE revocation. `share-worker/` is still reference code, not proof of deployment.
 - Preview.7 is CONDITIONAL until the Windows CI/release jobs, two real Windows devices for LAN pairing/clipboard/reconnect, and an operator-deployed Worker/browser acceptance are evidenced. Never infer those gates from source inspection or hosted Linux checks.
+
+## v0.3.0-preview.8 durable product facts
+
+- Preview.8 lowers the declared runtime baseline to 64-bit Windows 10 version 1809 (Build 17763) and later, including Windows 11. It keeps the pinned Windows SDK Build Tools 10.0.26100.8249, Microsoft.WindowsAppSDK 2.3.1, and the existing three-layer architecture.
+- `DropSpace.Core.Compatibility` owns the shared minimum-build policy, compatibility status values, and probe contracts. `DropSpace.App` reads the real kernel build, checks the Windows App SDK XAML runtime, and blocks unsupported direct launches with a diagnostic marker/native message; installer, MSIX, identity, and update manifests declare the same minimum.
+- `WindowsCompatibilityService` gates Mica and modern DWM corner/border attributes at runtime. Windows 10 keeps the opaque theme-resource base visual, borderless overlay, no-activate/topmost/empty-idle behavior, Smart Drag v2, Classic fallback, placement, clipboard, and updater contracts.
+- PDF, media, and Windows Share API availability is reported as capability state. Preview UI must fall back to bounded text/metadata when optional PDF/media APIs are unavailable; an absent optional capability must never become an implicit startup or drop-path claim.
+- `scripts/Test-WindowsCompatibility.ps1` is a required CI and release gate for target/minimum drift, manifest/installer/update policy drift, direct Mica XAML, guarded DWM attributes, startup wiring, and baseline documentation. The portable smoke marker records the detected build, runtime status, and optional capability outcomes.
+- `compatibility-baseline.md` and `docs/test-plan/v0.3.0-preview.8.md` define the required Windows 10 1809/1909/20H2/22H2 and Windows 11 21H2/22H2/23H2/24H2, 100–200% DPI, one-to-three-monitor, Installer/Portable/MSIX, Explorer/provider, clipboard, preview, share, startup, and updater matrix. Hosted Windows CI and Linux static checks do not prove every row.
+- Preview.8 remains CONDITIONAL until real Windows OS/build/DPI/multi-monitor/provider evidence and the existing two-device/network/browser gates are recorded. Never convert source inspection, a hosted runner, a stale website fixture, or a successful release upload into evidence for an unrun matrix row. Do not rewrite historical Preview.7 facts.
 
 ## 21. Final report format
 

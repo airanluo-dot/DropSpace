@@ -2,7 +2,7 @@
 
 # DropSpace
 
-DropSpace is a local-first Windows 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island provides a fast file drop surface over the same Temporary Space.
+DropSpace is a local-first Windows 10 and 11 workspace for temporarily holding file references and recent clipboard content. Its main window provides full management, while a top-center Dynamic Island provides a fast file drop surface over the same Temporary Space.
 
 Official website: https://airanluo-dot.github.io/DropSpace/
 
@@ -11,9 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.7 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.8 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.7](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.7). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.8](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.8). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+
+The **v0.3.0-preview.8** compatibility build targets 64-bit Windows 10 version 1809 (Build 17763) or later, including Windows 11. Win11-only visuals and APIs are capability-gated with Windows 10 fallbacks. The release remains conditional until the OS/build/DPI/multi-monitor and real Explorer/provider matrix in [compatibility-baseline.md](compatibility-baseline.md) has executable evidence.
 
 The **v0.3.0-preview.7** completion-hardening build finishes the bounded 3.0 contracts: standard mDNS/DNS-SD discovery, bilateral SAS pairing, explicit text/URL handoff, clipboard-pause enforcement, actual bounded PDF/media preview surfaces, source-safe image actions, canonical encrypted-share wire vectors, and explicit share revocation. Internet Share remains unavailable until an operator deploys and configures the reference Worker, and physical two-device LAN/browser acceptance remains a release evidence gate.
 
@@ -30,7 +32,7 @@ The implemented vertical slice includes:
 - A truly hidden visual Overlay, formal state machine, and one continuously morphing Dynamic Island with Compact/Drop Ready/Expanded states. Smart Drag Detection v2 combines documented drag events, bounded UI Automation/MSAA evidence, source-agnostic mouse-threshold candidates, and an ephemeral 60 ms hollow local OLE verification probe while leaving the screen edge unowned at idle.
 - An opt-in traditional top-edge OLE activation zone remains as an explicit compatibility fallback. Settings disclose that it participates in top-edge hit testing and may conflict with Windows Drop Tray or title-bar controls; Smart never switches to it implicitly.
 - Direct Explorer/Desktop drops onto the visible Compact or Expanded Overlay, with one OLE owner per pixel and Expanded in-place drop feedback.
-- Windows 11 Drop Tray compatibility guidance plus a standard `StorageItems` Share Target contract. The external-location identity is registered only by a future trusted-signed Setup; unsigned previews never install a self-signed certificate.
+- Windows Drop Tray compatibility guidance plus a standard `StorageItems` Share Target contract. The external-location identity is registered only by a future trusted-signed Setup; unsigned previews never install a self-signed certificate.
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 - A pinned Inno Setup 7.0.2 `DropSpaceSetup.exe` with custom per-user install path, independent uninstaller, stable product identity, graceful in-place upgrades, preserve-data uninstall, and explicit complete-uninstall mode.
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
@@ -62,7 +64,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 
 ## Product boundaries
 
-- Windows 11 native desktop application.
+- 64-bit Windows 10 version 1809 (Build 17763) and later native desktop application, including Windows 11.
 - C#, .NET, WinUI 3, Windows App SDK, and MVVM.
 - Local content storage; the updater sends no user content and reads only the public versioned DropSpace website/GitHub Release metadata when enabled.
 - File records are references; removing a record never deletes or moves its source file.
@@ -82,6 +84,8 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Edge cases](EDGE_CASES.md)
 - [Roadmap](ROADMAP.md)
 - [Test plan](TEST_PLAN.md)
+- [Windows compatibility baseline](compatibility-baseline.md)
+- [Preview.8 compatibility test plan](docs/test-plan/v0.3.0-preview.8.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)
 - [Licensing policy](LICENSING.md)
@@ -94,7 +98,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 
 ### Requirements
 
-- Windows 11 build 26100 or later.
+- 64-bit Windows 10 version 1809 (Build 17763) or later, including Windows 11. Windows 10 is no longer supported by Microsoft, but remains the DropSpace minimum runtime baseline.
 - Visual Studio 2026 with the WinUI application development workload, or the .NET 10 SDK for command-line build/test.
 
 ### Build and test
@@ -106,7 +110,7 @@ dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.
 dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 ```
 
-Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 11 build 26100 and includes x64 and ARM64 configurations.
+Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 10 build 17763 and includes x64 and ARM64 configurations; Windows 11-only visuals are selected at runtime.
 
 To validate package generation from PowerShell, run:
 

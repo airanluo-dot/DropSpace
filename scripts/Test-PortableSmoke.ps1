@@ -11,6 +11,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+. (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
+$windowsCompatibility = Get-DropSpaceWindowsCompatibility
 $resolvedExecutable = if ([System.IO.Path]::IsPathRooted($ExecutablePath))
 {
     $ExecutablePath
@@ -138,6 +140,9 @@ try
 
     if ($marker.ready -ne $true -or
         $marker.storageWritable -ne $true -or
+        [int]$marker.windowsBuild -lt $windowsCompatibility.MinimumBuild -or
+        [int]$marker.minimumWindowsBuild -ne $windowsCompatibility.MinimumBuild -or
+        [string]$marker.windowsRuntimeStatus -ne "Available" -or
         [int]$marker.schemaVersion -lt 1 -or
         [int]$marker.overlayCycles -ne 100 -or
         [int]$marker.overlayWindowCount -lt 1 -or
@@ -281,6 +286,7 @@ try
 
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
     Write-Host "Startup visibility regression passed: --startup initialized the process without a visible top-level window, and redirected activation remained functional."
+    Write-Host "Windows compatibility probe: build=$($marker.windowsBuild), minimum=$($marker.minimumWindowsBuild), runtime=$($marker.windowsRuntimeStatus), Windows11 visuals: Mica=$($marker.modernWindowAppearanceAvailable), modernDwm=$($marker.modernDwmAttributesAvailable)"
     Write-Host "Localized resource context: $($marker.resourceLanguage); XAML resource resolution=passed"
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"

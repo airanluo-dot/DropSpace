@@ -5,6 +5,7 @@ using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
 using DropSpace.Core.Transfer;
@@ -36,6 +37,7 @@ public sealed partial class MainPage : Page
     private readonly MainViewModel _viewModel;
     private readonly nint _windowHandle;
     private readonly IAppStringLocalizer _strings;
+    private readonly IWindowsCapabilityService _capabilities;
     private readonly QuickPreviewService _previews;
     private readonly IItemActionRegistry _actions;
     private readonly DeviceHandoffService _deviceHandoff;
@@ -52,6 +54,7 @@ public sealed partial class MainPage : Page
         MainViewModel viewModel,
         nint windowHandle,
         IAppStringLocalizer strings,
+        IWindowsCapabilityService capabilities,
         QuickPreviewService previews,
         IItemActionRegistry actions,
         DeviceHandoffService deviceHandoff,
@@ -63,6 +66,7 @@ public sealed partial class MainPage : Page
         _viewModel = viewModel;
         _windowHandle = windowHandle;
         _strings = strings;
+        _capabilities = capabilities;
         _previews = previews;
         _actions = actions;
         _deviceHandoff = deviceHandoff;
@@ -580,6 +584,11 @@ public sealed partial class MainPage : Page
 
         if (descriptor.Bytes is { Length: > 0 } pdfBytes && descriptor.Kind == PreviewKind.Pdf)
         {
+            if (!_capabilities.IsAvailable(WindowsCapability.PdfPreview))
+            {
+                return CreateUnavailablePreviewContent();
+            }
+
             try
             {
                 return await CreatePdfPreviewHostAsync(pdfBytes, _strings);
@@ -593,6 +602,11 @@ public sealed partial class MainPage : Page
         if (descriptor.Kind is PreviewKind.Audio or PreviewKind.Video &&
             _previews.ResolveSourcePath(item) is { } mediaPath && File.Exists(mediaPath))
         {
+            if (!_capabilities.IsAvailable(WindowsCapability.MediaPreview))
+            {
+                return CreateUnavailablePreviewContent();
+            }
+
             try
             {
                 return await CreateMediaElementAsync(mediaPath);
@@ -612,9 +626,14 @@ public sealed partial class MainPage : Page
             };
         }
 
+        return CreateUnavailablePreviewContent(descriptor);
+    }
+
+    private TextBlock CreateUnavailablePreviewContent(PreviewDescriptor? descriptor = null)
+    {
         return new TextBlock
         {
-            Text = descriptor.Metadata.Count == 0
+            Text = descriptor is null || descriptor.Metadata.Count == 0
                 ? _strings.Get("PreviewUnavailable")
                 : string.Join(Environment.NewLine, descriptor.Metadata.Select(pair => string.Concat(pair.Key, ": ", pair.Value))),
             TextWrapping = TextWrapping.Wrap,

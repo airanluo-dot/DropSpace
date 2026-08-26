@@ -4,6 +4,7 @@ using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
@@ -69,6 +70,45 @@ public partial class App : Application
             var isStartupLaunch = commandLine.Contains("--startup", StringComparer.OrdinalIgnoreCase);
             var isShareActivation = activation.Kind == ExtendedActivationKind.ShareTarget;
             _services.GetRequiredService<CrashDiagnosticsService>().Start();
+            var compatibility = _services.GetRequiredService<IWindowsCapabilityService>();
+            _services.GetRequiredService<ILogger<App>>().LogInformation(
+                "Windows compatibility probe: OS {OperatingSystem}, supported={IsSupported}, runtime={RuntimeStatus}.",
+                compatibility.Snapshot.OperatingSystem,
+                compatibility.Snapshot.IsSupported,
+                compatibility.Snapshot.RuntimeDependency.Status);
+            if (!compatibility.Snapshot.IsSupported)
+            {
+                var exception = new PlatformNotSupportedException(
+                    $"DropSpace requires Windows build {WindowsCompatibilityPolicy.MinimumSupportedWindowsBuild} " +
+                    $"or later; detected build {compatibility.Snapshot.OperatingSystem.Build}.");
+                WriteCrashMarker("compatibility", exception);
+                if (commandLine.Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                {
+                    WriteSmokeFailureMarker("compatibility", exception);
+                }
+
+                WindowsCompatibilityErrorDialog.Show(exception.Message);
+                await ShutdownAsync();
+                Environment.Exit(2);
+                return;
+            }
+
+            if (!compatibility.Snapshot.RuntimeDependency.IsAvailable)
+            {
+                var exception = new InvalidOperationException(compatibility.Snapshot.RuntimeDependency.Reason);
+                WriteCrashMarker("compatibility", exception);
+                if (commandLine.Contains("--smoke-test", StringComparer.OrdinalIgnoreCase))
+                {
+                    WriteSmokeFailureMarker("compatibility", exception);
+                }
+
+                WindowsCompatibilityErrorDialog.Show(
+                    $"{exception.Message}\n\nInstall the self-contained DropSpace package or repair the Windows App SDK runtime.");
+                await ShutdownAsync();
+                Environment.Exit(2);
+                return;
+            }
+
             var settingsService = _services.GetRequiredService<ISettingsService>();
             if (commandLine.Contains("--reset-ui-settings", StringComparer.OrdinalIgnoreCase) ||
                 commandLine.Contains("--safe-mode", StringComparer.OrdinalIgnoreCase))
@@ -95,6 +135,7 @@ public partial class App : Application
                 viewModel,
                 strings,
                 _services.GetRequiredService<ILogger<MainWindow>>(),
+                _services.GetRequiredService<IWindowsCapabilityService>(),
                 _services.GetRequiredService<QuickPreviewService>(),
                 _services.GetRequiredService<IItemActionRegistry>(),
                 _services.GetRequiredService<DeviceHandoffService>(),
@@ -179,6 +220,7 @@ public partial class App : Application
                         visibleDropMetrics,
                         projectionMetrics,
                         clipboardMetrics,
+                        _services.GetRequiredService<IWindowsCapabilityService>(),
                         _services.GetRequiredService<IStartupRegistrationService>().IsEnabled,
                         language.EffectiveLanguageTag);
                     if (Environment.GetCommandLineArgs().Contains("--smoke-hold", StringComparer.OrdinalIgnoreCase))
@@ -258,6 +300,10 @@ public partial class App : Application
         var fileLogger = new RedactingFileLoggerProvider(paths);
         var services = new ServiceCollection();
         services.AddSingleton(paths);
+        services.AddSingleton<IOsVersionPolicy, WindowsOsVersionPolicy>();
+        services.AddSingleton<IApiAvailabilityService, WindowsApiAvailabilityService>();
+        services.AddSingleton<IRuntimeDependencyProbe, WindowsAppRuntimeDependencyProbe>();
+        services.AddSingleton<IWindowsCapabilityService, WindowsCapabilityService>();
         services.AddSingleton<AppLanguageService>();
         services.AddSingleton<IAppStringLocalizer, ResourceStringLocalizer>();
         services.AddLogging(builder =>
@@ -474,6 +520,7 @@ public partial class App : Application
         VisibleOverlayDropSmokeMetrics visibleDrop,
         ProjectionDeletionStressMetrics projection,
         ClipboardIntegrationMetrics clipboard,
+        IWindowsCapabilityService compatibility,
         bool startupRegistrationEnabled,
         string resourceLanguage)
     {
@@ -485,6 +532,13 @@ public partial class App : Application
             stage = "complete",
             schemaVersion = SqliteDatabase.CurrentSchemaVersion,
             storageWritable = Directory.Exists(paths.Data),
+            windowsBuild = compatibility.Snapshot.OperatingSystem.Build,
+            minimumWindowsBuild = WindowsCompatibilityPolicy.MinimumSupportedWindowsBuild,
+            windowsRuntimeStatus = compatibility.Snapshot.RuntimeDependency.Status.ToString(),
+            modernWindowAppearanceAvailable = compatibility.IsAvailable(WindowsCapability.ModernWindowAppearance),
+            modernDwmAttributesAvailable = compatibility.IsAvailable(WindowsCapability.ModernDwmAttributes),
+            pdfPreviewAvailable = compatibility.IsAvailable(WindowsCapability.PdfPreview),
+            mediaPreviewAvailable = compatibility.IsAvailable(WindowsCapability.MediaPreview),
             overlayCycles = metrics.Cycles,
             overlayWindowCount = metrics.WindowCount,
             dragActivationHostCount = metrics.ActivationHostCount,

@@ -112,13 +112,21 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 ## Manual test matrix
 
-### Localization (English and Simplified Chinese Windows 11)
+### Localization (English and Simplified Chinese Windows 10/11)
 
-- Run the complete critical flow on an English Windows 11 display-language installation and a Simplified Chinese Windows 11 display-language installation; record OS build, display-language setting, application build, and result.
+- Run the complete critical flow on English and Simplified Chinese display-language installations across the supported Windows 10/11 matrix; record OS build, display-language setting, application build, and result.
 - In each installation, choose **System default**, restart DropSpace, and verify that the main window, Dynamic Island, tray tooltip/menu, update states, dialogs/errors, and accessibility names resolve to the expected resource set.
 - In each installation, explicitly choose **English**, restart, and verify the same surfaces are English; explicitly choose **Simplified Chinese**, restart, and verify the same surfaces are Simplified Chinese. This verifies the app-owned XAML override as well as imperative and native surfaces.
 - Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; ensure no stale language or raw exception message is announced.
-- CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; the two real Windows 11 installations remain required release evidence.
+- CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real Windows 10 and Windows 11 installations remain required release evidence.
+
+### Windows compatibility baseline (Preview.8)
+
+- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Build 17763 minimum, capability fallbacks, distribution consistency, and evidence boundary.
+- Exercise Windows 10 1809/1909/20H2/22H2 (17763/18363/19042/19045) and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100).
+- At each available OS, cover 100%, 125%, 150%, 175%, and 200% scaling, one-to-three monitors, primary/non-primary placement, topology refresh, normal launch, `--startup`, clipboard, Smart/Classic drag, visible direct drops, preview fallback, updater, and the relevant packaging path.
+- Treat Mica, modern DWM attributes, Windows Share identity, and optional PDF/media APIs as capability outcomes. Windows 10 must retain the base visual and local drop/clipboard paths without probing failures or stale overlay hit regions.
+- Do not mark this gate complete from source inspection, Linux checks, or Windows 11 CI alone; attach executable OS/build/DPI/monitor evidence.
 
 ### Clipboard
 

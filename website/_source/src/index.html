@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DropSpace — A Temporary Space for Windows</title>
-  <meta name="description" content="Drag files to the top of your Windows 11 screen, keep them in a temporary space, and bring them back when you need them.">
+  <meta name="description" content="Drag files to the top of your Windows 10 or 11 screen, keep them in a temporary space, and bring them back when you need them.">
   <link rel="canonical" href="https://airanluo-dot.github.io/DropSpace/en/">
   <link rel="alternate" hreflang="en" href="https://airanluo-dot.github.io/DropSpace/en/">
   <link rel="alternate" hreflang="zh-CN" href="https://airanluo-dot.github.io/DropSpace/zh-cn/">
@@ -23,7 +23,7 @@
   <link rel="manifest" href="./site.webmanifest">
   <link rel="stylesheet" href="./styles.css">
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"DropSpace","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 11 build 26100 or later","softwareVersion":"{{STABLE_TAG}}","downloadUrl":"{{INSTALLER_URL}}","license":"https://www.apache.org/licenses/LICENSE-2.0","codeRepository":"https://github.com/airanluo-dot/DropSpace","author":{"@type":"Person","name":"Airan Luo"}}
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"DropSpace","applicationCategory":"UtilitiesApplication","operatingSystem":"64-bit Windows 10 version 1809 (Build 17763) or later, including Windows 11","softwareVersion":"{{STABLE_TAG}}","downloadUrl":"{{INSTALLER_URL}}","license":"https://www.apache.org/licenses/LICENSE-2.0","codeRepository":"https://github.com/airanluo-dot/DropSpace","author":{"@type":"Person","name":"Airan Luo"}}
   </script>
 </head>
 <body>
@@ -49,7 +49,7 @@
     <section class="hero shell" id="top">
       <div class="hero-copy">
         <h1>Drag it. Keep it.<br>Use it later.</h1>
-        <p>A temporary space for Windows 11—right at the top of your screen.</p>
+        <p>A temporary space for Windows 10 and 11—right at the top of your screen.</p>
         <div class="actions">
           <a class="button button-primary" href="{{INSTALLER_URL}}" data-download="installer">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4.4 10.3 3v8.2H3V4.4Zm8.3-1.6L21 1v10.2h-9.7V2.8ZM3 12.2h7.3V21L3 19.6v-7.4Zm8.3 0H21V23l-9.7-1.8v-9Z"/></svg>
@@ -151,7 +151,7 @@
     </section>
 
     <section class="download band shell" id="download">
-      <div class="download-intro"><p class="section-index">DOWNLOAD</p><h2>Ready when<br>you are.</h2><p data-stable-version>Latest Stable · {{STABLE_TAG}}</p><p>Windows 11 build 26100 or later</p><a href="{{STABLE_URL}}" data-release-url target="_blank" rel="noopener noreferrer">View all releases <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums">SHA-256 checksums <span>↗</span></a></div>
+      <div class="download-intro"><p class="section-index">DOWNLOAD</p><h2>Ready when<br>you are.</h2><p data-stable-version>Latest Stable · {{STABLE_TAG}}</p><p>Windows 10 version 1809 (Build 17763) or later, including Windows 11</p><a href="{{STABLE_URL}}" data-release-url target="_blank" rel="noopener noreferrer">View all releases <span>↗</span></a><a href="{{CHECKSUM_URL}}" data-download="checksums">SHA-256 checksums <span>↗</span></a></div>
       <div class="download-options">
         <a class="download-card recommended" href="{{INSTALLER_URL}}" data-download="installer"><img src="./assets/favicon.png" alt=""><div><strong>Download Installer</strong><span>Recommended for most users</span><small>DropSpaceSetup.exe</small></div><b>↓</b><em>RECOMMENDED</em></a>
         <a class="download-card" href="{{PORTABLE_URL}}" data-download="portable"><span class="download-icon">▱</span><div><strong>Portable</strong><span>Run without installing</span><small>DropSpace.exe</small></div><b>↓</b></a>
@@ -160,7 +160,7 @@
     </section>
 
     <section class="release-readiness shell" aria-label="System requirements and download verification">
-      <article><p class="section-index">SYSTEM REQUIREMENTS</p><h2>Windows 11 24H2 or later</h2><p>Requires build 26100 or later. Windows 10 is not supported.</p><p class="system-result" data-system-check data-windows="Windows detected. Your browser cannot reliably report the exact Windows build—confirm build 26100 or later in Settings → System → About." data-other="This device is not reporting Windows. DropSpace downloads are for Windows 11 only.">Checking this device…</p></article>
+      <article><p class="section-index">SYSTEM REQUIREMENTS</p><h2>Windows 10 version 1809 or later</h2><p>Requires Windows 10 version 1809 (Build 17763) or later, including Windows 11. Windows 10 is no longer supported by Microsoft, but remains the minimum supported OS for DropSpace.</p><p class="system-result" data-system-check data-windows="Windows detected. Your browser cannot reliably report the exact Windows build—confirm Windows 10 version 1809 (Build 17763) or later in Settings → System → About." data-other="This device is not reporting Windows. DropSpace downloads are for 64-bit Windows 10 version 1809 or later, including Windows 11.">Checking this device…</p></article>
       <article id="known-limitations"><p class="section-index">KNOWN LIMITATIONS</p><h2>Know before you install.</h2><p>The current public build is unsigned, so SmartScreen may show an unknown-app warning. Windows 11 Drop Tray can own the same top-edge gesture, and Share integration requires a future trusted-signed build.</p></article>
       <article><p class="section-index">VERIFY YOUR DOWNLOAD</p><h2>Check the file you received.</h2><p>Download only from the official GitHub Release. Compare the file's SHA-256 with SHA256SUMS.txt; a matching hash proves file integrity, but not publisher identity.</p><a class="button button-ghost" href="{{CHECKSUM_URL}}">Verification guide</a></article>
     </section>
@@ -178,12 +178,12 @@
     <section class="faq shell" id="faq">
       <div class="section-heading"><p class="section-index">FAQ</p><h2>Good to know.</h2></div>
       <div class="faq-list">
-        <details><summary>What is DropSpace?</summary><p>A local-first Windows 11 workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</p></details>
+        <details><summary>What is DropSpace?</summary><p>A local-first Windows 10 and 11 workspace for temporarily holding file references and recent clipboard content, with a main window and a top-center Dynamic Island.</p></details>
         <details><summary>Does DropSpace move my files?</summary><p>No. Temporary Space stores references. Adding or removing a reference does not move, copy, or delete the original file.</p></details>
         <details><summary>Can I add folders?</summary><p>Yes. DropSpace can hold file and folder references through drag and drop or its picker.</p></details>
         <details><summary>What is Clipboard History?</summary><p>A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.</p></details>
         <details><summary>What's the difference between Installer and Portable?</summary><p>The recommended per-user Installer adds Start Menu integration, an uninstaller, and in-place update support. Portable runs directly without installation; updates are notify/download-only.</p></details>
-        <details><summary>Does DropSpace support Windows 10?</summary><p>No. The current release requires Windows 11 build 26100 or later.</p></details>
+        <details><summary>Does DropSpace support Windows 10?</summary><p>Yes. DropSpace supports 64-bit Windows 10 version 1809 (Build 17763) or later, including Windows 11. Windows 10 is no longer supported by Microsoft, but remains supported by this compatibility baseline.</p></details>
         <details><summary>What about the Windows 11 Drop Tray?</summary><p>Windows may own the same top-edge drag gesture. DropSpace Settings links to the official Multitasking page; direct drops onto visible Compact and Expanded surfaces remain supported.</p></details>
         <details><summary>Does DropSpace upload clipboard content?</summary><p>No. Ordinary content features use local storage. If update checks are enabled, DropSpace contacts only public GitHub Release metadata and official GitHub asset URLs.</p></details>
         <details><summary>How do updates work?</summary><p>Stable receives Stable releases. Preview can receive Stable and Preview releases. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.</p></details>

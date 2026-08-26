@@ -4,14 +4,24 @@ Status labels: **Supported**, **Supported with Win32 interop**, **Complex/valida
 
 ## Platform baseline
 
-WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace supports the recommended per-user Inno Setup installer, the same unpackaged self-contained single-file x64 EXE as a portable option, and an MSIX package as an alternative. No deployment path stores runtime data beside the executable.
+WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace supports 64-bit Windows 10 version 1809 (Build 17763) and later, including Windows 11. The app compiles against the pinned 26100 SDK but probes runtime OS/API availability before using newer capabilities. It supports the recommended per-user Inno Setup installer, the same unpackaged self-contained single-file x64 EXE as a portable option, and an MSIX package as an alternative. No deployment path stores runtime data beside the executable.
+
+The compatibility boundary is implemented in `DropSpace.Core.Compatibility` and
+the App-layer Windows adapters. Build 17763 is declared in the target
+framework, platform minimum, MSIX/identity manifests, Inno Setup, and update
+manifest. A direct Portable launch below that build exits with a diagnostic
+marker. Windows 10 keeps the solid base visual, existing Clipboard/Overlay/OLE
+paths, and Classic Drag fallback; Mica, modern DWM attributes, Windows Share
+identity, and optional PDF/media APIs are capability-gated rather than assumed.
+See [compatibility-baseline.md](compatibility-baseline.md) for the evidence
+matrix.
 
 ## Capability matrix
 
 | Capability | Assessment | Plan |
 |---|---|---|
 | WinUI 3 shell, controls, theme | Supported | Native XAML/Fluent resources |
-| Mica primary window | Supported | `Window.SystemBackdrop`; solid fallback |
+| Mica primary window | Supported on Windows 11; fallback on Windows 10 | Runtime capability probe; solid base visual |
 | Acrylic transient surfaces | Supported | Use sparingly on flyouts/menus |
 | Clipboard change event | Supported with Win32 interop | `AddClipboardFormatListener` + `WM_CLIPBOARDUPDATE` on a stable message-pump HWND |
 | Text/image/file clipboard reads | Supported, format-dependent | Snapshot `DataPackageView`, prefer `StorageItems`, handle transient failures |

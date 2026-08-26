@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Cryptography;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
 using DropSpace.Infrastructure.Updates;
@@ -157,7 +158,7 @@ public sealed class UpdateDownloadTests
             version,
             version.ToVersionCode(),
             DateTimeOffset.UtcNow,
-            26100,
+            WindowsCompatibilityPolicy.MinimumSupportedWindowsBuild,
             false,
             null,
             new UpdateManifestAsset("DropSpaceSetup.exe", 1, new string('b', 64)),

@@ -10,6 +10,8 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
+. (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
+$windowsCompatibility = Get-DropSpaceWindowsCompatibility
 $releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
 $releaseSummary = if (-not [string]::IsNullOrWhiteSpace($Summary))
 {
@@ -50,7 +52,7 @@ $manifest = [ordered]@{
     version = $releaseInfo.SemanticVersion
     versionCode = $releaseInfo.VersionCode
     publishedAt = $timestamp.ToString("o", [Globalization.CultureInfo]::InvariantCulture)
-    minimumWindowsBuild = 26100
+    minimumWindowsBuild = $windowsCompatibility.MinimumBuild
     mandatory = $false
     summary = $releaseSummary
     installer = [ordered]@{

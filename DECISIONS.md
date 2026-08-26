@@ -441,3 +441,12 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - Status: Accepted for v0.3.0-preview.7
 - Decision: Client-encrypted Internet Share uses AES-256-GCM with HKDF-SHA256-derived per-share/per-chunk keys, deterministic test-vector inputs, explicit GUID wire bytes, and fixed framing: manifest `nonce | ciphertext | tag`; chunk `ciphertext | tag`. A backend session must return HTTPS upload/download/revoke URLs on the configured origin, and revocation is an explicit authenticated DELETE lifecycle. Source-only Worker code is not treated as a deployed backend.
 - Rationale: Cross-language clients need byte-level interoperability and stable fixtures. Origin and lifecycle validation prevents a backend from redirecting uploads or leaving a share live after the user revokes it, while the deployment boundary avoids claiming availability without operator evidence.
+
+## D-052 — Lower the runtime baseline with capability-gated Windows 11 enhancements
+
+- Date: 2026-08-27
+- Status: Accepted for v0.3.0-preview.8 compatibility work
+- Context: The compatibility implementation plan requires Windows 10 version 1809 (Build 17763) support while preserving the existing WinUI three-layer architecture and the current Windows 11 feature slice.
+- Decision: Target `net10.0-windows10.0.17763.0` and set the MSIX, identity, Inno Setup, and update-manifest minimums to Build 17763. Keep Windows SDK Build Tools 10.0.26100.8249 and Windows App SDK 2.3.1 as the compile-time baseline. Add a Core compatibility policy plus App-layer OS/API/runtime probes. Gate Mica and modern DWM attributes at runtime; retain solid/base visuals and the existing Clipboard, Dynamic Island, OLE, Smart Drag, Classic fallback, placement, and updater contracts on Windows 10. Treat package identity and optional preview APIs as capability results.
+- Rationale: The Windows App SDK support boundary and the product's actual native APIs permit a lower minimum when newer presentation/contract features are isolated. A single policy source prevents project, installer, manifest, updater, and website drift without rewriting the proven WinUI/Win32 architecture.
+- Constraints: Build 17763, every listed DPI/monitor combination, historical Windows 10/11 versions, Explorer/provider behavior, and real two-device/network/browser behavior still require executable evidence. Hosted Linux checks and a single hosted Windows runner cannot graduate this Preview; the release remains conditional until those gates are recorded.

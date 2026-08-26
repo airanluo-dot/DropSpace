@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
@@ -17,6 +18,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly IAppStringLocalizer _strings;
     private readonly MainViewModel _mainViewModel;
     private readonly MonitorLayoutService _monitorLayout;
+    private readonly IWindowsCapabilityService _capabilities;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly OverlayStateMachine _stateMachine;
     private readonly OleDragDropService _dragDropService;
@@ -45,6 +47,7 @@ public sealed class OverlayWindowService : IDisposable
         IAppStringLocalizer strings,
         MainViewModel mainViewModel,
         MonitorLayoutService monitorLayout,
+        IWindowsCapabilityService capabilities,
         ForegroundWindowMonitor foregroundWindowMonitor,
         OverlayStateMachine stateMachine,
         OleDragDropService dragDropService,
@@ -58,6 +61,7 @@ public sealed class OverlayWindowService : IDisposable
         _strings = strings;
         _mainViewModel = mainViewModel;
         _monitorLayout = monitorLayout;
+        _capabilities = capabilities;
         _foregroundWindowMonitor = foregroundWindowMonitor;
         _stateMachine = stateMachine;
         _dragDropService = dragDropService;
@@ -737,6 +741,7 @@ public sealed class OverlayWindowService : IDisposable
                 _strings,
                 monitor,
                 _monitorLayout,
+                _capabilities,
                 _dragDropService,
                 visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),

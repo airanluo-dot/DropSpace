@@ -1,4 +1,5 @@
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
@@ -166,7 +167,7 @@ public sealed class UpdateCoordinatorTests
             version,
             version.ToVersionCode(),
             DateTimeOffset.Parse("2026-08-11T00:00:00Z"),
-            26100,
+            WindowsCompatibilityPolicy.MinimumSupportedWindowsBuild,
             false,
             "Test update",
             installer,

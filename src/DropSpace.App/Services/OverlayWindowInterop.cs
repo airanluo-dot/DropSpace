@@ -32,7 +32,7 @@ internal static class OverlayWindowInterop
     private const uint DwmColorNone = 0xFFFFFFFE;
     private static readonly nint Topmost = new(-1);
 
-    public static void ConfigureVisualWindow(nint window)
+    public static void ConfigureVisualWindow(nint window, bool modernDwmAttributes)
     {
         var extendedStyle = GetWindowLongPointer(window, ExtendedStyleIndex).ToInt64();
         extendedStyle |= ExtendedStyleToolWindow | ExtendedStyleNoActivate;
@@ -52,18 +52,21 @@ internal static class OverlayWindowInterop
             DwmWindowAttributeNonClientRenderingPolicy,
             ref nonClientPolicy,
             sizeof(int));
-        var cornerPreference = DwmCornerDoNotRound;
-        DwmSetWindowAttribute(
-            window,
-            DwmWindowAttributeCornerPreference,
-            ref cornerPreference,
-            sizeof(int));
-        var borderColor = DwmColorNone;
-        DwmSetWindowAttribute(
-            window,
-            DwmWindowAttributeBorderColor,
-            ref borderColor,
-            sizeof(uint));
+        if (modernDwmAttributes)
+        {
+            var cornerPreference = DwmCornerDoNotRound;
+            DwmSetWindowAttribute(
+                window,
+                DwmWindowAttributeCornerPreference,
+                ref cornerPreference,
+                sizeof(int));
+            var borderColor = DwmColorNone;
+            DwmSetWindowAttribute(
+                window,
+                DwmWindowAttributeBorderColor,
+                ref borderColor,
+                sizeof(uint));
+        }
         SetWindowPos(
             window,
             Topmost,
