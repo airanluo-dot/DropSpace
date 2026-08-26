@@ -187,7 +187,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         {
             ["v"] = descriptor.Protocol.ToString(),
             ["id"] = descriptor.DeviceId.ToString("D"),
-            ["name"] = SafeLabel(descriptor.DisplayName),
+            ["name"] = SafeDisplayName(descriptor.DisplayName),
             ["platform"] = descriptor.Platform.ToString().ToLowerInvariant(),
             ["caps"] = ((int)descriptor.Capabilities).ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["fp"] = descriptor.IdentityFingerprint.Replace(":", string.Empty, StringComparison.Ordinal).ToLowerInvariant(),
@@ -305,6 +305,29 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
     }
 
     private static string NormalizeName(string value) => value.TrimEnd('.').ToLowerInvariant();
+    private static string SafeDisplayName(string value)
+    {
+        var characters = (value ?? string.Empty)
+            .Where(character => !char.IsControl(character))
+            .Take(48)
+            .ToArray();
+        while (characters.Length > 0)
+        {
+            var candidate = new string(characters).Trim();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(candidate) && StrictUtf8.GetByteCount(candidate) <= 180) return candidate;
+            }
+            catch (EncoderFallbackException)
+            {
+                // Drop an incomplete surrogate or other invalid UTF-16 tail.
+            }
+
+            Array.Resize(ref characters, characters.Length - 1);
+        }
+
+        return "DropSpace";
+    }
     private static string SafeLabel(string value)
     {
         var label = new string((value ?? string.Empty).Where(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_').Take(48).ToArray());
