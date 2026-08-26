@@ -584,9 +584,9 @@ public sealed partial class MainPage : Page
             writer.DetachStream();
         }
         input.Seek(0);
-        using var document = await PdfDocument.LoadFromStreamAsync(input);
+        var document = await PdfDocument.LoadFromStreamAsync(input);
         if (document.PageCount == 0) throw new InvalidDataException("The PDF has no pages.");
-        using var page = document.GetPage((uint)Math.Clamp(pageNumber - 1, 0, (int)document.PageCount - 1));
+        var page = document.GetPage((uint)Math.Clamp(pageNumber - 1, 0, (int)document.PageCount - 1));
         using var output = new InMemoryRandomAccessStream();
         await page.RenderToStreamAsync(output);
         output.Seek(0);
@@ -647,7 +647,7 @@ public sealed partial class MainPage : Page
                 await ShowShareDescriptorAsync(await _sharing.CreateInternetAsync([card.Item], _viewModel.Settings));
                 return;
             }
-            var result = await _actions.ExecuteAsync(action, new ItemActionContext(new[] { snapshot }));
+            var result = await _actions.ExecuteAsync(action, new ItemActionContext(new ItemSelectionSnapshot([snapshot])));
             await ShowMessageAsync(
                 result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
                 result.OutputPaths.Count == 0 ? result.ErrorCategory ?? _strings.Get("ActionUnavailable") : string.Join(Environment.NewLine, result.OutputPaths));
