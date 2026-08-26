@@ -20,6 +20,18 @@ public sealed record IncomingTransferOffer(
     Guid PeerId,
     TransferManifest Manifest);
 
+public sealed record IncomingPairingOffer(
+    Guid SessionId,
+    PairingHello RemoteHello,
+    PairingHello LocalHello,
+    int Sas,
+    DateTimeOffset ExpiresAtUtc);
+
+public sealed record IncomingHandoffOffer(
+    Guid SessionId,
+    Guid PeerId,
+    HandoffMessage Message);
+
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkHost(
     AppStoragePaths paths,
@@ -31,6 +43,7 @@ public sealed class DropLinkHost(
 {
     private readonly ConcurrentDictionary<Guid, ReceiveTransfer> _sessions = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _usedNonces = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<Guid, DateTimeOffset> _usedHandoffSessions = new();
     private WebApplication? _app;
     private DeviceIdentity? _identity;
     private Uri? _endpoint;
@@ -43,6 +56,10 @@ public sealed class DropLinkHost(
     public event Func<ClipboardEnvelope, CancellationToken, Task>? ClipboardReceived;
 
     public event Func<IncomingTransferOffer, Task>? TransferOffered;
+
+    public event Func<IncomingPairingOffer, CancellationToken, Task<bool>>? PairingOffered;
+
+    public event Func<IncomingHandoffOffer, CancellationToken, Task<bool>>? HandoffOffered;
 
     public async Task<Uri> StartAsync(int port = 0, CancellationToken cancellationToken = default)
     {
@@ -102,13 +119,20 @@ public sealed class DropLinkHost(
         {
             try
             {
+                ArgumentNullException.ThrowIfNull(hello);
                 var offer = await pairing.AcceptHelloAsync(hello, PeerCapability.HandoffFiles | PeerCapability.HandoffFolders |
                     PeerCapability.HandoffText | PeerCapability.HandoffUrl | PeerCapability.ClipboardText |
                     PeerCapability.ClipboardUrl | PeerCapability.ClipboardImage, cancellationToken).ConfigureAwait(false);
-                _pendingPeers[offer.SessionId] = new PendingPeer(hello.DeviceId, hello.DisplayName, hello.Platform, hello.IdentityFingerprint, hello.Capabilities);
+                _pendingPeers[offer.SessionId] = new PendingPeer(
+                    offer.RemoteHello,
+                    offer.LocalHello,
+                    offer.Sas,
+                    offer.ExpiresAtUtc,
+                    new PeerDevice(hello.DeviceId, hello.DisplayName, hello.Platform, hello.IdentityFingerprint, hello.Capabilities,
+                        PeerTrustState.Pairing, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
                 return Results.Json(offer);
             }
-            catch (Exception exception) when (exception is InvalidDataException or CryptographicException or InvalidOperationException or FormatException)
+            catch (Exception exception) when (exception is ArgumentNullException or InvalidDataException or CryptographicException or InvalidOperationException or FormatException)
             {
                 return Results.BadRequest(new { error = "pairing-invalid" });
             }
@@ -116,25 +140,62 @@ public sealed class DropLinkHost(
 
         app.MapPost("/v1/pairing/confirm", async (PairingConfirmationRequest request, CancellationToken cancellationToken) =>
         {
+            var pendingSessionId = Guid.Empty;
+            var pendingSas = 0;
             try
             {
-                await pairing.ConfirmAsync(request.SessionId, request.Sas, request.Confirmed, cancellationToken).ConfigureAwait(false);
-                if (!_pendingPeers.TryRemove(request.SessionId, out var pending)) return Results.BadRequest(new { error = "pairing-state-missing" });
-                var peer = new PeerDevice(
-                    pending.DeviceId,
-                    pending.DisplayName,
-                    pending.Platform,
-                    pending.IdentityFingerprint,
-                    pending.Capabilities,
-                    PeerTrustState.Trusted,
-                    DateTimeOffset.UtcNow,
-                    DateTimeOffset.UtcNow);
-                await transfers.UpsertPeerAsync(peer, pending.DeviceId.ToString("N"), cancellationToken).ConfigureAwait(false);
-                return Results.Json(new PairingConfirmationResponse(true, peer.Id));
+                ArgumentNullException.ThrowIfNull(request);
+                pendingSessionId = request.SessionId;
+                if (!_pendingPeers.TryRemove(request.SessionId, out var pending))
+                {
+                    return Results.Json(new PairingConfirmationResponse(false, Guid.Empty, PairingState.Failed, "pairing-state-missing"));
+                }
+
+                pendingSas = pending.Sas;
+                if (request.Decision == PairingDecision.Confirm && request.Confirmed)
+                {
+                    var handlers = PairingOffered?.GetInvocationList();
+                    var locallyConfirmed = handlers is not null && handlers.Length > 0;
+                    if (locallyConfirmed)
+                    {
+                        var incoming = new IncomingPairingOffer(request.SessionId, pending.RemoteHello, pending.LocalHello, pending.Sas, pending.ExpiresAtUtc);
+                        foreach (var handler in handlers!.Cast<Func<IncomingPairingOffer, CancellationToken, Task<bool>>>())
+                        {
+                            locallyConfirmed &= await handler(incoming, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+
+                    request = request with
+                    {
+                        Confirmed = locallyConfirmed,
+                        Decision = locallyConfirmed ? PairingDecision.Confirm : PairingDecision.Reject,
+                    };
+                }
+
+                var result = await pairing.ConfirmAsync(request.SessionId, request.Sas, request.Confirmed, request.Decision, cancellationToken).ConfigureAwait(false);
+                if (!result.Trusted)
+                {
+                    return Results.Json(new PairingConfirmationResponse(false, result.PeerId, result.State, result.ErrorCategory));
+                }
+
+                var peer = pending.Peer with { TrustState = PeerTrustState.Trusted, LastSeenAtUtc = DateTimeOffset.UtcNow };
+                await transfers.UpsertPeerAsync(peer, peer.Id.ToString("N"), cancellationToken).ConfigureAwait(false);
+                return Results.Json(new PairingConfirmationResponse(true, peer.Id, PairingState.Trusted, null));
             }
-            catch (Exception exception) when (exception is InvalidOperationException or TimeoutException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is ArgumentNullException or CryptographicException or InvalidOperationException or TimeoutException or UnauthorizedAccessException or IOException or OperationCanceledException)
             {
-                return Results.BadRequest(new { error = "pairing-rejected" });
+                if (pendingSessionId != Guid.Empty)
+                {
+                    try
+                    {
+                        await pairing.ConfirmAsync(pendingSessionId, pendingSas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception cleanupException) when (cleanupException is InvalidOperationException or IOException or UnauthorizedAccessException)
+                    {
+                        logger.LogDebug(cleanupException, "Pairing cleanup could not settle session {SessionId}.", pendingSessionId);
+                    }
+                }
+                return Results.Json(new PairingConfirmationResponse(false, Guid.Empty, PairingState.Failed, "pairing-failed"));
             }
         });
 
@@ -162,10 +223,60 @@ public sealed class DropLinkHost(
 
                 return Results.Json(new ClipboardSyncResponse(true, null));
             }
+            catch (ClipboardPausedException)
+            {
+                return Results.Json(new ClipboardSyncResponse(false, ClipboardPausedException.ErrorCategory));
+            }
             catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
             {
                 logger.LogWarning("Clipboard envelope rejected with category {ErrorCategory}.", exception.GetType().Name);
                 return Results.BadRequest(new ClipboardSyncResponse(false, "clipboard-invalid"));
+            }
+        });
+
+        app.MapPost("/v1/handoff/text", async (HttpContext context, HandoffMessageRequest request, CancellationToken cancellationToken) =>
+        {
+            if (request is null || request.Message is null ||
+                !Guid.TryParse(context.Request.Headers["X-DropLink-Device"].ToString(), out var authenticatedPeer) ||
+                request.PeerId != authenticatedPeer || request.Message.SenderDeviceId != request.PeerId ||
+                !await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
+            try
+            {
+                HandoffMessagePolicy.Validate(request.Message);
+                var now = DateTimeOffset.UtcNow;
+                foreach (var entry in _usedHandoffSessions.Where(entry => now - entry.Value > TimeSpan.FromMinutes(10)))
+                {
+                    _usedHandoffSessions.TryRemove(entry.Key, out _);
+                }
+                if (request.Message.CreatedAtUtc < now.AddMinutes(-10) || request.Message.CreatedAtUtc > now.AddMinutes(1))
+                {
+                    return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "expired"));
+                }
+                if (!_usedHandoffSessions.TryAdd(request.Message.SessionId, now))
+                {
+                    return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "duplicate-session"));
+                }
+                var handlers = HandoffOffered?.GetInvocationList();
+                if (handlers is null || handlers.Length == 0)
+                {
+                    return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "handoff-receiver-unavailable"));
+                }
+
+                var offer = new IncomingHandoffOffer(request.Message.SessionId, request.PeerId, request.Message);
+                foreach (var handler in handlers.Cast<Func<IncomingHandoffOffer, CancellationToken, Task<bool>>>())
+                {
+                    if (!await handler(offer, cancellationToken).ConfigureAwait(false))
+                    {
+                        return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "rejected"));
+                    }
+                }
+
+                return Results.Json(new HandoffMessageResponse(request.Message.SessionId, true, null));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidDataException or IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(exception, "Explicit text/URL handoff was rejected.");
+                return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "handoff-invalid"));
             }
         });
 
@@ -442,6 +553,7 @@ public sealed class DropLinkHost(
         _sessions.Clear();
         _pendingPeers.Clear();
         _usedNonces.Clear();
+        _usedHandoffSessions.Clear();
     }
 
     private sealed class ReceiveTransfer(
@@ -461,5 +573,10 @@ public sealed class DropLinkHost(
 
     private readonly ConcurrentDictionary<Guid, PendingPeer> _pendingPeers = new();
 
-    private sealed record PendingPeer(Guid DeviceId, string DisplayName, DevicePlatform Platform, string IdentityFingerprint, PeerCapability Capabilities);
+    private sealed record PendingPeer(
+        PairingHello RemoteHello,
+        PairingHello LocalHello,
+        int Sas,
+        DateTimeOffset ExpiresAtUtc,
+        PeerDevice Peer);
 }

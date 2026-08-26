@@ -11,13 +11,13 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.5 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.7 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.5](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.5). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.7](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.7). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
-The **v0.2.1 Stable** release promotes the release-driven latest-changes website, complete English/Simplified Chinese localization foundation, and zero-flicker Windows sign-in startup that were validated across the v0.2.1 Preview sequence.
+The **v0.3.0-preview.7** completion-hardening build finishes the bounded 3.0 contracts: standard mDNS/DNS-SD discovery, bilateral SAS pairing, explicit text/URL handoff, clipboard-pause enforcement, actual bounded PDF/media preview surfaces, source-safe image actions, canonical encrypted-share wire vectors, and explicit share revocation. Internet Share remains unavailable until an operator deploys and configures the reference Worker, and physical two-device LAN/browser acceptance remains a release evidence gate.
 
-The **v0.3.0-preview.5** test build fixes Automatic placement projection so Adjust begins from the actual visible Dynamic Island surface instead of the host-window origin; existing Custom coordinates remain unchanged.
+The historical **v0.3.0-preview.5** test build fixed Automatic placement projection so Adjust began from the actual visible Dynamic Island surface instead of the host-window origin; existing Custom coordinates remained unchanged.
 
 The implemented vertical slice includes:
 
@@ -130,6 +130,6 @@ DropSpace's original source code, documentation, and repository-owned assets are
 
 Third-party dependencies remain under their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The Apache license does not grant a general right to present a modified distribution as an official DropSpace release; see [TRADEMARKS.md](TRADEMARKS.md).
 
-## v0.3.0-preview.6 feature boundary
+## v0.3.0-preview.7 feature boundary
 
-The 3.0 Preview adds bounded Quick Preview providers, up to three real Quick Actions, Windows-only DropLink handoff, opt-in cross-device clipboard, expiring Nearby browser links, and client-encrypted Internet Share. Network features are disabled until explicitly enabled, require trusted peers or configured backends, and remain subject to the [protocol](docs/protocol/droplink-v1.md) and [network threat model](docs/security/network-threat-model.md). macOS, iOS/iPadOS, Android, Linux, accounts, WebRTC, and native mobile clients remain out of scope.
+The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Actions, Windows-only DropLink handoff, opt-in cross-device clipboard, expiring Nearby browser links, and client-encrypted Internet Share. Preview.7 hardens the protocol boundaries and keeps network features disabled until explicitly enabled: handoff requires trusted peers, Nearby requires a private IPv4 address, and Internet Share requires a configured HTTPS Worker backend. See the [protocol](docs/protocol/droplink-v1.md), [validation plan](docs/test-plan/v0.3.0-preview.7.md), and [network threat model](docs/security/network-threat-model.md). macOS, iOS/iPadOS, Android, Linux, accounts, WebRTC, and native mobile clients remain out of scope.

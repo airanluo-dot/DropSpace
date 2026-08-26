@@ -417,3 +417,27 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - Status: Accepted for v0.3.0-preview.6
 - Decision: Migrate schema 1→2 with `paired_devices` and `transfer_sessions`; store DPAPI-protected peer secrets and staged bytes in application data; receive only under Downloads/DropSpace after manifest/hash validation.
 - Rationale: SQLite remains queryable and recoverable without becoming a clipboard/file vault, and forward-only migration preserves the existing backup/recovery contract.
+
+## D-048 — Text and URL handoff is a separate authenticated message contract
+
+- Status: Accepted for v0.3.0-preview.7
+- Decision: DropLink text and URL transfer uses a typed, size-bounded, UTF-8 message endpoint with its own session ID, sender binding, normalized URL form, SHA-256, freshness window, and one-time replay guard. It does not route through the system clipboard or silently write the receiver's clipboard; clipboard transfer remains an explicit opt-in mode.
+- Rationale: Clipboard state is user-owned and may be paused. Reusing it for remote handoff made a successful network request indistinguishable from a local clipboard mutation and could bypass the pause boundary. A separate message contract makes approval, preview, replay, and commit behavior observable.
+
+## D-049 — DropLink pairing requires bilateral confirmation of one canonical SAS
+
+- Status: Accepted for v0.3.0-preview.7
+- Decision: Both peers display the same short authentication string derived from a canonical device-ordered transcript. Each side must explicitly confirm the matching SAS before the DPAPI-protected peer secret is persisted and the session becomes Trusted; reject, cancel, timeout, malformed input, and failed confirmation leave no pending secret.
+- Rationale: One-sided confirmation or initiator-only transcript ordering can authenticate different values on the two devices. Bilateral confirmation keeps the human verification step and the cryptographic state transition aligned.
+
+## D-050 — Pausing clipboard capture is a transaction barrier
+
+- Status: Accepted for v0.3.0-preview.7
+- Decision: Pause and resume serialize against remote-import commit. Once paused, no new local capture, remote import, or system-clipboard write may cross the commit barrier; an import already holding the barrier completes only after its final pause check. The paused state is persisted before the API returns.
+- Rationale: Checking pause only at request entry still permits a race where a remote item is committed after the user has paused. A small commit gate gives the setting one unambiguous meaning without canceling already-started file I/O or deleting existing history.
+
+## D-051 — Internet Share wire order is fixed and revocation is origin-bound
+
+- Status: Accepted for v0.3.0-preview.7
+- Decision: Client-encrypted Internet Share uses AES-256-GCM with HKDF-SHA256-derived per-share/per-chunk keys, deterministic test-vector inputs, explicit GUID wire bytes, and fixed framing: manifest `nonce | ciphertext | tag`; chunk `ciphertext | tag`. A backend session must return HTTPS upload/download/revoke URLs on the configured origin, and revocation is an explicit authenticated DELETE lifecycle. Source-only Worker code is not treated as a deployed backend.
+- Rationale: Cross-language clients need byte-level interoperability and stable fixtures. Origin and lifecycle validation prevents a backend from redirecting uploads or leaving a share live after the user revokes it, while the deployment boundary avoids claiming availability without operator evidence.

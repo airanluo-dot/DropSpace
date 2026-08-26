@@ -96,6 +96,10 @@ public interface IItemActionRegistry
 
     IReadOnlyList<ItemActionCapability> Evaluate(ItemSelectionSnapshot selection);
 
+    IReadOnlyList<ItemActionCapability> EvaluatePrimary(ItemSelectionSnapshot selection);
+
+    IReadOnlyList<ItemActionCapability> EvaluateMore(ItemSelectionSnapshot selection);
+
     Task<ItemActionResult> ExecuteAsync(
         ItemActionId actionId,
         ItemActionContext context,
@@ -112,5 +116,11 @@ public interface IImageTransformService
         bool keepAspectRatio,
         string? outputFormat,
         bool stripMetadata,
+        CancellationToken cancellationToken = default);
+
+    Task<ItemActionResult> StripMetadataAsync(
+        DropItemSnapshot item,
+        string destinationDirectory,
+        string? outputFormat = null,
         CancellationToken cancellationToken = default);
 }

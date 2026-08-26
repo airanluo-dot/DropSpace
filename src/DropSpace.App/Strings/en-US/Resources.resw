@@ -324,6 +324,8 @@
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>Compress as ZIP</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>Generate QR code</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>Resize or convert image</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>Convert image to JPEG</value></data>
+  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>Strip image metadata</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows-to-Windows handoff and clipboard sync are opt-in. Nearby links stay on a private network; Internet Share needs an explicitly configured HTTPS backend.</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>Device Handoff</value></data>
@@ -356,12 +358,21 @@
   <data name="DeviceServiceBlocked" xml:space="preserve"><value>Receiving is unavailable: {0}</value></data>
   <data name="DeviceServiceStarting" xml:space="preserve"><value>Starting the local DropLink service…</value></data>
   <data name="PairingSasTitle" xml:space="preserve"><value>Confirm pairing code</value></data>
+  <data name="PairingSasTitleWithDevice" xml:space="preserve"><value>Confirm pairing with {0}</value></data>
   <data name="PairingSasContent" xml:space="preserve"><value>Verify that the other device shows the same six-digit code: {0}. Only continue if both screens match.</value></data>
   <data name="PairingSasConfirm" xml:space="preserve"><value>Trust this device</value></data>
   <data name="IncomingTransferTitle" xml:space="preserve"><value>Incoming transfer</value></data>
   <data name="IncomingTransferContent" xml:space="preserve"><value>A trusted device wants to send {0} item(s), totaling {1} bytes. Files will be verified before they are committed to Downloads\DropSpace.</value></data>
   <data name="IncomingTransferAccept" xml:space="preserve"><value>Accept</value></data>
   <data name="IncomingTransferReject" xml:space="preserve"><value>Reject</value></data>
+  <data name="IncomingHandoffTitle" xml:space="preserve"><value>Incoming text or URL</value></data>
+  <data name="HandoffTextKind" xml:space="preserve"><value>text</value></data>
+  <data name="HandoffUrlKind" xml:space="preserve"><value>URL</value></data>
+  <data name="IncomingHandoffContent" xml:space="preserve"><value>{0} wants to add a {1} to your Temporary Space ({3} bytes):
+
+{2}
+
+Nothing will be opened automatically.</value></data>
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>Send to device</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>Create Nearby link</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>Create Secure Internet link</value></data>
@@ -377,4 +388,11 @@
   <data name="ShareExpires" xml:space="preserve"><value>Expires: {0}</value></data>
   <data name="CopyShareLink" xml:space="preserve"><value>Copy link</value></data>
   <data name="OpenShareQr" xml:space="preserve"><value>Open QR image</value></data>
+  <data name="RevokeShareButton" xml:space="preserve"><value>Revoke link</value></data>
+  <data name="RevokeShareTitle" xml:space="preserve"><value>Revoke secure share</value></data>
+  <data name="RevokeShareContent" xml:space="preserve"><value>This invalidates the link and removes its encrypted objects from the configured backend. Continue?</value></data>
+  <data name="RevokeShareCompleted" xml:space="preserve"><value>The secure share was revoked.</value></data>
+  <data name="PdfPreviousPage" xml:space="preserve"><value>Previous</value></data>
+  <data name="PdfNextPage" xml:space="preserve"><value>Next</value></data>
+  <data name="PdfPageIndicator" xml:space="preserve"><value>Page {0} of {1}</value></data>
 </root>

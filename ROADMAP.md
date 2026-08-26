@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.5 is the current targeted-hardening Preview: it preserves Preview.4's exclusive direct Dynamic Island placement editing and fixes Automatic projection so the edit starts from the visible surface coordinate while existing Custom coordinates remain unchanged. It also retains stable DisplayConfig identities and runtime-only Custom rejection. The v0.3.0-preview.2 capabilities remain the base: Universal Access, virtual-file materialization, Drop Batch grouping, Quick Panel, best-effort exclusions, Windows Share for file/image/text/URL, and per-monitor Dynamic Island placement. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.7 is the current completion-hardening Preview: it preserves the Preview.5 placement fix and completes the bounded 3.0 contracts for Quick Preview/Actions, standard mDNS/DNS-SD, bilateral DropLink SAS pairing, explicit text/URL handoff, clipboard pause enforcement, Nearby Share hardening, and canonical client-encrypted Internet Share framing. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the official share backend and physical two-device evidence remain explicit operational gates.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -47,6 +47,16 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 
 - Include `SurfaceTopOffsetDips` when projecting Automatic placement into Custom coordinates so Adjust begins at the visible Dynamic Island surface.
 - Keep Custom placement projection unchanged and limit validation to focused coordinate-conversion regressions.
+
+### v0.3.0-preview.7 — 3.0 completion hardening
+
+- Use standard mDNS/DNS-SD on `224.0.0.251:5353` with a `QDCOUNT=0`, four-record PTR/SRV/TXT/A announcement, strict parsing, private-IPv4 filtering, stable-device deduplication, and fail-closed malformed packets.
+- Require both pairing users to confirm the same SAS/transcript/session before either side persists a peer secret; expose Created → HelloExchanged → local/remote confirmation and terminal outcomes.
+- Route text and URL handoff through an authenticated, bounded message contract with preview/Accept/Reject and Space-only commit; keep it separate from Clipboard History and the Windows clipboard.
+- Make Clipboard Pause a persisted commit barrier for local capture, remote import, automatic clipboard writes, and cross-device propagation.
+- Render PDF pages through the Windows PDF API with bounded raster/page navigation/cancellation/cache-after-success, use a non-autoplay media surface, and expose only registered, capability-checked actions.
+- Lock the Internet Share manifest/chunk wire order and crypto test vector, constrain revocation to the known backend origin/share ID, and keep the reference Worker source-only until an operator deploys it.
+- Treat Windows CI as build authority and retain real two-device LAN, firewall, browser receiver, and configured Worker checks as evidence gates; this Preview does not fabricate those results.
 
 ## Delivery rule
 
@@ -527,6 +537,6 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Preserve the v0.2.0 Smart drag, single Dynamic Island, local-first data boundaries, installer/portable/MSIX paths, and strict Stable/Preview update ordering without behavior changes.
 - Rebuild and publish a separate Stable installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest from the v0.2.1 source commit; do not rename or reuse Preview assets.
 
-## v0.3.0-preview.6 delivery slice
+## v0.3.0-preview.7 delivery slice
 
-The 3.0 feature slice is implemented as one Preview release: Quick Preview/Quick Actions, Windows-only DropLink v1, opt-in cross-device clipboard, Nearby Share, and client-encrypted Internet Share reference backend. Remaining deployment work is operational rather than silently simulated: a Cloudflare operator must configure and deploy `share-worker/` before Internet Share can be marked live.
+The 3.0 feature slice is implemented as one completion-hardening Preview release: Quick Preview/Quick Actions, Windows-only DropLink v1, opt-in cross-device clipboard, Nearby Share, and client-encrypted Internet Share reference backend. Remaining deployment work is operational rather than silently simulated: a Cloudflare operator must configure and deploy `share-worker/`, and two physical Windows 11 devices must complete the LAN/browser acceptance matrix, before those paths can be marked fully verified.

@@ -290,6 +290,6 @@ Temporary Space mutations are authoritative in `MainViewModel`. After a reposito
 
 Windows Share activation is a separate input contract, not Clipboard capture. `ShareTargetActivationService` receives `StorageItems`, reports the Share lifecycle, dispatches to the existing main instance and calls the same `AddPathsAsync`. It never writes Clipboard History.
 
-## v0.3.0-preview.6 architecture additions
+## v0.3.0-preview.7 architecture additions
 
-Preview providers, item actions, DropLink pairing/transfer, clipboard envelopes, and share servers are documented in [docs/architecture](docs/architecture). The application layer owns lifecycle and user consent; infrastructure owns HTTPS/DNS-SD/DPAPI/R2 adapters; Core owns manifest, limits, crypto-independent domain contracts, and loop policies. The `SqliteDatabase` migration is forward-only from schema 1 to schema 2.
+Preview providers, item actions, bilateral DropLink pairing/transfer, explicit text/URL handoff, clipboard pause barriers, and share servers are documented in [docs/architecture](docs/architecture). The application layer owns lifecycle and user consent; infrastructure owns HTTPS/mDNS/DNS-SD/DPAPI/R2 adapters; Core owns manifest, limits, handoff policies, crypto-independent domain contracts, and loop policies. The `SqliteDatabase` migration is forward-only from schema 1 to schema 2. PDF rasterization is an App-owned Windows API boundary, and the Worker remains a source-only operator deployment.

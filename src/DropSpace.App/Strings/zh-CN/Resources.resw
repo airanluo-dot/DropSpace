@@ -324,6 +324,8 @@
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>压缩为 ZIP</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>生成二维码</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整大小或转换图像</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>转换图像为 JPEG</value></data>
+  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>清除图像元数据</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>设备交接</value></data>
@@ -356,12 +358,21 @@
   <data name="DeviceServiceBlocked" xml:space="preserve"><value>接收不可用：{0}</value></data>
   <data name="DeviceServiceStarting" xml:space="preserve"><value>正在启动本地 DropLink 服务…</value></data>
   <data name="PairingSasTitle" xml:space="preserve"><value>确认配对代码</value></data>
+  <data name="PairingSasTitleWithDevice" xml:space="preserve"><value>确认与 {0} 配对</value></data>
   <data name="PairingSasContent" xml:space="preserve"><value>确认另一台设备显示相同的六位代码：{0}。只有两边一致时才继续。</value></data>
   <data name="PairingSasConfirm" xml:space="preserve"><value>信任此设备</value></data>
   <data name="IncomingTransferTitle" xml:space="preserve"><value>收到传输请求</value></data>
   <data name="IncomingTransferContent" xml:space="preserve"><value>可信设备请求发送 {0} 项内容，共 {1} 字节。文件会在提交到“下载\DropSpace”前完成校验。</value></data>
   <data name="IncomingTransferAccept" xml:space="preserve"><value>接受</value></data>
   <data name="IncomingTransferReject" xml:space="preserve"><value>拒绝</value></data>
+  <data name="IncomingHandoffTitle" xml:space="preserve"><value>收到文本或网址</value></data>
+  <data name="HandoffTextKind" xml:space="preserve"><value>文本</value></data>
+  <data name="HandoffUrlKind" xml:space="preserve"><value>网址</value></data>
+  <data name="IncomingHandoffContent" xml:space="preserve"><value>{0} 请求将一项{1}添加到你的临时空间（{3} 字节）：
+
+{2}
+
+不会自动打开内容。</value></data>
   <data name="SendToDeviceAction.Text" xml:space="preserve"><value>发送到设备</value></data>
   <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>创建附近链接</value></data>
   <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>创建安全互联网链接</value></data>
@@ -377,4 +388,11 @@
   <data name="ShareExpires" xml:space="preserve"><value>过期时间：{0}</value></data>
   <data name="CopyShareLink" xml:space="preserve"><value>复制链接</value></data>
   <data name="OpenShareQr" xml:space="preserve"><value>打开二维码图片</value></data>
+  <data name="RevokeShareButton" xml:space="preserve"><value>撤销链接</value></data>
+  <data name="RevokeShareTitle" xml:space="preserve"><value>撤销安全分享</value></data>
+  <data name="RevokeShareContent" xml:space="preserve"><value>这会使链接失效，并从已配置的后端删除其加密对象。继续吗？</value></data>
+  <data name="RevokeShareCompleted" xml:space="preserve"><value>安全分享已撤销。</value></data>
+  <data name="PdfPreviousPage" xml:space="preserve"><value>上一页</value></data>
+  <data name="PdfNextPage" xml:space="preserve"><value>下一页</value></data>
+  <data name="PdfPageIndicator" xml:space="preserve"><value>第 {0} 页，共 {1} 页</value></data>
 </root>

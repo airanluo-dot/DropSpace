@@ -2,13 +2,25 @@ using DropSpace.Core.Transfer;
 
 namespace DropSpace.Infrastructure.Network;
 
-public sealed record PairingConfirmationRequest(Guid SessionId, int Sas, bool Confirmed);
+public sealed record PairingConfirmationRequest(
+    Guid SessionId,
+    int Sas,
+    bool Confirmed,
+    PairingDecision Decision = PairingDecision.Confirm);
 
-public sealed record PairingConfirmationResponse(bool Trusted, Guid PeerId);
+public sealed record PairingConfirmationResponse(
+    bool Trusted,
+    Guid PeerId,
+    PairingState State,
+    string? ErrorCategory);
 
 public sealed record ClipboardSyncRequest(Guid PeerId, ClipboardEnvelope Envelope);
 
 public sealed record ClipboardSyncResponse(bool Accepted, string? ErrorCategory);
+
+public sealed record HandoffMessageRequest(Guid PeerId, HandoffMessage Message);
+
+public sealed record HandoffMessageResponse(Guid SessionId, bool Accepted, string? ErrorCategory);
 
 public sealed record TransferOfferRequest(Guid PeerId, TransferManifest Manifest);
 

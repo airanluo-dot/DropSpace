@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
@@ -19,6 +20,7 @@ using Microsoft.UI.Input;
 using Windows.UI.Core;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Data.Pdf;
+using Windows.Graphics.Imaging;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Storage;
@@ -79,6 +81,8 @@ public sealed partial class MainPage : Page
         DataContext = viewModel;
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         _dropLinkHost.TransferOffered += OnTransferOfferedAsync;
+        _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
+        _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -122,6 +126,9 @@ public sealed partial class MainPage : Page
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
+        _dropLinkHost.PairingOffered -= OnPairingOfferedAsync;
+        _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
     }
 
     private async void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -420,26 +427,79 @@ public sealed partial class MainPage : Page
         if (DiscoveredDevicesList.SelectedItem is not DeviceDescriptor descriptor) return;
         await RunAsync(async () =>
         {
-            var peer = await _deviceHandoff.PairAsync(descriptor, ConfirmPairingSasAsync);
+            var peer = await _deviceHandoff.PairAsync(descriptor, (sas, token) => ConfirmPairingSasAsync(descriptor.DisplayName, sas, token));
             _crossDeviceClipboard.ConfigurePeer(peer, descriptor.Endpoint, _viewModel.DefaultClipboardSyncMode);
             _pairedPeers[peer.Id] = new PairedPeer(peer, descriptor.Endpoint);
             DeviceStatusText.Text = _strings.Format("PairedDevice", peer.DisplayName);
         });
     }
 
-    private async Task<bool> ConfirmPairingSasAsync(int sas, CancellationToken cancellationToken)
+    private Task<bool> OnPairingOfferedAsync(IncomingPairingOffer offer, CancellationToken cancellationToken) =>
+        EnqueueDialogAsync(() => ConfirmPairingSasAsync(offer.RemoteHello.DisplayName, offer.Sas, cancellationToken), cancellationToken);
+
+    private async Task<bool> ConfirmPairingSasAsync(string remoteName, int sas, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = _strings.Get("PairingSasTitle"),
+            Title = _strings.Format("PairingSasTitleWithDevice", remoteName),
             Content = _strings.Format("PairingSasContent", sas.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)),
             PrimaryButtonText = _strings.Get("PairingSasConfirm"),
             CloseButtonText = _strings.Get("CommonCancel"),
             DefaultButton = ContentDialogButton.Primary,
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private async Task<bool> OnHandoffOfferedAsync(IncomingHandoffOffer offer, CancellationToken cancellationToken)
+    {
+        return await EnqueueDialogAsync(async () =>
+        {
+            var message = offer.Message;
+            var preview = message.Utf8Payload.Length > 600 ? string.Concat(message.Utf8Payload[..600], "…") : message.Utf8Payload;
+            var content = _strings.Format(
+                "IncomingHandoffContent",
+                message.SenderDisplayName,
+                message.Kind == HandoffMessageKind.Url ? _strings.Get("HandoffUrlKind") : _strings.Get("HandoffTextKind"),
+                preview,
+                message.ByteLength);
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = _strings.Get("IncomingHandoffTitle"),
+                Content = new ScrollViewer
+                {
+                    MaxHeight = 420,
+                    Content = new TextBlock { Text = content, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
+                },
+                PrimaryButtonText = _strings.Get("IncomingTransferAccept"),
+                CloseButtonText = _strings.Get("IncomingTransferReject"),
+                DefaultButton = ContentDialogButton.Primary,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return false;
+
+            // Explicit handoff is committed to Temporary Space only. It deliberately
+            // does not call ClipboardCaptureService or mutate the Windows clipboard.
+            await _viewModel.AddTextToSpaceAsync(message.Utf8Payload, "device-handoff", cancellationToken: cancellationToken);
+            return true;
+        }, cancellationToken);
+    }
+
+    private Task<T> EnqueueDialogAsync<T>(Func<Task<T>> callback, CancellationToken cancellationToken)
+    {
+        var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!DispatcherQueue.TryEnqueue(async () =>
+            {
+                try { completion.TrySetResult(await callback().ConfigureAwait(true)); }
+                catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or UnauthorizedAccessException or OperationCanceledException)
+                { completion.TrySetException(exception); }
+            }))
+        {
+            completion.TrySetException(new InvalidOperationException("The DropSpace UI dispatcher is unavailable."));
+        }
+
+        return completion.Task.WaitAsync(cancellationToken);
     }
 
     private Task OnTransferOfferedAsync(IncomingTransferOffer offer)
@@ -483,6 +543,17 @@ public sealed partial class MainPage : Page
     {
         var descriptor = await _previews.LoadAsync(card.Item, inline: false);
         var content = await CreatePreviewContentAsync(descriptor, card.Item);
+        if (descriptor.Kind == PreviewKind.Pdf && content is PdfPreviewHost)
+        {
+            try
+            {
+                await _previews.CacheSuccessfulAsync(card.Item, descriptor);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // A cache failure must not hide a successfully rendered preview.
+            }
+        }
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
@@ -511,9 +582,9 @@ public sealed partial class MainPage : Page
         {
             try
             {
-                return await RenderPdfPageAsync(pdfBytes, 1, 640, 520);
+                return await CreatePdfPreviewHostAsync(pdfBytes, _strings);
             }
-            catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException or COMException)
             {
                 // Keep the metadata fallback visible for a PDF that the platform renderer cannot decode.
             }
@@ -573,22 +644,49 @@ public sealed partial class MainPage : Page
         };
     }
 
-    private static async Task<Image> RenderPdfPageAsync(byte[] bytes, int pageNumber, double maxWidth, double maxHeight)
+    private static async Task<PdfPreviewHost> CreatePdfPreviewHostAsync(byte[] bytes, IAppStringLocalizer strings)
     {
-        using var input = new InMemoryRandomAccessStream();
-        using (var writer = new DataWriter(input.GetOutputStreamAt(0)))
+        var host = new PdfPreviewHost(bytes, strings);
+        try
         {
-            writer.WriteBytes(bytes);
-            await writer.StoreAsync();
-            await writer.FlushAsync();
-            writer.DetachStream();
+            await host.InitializeAsync();
+            return host;
         }
-        input.Seek(0);
-        var document = await PdfDocument.LoadFromStreamAsync(input);
+        catch
+        {
+            host.Dispose();
+            throw;
+        }
+    }
+
+    private static async Task<Image> RenderPdfPageAsync(
+        PdfDocument document,
+        int pageNumber,
+        double maxWidth,
+        double maxHeight,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document.PageCount == 0) throw new InvalidDataException("The PDF has no pages.");
-        var page = document.GetPage((uint)Math.Clamp(pageNumber - 1, 0, (int)document.PageCount - 1));
+        using var page = document.GetPage((uint)Math.Clamp(pageNumber - 1, 0, (int)document.PageCount - 1));
+        await page.PreparePageAsync();
+        var size = page.Size;
+        if (size.Width <= 0 || size.Height <= 0) throw new InvalidDataException("The PDF page dimensions are invalid.");
+        const double maximumPixels = 4_000_000;
+        var scale = Math.Min(maxWidth / size.Width, maxHeight / size.Height);
+        scale = Math.Min(scale, Math.Sqrt(maximumPixels / (size.Width * size.Height)));
+        var width = (uint)Math.Clamp(Math.Round(size.Width * scale), 1, 4096);
+        var height = (uint)Math.Clamp(Math.Round(size.Height * scale), 1, 4096);
         using var output = new InMemoryRandomAccessStream();
-        await page.RenderToStreamAsync(output);
+        var options = new PdfPageRenderOptions
+        {
+            DestinationWidth = width,
+            DestinationHeight = height,
+            BitmapEncoderId = BitmapEncoder.PngEncoderId,
+        };
+        await page.RenderToStreamAsync(output, options);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (output.Size is <= 0 or > 16L * 1024 * 1024) throw new InvalidDataException("The rendered PDF page exceeds the preview bound.");
         output.Seek(0);
         var bitmap = new BitmapImage();
         await bitmap.SetSourceAsync(output);
@@ -599,6 +697,123 @@ public sealed partial class MainPage : Page
             MaxHeight = maxHeight,
             Stretch = Stretch.Uniform,
         };
+    }
+
+    private static async Task<InMemoryRandomAccessStream> CreatePdfInputAsync(byte[] bytes, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var input = new InMemoryRandomAccessStream();
+        try
+        {
+            using var writer = new DataWriter(input.GetOutputStreamAt(0));
+            writer.WriteBytes(bytes);
+            await writer.StoreAsync();
+            await writer.FlushAsync();
+            writer.DetachStream();
+            input.Seek(0);
+            return input;
+        }
+        catch
+        {
+            input.Dispose();
+            throw;
+        }
+    }
+
+    private sealed class PdfPreviewHost : Grid, IDisposable
+    {
+        private readonly byte[] _bytes;
+        private readonly IAppStringLocalizer _strings;
+        private readonly Image _image = new() { MaxWidth = 640, MaxHeight = 520, Stretch = Stretch.Uniform };
+        private readonly Button _previous = new();
+        private readonly Button _next = new();
+        private readonly TextBlock _pageLabel = new();
+        private readonly CancellationTokenSource _lifetime = new();
+        private InMemoryRandomAccessStream? _input;
+        private PdfDocument? _document;
+        private CancellationTokenSource? _pageCancellation;
+        private int _page = 1;
+        private int _disposed;
+
+        public PdfPreviewHost(byte[] bytes, IAppStringLocalizer strings)
+        {
+            _bytes = bytes;
+            _strings = strings;
+            RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            var navigation = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Spacing = 8 };
+            _previous.Content = _strings.Get("PdfPreviousPage");
+            _next.Content = _strings.Get("PdfNextPage");
+            _previous.Click += OnPreviousClicked;
+            _next.Click += OnNextClicked;
+            navigation.Children.Add(_previous);
+            navigation.Children.Add(_pageLabel);
+            navigation.Children.Add(_next);
+            Children.Add(navigation);
+            Grid.SetRow(navigation, 0);
+            Children.Add(_image);
+            Grid.SetRow(_image, 1);
+        }
+
+        public async Task InitializeAsync()
+        {
+            _input = await CreatePdfInputAsync(_bytes, _lifetime.Token);
+            _document = await PdfDocument.LoadFromStreamAsync(_input);
+            if (_document.PageCount == 0) throw new InvalidDataException("The PDF has no pages.");
+            await LoadPageAsync(1, throwOnFailure: true);
+        }
+
+        private async void OnPreviousClicked(object sender, RoutedEventArgs args) => await NavigateAsync(_page - 1);
+
+        private async void OnNextClicked(object sender, RoutedEventArgs args) => await NavigateAsync(_page + 1);
+
+        private async Task NavigateAsync(int page)
+        {
+            if (_document is null || _document.PageCount == 0) return;
+            await LoadPageAsync(Math.Clamp(page, 1, (int)_document.PageCount));
+        }
+
+        private async Task LoadPageAsync(int page, bool throwOnFailure = false)
+        {
+            if (_document is null) return;
+            _pageCancellation?.Cancel();
+            _pageCancellation?.Dispose();
+            _pageCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+            var cancellationToken = _pageCancellation.Token;
+            try
+            {
+                var image = await RenderPdfPageAsync(_document, page, 640, 520, cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+                _image.Source = image.Source;
+                _page = page;
+                _pageLabel.Text = _strings.Format("PdfPageIndicator", page, _document.PageCount);
+                _previous.IsEnabled = page > 1;
+                _next.IsEnabled = page < _document.PageCount;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException or COMException)
+            {
+                if (throwOnFailure) throw;
+                _pageLabel.Text = _strings.Get("PreviewUnavailable");
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            _pageCancellation?.Cancel();
+            _pageCancellation?.Dispose();
+            _lifetime.Cancel();
+            _lifetime.Dispose();
+            _image.Source = null;
+            // Windows.Data.Pdf.PdfDocument is a WinRT projection without a Close/Dispose
+            // member in the target SDK; releasing the reference is its lifetime boundary.
+            _document = null;
+            _input?.Dispose();
+            _input = null;
+        }
     }
 
     private static async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
@@ -654,6 +869,26 @@ public sealed partial class MainPage : Page
         });
     }
 
+    private void OnMoreItemFlyoutOpened(object sender, object args)
+    {
+        if (sender is not MenuFlyout flyout) return;
+        foreach (var menu in flyout.Items.OfType<MenuFlyoutItem>())
+        {
+            if (menu.CommandParameter is not string actionText || menu.Tag is not ItemCardViewModel card ||
+                !Enum.TryParse<ItemActionId>(actionText, out var action)) continue;
+
+            var available = action switch
+            {
+                ItemActionId.SendToDevice => _viewModel.EnableDeviceHandoff && _pairedPeers.Count > 0,
+                ItemActionId.CreateNearbyLink => _viewModel.EnableNearbySharing,
+                ItemActionId.CreateSecureInternetLink => _viewModel.EnableInternetSharing && _sharing.IsInternetConfigured,
+                _ => _actions.Actions.FirstOrDefault(candidate => candidate.Descriptor.Id == action)?.Evaluate(
+                    new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)])).IsAvailable == true,
+            };
+            menu.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
     private async Task SendToDeviceAsync(DropItem item)
     {
         if (!_viewModel.EnableDeviceHandoff)
@@ -673,10 +908,28 @@ public sealed partial class MainPage : Page
 
         if (item.Text is not null || item.Url is not null || item.Image is not null)
         {
-            var response = await _crossDeviceClipboard.SendManualAsync(peer.Peer, peer.Endpoint, item);
+            if (item.Url?.NormalizedUrl is { } normalizedUrl)
+            {
+                var handoffResponse = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Url, normalizedUrl, item.Title);
+                await ShowMessageAsync(
+                    handoffResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                    handoffResponse.Accepted ? _strings.Get("TransferSentContent") : handoffResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+                return;
+            }
+
+            if (item.Text?.InlineText is { } inlineText)
+            {
+                var handoffResponse = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Text, inlineText, item.Title);
+                await ShowMessageAsync(
+                    handoffResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                    handoffResponse.Accepted ? _strings.Get("TransferSentContent") : handoffResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+                return;
+            }
+
+            var clipboardResponse = await _crossDeviceClipboard.SendManualAsync(peer.Peer, peer.Endpoint, item);
             await ShowMessageAsync(
-                response.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                response.Accepted ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+                clipboardResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                clipboardResponse.Accepted ? _strings.Get("TransferSentContent") : clipboardResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
             return;
         }
 
@@ -735,7 +988,25 @@ public sealed partial class MainPage : Page
             Text = _strings.Format("ShareExpires", descriptor.ExpiresAtUtc.ToLocalTime().ToString("g")),
             TextWrapping = TextWrapping.Wrap,
         });
-        var dialog = new ContentDialog
+        ContentDialog? dialog = null;
+        if (descriptor.IsEncrypted && _sharing.CanRevokeInternet(descriptor.ShareId))
+        {
+            var revokeButton = new Button { Content = _strings.Get("RevokeShareButton"), HorizontalAlignment = HorizontalAlignment.Left };
+            revokeButton.Click += async (_, _) =>
+            {
+                dialog?.Hide();
+                if (!await ShowConfirmationAsync(_strings.Get("RevokeShareTitle"), _strings.Get("RevokeShareContent"), _strings.Get("RevokeShareButton"))) return;
+                await RunAsync(async () =>
+                {
+                    var revoked = await _sharing.RevokeInternetAsync(descriptor.ShareId);
+                    await ShowMessageAsync(
+                        revoked ? _strings.Get("RevokeShareTitle") : _strings.Get("TransferUnavailableTitle"),
+                        revoked ? _strings.Get("RevokeShareCompleted") : _strings.Get("ActionUnavailable"));
+                });
+            };
+            content.Children.Add(revokeButton);
+        }
+        dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
             Title = _strings.Get("ShareReadyTitle"),

@@ -1,4 +1,4 @@
-# Network threat model for v0.3.0-preview.6
+# Network threat model for v0.3.0-preview.7
 
 ## Assets
 
@@ -14,8 +14,9 @@ Clipboard text/images, selected source files, peer identity keys, pairing secret
 | Path traversal / overwrite | Relative-path normalization, staging, destination containment, atomic move, no source mutation |
 | Malicious oversized input | Manifest, chunk, preview, clipboard, receiver, and object limits |
 | Clipboard echo loop | 10,000-entry/24-hour content-hash LRU plus existing self-write suppression |
+| Clipboard pause bypass | Persisted pause state and commit barrier checked before remote envelope validation/import and automatic system-clipboard mutation |
 | Share backend sees plaintext/key | AES-256-GCM client-side encryption; key only in URL fragment |
 | Leaked nearby link | 192-bit token, short TTL, receiver cap, revoke, private-address binding |
 | Firewall overreach | Capability check and explicit elevated helper boundary; no silent rule creation |
 
-The model does not defend against a compromised Windows account, administrator, malware already able to read the user profile, a user who shares a URL fragment, or a malicious trusted peer. Internet Share deployment additionally depends on the operator's Cloudflare/R2 account policy and must be reviewed before production use.
+The model does not defend against a compromised Windows account, administrator, malware already able to read the user profile, a user who shares a URL fragment, or a malicious trusted peer. Internet Share deployment additionally depends on the operator's Cloudflare/R2 account policy and must be reviewed before production use. The repository contains the Worker reference source but does not establish that an operator deployed it.

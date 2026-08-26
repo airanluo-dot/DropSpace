@@ -42,24 +42,60 @@ public sealed class DropLinkClient(
         response.EnsureSuccessStatusCode();
         var offer = await response.Content.ReadFromJsonAsync<PairingOffer>(JsonOptions, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("The remote pairing offer was empty.");
+        if (offer.State != PairingState.AwaitingLocalSasConfirmation || offer.SessionId == Guid.Empty)
+        {
+            throw new InvalidDataException("The remote pairing offer is not awaiting bilateral confirmation.");
+        }
+        if (offer.LocalHello.DeviceId == handshake.Hello.DeviceId)
+        {
+            throw new InvalidDataException("A device cannot pair with itself.");
+        }
         var secret = DropLinkPairingService.DeriveSecret(handshake, offer.LocalHello);
         var saved = false;
         try
         {
             var sas = DropLinkPairingService.ComputeSas(secret, handshake.Hello, offer.LocalHello);
-            if (sas != offer.Sas) throw new UnauthorizedAccessException("The displayed pairing SAS did not match the remote transcript.");
-            if (confirmSas is not null && !await confirmSas(sas, cancellationToken).ConfigureAwait(false))
+            if (sas != offer.Sas)
             {
+                await SendPairingDecisionAsync(client, offer, offer.Sas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                throw new UnauthorizedAccessException("The displayed pairing SAS did not match the remote transcript.");
+            }
+
+            if (confirmSas is null)
+            {
+                await SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                throw new UnauthorizedAccessException("Pairing requires an explicit local SAS confirmation.");
+            }
+
+            if (!await confirmSas(sas, cancellationToken).ConfigureAwait(false))
+            {
+                await SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
                 throw new UnauthorizedAccessException("Pairing confirmation was declined.");
             }
 
-            var confirmation = new PairingConfirmationRequest(offer.SessionId, sas, Confirmed: true);
-            using var confirmationContent = JsonContent.Create(confirmation, options: JsonOptions);
-            using var confirmationResponse = await client.PostAsync("/v1/pairing/confirm", confirmationContent, cancellationToken).ConfigureAwait(false);
-            confirmationResponse.EnsureSuccessStatusCode();
-            var result = await confirmationResponse.Content.ReadFromJsonAsync<PairingConfirmationResponse>(JsonOptions, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidDataException("The remote pairing confirmation was empty.");
-            if (!result.Trusted) throw new UnauthorizedAccessException("The remote device did not trust the pairing.");
+            PairingConfirmationResponse result;
+            try
+            {
+                result = await SendPairingDecisionAsync(client, offer, sas, true, PairingDecision.Confirm, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await SendPairingDecisionAsync(client, offer, sas, false, PairingDecision.Cancel, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException)
+                {
+                    // The local cancellation remains authoritative if the peer is already gone.
+                }
+
+                throw;
+            }
+
+            if (!result.Trusted || result.State != PairingState.Trusted || result.PeerId != offer.LocalHello.DeviceId)
+            {
+                throw new UnauthorizedAccessException(string.Concat("The remote device did not complete bilateral pairing (", result.State, ")."));
+            }
 
             await secrets.SaveAsync(offer.LocalHello.DeviceId, secret, cancellationToken).ConfigureAwait(false);
             saved = true;
@@ -79,6 +115,27 @@ public sealed class DropLinkClient(
         {
             if (!saved) CryptographicOperations.ZeroMemory(secret);
         }
+    }
+
+    public async Task<HandoffMessageResponse> SendHandoffAsync(
+        PeerDevice peer,
+        Uri endpoint,
+        HandoffMessageKind kind,
+        string payload,
+        string? displayLabel = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(peer);
+        var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var message = HandoffMessagePolicy.Create(identity.DeviceId, identity.DisplayName, kind, payload, displayLabel);
+        using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
+        return await SendAuthenticatedJsonAsync<HandoffMessageRequest, HandoffMessageResponse>(
+                authenticated,
+                "/v1/handoff/text",
+                new HandoffMessageRequest(authenticated.LocalDeviceId, message),
+                HttpMethod.Post,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task<ClipboardSyncResponse> SendClipboardAsync(
@@ -209,6 +266,22 @@ public sealed class DropLinkClient(
             HttpMethod.Post,
             cancellationToken);
 
+    private static async Task<PairingConfirmationResponse> SendPairingDecisionAsync(
+        HttpClient client,
+        PairingOffer offer,
+        int sas,
+        bool confirmed,
+        PairingDecision decision,
+        CancellationToken cancellationToken)
+    {
+        var confirmation = new PairingConfirmationRequest(offer.SessionId, sas, confirmed, decision);
+        using var confirmationContent = JsonContent.Create(confirmation, options: JsonOptions);
+        using var response = await client.PostAsync("/v1/pairing/confirm", confirmationContent, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PairingConfirmationResponse>(JsonOptions, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException("The remote pairing confirmation was empty.");
+    }
+
     private async Task SendFileChunksAsync(
         AuthenticatedClient authenticated,
         Guid sessionId,
@@ -292,7 +365,17 @@ public sealed class DropLinkClient(
 
     private static HttpClient CreateClient(Uri endpoint, string fingerprint)
     {
-        var normalized = fingerprint.Replace(":", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+        ArgumentNullException.ThrowIfNull(endpoint);
+        if (endpoint.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(endpoint.UserInfo) ||
+            !string.IsNullOrEmpty(endpoint.Query) || !string.IsNullOrEmpty(endpoint.Fragment))
+        {
+            throw new InvalidDataException("DropLink endpoints must be HTTPS origins without query or fragment data.");
+        }
+        var normalized = fingerprint?.Replace(":", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized) || normalized.Length != 64 || normalized.Any(character => !Uri.IsHexDigit(character)))
+        {
+            throw new InvalidDataException("The DropLink certificate fingerprint is invalid.");
+        }
         var handler = new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback = (_, certificate, _, errors) =>

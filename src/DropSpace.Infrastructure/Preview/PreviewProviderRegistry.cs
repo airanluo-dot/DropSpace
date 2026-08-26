@@ -63,6 +63,9 @@ public sealed class PreviewProviderRegistry(
             return UnknownPreviewProvider.CreateFallback(request.Item);
         }
 
+        // PDF descriptors contain source bytes, but the App writes them only after a
+        // Windows.Data.Pdf load + bounded raster succeeds. A cache hit is safe to return;
+        // the App still re-renders the cached bytes before showing them.
         var cacheHit = await cache.TryGetAsync(
             request.Item.Id,
             request.Item.Revision,
@@ -79,7 +82,10 @@ public sealed class PreviewProviderRegistry(
         try
         {
             var descriptor = await provider.LoadAsync(request, cancellationToken).ConfigureAwait(false);
-            await cache.PutAsync(request, descriptor, cancellationToken).ConfigureAwait(false);
+            if (capability.Kind != PreviewKind.Pdf)
+            {
+                await cache.PutAsync(request, descriptor, cancellationToken).ConfigureAwait(false);
+            }
             return descriptor;
         }
         catch (OperationCanceledException)

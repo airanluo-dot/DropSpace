@@ -104,9 +104,9 @@ public sealed class CrossDeviceClipboardService(
     {
         try
         {
-            if (!IsEnabled || _identity is null) return;
+            if (!IsEnabled || _identity is null || capture.IsPaused) return;
             var envelope = await CreateEnvelopeAsync(item, CancellationToken.None).ConfigureAwait(false);
-            if (envelope is null || !_loopGuard.TryAccept(envelope)) return;
+            if (capture.IsPaused || envelope is null || !_loopGuard.TryAccept(envelope)) return;
             ClipboardPeerChannel[] channels;
             lock (_gate) channels = _peers.Values.ToArray();
             foreach (var channel in channels)
@@ -132,6 +132,7 @@ public sealed class CrossDeviceClipboardService(
     private async Task OnClipboardReceivedAsync(ClipboardEnvelope envelope, CancellationToken cancellationToken)
     {
         if (!IsEnabled || _identity is null || envelope.OriginDeviceId == _identity.DeviceId) return;
+        if (capture.IsPaused) throw new ClipboardPausedException();
         ClipboardEnvelopePolicy.Validate(envelope);
         if (!_loopGuard.TryAccept(envelope)) return;
         await capture.ImportRemoteAsync(envelope, cancellationToken).ConfigureAwait(false);

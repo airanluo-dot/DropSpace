@@ -94,6 +94,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public ClipboardCaptureStatus Status => CreateStatus(null);
 
+    public bool IsPaused => _paused;
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_initialized)
@@ -129,57 +131,66 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task PauseAsync(CancellationToken cancellationToken = default)
     {
-        await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Serialize the transition with repository commits. Taking commitGate first
+        // means a pause request either precedes a remote import or waits for that
+        // already-started import; no later import can pass the check while paused.
+        await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_paused)
+            await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
-                return;
-            }
+                if (_paused)
+                {
+                    return;
+                }
 
-            _paused = true;
-            Interlocked.Increment(ref _pauseGeneration);
-            await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-            _commitGate.Release();
-            _settings = _settings with { ClipboardPaused = true };
-            await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
-            PublishStatus(_strings.Get("ClipboardPaused"));
+                _paused = true;
+                Interlocked.Increment(ref _pauseGeneration);
+                _settings = _settings with { ClipboardPaused = true };
+                await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
+                PublishStatus(_strings.Get("ClipboardPaused"));
+            }
+            finally
+            {
+                _stateGate.Release();
+            }
         }
         finally
         {
-            _stateGate.Release();
+            _commitGate.Release();
         }
     }
 
     public async Task ResumeAsync(CancellationToken cancellationToken = default)
     {
-        await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!_paused)
-            {
-                return;
-            }
-
-            await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
+                if (!_paused)
+                {
+                    return;
+                }
+
                 await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
+
+                _settings = _settings with { ClipboardPaused = false };
+                await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
+                _paused = false;
+                Interlocked.Increment(ref _pauseGeneration);
+                PublishStatus(_strings.Get("ClipboardResumed"));
             }
             finally
             {
-                _commitGate.Release();
+                _stateGate.Release();
             }
-
-            _settings = _settings with { ClipboardPaused = false };
-            await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
-            _paused = false;
-            Interlocked.Increment(ref _pauseGeneration);
-            PublishStatus(_strings.Get("ClipboardResumed"));
         }
         finally
         {
-            _stateGate.Release();
+            _commitGate.Release();
         }
     }
 
@@ -237,11 +248,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task<DropItem> ImportRemoteAsync(ClipboardEnvelope envelope, CancellationToken cancellationToken = default)
     {
+        if (_paused) throw new ClipboardPausedException();
         ClipboardEnvelopePolicy.Validate(envelope);
         DropItem item;
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // Pause wins over a remote request even when the request raced with the
+            // notification event. The check is inside the same gate as the repository
+            // write, so a paused import can never create a history row.
+            if (_paused) throw new ClipboardPausedException();
             if (envelope.IsTextLike)
             {
                 item = await _repository.AddTextAsync(ContentClassifier.CreateTextCandidate(envelope.Text!), cancellationToken).ConfigureAwait(false);
@@ -264,23 +280,28 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     throw;
                 }
             }
+
+            // Keep the commit gate through the final pause check and the optional
+            // Windows clipboard mutation. PauseAsync cannot become effective between
+            // this check and CopyTextAsync/CopyImageAsync.
+            if (_paused) return item;
+
+            ItemCaptured?.Invoke(this, item);
+            if (item.Text?.InlineText is { } text)
+            {
+                await CopyTextAsync(text, cancellationToken).ConfigureAwait(false);
+            }
+            else if (item.Payload is { RelativePath: var relativePath })
+            {
+                await CopyImageAsync(relativePath, cancellationToken).ConfigureAwait(false);
+            }
+
+            return item;
         }
         finally
         {
             _commitGate.Release();
         }
-
-        ItemCaptured?.Invoke(this, item);
-        if (item.Text?.InlineText is { } text)
-        {
-            await CopyTextAsync(text, cancellationToken).ConfigureAwait(false);
-        }
-        else if (item.Payload is { RelativePath: var relativePath })
-        {
-            await CopyImageAsync(relativePath, cancellationToken).ConfigureAwait(false);
-        }
-
-        return item;
     }
 
     private Task<(int Width, int Height, bool HasAlpha)> ReadImageDimensionsAsync(byte[] bytes, CancellationToken cancellationToken) =>
@@ -539,6 +560,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             TimeSpan.FromMilliseconds(35),
             TimeSpan.FromMilliseconds(90),
             TimeSpan.FromMilliseconds(180),
+            TimeSpan.FromMilliseconds(360),
+            TimeSpan.FromMilliseconds(720),
+            TimeSpan.FromMilliseconds(1200),
         };
 
         Exception? lastException = null;
@@ -621,7 +645,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         null);
                 }
 
-                return CreateRejectedSnapshot(signal, "empty-storage-items");
+                // A producer can publish the StorageItems format before its async
+                // item payload is materialized. Treat that empty read as transient;
+                // otherwise this WM_CLIPBOARDUPDATE would be marked processed and
+                // the file/folder batch could never be captured.
+                throw new COMException(
+                    "Clipboard storage items are not ready.",
+                    unchecked((int)0x8000000A)); // E_PENDING
             }
 
             if (view.Contains(StandardDataFormats.Bitmap))

@@ -26,6 +26,9 @@ public sealed record EncryptedShareManifestItem(
 
 public sealed class ShareCryptoService
 {
+    public const int ManifestNonceBytes = 12;
+    public const int AuthenticationTagBytes = 16;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public byte[] CreateMasterKey() => RandomNumberGenerator.GetBytes(32);
@@ -38,10 +41,11 @@ public sealed class ShareCryptoService
         ReadOnlySpan<byte> plaintext,
         ReadOnlySpan<byte> noncePrefix)
     {
-        if (masterKey.Length != 32 || noncePrefix.Length != 8 || index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+        ValidateMasterKey(masterKey);
+        if (shareId == Guid.Empty || fileId == Guid.Empty || noncePrefix.Length != 8 || index < 0) throw new ArgumentOutOfRangeException(nameof(index));
         var ciphertext = new byte[plaintext.Length];
-        var tag = new byte[16];
-        using var aes = new AesGcm(DeriveFileKey(masterKey, shareId, fileId), tagSizeInBytes: 16);
+        var tag = new byte[AuthenticationTagBytes];
+        using var aes = new AesGcm(DeriveFileKey(masterKey, shareId, fileId), tagSizeInBytes: AuthenticationTagBytes);
         var nonce = CreateNonce(noncePrefix, index);
         aes.Encrypt(nonce, plaintext, ciphertext, tag, CreateAad(shareId, fileId, index, plaintext.Length));
         return new EncryptedShareChunk(index, plaintext.Length, ciphertext, tag);
@@ -57,13 +61,14 @@ public sealed class ShareCryptoService
         ReadOnlySpan<byte> tag,
         ReadOnlySpan<byte> noncePrefix)
     {
-        if (masterKey.Length != 32 || noncePrefix.Length != 8 || index < 0 || plainLength < 0 ||
-            ciphertext.Length != plainLength || tag.Length != 16)
+        ValidateMasterKey(masterKey);
+        if (shareId == Guid.Empty || fileId == Guid.Empty || noncePrefix.Length != 8 || index < 0 || plainLength < 0 ||
+            ciphertext.Length != plainLength || tag.Length != AuthenticationTagBytes)
         {
             throw new InvalidDataException("The encrypted share chunk metadata is invalid.");
         }
         var plaintext = new byte[ciphertext.Length];
-        using var aes = new AesGcm(DeriveFileKey(masterKey, shareId, fileId), tagSizeInBytes: 16);
+        using var aes = new AesGcm(DeriveFileKey(masterKey, shareId, fileId), tagSizeInBytes: AuthenticationTagBytes);
         aes.Decrypt(CreateNonce(noncePrefix, index), ciphertext, tag, plaintext, CreateAad(shareId, fileId, index, plainLength));
         return plaintext;
     }
@@ -72,15 +77,25 @@ public sealed class ShareCryptoService
         ReadOnlySpan<byte> masterKey,
         Guid shareId,
         IReadOnlyList<EncryptedShareManifestItem> items)
+        => EncryptManifest(masterKey, shareId, items, RandomNumberGenerator.GetBytes(ManifestNonceBytes));
+
+    public (byte[] Nonce, byte[] Ciphertext, byte[] Tag) EncryptManifest(
+        ReadOnlySpan<byte> masterKey,
+        Guid shareId,
+        IReadOnlyList<EncryptedShareManifestItem> items,
+        ReadOnlySpan<byte> nonce)
     {
+        ValidateMasterKey(masterKey);
+        if (shareId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(shareId));
+        if (nonce.Length != ManifestNonceBytes) throw new ArgumentOutOfRangeException(nameof(nonce));
+        ArgumentNullException.ThrowIfNull(items);
         var manifest = JsonSerializer.SerializeToUtf8Bytes(new ManifestPlaintext(shareId, items), JsonOptions);
         var key = DeriveManifestKey(masterKey, shareId);
-        var nonce = RandomNumberGenerator.GetBytes(12);
         var ciphertext = new byte[manifest.Length];
-        var tag = new byte[16];
-        using var aes = new AesGcm(key, tagSizeInBytes: 16);
+        var tag = new byte[AuthenticationTagBytes];
+        using var aes = new AesGcm(key, tagSizeInBytes: AuthenticationTagBytes);
         aes.Encrypt(nonce, manifest, ciphertext, tag, Encoding.UTF8.GetBytes(string.Concat("DropSpaceShare:v1\n", shareId.ToString("N"))));
-        return (nonce, ciphertext, tag);
+        return (nonce.ToArray(), ciphertext, tag);
     }
 
     public IReadOnlyList<EncryptedShareManifestItem> DecryptManifest(
@@ -90,8 +105,13 @@ public sealed class ShareCryptoService
         ReadOnlySpan<byte> ciphertext,
         ReadOnlySpan<byte> tag)
     {
+        ValidateMasterKey(masterKey);
+        if (shareId == Guid.Empty || nonce.Length != ManifestNonceBytes || tag.Length != AuthenticationTagBytes)
+        {
+            throw new InvalidDataException("The encrypted share manifest metadata is invalid.");
+        }
         var plaintext = new byte[ciphertext.Length];
-        using var aes = new AesGcm(DeriveManifestKey(masterKey, shareId), tagSizeInBytes: 16);
+        using var aes = new AesGcm(DeriveManifestKey(masterKey, shareId), tagSizeInBytes: AuthenticationTagBytes);
         aes.Decrypt(nonce, ciphertext, tag, plaintext, Encoding.UTF8.GetBytes(string.Concat("DropSpaceShare:v1\n", shareId.ToString("N"))));
         var manifest = JsonSerializer.Deserialize<ManifestPlaintext>(plaintext, JsonOptions)
             ?? throw new InvalidDataException("The encrypted share manifest is empty.");
@@ -103,15 +123,71 @@ public sealed class ShareCryptoService
 
     public static byte[] FromUrlFragment(string fragment)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fragment);
         var normalized = fragment.StartsWith("#k=", StringComparison.Ordinal) ? fragment[3..] : fragment;
-        return FromBase64Url(normalized);
+        byte[] key;
+        try
+        {
+            key = FromBase64Url(normalized);
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidDataException("The secure share URL key is invalid.", exception);
+        }
+        if (key.Length != 32) throw new InvalidDataException("The secure share URL key is invalid.");
+        return key;
+    }
+
+    /// <summary>
+    /// Canonical manifest wire format shared with share-worker/src/index.js:
+    /// 12-byte nonce | ciphertext | 16-byte authentication tag.
+    /// </summary>
+    public static byte[] PackManifestWire(ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> tag)
+    {
+        if (nonce.Length != ManifestNonceBytes || tag.Length != AuthenticationTagBytes) throw new InvalidDataException("The manifest wire fields are invalid.");
+        var output = new byte[checked(nonce.Length + ciphertext.Length + tag.Length)];
+        nonce.CopyTo(output);
+        ciphertext.CopyTo(output.AsSpan(nonce.Length));
+        tag.CopyTo(output.AsSpan(nonce.Length + ciphertext.Length));
+        return output;
+    }
+
+    public static (byte[] Nonce, byte[] Ciphertext, byte[] Tag) UnpackManifestWire(ReadOnlySpan<byte> wire)
+    {
+        if (wire.Length < ManifestNonceBytes + AuthenticationTagBytes) throw new InvalidDataException("The encrypted manifest wire payload is truncated.");
+        return (
+            wire[..ManifestNonceBytes].ToArray(),
+            wire[ManifestNonceBytes..^AuthenticationTagBytes].ToArray(),
+            wire[^AuthenticationTagBytes..].ToArray());
+    }
+
+    /// <summary>Canonical chunk wire format: ciphertext | 16-byte authentication tag.</summary>
+    public static byte[] PackChunkWire(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> tag)
+    {
+        if (tag.Length != AuthenticationTagBytes) throw new InvalidDataException("The encrypted chunk tag is invalid.");
+        var output = new byte[checked(ciphertext.Length + tag.Length)];
+        ciphertext.CopyTo(output);
+        tag.CopyTo(output.AsSpan(ciphertext.Length));
+        return output;
     }
 
     private static byte[] DeriveFileKey(ReadOnlySpan<byte> masterKey, Guid shareId, Guid fileId) =>
-        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, shareId.ToByteArray(), Encoding.UTF8.GetBytes(string.Concat("file:", fileId.ToString("N"))));
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, GuidWireBytes(shareId), Encoding.UTF8.GetBytes(string.Concat("file:", fileId.ToString("N"))));
 
     private static byte[] DeriveManifestKey(ReadOnlySpan<byte> masterKey, Guid shareId) =>
-        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, shareId.ToByteArray(), Encoding.UTF8.GetBytes("manifest"));
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, GuidWireBytes(shareId), Encoding.UTF8.GetBytes("manifest"));
+
+    /// <summary>
+    /// The v1 worker uses the .NET Guid byte order for HKDF salt (the first three Guid
+    /// fields are little-endian). Keep this explicit so browser and Windows derivations
+    /// cannot silently drift to RFC 4122 network order.
+    /// </summary>
+    public static byte[] GuidWireBytes(Guid value) => value.ToByteArray();
+
+    private static void ValidateMasterKey(ReadOnlySpan<byte> masterKey)
+    {
+        if (masterKey.Length != 32) throw new InvalidDataException("The secure share master key is invalid.");
+    }
 
     private static byte[] CreateNonce(ReadOnlySpan<byte> noncePrefix, int index)
     {

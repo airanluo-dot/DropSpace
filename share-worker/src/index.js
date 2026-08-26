@@ -17,7 +17,7 @@ export default {
       const shareMatch = url.pathname.match(/^\/v1\/shares\/([0-9a-f]{32})$/);
       if (shareMatch && request.method === "DELETE") return revokeShare(request, env, shareMatch[1]);
       const receiverMatch = url.pathname.match(/^\/s\/([0-9a-f]{32})$/);
-      if (receiverMatch && request.method === "GET") return receiverPage(env, receiverMatch[1]);
+      if (receiverMatch && request.method === "GET") return receiverPage(env, receiverMatch[1], request);
       return json({ error: "not-found" }, 404);
     } catch (error) {
       // Do not log request URLs: the key is carried in a fragment in normal use, but never put
@@ -41,11 +41,12 @@ async function createShare(request, env) {
   const token = await sign({ shareId, expiresAt, itemCount, totalBytes }, env.UPLOAD_TOKEN_SECRET);
   const meta = { shareId, expiresAt, itemCount, totalBytes };
   await env.SHARES.put(metaKey(shareId), JSON.stringify(meta), { httpMetadata: { contentType: "application/json", cacheControl: "no-store" } });
-  const origin = String(env.PUBLIC_ORIGIN || new URL(request.url).origin).replace(/\/$/, "");
+  const origin = publicOrigin(env, request);
   return json({
     uploadBaseUrl: `${origin}/v1/shares/${shareId}/objects/`,
     downloadBaseUrl: origin,
     uploadAuthorization: `Bearer ${token}`,
+    revokeUrl: `${origin}/v1/shares/${shareId}`,
   });
 }
 
@@ -66,6 +67,7 @@ async function putObject(request, env, shareId, objectName) {
 }
 
 async function getObject(request, env, shareId, objectName) {
+  requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
   const object = await env.SHARES.get(objectKey(shareId, objectName));
@@ -75,6 +77,7 @@ async function getObject(request, env, shareId, objectName) {
 }
 
 async function revokeShare(request, env, shareId) {
+  requireHttps(request);
   const meta = await loadMeta(env, shareId);
   const claims = await verifyBearer(request, env.UPLOAD_TOKEN_SECRET);
   if (claims.shareId !== shareId || claims.expiresAt !== meta.expiresAt) throw new HttpError("not-authorized", 401);
@@ -84,13 +87,14 @@ async function revokeShare(request, env, shareId) {
   return cors(new Response(null, { status: 204 }));
 }
 
-async function receiverPage(env, shareId) {
+async function receiverPage(env, shareId, request) {
+  requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
-  const origin = String(env.PUBLIC_ORIGIN || "").replace(/\/$/, "");
+  const origin = publicOrigin(env, request);
   const script = receiverScript(origin, shareId);
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src ${origin}; img-src blob:;"><title>DropSpace Secure Share</title><style>body{font:16px system-ui;max-width:48rem;margin:3rem auto;padding:0 1rem}li{margin:.75rem 0}small{color:#666}</style></head><body><h1>DropSpace Secure Share</h1><p id="status">Decrypting the encrypted manifest locally…</p><ul id="files"></ul><script>${script}</script></body></html>`;
-  return cors(new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } }));
+  return cors(new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Cross-Origin-Resource-Policy": "same-origin" } }));
 }
 
 function receiverScript(origin, shareId) {
@@ -132,11 +136,18 @@ async function hmac(secret, text) {
   return toB64(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text))));
 }
 
-function constantTime(a, b) { const x = fromB64(a), y = fromB64(b); if (x.length !== y.length) return false; let d = 0; for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i]; return d === 0; }
+function constantTime(a, b) { try { const x = fromB64(a), y = fromB64(b); if (x.length !== y.length) return false; let d = 0; for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i]; return d === 0; } catch { return false; } }
 function toB64(bytes) { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", ""); }
 function metaKey(id) { return `shares/${id}/meta.json`; }
 function objectKey(id, name) { return `shares/${id}/${name}`; }
 function requireHttps(request) { if (new URL(request.url).protocol !== "https:") throw new HttpError("https-required", 400); }
+function publicOrigin(env, request) {
+  const value = String(env.PUBLIC_ORIGIN || new URL(request.url).origin).replace(/\/$/, "");
+  let origin;
+  try { origin = new URL(value); } catch { throw new HttpError("origin-invalid", 500); }
+  if (origin.protocol !== "https:" || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/") throw new HttpError("origin-invalid", 500);
+  return origin.origin;
+}
 async function readJson(request, maximum) { const text = await request.text(); if (text.length > maximum) throw new HttpError("body-too-large", 413); try { return JSON.parse(text); } catch { throw new HttpError("json-invalid", 400); } }
 function json(value, status = 200) { return cors(new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } })); }
 function cors(response) { response.headers.set("Access-Control-Allow-Origin", "*"); response.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS"); response.headers.set("Access-Control-Allow-Headers", "Authorization,Content-Type"); return response; }
