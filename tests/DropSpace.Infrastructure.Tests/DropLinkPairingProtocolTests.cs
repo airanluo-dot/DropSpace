@@ -26,6 +26,7 @@ public sealed class DropLinkPairingProtocolTests
     {
         var expected = new[]
         {
+            PairingState.None,
             PairingState.Created,
             PairingState.HelloExchanged,
             PairingState.AwaitingLocalSasConfirmation,
@@ -38,7 +39,12 @@ public sealed class DropLinkPairingProtocolTests
             PairingState.Failed,
         };
 
-        CollectionAssert.AreEqual(expected, Enum.GetValues<PairingState>());
+        var actual = Enum.GetValues<PairingState>()
+            .Distinct()
+            .OrderBy(value => (int)value)
+            .ToArray();
+
+        CollectionAssert.AreEqual(expected, actual);
     }
 
     private static PairingHello Hello(Guid id, string name, byte nonceByte)

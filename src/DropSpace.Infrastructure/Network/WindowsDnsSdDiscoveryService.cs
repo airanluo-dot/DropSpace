@@ -366,14 +366,15 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
                     result.Txt = ParseTxt(dataOffset, length);
                     if (result.Txt is null) return false;
                     break;
-                case 33 when length >= 6:
-                    result.Port = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(dataOffset + 4, 2));
-                    var targetOffset = dataOffset + 6;
-                    if (!TryReadName(ref targetOffset, out var target) || targetOffset > dataOffset + length) return false;
-                    result.Target = NormalizeName(target);
-                    break;
+            case 33 when length >= 6:
+                result.Port = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(dataOffset + 4, 2));
+                var targetOffset = dataOffset + 6;
+                if (!TryReadName(ref targetOffset, out var target) || targetOffset > dataOffset + length) return false;
+                result.Target = NormalizeName(target);
+                break;
             }
 
+            record = result;
             return true;
         }
 
