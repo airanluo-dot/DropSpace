@@ -15,7 +15,7 @@ public sealed class WindowsDnsSdDiscoveryTests
 
         Assert.AreEqual(0, BinaryPrimitives.ReadUInt16BigEndian(query.AsSpan(0, 2)));
         Assert.AreEqual(1, BinaryPrimitives.ReadUInt16BigEndian(query.AsSpan(4, 2)));
-        Assert.AreEqual(WindowsDnsSdDiscoveryService.MulticastPort, 5353);
+        Assert.AreEqual(5353, WindowsDnsSdDiscoveryService.MulticastPort);
         Assert.AreEqual("224.0.0.251", WindowsDnsSdDiscoveryService.MulticastAddress.ToString());
     }
 
