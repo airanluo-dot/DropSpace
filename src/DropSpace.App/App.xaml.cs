@@ -294,6 +294,8 @@ public partial class App : Application
         services.AddSingleton<IItemAction, ZipActionService>();
         services.AddSingleton<IItemAction, QrCodeActionService>();
         services.AddSingleton<IItemAction, ImageTransformActionService>();
+        services.AddSingleton<IItemAction, ConvertImageActionService>();
+        services.AddSingleton<IItemAction, StripMetadataActionService>();
         services.AddSingleton<IItemActionRegistry, ItemActionRegistry>();
         services.AddSingleton<ShareCryptoService>();
         services.AddSingleton<NearbyShareServer>();

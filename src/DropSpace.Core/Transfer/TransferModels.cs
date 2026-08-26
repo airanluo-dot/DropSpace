@@ -47,11 +47,27 @@ public enum PeerTrustState
 public enum PairingState
 {
     None = 0,
-    HelloSent = 1,
-    AwaitingConfirmation = 2,
-    Trusted = 3,
-    Rejected = 4,
-    Expired = 5,
+    Created = 1,
+    HelloExchanged = 2,
+    AwaitingLocalSasConfirmation = 3,
+    LocalConfirmed = 4,
+    RemoteConfirmed = 5,
+    Trusted = 6,
+    Rejected = 7,
+    Expired = 8,
+    Cancelled = 9,
+    Failed = 10,
+
+    // Compatibility names for persisted/client code from Preview.6.
+    HelloSent = HelloExchanged,
+    AwaitingConfirmation = AwaitingLocalSasConfirmation,
+}
+
+public enum PairingDecision
+{
+    Confirm = 1,
+    Reject = 2,
+    Cancel = 3,
 }
 
 public enum TransferDirection
@@ -187,6 +203,23 @@ public sealed record ClipboardEnvelope(
     [JsonIgnore]
     public bool IsTextLike => Kind is ClipboardPayloadKind.Text or ClipboardPayloadKind.Url;
 }
+
+public enum HandoffMessageKind
+{
+    Text = 1,
+    Url = 2,
+}
+
+public sealed record HandoffMessage(
+    Guid SessionId,
+    Guid SenderDeviceId,
+    string SenderDisplayName,
+    HandoffMessageKind Kind,
+    long ByteLength,
+    string Sha256,
+    string Utf8Payload,
+    string? DisplayLabel,
+    DateTimeOffset CreatedAtUtc);
 
 public sealed record ClipboardSyncPreference(
     Guid PeerId,

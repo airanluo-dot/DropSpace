@@ -114,6 +114,15 @@ public sealed class DeviceHandoffService(
         CancellationToken cancellationToken = default) =>
         client.SendFilesAsync(peer, endpoint, sourcePaths, progress, cancellationToken: cancellationToken);
 
+    public Task<HandoffMessageResponse> SendTextOrUrlAsync(
+        PeerDevice peer,
+        Uri endpoint,
+        HandoffMessageKind kind,
+        string payload,
+        string? displayLabel = null,
+        CancellationToken cancellationToken = default) =>
+        client.SendHandoffAsync(peer, endpoint, kind, payload, displayLabel, cancellationToken);
+
     public Task<TransferStatusResponse> ApproveTransferAsync(
         PeerDevice peer,
         Uri endpoint,

@@ -130,7 +130,7 @@ The main window, tray, clipboard service, and Overlay share the same process and
 
 ## DropLink and browser sharing
 
-DropLink is Windows-only in Preview.6. Kestrel uses the device certificate for HTTPS, the app advertises `_dropspace._tcp.local` when available, and a firewall-degraded state exposes manual pairing/elevated-helper guidance rather than creating a rule silently. Nearby Share binds a private IPv4 address only; Internet Share is a separate client-encryption path and does not depend on Windows Share Target registration.
+DropLink is Windows-only in Preview.7. Kestrel uses the device certificate for HTTPS, the app advertises `_dropspace._tcp.local` through standard mDNS at `224.0.0.251:5353` when available, and a firewall-degraded state exposes manual pairing/elevated-helper guidance rather than creating a rule silently. Pairing requires bilateral SAS confirmation before DPAPI peer-secret persistence. Nearby Share binds a private IPv4 address only; Internet Share is a separate client-encryption path and does not depend on Windows Share Target registration. Explicit text/URL handoff writes to Temporary Space rather than Clipboard History or the system clipboard.
 
 Use Windows App SDK application lifecycle APIs for activation and single-instance redirection. A second launch redirects to the existing process and activates the window. Shutdown and logoff allow only bounded flushing.
 

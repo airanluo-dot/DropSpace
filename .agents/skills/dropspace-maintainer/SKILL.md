@@ -457,6 +457,15 @@ Do not claim “done” when the repository is only locally modified, when CI is
 - Full Preview renders bounded image/PDF/text content and non-autoplaying media; media playback is stopped and disposed when the preview closes.
 - Native macOS/iOS/iPadOS/Android/Linux clients, accounts, WebRTC, AirDrop, Universal Clipboard, and cloud account sync remain out of scope. Never advertise a fake action, backend, firewall success, or release asset.
 
+## v0.3.0-preview.7 durable product facts
+
+- Preview.7 hardens the bounded 3.0 slice: standard mDNS/DNS-SD discovery on `224.0.0.251:5353` with `_dropspace._tcp.local` PTR/SRV/TXT/A records, bilateral DropLink SAS confirmation from one canonical device-ordered transcript, typed text/URL handoff, clipboard-pause enforcement, native bounded PDF/media preview, capability-driven actions, and canonical encrypted-share framing.
+- Text/URL handoff is an authenticated, replay-guarded message contract with bounded UTF-8 payloads (1 MiB text, 32 KiB URL), normalized HTTP(S) URLs, sender/session binding, freshness validation, and no implicit receiver clipboard write. Clipboard capture/import remains event-driven and pause is a commit barrier.
+- Pairing must keep the pending secret ephemeral until both peers explicitly confirm the same SAS; malformed, rejected, cancelled, expired, and failed sessions must clean up without persisting trust.
+- PDF preview uses the Windows `Windows.Data.Pdf` renderer with bounded page dimensions/pixels/output and cancellation; media preview is non-autoplaying and releases its player when closed. Image conversion re-encodes to a DropSpace-owned output and does not mutate the source.
+- Encrypted Internet Share uses fixed cross-language framing: manifest `nonce | ciphertext | tag`, chunks `ciphertext | tag`, explicit GUID wire bytes, and HKDF/AES-256-GCM test vectors. Backend sessions include an origin-bound HTTPS revoke URL and explicit DELETE revocation. `share-worker/` is still reference code, not proof of deployment.
+- Preview.7 is CONDITIONAL until the Windows CI/release jobs, two real Windows devices for LAN pairing/clipboard/reconnect, and an operator-deployed Worker/browser acceptance are evidenced. Never infer those gates from source inspection or hosted Linux checks.
+
 ## 21. Final report format
 
 Return a concise, evidence-based completion report with these sections when applicable:

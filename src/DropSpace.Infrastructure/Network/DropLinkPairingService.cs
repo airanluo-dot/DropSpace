@@ -21,7 +21,14 @@ public sealed record PairingOffer(
     PairingHello RemoteHello,
     PairingHello LocalHello,
     int Sas,
-    DateTimeOffset ExpiresAtUtc);
+    DateTimeOffset ExpiresAtUtc,
+    PairingState State = PairingState.AwaitingLocalSasConfirmation);
+
+public sealed record PairingConfirmationResult(
+    bool Trusted,
+    Guid PeerId,
+    PairingState State,
+    string? ErrorCategory);
 
 public sealed class PairingHandshake : IDisposable
 {
@@ -78,7 +85,8 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
             var expires = DateTimeOffset.UtcNow.AddMinutes(5);
             var sas = ComputeSas(secret, local.Hello, remote);
             _pending[sessionId] = new PendingPairing(sessionId, remote, local.Hello, secret, sas, expires, local);
-            return new PairingOffer(sessionId, remote, local.Hello, sas, expires);
+            _ = ExpirePendingAsync(sessionId, expires);
+            return new PairingOffer(sessionId, remote, local.Hello, sas, expires, PairingState.AwaitingLocalSasConfirmation);
         }
         catch
         {
@@ -87,19 +95,34 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
         }
     }
 
-    public async Task ConfirmAsync(
+    public async Task<PairingConfirmationResult> ConfirmAsync(
         Guid sessionId,
         int sas,
         bool confirmed,
+        PairingDecision decision = PairingDecision.Confirm,
         CancellationToken cancellationToken = default)
     {
         if (!_pending.TryRemove(sessionId, out var pending)) throw new InvalidOperationException("Pairing session is not available.");
         try
         {
-            if (pending.ExpiresAtUtc <= DateTimeOffset.UtcNow) throw new TimeoutException("Pairing session expired.");
-            if (!confirmed || sas != pending.Sas) throw new UnauthorizedAccessException("Pairing confirmation did not match the SAS.");
+            if (pending.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+            {
+                return new PairingConfirmationResult(false, pending.RemoteHello.DeviceId, PairingState.Expired, "expired");
+            }
+
+            if (decision == PairingDecision.Cancel)
+            {
+                return new PairingConfirmationResult(false, pending.RemoteHello.DeviceId, PairingState.Cancelled, "cancelled");
+            }
+
+            if (decision != PairingDecision.Confirm || !confirmed || sas != pending.Sas)
+            {
+                return new PairingConfirmationResult(false, pending.RemoteHello.DeviceId, PairingState.Rejected, "sas-mismatch-or-rejected");
+            }
+
             var peerId = pending.RemoteHello.DeviceId;
             await secrets.SaveAsync(peerId, pending.Secret, cancellationToken).ConfigureAwait(false);
+            return new PairingConfirmationResult(true, peerId, PairingState.Trusted, null);
         }
         finally
         {
@@ -110,7 +133,9 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
 
     public static byte[] DeriveSecret(PairingHandshake local, PairingHello remote)
     {
+        ArgumentNullException.ThrowIfNull(local);
         ValidateHello(remote);
+        ValidateHello(local.Hello);
         using var remoteKey = ECDiffieHellman.Create();
         remoteKey.ImportSubjectPublicKeyInfo(Convert.FromBase64String(remote.PublicKeyBase64), out _);
         var ordered = string.CompareOrdinal(local.Hello.DeviceId.ToString("N"), remote.DeviceId.ToString("N")) <= 0
@@ -148,6 +173,11 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
 
     private static byte[] CanonicalTranscript(PairingHello first, PairingHello second)
     {
+        if (string.CompareOrdinal(first.DeviceId.ToString("N"), second.DeviceId.ToString("N")) > 0)
+        {
+            (first, second) = (second, first);
+        }
+
         var values = new[]
         {
             first.Protocol.ToString(), first.DeviceId.ToString("N"), first.IdentityFingerprint, first.PublicKeyBase64, first.NonceBase64,
@@ -158,16 +188,65 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
 
     private static void ValidateHello(PairingHello hello)
     {
+        ArgumentNullException.ThrowIfNull(hello);
         if (!hello.Protocol.IsCompatibleWith(DropLinkProtocolVersion.V1) || hello.DeviceId == Guid.Empty ||
             string.IsNullOrWhiteSpace(hello.DisplayName) || hello.DisplayName.Length > 64 ||
-            hello.Platform == DevicePlatform.Unknown || string.IsNullOrWhiteSpace(hello.IdentityFingerprint) ||
+            hello.DisplayName.Any(char.IsControl) ||
+            !Enum.IsDefined(hello.Platform) || hello.Platform == DevicePlatform.Unknown ||
+            string.IsNullOrWhiteSpace(hello.IdentityFingerprint) || hello.IdentityFingerprint.Length != 64 ||
+            hello.IdentityFingerprint.Any(character => !Uri.IsHexDigit(character)) ||
             string.IsNullOrWhiteSpace(hello.PublicKeyBase64) || string.IsNullOrWhiteSpace(hello.NonceBase64))
         {
             throw new InvalidDataException("The pairing hello is invalid.");
         }
 
-        _ = Convert.FromBase64String(hello.PublicKeyBase64);
-        _ = Convert.FromBase64String(hello.NonceBase64);
+        byte[] publicKey;
+        byte[] nonce;
+        try
+        {
+            publicKey = Convert.FromBase64String(hello.PublicKeyBase64);
+            nonce = Convert.FromBase64String(hello.NonceBase64);
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidDataException("The pairing hello key or nonce encoding is invalid.", exception);
+        }
+        if (publicKey.Length is < 64 or > 256 || nonce.Length != 32)
+        {
+            throw new InvalidDataException("The pairing hello key or nonce length is invalid.");
+        }
+
+        try
+        {
+            using var remoteKey = ECDiffieHellman.Create();
+            remoteKey.ImportSubjectPublicKeyInfo(publicKey, out _);
+        }
+        catch (CryptographicException exception)
+        {
+            throw new InvalidDataException("The pairing hello public key is invalid.", exception);
+        }
+    }
+
+    private async Task ExpirePendingAsync(Guid sessionId, DateTimeOffset expiresAtUtc)
+    {
+        var delay = expiresAtUtc - DateTimeOffset.UtcNow;
+        if (delay > TimeSpan.Zero)
+        {
+            try
+            {
+                await Task.Delay(delay).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+
+        if (_pending.TryRemove(sessionId, out var pending))
+        {
+            pending.LocalHandshake.Dispose();
+            CryptographicOperations.ZeroMemory(pending.Secret);
+        }
     }
 
     private sealed record PendingPairing(

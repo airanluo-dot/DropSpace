@@ -267,13 +267,15 @@
                         <FontIcon FontSize="14" Glyph="&#xE712;" />
                       </Button.Content>
                       <Button.Flyout>
-                        <MenuFlyout>
+                        <MenuFlyout Opened="OnMoreItemFlyoutOpened">
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="ShowInFolderMenuItem" Click="OnShowInFolderClicked" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="PreviewItemMenuItem" Click="OnPreviewItemClicked" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionHashSha256" Click="OnQuickActionClicked" CommandParameter="HashSha256" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionCompressZip" Click="OnQuickActionClicked" CommandParameter="CompressZip" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionGenerateQr" Click="OnQuickActionClicked" CommandParameter="GenerateQr" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionResizeImageMenuItem" Click="OnQuickActionClicked" CommandParameter="ResizeImage" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionConvertImage" Click="OnQuickActionClicked" CommandParameter="ConvertImage" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionStripMetadata" Click="OnQuickActionClicked" CommandParameter="StripMetadata" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="SendToDeviceAction" Click="OnQuickActionClicked" CommandParameter="SendToDevice" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="CreateNearbyLinkAction" Click="OnQuickActionClicked" CommandParameter="CreateNearbyLink" Tag="{Binding}" />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="CreateSecureInternetLinkAction" Click="OnQuickActionClicked" CommandParameter="CreateSecureInternetLink" Tag="{Binding}" />

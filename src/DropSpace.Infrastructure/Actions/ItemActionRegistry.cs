@@ -19,9 +19,12 @@ public sealed class ItemActionRegistry(IEnumerable<IItemAction> actions) : IItem
         return Actions
             .Select(action => action.Evaluate(selection))
             .Where(capability => capability.IsAvailable)
-            .Take(3)
             .ToArray();
     }
+
+    public IReadOnlyList<ItemActionCapability> EvaluatePrimary(ItemSelectionSnapshot selection) => Evaluate(selection).Take(3).ToArray();
+
+    public IReadOnlyList<ItemActionCapability> EvaluateMore(ItemSelectionSnapshot selection) => Evaluate(selection).Skip(3).ToArray();
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionId actionId, ItemActionContext context, CancellationToken cancellationToken = default)
     {

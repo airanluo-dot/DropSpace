@@ -18,6 +18,10 @@ public sealed class ItemSharingService(
     SecureInternetShareService internet,
     ILogger<ItemSharingService> logger)
 {
+    public bool IsInternetConfigured => internet.IsConfigured;
+
+    public bool CanRevokeInternet(Guid shareId) => internet.CanRevoke(shareId);
+
     public async Task<ShareDescriptor> CreateNearbyAsync(
         IReadOnlyList<DropItem> items,
         AppSettings settings,
@@ -50,6 +54,9 @@ public sealed class ItemSharingService(
             settings,
             cancellationToken).ConfigureAwait(false);
     }
+
+    public Task<bool> RevokeInternetAsync(Guid shareId, CancellationToken cancellationToken = default) =>
+        internet.RevokeAsync(shareId, cancellationToken);
 
     private async Task<IReadOnlyList<ShareSource>> BuildSourcesAsync(
         IReadOnlyList<DropItem> items,

@@ -4,6 +4,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using DropSpace.Core.Transfer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -37,11 +38,16 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     {
         ArgumentNullException.ThrowIfNull(items);
         if (items.Count is < 1 || items.Count > _limits.InternetMaxItems) throw new ArgumentOutOfRangeException(nameof(items));
-        if (items.Any(item => item.Length < 0)) throw new InvalidDataException("A nearby share item length cannot be negative.");
-        var total = items.Sum(item => item.Length);
-        if (total < 0 || items.Any(item => item.Length < 0) || total > _limits.InternetMaxBytes)
+        if (items.Select(item => item?.Id).Where(id => id is not null).Distinct().Count() != items.Count)
         {
-            throw new InvalidDataException("The nearby share size limit was exceeded.");
+            throw new InvalidDataException("Nearby share item identifiers must be unique.");
+        }
+        var total = 0L;
+        foreach (var item in items)
+        {
+            ValidateItem(item);
+            if (item.Length > _limits.InternetMaxBytes - total) throw new InvalidDataException("The nearby share size limit was exceeded.");
+            total += item.Length;
         }
 
         await EnsureStartedAsync(cancellationToken).ConfigureAwait(false);
@@ -89,7 +95,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     {
         app.MapGet("/s/{shareId:guid}/{token}", async (HttpContext context, Guid shareId, string token, CancellationToken cancellationToken) =>
         {
-            if (!TryGetShare(shareId, token, context, out var share, out var error)) return Results.StatusCode(error);
+            if (!TryGetShare(shareId, token, out var share, out var error)) return Results.StatusCode(error);
             if (!share.TryRegisterReceiver(context.Connection.RemoteIpAddress)) return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             var builder = new StringBuilder("<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>DropSpace Nearby Share</title><h1>DropSpace Nearby Share</h1><ul>");
             foreach (var item in share.Items)
@@ -99,17 +105,21 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                 builder.Append("<li><a download=\"").Append(safeName).Append("\" href=\"").Append(href).Append("\">").Append(safeName).Append("</a> <small>").Append(item.Length).Append(" bytes</small></li>");
             }
             builder.Append("</ul><p>This link is local-network only and expires automatically.</p>");
+            context.Response.Headers["Cache-Control"] = "no-store";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
             return Results.Content(builder.ToString(), "text/html; charset=utf-8");
         });
 
         app.MapGet("/s/{shareId:guid}/{token}/file/{itemId:guid}", async (HttpContext context, Guid shareId, string token, Guid itemId, CancellationToken cancellationToken) =>
         {
-            if (!TryGetShare(shareId, token, context, out var share, out var error)) return Results.StatusCode(error);
+            if (!TryGetShare(shareId, token, out var share, out var error)) return Results.StatusCode(error);
             if (!share.TryRegisterReceiver(context.Connection.RemoteIpAddress)) return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             var item = share.Items.FirstOrDefault(candidate => candidate.Id == itemId);
             if (item is null) return Results.NotFound();
             await using var stream = await item.OpenReadAsync(cancellationToken).ConfigureAwait(false);
             var total = stream.CanSeek ? stream.Length : item.Length;
+            if (total != item.Length) return Results.StatusCode(StatusCodes.Status409Conflict);
             var start = 0L;
             var end = total - 1;
             var partial = false;
@@ -118,25 +128,28 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             {
                 partial = true;
                 if (stream.CanSeek) stream.Position = start;
+                else await SkipExactlyAsync(stream, start, cancellationToken).ConfigureAwait(false);
             }
             else if (!string.IsNullOrWhiteSpace(range))
             {
                 context.Response.StatusCode = StatusCodes.Status416RangeNotSatisfiable;
                 context.Response.Headers["Content-Range"] = string.Concat("bytes */", total);
-                return Results.Ok();
+                return Results.Empty;
             }
 
             context.Response.StatusCode = partial ? StatusCodes.Status206PartialContent : StatusCodes.Status200OK;
             context.Response.ContentType = item.MimeType;
             context.Response.ContentLength = end - start + 1;
             context.Response.Headers["Content-Disposition"] = string.Concat("attachment; filename=\"", EscapeHeader(item.DisplayName), "\"");
+            context.Response.Headers["Cache-Control"] = "no-store";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
             if (partial) context.Response.Headers["Content-Range"] = string.Concat("bytes ", start, "-", end, "/", total);
             await CopyExactlyAsync(stream, context.Response.Body, end - start + 1, cancellationToken).ConfigureAwait(false);
-            return Results.Ok();
+            return Results.Empty;
         });
     }
 
-    private bool TryGetShare(Guid shareId, string token, HttpContext context, out NearbyShare share, out int error)
+    private bool TryGetShare(Guid shareId, string token, out NearbyShare share, out int error)
     {
         error = StatusCodes.Status404NotFound;
         if (!_shares.TryGetValue(shareId, out share!) || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(share.Token), Encoding.UTF8.GetBytes(token))) return false;
@@ -162,18 +175,30 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
         }
     }
 
+    private static async Task SkipExactlyAsync(Stream input, long bytes, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[81_920];
+        var remaining = bytes;
+        while (remaining > 0)
+        {
+            var read = await input.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), cancellationToken).ConfigureAwait(false);
+            if (read == 0) throw new EndOfStreamException("Nearby share source changed during range download.");
+            remaining -= read;
+        }
+    }
+
     private static bool ParseRange(string value, long total, out long start, out long end)
     {
         start = 0;
         end = total - 1;
         var parts = value.Split('-', 2);
         if (parts.Length != 2) return false;
-        if (!long.TryParse(parts[0], out start))
+        if (!long.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out start))
         {
-            if (!long.TryParse(parts[1], out var suffix) || suffix <= 0) return false;
+            if (!long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var suffix) || suffix <= 0) return false;
             start = Math.Max(0, total - suffix);
         }
-        if (!string.IsNullOrWhiteSpace(parts[1]) && long.TryParse(parts[1], out var requestedEnd)) end = requestedEnd;
+        if (!string.IsNullOrWhiteSpace(parts[1]) && long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var requestedEnd)) end = Math.Min(requestedEnd, total - 1);
         return start >= 0 && start < total && end >= start && end < total;
     }
 
@@ -197,6 +222,17 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     }
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    private static void ValidateItem(NearbyShareItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (item.Id == Guid.Empty || string.IsNullOrWhiteSpace(item.DisplayName) || item.DisplayName.Length > 512 ||
+            item.DisplayName.Any(char.IsControl) || string.IsNullOrWhiteSpace(item.MimeType) || item.MimeType.Length > 128 ||
+            item.MimeType.Any(character => character is '\r' or '\n') || item.Length < 0)
+        {
+            throw new InvalidDataException("A nearby share item is invalid.");
+        }
+        ArgumentNullException.ThrowIfNull(item.OpenReadAsync);
+    }
     private static string EscapeHtml(string value) => value.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal).Replace("\"", "&quot;", StringComparison.Ordinal);
     private static string EscapeHeader(string value) => new(value.Where(character => character is >= ' ' and <= '~' && character is not '"' and not '\\').ToArray());
 
