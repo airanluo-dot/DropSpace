@@ -560,6 +560,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             TimeSpan.FromMilliseconds(35),
             TimeSpan.FromMilliseconds(90),
             TimeSpan.FromMilliseconds(180),
+            TimeSpan.FromMilliseconds(360),
+            TimeSpan.FromMilliseconds(720),
+            TimeSpan.FromMilliseconds(1200),
         };
 
         Exception? lastException = null;
@@ -642,7 +645,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         null);
                 }
 
-                return CreateRejectedSnapshot(signal, "empty-storage-items");
+                // A producer can publish the StorageItems format before its async
+                // item payload is materialized. Treat that empty read as transient;
+                // otherwise this WM_CLIPBOARDUPDATE would be marked processed and
+                // the file/folder batch could never be captured.
+                throw new COMException(
+                    "Clipboard storage items are not ready.",
+                    unchecked((int)0x8000000A)); // E_PENDING
             }
 
             if (view.Contains(StandardDataFormats.Bitmap))
