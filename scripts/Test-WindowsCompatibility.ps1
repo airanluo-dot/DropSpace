@@ -111,7 +111,7 @@ if ((Read-CompatibilityFile "src/DropSpace.App/App.xaml.cs") -match 'Application
 }
 
 Assert-CompatibilityText "compatibility-baseline.md" '17763' "The compatibility baseline report is missing the Windows 10 1809 minimum."
-Assert-CompatibilityText "docs/test-plan/v0.3.0-preview.8.md" 'Windows 10 version 1809' "The Preview.8 test plan is missing the required Windows 10 1809 matrix."
+Assert-CompatibilityText "docs/test-plan/v0.3.0-preview.8.md" 'Windows 10 (version )?1809' "The Preview.8 test plan is missing the required Windows 10 1809 matrix."
 Assert-CompatibilityText "website/_source/src/index.html" 'Windows 10 version 1809' "The website does not state the current Windows 10 minimum."
 
 if ($errors.Count -ne 0)
