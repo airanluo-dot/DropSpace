@@ -808,8 +808,11 @@ public sealed partial class MainPage : Page
             _lifetime.Cancel();
             _lifetime.Dispose();
             _image.Source = null;
-            _document?.Close();
+            // Windows.Data.Pdf.PdfDocument is a WinRT projection without a Close/Dispose
+            // member in the target SDK; releasing the reference is its lifetime boundary.
+            _document = null;
             _input?.Dispose();
+            _input = null;
         }
     }
 
