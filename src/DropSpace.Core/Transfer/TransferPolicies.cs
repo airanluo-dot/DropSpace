@@ -70,7 +70,7 @@ public static class TransferManifestPolicy
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var normalized = path.Replace('\\', '/').Trim('/');
-        if (normalized.Length == 0 || normalized.Length > maxLength || normalized.StartsWith('/', StringComparison.Ordinal) ||
+        if (normalized.Length == 0 || normalized.Length > maxLength || normalized.StartsWith("/", StringComparison.Ordinal) ||
             Path.IsPathRooted(normalized))
         {
             throw new InvalidDataException("A transfer path must be relative and bounded.");

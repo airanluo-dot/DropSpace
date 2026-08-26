@@ -36,7 +36,7 @@ public sealed record PreviewLimits
     {
         if (InlinePixelSize is < 64 or > 4096 ||
             MaxTextBytes is < 1024 or > 16L * 1024 * 1024 ||
-            InitialTextBytes is < 1024 or > MaxTextBytes ||
+            InitialTextBytes < 1024 || InitialTextBytes > MaxTextBytes ||
             MaxImagePixels is < 1_000_000 or > 200_000_000 ||
             PdfNeighborPages is < 0 or > 4 ||
             MaxMediaMetadataBytes is < 1024 or > 1_024 * 1024)
