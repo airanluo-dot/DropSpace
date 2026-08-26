@@ -399,3 +399,21 @@ The Settings placement editor is a transient no-activate state machine. It captu
 **Rationale:** The Preview.2 critical channel configured `Wait` but used `TryWrite`, so it could report a false reliable design while silently rejecting events at capacity. HMONITOR handles are valid runtime selectors but not durable display identities. A per-monitor mode eliminates the global Custom fallback that moved unconfigured displays, while a transient edit avoids settings writes on every pointer move and keeps file-drag semantics isolated.
 
 **Constraints:** DisplayConfig mapping is best effort and must fail to an explicit runtime fallback without blocking startup. The new editor does not create a full-screen surface, does not change the Smart classifier or payload boundary, and does not claim that hosted CI replaces real Windows 11 pointer/DPI/provider evidence.
+
+## D-045 — v0.3 3.0 features remain explicit, bounded, and Windows-only
+
+- Status: Accepted for v0.3.0-preview.6
+- Decision: Add Quick Preview, Quick Actions, DropLink v1, opt-in cross-device clipboard, Nearby Share, and client-encrypted Internet Share as separate contracts. Keep native macOS/iOS/iPadOS/Android/Linux clients, accounts, WebRTC, and automatic public sharing out of scope.
+- Rationale: The feature plan requires real handoff and share behavior, but the existing local-first/privacy boundary must remain legible. Provider/action registries isolate malformed input and future extension; pairing, certificate pinning, SAS, HMAC, staging, and explicit approval bound the network risk.
+
+## D-046 — Internet Share is fail-closed until an operator deploys the Worker
+
+- Status: Accepted for v0.3.0-preview.6
+- Decision: Ship `share-worker/` as the Cloudflare Worker/R2 reference implementation, but require an HTTPS `DROPSPACE_SHARE_BACKEND_URL` and the `EnableInternetSharing` setting before any upload. Never use a fake endpoint or claim deployment from source presence.
+- Rationale: The client can prove AES-256-GCM/HKDF and browser WebCrypto interoperability locally, while production availability depends on account secrets, R2 lifecycle, domain, rate limits, and logging policy that do not belong in the repository.
+
+## D-047 — Transfer schema v2 stores peer/session metadata, not payloads
+
+- Status: Accepted for v0.3.0-preview.6
+- Decision: Migrate schema 1→2 with `paired_devices` and `transfer_sessions`; store DPAPI-protected peer secrets and staged bytes in application data; receive only under Downloads/DropSpace after manifest/hash validation.
+- Rationale: SQLite remains queryable and recoverable without becoming a clipboard/file vault, and forward-only migration preserves the existing backup/recovery contract.

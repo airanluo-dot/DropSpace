@@ -128,6 +128,10 @@ Official reference: [Shell_NotifyIcon](https://learn.microsoft.com/en-us/windows
 
 The main window, tray, clipboard service, and Overlay share the same process and single-instance key. Overlay windows are always-on-top only while their surfaces are enabled, never request elevation, and are no-activate except while the user explicitly expands one for controls.
 
+## DropLink and browser sharing
+
+DropLink is Windows-only in Preview.6. Kestrel uses the device certificate for HTTPS, the app advertises `_dropspace._tcp.local` when available, and a firewall-degraded state exposes manual pairing/elevated-helper guidance rather than creating a rule silently. Nearby Share binds a private IPv4 address only; Internet Share is a separate client-encryption path and does not depend on Windows Share Target registration.
+
 Use Windows App SDK application lifecycle APIs for activation and single-instance redirection. A second launch redirects to the existing process and activates the window. Shutdown and logoff allow only bounded flushing.
 
 Official references: [App lifecycle activation](https://learn.microsoft.com/en-us/windows/apps/develop/launch/activate-an-app), [App instancing](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/applifecycle/applifecycle-instancing).

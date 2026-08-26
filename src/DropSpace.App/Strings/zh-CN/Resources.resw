@@ -316,4 +316,65 @@
   <data name="SmartDragExclusionsDescription.Text" xml:space="preserve"><value>用逗号分隔进程名。此功能为尽力而为：部分提权、受保护或短暂存在的来源应用可能无法识别。</value></data>
   <data name="CopyDragCompatibilityReportButton.Content" xml:space="preserve"><value>复制智能拖拽兼容性报告</value></data>
   <data name="DragCompatibilityReportCopied" xml:space="preserve"><value>已复制不含路径的智能拖拽兼容性报告。</value></data>
+  <data name="PreviewItemMenuItem.Text" xml:space="preserve"><value>快速预览</value></data>
+  <data name="PreviewUnavailable" xml:space="preserve"><value>此项目没有可用的受限预览。</value></data>
+  <data name="ActionCompleted" xml:space="preserve"><value>操作已成功完成。</value></data>
+  <data name="ActionUnavailable" xml:space="preserve"><value>当前选择无法使用此操作。</value></data>
+  <data name="ActionHashSha256.Text" xml:space="preserve"><value>计算 SHA-256 哈希</value></data>
+  <data name="ActionCompressZip.Text" xml:space="preserve"><value>压缩为 ZIP</value></data>
+  <data name="ActionGenerateQr.Text" xml:space="preserve"><value>生成二维码</value></data>
+  <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整大小或转换图像</value></data>
+  <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
+  <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>
+  <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>设备交接</value></data>
+  <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>配对可信 Windows 设备后，可在审批和完整性校验下发送文件、文件夹、文本和网址。</value></data>
+  <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用 Windows 设备交接</value></data>
+  <data name="CrossDeviceClipboardTitle.Text" xml:space="preserve"><value>跨设备剪贴板</value></data>
+  <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>复用现有事件驱动剪贴板监听器。远程内容需要用户主动开启，并受有界循环保护。</value></data>
+  <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用跨设备剪贴板</value></data>
+  <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>新设备默认剪贴板模式</value></data>
+  <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>新配对设备使用所选模式；配对本身不会开启自动同步。</value></data>
+  <data name="ClipboardSyncModeOff.Content" xml:space="preserve"><value>关闭</value></data>
+  <data name="ClipboardSyncModeManual.Content" xml:space="preserve"><value>手动</value></data>
+  <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>自动同步文本和网址</value></data>
+  <data name="ClipboardSyncModeTextUrlImage.Content" xml:space="preserve"><value>自动同步文本、网址和图像</value></data>
+  <data name="NearbySharingTitle.Text" xml:space="preserve"><value>附近浏览器分享</value></data>
+  <data name="NearbySharingDescription.Text" xml:space="preserve"><value>通过带令牌、可过期的私有网络 HTTP 链接，让浏览器接收选定内容。</value></data>
+  <data name="NearbySharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用附近浏览器分享</value></data>
+  <data name="InternetSharingTitle.Text" xml:space="preserve"><value>安全互联网分享</value></data>
+  <data name="InternetSharingDescription.Text" xml:space="preserve"><value>文件会在本机加密后上传。只有配置 HTTPS 后端（DROPSPACE_SHARE_BACKEND_URL）后，分享才可用。</value></data>
+  <data name="InternetSharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用安全互联网分享</value></data>
+  <data name="RefreshDevicesButton.Content" xml:space="preserve"><value>查找设备</value></data>
+  <data name="PairDeviceButton.Content" xml:space="preserve"><value>配对选中设备</value></data>
+  <data name="DevicesDisabledTitle" xml:space="preserve"><value>设备功能已关闭</value></data>
+  <data name="DevicesDisabledContent" xml:space="preserve"><value>请先启用设备交接，再搜索私有网络。</value></data>
+  <data name="NoDevicesFound" xml:space="preserve"><value>私有网络中没有发现兼容的 DropSpace 设备。</value></data>
+  <data name="DevicesFound" xml:space="preserve"><value>发现 {0} 台兼容设备。</value></data>
+  <data name="PairedDevice" xml:space="preserve"><value>已与 {0} 配对。该设备使用所选的默认剪贴板模式。</value></data>
+  <data name="DeviceServiceUnavailable" xml:space="preserve"><value>设备服务不可用：{0}</value></data>
+  <data name="DeviceServiceReady" xml:space="preserve"><value>设备交接已就绪。Windows 防火墙状态仍需通过明确的接收能力检查确认。</value></data>
+  <data name="DeviceServiceBlocked" xml:space="preserve"><value>接收不可用：{0}</value></data>
+  <data name="DeviceServiceStarting" xml:space="preserve"><value>正在启动本地 DropLink 服务…</value></data>
+  <data name="PairingSasTitle" xml:space="preserve"><value>确认配对代码</value></data>
+  <data name="PairingSasContent" xml:space="preserve"><value>确认另一台设备显示相同的六位代码：{0}。只有两边一致时才继续。</value></data>
+  <data name="PairingSasConfirm" xml:space="preserve"><value>信任此设备</value></data>
+  <data name="IncomingTransferTitle" xml:space="preserve"><value>收到传输请求</value></data>
+  <data name="IncomingTransferContent" xml:space="preserve"><value>可信设备请求发送 {0} 项内容，共 {1} 字节。文件会在提交到“下载\DropSpace”前完成校验。</value></data>
+  <data name="IncomingTransferAccept" xml:space="preserve"><value>接受</value></data>
+  <data name="IncomingTransferReject" xml:space="preserve"><value>拒绝</value></data>
+  <data name="SendToDeviceAction.Text" xml:space="preserve"><value>发送到设备</value></data>
+  <data name="CreateNearbyLinkAction.Text" xml:space="preserve"><value>创建附近链接</value></data>
+  <data name="CreateSecureInternetLinkAction.Text" xml:space="preserve"><value>创建安全互联网链接</value></data>
+  <data name="TransferSentTitle" xml:space="preserve"><value>已发送传输</value></data>
+  <data name="TransferSentContent" xml:space="preserve"><value>可信设备已接受传输，DropSpace 在提交前完成了内容校验。</value></data>
+  <data name="TransferUnavailableTitle" xml:space="preserve"><value>传输不可用</value></data>
+  <data name="NoPairedDevicesTitle" xml:space="preserve"><value>没有已配对设备</value></data>
+  <data name="NoPairedDevicesContent" xml:space="preserve"><value>请先在“设置 → 设备与分享”中查找并配对可信 Windows 设备。</value></data>
+  <data name="SelectDeviceTitle" xml:space="preserve"><value>发送到哪台设备？</value></data>
+  <data name="ShareReadyTitle" xml:space="preserve"><value>分享已就绪</value></data>
+  <data name="NearbyShareReady" xml:space="preserve"><value>附近链接使用 HTTP 且仅限私有网络。链接会自动过期；请勿把它当作互联网安全链接。</value></data>
+  <data name="EncryptedShareReady" xml:space="preserve"><value>清单和文件分块已在本机加密。解密密钥保存在 URL 片段中。</value></data>
+  <data name="ShareExpires" xml:space="preserve"><value>过期时间：{0}</value></data>
+  <data name="CopyShareLink" xml:space="preserve"><value>复制链接</value></data>
+  <data name="OpenShareQr" xml:space="preserve"><value>打开二维码图片</value></data>
 </root>

@@ -20,3 +20,5 @@ Public APIs, documented platform behavior, and high-level interaction ideas may 
 ## Quality and scope
 
 Keep pull requests focused. Add or update tests and documentation when behavior changes, preserve user files and privacy boundaries, and never commit signing keys, tokens, private certificates, or user data.
+
+For v0.3 network/preview changes, read the DropSpace maintainer skill and the contracts under `docs/protocol`, `docs/architecture`, and `docs/security`. Do not add a new platform client, public backend, firewall rule, telemetry field, or release claim without an explicit documented boundary and a fail-closed unavailable state.

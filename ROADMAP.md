@@ -526,3 +526,7 @@ Actual Windows startup state matches UI, update failure preserves the working in
 - Promote the release-driven latest-changes presentation, complete English/Simplified Chinese resource foundation, and zero-flicker Windows sign-in startup from the validated v0.2.1 Preview sequence.
 - Preserve the v0.2.0 Smart drag, single Dynamic Island, local-first data boundaries, installer/portable/MSIX paths, and strict Stable/Preview update ordering without behavior changes.
 - Rebuild and publish a separate Stable installer, portable EXE, unsigned MSIX, SHA-256 checksums, and update manifest from the v0.2.1 source commit; do not rename or reuse Preview assets.
+
+## v0.3.0-preview.6 delivery slice
+
+The 3.0 feature slice is implemented as one Preview release: Quick Preview/Quick Actions, Windows-only DropLink v1, opt-in cross-device clipboard, Nearby Share, and client-encrypted Internet Share reference backend. Remaining deployment work is operational rather than silently simulated: a Cloudflare operator must configure and deploy `share-worker/` before Internet Share can be marked live.

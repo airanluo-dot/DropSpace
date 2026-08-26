@@ -447,6 +447,16 @@ Before declaring success, perform a final pass:
 
 Do not claim “done” when the repository is only locally modified, when CI is still deterministically failing, when a requested release is not published, or when a requested live deployment has not been verified.
 
+## v0.3.0-preview.6 durable product facts
+
+- The 3.0 Preview feature slice is one inseparable Preview release: bounded Quick Preview providers, source-safe Quick Actions, Windows-only DropLink v1, opt-in cross-device clipboard, Nearby browser Share, and client-encrypted Internet Share.
+- DropLink v1 uses HTTPS/Kestrel with a DPAPI-protected ECDSA identity, pinned certificate fingerprint, ECDH/HKDF pairing, SAS confirmation, HMAC request authentication, 4 MiB chunks, staging, whole-file integrity, explicit receive approval, and schema-2 `paired_devices`/`transfer_sessions` metadata.
+- DropLink transfer sessions expose explicit cancellation and retain bounded status/chunk state for reconnect-aware handoff; an accepted receiver commits only after whole-file integrity verification.
+- Cross-device clipboard reuses the event-driven watcher; supported automatic modes are bounded text/URL and image modes with a 10,000-entry/24-hour content-hash loop guard. No polling watcher, stale overwrite, or unbounded payload is acceptable.
+- Nearby Share is private-IPv4-only, tokenized with 24 random bytes, expiring, receiver-capped, range-capable, and revocable. Internet Share is unavailable unless an explicitly configured HTTPS backend exists; `share-worker/` is a reference Cloudflare Worker/R2 implementation, not proof of deployment.
+- Full Preview renders bounded image/PDF/text content and non-autoplaying media; media playback is stopped and disposed when the preview closes.
+- Native macOS/iOS/iPadOS/Android/Linux clients, accounts, WebRTC, AirDrop, Universal Clipboard, and cloud account sync remain out of scope. Never advertise a fake action, backend, firewall success, or release asset.
+
 ## 21. Final report format
 
 Return a concise, evidence-based completion report with these sections when applicable:

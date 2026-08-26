@@ -4,6 +4,7 @@ using System.Text.Json;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
+using DropSpace.Core.Transfer;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Windows.ApplicationModel.DataTransfer;
@@ -233,6 +234,72 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             return Task.CompletedTask;
         }).ConfigureAwait(false);
     }
+
+    public async Task<DropItem> ImportRemoteAsync(ClipboardEnvelope envelope, CancellationToken cancellationToken = default)
+    {
+        ClipboardEnvelopePolicy.Validate(envelope);
+        DropItem item;
+        await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (envelope.IsTextLike)
+            {
+                item = await _repository.AddTextAsync(ContentClassifier.CreateTextCandidate(envelope.Text!), cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                var image = envelope.ImageBytes!;
+                var dimensions = await ReadImageDimensionsAsync(image, cancellationToken).ConfigureAwait(false);
+                await using var stream = new MemoryStream(image, writable: false);
+                var payload = await _payloadStore.WriteAsync("images", stream, _settings.MaxImageBytes, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    item = await _repository.AddImageAsync(
+                        new ImageCandidate(envelope.Sha256, dimensions.Width, dimensions.Height, image.LongLength, envelope.Mime, dimensions.HasAlpha, payload),
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    await _payloadStore.DeleteAsync(payload.RelativePath, cancellationToken).ConfigureAwait(false);
+                    throw;
+                }
+            }
+        }
+        finally
+        {
+            _commitGate.Release();
+        }
+
+        ItemCaptured?.Invoke(this, item);
+        if (item.Text?.InlineText is { } text)
+        {
+            await CopyTextAsync(text, cancellationToken).ConfigureAwait(false);
+        }
+        else if (item.Payload is { RelativePath: var relativePath })
+        {
+            await CopyImageAsync(relativePath, cancellationToken).ConfigureAwait(false);
+        }
+
+        return item;
+    }
+
+    private Task<(int Width, int Height, bool HasAlpha)> ReadImageDimensionsAsync(byte[] bytes, CancellationToken cancellationToken) =>
+        _dispatcher.EnqueueAsync(async () =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(bytes);
+                await writer.StoreAsync();
+                await writer.FlushAsync();
+                writer.DetachStream();
+            }
+
+            stream.Seek(0);
+            var decoder = await BitmapDecoder.CreateAsync(stream);
+            return (checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight), decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore);
+        });
 
     public async Task CopyImageAsync(string relativePath, CancellationToken cancellationToken = default)
     {

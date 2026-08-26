@@ -222,3 +222,7 @@ If corruption or a privacy-affecting bug occurs, recording defaults to paused, e
 
 Repository: DropSpace
 Version: design-baseline-2026-08-07
+
+## 3.0 Preview network boundary
+
+Network features are opt-in. DropLink sends only authenticated pairing/transfer data to a trusted Windows peer over pinned HTTPS. Cross-device clipboard is disabled by default and has per-peer modes plus a bounded content-hash loop guard. Nearby Share exposes only expiring, tokenized ciphertext/plain local items on a private LAN. Internet Share encrypts payloads before upload; the Worker/R2 backend receives opaque objects and never receives the URL-fragment key. A deployment that lacks an explicitly configured backend is reported as unavailable. See [the network threat model](docs/security/network-threat-model.md).

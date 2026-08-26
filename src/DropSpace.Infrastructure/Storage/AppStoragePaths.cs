@@ -22,6 +22,7 @@ public sealed class AppStoragePaths
         Data = Path.Combine(Root, "data");
         Payloads = Path.Combine(Root, "payloads");
         Thumbnails = Path.Combine(Root, "cache", "thumbnails");
+        Previews = Path.Combine(Root, "cache", "previews");
         Backups = Path.Combine(Root, "backups");
         Logs = Path.Combine(Root, "logs");
         Quarantine = Path.Combine(Root, "quarantine");
@@ -38,6 +39,8 @@ public sealed class AppStoragePaths
     public string Payloads { get; }
 
     public string Thumbnails { get; }
+
+    public string Previews { get; }
 
     public string Backups { get; }
 
@@ -58,6 +61,7 @@ public sealed class AppStoragePaths
         Directory.CreateDirectory(Data);
         Directory.CreateDirectory(Payloads);
         Directory.CreateDirectory(Thumbnails);
+        Directory.CreateDirectory(Previews);
         Directory.CreateDirectory(Backups);
         Directory.CreateDirectory(Logs);
         Directory.CreateDirectory(Quarantine);

@@ -1,15 +1,29 @@
+using System.Diagnostics;
+using System.Collections.ObjectModel;
+using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Preview;
+using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
+using DropSpace.Infrastructure.Actions;
+using DropSpace.Infrastructure.Network;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Input;
 using Windows.UI.Core;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Data.Pdf;
+using Windows.Media.Core;
+using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.Storage.Streams;
 using Windows.System;
 using WinRT.Interop;
 
@@ -20,6 +34,14 @@ public sealed partial class MainPage : Page
     private readonly MainViewModel _viewModel;
     private readonly nint _windowHandle;
     private readonly IAppStringLocalizer _strings;
+    private readonly QuickPreviewService _previews;
+    private readonly IItemActionRegistry _actions;
+    private readonly DeviceHandoffService _deviceHandoff;
+    private readonly CrossDeviceClipboardService _crossDeviceClipboard;
+    private readonly DropLinkHost _dropLinkHost;
+    private readonly ItemSharingService _sharing;
+    private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
+    private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
     private bool _syncingNavigation;
     private bool _syncingSettings;
@@ -27,12 +49,24 @@ public sealed partial class MainPage : Page
     public MainPage(
         MainViewModel viewModel,
         nint windowHandle,
-        IAppStringLocalizer strings)
+        IAppStringLocalizer strings,
+        QuickPreviewService previews,
+        IItemActionRegistry actions,
+        DeviceHandoffService deviceHandoff,
+        CrossDeviceClipboardService crossDeviceClipboard,
+        DropLinkHost dropLinkHost,
+        ItemSharingService sharing)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
         _windowHandle = windowHandle;
         _strings = strings;
+        _previews = previews;
+        _actions = actions;
+        _deviceHandoff = deviceHandoff;
+        _crossDeviceClipboard = crossDeviceClipboard;
+        _dropLinkHost = dropLinkHost;
+        _sharing = sharing;
         try
         {
             InitializeComponent();
@@ -43,6 +77,8 @@ public sealed partial class MainPage : Page
         }
 
         DataContext = viewModel;
+        DiscoveredDevicesList.ItemsSource = _discoveredDevices;
+        _dropLinkHost.TransferOffered += OnTransferOfferedAsync;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -309,6 +345,438 @@ public sealed partial class MainPage : Page
         if (GetCard(sender) is { } card)
         {
             await RunAsync(() => _viewModel.OpenAsync(card));
+        }
+    }
+
+    private async void OnDeviceHandoffToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { EnableDeviceHandoff = DeviceHandoffToggle.IsOn }));
+            UpdateDeviceStatus();
+        }
+    }
+
+    private async void OnCrossDeviceClipboardToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { EnableCrossDeviceClipboard = CrossDeviceClipboardToggle.IsOn }));
+        }
+    }
+
+    private async void OnNearbySharingToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { EnableNearbySharing = NearbySharingToggle.IsOn }));
+        }
+    }
+
+    private async void OnInternetSharingToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { EnableInternetSharing = InternetSharingToggle.IsOn }));
+            UpdateDeviceStatus();
+        }
+    }
+
+    private async void OnDefaultClipboardSyncModeChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_syncingSettings && DefaultClipboardSyncModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
+            Enum.TryParse<ClipboardSyncMode>(value, out var mode))
+        {
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { DefaultClipboardSyncMode = mode }));
+        }
+    }
+
+    private async void OnRefreshDevicesClicked(object sender, RoutedEventArgs args)
+    {
+        await RunAsync(async () =>
+        {
+            if (!_viewModel.EnableDeviceHandoff)
+            {
+                await ShowMessageAsync(_strings.Get("DevicesDisabledTitle"), _strings.Get("DevicesDisabledContent"));
+                return;
+            }
+
+            var devices = await _deviceHandoff.DiscoverAsync(TimeSpan.FromSeconds(3));
+            _discoveredDevices.Clear();
+            foreach (var device in devices) _discoveredDevices.Add(device);
+            DeviceStatusText.Text = devices.Count == 0
+                ? _strings.Get("NoDevicesFound")
+                : _strings.Format("DevicesFound", devices.Count);
+        });
+    }
+
+    private async void OnPairDeviceClicked(object sender, RoutedEventArgs args)
+    {
+        if (DiscoveredDevicesList.SelectedItem is not DeviceDescriptor descriptor) return;
+        await RunAsync(async () =>
+        {
+            var peer = await _deviceHandoff.PairAsync(descriptor, ConfirmPairingSasAsync);
+            _crossDeviceClipboard.ConfigurePeer(peer, descriptor.Endpoint, _viewModel.DefaultClipboardSyncMode);
+            _pairedPeers[peer.Id] = new PairedPeer(peer, descriptor.Endpoint);
+            DeviceStatusText.Text = _strings.Format("PairedDevice", peer.DisplayName);
+        });
+    }
+
+    private async Task<bool> ConfirmPairingSasAsync(int sas, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = _strings.Get("PairingSasTitle"),
+            Content = _strings.Format("PairingSasContent", sas.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)),
+            PrimaryButtonText = _strings.Get("PairingSasConfirm"),
+            CloseButtonText = _strings.Get("CommonCancel"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private Task OnTransferOfferedAsync(IncomingTransferOffer offer)
+    {
+        _ = DispatcherQueue.TryEnqueue(async () =>
+        {
+            try
+            {
+                var accepted = await ShowIncomingTransferDialogAsync(offer);
+                await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, accepted);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+            {
+                await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, false);
+            }
+        });
+        return Task.CompletedTask;
+    }
+
+    private async Task<bool> ShowIncomingTransferDialogAsync(IncomingTransferOffer offer)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = _strings.Get("IncomingTransferTitle"),
+            Content = _strings.Format("IncomingTransferContent", offer.Manifest.Items.Count, offer.Manifest.TotalBytes),
+            PrimaryButtonText = _strings.Get("IncomingTransferAccept"),
+            CloseButtonText = _strings.Get("IncomingTransferReject"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private async void OnPreviewItemClicked(object sender, RoutedEventArgs args)
+    {
+        if (GetCard(sender) is not { } card) return;
+        await RunAsync(() => ShowPreviewAsync(card));
+    }
+
+    private async Task ShowPreviewAsync(ItemCardViewModel card)
+    {
+        var descriptor = await _previews.LoadAsync(card.Item, inline: false);
+        var content = await CreatePreviewContentAsync(descriptor, card.Item);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = card.Title,
+            Content = content,
+            CloseButtonText = _strings.Get("CommonClose"),
+        };
+        try
+        {
+            await dialog.ShowAsync();
+        }
+        finally
+        {
+            if (content is IDisposable disposable) disposable.Dispose();
+        }
+    }
+
+    private async Task<UIElement> CreatePreviewContentAsync(PreviewDescriptor descriptor, DropItem item)
+    {
+        if (descriptor.Bytes is { Length: > 0 } bytes && descriptor.Kind == PreviewKind.Image)
+        {
+            return await CreateImageElementAsync(bytes, 640, 520);
+        }
+
+        if (descriptor.Bytes is { Length: > 0 } pdfBytes && descriptor.Kind == PreviewKind.Pdf)
+        {
+            try
+            {
+                return await RenderPdfPageAsync(pdfBytes, 1, 640, 520);
+            }
+            catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
+            {
+                // Keep the metadata fallback visible for a PDF that the platform renderer cannot decode.
+            }
+        }
+
+        if (descriptor.Kind is PreviewKind.Audio or PreviewKind.Video &&
+            _previews.ResolveSourcePath(item) is { } mediaPath && File.Exists(mediaPath))
+        {
+            try
+            {
+                return await CreateMediaElementAsync(mediaPath);
+            }
+            catch (Exception exception) when (exception is FileNotFoundException or IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                // Keep the bounded metadata fallback visible when a media source disappears.
+            }
+        }
+
+        if (descriptor.Text is { } text)
+        {
+            return new ScrollViewer
+            {
+                MaxHeight = 520,
+                Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
+            };
+        }
+
+        return new TextBlock
+        {
+            Text = descriptor.Metadata.Count == 0
+                ? _strings.Get("PreviewUnavailable")
+                : string.Join(Environment.NewLine, descriptor.Metadata.Select(pair => string.Concat(pair.Key, ": ", pair.Value))),
+            TextWrapping = TextWrapping.Wrap,
+            IsTextSelectionEnabled = true,
+        };
+    }
+
+    private static async Task<Image> CreateImageElementAsync(byte[] bytes, double maxWidth, double maxHeight)
+    {
+        using var stream = new InMemoryRandomAccessStream();
+        using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+        {
+            writer.WriteBytes(bytes);
+            await writer.StoreAsync();
+            await writer.FlushAsync();
+            writer.DetachStream();
+        }
+        stream.Seek(0);
+        var bitmap = new BitmapImage();
+        await bitmap.SetSourceAsync(stream);
+        return new Image
+        {
+            Source = bitmap,
+            MaxWidth = maxWidth,
+            MaxHeight = maxHeight,
+            Stretch = Stretch.Uniform,
+        };
+    }
+
+    private static async Task<Image> RenderPdfPageAsync(byte[] bytes, int pageNumber, double maxWidth, double maxHeight)
+    {
+        using var input = new InMemoryRandomAccessStream();
+        using (var writer = new DataWriter(input.GetOutputStreamAt(0)))
+        {
+            writer.WriteBytes(bytes);
+            await writer.StoreAsync();
+            await writer.FlushAsync();
+            writer.DetachStream();
+        }
+        input.Seek(0);
+        var document = await PdfDocument.LoadFromStreamAsync(input);
+        if (document.PageCount == 0) throw new InvalidDataException("The PDF has no pages.");
+        var page = document.GetPage((uint)Math.Clamp(pageNumber - 1, 0, (int)document.PageCount - 1));
+        using var output = new InMemoryRandomAccessStream();
+        await page.RenderToStreamAsync(output);
+        output.Seek(0);
+        var bitmap = new BitmapImage();
+        await bitmap.SetSourceAsync(output);
+        return new Image
+        {
+            Source = bitmap,
+            MaxWidth = maxWidth,
+            MaxHeight = maxHeight,
+            Stretch = Stretch.Uniform,
+        };
+    }
+
+    private static async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
+    {
+        var file = await StorageFile.GetFileFromPathAsync(path);
+        var player = new MediaPlayer { AutoPlay = false };
+        try
+        {
+            player.Source = MediaSource.CreateFromStorageFile(file);
+            var element = new MediaPlayerElement
+            {
+                AutoPlay = false,
+                AreTransportControlsEnabled = true,
+                MaxWidth = 640,
+                MaxHeight = 520,
+            };
+            element.SetMediaPlayer(player);
+            return new MediaPreviewHost(element, player);
+        }
+        catch
+        {
+            player.Dispose();
+            throw;
+        }
+    }
+
+    private async void OnQuickActionClicked(object sender, RoutedEventArgs args)
+    {
+        if (sender is not MenuFlyoutItem menu || menu.CommandParameter is not string actionText || GetCard(menu) is not { } card) return;
+        if (!Enum.TryParse<ItemActionId>(actionText, out var action)) return;
+        await RunAsync(async () =>
+        {
+            var snapshot = DropItemSnapshot.FromItem(card.Item);
+            if (action == ItemActionId.SendToDevice)
+            {
+                await SendToDeviceAsync(card.Item);
+                return;
+            }
+            if (action == ItemActionId.CreateNearbyLink)
+            {
+                await ShowShareDescriptorAsync(await _sharing.CreateNearbyAsync([card.Item], _viewModel.Settings));
+                return;
+            }
+            if (action == ItemActionId.CreateSecureInternetLink)
+            {
+                await ShowShareDescriptorAsync(await _sharing.CreateInternetAsync([card.Item], _viewModel.Settings));
+                return;
+            }
+            var result = await _actions.ExecuteAsync(action, new ItemActionContext(new ItemSelectionSnapshot([snapshot])));
+            await ShowMessageAsync(
+                result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
+                result.OutputPaths.Count == 0 ? result.ErrorCategory ?? _strings.Get("ActionUnavailable") : string.Join(Environment.NewLine, result.OutputPaths));
+        });
+    }
+
+    private async Task SendToDeviceAsync(DropItem item)
+    {
+        if (!_viewModel.EnableDeviceHandoff)
+        {
+            await ShowMessageAsync(_strings.Get("DevicesDisabledTitle"), _strings.Get("DevicesDisabledContent"));
+            return;
+        }
+
+        var peer = await SelectPairedPeerAsync();
+        if (peer is null) return;
+        if (item.File?.OriginalPath is { } path)
+        {
+            await _deviceHandoff.SendFilesAsync(peer.Peer, peer.Endpoint, [path]);
+            await ShowMessageAsync(_strings.Get("TransferSentTitle"), _strings.Get("TransferSentContent"));
+            return;
+        }
+
+        if (item.Text is not null || item.Url is not null || item.Image is not null)
+        {
+            var response = await _crossDeviceClipboard.SendManualAsync(peer.Peer, peer.Endpoint, item);
+            await ShowMessageAsync(
+                response.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                response.Accepted ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+            return;
+        }
+
+        await ShowMessageAsync(_strings.Get("TransferUnavailableTitle"), _strings.Get("ActionUnavailable"));
+    }
+
+    private async Task<PairedPeer?> SelectPairedPeerAsync()
+    {
+        if (_pairedPeers.Count == 0)
+        {
+            await ShowMessageAsync(_strings.Get("NoPairedDevicesTitle"), _strings.Get("NoPairedDevicesContent"));
+            return null;
+        }
+
+        var combo = new ComboBox
+        {
+            ItemsSource = _pairedPeers.Values.Select(value => value.Peer).ToArray(),
+            DisplayMemberPath = nameof(PeerDevice.DisplayName),
+            SelectedIndex = 0,
+            MinWidth = 280,
+        };
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = _strings.Get("SelectDeviceTitle"),
+            Content = combo,
+            PrimaryButtonText = _strings.Get("SendToDeviceAction.Text"),
+            CloseButtonText = _strings.Get("CommonCancel"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary || combo.SelectedItem is not PeerDevice selected)
+        {
+            return null;
+        }
+        return _pairedPeers.GetValueOrDefault(selected.Id);
+    }
+
+    private async Task ShowShareDescriptorAsync(ShareDescriptor descriptor)
+    {
+        var qrPath = Path.Combine(Path.GetTempPath(), string.Concat("DropSpace-share-", descriptor.ShareId.ToString("N"), ".png"));
+        await File.WriteAllBytesAsync(qrPath, QrCodeActionService.RenderPng(descriptor.Url.ToString()));
+        var content = new StackPanel { Spacing = 8 };
+        content.Children.Add(new TextBlock
+        {
+            Text = descriptor.IsEncrypted ? _strings.Get("EncryptedShareReady") : _strings.Get("NearbyShareReady"),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        content.Children.Add(new TextBox
+        {
+            Text = descriptor.Url.ToString(),
+            IsReadOnly = true,
+            TextWrapping = TextWrapping.Wrap,
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = _strings.Format("ShareExpires", descriptor.ExpiresAtUtc.ToLocalTime().ToString("g")),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = _strings.Get("ShareReadyTitle"),
+            Content = content,
+            PrimaryButtonText = _strings.Get("CopyShareLink"),
+            SecondaryButtonText = _strings.Get("OpenShareQr"),
+            CloseButtonText = _strings.Get("CommonClose"),
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+            package.SetText(descriptor.Url.ToString());
+            Clipboard.SetContent(package);
+        }
+        else if (result == ContentDialogResult.Secondary)
+        {
+            Process.Start(new ProcessStartInfo(qrPath) { UseShellExecute = true });
+        }
+    }
+
+    private sealed record PairedPeer(PeerDevice Peer, Uri Endpoint);
+
+    private sealed class MediaPreviewHost : Grid, IDisposable
+    {
+        private readonly MediaPlayer _player;
+        private int _disposed;
+
+        public MediaPreviewHost(MediaPlayerElement element, MediaPlayer player)
+        {
+            _player = player;
+            Children.Add(element);
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            _player.Pause();
+            _player.Source = null;
+            _player.Dispose();
         }
     }
 
@@ -821,6 +1289,11 @@ public sealed partial class MainPage : Page
             CaptureImagesToggle.IsOn = _viewModel.CaptureImages;
             CaptureFilesToggle.IsOn = _viewModel.CaptureFiles;
             CaptureFoldersToggle.IsOn = _viewModel.CaptureFolders;
+            DeviceHandoffToggle.IsOn = _viewModel.EnableDeviceHandoff;
+            CrossDeviceClipboardToggle.IsOn = _viewModel.EnableCrossDeviceClipboard;
+            NearbySharingToggle.IsOn = _viewModel.EnableNearbySharing;
+            InternetSharingToggle.IsOn = _viewModel.EnableInternetSharing;
+            SelectComboItem(DefaultClipboardSyncModeCombo, _viewModel.DefaultClipboardSyncMode.ToString());
             StartWithWindowsToggle.IsOn = _viewModel.StartWithWindows;
             AutoCheckUpdatesToggle.IsOn = _viewModel.AutoCheckForUpdates;
             AutoDownloadUpdatesToggle.IsOn = _viewModel.AutoDownloadUpdates;
@@ -858,6 +1331,7 @@ public sealed partial class MainPage : Page
             SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
             SyncPlacementCoordinates();
             SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
+            UpdateDeviceStatus();
         }
         finally
         {
@@ -906,6 +1380,28 @@ public sealed partial class MainPage : Page
                 EmptyTitle.Text = _strings.Get("EmptySpaceTitle");
                 EmptyDescription.Text = _strings.Get("EmptySpaceDescription");
                 break;
+        }
+    }
+
+    private void UpdateDeviceStatus()
+    {
+        if (!_viewModel.EnableDeviceHandoff)
+        {
+            DeviceStatusText.Text = _strings.Get("DevicesDisabledContent");
+        }
+        else if (_deviceHandoff.UnavailableReason is { Length: > 0 } reason)
+        {
+            DeviceStatusText.Text = _strings.Format("DeviceServiceUnavailable", reason);
+        }
+        else if (_deviceHandoff.FirewallStatus is { } firewall)
+        {
+            DeviceStatusText.Text = firewall.CanReceive
+                ? _strings.Get("DeviceServiceReady")
+                : _strings.Format("DeviceServiceBlocked", firewall.Reason ?? string.Empty);
+        }
+        else
+        {
+            DeviceStatusText.Text = _strings.Get("DeviceServiceStarting");
         }
     }
 

@@ -112,3 +112,12 @@ Each case defines the expected safe behavior. “Skip” means no durable normal
 - Unhandled service exception: boundary logs redacted error, UI receives safe state, process-level handler writes crash marker.
 - Package update during schema change: migration is idempotent and version-checked.
 
+## 3.0 Preview network/preview cases
+
+- Corrupt/oversized preview: provider returns unknown fallback; source is untouched and cache entry is not retained.
+- Pairing SAS mismatch, expired hello, duplicate nonce, blocked peer, unsupported platform, or missing certificate pin: fail closed.
+- Transfer cancellation/reconnect: receiver reports accepted chunks; sender resumes only those chunks and final whole-file hash remains mandatory.
+- Traversal, reparse point, duplicate path, source mutation, empty file, destination collision, or disk-full receive: stage/rollback and return a coarse failure.
+- Clipboard stale reconnect or echo: per-peer mode and 10,000-entry/24-hour content guard prevent stale overwrites/loops.
+- Nearby private address missing, token expired, receiver cap reached, invalid range, or revoke: do not fall back to a public interface.
+- Internet Worker missing, expired, wrong object, browser key absent, AES-GCM failure, or SHA-256 mismatch: show unavailable/integrity failure, never success.

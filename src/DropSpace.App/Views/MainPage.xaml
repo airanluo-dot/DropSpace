@@ -269,6 +269,14 @@
                       <Button.Flyout>
                         <MenuFlyout>
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="ShowInFolderMenuItem" Click="OnShowInFolderClicked" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="PreviewItemMenuItem" Click="OnPreviewItemClicked" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionHashSha256" Click="OnQuickActionClicked" CommandParameter="HashSha256" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionCompressZip" Click="OnQuickActionClicked" CommandParameter="CompressZip" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionGenerateQr" Click="OnQuickActionClicked" CommandParameter="GenerateQr" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="ActionResizeImageMenuItem" Click="OnQuickActionClicked" CommandParameter="ResizeImage" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="SendToDeviceAction" Click="OnQuickActionClicked" CommandParameter="SendToDevice" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="CreateNearbyLinkAction" Click="OnQuickActionClicked" CommandParameter="CreateNearbyLink" Tag="{Binding}" />
+                          <MenuFlyoutItem services:XamlResourceOverride.Uid="CreateSecureInternetLinkAction" Click="OnQuickActionClicked" CommandParameter="CreateSecureInternetLink" Tag="{Binding}" />
                           <MenuFlyoutSeparator />
                           <MenuFlyoutItem services:XamlResourceOverride.Uid="RemoveItemMenuItem" Click="OnRemoveItemClicked" Tag="{Binding}" />
                         </MenuFlyout>
@@ -420,6 +428,87 @@
               IsClosable="False"
               IsOpen="True"
               Severity="Warning" />
+          </StackPanel>
+
+          <StackPanel Spacing="12">
+            <TextBlock services:XamlResourceOverride.Uid="DevicesSharingSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="DevicesSharingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock services:XamlResourceOverride.Uid="DeviceHandoffTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="DeviceHandoffDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="DeviceHandoffToggle" services:XamlResourceOverride.Uid="DeviceHandoffToggle" Grid.Column="1" Toggled="OnDeviceHandoffToggled" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock services:XamlResourceOverride.Uid="CrossDeviceClipboardTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="CrossDeviceClipboardDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="CrossDeviceClipboardToggle" services:XamlResourceOverride.Uid="CrossDeviceClipboardToggle" Grid.Column="1" Toggled="OnCrossDeviceClipboardToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="220" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock services:XamlResourceOverride.Uid="DefaultClipboardSyncModeTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="DefaultClipboardSyncModeDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <ComboBox x:Name="DefaultClipboardSyncModeCombo" Grid.Column="1" SelectionChanged="OnDefaultClipboardSyncModeChanged">
+                <ComboBoxItem services:XamlResourceOverride.Uid="ClipboardSyncModeOff" Tag="Off" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="ClipboardSyncModeManual" Tag="Manual" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="ClipboardSyncModeTextUrl" Tag="AutomaticTextAndUrl" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="ClipboardSyncModeTextUrlImage" Tag="AutomaticTextUrlAndImage" />
+              </ComboBox>
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock services:XamlResourceOverride.Uid="NearbySharingTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="NearbySharingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="NearbySharingToggle" services:XamlResourceOverride.Uid="NearbySharingToggle" Grid.Column="1" Toggled="OnNearbySharingToggled" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock services:XamlResourceOverride.Uid="InternetSharingTitle" FontWeight="SemiBold" />
+                <TextBlock services:XamlResourceOverride.Uid="InternetSharingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch x:Name="InternetSharingToggle" services:XamlResourceOverride.Uid="InternetSharingToggle" Grid.Column="1" Toggled="OnInternetSharingToggled" />
+            </Grid>
+            <TextBlock x:Name="DeviceStatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button x:Name="RefreshDevicesButton" services:XamlResourceOverride.Uid="RefreshDevicesButton" Click="OnRefreshDevicesClicked" />
+              <Button x:Name="PairDeviceButton" services:XamlResourceOverride.Uid="PairDeviceButton" Click="OnPairDeviceClicked" />
+            </StackPanel>
+            <ListView x:Name="DiscoveredDevicesList" MaxHeight="180" SelectionMode="Single">
+              <ListView.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE770;" />
+                    <TextBlock Text="{Binding DisplayName}" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding Platform}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListView.ItemTemplate>
+            </ListView>
           </StackPanel>
 
           <StackPanel Spacing="12">

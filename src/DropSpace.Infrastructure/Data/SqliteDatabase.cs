@@ -8,7 +8,7 @@ public sealed class SqliteDatabase(
     AppStoragePaths paths,
     ILogger<SqliteDatabase> logger)
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private bool _initialized;
@@ -93,6 +93,11 @@ public sealed class SqliteDatabase(
             if (fromVersion < 1)
             {
                 await ApplyV1Async(connection, transaction, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (fromVersion < 2)
+            {
+                await ApplyV2Async(connection, transaction, cancellationToken).ConfigureAwait(false);
             }
 
             await using var versionCommand = connection.CreateCommand();
@@ -220,6 +225,48 @@ public sealed class SqliteDatabase(
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private static async Task ApplyV2Async(
+        SqliteConnection connection,
+        System.Data.Common.DbTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            CREATE TABLE paired_devices (
+              id TEXT PRIMARY KEY,
+              display_name TEXT NOT NULL CHECK(length(display_name) BETWEEN 1 AND 64),
+              platform INTEGER NOT NULL,
+              identity_fingerprint TEXT NOT NULL,
+              secret_key_id TEXT NOT NULL,
+              capabilities INTEGER NOT NULL,
+              created_at_utc TEXT NOT NULL,
+              last_seen_at_utc TEXT NULL,
+              is_blocked INTEGER NOT NULL DEFAULT 0 CHECK(is_blocked IN (0, 1))
+            );
+
+            CREATE TABLE transfer_sessions (
+              id TEXT PRIMARY KEY,
+              direction INTEGER NOT NULL,
+              mode INTEGER NOT NULL,
+              peer_id TEXT NULL,
+              state INTEGER NOT NULL,
+              created_at_utc TEXT NOT NULL,
+              completed_at_utc TEXT NULL,
+              item_count INTEGER NOT NULL CHECK(item_count >= 0),
+              total_bytes INTEGER NOT NULL CHECK(total_bytes >= 0),
+              transferred_bytes INTEGER NOT NULL DEFAULT 0 CHECK(transferred_bytes >= 0),
+              error_category TEXT NULL
+            );
+
+            CREATE INDEX ix_transfer_sessions_peer_created ON transfer_sessions(peer_id, created_at_utc DESC);
+            CREATE INDEX ix_paired_devices_last_seen ON paired_devices(last_seen_at_utc DESC);
+            """;
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = (SqliteTransaction)transaction;
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task ValidateSchemaAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
@@ -228,7 +275,7 @@ public sealed class SqliteDatabase(
             SELECT COUNT(*)
             FROM sqlite_master
             WHERE type = 'table'
-              AND name IN ('items', 'file_references', 'text_payloads', 'image_payloads', 'url_metadata', 'payloads');
+              AND name IN ('items', 'file_references', 'text_payloads', 'image_payloads', 'url_metadata', 'payloads', 'paired_devices', 'transfer_sessions');
             """;
 
         await using var command = connection.CreateCommand();
@@ -236,7 +283,7 @@ public sealed class SqliteDatabase(
         var count = Convert.ToInt32(
             await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
             System.Globalization.CultureInfo.InvariantCulture);
-        if (count != 6)
+        if (count != 8)
         {
             throw new InvalidDataException("Database schema validation failed.");
         }

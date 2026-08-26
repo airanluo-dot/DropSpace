@@ -191,3 +191,7 @@ When Compact is visible, its complete black surface is a direct file target: val
 Settings explains that Windows 11 Drop Tray can own the same top edge. “打开 Windows Drop Tray 设置” opens System → Multitasking. DropSpace never guesses the toggle state. Trusted identity builds additionally state that Windows Share is registered; unsigned/portable deployments state that Share integration is unavailable without weakening the two native drag paths.
 
 The Smart verification ring is never a visible product surface: it must not flash, focus, enter taskbar/Alt+Tab, block the source loop, or remain after its 60 ms budget. A brief forbidden-cursor change from `DROPEFFECT_NONE`, third-party provider coverage, mixed-DPI placement, and false-reveal latency remain explicit hands-on Preview checks rather than automated claims.
+
+## 3.0 Preview consent surfaces
+
+Quick Preview opens from the item More menu and shows bounded text/metadata or a safe fallback. Quick Actions are visible only as real commands and report their output path. Device Handoff/clipboard settings explain Windows-only scope, pairing/SAS, per-peer modes, receive approval, and firewall degraded mode. Nearby links show token/expiry/revoke state. Internet Share shows an unavailable state until an HTTPS Worker is configured; the URL fragment key is never displayed in logs or notifications.

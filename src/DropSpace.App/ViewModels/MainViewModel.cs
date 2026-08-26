@@ -6,6 +6,7 @@ using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
@@ -26,6 +27,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
     private readonly ClipboardCaptureService _clipboard;
+    private readonly DeviceHandoffService _deviceHandoff;
+    private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
     private readonly DragStorageItemService _dragStorageItems;
@@ -64,6 +67,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DragSessionDetector dragSessionDetector,
         GlobalQuickPanelHotkeyService quickPanelHotkey,
         ClipboardCaptureService clipboard,
+        DeviceHandoffService deviceHandoff,
+        CrossDeviceClipboardService crossDeviceClipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
         DragStorageItemService dragStorageItems,
@@ -83,6 +88,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _dragSessionDetector = dragSessionDetector;
         _quickPanelHotkey = quickPanelHotkey;
         _clipboard = clipboard;
+        _deviceHandoff = deviceHandoff;
+        _crossDeviceClipboard = crossDeviceClipboard;
         _shell = shell;
         _thumbnails = thumbnails;
         _dragStorageItems = dragStorageItems;
@@ -228,6 +235,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(CaptureImages));
                 OnPropertyChanged(nameof(CaptureFiles));
                 OnPropertyChanged(nameof(CaptureFolders));
+                OnPropertyChanged(nameof(EnableDeviceHandoff));
+                OnPropertyChanged(nameof(EnableCrossDeviceClipboard));
+                OnPropertyChanged(nameof(EnableNearbySharing));
+                OnPropertyChanged(nameof(EnableInternetSharing));
+                OnPropertyChanged(nameof(DefaultClipboardSyncMode));
                 OnPropertyChanged(nameof(StartWithWindows));
                 OnPropertyChanged(nameof(MaxImageMegabytes));
                 OnPropertyChanged(nameof(MaxImageMegapixels));
@@ -262,6 +274,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public bool CaptureFiles => Settings.CaptureFiles;
 
     public bool CaptureFolders => Settings.CaptureFolders;
+
+    public bool EnableDeviceHandoff => Settings.EnableDeviceHandoff;
+
+    public bool EnableCrossDeviceClipboard => Settings.EnableCrossDeviceClipboard;
+
+    public bool EnableNearbySharing => Settings.EnableNearbySharing;
+
+    public bool EnableInternetSharing => Settings.EnableInternetSharing;
+
+    public ClipboardSyncMode DefaultClipboardSyncMode => Settings.DefaultClipboardSyncMode;
 
     public bool StartWithWindows => Settings.StartWithWindows;
 
@@ -1077,6 +1099,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
             await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
+            await _deviceHandoff.UpdateSettingsAsync(settings, cancellationToken);
+            await _crossDeviceClipboard.UpdateSettingsAsync(settings, cancellationToken);
             await _settingsService.SaveAsync(settings, cancellationToken);
             Settings = settings;
             StatusMessage = settings.Language == previous.Language
@@ -1087,6 +1111,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             await _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None);
             await _clipboard.UpdateSettingsAsync(previous, CancellationToken.None);
+            await _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None);
+            await _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None);
             if (preflight is not null)
             {
                 try

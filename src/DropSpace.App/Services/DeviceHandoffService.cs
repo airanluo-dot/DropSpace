@@ -1,0 +1,155 @@
+using DropSpace.Core.Models;
+using DropSpace.Core.Transfer;
+using DropSpace.Infrastructure.Network;
+using Microsoft.Extensions.Logging;
+using System.Net.Sockets;
+
+namespace DropSpace.App.Services;
+
+public sealed class DeviceHandoffService(
+    DeviceIdentityStore identities,
+    DeviceSecretStore secrets,
+    DropLinkHost host,
+    DropLinkClient client,
+    TransferRepository transfers,
+    WindowsDnsSdDiscoveryService discovery,
+    FirewallCapabilityService firewall,
+    ILogger<DeviceHandoffService> logger) : IAsyncDisposable
+{
+    private IDisposable? _registration;
+    private bool _initialized;
+    private string? _unavailableReason;
+
+    public bool IsEnabled { get; private set; }
+
+    public Uri? Endpoint => host.Endpoint;
+
+    public FirewallCapability? FirewallStatus { get; private set; }
+
+    public string? UnavailableReason => _unavailableReason;
+
+    public async Task InitializeAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        if (_initialized) return;
+        _initialized = true;
+        IsEnabled = settings.EnableDeviceHandoff;
+        if (!IsEnabled) return;
+
+        try
+        {
+            var endpoint = await host.StartAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            FirewallStatus = firewall.CheckInboundCapability(endpoint.Port);
+            var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var descriptor = new DeviceDescriptor(
+                DropLinkProtocolVersion.V1,
+                identity.DeviceId,
+                identity.DisplayName,
+                identity.Platform,
+                PeerCapability.HandoffFiles | PeerCapability.HandoffFolders | PeerCapability.HandoffText |
+                PeerCapability.HandoffUrl | PeerCapability.ClipboardText | PeerCapability.ClipboardUrl |
+                PeerCapability.ClipboardImage | PeerCapability.NearbyBrowserShare,
+                identity.Fingerprint,
+                endpoint);
+            _registration = await discovery.RegisterAsync(descriptor, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is SocketException or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            _initialized = false;
+            IsEnabled = false;
+            _unavailableReason = exception.Message;
+            logger.LogWarning(exception, "DropLink LAN discovery is unavailable; direct HTTPS pairing remains available.");
+        }
+    }
+
+    public Task<IReadOnlyList<DeviceDescriptor>> DiscoverAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        discovery.BrowseAsync(timeout, cancellationToken);
+
+    public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        if (!_initialized)
+        {
+            await InitializeAsync(settings, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        if (!settings.EnableDeviceHandoff)
+        {
+            if (IsEnabled || host.IsRunning)
+            {
+                IsEnabled = false;
+                _registration?.Dispose();
+                _registration = null;
+                await host.StopAsync().ConfigureAwait(false);
+            }
+            _initialized = false;
+            return;
+        }
+
+        if (IsEnabled && host.IsRunning) return;
+        _initialized = false;
+        _unavailableReason = null;
+        await InitializeAsync(settings, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PeerDevice> PairAsync(
+        DeviceDescriptor descriptor,
+        Func<int, CancellationToken, Task<bool>>? confirmSas = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(descriptor);
+        if (descriptor.Platform != DevicePlatform.Windows) throw new PlatformNotSupportedException("DropLink v1 supports Windows peers only.");
+        return await client.PairAsync(descriptor.Endpoint, descriptor.IdentityFingerprint,
+            PeerCapability.HandoffFiles | PeerCapability.HandoffFolders | PeerCapability.HandoffText |
+            PeerCapability.HandoffUrl | PeerCapability.ClipboardText | PeerCapability.ClipboardUrl |
+            PeerCapability.ClipboardImage, confirmSas, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<TransferCompleteResponse> SendFilesAsync(
+        PeerDevice peer,
+        Uri endpoint,
+        IReadOnlyList<string> sourcePaths,
+        IProgress<TransferProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        client.SendFilesAsync(peer, endpoint, sourcePaths, progress, cancellationToken: cancellationToken);
+
+    public Task<TransferStatusResponse> ApproveTransferAsync(
+        PeerDevice peer,
+        Uri endpoint,
+        Guid sessionId,
+        bool accepted,
+        CancellationToken cancellationToken = default) =>
+        client.SetTransferApprovalAsync(peer, endpoint, sessionId, accepted, cancellationToken);
+
+    public Task<TransferStatusResponse> CancelTransferAsync(
+        PeerDevice peer,
+        Uri endpoint,
+        Guid sessionId,
+        CancellationToken cancellationToken = default) =>
+        client.CancelTransferAsync(peer, endpoint, sessionId, cancellationToken);
+
+    public Task<bool> ApproveIncomingTransferAsync(
+        Guid sessionId,
+        bool accepted,
+        CancellationToken cancellationToken = default) =>
+        host.ApproveIncomingTransferAsync(sessionId, accepted, cancellationToken);
+
+    public Task<IReadOnlyList<PeerDevice>> GetPeersAsync(CancellationToken cancellationToken = default) =>
+        transfers.GetPeersAsync(cancellationToken);
+
+    public async Task UnpairAsync(Guid peerId, CancellationToken cancellationToken = default)
+    {
+        if (peerId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(peerId));
+        await secrets.DeleteAsync(peerId, cancellationToken).ConfigureAwait(false);
+        await transfers.DeletePeerAsync(peerId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _registration?.Dispose();
+        _registration = null;
+        await discovery.DisposeAsync().ConfigureAwait(false);
+        await host.DisposeAsync().ConfigureAwait(false);
+    }
+}
