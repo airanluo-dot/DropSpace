@@ -3,12 +3,14 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Transfer;
+using System.Runtime.Versioning;
 using System.Net.Http.Json;
 
 namespace DropSpace.Infrastructure.Network;
 
 public sealed record TransferProgress(Guid SessionId, Guid ItemId, long TransferredBytes, long TotalBytes);
 
+[SupportedOSPlatform("windows")]
 public sealed class DropLinkClient(
     DeviceIdentityStore identities,
     DeviceSecretStore secrets,

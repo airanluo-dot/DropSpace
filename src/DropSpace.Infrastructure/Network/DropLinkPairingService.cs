@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using DropSpace.Core.Transfer;
@@ -40,6 +41,7 @@ public sealed class PairingHandshake : IDisposable
     public void Dispose() => Key.Dispose();
 }
 
+[SupportedOSPlatform("windows")]
 public sealed class DropLinkPairingService(DeviceIdentityStore identities, DeviceSecretStore secrets)
 {
     private readonly ConcurrentDictionary<Guid, PendingPairing> _pending = new();

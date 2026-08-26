@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -19,6 +20,7 @@ public sealed record IncomingTransferOffer(
     Guid PeerId,
     TransferManifest Manifest);
 
+[SupportedOSPlatform("windows")]
 public sealed class DropLinkHost(
     AppStoragePaths paths,
     DeviceIdentityStore identities,
