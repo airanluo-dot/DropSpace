@@ -25,7 +25,16 @@ public sealed class ShareCryptoTests
 
         var tampered = chunk.Ciphertext.ToArray();
         tampered[0] ^= 0x01;
-        Assert.ThrowsException<System.Security.Cryptography.CryptographicException>(() =>
-            crypto.DecryptChunk(master, shareId, fileId, 0, plaintext.Length, tampered, chunk.Tag, prefix));
+        var rejected = false;
+        try
+        {
+            crypto.DecryptChunk(master, shareId, fileId, 0, plaintext.Length, tampered, chunk.Tag, prefix);
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            rejected = true;
+        }
+
+        Assert.IsTrue(rejected, "Tampered ciphertext must be rejected as a cryptographic failure.");
     }
 }
