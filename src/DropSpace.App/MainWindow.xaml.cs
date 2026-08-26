@@ -60,7 +60,7 @@ public sealed partial class MainWindow : Window
                 // The Win10 base brush keeps the window opaque when Mica is unavailable.
                 // Remove it only after the optional Windows 11 backdrop has been installed so
                 // the material can show through on supported builds.
-                RootSurface.Background = new SolidColorBrush(Windows.UI.Colors.Transparent);
+                RootSurface.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             }
             catch (Exception exception)
             {
