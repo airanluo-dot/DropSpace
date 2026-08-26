@@ -808,7 +808,7 @@ public sealed partial class MainPage : Page
             _lifetime.Cancel();
             _lifetime.Dispose();
             _image.Source = null;
-            _document?.Dispose();
+            _document?.Close();
             _input?.Dispose();
         }
     }
@@ -907,26 +907,26 @@ public sealed partial class MainPage : Page
         {
             if (item.Url?.NormalizedUrl is { } normalizedUrl)
             {
-                var response = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Url, normalizedUrl, item.Title);
+                var handoffResponse = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Url, normalizedUrl, item.Title);
                 await ShowMessageAsync(
-                    response.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                    response.Accepted ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+                    handoffResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                    handoffResponse.Accepted ? _strings.Get("TransferSentContent") : handoffResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
                 return;
             }
 
             if (item.Text?.InlineText is { } inlineText)
             {
-                var response = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Text, inlineText, item.Title);
+                var handoffResponse = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Text, inlineText, item.Title);
                 await ShowMessageAsync(
-                    response.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                    response.Accepted ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+                    handoffResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                    handoffResponse.Accepted ? _strings.Get("TransferSentContent") : handoffResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
                 return;
             }
 
-            var response = await _crossDeviceClipboard.SendManualAsync(peer.Peer, peer.Endpoint, item);
+            var clipboardResponse = await _crossDeviceClipboard.SendManualAsync(peer.Peer, peer.Endpoint, item);
             await ShowMessageAsync(
-                response.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                response.Accepted ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
+                clipboardResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                clipboardResponse.Accepted ? _strings.Get("TransferSentContent") : clipboardResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
             return;
         }
 
