@@ -14,7 +14,7 @@ namespace DropSpace.Infrastructure.Network;
 public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
 {
     public static readonly IPAddress MulticastAddress = IPAddress.Parse("224.0.0.251");
-    public const int MulticastPort = 5353;
+    public static readonly int MulticastPort = 5353;
     public const string ServiceType = "_dropspace._tcp.local";
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
     private readonly object _gate = new();

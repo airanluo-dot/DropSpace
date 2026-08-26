@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
+using System.Runtime.Versioning;
 using DropSpace.Core.Transfer;
 using DropSpace.Infrastructure.Network;
 
 namespace DropSpace.Infrastructure.Tests;
 
 [TestClass]
+[SupportedOSPlatform("windows")]
 public sealed class DropLinkPairingProtocolTests
 {
     [TestMethod]
@@ -22,16 +24,21 @@ public sealed class DropLinkPairingProtocolTests
     [TestMethod]
     public void PairingStateIncludesBilateralAndTerminalStates()
     {
-        Assert.AreEqual(1, (int)PairingState.Created);
-        Assert.AreEqual(2, (int)PairingState.HelloExchanged);
-        Assert.AreEqual(3, (int)PairingState.AwaitingLocalSasConfirmation);
-        Assert.AreEqual(4, (int)PairingState.LocalConfirmed);
-        Assert.AreEqual(5, (int)PairingState.RemoteConfirmed);
-        Assert.AreEqual(6, (int)PairingState.Trusted);
-        Assert.AreEqual(7, (int)PairingState.Rejected);
-        Assert.AreEqual(8, (int)PairingState.Expired);
-        Assert.AreEqual(9, (int)PairingState.Cancelled);
-        Assert.AreEqual(10, (int)PairingState.Failed);
+        var expected = new[]
+        {
+            PairingState.Created,
+            PairingState.HelloExchanged,
+            PairingState.AwaitingLocalSasConfirmation,
+            PairingState.LocalConfirmed,
+            PairingState.RemoteConfirmed,
+            PairingState.Trusted,
+            PairingState.Rejected,
+            PairingState.Expired,
+            PairingState.Cancelled,
+            PairingState.Failed,
+        };
+
+        CollectionAssert.AreEqual(expected, Enum.GetValues<PairingState>());
     }
 
     private static PairingHello Hello(Guid id, string name, byte nonceByte)

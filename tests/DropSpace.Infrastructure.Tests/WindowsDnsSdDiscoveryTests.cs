@@ -37,7 +37,8 @@ public sealed class WindowsDnsSdDiscoveryTests
         Assert.AreEqual(0, BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(4, 2)));
         Assert.AreEqual(4, BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(6, 2)));
         var parsed = WindowsDnsSdDiscoveryService.ParseAnnouncement(packet);
-        var result = Assert.Single(parsed);
+        Assert.AreEqual(1, parsed.Count);
+        var result = parsed[0];
         Assert.AreEqual(id, result.DeviceId);
         Assert.AreEqual(descriptor.DisplayName, result.DisplayName);
         Assert.AreEqual(descriptor.Endpoint.Port, result.Endpoint.Port);
