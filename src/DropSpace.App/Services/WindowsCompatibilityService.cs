@@ -140,22 +140,13 @@ internal sealed class WindowsAppRuntimeDependencyProbe(IApiAvailabilityService a
 {
     public RuntimeDependencyState Probe()
     {
-        try
-        {
-            return api.IsTypePresent("Microsoft.UI.Xaml.Application")
-                ? new RuntimeDependencyState(
-                    CompatibilityStatus.Available,
-                    "Microsoft Windows App SDK XAML runtime is available.")
-                : new RuntimeDependencyState(
-                    CompatibilityStatus.MissingRuntime,
-                    "Microsoft Windows App SDK XAML runtime is not available.");
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
-        {
-            return new RuntimeDependencyState(
-                CompatibilityStatus.FailedRecoverably,
-                $"Windows App SDK runtime probing failed: {exception.GetType().Name}.");
-        }
+        // WinAppSDK managed types are not Windows Runtime metadata types, so
+        // ApiInformation.IsTypePresent cannot be used to probe Microsoft.UI.Xaml.
+        // Reaching this service means the WinUI application assembly has already
+        // loaded; optional OS capabilities are probed separately below.
+        return new RuntimeDependencyState(
+            CompatibilityStatus.Available,
+            "Microsoft Windows App SDK XAML runtime is loaded.");
     }
 }
 
