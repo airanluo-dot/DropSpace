@@ -17,6 +17,14 @@ on:
     branches: [main]
     paths:
       - RELEASE_VERSION
+      - .github/workflows/release.yml
+      - .github/release-notes/**
+      - branding/**
+      - scripts/**
+      - installer/**
+      - identity/**
+      - src/**
+      - tests/**
   workflow_dispatch:
 
 concurrency:
