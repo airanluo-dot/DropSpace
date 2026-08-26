@@ -5,7 +5,7 @@ namespace DropSpace.Infrastructure.Actions;
 
 public sealed class QrCodeActionService : IItemAction
 {
-    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.GenerateQr, "ActionGenerateQr", "QrCode", ItemActionGroup.Share, 20, true, false);
+    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.GenerateQr, "ActionGenerateQr.Text", "QrCode", ItemActionGroup.Share, 20, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {

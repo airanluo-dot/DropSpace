@@ -320,13 +320,9 @@
   <data name="PreviewUnavailable" xml:space="preserve"><value>No bounded preview is available for this item.</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>The action completed successfully.</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>This action is unavailable for the current selection.</value></data>
-  <data name="ActionHashSha256" xml:space="preserve"><value>Calculate SHA-256 hash</value></data>
   <data name="ActionHashSha256.Text" xml:space="preserve"><value>Calculate SHA-256 hash</value></data>
-  <data name="ActionCompressZip" xml:space="preserve"><value>Compress as ZIP</value></data>
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>Compress as ZIP</value></data>
-  <data name="ActionGenerateQr" xml:space="preserve"><value>Generate QR code</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>Generate QR code</value></data>
-  <data name="ActionResizeImageLabel" xml:space="preserve"><value>Resize or convert image</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>Resize or convert image</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows-to-Windows handoff and clipboard sync are opt-in. Nearby links stay on a private network; Internet Share needs an explicitly configured HTTPS backend.</value></data>

@@ -320,13 +320,9 @@
   <data name="PreviewUnavailable" xml:space="preserve"><value>此项目没有可用的受限预览。</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>操作已成功完成。</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>当前选择无法使用此操作。</value></data>
-  <data name="ActionHashSha256" xml:space="preserve"><value>计算 SHA-256 哈希</value></data>
   <data name="ActionHashSha256.Text" xml:space="preserve"><value>计算 SHA-256 哈希</value></data>
-  <data name="ActionCompressZip" xml:space="preserve"><value>压缩为 ZIP</value></data>
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>压缩为 ZIP</value></data>
-  <data name="ActionGenerateQr" xml:space="preserve"><value>生成二维码</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>生成二维码</value></data>
-  <data name="ActionResizeImageLabel" xml:space="preserve"><value>调整大小或转换图像</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整大小或转换图像</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>

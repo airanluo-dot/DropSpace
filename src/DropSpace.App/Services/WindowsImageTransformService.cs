@@ -81,7 +81,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
 public sealed class ImageTransformActionService(IImageTransformService transforms) : IItemAction
 {
-    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ResizeImage, "ActionResizeImageLabel", "ResizeImage", ItemActionGroup.Transform, 20, true, false);
+    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ResizeImage, "ActionResizeImageMenuItem.Text", "ResizeImage", ItemActionGroup.Transform, 20, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {

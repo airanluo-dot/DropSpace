@@ -5,7 +5,7 @@ namespace DropSpace.Infrastructure.Actions;
 
 public sealed class HashActionService : IItemAction
 {
-    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.HashSha256, "ActionHashSha256", "Hash", ItemActionGroup.General, 40, true, false);
+    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.HashSha256, "ActionHashSha256.Text", "Hash", ItemActionGroup.General, 40, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {

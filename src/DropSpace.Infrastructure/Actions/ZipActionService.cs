@@ -8,7 +8,7 @@ public sealed class ZipActionService : IItemAction
     private const int MaximumEntries = 10_000;
     private const long MaximumBytes = 64L * 1024 * 1024 * 1024;
 
-    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.CompressZip, "ActionCompressZip", "ZipFolder", ItemActionGroup.Transform, 30, false, false);
+    public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.CompressZip, "ActionCompressZip.Text", "ZipFolder", ItemActionGroup.Transform, 30, false, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
