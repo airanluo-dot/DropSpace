@@ -6,6 +6,7 @@ using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;

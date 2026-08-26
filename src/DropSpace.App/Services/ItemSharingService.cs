@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Core.Transfer;
 using DropSpace.Infrastructure.Sharing;
 using Microsoft.Extensions.Logging;
 
