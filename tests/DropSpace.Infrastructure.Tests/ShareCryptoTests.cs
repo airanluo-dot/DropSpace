@@ -25,7 +25,7 @@ public sealed class ShareCryptoTests
 
         var tampered = chunk.Ciphertext.ToArray();
         tampered[0] ^= 0x01;
-        Assert.ThrowsExactly<System.Security.Cryptography.CryptographicException>(() =>
+        Assert.ThrowsException<System.Security.Cryptography.CryptographicException>(() =>
             crypto.DecryptChunk(master, shareId, fileId, 0, plaintext.Length, tampered, chunk.Tag, prefix));
     }
 }
