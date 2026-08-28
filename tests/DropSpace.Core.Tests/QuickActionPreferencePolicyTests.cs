@@ -65,7 +65,7 @@ public sealed class QuickActionPreferencePolicyTests
     {
         var preference = new QuickActionPreference(false, ItemActionId.HashSha256, ItemActionId.HashSha256, null);
 
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => preference.Validate());
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => preference.Validate());
     }
 
     private static ItemSelectionSnapshot Selection(ItemKind kind) => new([Snapshot(kind)]);
