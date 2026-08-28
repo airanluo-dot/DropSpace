@@ -44,6 +44,12 @@ public sealed class MaintenanceShutdownService(
                 {
                     logger.LogInformation("A maintenance shutdown was requested by Setup or the uninstaller.");
                     await dispatcher.EnqueueAsync(shutdown);
+                    // ShutdownAsync disposes the application services, but the named
+                    // process mutex is owned by this cross-process coordinator rather
+                    // than by the DI container. Release it before acknowledging the
+                    // stopped event so Setup never mistakes the final CLR/WinUI teardown
+                    // window for a still-running DropSpace instance.
+                    ReleaseRunningMutex();
                     _stoppedEvent.Set();
                     Environment.Exit(0);
                 }
@@ -56,6 +62,12 @@ public sealed class MaintenanceShutdownService(
             null,
             Timeout.InfiniteTimeSpan,
             executeOnlyOnce: false);
+    }
+
+    private void ReleaseRunningMutex()
+    {
+        var runningMutex = Interlocked.Exchange(ref _runningMutex, null);
+        runningMutex?.Dispose();
     }
 
     public static async Task<int> RequestRunningInstanceAsync(
