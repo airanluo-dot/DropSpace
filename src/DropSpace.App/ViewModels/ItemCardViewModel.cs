@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Models;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage;
@@ -22,6 +24,8 @@ public sealed class ItemCardViewModel : ObservableObject
         _item = item;
         _strings = strings;
     }
+
+    public ObservableCollection<QuickActionButtonViewModel> PrimaryQuickActions { get; } = [];
 
     public DropItem Item
     {

@@ -178,6 +178,24 @@
                       Foreground="#AFFFFFFF"
                       Text="{Binding Preview}"
                       TextTrimming="CharacterEllipsis" />
+                    <ItemsControl ItemsSource="{Binding PrimaryQuickActions}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Spacing="4" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Button
+                            AutomationProperties.Name="{Binding AutomationName}"
+                            Click="OnPrimaryQuickActionClicked"
+                            Content="{Binding Label}"
+                            Foreground="White"
+                            Padding="6,2"
+                            Tag="{Binding}" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                   </StackPanel>
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
                     <Button

@@ -69,6 +69,8 @@ Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.i
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "explorercontext"; Description: "Add Send to DropSpace to File Explorer"; GroupDescription: "Windows integration:"
+Name: "sendtointegration"; Description: "Add DropSpace to the Windows Send To menu"; GroupDescription: "Windows integration:"
 
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "DropSpace.exe"; Flags: ignoreversion
@@ -80,11 +82,17 @@ Source: "DropSpace.Identity.ps1"; DestDir: "{app}"; DestName: "DropSpace.Identit
 [Icons]
 Name: "{autoprograms}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0
 Name: "{autodesktop}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0; Tasks: desktopicon
+Name: "{usersendto}\DropSpace"; Filename: "{app}\DropSpace.exe"; Parameters: "--shell-add --source sendto --"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0; Tasks: sendtointegration
 
 [Registry]
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"; Flags: uninsdeletekey
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: dword; ValueName: "VersionCode"; ValueData: "{#VersionCode}"; Flags: uninsdeletekey
+Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Send to DropSpace"; Flags: uninsdeletekey; Tasks: explorercontext
+Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\DropSpace.exe,0"; Flags: uninsdeletekey; Tasks: explorercontext
+Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Flags: uninsdeletekey; Tasks: explorercontext
+Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"; ValueType: none; ValueName: "NeverDefault"; Flags: uninsdeletekey; Tasks: explorercontext
+Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace\command"; ValueType: string; ValueName: ""; ValueData: """{app}\DropSpace.exe"" --shell-add --source explorer-context-menu ""%1"""; Flags: uninsdeletekey; Tasks: explorercontext
 
 [Run]
 #ifdef IdentityPackage
@@ -235,8 +243,21 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurStep = ssPostInstall then
+  if CurStep = ssInstall then
+  begin
+    { Task selections are authoritative before installation starts.  Remove
+      only stale DropSpace integration points when a user turns a task off;
+      selected [Registry]/[Icons] entries are then created by Setup. }
+    Log('DropSpace task selection before install: ' + WizardSelectedTasks(False));
+    if not WizardIsTaskSelected('explorercontext') then
+      RegDeleteKeyIncludingSubkeys(HKCU64, 'Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace');
+    if not WizardIsTaskSelected('sendtointegration') then
+      DeleteFile(ExpandConstant('{usersendto}\DropSpace.lnk'));
+  end
+  else if CurStep = ssPostInstall then
+  begin
     SaveStringToFile(ExpandConstant('{app}\install.version'), '{#AppVersion}', False);
+  end;
 end;
 
 function InitializeUninstall: Boolean;

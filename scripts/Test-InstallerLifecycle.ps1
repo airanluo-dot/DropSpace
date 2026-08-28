@@ -53,6 +53,9 @@ $dataRoot = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]:
 $startMenuShortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\DropSpace.lnk"
 $desktopShortcut = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)) "DropSpace.lnk"
 $customRegistryPath = "HKCU:\Software\DropSpace\Install"
+$shellVerbPath = "HKCU:\Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace"
+$shellVerbCommandPath = "$shellVerbPath\command"
+$sendToShortcut = Join-Path $env:APPDATA "Microsoft\Windows\SendTo\DropSpace.lnk"
 $startupRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $runningProcess = $null
 $restartProcess = $null
@@ -275,7 +278,8 @@ try
     try
     {
         Invoke-CheckedProcess $currentInstallerPath @(
-            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE"
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE",
+            "/MERGETASKS=explorercontext,sendtointegration"
         ) "in-place /UPDATE upgrade" (Join-Path $testRoot "upgrade.log")
     }
     catch
@@ -296,6 +300,27 @@ try
     if ([System.IO.Path]::GetFullPath((Get-ItemProperty $customRegistryPath).InstallPath) -ne [System.IO.Path]::GetFullPath($installPath))
     {
         throw "In-place upgrade reset the selected installation path."
+    }
+    if (-not (Test-Path $shellVerbPath) -or -not (Test-Path $sendToShortcut))
+    {
+        $upgradeLogPath = Join-Path $testRoot "upgrade.log"
+        if (Test-Path $upgradeLogPath -PathType Leaf)
+        {
+            Write-Host "---- in-place upgrade log tail ----"
+            Get-Content $upgradeLogPath -Tail 160 | Write-Host
+        }
+        throw "In-place upgrade did not create both Windows shell integrations."
+    }
+    if ((Get-ItemPropertyValue -Path $shellVerbPath -Name "MUIVerb") -ne "Send to DropSpace" -or
+        (Get-ItemPropertyValue -Path $shellVerbPath -Name "MultiSelectModel") -ne "Player" -or
+        (Get-ItemPropertyValue -Path $shellVerbPath -Name "Icon") -notlike "*$installedExe,0")
+    {
+        throw "Explorer shell verb metadata is invalid."
+    }
+    $shellCommand = (Get-Item $shellVerbCommandPath).GetValue("")
+    if ($shellCommand -notlike "*`"$installedExe`"*--shell-add*--source explorer-context-menu*")
+    {
+        throw "Explorer shell verb command does not target the current installation."
     }
 
     $restartDeadline = [DateTime]::UtcNow.AddSeconds(45)
@@ -368,6 +393,10 @@ try
     {
         throw "Normal uninstall left shortcuts behind."
     }
+    if ((Test-Path $shellVerbPath) -or (Test-Path $sendToShortcut))
+    {
+        throw "Normal uninstall left Windows shell integrations behind."
+    }
     if ($null -ne (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction SilentlyContinue))
     {
         throw "Normal uninstall left the DropSpace startup registration behind."
@@ -391,7 +420,8 @@ try
         throw "Complete uninstall deleted an external sentinel representing a user original file."
     }
     if ($null -ne (Get-UninstallEntry) -or (Test-Path $customRegistryPath) -or
-        (Test-Path $startMenuShortcut) -or (Test-Path $desktopShortcut))
+        (Test-Path $startMenuShortcut) -or (Test-Path $desktopShortcut) -or
+        (Test-Path $shellVerbPath) -or (Test-Path $sendToShortcut))
     {
         throw "Complete uninstall left DropSpace-owned registry or shortcut state behind."
     }

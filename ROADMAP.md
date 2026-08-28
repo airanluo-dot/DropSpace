@@ -550,3 +550,10 @@ at runtime. The required historical Windows, DPI, monitor, Explorer/provider,
 and existing network/browser evidence is recorded in
 [compatibility-baseline.md](compatibility-baseline.md) and remains conditional
 until executable evidence is attached.
+
+## v0.3.0-preview.9 delivery slice
+
+- Ship Installer-only per-user Explorer and SendTo intake with one bounded, single-instance shell contract and no-focus acknowledgements.
+- Ship capability-driven custom Quick Actions for File, Image, Text, and URL profiles, with three primary slots, Automatic defaults, and shared Main/Quick Panel projection.
+- Ship one eight-second Undo coordinator for remove/clear/pin operations, schema-3 pending-delete persistence, startup recovery, graceful finalization, and source/payload safety tests.
+- Keep the release conditional until the hosted Windows build plus the real Explorer/SendTo, DPI, startup, installer upgrade/uninstall, and manual Undo matrix has executable evidence. Linux static checks do not substitute for that matrix.

@@ -228,6 +228,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
+    public Task ResetCaptureSequenceAsync(CancellationToken cancellationToken = default) =>
+        _consecutiveCaptures.ResetAsync(cancellationToken);
+
     public async Task CopyTextAsync(string text, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);

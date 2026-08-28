@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
@@ -855,6 +856,27 @@ public sealed partial class OverlayWindow : Window
         catch (Exception exception)
         {
             _logger.LogInformation(exception, "Overlay remove action failed.");
+        }
+    }
+
+    private async void OnPrimaryQuickActionClicked(object sender, RoutedEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction })
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _viewModel.ExecuteQuickActionAsync(quickAction);
+            if (!result.Succeeded)
+            {
+                _logger.LogInformation("Overlay quick action was unavailable.");
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogInformation(exception, "Overlay quick action failed.");
         }
     }
 

@@ -395,4 +395,24 @@ Nothing will be opened automatically.</value></data>
   <data name="PdfPreviousPage" xml:space="preserve"><value>Previous</value></data>
   <data name="PdfNextPage" xml:space="preserve"><value>Next</value></data>
   <data name="PdfPageIndicator" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="QuickActionsSection" xml:space="preserve"><value>Quick Actions</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>Choose up to three actions shown directly on each item. Automatic follows the available action registry; unavailable choices are skipped safely.</value></data>
+  <data name="QuickActionFiles" xml:space="preserve"><value>Files and folders</value></data>
+  <data name="QuickActionImages" xml:space="preserve"><value>Images</value></data>
+  <data name="QuickActionText" xml:space="preserve"><value>Text and code</value></data>
+  <data name="QuickActionUrls" xml:space="preserve"><value>URLs</value></data>
+  <data name="QuickActionAutomatic" xml:space="preserve"><value>Use Automatic action order</value></data>
+  <data name="QuickActionNone" xml:space="preserve"><value>None</value></data>
+  <data name="QuickActionSlot" xml:space="preserve"><value>Primary slot {0}</value></data>
+  <data name="ResetQuickActions" xml:space="preserve"><value>Reset this profile</value></data>
+  <data name="ResetAllQuickActions" xml:space="preserve"><value>Reset all Quick Actions</value></data>
+  <data name="UndoButton.Text" xml:space="preserve"><value>Undo</value></data>
+  <data name="UndoRemovedItem" xml:space="preserve"><value>Item removed. Undo is available for 8 seconds.</value></data>
+  <data name="UndoRemovedItems" xml:space="preserve"><value>{0} items removed. Undo is available for 8 seconds.</value></data>
+  <data name="UndoClearedItems" xml:space="preserve"><value>{0} Clipboard items cleared. Undo is available for 8 seconds.</value></data>
+  <data name="UndoPinned" xml:space="preserve"><value>{0} item(s) pinned. Undo is available for 8 seconds.</value></data>
+  <data name="UndoUnpinned" xml:space="preserve"><value>{0} item(s) unpinned. Undo is available for 8 seconds.</value></data>
+  <data name="UndoCompleted" xml:space="preserve"><value>Undo completed.</value></data>
+  <data name="ShellIntakeAdded" xml:space="preserve"><value>Added to DropSpace</value></data>
+  <data name="ShellIntakeAddedCount" xml:space="preserve"><value>Added {0} items to DropSpace</value></data>
 </root>

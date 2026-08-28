@@ -226,3 +226,9 @@ Version: design-baseline-2026-08-07
 ## 3.0 Preview network boundary
 
 Network features are opt-in. DropLink sends only authenticated pairing/transfer data to a trusted Windows peer over pinned HTTPS. Cross-device clipboard is disabled by default and has per-peer modes plus a bounded content-hash loop guard. Nearby Share exposes only expiring, tokenized ciphertext/plain local items on a private LAN. Internet Share encrypts payloads before upload; the Worker/R2 backend receives opaque objects and never receives the URL-fragment key. A deployment that lacks an explicitly configured backend is reported as unavailable. See [the network threat model](docs/security/network-threat-model.md).
+
+## Preview.9 shell and Undo boundary
+
+Shell intake receives only the filesystem paths supplied by Explorer/SendTo, validates bounded input, and routes references through the existing local file-reference service. It does not copy or move source data, write Clipboard History, or log paths/filenames. The per-user registry verb and SendTo shortcut are the only Installer-owned shell entries; Portable does not create persistent registration.
+
+Undo stores a token and expiry in the local SQLite row rather than making a second source copy. Pending rows are hidden while the eight-second window is active. On finalization, only payload files under the DropSpace-owned payload root are eligible for cleanup; original source files are never passed to the payload deletion boundary. Pin Undo stores only the previous boolean state in memory.

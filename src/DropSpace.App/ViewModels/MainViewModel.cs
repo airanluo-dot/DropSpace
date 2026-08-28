@@ -4,10 +4,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.Core.Collections;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Core.Preview;
 using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
+using DropSpace.Core.Undo;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using PlacementMode = DropSpace.Core.Models.OverlayPlacementMode;
@@ -17,6 +20,8 @@ namespace DropSpace.App.ViewModels;
 public sealed class MainViewModel : ObservableObject, IDisposable
 {
     private readonly IItemRepository _repository;
+    private readonly IItemActionRegistry _actions;
+    private readonly UndoCoordinator _undo;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
     private readonly IFileReferenceService _fileReferences;
@@ -53,10 +58,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private AppSettings _settings = new();
     private string _storageSummary = string.Empty;
     private UpdateStatusSnapshot _updateStatus;
+    private UndoOperationKind? _lastUndoKind;
+    private bool _undoRequested;
     private bool _disposed;
 
     public MainViewModel(
         IItemRepository repository,
+        IItemActionRegistry actions,
+        UndoCoordinator undo,
         ISettingsService settingsService,
         IPayloadStore payloadStore,
         IFileReferenceService fileReferences,
@@ -78,6 +87,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ILogger<MainViewModel> logger)
     {
         _repository = repository;
+        _actions = actions;
+        _undo = undo;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
         _fileReferences = fileReferences;
@@ -105,6 +116,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _clipboard.ItemCaptured += OnItemCaptured;
         _clipboard.StatusChanged += OnClipboardStatusChanged;
         _updates.StatusChanged += OnUpdateStatusChanged;
+        _undo.StateChanged += OnUndoStateChanged;
     }
 
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
@@ -163,6 +175,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+
+    public UndoState? UndoState => _undo.State;
+
+    public bool HasUndo => UndoState is not null;
+
+    public string UndoMessage => UndoState switch
+    {
+        null => string.Empty,
+        { MessageResourceKey: "UndoRemovedItem" } => _strings.Get("UndoRemovedItem"),
+        { MessageResourceKey: var key } state => _strings.Format(key, state.ItemCount),
+    };
 
     public string ClipboardStatusText
     {
@@ -263,6 +286,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(Language));
                 OnPropertyChanged(nameof(LastUpdateCheckText));
                 OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
+                foreach (var card in Items)
+                {
+                    RefreshPrimaryQuickActions(card);
+                }
             }
         }
     }
@@ -556,6 +583,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         await _startupRegistration.SetEnabledAsync(Settings.StartWithWindows, cancellationToken);
         await _repository.InitializeAsync(cancellationToken);
+        await _undo.RecoverStaleAsync(cancellationToken);
         await RefreshSpaceItemCountAsync(cancellationToken);
         await _clipboard.InitializeAsync(cancellationToken);
         ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
@@ -693,6 +721,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             foreach (var item in items)
             {
                 var card = new ItemCardViewModel(item, _strings);
+                RefreshPrimaryQuickActions(card);
                 Items.Add(card);
                 _ = LoadThumbnailSafelyAsync(card, cancellationToken);
             }
@@ -869,15 +898,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task TogglePinAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        await _repository.SetPinnedAsync(card.Id, !card.IsPinned, cancellationToken);
+        await _undo.FinalizeActiveAsync(cancellationToken);
+        var previousState = card.IsPinned;
+        var nextState = !previousState;
+        await _repository.SetPinnedAsync(card.Id, nextState, cancellationToken);
+        await _undo.RegisterPinChangeAsync(
+            new Dictionary<Guid, bool> { [card.Id] = previousState },
+            nextState ? "UndoPinned" : "UndoUnpinned",
+            cancellationToken);
         var refreshed = await _repository.GetAsync(card.Id, cancellationToken);
         if (refreshed is not null)
         {
             card.Update(refreshed);
+            RefreshPrimaryQuickActions(card);
             var projectedCard = Items.FirstOrDefault(item => item.Id == refreshed.Id);
             if (projectedCard is not null && !ReferenceEquals(projectedCard, card))
             {
                 projectedCard.Update(refreshed);
+                RefreshPrimaryQuickActions(projectedCard);
             }
         }
 
@@ -904,10 +942,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
         var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
         var pin = members.Any(item => !item.IsPinned);
+        var previousStates = members.ToDictionary(item => item.Id, item => item.IsPinned);
+        await _undo.FinalizeActiveAsync(cancellationToken);
         foreach (var member in members)
         {
             await _repository.SetPinnedAsync(member.Id, pin, cancellationToken);
         }
+        await _undo.RegisterPinChangeAsync(
+            previousStates,
+            pin ? "UndoPinned" : "UndoUnpinned",
+            cancellationToken);
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
     }
@@ -920,14 +964,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
         var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
-        foreach (var member in members)
+        if (members.Count == 0)
         {
-            var payloadPath = await _repository.RemoveAsync(member.Id, cancellationToken);
-            if (payloadPath is not null)
-            {
-                await _payloadStore.DeleteAsync(payloadPath, cancellationToken);
-            }
+            return;
         }
+        await _undo.BeginRemovalAsync(
+            members.Select(member => member.Id).ToArray(),
+            UndoOperationKind.RemoveBatch,
+            "UndoRemovedItems",
+            cancellationToken);
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
     }
@@ -965,18 +1010,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task RemoveAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        var payloadPath = await _repository.RemoveAsync(card.Id, cancellationToken);
-        if (payloadPath is not null)
-        {
-            try
-            {
-                await _payloadStore.DeleteAsync(payloadPath, cancellationToken);
-            }
-            catch (IOException exception)
-            {
-                _logger.LogWarning(exception, "Deferred payload cleanup failed after record removal.");
-            }
-        }
+        await _undo.BeginRemovalAsync(
+            [card.Id],
+            UndoOperationKind.RemoveItem,
+            "UndoRemovedItem",
+            cancellationToken);
 
         ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
         ItemCount = Items.Count;
@@ -1001,7 +1039,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var items = await _repository.QueryAsync(
             new ItemQuery(Source: ItemSource.Space, Limit: limit),
             cancellationToken);
-        var cards = items.Select(item => new ItemCardViewModel(item, _strings)).ToArray();
+        var cards = items.Select(item =>
+        {
+            var card = new ItemCardViewModel(item, _strings);
+            RefreshPrimaryQuickActions(card);
+            return card;
+        }).ToArray();
         await Task.WhenAll(cards.Select(card => LoadThumbnailSafelyAsync(card, cancellationToken)));
         return cards;
     }
@@ -1054,6 +1097,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (refreshed is not null)
         {
             card.Update(refreshed);
+            RefreshPrimaryQuickActions(card);
             card.DragStorageItem = null;
             await LoadThumbnailSafelyAsync(card, cancellationToken);
         }
@@ -1132,18 +1176,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)
     {
         var fromUtc = GetClearFromUtc(range);
-        var result = await _clipboard.ClearHistoryAsync(fromUtc, includePinned: false, cancellationToken);
-        foreach (var path in result.PayloadPaths)
-        {
-            try
-            {
-                await _payloadStore.DeleteAsync(path, cancellationToken);
-            }
-            catch (IOException exception)
-            {
-                _logger.LogWarning(exception, "Deferred payload cleanup failed after clear-history.");
-            }
-        }
+        var state = await _undo.BeginClipboardClearAsync(
+            fromUtc,
+            includePinned: false,
+            "UndoClearedItems",
+            cancellationToken);
+        await _clipboard.ResetCaptureSequenceAsync(cancellationToken);
+        var result = new ClearResult(state?.ItemCount ?? 0, Array.Empty<string>());
 
         StatusMessage = _strings.Format("ItemsCleared", result.RemovedCount);
         if (CurrentSection is "Clipboard" or "Pinned")
@@ -1152,6 +1191,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         return result;
+    }
+
+    public async Task<bool> UndoAsync(CancellationToken cancellationToken = default)
+    {
+        _undoRequested = true;
+        bool undone;
+        try
+        {
+            undone = await _undo.UndoAsync(cancellationToken);
+        }
+        finally
+        {
+            _undoRequested = false;
+        }
+        if (!undone)
+        {
+            return false;
+        }
+
+        StatusMessage = _strings.Get("UndoCompleted");
+        if (!IsSettingsVisible)
+        {
+            await ReloadAsync(cancellationToken);
+        }
+
+        await PublishSpaceProjectionChangedAsync(cancellationToken);
+        return true;
     }
 
     public async Task<int> GetClearPreviewCountAsync(ClearRange range, CancellationToken cancellationToken = default)
@@ -1189,6 +1255,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _clipboard.ItemCaptured -= OnItemCaptured;
         _clipboard.StatusChanged -= OnClipboardStatusChanged;
         _updates.StatusChanged -= OnUpdateStatusChanged;
+        _undo.StateChanged -= OnUndoStateChanged;
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();
         _disposed = true;
@@ -1213,6 +1280,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 cancellationToken);
             item = (await _repository.GetAsync(item.Id, cancellationToken))!;
             card.Update(item);
+            RefreshPrimaryQuickActions(card);
         }
 
         return item;
@@ -1295,11 +1363,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 if (existing is not null)
                 {
                     existing.Update(item);
+                    RefreshPrimaryQuickActions(existing);
                     Items.Move(Items.IndexOf(existing), 0);
                 }
                 else
                 {
                     var card = new ItemCardViewModel(item, _strings);
+                    RefreshPrimaryQuickActions(card);
                     Items.Insert(0, card);
                     _ = LoadThumbnailSafelyAsync(card, CancellationToken.None);
                 }
@@ -1331,6 +1401,98 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         else
         {
             _dispatcher.TryEnqueue(() => UpdateStatus = status);
+        }
+    }
+
+    private void OnUndoStateChanged(object? sender, EventArgs args)
+    {
+        var state = _undo.State;
+        var wasRemoval = _lastUndoKind is UndoOperationKind.RemoveItem or
+            UndoOperationKind.RemoveBatch or UndoOperationKind.ClearClipboard;
+        _lastUndoKind = state?.Kind;
+
+        void Apply()
+        {
+            OnPropertyChanged(nameof(UndoState));
+            OnPropertyChanged(nameof(HasUndo));
+            OnPropertyChanged(nameof(UndoMessage));
+            if (state is null && wasRemoval && !_undoRequested)
+            {
+                _ = RefreshAfterUndoFinalizationAsync();
+            }
+        }
+
+        if (_dispatcher.HasThreadAccess)
+        {
+            Apply();
+        }
+        else
+        {
+            _dispatcher.TryEnqueue(Apply);
+        }
+    }
+
+    private async Task RefreshAfterUndoFinalizationAsync()
+    {
+        try
+        {
+            if (!IsSettingsVisible)
+            {
+                await ReloadAsync(CancellationToken.None);
+            }
+
+            await PublishSpaceProjectionChangedAsync(CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(exception, "The item projection could not refresh after Undo finalization.");
+        }
+    }
+
+    public QuickActionPartition EvaluateQuickActions(ItemCardViewModel card)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        var selection = new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]);
+        return QuickActionPreferencePolicy.Partition(
+            _actions.Evaluate(selection),
+            selection,
+            Settings.QuickActionPreferences);
+    }
+
+    public async Task<ItemActionResult> ExecuteQuickActionAsync(
+        ItemCardViewModel card,
+        ItemActionId actionId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        var selection = new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]);
+        var capability = _actions.Evaluate(selection)
+            .FirstOrDefault(candidate => candidate.Descriptor.Id == actionId && candidate.IsAvailable);
+        if (capability is null)
+        {
+            return ItemActionResult.Failure("action-unavailable", "ActionUnavailable");
+        }
+
+        var result = await _actions.ExecuteAsync(
+                actionId,
+                new ItemActionContext(selection, CancellationToken: cancellationToken),
+                cancellationToken);
+        if (!string.IsNullOrWhiteSpace(result.MessageResourceKey))
+        {
+            StatusMessage = _strings.Get(result.MessageResourceKey);
+        }
+
+        return result;
+    }
+
+    public void RefreshPrimaryQuickActions(ItemCardViewModel card)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        var partition = EvaluateQuickActions(card);
+        card.PrimaryQuickActions.Clear();
+        foreach (var capability in partition.Primary)
+        {
+            card.PrimaryQuickActions.Add(new QuickActionButtonViewModel(card, capability, _strings));
         }
     }
 

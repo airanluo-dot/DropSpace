@@ -395,4 +395,24 @@
   <data name="PdfPreviousPage" xml:space="preserve"><value>上一页</value></data>
   <data name="PdfNextPage" xml:space="preserve"><value>下一页</value></data>
   <data name="PdfPageIndicator" xml:space="preserve"><value>第 {0} 页，共 {1} 页</value></data>
+  <data name="QuickActionsSection" xml:space="preserve"><value>快捷操作</value></data>
+  <data name="QuickActionsDescription" xml:space="preserve"><value>为每项内容选择最多三个直接显示的操作。“自动”会遵循可用操作注册表；不可用的选择会被安全跳过。</value></data>
+  <data name="QuickActionFiles" xml:space="preserve"><value>文件和文件夹</value></data>
+  <data name="QuickActionImages" xml:space="preserve"><value>图像</value></data>
+  <data name="QuickActionText" xml:space="preserve"><value>文本和代码</value></data>
+  <data name="QuickActionUrls" xml:space="preserve"><value>网址</value></data>
+  <data name="QuickActionAutomatic" xml:space="preserve"><value>使用自动操作顺序</value></data>
+  <data name="QuickActionNone" xml:space="preserve"><value>无</value></data>
+  <data name="QuickActionSlot" xml:space="preserve"><value>主操作槽位 {0}</value></data>
+  <data name="ResetQuickActions" xml:space="preserve"><value>重置此配置</value></data>
+  <data name="ResetAllQuickActions" xml:space="preserve"><value>重置所有快捷操作</value></data>
+  <data name="UndoButton.Text" xml:space="preserve"><value>撤销</value></data>
+  <data name="UndoRemovedItem" xml:space="preserve"><value>项目已移除，可在 8 秒内撤销。</value></data>
+  <data name="UndoRemovedItems" xml:space="preserve"><value>已移除 {0} 项，可在 8 秒内撤销。</value></data>
+  <data name="UndoClearedItems" xml:space="preserve"><value>已清除 {0} 项剪贴板内容，可在 8 秒内撤销。</value></data>
+  <data name="UndoPinned" xml:space="preserve"><value>已固定 {0} 项，可在 8 秒内撤销。</value></data>
+  <data name="UndoUnpinned" xml:space="preserve"><value>已取消固定 {0} 项，可在 8 秒内撤销。</value></data>
+  <data name="UndoCompleted" xml:space="preserve"><value>撤销已完成。</value></data>
+  <data name="ShellIntakeAdded" xml:space="preserve"><value>已添加到 DropSpace</value></data>
+  <data name="ShellIntakeAddedCount" xml:space="preserve"><value>已将 {0} 项添加到 DropSpace</value></data>
 </root>
