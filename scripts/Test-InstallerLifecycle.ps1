@@ -279,7 +279,7 @@ try
     {
         Invoke-CheckedProcess $currentInstallerPath @(
             "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE",
-            "/TASKS=desktopicon,explorercontext,sendtointegration"
+            "/MERGETASKS=explorercontext,sendtointegration"
         ) "in-place /UPDATE upgrade" (Join-Path $testRoot "upgrade.log")
     }
     catch
