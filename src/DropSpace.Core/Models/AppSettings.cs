@@ -1,3 +1,4 @@
+using DropSpace.Core.Actions;
 using DropSpace.Core.Updates;
 using DropSpace.Core.Transfer;
 
@@ -61,7 +62,7 @@ public sealed record OverlayMonitorPlacement(
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 11;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -115,6 +116,9 @@ public sealed record AppSettings
 
     public Dictionary<string, OverlayMonitorPlacement> OverlayPlacements { get; init; } = [];
 
+    public QuickActionPreferenceCollection QuickActionPreferences { get; init; } =
+        QuickActionPreferencePolicy.CreateAutomaticPreferences();
+
     public string QuickPanelHotkey { get; init; } = "Win+Shift+Space";
 
     public string[] SmartDragExcludedProcesses { get; init; } = [];
@@ -149,6 +153,7 @@ public sealed record AppSettings
         OverlayPlacementMode = OverlayPlacementMode.Automatic,
         CustomOverlayPlacements = [],
         OverlayPlacements = [],
+        QuickActionPreferences = QuickActionPreferencePolicy.CreateAutomaticPreferences(),
     };
 
     public AppSettings Validate()
@@ -256,6 +261,17 @@ public sealed record AppSettings
                 Math.Abs(entry.Value.X) > 100_000 || Math.Abs(entry.Value.Y) > 100_000))
         {
             throw new ArgumentOutOfRangeException(nameof(OverlayPlacements));
+        }
+
+        if (QuickActionPreferences is null || QuickActionPreferences.Count > Enum.GetValues<QuickActionProfile>().Length ||
+            QuickActionPreferences.Any(entry => !Enum.IsDefined(entry.Key) || entry.Value is null))
+        {
+            throw new ArgumentOutOfRangeException(nameof(QuickActionPreferences));
+        }
+
+        foreach (var preference in QuickActionPreferences.Values)
+        {
+            preference.Validate();
         }
 
         if (!IsSupportedHotkey(QuickPanelHotkey))

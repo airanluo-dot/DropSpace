@@ -476,6 +476,13 @@ Do not claim “done” when the repository is only locally modified, when CI is
 - `compatibility-baseline.md` and `docs/test-plan/v0.3.0-preview.8.md` define the required Windows 10 1809/1909/20H2/22H2 and Windows 11 21H2/22H2/23H2/24H2, 100–200% DPI, one-to-three-monitor, Installer/Portable/MSIX, Explorer/provider, clipboard, preview, share, startup, and updater matrix. Hosted Windows CI and Linux static checks do not prove every row.
 - Preview.8 remains CONDITIONAL until real Windows OS/build/DPI/multi-monitor/provider evidence and the existing two-device/network/browser gates are recorded. Never convert source inspection, a hosted runner, a stale website fixture, or a successful release upload into evidence for an unrun matrix row. Do not rewrite historical Preview.7 facts.
 
+## v0.3.0-preview.9 durable product facts
+
+- Preview.9 shell intake is one typed, bounded `--shell-add --source <explorer-context-menu|sendto> -- <paths>` contract. Installer owns only the per-user static Explorer verb and SendTo `.lnk`; Portable remains registration-free. Direct/redirected shell activation must reuse the `AppInstance` owner, keep the main window non-activated, and never log paths or copy/move source files.
+- Preview.9 Quick Actions are a projection of the existing `IItemActionRegistry`, not a second action list. Four profiles (File, Image, Text, URL) default to Automatic. Custom profiles may select up to three unique IDs; unavailable selections are skipped without replacement and More is the remaining available registry projection. Main and Dynamic Island surfaces must use the same policy.
+- Preview.9 Undo is one eight-second slot. Remove/Clear use schema-3 pending-delete token/expiry fields so ordinary queries hide rows while exact IDs/metadata/payload references remain restorable; expiry/finalization may delete only unreferenced DropSpace-owned payloads. Pin Undo stores prior booleans in memory. Startup recovers expired rows and shutdown finalizes the active operation.
+- Preview.9 is CONDITIONAL until Windows CI and the real Explorer/SendTo, installer upgrade/uninstall, multi-selection, no-focus, DPI, and Undo manual matrix are evidenced. Do not infer those results from Linux checks or source inspection.
+
 ## 21. Final report format
 
 Return a concise, evidence-based completion report with these sections when applicable:

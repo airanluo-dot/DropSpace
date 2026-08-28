@@ -59,6 +59,31 @@ public interface IItemRepository
 
     Task<string?> RemoveAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<int> BeginPendingRemovalAsync(
+        IReadOnlyCollection<Guid> ids,
+        string token,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<int> BeginPendingClipboardClearAsync(
+        DateTimeOffset? fromUtc,
+        bool includePinned,
+        string token,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<int> UndoPendingRemovalAsync(
+        string token,
+        CancellationToken cancellationToken = default);
+
+    Task<FinalizedRemovalResult> FinalizePendingRemovalAsync(
+        string token,
+        CancellationToken cancellationToken = default);
+
+    Task<FinalizedRemovalResult> FinalizeExpiredPendingRemovalsAsync(
+        DateTimeOffset nowUtc,
+        CancellationToken cancellationToken = default);
+
     Task<ClearResult> ClearClipboardAsync(
         DateTimeOffset? fromUtc,
         bool includePinned,

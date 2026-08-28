@@ -320,3 +320,11 @@ Windows Share activation is a separate input contract, not Clipboard capture. `S
 ## v0.3.0-preview.7 architecture additions
 
 Preview providers, item actions, bilateral DropLink pairing/transfer, explicit text/URL handoff, clipboard pause barriers, and share servers are documented in [docs/architecture](docs/architecture). The application layer owns lifecycle and user consent; infrastructure owns HTTPS/mDNS/DNS-SD/DPAPI/R2 adapters; Core owns manifest, limits, handoff policies, crypto-independent domain contracts, and loop policies. The `SqliteDatabase` migration is forward-only from schema 1 to schema 2. PDF rasterization is an App-owned Windows API boundary, and the Worker remains a source-only operator deployment.
+
+## v0.3.0-preview.9 architecture additions
+
+`ShellIntakeCommandLineParser` is the single typed policy for Explorer and SendTo requests. `ShellIntakeActivationService` handles direct and redirected Launch activation before the ordinary foreground fallback, labels the acquisition kind, and calls the existing batch intake use case. Static per-user registration is owned by Inno Setup; Portable has no persistent registration.
+
+`QuickActionPreferencePolicy` separates the content-profile decision from the action registry. Automatic takes the registry's available order; Custom projects only configured available IDs into the three primary slots, skips unavailable IDs without replacement, and computes More from the remaining available capabilities. The Main page and Dynamic Island use the same projection.
+
+Schema 3 adds nullable pending-delete token/expiry columns and an index to `items`. `UndoCoordinator` owns one eight-second operation, while `SqliteItemRepository` atomically marks pending rows, hides them from ordinary queries, restores them by token, or finalizes them. Finalization returns only DropSpace-owned payload paths that were actually unreferenced; the App payload store performs confined physical cleanup. Startup recovers expired transactions and graceful shutdown finalizes the active one.

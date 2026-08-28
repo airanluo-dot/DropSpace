@@ -161,6 +161,11 @@ public enum ClearRange
 
 public sealed record ClearResult(int RemovedCount, IReadOnlyList<string> PayloadPaths);
 
+public sealed record FinalizedRemovalResult(int RemovedCount, IReadOnlyList<string> PayloadPaths)
+{
+    public IReadOnlyList<string> PayloadRelativePaths => PayloadPaths;
+}
+
 public sealed record RetentionResult(int RemovedCount, IReadOnlyList<string> PayloadPaths);
 
 public sealed record DropBatchMetadata(

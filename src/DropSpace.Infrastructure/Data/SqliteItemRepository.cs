@@ -251,7 +251,7 @@ public sealed class SqliteItemRepository(
         ArgumentNullException.ThrowIfNull(query);
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var sql = new StringBuilder(SelectSql);
-        var clauses = new List<string>();
+        var clauses = new List<string> { "i.pending_delete_token IS NULL" };
         await using var command = connection.CreateCommand();
 
         if (query.Source is not null)
@@ -325,7 +325,7 @@ public sealed class SqliteItemRepository(
         await using var command = connection.CreateCommand();
         command.CommandText = string.Concat(
             SelectSql,
-            " WHERE i.source = @source AND json_valid(i.metadata_json) AND json_extract(i.metadata_json, '$.DropBatchId') = @batch ORDER BY i.created_at_utc, i.id;");
+            " WHERE i.pending_delete_token IS NULL AND i.source = @source AND json_valid(i.metadata_json) AND json_extract(i.metadata_json, '$.DropBatchId') = @batch ORDER BY i.created_at_utc, i.id;");
         command.Parameters.AddWithValue("@source", (int)ItemSource.Space);
         command.Parameters.AddWithValue("@batch", dropBatchId.ToString());
         var items = new List<DropItem>();
@@ -346,7 +346,7 @@ public sealed class SqliteItemRepository(
     public async Task SetPinnedAsync(Guid id, bool isPinned, CancellationToken cancellationToken = default)
     {
         await ExecuteItemUpdateAsync(
-                "UPDATE items SET is_pinned = @value, revision = revision + 1 WHERE id = @id;",
+                "UPDATE items SET is_pinned = @value, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;",
                 id,
                 isPinned ? 1 : 0,
                 cancellationToken)
@@ -360,7 +360,7 @@ public sealed class SqliteItemRepository(
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
             await using var command = connection.CreateCommand();
-            command.CommandText = "UPDATE items SET last_used_at_utc = @now, revision = revision + 1 WHERE id = @id;";
+            command.CommandText = "UPDATE items SET last_used_at_utc = @now, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
             command.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
             command.Parameters.AddWithValue("@id", ToBytes(id));
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -385,7 +385,7 @@ public sealed class SqliteItemRepository(
             await using (var itemCommand = connection.CreateCommand())
             {
                 itemCommand.Transaction = (SqliteTransaction)transaction;
-                itemCommand.CommandText = "UPDATE items SET status = @status, revision = revision + 1 WHERE id = @id;";
+                itemCommand.CommandText = "UPDATE items SET status = @status, revision = revision + 1 WHERE id = @id AND pending_delete_token IS NULL;";
                 itemCommand.Parameters.AddWithValue("@status", (int)status);
                 itemCommand.Parameters.AddWithValue("@id", ToBytes(id));
                 await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -430,7 +430,7 @@ public sealed class SqliteItemRepository(
                 itemCommand.CommandText = """
                     UPDATE items
                     SET title = @title, kind = @kind, status = @status, search_text = @search_text, revision = revision + 1
-                    WHERE id = @id AND source = @source;
+                    WHERE id = @id AND source = @source AND pending_delete_token IS NULL;
                     """;
                 itemCommand.Parameters.AddWithValue("@title", replacement.Title);
                 itemCommand.Parameters.AddWithValue("@kind", replacement.EntryKind == FileEntryKind.Folder ? (int)ItemKind.Folder : (int)ItemKind.File);
@@ -491,6 +491,157 @@ public sealed class SqliteItemRepository(
         }
     }
 
+    public async Task<int> BeginPendingRemovalAsync(
+        IReadOnlyCollection<Guid> ids,
+        string token,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePendingArguments(ids, token, expiresAtUtc);
+        if (ids.Count == 0)
+        {
+            return 0;
+        }
+
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            var marked = await MarkPendingIdsAsync(connection, (SqliteTransaction)transaction, ids, token, expiresAtUtc, cancellationToken)
+                .ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return marked;
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    public async Task<int> BeginPendingClipboardClearAsync(
+        DateTimeOffset? fromUtc,
+        bool includePinned,
+        string token,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePendingArguments(null, token, expiresAtUtc);
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqliteTransaction)transaction;
+            var sql = new StringBuilder("UPDATE items SET pending_delete_token = @token, pending_delete_expires_at_utc = @expires WHERE source = @source AND pending_delete_token IS NULL");
+            command.Parameters.AddWithValue("@token", token);
+            command.Parameters.AddWithValue("@expires", ToTimestamp(expiresAtUtc));
+            command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
+            if (!includePinned)
+            {
+                sql.Append(" AND is_pinned = 0");
+            }
+
+            if (fromUtc is not null)
+            {
+                sql.Append(" AND created_at_utc >= @from");
+                command.Parameters.AddWithValue("@from", ToTimestamp(fromUtc.Value));
+            }
+
+            command.CommandText = sql.Append(';').ToString();
+            var marked = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return marked;
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    public async Task<int> UndoPendingRemovalAsync(
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateToken(token);
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE items SET pending_delete_token = NULL, pending_delete_expires_at_utc = NULL WHERE pending_delete_token = @token;";
+            command.Parameters.AddWithValue("@token", token);
+            return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    public async Task<FinalizedRemovalResult> FinalizePendingRemovalAsync(
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateToken(token);
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            var result = await FinalizePendingRemovalCoreAsync(connection, (SqliteTransaction)transaction, token, cancellationToken)
+                .ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    public async Task<FinalizedRemovalResult> FinalizeExpiredPendingRemovalsAsync(
+        DateTimeOffset nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            await using var tokenCommand = connection.CreateCommand();
+            tokenCommand.Transaction = (SqliteTransaction)transaction;
+            tokenCommand.CommandText = "SELECT DISTINCT pending_delete_token FROM items WHERE pending_delete_token IS NOT NULL AND pending_delete_expires_at_utc <= @now;";
+            tokenCommand.Parameters.AddWithValue("@now", ToTimestamp(nowUtc));
+            var tokens = new List<string>();
+            await using (var reader = await tokenCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    tokens.Add(reader.GetString(0));
+                }
+            }
+
+            var paths = new List<string>();
+            var removedCount = 0;
+            foreach (var token in tokens)
+            {
+                var result = await FinalizePendingRemovalCoreAsync(connection, (SqliteTransaction)transaction, token, cancellationToken)
+                    .ConfigureAwait(false);
+                removedCount += result.RemovedCount;
+                paths.AddRange(result.PayloadRelativePaths);
+            }
+
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return new FinalizedRemovalResult(removedCount, paths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
     public async Task<ClearResult> ClearClipboardAsync(
         DateTimeOffset? fromUtc,
         bool includePinned,
@@ -500,7 +651,7 @@ public sealed class SqliteItemRepository(
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            var sql = new StringBuilder("SELECT id FROM items WHERE source = @source");
+            var sql = new StringBuilder("SELECT id FROM items WHERE source = @source AND pending_delete_token IS NULL");
             await using var command = connection.CreateCommand();
             command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
             if (!includePinned)
@@ -568,7 +719,7 @@ public sealed class SqliteItemRepository(
     {
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var sql = new StringBuilder("SELECT COUNT(*) FROM items");
-        var clauses = new List<string>();
+        var clauses = new List<string> { "pending_delete_token IS NULL" };
         await using var command = connection.CreateCommand();
         if (source is not null)
         {
@@ -627,6 +778,7 @@ public sealed class SqliteItemRepository(
             JOIN items i ON i.id = f.item_id
             WHERE i.source = @source
               AND f.normalized_path = @path COLLATE NOCASE
+              AND i.pending_delete_token IS NULL
             LIMIT 1;
             """;
         command.Parameters.AddWithValue("@source", (int)source);
@@ -703,10 +855,116 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText = string.Concat(SelectSql, " WHERE i.id = @id LIMIT 1;");
+        command.CommandText = string.Concat(SelectSql, " WHERE i.pending_delete_token IS NULL AND i.id = @id LIMIT 1;");
         command.Parameters.AddWithValue("@id", ToBytes(id));
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? ReadItem(reader) : null;
+    }
+
+    private static void ValidatePendingArguments(
+        IReadOnlyCollection<Guid>? ids,
+        string token,
+        DateTimeOffset expiresAtUtc)
+    {
+        if (ids is not null && ids.Any(id => id == Guid.Empty))
+        {
+            throw new ArgumentException("Pending removal IDs must be non-empty.", nameof(ids));
+        }
+
+        ValidateToken(token);
+        if (expiresAtUtc == default)
+        {
+            throw new ArgumentOutOfRangeException(nameof(expiresAtUtc));
+        }
+    }
+
+    private static void ValidateToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token) || token.Length > 128)
+        {
+            throw new ArgumentException("The pending removal token is invalid.", nameof(token));
+        }
+    }
+
+    private static async Task<int> MarkPendingIdsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IReadOnlyCollection<Guid> ids,
+        string token,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken)
+    {
+        var marked = 0;
+        foreach (var id in ids.Distinct())
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE items SET pending_delete_token = @token, pending_delete_expires_at_utc = @expires WHERE id = @id AND pending_delete_token IS NULL;";
+            command.Parameters.AddWithValue("@token", token);
+            command.Parameters.AddWithValue("@expires", ToTimestamp(expiresAtUtc));
+            command.Parameters.AddWithValue("@id", ToBytes(id));
+            marked += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return marked;
+    }
+
+    private static async Task<FinalizedRemovalResult> FinalizePendingRemovalCoreAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string token,
+        CancellationToken cancellationToken)
+    {
+        var payloads = new List<(Guid Id, string Path)>();
+        await using (var select = connection.CreateCommand())
+        {
+            select.Transaction = transaction;
+            select.CommandText = """
+                SELECT DISTINCT p.id, p.relative_path
+                FROM items i
+                JOIN payloads p ON p.id = i.payload_id
+                WHERE i.pending_delete_token = @token;
+                """;
+            select.Parameters.AddWithValue("@token", token);
+            await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                payloads.Add((ReadGuid(reader, 0), reader.GetString(1)));
+            }
+        }
+
+        int removedCount;
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM items WHERE pending_delete_token = @token;";
+            delete.Parameters.AddWithValue("@token", token);
+            removedCount = await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (var payload in payloads)
+        {
+            await using var deletePayload = connection.CreateCommand();
+            deletePayload.Transaction = transaction;
+            deletePayload.CommandText = "DELETE FROM payloads WHERE id = @id AND NOT EXISTS (SELECT 1 FROM items WHERE payload_id = @id);";
+            deletePayload.Parameters.AddWithValue("@id", ToBytes(payload.Id));
+            await deletePayload.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return new FinalizedRemovalResult(
+            removedCount,
+            payloads
+                .Where(payload =>
+                {
+                    using var referenced = connection.CreateCommand();
+                    referenced.Transaction = transaction;
+                    referenced.CommandText = "SELECT EXISTS (SELECT 1 FROM payloads WHERE id = @id);";
+                    referenced.Parameters.AddWithValue("@id", ToBytes(payload.Id));
+                    return Convert.ToInt32(referenced.ExecuteScalar(), CultureInfo.InvariantCulture) == 0;
+                })
+                .Select(payload => payload.Path)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray());
     }
 
     private static async Task<RetentionResult> RemoveManyCoreAsync(

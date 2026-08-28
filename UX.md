@@ -195,3 +195,11 @@ The Smart verification ring is never a visible product surface: it must not flas
 ## 3.0 Preview consent surfaces
 
 Quick Preview opens from the item More menu and shows bounded text/metadata or a safe fallback. Quick Actions are visible only as real commands and report their output path. Device Handoff/clipboard settings explain Windows-only scope, pairing/SAS, per-peer modes, receive approval, and firewall degraded mode. Nearby links show token/expiry/revoke state. Internet Share shows an unavailable state until an HTTPS Worker is configured; the URL fragment key is never displayed in logs or notifications.
+
+## Preview.9 intake, Quick Actions, and Undo
+
+Explorer and SendTo commands acknowledge completion through the existing non-activating projection/overlay path. The acknowledgement is generic (“Added to DropSpace” / count) and contains no path or payload. The main window remains hidden unless the user opens it.
+
+Each item shows the configured available primary Quick Actions directly below its preview. The More menu is the remaining registry projection after those primary IDs are excluded. Settings exposes Automatic/custom controls for Files and folders, Images, Text and code, and URLs; duplicate selections are rejected and Reset returns the profile to Automatic.
+
+After Remove, Clear, Pin, or Unpin, an informational Undo surface shows the operation and an Undo button for eight seconds. Only one operation is visible at once; starting a new undoable operation finalizes the previous one. `Ctrl+Z` invokes the same coordinator, and expiry removes the surface without changing source files.

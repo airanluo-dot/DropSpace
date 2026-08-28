@@ -9,6 +9,7 @@ using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Preview;
+using DropSpace.Core.Shell;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Logging;
@@ -49,6 +50,7 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            var shellIntake = ShellIntakeCommandLineParser.Parse(commandLine);
             if (commandLine.Contains("--shutdown-for-maintenance", StringComparer.OrdinalIgnoreCase))
             {
                 var result = await MaintenanceShutdownService.RequestRunningInstanceAsync(TimeSpan.FromSeconds(15));
@@ -69,6 +71,7 @@ public partial class App : Application
             _services = BuildServices();
             var isStartupLaunch = commandLine.Contains("--startup", StringComparer.OrdinalIgnoreCase);
             var isShareActivation = activation.Kind == ExtendedActivationKind.ShareTarget;
+            var isShellActivation = shellIntake.IsShellIntake;
             _services.GetRequiredService<CrashDiagnosticsService>().Start();
             var compatibility = _services.GetRequiredService<IWindowsCapabilityService>();
             _services.GetRequiredService<ILogger<App>>().LogInformation(
@@ -144,7 +147,7 @@ public partial class App : Application
                 _services.GetRequiredService<ItemSharingService>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
-            if (!isStartupLaunch && !isShareActivation)
+            if (!isStartupLaunch && !isShareActivation && !isShellActivation)
             {
                 _window.Activate();
             }
@@ -195,6 +198,15 @@ public partial class App : Application
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
+                if (isShellActivation)
+                {
+                    await _services.GetRequiredService<ShellIntakeActivationService>()
+                        .HandleCommandLineAsync(commandLine);
+                    await ShutdownAsync();
+                    Environment.Exit(0);
+                    return;
+                }
+
                 if (isShareActivation)
                 {
                     await _services.GetRequiredService<ShareTargetActivationService>()
@@ -316,6 +328,7 @@ public partial class App : Application
         services.AddSingleton<SqliteDatabase>();
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
+        services.AddSingleton<UndoCoordinator>();
         services.AddSingleton<DeviceIdentityStore>();
         services.AddSingleton<DeviceSecretStore>();
         services.AddSingleton<DropLinkPairingService>();
@@ -356,6 +369,7 @@ public partial class App : Application
                 : UpdateChannel.Stable));
         services.AddSingleton<ClipboardNotificationService>();
         services.AddSingleton<ClipboardCaptureService>();
+        services.AddSingleton<ShellIntakeActivationService>();
         services.AddSingleton<ClipboardIntegrationSmoke>();
         services.AddSingleton<MaintenanceShutdownService>();
         services.AddSingleton<CrashDiagnosticsService>();
@@ -434,6 +448,12 @@ public partial class App : Application
                 if (shareTarget?.CanHandle(args) == true)
                 {
                     await shareTarget.HandleAsync(args);
+                    return;
+                }
+
+                var shellIntake = _services?.GetService<ShellIntakeActivationService>();
+                if (shellIntake is not null && await shellIntake.HandleActivationAsync(args))
+                {
                     return;
                 }
 

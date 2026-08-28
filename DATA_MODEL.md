@@ -230,3 +230,12 @@ Migrations are forward-only in production. Downgrade means restoring a compatibl
 ## v2 transfer schema
 
 Schema version 2 adds `paired_devices` and `transfer_sessions`. Peer rows contain only a device ID, display name, Windows platform, pinned certificate fingerprint, DPAPI secret-key ID, capability flags, timestamps, and blocked state. Transfer rows contain direction/mode/state, peer ID, item/byte totals, progress, completion time, and a coarse error category. Pairing secrets and receive staging bytes are stored outside SQLite under application data and are never included in search or diagnostics.
+
+## v3 pending removal state
+
+Schema 3 adds the following nullable columns to `items`:
+
+- `pending_delete_token TEXT NULL`
+- `pending_delete_expires_at_utc TEXT NULL`
+
+`ix_items_pending_delete` indexes the token and expiry. A pending row remains fully intact (same ID, metadata, payload reference, timestamps, pin state, and batch metadata) but is excluded from normal queries/counts and mutation projections. `UndoPendingRemovalAsync(token)` clears both columns atomically. `FinalizePendingRemovalAsync(token)` deletes the rows and unreferenced payload metadata in one transaction, returning relative paths only for payload records that were actually removed; the App-owned payload store then performs confined cleanup. Startup finalizes expired tokens. The user-facing Clear Clipboard operation uses the same pending path and excludes pinned rows by default.

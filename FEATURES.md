@@ -217,3 +217,9 @@ Settings save immediately after validation. Failed saves revert the control and 
 - Quick Actions expose at most three available commands and keep hash, ZIP, QR, resize, conversion, and metadata handling source-safe.
 - DropLink provides opt-in Windows-only pairing, device handoff, resumable 4 MiB chunks, explicit receive approval, and cross-device clipboard modes.
 - Nearby Share uses a private address, 192-bit token, TTL, receiver cap, range reads, and revoke. Internet Share encrypts the manifest and chunks in the client; a missing Worker configuration is a hard unavailable state.
+
+## v0.3.0-preview.9 additions
+
+- Explorer's classic per-user **Send to DropSpace** verb and the per-user **SendTo → DropSpace** shortcut feed files/folders into normal Temporary Space records without elevation, source movement, clipboard writes, or main-window activation.
+- Quick Actions support independent File, Image, Text, and URL profiles. Each profile is Automatic or a validated custom order of up to three registry actions; unavailable choices are skipped and remaining registry actions stay in More.
+- Remove item/batch, clear unpinned Clipboard history, and pin/unpin operations share one eight-second Undo slot. Pending removals are hidden transactionally, preserve the original record identity/metadata, and delete only DropSpace-owned payloads after expiry/finalization.

@@ -8,7 +8,7 @@ public sealed class SqliteDatabase(
     AppStoragePaths paths,
     ILogger<SqliteDatabase> logger)
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private bool _initialized;
@@ -98,6 +98,11 @@ public sealed class SqliteDatabase(
             if (fromVersion < 2)
             {
                 await ApplyV2Async(connection, transaction, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (fromVersion < 3)
+            {
+                await ApplyV3Async(connection, transaction, cancellationToken).ConfigureAwait(false);
             }
 
             await using var versionCommand = connection.CreateCommand();
@@ -267,15 +272,37 @@ public sealed class SqliteDatabase(
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private static async Task ApplyV3Async(
+        SqliteConnection connection,
+        System.Data.Common.DbTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            ALTER TABLE items ADD COLUMN pending_delete_token TEXT NULL;
+            ALTER TABLE items ADD COLUMN pending_delete_expires_at_utc TEXT NULL;
+            CREATE INDEX ix_items_pending_delete ON items(pending_delete_token, pending_delete_expires_at_utc);
+            """;
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = (SqliteTransaction)transaction;
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task ValidateSchemaAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT COUNT(*)
-            FROM sqlite_master
-            WHERE type = 'table'
-              AND name IN ('items', 'file_references', 'text_payloads', 'image_payloads', 'url_metadata', 'payloads', 'paired_devices', 'transfer_sessions');
+            SELECT
+              (SELECT COUNT(*)
+               FROM sqlite_master
+               WHERE type = 'table'
+                 AND name IN ('items', 'file_references', 'text_payloads', 'image_payloads', 'url_metadata', 'payloads', 'paired_devices', 'transfer_sessions')) = 8
+              AND
+              (SELECT COUNT(*)
+               FROM pragma_table_info('items')
+               WHERE name IN ('pending_delete_token', 'pending_delete_expires_at_utc')) = 2;
             """;
 
         await using var command = connection.CreateCommand();
@@ -283,7 +310,7 @@ public sealed class SqliteDatabase(
         var count = Convert.ToInt32(
             await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
             System.Globalization.CultureInfo.InvariantCulture);
-        if (count != 8)
+        if (count != 1)
         {
             throw new InvalidDataException("Database schema validation failed.");
         }

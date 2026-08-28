@@ -156,6 +156,10 @@ The first shippable MVP is deliberately smaller than the original list.
 - Default clipboard retention: 30 days or 1,000 items, whichever limit is reached first; pinned items are exempt.
 - Default image limit: 25 MB encoded payload or 50 megapixels; larger items are skipped with a local notice.
 
+## v0.3.0-preview.9 product boundary
+
+Preview.9 makes intake and item recovery safer without changing the local-first product boundary. Installer-only per-user Explorer and SendTo entries are direct executable integrations, while Portable stays registration-free. Quick Actions are capability-driven projections of the existing action registry, with four content profiles and three primary slots. Undo is a single short-lived inverse operation: it restores DropSpace metadata/state or pin state, and it never restores or changes an external source file.
+
 ## v0.3.0-preview.7 3.0 boundary
 
 The 3.0 Preview keeps local-first storage while adding explicit Windows-to-Windows handoff and sharing. Quick Preview is bounded and uses native PDF/media surfaces only after explicit user action; Quick Actions never mutate source files; DropLink pairing uses bilateral ECDH/SAS/certificate confirmation and certificate pinning; text/URL handoff is separate from Clipboard History; cross-device clipboard is opt-in, pause-aware, and loop-guarded; Nearby links are private-LAN and expiring; Internet Share is client-encrypted, revocable, and unavailable without an explicitly configured HTTPS Worker. These features do not change the non-scope for native Apple/Android/Linux clients, cloud accounts, WebRTC, or automatic public sharing.

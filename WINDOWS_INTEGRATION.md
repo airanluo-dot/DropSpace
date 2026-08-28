@@ -182,7 +182,11 @@ MVP prefers inline/tray feedback. App notifications are reserved for failures re
 
 ## Explorer integration
 
-Shell context-menu extensions increase packaging, registration, performance, and reliability burden inside Explorer. They are not required to prove the product and are explicitly deferred.
+Preview.9 uses two per-user, static integrations owned by the Installer deployment: the `HKCU\\Software\\Classes\\AllFileSystemObjects\\shell\\DropSpace.SendToSpace` verb and a `DropSpace.lnk` under the current user's `Microsoft\\Windows\\SendTo` folder. Both invoke the installed executable directly with the bounded `--shell-add --source <source> -- <paths>` contract; no Explorer DLL, HKLM registration, elevation, or portable self-registration is used. The classic verb may appear under Windows 11 **Show more options** for the unpackaged Installer route.
+
+Shell intake is handled before normal activation and is relayed through the existing `AppInstance` single-instance owner. It adds normal Space references through `MainViewModel.AddPathsBatchAsync`, never moves/copies/deletes source files, never writes Clipboard History, and never activates the main window solely because Explorer invoked it. Diagnostics contain only source/count/error categories, never paths or filenames. The parser bounds item count and command-line size and accepts Unicode/quoted paths and the SendTo trailing-argument form.
+
+The two integration tasks are opt-in in the Installer UI but default on for new per-user installs: `explorercontext` and `sendtointegration`. Upgrade actions rewrite only DropSpace's exact verb/shortcut targets; uninstall removes only those exact owned entries. Portable accepts the internal command contract for controlled testing but does not register persistent shell integration.
 
 ## Biggest technical risks
 

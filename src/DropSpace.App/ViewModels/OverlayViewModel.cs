@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Actions;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
@@ -22,6 +23,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
     private string? _activeMonitorId;
+    private string? _shellAcknowledgement;
+    private CancellationTokenSource? _shellAcknowledgementCancellation;
     private bool _disposed;
 
     public OverlayViewModel(
@@ -100,12 +103,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
     public bool IsExpandedDropTargetActive => Snapshot.ExpandedDropActive;
 
-    public string CompactTitle => Snapshot.TemporaryItemCount switch
+    public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {
         0 => _strings.Get("OverlayTitle"),
         1 when RecentItems.FirstOrDefault() is { } item => item.Title,
         _ => _strings.Format("OverlayItemCount", Snapshot.TemporaryItemCount),
-    };
+    });
 
     public string DragTitle => Snapshot.State == OverlayState.DragReady
         ? _strings.Get("OverlayDropTitle")
@@ -260,6 +263,66 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         await RefreshRecentItemsAsync(cancellationToken);
     }
 
+    public Task<ItemActionResult> ExecuteQuickActionAsync(
+        QuickActionButtonViewModel quickAction,
+        CancellationToken cancellationToken = default) =>
+        _mainViewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId, cancellationToken);
+
+    public async Task ShowShellIntakeAcknowledgementAsync(
+        int acceptedCount,
+        CancellationToken cancellationToken = default)
+    {
+        if (acceptedCount <= 0)
+        {
+            return;
+        }
+
+        var message = acceptedCount == 1
+            ? _strings.Get("ShellIntakeAdded")
+            : _strings.Format("ShellIntakeAddedCount", acceptedCount);
+        using var acknowledgementCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        async Task DispatchAsync(Func<Task> action)
+        {
+            if (_dispatcher.HasThreadAccess)
+            {
+                await action().ConfigureAwait(false);
+            }
+            else
+            {
+                await _dispatcher.EnqueueAsync(action).ConfigureAwait(false);
+            }
+        }
+
+        await DispatchAsync(() =>
+        {
+            _shellAcknowledgementCancellation?.Cancel();
+            _shellAcknowledgementCancellation?.Dispose();
+            _shellAcknowledgementCancellation = acknowledgementCancellation;
+            _shellAcknowledgement = message;
+            OnPropertyChanged(nameof(CompactTitle));
+            return Task.CompletedTask;
+        }).ConfigureAwait(false);
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), acknowledgementCancellation.Token).ConfigureAwait(false);
+            await DispatchAsync(() =>
+            {
+                if (ReferenceEquals(_shellAcknowledgementCancellation, acknowledgementCancellation))
+                {
+                    _shellAcknowledgement = null;
+                    _shellAcknowledgementCancellation = null;
+                    OnPropertyChanged(nameof(CompactTitle));
+                }
+
+                return Task.CompletedTask;
+            }).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // A newer shell invocation replaced this acknowledgement.
+        }
+    }
+
     public async Task RefreshRecentItemsAsync(CancellationToken cancellationToken = default)
     {
         await _projectionRefresh.RequestAsync(_mainViewModel.SpaceRevision, cancellationToken);
@@ -281,6 +344,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         }
 
         _projectionRefresh.Dispose();
+        _shellAcknowledgementCancellation?.Cancel();
+        _shellAcknowledgementCancellation?.Dispose();
+        _shellAcknowledgementCancellation = null;
         _disposed = true;
     }
 
@@ -300,11 +366,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
                 RecentItems,
                 items,
                 static item => item.Id,
-                static (existing, incoming) =>
+                (existing, incoming) =>
                 {
                     existing.Update(incoming.Item);
                     existing.Thumbnail = incoming.Thumbnail;
                     existing.DragStorageItem = incoming.DragStorageItem;
+                    _mainViewModel.RefreshPrimaryQuickActions(existing);
                 });
             _stateMachine.SetTemporaryItemCount(_mainViewModel.SpaceItemCount);
             OnPropertyChanged(nameof(CompactTitle));

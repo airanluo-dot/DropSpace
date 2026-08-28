@@ -46,9 +46,11 @@ public sealed partial class MainPage : Page
     private readonly ItemSharingService _sharing;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
+    private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
     private bool _syncingNavigation;
     private bool _syncingSettings;
+    private bool _quickActionsSettingsBuilt;
 
     public MainPage(
         MainViewModel viewModel,
@@ -122,6 +124,7 @@ public sealed partial class MainPage : Page
 
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
+        EnsureQuickActionsSettings();
         SyncNavigationSelection();
         SyncSettingsControls();
         UpdateSectionChrome();
@@ -349,6 +352,27 @@ public sealed partial class MainPage : Page
             args.Handled = true;
             await ConfirmRemoveAsync(card);
         }
+    }
+
+    private async void OnUndoClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _viewModel.UndoAsync());
+
+    private async void OnPrimaryQuickActionClicked(object sender, RoutedEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction })
+        {
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            var result = await _viewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId);
+            await ShowMessageAsync(
+                result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
+                result.OutputPaths.Count == 0
+                    ? result.ErrorCategory ?? _strings.Get("ActionUnavailable")
+                    : string.Join(Environment.NewLine, result.OutputPaths));
+        });
     }
 
     private async void OnOpenItemClicked(object sender, RoutedEventArgs args)
@@ -901,8 +925,8 @@ public sealed partial class MainPage : Page
                 ItemActionId.SendToDevice => _viewModel.EnableDeviceHandoff && _pairedPeers.Count > 0,
                 ItemActionId.CreateNearbyLink => _viewModel.EnableNearbySharing,
                 ItemActionId.CreateSecureInternetLink => _viewModel.EnableInternetSharing && _sharing.IsInternetConfigured,
-                _ => _actions.Actions.FirstOrDefault(candidate => candidate.Descriptor.Id == action)?.Evaluate(
-                    new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)])).IsAvailable == true,
+                _ => _viewModel.EvaluateQuickActions(card).More.Any(
+                    capability => capability.Descriptor.Id == action),
             };
             menu.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -1536,6 +1560,12 @@ public sealed partial class MainPage : Page
         await RunAsync(() => SelectSectionAsync("Settings"));
     }
 
+    private async void OnUndoAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await RunAsync(() => _viewModel.UndoAsync());
+    }
+
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(MainViewModel.Settings))
@@ -1561,6 +1591,232 @@ public sealed partial class MainPage : Page
             _syncingNavigation = false;
         }
     }
+
+    private void EnsureQuickActionsSettings()
+    {
+        if (_quickActionsSettingsBuilt)
+        {
+            return;
+        }
+
+        QuickActionsSettingsPanel.Children.Clear();
+        QuickActionsSettingsPanel.Children.Add(new TextBlock
+        {
+            Text = _strings.Get("QuickActionsSection"),
+            FontSize = 16,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        });
+        QuickActionsSettingsPanel.Children.Add(new TextBlock
+        {
+            Text = _strings.Get("QuickActionsDescription"),
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray),
+            TextWrapping = TextWrapping.Wrap,
+        });
+
+        foreach (var profile in Enum.GetValues<QuickActionProfile>())
+        {
+            var group = new StackPanel { Spacing = 6 };
+            group.Children.Add(new TextBlock
+            {
+                Text = GetQuickActionProfileLabel(profile),
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            });
+
+            var automaticToggle = new ToggleSwitch
+            {
+                Header = _strings.Get("QuickActionAutomatic"),
+                Tag = profile,
+            };
+            AutomationProperties.SetName(automaticToggle, _strings.Get("QuickActionAutomatic"));
+            automaticToggle.Toggled += OnQuickActionAutomaticToggled;
+            group.Children.Add(automaticToggle);
+
+            var slotsGrid = new Grid { ColumnSpacing = 8 };
+            var slots = new ComboBox[QuickActionPreferencePolicy.MaximumPrimaryActions];
+            for (var index = 0; index < slots.Length; index++)
+            {
+                slotsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var slot = new ComboBox
+                {
+                    Header = _strings.Format("QuickActionSlot", index + 1),
+                    Tag = new QuickActionSlotContext(profile, index),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                };
+                slot.Items.Add(new ComboBoxItem
+                {
+                    Content = _strings.Get("QuickActionNone"),
+                    Tag = string.Empty,
+                });
+                foreach (var action in _actions.Actions)
+                {
+                    slot.Items.Add(new ComboBoxItem
+                    {
+                        Content = _strings.Get(action.Descriptor.LabelResourceKey),
+                        Tag = action.Descriptor.Id.ToString(),
+                    });
+                }
+
+                slot.SelectionChanged += OnQuickActionSlotChanged;
+                Grid.SetColumn(slot, index);
+                slotsGrid.Children.Add(slot);
+                slots[index] = slot;
+            }
+
+            group.Children.Add(slotsGrid);
+            var resetButton = new Button
+            {
+                Content = _strings.Get("ResetQuickActions"),
+                Tag = profile,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            resetButton.Click += OnResetQuickActionsClicked;
+            group.Children.Add(resetButton);
+            QuickActionsSettingsPanel.Children.Add(group);
+            _quickActionControls[profile] = new QuickActionSettingsControls(automaticToggle, slots);
+        }
+
+        var resetAllButton = new Button
+        {
+            Content = _strings.Get("ResetAllQuickActions"),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        resetAllButton.Click += OnResetAllQuickActionsClicked;
+        QuickActionsSettingsPanel.Children.Add(resetAllButton);
+        _quickActionsSettingsBuilt = true;
+    }
+
+    private async void OnQuickActionAutomaticToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+        {
+            await SaveQuickActionSettingsAsync();
+        }
+    }
+
+    private async void OnQuickActionSlotChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (_syncingSettings || sender is not ComboBox changed ||
+            changed.Tag is not QuickActionSlotContext context)
+        {
+            return;
+        }
+
+        var selected = GetSelectedQuickAction(changed);
+        var controls = _quickActionControls[context.Profile];
+        if (selected is { } selectedId && controls.Slots.Any(slot => !ReferenceEquals(slot, changed) && GetSelectedQuickAction(slot) == selectedId))
+        {
+            _syncingSettings = true;
+            try
+            {
+                SelectQuickAction(changed, null);
+            }
+            finally
+            {
+                _syncingSettings = false;
+            }
+
+            return;
+        }
+
+        await SaveQuickActionSettingsAsync();
+    }
+
+    private async Task SaveQuickActionSettingsAsync()
+    {
+        await RunAsync(async () =>
+        {
+            var preferences = QuickActionPreferencePolicy.CreateAutomaticPreferences();
+            foreach (var (profile, controls) in _quickActionControls)
+            {
+                if (controls.AutomaticToggle.IsOn)
+                {
+                    continue;
+                }
+
+                var slots = controls.Slots.Select(GetSelectedQuickAction).ToArray();
+                preferences[profile] = new QuickActionPreference(false, slots[0], slots[1], slots[2]);
+            }
+
+            try
+            {
+                await _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+                {
+                    QuickActionPreferences = preferences,
+                });
+            }
+            catch
+            {
+                SyncSettingsControls();
+                throw;
+            }
+        });
+    }
+
+    private async void OnResetQuickActionsClicked(object sender, RoutedEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: QuickActionProfile profile })
+        {
+            return;
+        }
+
+        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        {
+            QuickActionPreferences = new QuickActionPreferenceCollection(
+                _viewModel.Settings.QuickActionPreferences)
+            {
+                [profile] = QuickActionPreference.Automatic,
+            },
+        }));
+    }
+
+    private async void OnResetAllQuickActionsClicked(object sender, RoutedEventArgs args)
+    {
+        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        {
+            QuickActionPreferences = QuickActionPreferencePolicy.CreateAutomaticPreferences(),
+        }));
+    }
+
+    private void SyncQuickActionsSettings()
+    {
+        EnsureQuickActionsSettings();
+        foreach (var (profile, controls) in _quickActionControls)
+        {
+            var preference = _viewModel.Settings.QuickActionPreferences.TryGetValue(profile, out var configured)
+                ? configured
+                : QuickActionPreference.Automatic;
+            controls.AutomaticToggle.IsOn = preference.IsAutomatic;
+            var slots = preference.Slots;
+            for (var index = 0; index < controls.Slots.Length; index++)
+            {
+                SelectQuickAction(controls.Slots[index], slots[index]);
+                controls.Slots[index].IsEnabled = !preference.IsAutomatic;
+            }
+        }
+    }
+
+    private static ItemActionId? GetSelectedQuickAction(ComboBox comboBox) =>
+        comboBox.SelectedItem is ComboBoxItem { Tag: string value } &&
+        Enum.TryParse<ItemActionId>(value, out var action)
+            ? action
+            : null;
+
+    private static void SelectQuickAction(ComboBox comboBox, ItemActionId? action)
+    {
+        var tag = action?.ToString() ?? string.Empty;
+        comboBox.SelectedItem = comboBox.Items
+            .OfType<ComboBoxItem>()
+            .FirstOrDefault(item => string.Equals(item.Tag as string, tag, StringComparison.Ordinal));
+    }
+
+    private string GetQuickActionProfileLabel(QuickActionProfile profile) => profile switch
+    {
+        QuickActionProfile.File => _strings.Get("QuickActionFiles"),
+        QuickActionProfile.Image => _strings.Get("QuickActionImages"),
+        QuickActionProfile.Text => _strings.Get("QuickActionText"),
+        QuickActionProfile.Url => _strings.Get("QuickActionUrls"),
+        _ => profile.ToString(),
+    };
 
     private NavigationViewItem GetNavigationItem(string section) => section switch
     {
@@ -1619,6 +1875,7 @@ public sealed partial class MainPage : Page
             OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
             QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
             SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
+            SyncQuickActionsSettings();
             SyncPlacementCoordinates();
             SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
             UpdateDeviceStatus();
@@ -1715,6 +1972,12 @@ public sealed partial class MainPage : Page
         FrameworkElement { DataContext: ItemCardViewModel card } => card,
         _ => null,
     };
+
+    private sealed record QuickActionSlotContext(QuickActionProfile Profile, int Index);
+
+    private sealed record QuickActionSettingsControls(
+        ToggleSwitch AutomaticToggle,
+        ComboBox[] Slots);
 
     private static void SelectComboItem(ComboBox comboBox, string tag)
     {
