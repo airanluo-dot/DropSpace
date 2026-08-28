@@ -1,5 +1,5 @@
 using DropSpace.Core.Actions;
-using DropSpace.App.Services;
+using DropSpace.Core.Abstractions;
 
 namespace DropSpace.App.ViewModels;
 
