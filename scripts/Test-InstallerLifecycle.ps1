@@ -303,6 +303,12 @@ try
     }
     if (-not (Test-Path $shellVerbPath) -or -not (Test-Path $sendToShortcut))
     {
+        $upgradeLogPath = Join-Path $testRoot "upgrade.log"
+        if (Test-Path $upgradeLogPath -PathType Leaf)
+        {
+            Write-Host "---- in-place upgrade log tail ----"
+            Get-Content $upgradeLogPath -Tail 160 | Write-Host
+        }
         throw "In-place upgrade did not create both Windows shell integrations."
     }
     if ((Get-ItemPropertyValue -Path $shellVerbPath -Name "MUIVerb") -ne "Send to DropSpace" -or

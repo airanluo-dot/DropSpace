@@ -248,6 +248,7 @@ begin
     { Task selections are authoritative before installation starts.  Remove
       only stale DropSpace integration points when a user turns a task off;
       selected [Registry]/[Icons] entries are then created by Setup. }
+    Log('DropSpace task selection before install: ' + WizardSelectedTasks(False));
     if not WizardIsTaskSelected('explorercontext') then
       RegDeleteKeyIncludingSubkeys(HKCU64, 'Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace');
     if not WizardIsTaskSelected('sendtointegration') then
