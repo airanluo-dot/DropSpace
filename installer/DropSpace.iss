@@ -243,16 +243,19 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurStep = ssPostInstall then
+  if CurStep = ssInstall then
   begin
-    SaveStringToFile(ExpandConstant('{app}\install.version'), '{#AppVersion}', False);
-
-    { Task selections are authoritative on upgrades as well.  Remove only
-      DropSpace's exact integration points when a user turns a task off. }
+    { Task selections are authoritative before installation starts.  Remove
+      only stale DropSpace integration points when a user turns a task off;
+      selected [Registry]/[Icons] entries are then created by Setup. }
     if not WizardIsTaskSelected('explorercontext') then
       RegDeleteKeyIncludingSubkeys(HKCU64, 'Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace');
     if not WizardIsTaskSelected('sendtointegration') then
       DeleteFile(ExpandConstant('{userappdata}\Microsoft\Windows\SendTo\DropSpace.lnk'));
+  end
+  else if CurStep = ssPostInstall then
+  begin
+    SaveStringToFile(ExpandConstant('{app}\install.version'), '{#AppVersion}', False);
   end;
 end;
 
