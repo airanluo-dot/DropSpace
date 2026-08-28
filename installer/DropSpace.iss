@@ -82,7 +82,7 @@ Source: "DropSpace.Identity.ps1"; DestDir: "{app}"; DestName: "DropSpace.Identit
 [Icons]
 Name: "{autoprograms}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0
 Name: "{autodesktop}\DropSpace"; Filename: "{app}\DropSpace.exe"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0; Tasks: desktopicon
-Name: "{userappdata}\Microsoft\Windows\SendTo\DropSpace.lnk"; Filename: "{app}\DropSpace.exe"; Parameters: "--shell-add --source sendto --"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0; Tasks: sendtointegration
+Name: "{usersendto}\DropSpace"; Filename: "{app}\DropSpace.exe"; Parameters: "--shell-add --source sendto --"; WorkingDir: "{app}"; IconFilename: "{app}\DropSpace.exe"; IconIndex: 0; Tasks: sendtointegration
 
 [Registry]
 Root: HKCU64; Subkey: "Software\DropSpace\Install"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
@@ -252,7 +252,7 @@ begin
     if not WizardIsTaskSelected('explorercontext') then
       RegDeleteKeyIncludingSubkeys(HKCU64, 'Software\Classes\AllFileSystemObjects\shell\DropSpace.SendToSpace');
     if not WizardIsTaskSelected('sendtointegration') then
-      DeleteFile(ExpandConstant('{userappdata}\Microsoft\Windows\SendTo\DropSpace.lnk'));
+      DeleteFile(ExpandConstant('{usersendto}\DropSpace.lnk'));
   end
   else if CurStep = ssPostInstall then
   begin
