@@ -1,2067 +1,2 @@
-using System.Diagnostics;
-using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
-using DropSpace.App.Services;
-using DropSpace.App.ViewModels;
-using DropSpace.Core.Abstractions;
-using DropSpace.Core.Actions;
-using DropSpace.Core.Compatibility;
-using DropSpace.Core.Models;
-using DropSpace.Core.Preview;
-using DropSpace.Core.Transfer;
-using DropSpace.Core.Updates;
-using DropSpace.Infrastructure.Actions;
-using DropSpace.Infrastructure.Network;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Input;
-using Windows.UI.Core;
-using Windows.ApplicationModel.DataTransfer;
-using Windows.Data.Pdf;
-using Windows.Graphics.Imaging;
-using Windows.Media.Core;
-using Windows.Media.Playback;
-using Windows.Storage;
-using Windows.Storage.Pickers;
-using Windows.Storage.Streams;
-using Windows.System;
-using WinRT.Interop;
-
-namespace DropSpace.App.Views;
-
-public sealed partial class MainPage : Page
-{
-    private readonly MainViewModel _viewModel;
-    private readonly nint _windowHandle;
-    private readonly IAppStringLocalizer _strings;
-    private readonly IWindowsCapabilityService _capabilities;
-    private readonly QuickPreviewService _previews;
-    private readonly IItemActionRegistry _actions;
-    private readonly DeviceHandoffService _deviceHandoff;
-    private readonly CrossDeviceClipboardService _crossDeviceClipboard;
-    private readonly DropLinkHost _dropLinkHost;
-    private readonly ItemSharingService _sharing;
-    private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
-    private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
-    private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
-    private readonly SemaphoreSlim _dialogGate = new(1, 1);
-    private bool _syncingNavigation;
-    private bool _syncingSettings;
-    private bool _quickActionsSettingsBuilt;
-
-    public MainPage(
-        MainViewModel viewModel,
-        nint windowHandle,
-        IAppStringLocalizer strings,
-        IWindowsCapabilityService capabilities,
-        QuickPreviewService previews,
-        IItemActionRegistry actions,
-        DeviceHandoffService deviceHandoff,
-        CrossDeviceClipboardService crossDeviceClipboard,
-        DropLinkHost dropLinkHost,
-        ItemSharingService sharing)
-    {
-        ArgumentNullException.ThrowIfNull(viewModel);
-        _viewModel = viewModel;
-        _windowHandle = windowHandle;
-        _strings = strings;
-        _capabilities = capabilities;
-        _previews = previews;
-        _actions = actions;
-        _deviceHandoff = deviceHandoff;
-        _crossDeviceClipboard = crossDeviceClipboard;
-        _dropLinkHost = dropLinkHost;
-        _sharing = sharing;
-        try
-        {
-            InitializeComponent();
-        }
-        catch (Exception exception)
-        {
-            throw new InvalidOperationException("Main-page XAML initialization failed.", exception);
-        }
-
-        DataContext = viewModel;
-        DiscoveredDevicesList.ItemsSource = _discoveredDevices;
-        _dropLinkHost.TransferOffered += OnTransferOfferedAsync;
-        _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
-        _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
-        Loaded += OnLoaded;
-        Unloaded += OnUnloaded;
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
-    }
-
-    public async Task ConfirmClearAsync(ClearRange range)
-    {
-        await RunAsync(async () =>
-        {
-            var count = await _viewModel.GetClearPreviewCountAsync(range);
-            if (count == 0)
-            {
-                await ShowMessageAsync(_strings.Get("ClearNothingTitle"), _strings.Get("ClearNothingContent"));
-                return;
-            }
-
-            var rangeLabel = range switch
-            {
-                ClearRange.LastHour => _strings.Get("ClearRangeLastHour"),
-                ClearRange.Today => _strings.Get("ClearRangeToday"),
-                _ => _strings.Get("ClearRangeAll"),
-            };
-            var result = await ShowConfirmationAsync(
-                _strings.Format("ClearConfirmTitle", rangeLabel),
-                _strings.Format("ClearConfirmContent", count),
-                _strings.Get("ClearConfirmButton"));
-            if (result)
-            {
-                await _viewModel.ClearClipboardAsync(range);
-            }
-        });
-    }
-
-    private void OnLoaded(object sender, RoutedEventArgs args)
-    {
-        EnsureQuickActionsSettings();
-        SyncNavigationSelection();
-        SyncSettingsControls();
-        UpdateSectionChrome();
-    }
-
-    private void OnUnloaded(object sender, RoutedEventArgs args)
-    {
-        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-        _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
-        _dropLinkHost.PairingOffered -= OnPairingOfferedAsync;
-        _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
-    }
-
-    private async void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-    {
-        if (_syncingNavigation || args.SelectedItemContainer?.Tag is not string section)
-        {
-            return;
-        }
-
-        await RunAsync(() => SelectSectionAsync(section));
-    }
-
-    private async Task SelectSectionAsync(string section)
-    {
-        _syncingNavigation = true;
-        try
-        {
-            Navigation.SelectedItem = GetNavigationItem(section);
-        }
-        finally
-        {
-            _syncingNavigation = false;
-        }
-
-        await _viewModel.NavigateAsync(section);
-        UpdateSectionChrome();
-    }
-
-    private async void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        await Task.Yield();
-        _viewModel.SearchText = sender.Text;
-    }
-
-    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs args)
-    {
-        if (args.Key == VirtualKey.Escape)
-        {
-            SearchBox.Text = string.Empty;
-            args.Handled = true;
-        }
-    }
-
-    private async void OnAddFilesClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(async () =>
-        {
-            var picker = new FileOpenPicker();
-            picker.FileTypeFilter.Add("*");
-            InitializeWithWindow.Initialize(picker, _windowHandle);
-            var files = await picker.PickMultipleFilesAsync();
-            if (files.Count > 0)
-            {
-                await _viewModel.AddPathsAsync(files.Select(file => file.Path));
-            }
-        });
-    }
-
-    private async void OnAddFolderClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(async () =>
-        {
-            var picker = new FolderPicker();
-            picker.FileTypeFilter.Add("*");
-            InitializeWithWindow.Initialize(picker, _windowHandle);
-            var folder = await picker.PickSingleFolderAsync();
-            if (folder is not null)
-            {
-                await _viewModel.AddPathsAsync([folder.Path]);
-            }
-        });
-    }
-
-    private async void OnAddTextUrlClicked(object sender, RoutedEventArgs args)
-    {
-        var editor = new TextBox
-        {
-            AcceptsReturn = true,
-            MinWidth = 420,
-            MinHeight = 140,
-            TextWrapping = TextWrapping.Wrap,
-            PlaceholderText = _strings.Get("AddTextUrlPlaceholder"),
-        };
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = _strings.Get("AddTextUrlTitle"),
-            Content = editor,
-            PrimaryButtonText = _strings.Get("AddTextUrlConfirm"),
-            CloseButtonText = _strings.Get("Cancel"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(editor.Text))
-        {
-            await RunAsync(() => _viewModel.AddTextToSpaceAsync(editor.Text, "manual-text-url"));
-        }
-    }
-
-    private void OnDragEnter(object sender, DragEventArgs args) => SetDropHint(args, true);
-
-    private void OnDragLeave(object sender, DragEventArgs args) => DropHint.Visibility = Visibility.Collapsed;
-
-    private void OnDragOver(object sender, DragEventArgs args) => SetDropHint(args, true);
-
-    private async void OnDrop(object sender, DragEventArgs args)
-    {
-        DropHint.Visibility = Visibility.Collapsed;
-        await RunAsync(async () =>
-        {
-            if (args.DataView.Contains(StandardDataFormats.StorageItems))
-            {
-                var storageItems = await args.DataView.GetStorageItemsAsync();
-                await _viewModel.AddPathsBatchAsync(
-                    storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path)).Select(item => item.Path),
-                    null,
-                    "main-window-drop");
-                return;
-            }
-
-            if (args.DataView.Contains(StandardDataFormats.WebLink))
-            {
-                await _viewModel.AddTextToSpaceAsync(
-                    (await args.DataView.GetWebLinkAsync()).AbsoluteUri,
-                    "main-window-url-drop");
-            }
-            else if (args.DataView.Contains(StandardDataFormats.Text))
-            {
-                await _viewModel.AddTextToSpaceAsync(
-                    await args.DataView.GetTextAsync(),
-                    "main-window-text-drop");
-            }
-        });
-    }
-
-    private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs args)
-    {
-        var cards = args.Items.OfType<ItemCardViewModel>().ToArray();
-        if (cards.Length == 1 && cards[0].DropBatchId is { } batchId)
-        {
-            cards = _viewModel.Items.Where(card => card.DropBatchId == batchId).ToArray();
-        }
-        var storageItems = cards
-            .Select(card => card.DragStorageItem)
-            .Where(item => item is not null)
-            .Cast<IStorageItem>()
-            .ToArray();
-        if (storageItems.Length > 0)
-        {
-            args.Data.SetStorageItems(storageItems, readOnly: true);
-        }
-        else if (cards.Length == 1 && cards[0].Item.Text?.InlineText is { } text)
-        {
-            args.Data.SetText(text);
-            if (cards[0].Item.Url is { NormalizedUrl: var url } && Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                args.Data.SetWebLink(uri);
-            }
-        }
-        else
-        {
-            args.Cancel = true;
-            return;
-        }
-
-        args.Data.RequestedOperation = DataPackageOperation.Copy;
-    }
-
-    private void OnToggleBatchClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            _viewModel.ToggleBatchExpanded(card);
-        }
-    }
-
-    private async void OnPinBatchClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await RunAsync(() => _viewModel.ToggleBatchPinAsync(card));
-        }
-    }
-
-    private async void OnRemoveBatchClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await RunAsync(() => _viewModel.RemoveBatchAsync(card));
-        }
-    }
-
-    private async void OnItemDoubleTapped(object sender, DoubleTappedRoutedEventArgs args)
-    {
-        if (ItemsList.SelectedItem is ItemCardViewModel card && card.CanOpen)
-        {
-            await RunAsync(() => _viewModel.OpenAsync(card));
-        }
-    }
-
-    private async void OnItemsListKeyDown(object sender, KeyRoutedEventArgs args)
-    {
-        if (ItemsList.SelectedItem is not ItemCardViewModel card)
-        {
-            return;
-        }
-
-        if (args.Key == VirtualKey.Enter && card.CanOpen)
-        {
-            args.Handled = true;
-            await RunAsync(() => _viewModel.OpenAsync(card));
-        }
-        else if (args.Key == VirtualKey.Delete)
-        {
-            args.Handled = true;
-            await ConfirmRemoveAsync(card);
-        }
-    }
-
-    private async void OnUndoClicked(object sender, RoutedEventArgs args) =>
-        await RunAsync(() => _viewModel.UndoAsync());
-
-    private async void OnPrimaryQuickActionClicked(object sender, RoutedEventArgs args)
-    {
-        if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction })
-        {
-            return;
-        }
-
-        await RunAsync(async () =>
-        {
-            var result = await _viewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId);
-            await ShowMessageAsync(
-                result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
-                result.OutputPaths.Count == 0
-                    ? result.ErrorCategory ?? _strings.Get("ActionUnavailable")
-                    : string.Join(Environment.NewLine, result.OutputPaths));
-        });
-    }
-
-    private async void OnOpenItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await RunAsync(() => _viewModel.OpenAsync(card));
-        }
-    }
-
-    private async void OnDeviceHandoffToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableDeviceHandoff = DeviceHandoffToggle.IsOn }));
-            UpdateDeviceStatus();
-        }
-    }
-
-    private async void OnCrossDeviceClipboardToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableCrossDeviceClipboard = CrossDeviceClipboardToggle.IsOn }));
-        }
-    }
-
-    private async void OnNearbySharingToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableNearbySharing = NearbySharingToggle.IsOn }));
-        }
-    }
-
-    private async void OnInternetSharingToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableInternetSharing = InternetSharingToggle.IsOn }));
-            UpdateDeviceStatus();
-        }
-    }
-
-    private async void OnDefaultClipboardSyncModeChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && DefaultClipboardSyncModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<ClipboardSyncMode>(value, out var mode))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { DefaultClipboardSyncMode = mode }));
-        }
-    }
-
-    private async void OnRefreshDevicesClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(async () =>
-        {
-            if (!_viewModel.EnableDeviceHandoff)
-            {
-                await ShowMessageAsync(_strings.Get("DevicesDisabledTitle"), _strings.Get("DevicesDisabledContent"));
-                return;
-            }
-
-            var devices = await _deviceHandoff.DiscoverAsync(TimeSpan.FromSeconds(3));
-            _discoveredDevices.Clear();
-            foreach (var device in devices) _discoveredDevices.Add(device);
-            DeviceStatusText.Text = devices.Count == 0
-                ? _strings.Get("NoDevicesFound")
-                : _strings.Format("DevicesFound", devices.Count);
-        });
-    }
-
-    private async void OnPairDeviceClicked(object sender, RoutedEventArgs args)
-    {
-        if (DiscoveredDevicesList.SelectedItem is not DeviceDescriptor descriptor) return;
-        await RunAsync(async () =>
-        {
-            var peer = await _deviceHandoff.PairAsync(descriptor, (sas, token) => ConfirmPairingSasAsync(descriptor.DisplayName, sas, token));
-            _crossDeviceClipboard.ConfigurePeer(peer, descriptor.Endpoint, _viewModel.DefaultClipboardSyncMode);
-            _pairedPeers[peer.Id] = new PairedPeer(peer, descriptor.Endpoint);
-            DeviceStatusText.Text = _strings.Format("PairedDevice", peer.DisplayName);
-        });
-    }
-
-    private Task<bool> OnPairingOfferedAsync(IncomingPairingOffer offer, CancellationToken cancellationToken) =>
-        EnqueueDialogAsync(() => ConfirmPairingSasAsync(offer.RemoteHello.DisplayName, offer.Sas, cancellationToken), cancellationToken);
-
-    private async Task<bool> ConfirmPairingSasAsync(string remoteName, int sas, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = _strings.Format("PairingSasTitleWithDevice", remoteName),
-            Content = _strings.Format("PairingSasContent", sas.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)),
-            PrimaryButtonText = _strings.Get("PairingSasConfirm"),
-            CloseButtonText = _strings.Get("CommonCancel"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
-    }
-
-    private async Task<bool> OnHandoffOfferedAsync(IncomingHandoffOffer offer, CancellationToken cancellationToken)
-    {
-        return await EnqueueDialogAsync(async () =>
-        {
-            var message = offer.Message;
-            var preview = message.Utf8Payload.Length > 600 ? string.Concat(message.Utf8Payload[..600], "â€¦") : message.Utf8Payload;
-            var content = _strings.Format(
-                "IncomingHandoffContent",
-                message.SenderDisplayName,
-                message.Kind == HandoffMessageKind.Url ? _strings.Get("HandoffUrlKind") : _strings.Get("HandoffTextKind"),
-                preview,
-                message.ByteLength);
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Title = _strings.Get("IncomingHandoffTitle"),
-                Content = new ScrollViewer
-                {
-                    MaxHeight = 420,
-                    Content = new TextBlock { Text = content, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
-                },
-                PrimaryButtonText = _strings.Get("IncomingTransferAccept"),
-                CloseButtonText = _strings.Get("IncomingTransferReject"),
-                DefaultButton = ContentDialogButton.Primary,
-            };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return false;
-
-            // Explicit handoff is committed to Temporary Space only. It deliberately
-            // does not call ClipboardCaptureService or mutate the Windows clipboard.
-            await _viewModel.AddTextToSpaceAsync(message.Utf8Payload, "device-handoff", cancellationToken: cancellationToken);
-            return true;
-        }, cancellationToken);
-    }
-
-    private Task<T> EnqueueDialogAsync<T>(Func<Task<T>> callback, CancellationToken cancellationToken)
-    {
-        var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!DispatcherQueue.TryEnqueue(async () =>
-            {
-                try { completion.TrySetResult(await callback().ConfigureAwait(true)); }
-                catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or UnauthorizedAccessException or OperationCanceledException)
-                { completion.TrySetException(exception); }
-            }))
-        {
-            completion.TrySetException(new InvalidOperationException("The DropSpace UI dispatcher is unavailable."));
-        }
-
-        return completion.Task.WaitAsync(cancellationToken);
-    }
-
-    private Task OnTransferOfferedAsync(IncomingTransferOffer offer)
-    {
-        _ = DispatcherQueue.TryEnqueue(async () =>
-        {
-            try
-            {
-                var accepted = await ShowIncomingTransferDialogAsync(offer);
-                await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, accepted);
-            }
-            catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
-            {
-                await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, false);
-            }
-        });
-        return Task.CompletedTask;
-    }
-
-    private async Task<bool> ShowIncomingTransferDialogAsync(IncomingTransferOffer offer)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = _strings.Get("IncomingTransferTitle"),
-            Content = _strings.Format("IncomingTransferContent", offer.Manifest.Items.Count, offer.Manifest.TotalBytes),
-            PrimaryButtonText = _strings.Get("IncomingTransferAccept"),
-            CloseButtonText = _strings.Get("IncomingTransferReject"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
-    }
-
-    private async void OnPreviewItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is not { } card) return;
-        await RunAsync(() => ShowPreviewAsync(card));
-    }
-
-    private async Task ShowPreviewAsync(ItemCardViewModel card)
-    {
-        var descriptor = await _previews.LoadAsync(card.Item, inline: false);
-        var content = await CreatePreviewContentAsync(descriptor, card.Item);
-        if (descriptor.Kind == PreviewKind.Pdf && content is PdfPreviewHost)
-        {
-            try
-            {
-                await _previews.CacheSuccessfulAsync(card.Item, descriptor);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                // A cache failure must not hide a successfully rendered preview.
-            }
-        }
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = card.Title,
-            Content = content,
-            CloseButtonText = _strings.Get("CommonClose"),
-        };
-        try
-        {
-            await dialog.ShowAsync();
-        }
-        finally
-        {
-            if (content is IDisposable disposable) disposable.Dispose();
-        }
-    }
-
-    private async Task<UIElement> CreatePreviewContentAsync(PreviewDescriptor descriptor, DropItem item)
-    {
-        if (descriptor.Bytes is { Length: > 0 } bytes && descriptor.Kind == PreviewKind.Image)
-        {
-            return await CreateImageElementAsync(bytes, 640, 520);
-        }
-
-        if (descriptor.Bytes is { Length: > 0 } pdfBytes && descriptor.Kind == PreviewKind.Pdf)
-        {
-            if (!_capabilities.IsAvailable(WindowsCapability.PdfPreview))
-            {
-                return CreateUnavailablePreviewContent();
-            }
-
-            try
-            {
-                return await CreatePdfPreviewHostAsync(pdfBytes, _strings);
-            }
-            catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException or COMException)
-            {
-                // Keep the metadata fallback visible for a PDF that the platform renderer cannot decode.
-            }
-        }
-
-        if (descriptor.Kind is PreviewKind.Audio or PreviewKind.Video &&
-            _previews.ResolveSourcePath(item) is { } mediaPath && File.Exists(mediaPath))
-        {
-            if (!_capabilities.IsAvailable(WindowsCapability.MediaPreview))
-            {
-                return CreateUnavailablePreviewContent();
-            }
-
-            try
-            {
-                return await CreateMediaElementAsync(mediaPath);
-            }
-            catch (Exception exception) when (exception is FileNotFoundException or IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                // Keep the bounded metadata fallback visible when a media source disappears.
-            }
-        }
-
-        if (descriptor.Text is { } text)
-        {
-            return new ScrollViewer
-            {
-                MaxHeight = 520,
-                Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
-            };
-        }
-
-        return CreateUnavailablePreviewContent(descriptor);
-    }
-
-    private TextBlock CreateUnavailablePreviewContent(PreviewDescriptor? descriptor = null)
-    {
-        return new TextBlock
-        {
-            Text = descriptor is null || descriptor.Metadata.Count == 0
-                ? _strings.Get("PreviewUnavailable")
-                : string.Join(Environment.NewLine, descriptor.Metadata.Select(pair => string.Concat(pair.Key, ": ", pair.Value))),
-            TextWrapping = TextWrapping.Wrap,
-            IsTextSelectionEnabled = true,
-        };
-    }
-
-    private static async Task<Image> CreateImageElementAsync(byte[] bytes, double maxWidth, double maxHeight)
-    {
-        using var stream = new InMemoryRandomAccessStream();
-        using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
-        {
-            writer.WriteBytes(bytes);
-            await writer.StoreAsync();
-            await writer.FlushAsync();
-            writer.DetachStream();
-        }
-        stream.Seek(0);
-        var bitmap = new BitmapImage();
-        await bitmap.SetSourceAsync(stream);
-        return new Image
-        {
-            Source = bitmap,
-            MaxWidth = maxWidth,
-            MaxHeight = maxHeight,
-            Stretch = Stretch.Uniform,
-        };
-    }
-
-    private static async Task<PdfPreviewHost> CreatePdfPreviewHostAsync(byte[] bytes, IAppStringLocalizer strings)
-    {
-        var host = new PdfPreviewHost(bytes, strings);
-        try
-        {
-            await host.InitializeAsync();
-            return host;
-        }
-        catch
-        {
-            host.Dispose();
-            throw;
-        }
-    }
-
-    private static async Task<Image> RenderPdfPageAsync(
-        PdfDocument document,
-        int pageNumber,
-        double maxWidth,
-        double maxHeight,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (document.PageCount == 0) throw new InvalidDataException("The PDF has no pages.");
-        using var page = document.GetPage((uint)Math.Clamp(pageNumber - 1, 0, (int)document.PageCount - 1));
-        await page.PreparePageAsync();
-        var size = page.Size;
-        if (size.Width <= 0 || size.Height <= 0) throw new InvalidDataException("The PDF page dimensions are invalid.");
-        const double maximumPixels = 4_000_000;
-        var scale = Math.Min(maxWidth / size.Width, maxHeight / size.Height);
-        scale = Math.Min(scale, Math.Sqrt(maximumPixels / (size.Width * size.Height)));
-        var width = (uint)Math.Clamp(Math.Round(size.Width * scale), 1, 4096);
-        var height = (uint)Math.Clamp(Math.Round(size.Height * scale), 1, 4096);
-        using var output = new InMemoryRandomAccessStream();
-        var options = new PdfPageRenderOptions
-        {
-            DestinationWidth = width,
-            DestinationHeight = height,
-            BitmapEncoderId = BitmapEncoder.PngEncoderId,
-        };
-        await page.RenderToStreamAsync(output, options);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (output.Size is <= 0 or > 16L * 1024 * 1024) throw new InvalidDataException("The rendered PDF page exceeds the preview bound.");
-        output.Seek(0);
-        var bitmap = new BitmapImage();
-        await bitmap.SetSourceAsync(output);
-        return new Image
-        {
-            Source = bitmap,
-            MaxWidth = maxWidth,
-            MaxHeight = maxHeight,
-            Stretch = Stretch.Uniform,
-        };
-    }
-
-    private static async Task<InMemoryRandomAccessStream> CreatePdfInputAsync(byte[] bytes, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var input = new InMemoryRandomAccessStream();
-        try
-        {
-            using var writer = new DataWriter(input.GetOutputStreamAt(0));
-            writer.WriteBytes(bytes);
-            await writer.StoreAsync();
-            await writer.FlushAsync();
-            writer.DetachStream();
-            input.Seek(0);
-            return input;
-        }
-        catch
-        {
-            input.Dispose();
-            throw;
-        }
-    }
-
-    private sealed class PdfPreviewHost : Grid, IDisposable
-    {
-        private readonly byte[] _bytes;
-        private readonly IAppStringLocalizer _strings;
-        private readonly Image _image = new() { MaxWidth = 640, MaxHeight = 520, Stretch = Stretch.Uniform };
-        private readonly Button _previous = new();
-        private readonly Button _next = new();
-        private readonly TextBlock _pageLabel = new();
-        private readonly CancellationTokenSource _lifetime = new();
-        private InMemoryRandomAccessStream? _input;
-        private PdfDocument? _document;
-        private CancellationTokenSource? _pageCancellation;
-        private int _page = 1;
-        private int _disposed;
-
-        public PdfPreviewHost(byte[] bytes, IAppStringLocalizer strings)
-        {
-            _bytes = bytes;
-            _strings = strings;
-            RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            var navigation = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Spacing = 8 };
-            _previous.Content = _strings.Get("PdfPreviousPage");
-            _next.Content = _strings.Get("PdfNextPage");
-            _previous.Click += OnPreviousClicked;
-            _next.Click += OnNextClicked;
-            navigation.Children.Add(_previous);
-            navigation.Children.Add(_pageLabel);
-            navigation.Children.Add(_next);
-            Children.Add(navigation);
-            Grid.SetRow(navigation, 0);
-            Children.Add(_image);
-            Grid.SetRow(_image, 1);
-        }
-
-        public async Task InitializeAsync()
-        {
-            _input = await CreatePdfInputAsync(_bytes, _lifetime.Token);
-            _document = await PdfDocument.LoadFromStreamAsync(_input);
-            if (_document.PageCount == 0) throw new InvalidDataException("The PDF has no pages.");
-            await LoadPageAsync(1, throwOnFailure: true);
-        }
-
-        private async void OnPreviousClicked(object sender, RoutedEventArgs args) => await NavigateAsync(_page - 1);
-
-        private async void OnNextClicked(object sender, RoutedEventArgs args) => await NavigateAsync(_page + 1);
-
-        private async Task NavigateAsync(int page)
-        {
-            if (_document is null || _document.PageCount == 0) return;
-            await LoadPageAsync(Math.Clamp(page, 1, (int)_document.PageCount));
-        }
-
-        private async Task LoadPageAsync(int page, bool throwOnFailure = false)
-        {
-            if (_document is null) return;
-            _pageCancellation?.Cancel();
-            _pageCancellation?.Dispose();
-            _pageCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-            var cancellationToken = _pageCancellation.Token;
-            try
-            {
-                var image = await RenderPdfPageAsync(_document, page, 640, 520, cancellationToken);
-                if (cancellationToken.IsCancellationRequested) return;
-                _image.Source = image.Source;
-                _page = page;
-                _pageLabel.Text = _strings.Format("PdfPageIndicator", page, _document.PageCount);
-                _previous.IsEnabled = page > 1;
-                _next.IsEnabled = page < _document.PageCount;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-            }
-            catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException or COMException)
-            {
-                if (throwOnFailure) throw;
-                _pageLabel.Text = _strings.Get("PreviewUnavailable");
-            }
-        }
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-            _pageCancellation?.Cancel();
-            _pageCancellation?.Dispose();
-            _lifetime.Cancel();
-            _lifetime.Dispose();
-            _image.Source = null;
-            // Windows.Data.Pdf.PdfDocument is a WinRT projection without a Close/Dispose
-            // member in the target SDK; releasing the reference is its lifetime boundary.
-            _document = null;
-            _input?.Dispose();
-            _input = null;
-        }
-    }
-
-    private static async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
-    {
-        var file = await StorageFile.GetFileFromPathAsync(path);
-        var player = new MediaPlayer { AutoPlay = false };
-        try
-        {
-            player.Source = MediaSource.CreateFromStorageFile(file);
-            var element = new MediaPlayerElement
-            {
-                AutoPlay = false,
-                AreTransportControlsEnabled = true,
-                MaxWidth = 640,
-                MaxHeight = 520,
-            };
-            element.SetMediaPlayer(player);
-            return new MediaPreviewHost(element, player);
-        }
-        catch
-        {
-            player.Dispose();
-            throw;
-        }
-    }
-
-    private async void OnQuickActionClicked(object sender, RoutedEventArgs args)
-    {
-        if (sender is not MenuFlyoutItem menu || menu.CommandParameter is not string actionText || GetCard(menu) is not { } card) return;
-        if (!Enum.TryParse<ItemActionId>(actionText, out var action)) return;
-        await RunAsync(async () =>
-        {
-            var snapshot = DropItemSnapshot.FromItem(card.Item);
-            if (action == ItemActionId.SendToDevice)
-            {
-                await SendToDeviceAsync(card.Item);
-                return;
-            }
-            if (action == ItemActionId.CreateNearbyLink)
-            {
-                await ShowShareDescriptorAsync(await _sharing.CreateNearbyAsync([card.Item], _viewModel.Settings));
-                return;
-            }
-            if (action == ItemActionId.CreateSecureInternetLink)
-            {
-                await ShowShareDescriptorAsync(await _sharing.CreateInternetAsync([card.Item], _viewModel.Settings));
-                return;
-            }
-            var result = await _actions.ExecuteAsync(action, new ItemActionContext(new ItemSelectionSnapshot([snapshot])));
-            await ShowMessageAsync(
-                result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
-                result.OutputPaths.Count == 0 ? result.ErrorCategory ?? _strings.Get("ActionUnavailable") : string.Join(Environment.NewLine, result.OutputPaths));
-        });
-    }
-
-    private void OnMoreItemFlyoutOpened(object sender, object args)
-    {
-        if (sender is not MenuFlyout flyout) return;
-        foreach (var menu in flyout.Items.OfType<MenuFlyoutItem>())
-        {
-            if (menu.CommandParameter is not string actionText || menu.Tag is not ItemCardViewModel card ||
-                !Enum.TryParse<ItemActionId>(actionText, out var action)) continue;
-
-            var available = action switch
-            {
-                ItemActionId.SendToDevice => _viewModel.EnableDeviceHandoff && _pairedPeers.Count > 0,
-                ItemActionId.CreateNearbyLink => _viewModel.EnableNearbySharing,
-                ItemActionId.CreateSecureInternetLink => _viewModel.EnableInternetSharing && _sharing.IsInternetConfigured,
-                _ => _viewModel.EvaluateQuickActions(card).More.Any(
-                    capability => capability.Descriptor.Id == action),
-            };
-            menu.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
-        }
-    }
-
-    private async Task SendToDeviceAsync(DropItem item)
-    {
-        if (!_viewModel.EnableDeviceHandoff)
-        {
-            await ShowMessageAsync(_strings.Get("DevicesDisabledTitle"), _strings.Get("DevicesDisabledContent"));
-            return;
-        }
-
-        var peer = await SelectPairedPeerAsync();
-        if (peer is null) return;
-        if (item.File?.OriginalPath is { } path)
-        {
-            await _deviceHandoff.SendFilesAsync(peer.Peer, peer.Endpoint, [path]);
-            await ShowMessageAsync(_strings.Get("TransferSentTitle"), _strings.Get("TransferSentContent"));
-            return;
-        }
-
-        if (item.Text is not null || item.Url is not null || item.Image is not null)
-        {
-            if (item.Url?.NormalizedUrl is { } normalizedUrl)
-            {
-                var handoffResponse = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Url, normalizedUrl, item.Title);
-                await ShowMessageAsync(
-                    handoffResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                    handoffResponse.Accepted ? _strings.Get("TransferSentContent") : handoffResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
-                return;
-            }
-
-            if (item.Text?.InlineText is { } inlineText)
-            {
-                var handoffResponse = await _deviceHandoff.SendTextOrUrlAsync(peer.Peer, peer.Endpoint, HandoffMessageKind.Text, inlineText, item.Title);
-                await ShowMessageAsync(
-                    handoffResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                    handoffResponse.Accepted ? _strings.Get("TransferSentContent") : handoffResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
-                return;
-            }
-
-            var clipboardResponse = await _crossDeviceClipboard.SendManualAsync(peer.Peer, peer.Endpoint, item);
-            await ShowMessageAsync(
-                clipboardResponse.Accepted ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
-                clipboardResponse.Accepted ? _strings.Get("TransferSentContent") : clipboardResponse.ErrorCategory ?? _strings.Get("ActionUnavailable"));
-            return;
-        }
-
-        await ShowMessageAsync(_strings.Get("TransferUnavailableTitle"), _strings.Get("ActionUnavailable"));
-    }
-
-    private async Task<PairedPeer?> SelectPairedPeerAsync()
-    {
-        if (_pairedPeers.Count == 0)
-        {
-            await ShowMessageAsync(_strings.Get("NoPairedDevicesTitle"), _strings.Get("NoPairedDevicesContent"));
-            return null;
-        }
-
-        var combo = new ComboBox
-        {
-            ItemsSource = _pairedPeers.Values.Select(value => value.Peer).ToArray(),
-            DisplayMemberPath = nameof(PeerDevice.DisplayName),
-            SelectedIndex = 0,
-            MinWidth = 280,
-        };
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = _strings.Get("SelectDeviceTitle"),
-            Content = combo,
-            PrimaryButtonText = _strings.Get("SendToDeviceAction.Text"),
-            CloseButtonText = _strings.Get("CommonCancel"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary || combo.SelectedItem is not PeerDevice selected)
-        {
-            return null;
-        }
-        return _pairedPeers.GetValueOrDefault(selected.Id);
-    }
-
-    private async Task ShowShareDescriptorAsync(ShareDescriptor descriptor)
-    {
-        var qrPath = Path.Combine(Path.GetTempPath(), string.Concat("DropSpace-share-", descriptor.ShareId.ToString("N"), ".png"));
-        await File.WriteAllBytesAsync(qrPath, QrCodeActionService.RenderPng(descriptor.Url.ToString()));
-        var content = new StackPanel { Spacing = 8 };
-        content.Children.Add(new TextBlock
-        {
-            Text = descriptor.IsEncrypted ? _strings.Get("EncryptedShareReady") : _strings.Get("NearbyShareReady"),
-            TextWrapping = TextWrapping.Wrap,
-        });
-        content.Children.Add(new TextBox
-        {
-            Text = descriptor.Url.ToString(),
-            IsReadOnly = true,
-            TextWrapping = TextWrapping.Wrap,
-        });
-        content.Children.Add(new TextBlock
-        {
-            Text = _strings.Format("ShareExpires", descriptor.ExpiresAtUtc.ToLocalTime().ToString("g")),
-            TextWrapping = TextWrapping.Wrap,
-        });
-        ContentDialog? dialog = null;
-        if (descriptor.IsEncrypted && _sharing.CanRevokeInternet(descriptor.ShareId))
-        {
-            var revokeButton = new Button { Content = _strings.Get("RevokeShareButton"), HorizontalAlignment = HorizontalAlignment.Left };
-            revokeButton.Click += async (_, _) =>
-            {
-                dialog?.Hide();
-                if (!await ShowConfirmationAsync(_strings.Get("RevokeShareTitle"), _strings.Get("RevokeShareContent"), _strings.Get("RevokeShareButton"))) return;
-                await RunAsync(async () =>
-                {
-                    var revoked = await _sharing.RevokeInternetAsync(descriptor.ShareId);
-                    await ShowMessageAsync(
-                        revoked ? _strings.Get("RevokeShareTitle") : _strings.Get("TransferUnavailableTitle"),
-                        revoked ? _strings.Get("RevokeShareCompleted") : _strings.Get("ActionUnavailable"));
-                });
-            };
-            content.Children.Add(revokeButton);
-        }
-        dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = _strings.Get("ShareReadyTitle"),
-            Content = content,
-            PrimaryButtonText = _strings.Get("CopyShareLink"),
-            SecondaryButtonText = _strings.Get("OpenShareQr"),
-            CloseButtonText = _strings.Get("CommonClose"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
-            package.SetText(descriptor.Url.ToString());
-            Clipboard.SetContent(package);
-        }
-        else if (result == ContentDialogResult.Secondary)
-        {
-            Process.Start(new ProcessStartInfo(qrPath) { UseShellExecute = true });
-        }
-    }
-
-    private sealed record PairedPeer(PeerDevice Peer, Uri Endpoint);
-
-    private sealed class MediaPreviewHost : Grid, IDisposable
-    {
-        private readonly MediaPlayer _player;
-        private int _disposed;
-
-        public MediaPreviewHost(MediaPlayerElement element, MediaPlayer player)
-        {
-            _player = player;
-            Children.Add(element);
-        }
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-            _player.Pause();
-            _player.Source = null;
-            _player.Dispose();
-        }
-    }
-
-    private async void OnCopyItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await RunAsync(() => _viewModel.CopyAsync(card));
-        }
-    }
-
-    private async void OnPinItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await RunAsync(() => _viewModel.TogglePinAsync(card));
-        }
-    }
-
-    private async void OnShowInFolderClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await RunAsync(() => _viewModel.ShowInFolderAsync(card));
-        }
-    }
-
-    private async void OnRemoveItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is { } card)
-        {
-            await ConfirmRemoveAsync(card);
-        }
-    }
-
-    private async Task ConfirmRemoveAsync(ItemCardViewModel card)
-    {
-        await RunAsync(async () =>
-        {
-            var confirmed = await ShowConfirmationAsync(
-                _strings.Get("RemoveConfirmTitle"),
-                card.IsFileReference
-                    ? _strings.Format("RemoveFileReferenceContent", card.Title)
-                    : _strings.Format("RemoveStoredItemContent", card.Title),
-                _strings.Get("RemoveConfirmButton"));
-            if (confirmed)
-            {
-                await _viewModel.RemoveAsync(card);
-            }
-        });
-    }
-
-    private async void OnLocateItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is not { } card || card.Item.File is null)
-        {
-            return;
-        }
-
-        await RunAsync(async () =>
-        {
-            string? path;
-            if (card.Item.File.EntryKind == FileEntryKind.Folder)
-            {
-                var picker = new FolderPicker();
-                picker.FileTypeFilter.Add("*");
-                InitializeWithWindow.Initialize(picker, _windowHandle);
-                path = (await picker.PickSingleFolderAsync())?.Path;
-            }
-            else
-            {
-                var picker = new FileOpenPicker();
-                picker.FileTypeFilter.Add("*");
-                InitializeWithWindow.Initialize(picker, _windowHandle);
-                path = (await picker.PickSingleFileAsync())?.Path;
-            }
-
-            if (!string.IsNullOrWhiteSpace(path))
-            {
-                await _viewModel.ReplaceFileReferenceAsync(card, path);
-            }
-        });
-    }
-
-    private async void OnExportItemClicked(object sender, RoutedEventArgs args)
-    {
-        if (GetCard(sender) is not { } card)
-        {
-            return;
-        }
-
-        await RunAsync(async () =>
-        {
-            var extension = card.Item.Image?.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) == true
-                ? ".jpg"
-                : ".png";
-            var picker = new FileSavePicker
-            {
-                SuggestedFileName = $"DropSpace-{DateTime.Now:yyyyMMdd-HHmmss}",
-            };
-            picker.FileTypeChoices.Add(
-                extension == ".jpg" ? _strings.Get("ExportJpegImage") : _strings.Get("ExportPngImage"),
-                [extension]);
-            InitializeWithWindow.Initialize(picker, _windowHandle);
-            var file = await picker.PickSaveFileAsync();
-            if (file is not null)
-            {
-                await _viewModel.ExportImageAsync(card, file.Path);
-            }
-        });
-    }
-
-    private async void OnPauseToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.SetClipboardPausedAsync(PauseToggle.IsOn));
-        }
-    }
-
-    private async void OnCaptureImagesToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { CaptureImages = CaptureImagesToggle.IsOn }));
-        }
-    }
-
-    private async void OnCaptureFilesToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { CaptureFiles = CaptureFilesToggle.IsOn }));
-        }
-    }
-
-    private async void OnCaptureFoldersToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { CaptureFolders = CaptureFoldersToggle.IsOn }));
-        }
-    }
-
-    private async void OnStartWithWindowsToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { StartWithWindows = StartWithWindowsToggle.IsOn }));
-        }
-    }
-
-    private async void OnAutoCheckUpdatesToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { AutoCheckForUpdates = AutoCheckUpdatesToggle.IsOn }));
-        }
-    }
-
-    private async void OnAutoDownloadUpdatesToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { AutoDownloadUpdates = AutoDownloadUpdatesToggle.IsOn }));
-        }
-    }
-
-    private async void OnAutoInstallUpdatesToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { AutoInstallUpdates = AutoInstallUpdatesToggle.IsOn }));
-        }
-    }
-
-    private async void OnUpdateChannelChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && UpdateChannelCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<UpdateChannel>(value, out var channel))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { UpdateChannel = channel }));
-        }
-    }
-
-    private async void OnCheckForUpdatesClicked(object sender, RoutedEventArgs args) =>
-        await RunAsync(() => _viewModel.CheckForUpdatesManuallyAsync());
-
-    private async void OnDownloadUpdateClicked(object sender, RoutedEventArgs args) =>
-        await RunAsync(() => _viewModel.DownloadUpdateAsync());
-
-    private async void OnInstallUpdateClicked(object sender, RoutedEventArgs args) =>
-        await RunAsync(() => _viewModel.InstallUpdateAsync());
-
-    private async void OnOpenUpdateLocationClicked(object sender, RoutedEventArgs args) =>
-        await RunAsync(async () => _ = await _viewModel.OpenUpdateLocationAsync());
-
-    private async void OnViewReleaseNotesClicked(object sender, RoutedEventArgs args) =>
-        await RunAsync(async () => _ = await _viewModel.OpenUpdateReleaseNotesAsync());
-
-    private async void OnOpenDropTraySettingsClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(async () =>
-        {
-            if (!await _viewModel.OpenDropTraySettingsAsync())
-            {
-                await ShowMessageAsync(
-                    _strings.Get("DropTraySettingsUnavailableTitle"),
-                    _strings.Get("DropTraySettingsUnavailableContent"));
-            }
-        });
-    }
-
-    private void OnCopyDragCompatibilityReportClicked(object sender, RoutedEventArgs args) =>
-        _viewModel.CopyDragCompatibilityReport();
-
-    private async void OnClipboardLimitsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-    {
-        if (_syncingSettings ||
-            double.IsNaN(MaxImageMegabytesNumber.Value) ||
-            double.IsNaN(MaxImageMegapixelsNumber.Value) ||
-            double.IsNaN(MaxClipboardFileMegabytesNumber.Value) ||
-            double.IsNaN(MaxClipboardFileTotalMegabytesNumber.Value) ||
-            double.IsNaN(MaxClipboardFileItemsNumber.Value))
-        {
-            return;
-        }
-
-        var singleFileMegabytes = (long)Math.Round(MaxClipboardFileMegabytesNumber.Value);
-        var totalFileMegabytes = (long)Math.Round(MaxClipboardFileTotalMegabytesNumber.Value);
-        if (totalFileMegabytes < singleFileMegabytes)
-        {
-            await ShowMessageAsync(_strings.Get("ClipboardLimitInvalidTitle"), _strings.Get("ClipboardLimitInvalidContent"));
-            SyncSettingsControls();
-            return;
-        }
-
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
-        {
-            MaxImageBytes = checked((long)Math.Round(MaxImageMegabytesNumber.Value * 1024 * 1024)),
-            MaxImagePixels = checked((long)Math.Round(MaxImageMegapixelsNumber.Value * 1_000_000)),
-            MaxClipboardFileBytes = checked(singleFileMegabytes * 1024 * 1024),
-            MaxClipboardFileTotalBytes = checked(totalFileMegabytes * 1024 * 1024),
-            MaxClipboardFileItems = (int)Math.Round(MaxClipboardFileItemsNumber.Value),
-        }));
-    }
-
-    private async void OnRetentionChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-    {
-        if (_syncingSettings || double.IsNaN(RetentionDaysNumber.Value) || double.IsNaN(RetentionCountNumber.Value))
-        {
-            return;
-        }
-
-        var days = (int)Math.Round(RetentionDaysNumber.Value);
-        var count = (int)Math.Round(RetentionCountNumber.Value);
-        if (days is >= 1 and <= 3650 && count is >= 10 and <= 100_000)
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { RetentionDays = days, RetentionItemCount = count }));
-        }
-    }
-
-    private async void OnThemeChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && ThemeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<ThemePreference>(value, out var theme))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with { Theme = theme }));
-        }
-    }
-
-    private async void OnLanguageChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && LanguageCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<AppLanguagePreference>(value, out var language))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { Language = language }));
-        }
-    }
-
-    private async void OnCloseBehaviorChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && CloseBehaviorCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<CloseBehavior>(value, out var closeBehavior))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { CloseBehavior = closeBehavior }));
-        }
-    }
-
-    private async void OnOverlayMotionChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && OverlayMotionCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<OverlayMotionPreference>(value, out var motion))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { OverlayMotion = motion }));
-        }
-    }
-
-    private async void OnOverlayMonitorChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && OverlayMonitorCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<OverlayMonitorPreference>(value, out var monitor))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { OverlayMonitor = monitor }));
-        }
-    }
-
-    private async void OnFileDragWakeModeChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && FileDragWakeModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            Enum.TryParse<FileDragWakeMode>(value, out var mode))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { FileDragWakeMode = mode }));
-        }
-    }
-
-    private async void OnOverlayPlacementModeChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!_syncingSettings && OverlayPlacementModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
-            OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
-            Enum.TryParse<OverlayPlacementMode>(value, out var mode))
-        {
-            if (mode == OverlayPlacementMode.Custom && !_viewModel.CanPersistOverlayPlacement(monitorId))
-            {
-                SyncPlacementCoordinates();
-                return;
-            }
-            await RunAsync(() => _viewModel.SetOverlayPlacementModeAsync(monitorId, mode));
-        }
-    }
-
-    private void OnOverlayPlacementMonitorChanged(object sender, SelectionChangedEventArgs args) =>
-        SyncPlacementCoordinates();
-
-    private async void OnApplyIslandPlacementClicked(object sender, RoutedEventArgs args)
-    {
-        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
-            _viewModel.CanPersistOverlayPlacement(monitorId) &&
-            !double.IsNaN(OverlayPlacementXNumber.Value) &&
-            !double.IsNaN(OverlayPlacementYNumber.Value))
-        {
-            await RunAsync(() => _viewModel.SetCustomOverlayPlacementAsync(
-                monitorId,
-                OverlayPlacementXNumber.Value,
-                OverlayPlacementYNumber.Value));
-        }
-    }
-
-    private async void OnResetIslandPlacementClicked(object sender, RoutedEventArgs args)
-    {
-        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId)
-        {
-            await RunAsync(() => _viewModel.ResetOverlayPlacementAsync(monitorId));
-            SyncPlacementCoordinates();
-        }
-    }
-
-    private void OnAdjustIslandPlacementClicked(object sender, RoutedEventArgs args)
-    {
-        if (OverlayPlacementMonitorCombo.SelectedValue is string monitorId &&
-            _viewModel.CanPersistOverlayPlacement(monitorId))
-        {
-            _viewModel.RequestOverlayPlacementEdit(monitorId);
-        }
-    }
-
-    private void OnPlacementNumberKeyDown(object sender, KeyRoutedEventArgs args)
-    {
-        if (args.Key == VirtualKey.Escape)
-        {
-            SyncPlacementCoordinates();
-            args.Handled = true;
-            return;
-        }
-        if (args.Key == VirtualKey.Enter)
-        {
-            OnApplyIslandPlacementClicked(sender, args);
-            args.Handled = true;
-            return;
-        }
-        var shift = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift)
-            .HasFlag(CoreVirtualKeyStates.Down);
-        if (shift && sender is NumberBox box && args.Key is VirtualKey.Up or VirtualKey.Down or VirtualKey.Left or VirtualKey.Right)
-        {
-            var direction = args.Key is VirtualKey.Up or VirtualKey.Right ? 1 : -1;
-            box.Value = (double.IsNaN(box.Value) ? 0 : box.Value) + direction * 10;
-            args.Handled = true;
-        }
-    }
-
-    private async void OnQuickPanelHotkeyLostFocus(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings && !string.Equals(QuickPanelHotkeyText.Text, _viewModel.QuickPanelHotkey, StringComparison.Ordinal))
-        {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { QuickPanelHotkey = QuickPanelHotkeyText.Text.Trim() }));
-        }
-    }
-
-    private async void OnSmartDragExclusionsLostFocus(object sender, RoutedEventArgs args)
-    {
-        if (_syncingSettings)
-        {
-            return;
-        }
-        var exclusions = SmartDragExclusionsText.Text
-            .Split([',', ';', '\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(Path.GetFileNameWithoutExtension)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(
-            _viewModel.Settings with { SmartDragExcludedProcesses = exclusions }));
-    }
-
-    private async void OnClearLastHourClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.LastHour);
-
-    private async void OnClearTodayClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.Today);
-
-    private async void OnClearAllClicked(object sender, RoutedEventArgs args) => await ConfirmClearAsync(ClearRange.All);
-
-    private async void OnSpaceAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Space"));
-    }
-
-    private async void OnClipboardAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Clipboard"));
-    }
-
-    private async void OnPinnedAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Pinned"));
-    }
-
-    private async void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        if (_viewModel.IsSettingsVisible)
-        {
-            await RunAsync(() => SelectSectionAsync("Space"));
-        }
-
-        SearchBox.Focus(FocusState.Keyboard);
-    }
-
-    private async void OnSettingsAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await RunAsync(() => SelectSectionAsync("Settings"));
-    }
-
-    private async void OnUndoAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        args.Handled = true;
-        await RunAsync(() => _viewModel.UndoAsync());
-    }
-
-    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
-    {
-        if (args.PropertyName == nameof(MainViewModel.Settings))
-        {
-            SyncSettingsControls();
-        }
-        else if (args.PropertyName == nameof(MainViewModel.CurrentSection))
-        {
-            SyncNavigationSelection();
-            UpdateSectionChrome();
-        }
-    }
-
-    private void SyncNavigationSelection()
-    {
-        _syncingNavigation = true;
-        try
-        {
-            Navigation.SelectedItem = GetNavigationItem(_viewModel.CurrentSection);
-        }
-        finally
-        {
-            _syncingNavigation = false;
-        }
-    }
-
-    private void EnsureQuickActionsSettings()
-    {
-        if (_quickActionsSettingsBuilt)
-        {
-            return;
-        }
-
-        QuickActionsSettingsPanel.Children.Clear();
-        QuickActionsSettingsPanel.Children.Add(new TextBlock
-        {
-            Text = _strings.Get("QuickActionsSection"),
-            FontSize = 16,
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-        });
-        QuickActionsSettingsPanel.Children.Add(new TextBlock
-        {
-            Text = _strings.Get("QuickActionsDescription"),
-            Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray),
-            TextWrapping = TextWrapping.Wrap,
-        });
-
-        foreach (var profile in Enum.GetValues<QuickActionProfile>())
-        {
-            var group = new StackPanel { Spacing = 6 };
-            group.Children.Add(new TextBlock
-            {
-                Text = GetQuickActionProfileLabel(profile),
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            });
-
-            var automaticToggle = new ToggleSwitch
-            {
-                Header = _strings.Get("QuickActionAutomatic"),
-                Tag = profile,
-            };
-            AutomationProperties.SetName(automaticToggle, _strings.Get("QuickActionAutomatic"));
-            automaticToggle.Toggled += OnQuickActionAutomaticToggled;
-            group.Children.Add(automaticToggle);
-
-            var slotsGrid = new Grid { ColumnSpacing = 8 };
-            var slots = new ComboBox[QuickActionPreferencePolicy.MaximumPrimaryActions];
-            for (var index = 0; index < slots.Length; index++)
-            {
-                slotsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                var slot = new ComboBox
-                {
-                    Header = _strings.Format("QuickActionSlot", index + 1),
-                    Tag = new QuickActionSlotContext(profile, index),
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                };
-                slot.Items.Add(new ComboBoxItem
-                {
-                    Content = _strings.Get("QuickActionNone"),
-                    Tag = string.Empty,
-                });
-                foreach (var action in _actions.Actions)
-                {
-                    slot.Items.Add(new ComboBoxItem
-                    {
-                        Content = _strings.Get(action.Descriptor.LabelResourceKey),
-                        Tag = action.Descriptor.Id.ToString(),
-                    });
-                }
-
-                slot.SelectionChanged += OnQuickActionSlotChanged;
-                Grid.SetColumn(slot, index);
-                slotsGrid.Children.Add(slot);
-                slots[index] = slot;
-            }
-
-            group.Children.Add(slotsGrid);
-            var resetButton = new Button
-            {
-                Content = _strings.Get("ResetQuickActions"),
-                Tag = profile,
-                HorizontalAlignment = HorizontalAlignment.Left,
-            };
-            resetButton.Click += OnResetQuickActionsClicked;
-            group.Children.Add(resetButton);
-            QuickActionsSettingsPanel.Children.Add(group);
-            _quickActionControls[profile] = new QuickActionSettingsControls(automaticToggle, slots);
-        }
-
-        var resetAllButton = new Button
-        {
-            Content = _strings.Get("ResetAllQuickActions"),
-            HorizontalAlignment = HorizontalAlignment.Left,
-        };
-        resetAllButton.Click += OnResetAllQuickActionsClicked;
-        QuickActionsSettingsPanel.Children.Add(resetAllButton);
-        _quickActionsSettingsBuilt = true;
-    }
-
-    private async void OnQuickActionAutomaticToggled(object sender, RoutedEventArgs args)
-    {
-        if (!_syncingSettings)
-        {
-            await SaveQuickActionSettingsAsync();
-        }
-    }
-
-    private async void OnQuickActionSlotChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (_syncingSettings || sender is not ComboBox changed ||
-            changed.Tag is not QuickActionSlotContext context)
-        {
-            return;
-        }
-
-        var selected = GetSelectedQuickAction(changed);
-        var controls = _quickActionControls[context.Profile];
-        if (selected is { } selectedId && controls.Slots.Any(slot => !ReferenceEquals(slot, changed) && GetSelectedQuickAction(slot) == selectedId))
-        {
-            _syncingSettings = true;
-            try
-            {
-                SelectQuickAction(changed, null);
-            }
-            finally
-            {
-                _syncingSettings = false;
-            }
-
-            return;
-        }
-
-        await SaveQuickActionSettingsAsync();
-    }
-
-    private async Task SaveQuickActionSettingsAsync()
-    {
-        await RunAsync(async () =>
-        {
-            var preferences = QuickActionPreferencePolicy.CreateAutomaticPreferences();
-            foreach (var (profile, controls) in _quickActionControls)
-            {
-                if (controls.AutomaticToggle.IsOn)
-                {
-                    continue;
-                }
-
-                var slots = controls.Slots.Select(GetSelectedQuickAction).ToArray();
-                preferences[profile] = new QuickActionPreference(false, slots[0], slots[1], slots[2]);
-            }
-
-            try
-            {
-                await _viewModel.UpdateSettingsAsync(_viewModel.Settings with
-                {
-                    QuickActionPreferences = preferences,
-                });
-            }
-            catch
-            {
-                SyncSettingsControls();
-                throw;
-            }
-        });
-    }
-
-    private async void OnResetQuickActionsClicked(object sender, RoutedEventArgs args)
-    {
-        if (sender is not FrameworkElement { Tag: QuickActionProfile profile })
-        {
-            return;
-        }
-
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
-        {
-            QuickActionPreferences = new QuickActionPreferenceCollection(
-                _viewModel.Settings.QuickActionPreferences)
-            {
-                [profile] = QuickActionPreference.Automatic,
-            },
-        }));
-    }
-
-    private async void OnResetAllQuickActionsClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
-        {
-            QuickActionPreferences = QuickActionPreferencePolicy.CreateAutomaticPreferences(),
-        }));
-    }
-
-    private void SyncQuickActionsSettings()
-    {
-        EnsureQuickActionsSettings();
-        foreach (var (profile, controls) in _quickActionControls)
-        {
-            var preference = _viewModel.Settings.QuickActionPreferences.TryGetValue(profile, out var configured)
-                ? configured
-                : QuickActionPreference.Automatic;
-            controls.AutomaticToggle.IsOn = preference.IsAutomatic;
-            var slots = preference.Slots;
-            for (var index = 0; index < controls.Slots.Length; index++)
-            {
-                SelectQuickAction(controls.Slots[index], slots[index]);
-                controls.Slots[index].IsEnabled = !preference.IsAutomatic;
-            }
-        }
-    }
-
-    private static ItemActionId? GetSelectedQuickAction(ComboBox comboBox) =>
-        comboBox.SelectedItem is ComboBoxItem { Tag: string value } &&
-        Enum.TryParse<ItemActionId>(value, out var action)
-            ? action
-            : null;
-
-    private static void SelectQuickAction(ComboBox comboBox, ItemActionId? action)
-    {
-        var tag = action?.ToString() ?? string.Empty;
-        comboBox.SelectedItem = comboBox.Items
-            .OfType<ComboBoxItem>()
-            .FirstOrDefault(item => string.Equals(item.Tag as string, tag, StringComparison.Ordinal));
-    }
-
-    private string GetQuickActionProfileLabel(QuickActionProfile profile) => profile switch
-    {
-        QuickActionProfile.File => _strings.Get("QuickActionFiles"),
-        QuickActionProfile.Image => _strings.Get("QuickActionImages"),
-        QuickActionProfile.Text => _strings.Get("QuickActionText"),
-        QuickActionProfile.Url => _strings.Get("QuickActionUrls"),
-        _ => profile.ToString(),
-    };
-
-    private NavigationViewItem GetNavigationItem(string section) => section switch
-    {
-        "Clipboard" => ClipboardNavigationItem,
-        "Pinned" => PinnedNavigationItem,
-        "Settings" => SettingsNavigationItem,
-        _ => SpaceNavigationItem,
-    };
-
-    private void SyncSettingsControls()
-    {
-        _syncingSettings = true;
-        try
-        {
-            PauseToggle.IsOn = _viewModel.IsClipboardPaused;
-            CaptureImagesToggle.IsOn = _viewModel.CaptureImages;
-            CaptureFilesToggle.IsOn = _viewModel.CaptureFiles;
-            CaptureFoldersToggle.IsOn = _viewModel.CaptureFolders;
-            DeviceHandoffToggle.IsOn = _viewModel.EnableDeviceHandoff;
-            CrossDeviceClipboardToggle.IsOn = _viewModel.EnableCrossDeviceClipboard;
-            NearbySharingToggle.IsOn = _viewModel.EnableNearbySharing;
-            InternetSharingToggle.IsOn = _viewModel.EnableInternetSharing;
-            SelectComboItem(DefaultClipboardSyncModeCombo, _viewModel.DefaultClipboardSyncMode.ToString());
-            StartWithWindowsToggle.IsOn = _viewModel.StartWithWindows;
-            AutoCheckUpdatesToggle.IsOn = _viewModel.AutoCheckForUpdates;
-            AutoDownloadUpdatesToggle.IsOn = _viewModel.AutoDownloadUpdates;
-            AutoInstallUpdatesToggle.IsOn = _viewModel.AutoInstallUpdates;
-            MaxImageMegabytesNumber.Value = _viewModel.MaxImageMegabytes;
-            MaxImageMegapixelsNumber.Value = _viewModel.MaxImageMegapixels;
-            MaxClipboardFileMegabytesNumber.Value = _viewModel.MaxClipboardFileMegabytes;
-            MaxClipboardFileTotalMegabytesNumber.Value = _viewModel.MaxClipboardFileTotalMegabytes;
-            MaxClipboardFileItemsNumber.Value = _viewModel.MaxClipboardFileItems;
-            RetentionDaysNumber.Value = _viewModel.RetentionDays;
-            RetentionCountNumber.Value = _viewModel.RetentionItemCount;
-            SelectComboItem(ThemeCombo, _viewModel.Theme.ToString());
-            SelectComboItem(LanguageCombo, _viewModel.Language.ToString());
-            SelectComboItem(CloseBehaviorCombo, _viewModel.CloseBehavior.ToString());
-            SelectComboItem(OverlayMotionCombo, _viewModel.OverlayMotion.ToString());
-            SelectComboItem(OverlayMonitorCombo, _viewModel.OverlayMonitor.ToString());
-            SelectComboItem(FileDragWakeModeCombo, _viewModel.FileDragWakeMode.ToString());
-            IReadOnlyList<OverlayMonitorChoice> availableOverlayMonitors;
-            try
-            {
-                availableOverlayMonitors = _viewModel.AvailableOverlayMonitors;
-            }
-            catch (InvalidOperationException exception) when (
-                exception.Message.Contains("active display", StringComparison.OrdinalIgnoreCase))
-            {
-                // Display enumeration can briefly return no monitors during a headless or display
-                // reconnecting session. Keep the settings page usable; the overlay service will
-                // retry on its next topology refresh.
-                availableOverlayMonitors = Array.Empty<OverlayMonitorChoice>();
-            }
-
-            OverlayPlacementMonitorCombo.ItemsSource = availableOverlayMonitors;
-            OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
-            QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
-            SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
-            SyncQuickActionsSettings();
-            SyncPlacementCoordinates();
-            SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
-            UpdateDeviceStatus();
-        }
-        finally
-        {
-            _syncingSettings = false;
-        }
-    }
-
-    private void SyncPlacementCoordinates()
-    {
-        if (OverlayPlacementMonitorCombo.SelectedValue is not string monitorId)
-        {
-            return;
-        }
-        var placement = _viewModel.GetOverlayPlacement(monitorId);
-        var canPersist = _viewModel.CanPersistOverlayPlacement(monitorId);
-        SelectComboItem(OverlayPlacementModeCombo, placement.Mode.ToString());
-        OverlayPlacementCustomItem.IsEnabled = canPersist;
-        OverlayPlacementXNumber.Value = placement.X;
-        OverlayPlacementYNumber.Value = placement.Y;
-        OverlayPlacementXNumber.IsEnabled = canPersist;
-        OverlayPlacementYNumber.IsEnabled = canPersist;
-        AdjustIslandPlacementButton.IsEnabled = canPersist;
-        ApplyIslandPlacementButton.IsEnabled = canPersist;
-        OverlayPlacementPersistenceWarningText.Visibility = canPersist
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-    }
-
-    private void UpdateSectionChrome()
-    {
-        var section = _viewModel.CurrentSection;
-        AddButton.Visibility = section == "Space" ? Visibility.Visible : Visibility.Collapsed;
-        SearchBox.Visibility = section == "Settings" ? Visibility.Collapsed : Visibility.Visible;
-        ClipboardStatusText.Visibility = section == "Clipboard" ? Visibility.Visible : Visibility.Collapsed;
-        switch (section)
-        {
-            case "Clipboard":
-                EmptyTitle.Text = _strings.Get("EmptyClipboardTitle");
-                EmptyDescription.Text = _strings.Get("EmptyClipboardDescription");
-                break;
-            case "Pinned":
-                EmptyTitle.Text = _strings.Get("EmptyPinnedTitle");
-                EmptyDescription.Text = _strings.Get("EmptyPinnedDescription");
-                break;
-            default:
-                EmptyTitle.Text = _strings.Get("EmptySpaceTitle");
-                EmptyDescription.Text = _strings.Get("EmptySpaceDescription");
-                break;
-        }
-    }
-
-    private void UpdateDeviceStatus()
-    {
-        if (!_viewModel.EnableDeviceHandoff)
-        {
-            DeviceStatusText.Text = _strings.Get("DevicesDisabledContent");
-        }
-        else if (_deviceHandoff.UnavailableReason is { Length: > 0 } reason)
-        {
-            DeviceStatusText.Text = _strings.Format("DeviceServiceUnavailable", reason);
-        }
-        else if (_deviceHandoff.FirewallStatus is { } firewall)
-        {
-            DeviceStatusText.Text = firewall.CanReceive
-                ? _strings.Get("DeviceServiceReady")
-                : _strings.Format("DeviceServiceBlocked", firewall.Reason ?? string.Empty);
-        }
-        else
-        {
-            DeviceStatusText.Text = _strings.Get("DeviceServiceStarting");
-        }
-    }
-
-    private void SetDropHint(DragEventArgs args, bool visible)
-    {
-        var acceptsItems = args.DataView.Contains(StandardDataFormats.StorageItems) ||
-                           args.DataView.Contains(StandardDataFormats.Text) ||
-                           args.DataView.Contains(StandardDataFormats.WebLink);
-        args.AcceptedOperation = acceptsItems ? DataPackageOperation.Copy : DataPackageOperation.None;
-        DropHint.Visibility = visible && acceptsItems ? Visibility.Visible : Visibility.Collapsed;
-        if (acceptsItems)
-        {
-            args.DragUIOverride.Caption = _strings.Get("DragCaptionAddToDropSpace");
-            args.DragUIOverride.IsCaptionVisible = true;
-        }
-    }
-
-    private static ItemCardViewModel? GetCard(object sender) => sender switch
-    {
-        FrameworkElement { Tag: ItemCardViewModel card } => card,
-        FrameworkElement { DataContext: ItemCardViewModel card } => card,
-        _ => null,
-    };
-
-    private sealed record QuickActionSlotContext(QuickActionProfile Profile, int Index);
-
-    private sealed record QuickActionSettingsControls(
-        ToggleSwitch AutomaticToggle,
-        ComboBox[] Slots);
-
-    private static void SelectComboItem(ComboBox comboBox, string tag)
-    {
-        comboBox.SelectedItem = comboBox.Items
-            .OfType<ComboBoxItem>()
-            .FirstOrDefault(item => string.Equals(item.Tag as string, tag, StringComparison.Ordinal));
-    }
-
-    private async Task<bool> ShowConfirmationAsync(string title, string content, string primaryText)
-    {
-        await _dialogGate.WaitAsync();
-        try
-        {
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Title = title,
-                Content = content,
-                PrimaryButtonText = primaryText,
-                CloseButtonText = _strings.Get("CommonCancel"),
-                DefaultButton = ContentDialogButton.Close,
-            };
-            return await dialog.ShowAsync() == ContentDialogResult.Primary;
-        }
-        finally
-        {
-            _dialogGate.Release();
-        }
-    }
-
-    private async Task ShowMessageAsync(string title, string content)
-    {
-        await _dialogGate.WaitAsync();
-        try
-        {
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Title = title,
-                Content = content,
-                CloseButtonText = _strings.Get("CommonAcknowledge"),
-            };
-            await dialog.ShowAsync();
-        }
-        finally
-        {
-            _dialogGate.Release();
-        }
-    }
-
-    private async Task RunAsync(Func<Task> operation)
-    {
-        try
-        {
-            await operation();
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-        catch (Exception)
-        {
-            await ShowMessageAsync(
-                _strings.Get("OperationIncompleteTitle"),
-                _strings.Get("OperationIncompleteContent"));
-        }
-    }
-
-    public void VerifyLocalizedResources()
-    {
-        VerifyResourceValue(SpaceNavigationItem.Content, "NavSpace.Content");
-        VerifyResourceValue(ClipboardNavigationItem.Content, "NavClipboard.Content");
-        VerifyResourceValue(PinnedNavigationItem.Content, "NavPinned.Content");
-        VerifyResourceValue(SettingsNavigationItem.Content, "NavSettings.Content");
-        VerifyResourceValue(SearchBox.PlaceholderText, "SearchBox.PlaceholderText");
-        VerifyResourceValue(AddButton.Content, "AddButton.Content");
-    }
-
-    private void VerifyResourceValue(object? actual, string key)
-    {
-        var expected = _strings.Get(key);
-        if (!string.Equals(actual as string, expected, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException($"Localized XAML resource '{key}' did not resolve.");
-        }
-    }
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíÛ½7ñ:-jZ.¶›­–)Ş³WW6–ær7—7FVÒäF–væ÷7F–73°§W6–ær7—7FVÒä6öÆÆV7F–öç2äö&¦V7DÖöFVÃ°§W6–ær7—7FVÒå'VçF–ÖRä–çFW&÷6W'f–6W3°§W6–ærG&÷76Räå6W'f–6W3°§W6–ærG&÷76Räåf–WtÖöFVÇ3°§W6–ærG&÷76Rä6÷&Rä'7G&7F–öç3°§W6–ærG&÷76Rä6÷&Rä7F–öç3°§W6–ærG&÷76Rä6÷&Rä6ö×F–&–Æ—G“°§W6–ærG&÷76Rä6÷&RäÖöFVÇ3°§W6–ærG&÷76Rä6÷&Rå&Wf–Ws°§W6–ærG&÷76Rä6÷&RåG&ç6fW#°§W6–ærG&÷76Rä6÷&RåWFFW3°§W6–ærG&÷76Rä–æg&7G'V7GW&Rä7F–öç3°§W6–ærG&÷76Rä–æg&7G'V7GW&RäæWGv÷&³°§W6–ærÖ–7&÷6ögBåT’å†ÖÃ°§W6–ærÖ–7&÷6ögBåT’å†ÖÂäWFöÖF–öã°§W6–ærÖ–7&÷6ögBåT’å†ÖÂä6öçG&öÇ3°§W6–ærÖ–7&÷6ögBåT’å†ÖÂä–çWC°§W6–ærÖ–7&÷6ögBåT’å†ÖÂäÖVF–°§W6–ærÖ–7&÷6ögBåT’å†ÖÂäÖVF–ä–Öv–æs°§W6–ærÖ–7&÷6ögBåT’ä–çWC°§W6–ærv–æF÷w2åT’ä6÷&S°§W6–ærv–æF÷w2äÆ–6F–öäÖöFVÂäFFG&ç6fW#°§W6–ærv–æF÷w2äFFåFc°§W6–ærv–æF÷w2äw&†–72ä–Öv–æs°§W6–ærv–æF÷w2äÖVF–ä6÷&S°§W6–ærv–æF÷w2äÖVF–åÆ–&6³°§W6–ærv–æF÷w2å7F÷&vS°§W6–ærv–æF÷w2å7F÷&vRå–6¶W'3°§W6–ærv–æF÷w2å7F÷&vRå7G&V×3°§W6–ærv–æF÷w2å7—7FVÓ°§W6–ærv–å%Bä–çFW&÷° ¦æÖW76RG&÷76Räåf–Ww3° §V&Æ–26VÆVB'F–Â6Æ72Ö–åvR¢vP§°¢&—fFR&VFöæÇ’Ö–åf–WtÖöFVÂ÷f–WtÖöFVÃ°¢&—fFR&VFöæÇ’æ–çB÷v–æF÷t†æFÆS°¢&—fFR&VFöæÇ’”7G&–ætÆö6Æ—¦W"÷7G&–æw3°¢&—fFR&VFöæÇ’•v–æF÷w46&–Æ—G•6W'f–6Rö6&–Æ—F–W3°¢&—fFR&VFöæÇ’V–6µ&Wf–Wu6W'f–6R÷&Wf–Ww3°¢&—fFR&VFöæÇ’”—FVÔ7F–öå&Vv—7G'’ö7F–öç3°¢&—fFR&VFöæÇ’FWf–6T†æFöfe6W'f–6RöFWf–6T†æFöfc°¢&—fFR&VFöæÇ’7&÷74FWf–6T6Æ—&ö&E6W'f–6Rö7&÷74FWf–6T6Æ—&ö&C°¢&—fFR&VFöæÇ’G&÷Æ–æ´†÷7BöG&÷Æ–æ´†÷7C°¢&—fFR&VFöæÇ’—FVÕ6†&–æu6W'f–6R÷6†&–æs°¢&—fFR&VFöæÇ’ö'6W'f&ÆT6öÆÆV7F–öãÄFWf–6TFW67&—F÷#âöF—66÷fW&VDFWf–6W2ÒµÓ°¢&—fFR&VFöæÇ’F–7F–öæ'“ÄwV–BÂ—&VEVW#â÷—&VEVW'2ÒµÓ°¢&—fFR&VFöæÇ’F–7F–öæ'“ÅV–6´7F–öå&öf–ÆRÂV–6´7F–öå6WGF–æw46öçG&öÇ3â÷V–6´7F–öä6öçG&öÇ2ÒµÓ°¢&—fFR&VFöæÇ’6VÖ†÷&U6Æ–ÒöF–ÆötvFRÒæWrƒÂ“°¢&—fFR&ööÂ÷7–æ6–ætæf–vF–öã°¢&—fFR&ööÂ÷7–æ6–æu6WGF–æw3°¢&—fFR&ööÂ÷V–6´7F–öç56WGF–æw4'V–ÇC° ¢V&Æ–2Ö–åvR€¢Ö–åf–WtÖöFVÂf–WtÖöFVÂÀ¢æ–çBv–æF÷t†æFÆRÀ¢”7G&–ætÆö6Æ—¦W"7G&–æw2À¢•v–æF÷w46&–Æ—G•6W'f–6R6&–Æ—F–W2À¢V–6µ&Wf–Wu6W'f–6R&Wf–Ww2À¢”—FVÔ7F–öå&Vv—7G'’7F–öç2À¢FWf–6T†æFöfe6W'f–6RFWf–6T†æFöfbÀ¢7&÷74FWf–6T6Æ—&ö&E6W'f–6R7&÷74FWf–6T6Æ—&ö&BÀ¢G&÷Æ–æ´†÷7BG&÷Æ–æ´†÷7BÀ¢—FVÕ6†&–æu6W'f–6R6†&–ær¢°¢&wVÖVçDçVÆÄW†6WF–öâåF‡&÷t–dçVÆÂ‡f–WtÖöFVÂ“°¢÷f–WtÖöFVÂÒf–WtÖöFVÃ°¢÷v–æF÷t†æFÆRÒv–æF÷t†æFÆS°¢÷7G&–æw2Ò7G&–æw3°¢ö6&–Æ—F–W2Ò6&–Æ—F–W3°¢÷&Wf–Ww2Ò&Wf–Ww3°¢ö7F–öç2Ò7F–öç3°¢öFWf–6T†æFöfbÒFWf–6T†æFöfc°¢ö7&÷74FWf–6T6Æ—&ö&BÒ7&÷74FWf–6T6Æ—&ö&C°¢öG&÷Æ–æ´†÷7BÒG&÷Æ–æ´†÷7C°¢÷6†&–ærÒ6†&–æs°¢G'¢°¢–æ—F–Æ—¦T6ö×öæVçB‚“°¢Ğ¢6F6‚„W†6WF–öâW†6WF–öâ¢°¢F‡&÷ræWr–çfÆ–D÷W&F–öäW†6WF–öâ‚$Ö–â×vR„ÔÂ–æ—F–Æ—¦F–öâf–ÆVBâ"ÂW†6WF–öâ“°¢Ğ ¢FF6öçFW‡BÒf–WtÖöFVÃ°¢F—66÷fW&VDFWf–6W4Æ—7Bä—FV×56÷W&6RÒöF—66÷fW&VDFWf–6W3°¢öG&÷Æ–æ´†÷7BåG&ç6fW$öffW&VB³ÒöåG&ç6fW$öffW&VD7–æ3°¢öG&÷Æ–æ´†÷7Bå—&–ætöffW&VB³Òöå—&–ætöffW&VD7–æ3°¢öG&÷Æ–æ´†÷7Bä†æFöfdöffW&VB³Òöä†æFöfdöffW&VD7–æ3°¢ÆöFVB³ÒöäÆöFVC°¢VæÆöFVB³ÒöåVæÆöFVC°¢÷f–WtÖöFVÂå&÷W'G”6†ævVB³Òöåf–WtÖöFVÅ&÷W'G”6†ævVC°¢Ğ ¢V&Æ–27–æ2F6²6öæf—&Ô6ÆV$7–æ2„6ÆV%&ævR&ævR¢°¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢f"6÷VçBÒv—B÷f–WtÖöFVÂävWD6ÆV%&Wf–Wt6÷VçD7–æ2‡&ævR“°¢–b†6÷VçBÓÒ¢°¢v—B6†÷tÖW76vT7–æ2…÷7G&–æw2ävWB‚$6ÆV$æ÷F†–æuF—FÆR"’Â÷7G&–æw2ävWB‚$6ÆV$æ÷F†–æt6öçFVçB"’“°¢&WGW&ã°¢Ğ ¢f"&ævTÆ&VÂÒ&ævR7v—F6€¢°¢6ÆV%&ævRäÆ7D†÷W"Óâ÷7G&–æw2ävWB‚$6ÆV%&ævTÆ7D†÷W""’À¢6ÆV%&ævRåFöF’Óâ÷7G&–æw2ävWB‚$6ÆV%&ævUFöF’"’À¢òÓâ÷7G&–æw2ävWB‚$6ÆV%&ævTÆÂ"’À¢Ó°¢f"&W7VÇBÒv—B6†÷t6öæf—&ÖF–öä7–æ2€¢÷7G&–æw2äf÷&ÖB‚$6ÆV$6öæf—&ÕF—FÆR"Â&ævTÆ&VÂ’À¢÷7G&–æw2äf÷&ÖB‚$6ÆV$6öæf—&Ô6öçFVçB"Â6÷VçB’À¢÷7G&–æw2ävWB‚$6ÆV$6öæf—&Ô'WGFöâ"’“°¢–b‡&W7VÇB¢°¢v—B÷f–WtÖöFVÂä6ÆV$6Æ—&ö&D7–æ2‡&ævR“°¢Ğ¢Ò“°¢Ğ ¢&—fFRfö–BöäÆöFVB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢Vç7W&UV–6´7F–öç56WGF–æw2‚“°¢7–æ4æf–vF–öå6VÆV7F–öâ‚“°¢7–æ56WGF–æw46öçG&öÇ2‚“°¢WFFU6V7F–öä6‡&öÖR‚“°¢Ğ ¢&—fFRfö–BöåVæÆöFVB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢÷f–WtÖöFVÂå&÷W'G”6†ævVBÓÒöåf–WtÖöFVÅ&÷W'G”6†ævVC°¢öG&÷Æ–æ´†÷7BåG&ç6fW$öffW&VBÓÒöåG&ç6fW$öffW&VD7–æ3°¢öG&÷Æ–æ´†÷7Bå—&–ætöffW&VBÓÒöå—&–ætöffW&VD7–æ3°¢öG&÷Æ–æ´†÷7Bä†æFöfdöffW&VBÓÒöä†æFöfdöffW&VD7–æ3°¢Ğ ¢&—fFR7–æ2fö–Böäæf–vF–öå6VÆV7F–öä6†ævVB„æf–vF–öåf–Wr6VæFW"Âæf–vF–öåf–Wu6VÆV7F–öä6†ævVDWfVçD&w2&w2¢°¢–b…÷7–æ6–ætæf–vF–öâÇÂ&w2å6VÆV7FVD—FVÔ6öçF–æW#òåFr—2æ÷B7G&–ær6V7F–öâ¢°¢&WGW&ã°¢Ğ ¢v—B'Vä7–æ2‚‚’Óâ6VÆV7E6V7F–öä7–æ2‡6V7F–öâ’“°¢Ğ ¢&—fFR7–æ2F6²6VÆV7E6V7F–öä7–æ2‡7G&–ær6V7F–öâ¢°¢÷7–æ6–ætæf–vF–öâÒG'VS°¢G'¢°¢æf–vF–öâå6VÆV7FVD—FVÒÒvWDæf–vF–öä—FVÒ‡6V7F–öâ“°¢Ğ¢f–æÆÇ¢°¢÷7–æ6–ætæf–vF–öâÒfÇ6S°¢Ğ ¢v—B÷f–WtÖöFVÂäæf–vFT7–æ2‡6V7F–öâ“°¢WFFU6V7F–öä6‡&öÖR‚“°¢Ğ ¢&—fFR7–æ2fö–Böå6V&6…FW‡D6†ævVB„WFõ7VvvW7D&÷‚6VæFW"ÂWFõ7VvvW7D&÷…FW‡D6†ævVDWfVçD&w2&w2¢°¢v—BF6²å––VÆB‚“°¢÷f–WtÖöFVÂå6V&6…FW‡BÒ6VæFW"åFW‡C°¢Ğ ¢&—fFRfö–Böå6V&6„¶W”F÷vâ†ö&¦V7B6VæFW"Â¶W•&÷WFVDWfVçD&w2&w2¢°¢–b†&w2ä¶W’ÓÒf—'GVÄ¶W’äW66R¢°¢6V&6„&÷‚åFW‡BÒ7G&–æräV×G“°¢&w2ä†æFÆVBÒG'VS°¢Ğ¢Ğ ¢&—fFR7–æ2fö–BöäFDf–ÆW46Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢f"–6¶W"ÒæWrf–ÆT÷Vå–6¶W"‚“°¢–6¶W"äf–ÆUG—Tf–ÇFW"äFB‚"¢"“°¢–æ—F–Æ—¦Uv—F…v–æF÷rä–æ—F–Æ—¦R‡–6¶W"Â÷v–æF÷t†æFÆR“°¢f"f–ÆW2Òv—B–6¶W"å–6´×VÇF—ÆTf–ÆW47–æ2‚“°¢–b†f–ÆW2ä6÷VçBâ¢°¢v—B÷f–WtÖöFVÂäFEF‡47–æ2†f–ÆW2å6VÆV7B†f–ÆRÓâf–ÆRåF‚’“°¢Ğ¢Ò“°¢Ğ ¢&—fFR7–æ2fö–BöäFDföÆFW$6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢f"–6¶W"ÒæWrföÆFW%–6¶W"‚“°¢–6¶W"äf–ÆUG—Tf–ÇFW"äFB‚"¢"“°¢–æ—F–Æ—¦Uv—F…v–æF÷rä–æ—F–Æ—¦R‡–6¶W"Â÷v–æF÷t†æFÆR“°¢f"föÆFW"Òv—B–6¶W"å–6µ6–ævÆTföÆFW$7–æ2‚“°¢–b†föÆFW"—2æ÷BçVÆÂ¢°¢v—B÷f–WtÖöFVÂäFEF‡47–æ2…¶föÆFW"åF…Ò“°¢Ğ¢Ò“°¢Ğ ¢&—fFR7–æ2fö–BöäFEFW‡EW&Ä6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢f"VF—F÷"ÒæWrFW‡D&÷€¢°¢66WG5&WGW&âÒG'VRÀ¢Ö–åv–GF‚ÒC#À¢Ö–ä†V–v‡BÒCÀ¢FW‡Ew&–ærÒFW‡Ew&–æråw&À¢Æ6V†öÆFW%FW‡BÒ÷7G&–æw2ävWB‚$FEFW‡EW&ÅÆ6V†öÆFW""’À¢Ó°¢f"F–ÆörÒæWr6öçFVçDF–Æöp¢°¢†ÖÅ&ö÷BÒ†ÖÅ&ö÷BÀ¢F—FÆRÒ÷7G&–æw2ävWB‚$FEFW‡EW&ÅF—FÆR"’À¢6öçFVçBÒVF—F÷"À¢&–Ö'”'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$FEFW‡EW&Ä6öæf—&Ò"’À¢6Æ÷6T'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$6æ6VÂ"’À¢FVfVÇD'WGFöâÒ6öçFVçDF–Æöt'WGFöâå&–Ö'’À¢Ó°¢–b†v—BF–Æörå6†÷t7–æ2‚’ÓÒ6öçFVçDF–Æöu&W7VÇBå&–Ö'’bb7G&–ærä—4çVÆÄ÷%v†—FU76R†VF—F÷"åFW‡B’¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂäFEFW‡EFõ76T7–æ2†VF—F÷"åFW‡BÂ&ÖçVÂ×FW‡B×W&Â"’“°¢Ğ¢Ğ ¢&—fFRfö–BöäG&tVçFW"†ö&¦V7B6VæFW"ÂG&tWfVçD&w2&w2’Óâ6WDG&÷†–çB†&w2ÂG'VR“° ¢&—fFRfö–BöäG&tÆVfR†ö&¦V7B6VæFW"ÂG&tWfVçD&w2&w2’ÓâG&÷†–çBåf—6–&–Æ—G’Òf—6–&–Æ—G’ä6öÆÆ6VC° ¢&—fFRfö–BöäG&t÷fW"†ö&¦V7B6VæFW"ÂG&tWfVçD&w2&w2’Óâ6WDG&÷†–çB†&w2ÂG'VR“° ¢&—fFR7–æ2fö–BöäG&÷†ö&¦V7B6VæFW"ÂG&tWfVçD&w2&w2¢°¢G&÷†–çBåf—6–&–Æ—G’Òf—6–&–Æ—G’ä6öÆÆ6VC°¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢–b†&w2äFFf–Wrä6öçF–ç2…7FæF&DFFf÷&ÖG2å7F÷&vT—FV×2’¢°¢f"7F÷&vT—FV×2Òv—B&w2äFFf–WrävWE7F÷&vT—FV×47–æ2‚“°¢v—B÷f–WtÖöFVÂäFEF‡4&F6„7–æ2€¢7F÷&vT—FV×2åv†W&R†—FVÒÓâ7G&–ærä—4çVÆÄ÷%v†—FU76R†—FVÒåF‚’’å6VÆV7B†—FVÒÓâ—FVÒåF‚’À¢çVÆÂÀ¢&Ö–â×v–æF÷rÖG&÷"“°¢&WGW&ã°¢Ğ ¢–b†&w2äFFf–Wrä6öçF–ç2…7FæF&DFFf÷&ÖG2åvV$Æ–æ²’¢°¢v—B÷f–WtÖöFVÂäFEFW‡EFõ76T7–æ2€¢†v—B&w2äFFf–WrävWEvV$Æ–æ´7–æ2‚’’ä'6öÇWFUW&’À¢&Ö–â×v–æF÷r×W&ÂÖG&÷"“°¢Ğ¢VÇ6R–b†&w2äFFf–Wrä6öçF–ç2…7FæF&DFFf÷&ÖG2åFW‡B’¢°¢v—B÷f–WtÖöFVÂäFEFW‡EFõ76T7–æ2€¢v—B&w2äFFf–WrävWEFW‡D7–æ2‚’À¢&Ö–â×v–æF÷r×FW‡BÖG&÷"“°¢Ğ¢Ò“°¢Ğ ¢&—fFRfö–BöäG&t—FV×57F'F–ær†ö&¦V7B6VæFW"ÂG&t—FV×57F'F–ætWfVçD&w2&w2¢°¢f"6&G2Ò&w2ä—FV×2äöeG—SÄ—FVÔ6&Ef–WtÖöFVÃâ‚’åFô'&’‚“°¢–b†6&G2äÆVæwF‚ÓÒbb6&G5³ÒäG&÷&F6„–B—2²Ò&F6„–B¢°¢6&G2Ò÷f–WtÖöFVÂä—FV×2åv†W&R†6&BÓâ6&BäG&÷&F6„–BÓÒ&F6„–B’åFô'&’‚“°¢Ğ¢f"7F÷&vT—FV×2Ò6&G0¢å6VÆV7B†6&BÓâ6&BäG&u7F÷&vT—FVÒ¢åv†W&R†—FVÒÓâ—FVÒ—2æ÷BçVÆÂ¢ä67CÄ•7F÷&vT—FVÓâ‚¢åFô'&’‚“°¢–b‡7F÷&vT—FV×2äÆVæwF‚â¢°¢&w2äFFå6WE7F÷&vT—FV×2‡7F÷&vT—FV×2Â&VDöæÇ“¢G'VR“°¢Ğ¢VÇ6R–b†6&G2äÆVæwF‚ÓÒbb6&G5³Òä—FVÒåFW‡Còä–æÆ–æUFW‡B—2²ÒFW‡B¢°¢&w2äFFå6WEFW‡B‡FW‡B“°¢–b†6&G5³Òä—FVÒåW&Â—2²æ÷&ÖÆ—¦VEW&Ã¢f"W&ÂÒbbW&’åG'”7&VFR‡W&ÂÂW&”¶–æBä'6öÇWFRÂ÷WBf"W&’’¢°¢&w2äFFå6WEvV$Æ–æ²‡W&’“°¢Ğ¢Ğ¢VÇ6P¢°¢&w2ä6æ6VÂÒG'VS°¢&WGW&ã°¢Ğ ¢&w2äFFå&WVW7FVD÷W&F–öâÒFF6¶vT÷W&F–öâä6÷“°¢Ğ ¢&—fFRfö–BöåFövvÆT&F6„6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b„vWD6&B‡6VæFW"’—2²Ò6&B¢°¢÷f–WtÖöFVÂåFövvÆT&F6„W‡æFVB†6&B“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böå–ä&F6„6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b„vWD6&B‡6VæFW"’—2²Ò6&B¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåFövvÆT&F6…–ä7–æ2†6&B’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böå&VÖ÷fT&F6„6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b„vWD6&B‡6VæFW"’—2²Ò6&B¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂå&VÖ÷fT&F6„7–æ2†6&B’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böä—FVÔF÷V&ÆUFVB†ö&¦V7B6VæFW"ÂF÷V&ÆUFVE&÷WFVDWfVçD&w2&w2¢°¢–b„—FV×4Æ—7Bå6VÆV7FVD—FVÒ—2—FVÔ6&Ef–WtÖöFVÂ6&Bbb6&Bä6ä÷Vâ¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂä÷Vä7–æ2†6&B’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böä—FV×4Æ—7D¶W”F÷vâ†ö&¦V7B6VæFW"Â¶W•&÷WFVDWfVçD&w2&w2¢°¢–b„—FV×4Æ—7Bå6VÆV7FVD—FVÒ—2æ÷B—FVÔ6&Ef–WtÖöFVÂ6&B¢°¢&WGW&ã°¢Ğ ¢–b†&w2ä¶W’ÓÒf—'GVÄ¶W’äVçFW"bb6&Bä6ä÷Vâ¢°¢&w2ä†æFÆVBÒG'VS°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂä÷Vä7–æ2†6&B’“°¢Ğ¢VÇ6R–b†&w2ä¶W’ÓÒf—'GVÄ¶W’äFVÆWFR¢°¢&w2ä†æFÆVBÒG'VS°¢v—B6öæf—&Õ&VÖ÷fT7–æ2†6&B“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–BöåVæFô6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2’Óà¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåVæFô7–æ2‚’“° ¢&—fFR7–æ2fö–Böå&–Ö'•V–6´7F–öä6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b‡6VæFW"—2æ÷Bg&ÖWv÷&´VÆVÖVçB²Fs¢V–6´7F–öä'WGFöåf–WtÖöFVÂV–6´7F–öâÒ¢°¢&WGW&ã°¢Ğ ¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢f"&W7VÇBÒv—B÷f–WtÖöFVÂäW†V7WFUV–6´7F–öä7–æ2‡V–6´7F–öâä6&BÂV–6´7F–öâä7F–öä–B“°¢v—B6†÷tÖW76vT7–æ2€¢&W7VÇBå7V66VVFVBò÷7G&–æw2ävWB‚$7F–öä6ö×ÆWFVB"’¢÷7G&–æw2ävWB‚$7F–öåVæf–Æ&ÆR"’À¢&W7VÇBä÷WGWEF‡2ä6÷VçBÓÒ ¢ò&W7VÇBäW'&÷$6FVv÷'’óò÷7G&–æw2ävWB‚$7F–öåVæf–Æ&ÆR"¢¢7G&–ærä¦ö–â„Vçf—&öæÖVçBäæWtÆ–æRÂ&W7VÇBä÷WGWEF‡2’“°¢Ò“°¢Ğ ¢&—fFR7–æ2fö–Böä÷Vä—FVÔ6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b„vWD6&B‡6VæFW"’—2²Ò6&B¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂä÷Vä7–æ2†6&B’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–BöäFWf–6T†æFöfeFövvÆVB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b‚÷7–æ6–æu6WGF–æw2¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåWFFU6WGF–æw47–æ2€¢÷f–WtÖöFVÂå6WGF–æw2v—F‚²Væ&ÆTFWf–6T†æFöfbÒFWf–6T†æFöfeFövvÆRä—4öâÒ’“°¢WFFTFWf–6U7FGW2‚“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böä7&÷74FWf–6T6Æ—&ö&EFövvÆVB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b‚÷7–æ6–æu6WGF–æw2¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåWFFU6WGF–æw47–æ2€¢÷f–WtÖöFVÂå6WGF–æw2v—F‚²Væ&ÆT7&÷74FWf–6T6Æ—&ö&BÒ7&÷74FWf–6T6Æ—&ö&EFövvÆRä—4öâÒ’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–BöäæV&'•6†&–æuFövvÆVB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b‚÷7–æ6–æu6WGF–æw2¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåWFFU6WGF–æw47–æ2€¢÷f–WtÖöFVÂå6WGF–æw2v—F‚²Væ&ÆTæV&'•6†&–ærÒæV&'•6†&–æuFövvÆRä—4öâÒ’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böä–çFW&æWE6†&–æuFövvÆVB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b‚÷7–æ6–æu6WGF–æw2¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåWFFU6WGF–æw47–æ2€¢÷f–WtÖöFVÂå6WGF–æw2v—F‚²Væ&ÆT–çFW&æWE6†&–ærÒ–çFW&æWE6†&–æuFövvÆRä—4öâÒ’“°¢WFFTFWf–6U7FGW2‚“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–BöäFVfVÇD6Æ—&ö&E7–æ4ÖöFT6†ævVB†ö&¦V7B6VæFW"Â6VÆV7F–öä6†ævVDWfVçD&w2&w2¢°¢–b‚÷7–æ6–æu6WGF–æw2bbFVfVÇD6Æ—&ö&E7–æ4ÖöFT6öÖ&òå6VÆV7FVD—FVÒ—26öÖ&ô&÷„—FVÒ²Fs¢7G&–ærfÇVRÒb`¢VçVÒåG'•'6SÄ6Æ—&ö&E7–æ4ÖöFSâ‡fÇVRÂ÷WBf"ÖöFR’¢°¢v—B'Vä7–æ2‚‚’Óâ÷f–WtÖöFVÂåWFFU6WGF–æw47–æ2€¢÷f–WtÖöFVÂå6WGF–æw2v—F‚²FVfVÇD6Æ—&ö&E7–æ4ÖöFRÒÖöFRÒ’“°¢Ğ¢Ğ ¢&—fFR7–æ2fö–Böå&Vg&W6„FWf–6W46Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢–b‚÷f–WtÖöFVÂäVæ&ÆTFWf–6T†æFöfb¢°¢v—B6†÷tÖW76vT7–æ2…÷7G&–æw2ävWB‚$FWf–6W4F—6&ÆVEF—FÆR"’Â÷7G&–æw2ävWB‚$FWf–6W4F—6&ÆVD6öçFVçB"’“°¢&WGW&ã°¢Ğ ¢f"FWf–6W2Òv—BöFWf–6T†æFöfbäF—66÷fW$7–æ2…F–ÖU7âäg&öÕ6V6öæG2ƒ2’“°¢öF—66÷fW&VDFWf–6W2ä6ÆV"‚“°¢f÷&V6‚‡f"FWf–6R–âFWf–6W2’öF—66÷fW&VDFWf–6W2äFB†FWf–6R“°¢FWf–6U7FGW5FW‡BåFW‡BÒFWf–6W2ä6÷VçBÓÒ ¢ò÷7G&–æw2ävWB‚$æôFWf–6W4f÷VæB"¢¢÷7G&–æw2äf÷&ÖB‚$FWf–6W4f÷VæB"ÂFWf–6W2ä6÷VçB“°¢Ò“°¢Ğ ¢&—fFR7–æ2fö–Böå—$FWf–6T6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b„F—66÷fW&VDFWf–6W4Æ—7Bå6VÆV7FVD—FVÒ—2æ÷BFWf–6TFW67&—F÷"FW67&—F÷"’&WGW&ã°¢v—B'Vä7–æ2†7–æ2‚’Óà¢°¢f"VW"Òv—BöFWf–6T†æFöfbå—$7–æ2†FW67&—F÷"Â‡62ÂFö¶Vâ’Óâ6öæf—&Õ—&–æu647–æ2†FW67&—F÷"äF—7Æ”æÖRÂ62ÂFö¶Vâ’“°¢ö7&÷74FWf–6T6Æ—&ö&Bä6öæf–wW&UVW"‡VW"ÂFW67&—F÷"äVæGö–çBÂ÷f–WtÖöFVÂäFVfVÇD6Æ—&ö&E7–æ4ÖöFR“°¢÷—&VEVW'5·VW"ä–EÒÒæWr—&VEVW"‡VW"ÂFW67&—F÷"äVæGö–çB“°¢FWf–6U7FGW5FW‡BåFW‡BÒ÷7G&–æw2äf÷&ÖB‚%—&VDFWf–6R"ÂVW"äF—7Æ”æÖR“°¢Ò“°¢Ğ ¢&—fFRF6³Æ&ööÃâöå—&–ætöffW&VD7–æ2„–æ6öÖ–æu—&–ætöffW"öffW"Â6æ6VÆÆF–öåFö¶Vâ6æ6VÆÆF–öåFö¶Vâ’Óà¢VçVWVTF–Æöt7–æ2‚‚’Óâ6öæf—&Õ—&–æu647–æ2†öffW"å&VÖ÷FT†VÆÆòäF—7Æ”æÖRÂöffW"å62Â6æ6VÆÆF–öåFö¶Vâ’Â6æ6VÆÆF–öåFö¶Vâ“° ¢&—fFR7–æ2F6³Æ&ööÃâ6öæf—&Õ—&–æu647–æ2‡7G&–ær&VÖ÷FTæÖRÂ–çB62Â6æ6VÆÆF–öåFö¶Vâ6æ6VÆÆF–öåFö¶Vâ¢°¢6æ6VÆÆF–öåFö¶VâåF‡&÷t–d6æ6VÆÆF–öå&WVW7FVB‚“°¢f"F–ÆörÒæWr6öçFVçDF–Æöp¢°¢†ÖÅ&ö÷BÒ†ÖÅ&ö÷BÀ¢F—FÆRÒ÷7G&–æw2äf÷&ÖB‚%—&–æu65F—FÆUv—F„FWf–6R"Â&VÖ÷FTæÖR’À¢6öçFVçBÒ÷7G&–æw2äf÷&ÖB‚%—&–æu646öçFVçB"Â62åFõ7G&–ær‚$Cb"Â7—7FVÒävÆö&Æ—¦F–öâä7VÇGW&T–æfòä–çf&–çD7VÇGW&R’’À¢&–Ö'”'WGFöåFW‡BÒ÷7G&–æw2ävWB‚%—&–æu646öæf—&Ò"’À¢6Æ÷6T'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$6öÖÖöä6æ6VÂ"’À¢FVfVÇD'WGFöâÒ6öçFVçDF–Æöt'WGFöâå&–Ö'’À¢Ó°¢&WGW&âv—BF–Æörå6†÷t7–æ2‚’ÓÒ6öçFVçDF–Æöu&W7VÇBå&–Ö'“°¢Ğ ¢&—fFR7–æ2F6³Æ&ööÃâöä†æFöfdöffW&VD7–æ2„–æ6öÖ–æt†æFöfdöffW"öffW"Â6æ6VÆÆF–öåFö¶Vâ6æ6VÆÆF–öåFö¶Vâ¢°¢&WGW&âv—BVçVWVTF–Æöt7–æ2†7–æ2‚’Óà¢°¢f"ÖW76vRÒöffW"äÖW76vS°¢f"&Wf–WrÒÖW76vRåWFc…–ÆöBäÆVæwF‚âcò7G&–ærä6öæ6B†ÖW76vRåWFc…–ÆöE²âãcÒÂ.(
+b"’¢ÖW76vRåWFc…–ÆöC°¢f"6öçFVçBÒ÷7G&–æw2äf÷&ÖB€¢$–æ6öÖ–æt†æFöfd6öçFVçB"À¢ÖW76vRå6VæFW$F—7Æ”æÖRÀ¢ÖW76vRä¶–æBÓÒ†æFöfdÖW76vT¶–æBåW&Âò÷7G&–æw2ävWB‚$†æFöfeW&Ä¶–æB"’¢÷7G&–æw2ävWB‚$†æFöfeFW‡D¶–æB"’À¢&Wf–WrÀ¢ÖW76vRä'—FTÆVæwF‚“°¢f"F–ÆörÒæWr6öçFVçDF–Æöp¢°¢†ÖÅ&ö÷BÒ†ÖÅ&ö÷BÀ¢F—FÆRÒ÷7G&–æw2ävWB‚$–æ6öÖ–æt†æFöfeF—FÆR"’À¢6öçFVçBÒæWr67&öÆÅf–WvW ¢°¢Ö„†V–v‡BÒC#À¢6öçFVçBÒæWrFW‡D&Æö6²²FW‡BÒ6öçFVçBÂFW‡Ew&–ærÒFW‡Ew&–æråw&Â—5FW‡E6VÆV7F–öäVæ&ÆVBÒG'VRÒÀ¢ÒÀ¢&–Ö'”'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$–æ6öÖ–æuG&ç6fW$66WB"’À¢6Æ÷6T'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$–æ6öÖ–æuG&ç6fW%&V¦V7B"’À¢FVfVÇD'WGFöâÒ6öçFVçDF–Æöt'WGFöâå&–Ö'’À¢Ó°¢–b†v—BF–Æörå6†÷t7–æ2‚’Ò6öçFVçDF–Æöu&W7VÇBå&–Ö'’’&WGW&âfÇ6S° ¢òòW‡Æ–6—B†æFöfb—26öÖÖ—GFVBFòFV×÷&'’76RöæÇ’â—BFVÆ–&W&FVÇ¢òòFöW2æ÷B6ÆÂ6Æ—&ö&D6GW&U6W'f–6R÷"×WFFRF†Rv–æF÷w26Æ—&ö&Bà¢v—B÷f–WtÖöFVÂäFEFW‡EFõ76T7–æ2†ÖW76vRåWFc…–ÆöBÂ&FWf–6RÖ†æFöfb"Â6æ6VÆÆF–öåFö¶Vã¢6æ6VÆÆF–öåFö¶Vâ“°¢&WGW&âG'VS°¢ÒÂ6æ6VÆÆF–öåFö¶Vâ“°¢Ğ ¢&—fFRF6³ÅCâVçVWVTF–Æöt7–æ3ÅCâ„gVæ3ÅF6³ÅCãâ6ÆÆ&6²Â6æ6VÆÆF–öåFö¶Vâ6æ6VÆÆF–öåFö¶Vâ¢°¢f"6ö×ÆWF–öâÒæWrF6´6ö×ÆWF–öå6÷W&6SÅCâ…F6´7&VF–öä÷F–öç2å'Vä6öçF–çVF–öç47–æ6‡&öæ÷W6Ç’“°¢–b‚F—7F6†W%VWVRåG'”VçVWVR†7–æ2‚’Óà¢°¢G'’²6ö×ÆWF–öâåG'•6WE&W7VÇB†v—B6ÆÆ&6²‚’ä6öæf–wW&Tv—B‡G'VR’“²Ğ¢6F6‚„W†6WF–öâW†6WF–öâ’v†Vâ†W†6WF–öâ—2&wVÖVçDW†6WF–öâ÷"–çfÆ–D÷W&F–öäW†6WF–öâ÷"”ôW†6WF–öâ÷"VæWF†÷&—¦VD66W74W†6WF–öâ÷"÷W&F–öä6æ6VÆVDW†6WF–öâ¢²6ö×ÆWF–öâåG'•6WDW†6WF–öâ†W†6WF–öâ“²Ğ¢Ò’¢°¢6ö×ÆWF–öâåG'•6WDW†6WF–öâ†æWr–çfÆ–D÷W&F–öäW†6WF–öâ‚%F†RG&÷76RT’F—7F6†W"—2Væf–Æ&ÆRâ"’“°¢Ğ ¢&WGW&â6ö×ÆWF–öâåF6²åv—D7–æ2†6æ6VÆÆF–öåFö¶Vâ“°¢Ğ ¢&—fFRF6²öåG&ç6fW$öffW&VD7–æ2„–æ6öÖ–æuG&ç6fW$öffW"öffW"¢°¢òÒF—7F6†W%VWVRåG'”VçVWVR†7–æ2‚’Óà¢°¢G'¢°¢f"66WFVBÒv—B6†÷t–æ6öÖ–æuG&ç6fW$F–Æöt7–æ2†öffW"“°¢v—BöFWf–6T†æFöfbä&÷fT–æ6öÖ–æuG&ç6fW$7–æ2†öffW"å6W76–öä–BÂ66WFVB“°¢Ğ¢6F6‚„W†6WF–öâW†6WF–öâ’v†Vâ†W†6WF–öâ—2–çfÆ–D÷W&F–öäW†6WF–öâ÷"”ôW†6WF–öâ÷"VæWF†÷&—¦VD66W74W†6WF–öâ¢°¢v—BöFWf–6T†æFöfbä&÷fT–æ6öÖ–æuG&ç6fW$7–æ2†öffW"å6W76–öä–BÂfÇ6R“°¢Ğ¢Ò“°¢&WGW&âF6²ä6ö×ÆWFVEF6³°¢Ğ ¢&—fFR7–æ2F6³Æ&ööÃâ6†÷t–æ6öÖ–æuG&ç6fW$F–Æöt7–æ2„–æ6öÖ–æuG&ç6fW$öffW"öffW"¢°¢f"F–ÆörÒæWr6öçFVçDF–Æöp¢°¢†ÖÅ&ö÷BÒ†ÖÅ&ö÷BÀ¢F—FÆRÒ÷7G&–æw2ävWB‚$–æ6öÖ–æuG&ç6fW%F—FÆR"’À¢6öçFVçBÒ÷7G&–æw2äf÷&ÖB‚$–æ6öÖ–æuG&ç6fW$6öçFVçB"ÂöffW"äÖæ–fW7Bä—FV×2ä6÷VçBÂöffW"äÖæ–fW7BåF÷FÄ'—FW2’À¢&–Ö'”'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$–æ6öÖ–æuG&ç6fW$66WB"’À¢6Æ÷6T'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$–æ6öÖ–æuG&ç6fW%&V¦V7B"’À¢FVfVÇD'WGFöâÒ6öçFVçDF–Æöt'WGFöâå&–Ö'’À¢Ó°¢&WGW&âv—BF–Æörå6†÷t7–æ2‚’ÓÒ6öçFVçDF–Æöu&W7VÇBå&–Ö'“°¢Ğ ¢&—fFR7–æ2fö–Böå&Wf–Wt—FVÔ6Æ–6¶VB†ö&¦V7B6VæFW"Â&÷WFVDWfVçD&w2&w2¢°¢–b„vWD6&B‡6VæFW"’—2æ÷B²Ò6&B’&WGW&ã°¢v—B'Vä7–æ2‚‚’Óâ6†÷u&Wf–Wt7–æ2†6&B’“°¢Ğ ¢&—fFR7–æ2F6²6†÷u&Wf–Wt7–æ2„—FVÔ6&Ef–WtÖöFVÂ6&B¢°¢f"FW67&—F÷"Òv—B÷&Wf–Ww2äÆöD7–æ2†6&Bä—FVÒÂ–æÆ–æS¢fÇ6R“°¢f"6öçFVçBÒv—B7&VFU&Wf–Wt6öçFVçD7–æ2†FW67&—F÷"Â6&Bä—FVÒ“°¢–b†FW67&—F÷"ä¶–æBÓÒ&Wf–Wt¶–æBåFbbb6öçFVçB—2Fe&Wf–Wt†÷7B¢°¢G'¢°¢v—B÷&Wf–Ww2ä66†U7V66W76gVÄ7–æ2†6&Bä—FVÒÂFW67&—F÷"“°¢Ğ¢6F6‚„W†6WF–öâW†6WF–öâ’v†Vâ†W†6WF–öâ—2”ôW†6WF–öâ÷"VæWF†÷&—¦VD66W74W†6WF–öâ¢°¢òò66†Rf–ÇW&R×W7Bæ÷B†–FR7V66W76gVÆÇ’&VæFW&VB&Wf–Wrà¢Ğ¢Ğ¢f"F–ÆörÒæWr6öçFVçDF–Æöp¢°¢†ÖÅ&ö÷BÒ†ÖÅ&ö÷BÀ¢F—FÆRÒ6&BåF—FÆRÀ¢6öçFVçBÒ6öçFVçBÀ¢6Æ÷6T'WGFöåFW‡BÒ÷7G&–æw2ävWB‚$6öÖÖöä6Æ÷6R"’À¢Ó°¢G'¢°¢v—BF–Æörå6†÷t7–æ2‚“°¢Ğ¢f–æÆÇ¢°¢–b†6öçFVçB—2”F—7÷6&ÆRF—7÷6&ÆR’F—7÷6&ÆRäF—7÷6R‚“°¢Ğ¢Ğ ¢&—fFR7–æ2F6³ÅT”VÆVÖVçCâ7&VFU&Wf–Wt6öçFVçD7–æ2…&Wf–WtFW67&—F÷"FW67&—F÷"ÂG&÷—FVÒ—FVÒ¢°¢–b†FW67&—F÷"ä'—FW2—2²ÆVæwFƒ¢âÒ'—FW2bbFW67&—F÷"ä¶–æBÓÒ&Wf–Wt¶–æBä–ÖvR¢°¢&WGW&âv—B7&VFT–ÖvTVÆVÖVçD7–æ2†'—FW2ÂcCÂS#“°¢Ğ ¢–b†FW67&—F÷"ä'—FW2—2²ÆVæwFƒ¢âÒFd'—FW2bbFW67&—F÷"ä¶–æBÓÒ&Wf–Wt¶–æBåFb¢°¢–b‚ö6&–Æ—F–W2ä—4f–Æ&ÆR…v–æF÷w46&–Æ—G’åFe&Wf–Wr’¢°¢&WGW&â7&VFUVæf–Æ&ÆU&Wf–Wt6öçFVçB‚“°¢Ğ ¢G'¢°¢&WGW&âv—B7&VFUFe&Wf–Wt†÷7D7–æ2‡Fd'—FW2Â÷7G&–æw2“°¢Ğ¢6F6‚„W†6WF–öâW†6WF–öâ’v†Vâ†W†6WF–öâ—2–çfÆ–DFFW†6WF–öâ÷"”ôW†6WF–öâ÷"VæWF†÷&—¦VD66W74W†6WF–öâ÷"4ôÔW†6WF–öâ¢°¢òò¶VWF†RÖWFFFfÆÆ&6²f—6–&ÆRf÷"DbF†BF†RÆFf÷&Ò&VæFW&W"6ææ÷BFV6öFRà¢Ğ¢Ğ ¢–b†FW67&—F÷"ä¶–æB—2&Wf–Wt¶–æBäVF–ò÷"&Wf–Wt¶–æBåf–FVòb`¢÷&Wf–Ww2å&W6öÇfU6÷W&6UF‚†—FVÒ’—2²ÒÖVF–F‚bbf–ÆRäW†—7G2†ÖVF–F‚’¢°¢–b‚ö6&–Æ—F–W2ä—4f–Æ&ÆR…v–æF÷w46&–Æ—G’äÖVF–&Wf–Wr’¢°¢&WGW&â7&VFUVæf–Æ&ÆU&Wf–Wt6öçFVçB‚“°¢Ğ ¢G'¢°¢&WGW&âv—B7&VFTÖVF–VÆVÖVçD7–æ2†ÖVF–F‚“°¢Ğ¢6F6‚„W†6WF–öâW†6WF–öâ’v†Vâ†W†6WF–öâ—2f–ÆTæ÷Df÷VæDW†6WF–öâ÷"”ôW†6WF–öâ÷"VæWF†÷&—¦VD66W74W†6WF–öâ÷"&wVÖVçDW†6WF–öâ¢°¢òò¶VWF†R&÷VæFVBÖWFFFfÆÆ&6²f—6–&ÆRv†VâÖVF–6÷W&6RF—6V'2à¢Ğ¢Ğ ¢–b†FW67&—F÷"åFW‡B—2²ÒFW‡B¢°¢&WGW&âæWr67&öÆÅf–WvW ¢°¢Ö„†V–v‡BÒS#À¢6öçFVçBÒæWrFW‡D&Æö6²²FW‡BÒFW‡BÂFW‡Ew&–ærÒFW‡Ew&–æråw&Â—5FW‡E6VÆV7F–öäVæ&ÆVBÒG'VRÒÀ¢Ó°¢Ğ ¢&WGW&â7&VFUVæf–Æ&ÆU&Wf–Wt6öçFVçB†FW67&—F÷"“°¢Ğ ¢&—fFRFW‡D&Æö6²7&VFUVæf–Æ&ÆU&Wf–Wt6öçFVçB…&Wf–WtFW67&—F÷#òFW67&—F÷"ÒçVÆÂ¢°¢&WGW&âæWrFW‡D&Æö6°¢°¢FW‡BÒFW67&—F÷"—2çVÆÂÇÂFW67&—F÷"äÖWFFFä6÷VçBÓÒ ¢ò÷7G&–æw2ävWB‚%&Wf–WuVæf–Æ&ÆR"¢¢7G&–ærä¦ö–â„Vçf—&öæÖVçBäæWtÆ–æRÂFW67&—F÷"äÖWFFFå6VÆV7B‡—"Óâ7G&–ærä6öæ6B‡—"ä¶W’Â#¢"Â—"åfÇVR’’’À¢FW‡Ew&–ærÒFW‡Ew&–æråw&À¢—5FW‡E6VÆV7F–öäVæ&ÆVBÒG'VRÀ¢Ó°¢Ğ ¢&—fFR7FF–27–æ2F6³Ä–ÖvSâ7&VFT–ÖvTVÆVÖVçD7–æ2†'—FUµÒ'—FW2ÂF÷V&ÆRÖ…v–GF‚ÂF÷V&ÆRÖ„†V–v‡B¢°¢W6–ærf"7G&VÒÒæWr–äÖVÖ÷'•&æFöÔ66W757G&VÒ‚“°¢W6–ær‡f"w&—FW"ÒæWrFFw&—FW"‡7G&VÒävWD÷WGWE7G&VÔBƒ’’¢°¢w&—FW"åw&—FT'—FW2†'—FW2“°¢v—Bw&—FW"å7F÷&T7–æ2‚“°¢v—Bw&—FW"äfÇW6„7–æ2‚“°¢w&—FW"äFWF6…7G&VÒ‚“°¢Ğ¢7G&VÒå6VV²ƒ“°¢f"&—FÖÒæWr&—FÖ–ÖvR‚“°¢v—B&—FÖå6WE6÷W&6T7–æ2‡7G&VÒ“°¢&WGW&âæWr–ÖvP¢°¢6÷W&6RÒ&—FÖÀ¢Ö…v–GF‚ÒÖ…v–GF‚À¢Ö„†V–v‡BÒÖ„†V–v‡BÀ¢7G&WF6‚Ò7G&WF6‚åVæ–f÷&ÒÀ¢Ó°¢Ğ ¢&—fFR7FF–27–æ2F6³ÅFe&Wf–Wt†÷7Câ7&VFUFe&Wf–Wt†÷7D7–æ2†'—FUµÒ'—FW2Â”7G&–ætÆö6Æ—¦W"7G&–æw2¢°¢f"†÷7BÒæWrFe&Wf–Wt†÷7B†'—FW2Â7G&–æw2“°¢G'¢°¢v—B†÷7Bä–æ—F–Æ—¦T7–æ2‚“°¢&WGW&â†÷7C°¢Ğ¢6F6€¢°¢†÷7BäF—7÷6R‚“°¢F‡&÷s°¢Ğ¢Ğ ¢&—fFR7FF–27–æ2F6³Ä–ÖvSâ&VæFW%FevT7–æ2€¢FdFö7VÖVçBFö7VÖVçBÀ¢–çBvTçVÖ&W"À¢F÷V&ÆRÖ…v–GF‚À¢F÷V&ÆRÖ„†V–v‡BÀ¢6æ6VÆÆF–öåFö¶Vâ6æ6VÆÆF–öåFö¶Vâ¢°¢6æ6VÆÆF–öåFö¶VâåF‡&÷t–d6æ6VÆÆF–öå&WVW7FVB‚“°¢–b†Fö7VÖVçBåvT6÷VçBÓÒ’F‡&÷ræWr–çfÆ–DFFW†6WF–öâ‚%F†RDb†2æòvW2â"“°¢W6–ærf"vRÒFö7VÖVçBävWEvR‚‡V–çB”ÖF‚ä6Æ×‡vTçVÖ&W"ÒÂÂ†–çB–Fö7VÖVçBåvT6÷VçBÒ’“°¢v—BvRå&W&UvT7–æ2‚“°¢f"6—¦RÒvRå6—¦S°¢–b‡6—¦Råv–GF‚ÃÒÇÂ6—¦Rä†V–v‡BÃÒ’F‡&÷ræWr–çfÆ–DFFW†6WF–öâ‚%F†RDbvRF–ÖVç6–öç2&R–çfÆ–Bâ"“°¢6öç7BF÷V&ÆRÖ†–×VÕ—†VÇ2ÒEóó°¢f"66ÆRÒÖF‚äÖ–â†Ö…v–GF‚ò6—¦Råv–GF‚ÂÖ„†V–v‡Bò6—¦Rä†V–v‡B“°¢tßËh‘éì¶»§q«^uì1…¹Õ…”€ô±…¹Õ…”ô¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹±½Í•	•¡…Ù¥½É¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì€˜˜±½Í•	•¡…Ù¥½É½µ‰¼¹M•±•Ñ•‘%Ñ•´¥Ì½µ‰½	½á%Ñ•´ìQ…œèÍÑÉ¥¹œÙ…±Õ”ô€˜˜(€€€€€€€€€€€¹Õ´¹QÉåA…ÉÍ”ñ±½Í•	•¡…Ù¥½Èø¡Ù…±Õ”°½ÕĞÙ…È±½Í•	•¡…Ù¥½È¤¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ (€€€€€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ ì±½Í•	•¡…Ù¥½È€ô±½Í•	•¡…Ù¥½Èô¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹=Ù•É±…å5½Ñ¥½¹¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì€˜˜=Ù•É±…å5½Ñ¥½¹½µ‰¼¹M•±•Ñ•‘%Ñ•´¥Ì½µ‰½	½á%Ñ•´ìQ…œèÍÑÉ¥¹œÙ…±Õ”ô€˜˜(€€€€€€€€€€€¹Õ´¹QÉåA…ÉÍ”ñ=Ù•É±…å5½Ñ¥½¹AÉ•™•É•¹”ø¡Ù…±Õ”°½ÕĞÙ…Èµ½Ñ¥½¸¤¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ (€€€€€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ ì=Ù•É±…å5½Ñ¥½¸€ôµ½Ñ¥½¸ô¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹=Ù•É±…å5½¹¥Ñ½É¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì€˜˜=Ù•É±…å5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘%Ñ•´¥Ì½µ‰½	½á%Ñ•´ìQ…œèÍÑÉ¥¹œÙ…±Õ”ô€˜˜(€€€€€€€€€€€¹Õ´¹QÉåA…ÉÍ”ñ=Ù•É±…å5½¹¥Ñ½ÉAÉ•™•É•¹”ø¡Ù…±Õ”°½ÕĞÙ…Èµ½¹¥Ñ½È¤¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ (€€€€€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ ì=Ù•É±…å5½¹¥Ñ½È€ôµ½¹¥Ñ½Èô¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹¥±•É…]…­•5½‘•¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì€˜˜¥±•É…]…­•5½‘•½µ‰¼¹M•±•Ñ•‘%Ñ•´¥Ì½µ‰½	½á%Ñ•´ìQ…œèÍÑÉ¥¹œÙ…±Õ”ô€˜˜(€€€€€€€€€€€¹Õ´¹QÉåA…ÉÍ”ñ¥±•É…]…­•5½‘”ø¡Ù…±Õ”°½ÕĞÙ…Èµ½‘”¤¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ (€€€€€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ ì¥±•É…]…­•5½‘”€ôµ½‘”ô¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹=Ù•É±…åA±…•µ•¹Ñ5½‘•¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì€˜˜=Ù•É±…åA±…•µ•¹Ñ5½‘•½µ‰¼¹M•±•Ñ•‘%Ñ•´¥Ì½µ‰½	½á%Ñ•´ìQ…œèÍÑÉ¥¹œÙ…±Õ”ô€˜˜(€€€€€€€€€€€=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘Y…±Õ”¥ÌÍÑÉ¥¹œµ½¹¥Ñ½É%€˜˜(€€€€€€€€€€€¹Õ´¹QÉåA…ÉÍ”ñ=Ù•É±…åA±…•µ•¹Ñ5½‘”ø¡Ù…±Õ”°½ÕĞÙ…Èµ½‘”¤¤(€€€€€€€ì(€€€€€€€€€€€¥˜€¡µ½‘”€ôô=Ù•É±…åA±…•µ•¹Ñ5½‘”¹ÕÍÑ½´€˜˜€…}Ù¥•İ5½‘•°¹…¹A•ÉÍ¥ÍÑ=Ù•É±…åA±…•µ•¹Ğ¡µ½¹¥Ñ½É%¤¤(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€Må¹A±…•µ•¹Ñ½½É‘¥¹…Ñ•Ì ¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€ô(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹M•Ñ=Ù•É±…åA±…•µ•¹Ñ5½‘•Íå¹Œ¡µ½¹¥Ñ½É%°µ½‘”¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥=¹=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤€ôø(€€€€€€€Må¹A±…•µ•¹Ñ½½É‘¥¹…Ñ•Ì ¤ì((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹ÁÁ±å%Í±…¹‘A±…•µ•¹Ñ±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘Y…±Õ”¥ÌÍÑÉ¥¹œµ½¹¥Ñ½É%€˜˜(€€€€€€€€€€€}Ù¥•İ5½‘•°¹…¹A•ÉÍ¥ÍÑ=Ù•É±…åA±…•µ•¹Ğ¡µ½¹¥Ñ½É%¤€˜˜(€€€€€€€€€€€€…‘½Õ‰±”¹%Í9…8¡=Ù•É±…åA±…•µ•¹Ña9Õµ‰•È¹Y…±Õ”¤€˜˜(€€€€€€€€€€€€…‘½Õ‰±”¹%Í9…8¡=Ù•É±…åA±…•µ•¹Ñe9Õµ‰•È¹Y…±Õ”¤¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹M•ÑÕÍÑ½µ=Ù•É±…åA±…•µ•¹ÑÍå¹Œ (€€€€€€€€€€€€€€€µ½¹¥Ñ½É%°(€€€€€€€€€€€€€€€=Ù•É±…åA±…•µ•¹Ña9Õµ‰•È¹Y…±Õ”°(€€€€€€€€€€€€€€€=Ù•É±…åA±…•µ•¹Ñe9Õµ‰•È¹Y…±Õ”¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹I•Í•Ñ%Í±…¹‘A±…•µ•¹Ñ±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘Y…±Õ”¥ÌÍÑÉ¥¹œµ½¹¥Ñ½É%¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹I•Í•Ñ=Ù•É±…åA±…•µ•¹ÑÍå¹Œ¡µ½¹¥Ñ½É%¤¤ì(€€€€€€€€€€€Må¹A±…•µ•¹Ñ½½É‘¥¹…Ñ•Ì ¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥=¹‘©ÕÍÑ%Í±…¹‘A±…•µ•¹Ñ±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘Y…±Õ”¥ÌÍÑÉ¥¹œµ½¹¥Ñ½É%€˜˜(€€€€€€€€€€€}Ù¥•İ5½‘•°¹…¹A•ÉÍ¥ÍÑ=Ù•É±…åA±…•µ•¹Ğ¡µ½¹¥Ñ½É%¤¤(€€€€€€€ì(€€€€€€€€€€€}Ù¥•İ5½‘•°¹I•ÅÕ•ÍÑ=Ù•É±…åA±…•µ•¹Ñ‘¥Ğ¡µ½¹¥Ñ½É%¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥=¹A±…•µ•¹Ñ9Õµ‰•É-•å½İ¸¡½‰©•ĞÍ•¹‘•È°-•åI½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡…ÉÌ¹-•ä€ôôY¥ÉÑÕ…±-•ä¹Í…Á”¤(€€€€€€€ì(€€€€€€€€€€€Må¹A±…•µ•¹Ñ½½É‘¥¹…Ñ•Ì ¤ì(€€€€€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€¥˜€¡…ÉÌ¹-•ä€ôôY¥ÉÑÕ…±-•ä¹¹Ñ•È¤(€€€€€€€ì(€€€€€€€€€€€=¹ÁÁ±å%Í±…¹‘A±…•µ•¹Ñ±¥­•¡Í•¹‘•È°…ÉÌ¤ì(€€€€€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€Ù…ÈÍ¡¥™Ğ€ô%¹ÁÕÑ-•å‰½…É‘M½ÕÉ”¹•Ñ-•åMÑ…Ñ•½ÉÕÉÉ•¹ÑQ¡É•…¡Y¥ÉÑÕ…±-•ä¹M¡¥™Ğ¤(€€€€€€€€€€€€¹!…Í±…œ¡½É•Y¥ÉÑÕ…±-•åMÑ…Ñ•Ì¹½İ¸¤ì(€€€€€€€¥˜€¡Í¡¥™Ğ€˜˜Í•¹‘•È¥Ì9Õµ‰•É	½à‰½à€˜˜…ÉÌ¹-•ä¥ÌY¥ÉÑÕ…±-•ä¹UÀ½ÈY¥ÉÑÕ…±-•ä¹½İ¸½ÈY¥ÉÑÕ…±-•ä¹1•™Ğ½ÈY¥ÉÑÕ…±-•ä¹I¥¡Ğ¤(€€€€€€€ì(€€€€€€€€€€€Ù…È‘¥É•Ñ¥½¸€ô…ÉÌ¹-•ä¥ÌY¥ÉÑÕ…±-•ä¹UÀ½ÈY¥ÉÑÕ…±-•ä¹I¥¡Ğ€ü€Ä€è€´Äì(€€€€€€€€€€€‰½à¹Y…±Õ”€ô€¡‘½Õ‰±”¹%Í9…8¡‰½à¹Y…±Õ”¤€ü€À€è‰½à¹Y…±Õ”¤€¬‘¥É•Ñ¥½¸€¨€ÄÀì(€€€€€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹EÕ¥­A…¹•±!½Ñ­•å1½ÍÑ½ÕÌ¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì€˜˜€…ÍÑÉ¥¹œ¹ÅÕ…±Ì¡EÕ¥­A…¹•±!½Ñ­•åQ•áĞ¹Q•áĞ°}Ù¥•İ5½‘•°¹EÕ¥­A…¹•±!½Ñ­•ä°MÑÉ¥¹½µÁ…É¥Í½¸¹=É‘¥¹…°¤¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ (€€€€€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ ìEÕ¥­A…¹•±!½Ñ­•ä€ôEÕ¥­A…¹•±!½Ñ­•åQ•áĞ¹Q•áĞ¹QÉ¥´ ¤ô¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹Mµ…ÉÑÉ…á±ÕÍ¥½¹Í1½ÍÑ½ÕÌ¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡}Íå¹¥¹M•ÑÑ¥¹Ì¤(€€€€€€€ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€Ù…È•á±ÕÍ¥½¹Ì€ôMµ…ÉÑÉ…á±ÕÍ¥½¹ÍQ•áĞ¹Q•áĞ(€€€€€€€€€€€€¹MÁ±¥Ğ¡lœ°œ°€œìœ°€qÈœ°€q¸t°MÑÉ¥¹MÁ±¥Ñ=ÁÑ¥½¹Ì¹QÉ¥µ¹ÑÉ¥•ÌğMÑÉ¥¹MÁ±¥Ñ=ÁÑ¥½¹Ì¹I•µ½Ù•µÁÑå¹ÑÉ¥•Ì¤(€€€€€€€€€€€€¹M•±•Ğ¡A…Ñ ¹•Ñ¥±•9…µ•]¥Ñ¡½ÕÑáÑ•¹Í¥½¸¤(€€€€€€€€€€€€¹¥ÍÑ¥¹Ğ¡MÑÉ¥¹½µÁ…É•È¹=É‘¥¹…±%¹½É•…Í”¤(€€€€€€€€€€€€¹Q½ÉÉ…ä ¤ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ (€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ ìMµ…ÉÑÉ…á±Õ‘•‘AÉ½•ÍÍ•Ì€ô•á±ÕÍ¥½¹Ìô¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹±•…É1…ÍÑ!½ÕÉ±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤€ôø…İ…¥Ğ½¹™¥Éµ±•…ÉÍå¹Œ¡±•…ÉI…¹”¹1…ÍÑ!½ÕÈ¤ì((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹±•…ÉQ½‘…å±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤€ôø…İ…¥Ğ½¹™¥Éµ±•…ÉÍå¹Œ¡±•…ÉI…¹”¹Q½‘…ä¤ì((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹±•…É±±±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤€ôø…İ…¥Ğ½¹™¥Éµ±•…ÉÍå¹Œ¡±•…ÉI…¹”¹±°¤ì((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹MÁ…••±•É…Ñ½È¡-•å‰½…É‘•±•É…Ñ½ÈÍ•¹‘•È°-•å‰½…É‘•±•É…Ñ½É%¹Ù½­•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôøM•±•ÑM•Ñ¥½¹Íå¹Œ ‰MÁ…”ˆ¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹±¥Á‰½…É‘•±•É…Ñ½È¡-•å‰½…É‘•±•É…Ñ½ÈÍ•¹‘•È°-•å‰½…É‘•±•É…Ñ½É%¹Ù½­•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôøM•±•ÑM•Ñ¥½¹Íå¹Œ ‰±¥Á‰½…Éˆ¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹A¥¹¹•‘•±•É…Ñ½È¡-•å‰½…É‘•±•É…Ñ½ÈÍ•¹‘•È°-•å‰½…É‘•±•É…Ñ½É%¹Ù½­•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôøM•±•ÑM•Ñ¥½¹Íå¹Œ ‰A¥¹¹•ˆ¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹M•…É¡•±•É…Ñ½È¡-•å‰½…É‘•±•É…Ñ½ÈÍ•¹‘•È°-•å‰½…É‘•±•É…Ñ½É%¹Ù½­•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€¥˜€¡}Ù¥•İ5½‘•°¹%ÍM•ÑÑ¥¹ÍY¥Í¥‰±”¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôøM•±•ÑM•Ñ¥½¹Íå¹Œ ‰MÁ…”ˆ¤¤ì(€€€€€€€ô((€€€€€€€M•…É¡	½à¹½ÕÌ¡½ÕÍMÑ…Ñ”¹-•å‰½…É¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹M•ÑÑ¥¹Í•±•É…Ñ½È¡-•å‰½…É‘•±•É…Ñ½ÈÍ•¹‘•È°-•å‰½…É‘•±•É…Ñ½É%¹Ù½­•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôøM•±•ÑM•Ñ¥½¹Íå¹Œ ‰M•ÑÑ¥¹Ìˆ¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹U¹‘½•±•É…Ñ½È¡-•å‰½…É‘•±•É…Ñ½ÈÍ•¹‘•È°-•å‰½…É‘•±•É…Ñ½É%¹Ù½­•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…ÉÌ¹!…¹‘±•€ôÑÉÕ”ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹U¹‘½Íå¹Œ ¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥=¹Y¥•İ5½‘•±AÉ½Á•ÉÑå¡…¹•¡½‰©•ĞüÍ•¹‘•È°MåÍÑ•´¹½µÁ½¹•¹Ñ5½‘•°¹AÉ½Á•ÉÑå¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡…ÉÌ¹AÉ½Á•ÉÑå9…µ”€ôô¹…µ•½˜¡5…¥¹Y¥•İ5½‘•°¹M•ÑÑ¥¹Ì¤¤(€€€€€€€ì(€€€€€€€€€€€Må¹M•ÑÑ¥¹Í½¹ÑÉ½±Ì ¤ì(€€€€€€€ô(€€€€€€€•±Í”¥˜€¡…ÉÌ¹AÉ½Á•ÉÑå9…µ”€ôô¹…µ•½˜¡5…¥¹Y¥•İ5½‘•°¹ÕÉÉ•¹ÑM•Ñ¥½¸¤¤(€€€€€€€ì(€€€€€€€€€€€Må¹9…Ù¥…Ñ¥½¹M•±•Ñ¥½¸ ¤ì(€€€€€€€€€€€UÁ‘…Ñ•M•Ñ¥½¹¡É½µ” ¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Må¹9…Ù¥…Ñ¥½¹M•±•Ñ¥½¸ ¤(€€€ì(€€€€€€€}Íå¹¥¹9…Ù¥…Ñ¥½¸€ôÑÉÕ”ì(€€€€€€€ÑÉä(€€€€€€€ì(€€€€€€€€€€€9…Ù¥…Ñ¥½¸¹M•±•Ñ•‘%Ñ•´€ô•Ñ9…Ù¥…Ñ¥½¹%Ñ•´¡}Ù¥•İ5½‘•°¹ÕÉÉ•¹ÑM•Ñ¥½¸¤ì(€€€€€€€ô(€€€€€€€™¥¹…±±ä(€€€€€€€ì(€€€€€€€€€€€}Íå¹¥¹9…Ù¥…Ñ¥½¸€ô™…±Í”ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥¹ÍÕÉ•EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹Ì ¤(€€€ì(€€€€€€€¥˜€¡}ÅÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹Í	Õ¥±Ğ¤(€€€€€€€ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô((€€€€€€€EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹ÍA…¹•°¹¡¥±‘É•¸¹±•…È ¤ì(€€€€€€€EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹ÍA…¹•°¹¡¥±‘É•¸¹‘¡¹•ÜQ•áÑ	±½¬(€€€€€€€ì(€€€€€€€€€€€Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹ÍM•Ñ¥½¸ˆ¤°(€€€€€€€€€€€½¹ÑM¥é”€ô€ÄØ°(€€€€€€€€€€€½¹Ñ]•¥¡Ğ€ô5¥É½Í½™Ğ¹U$¹Q•áĞ¹½¹Ñ]•¥¡ÑÌ¹M•µ¥	½±°(€€€€€€€ô¤ì(€€€€€€€EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹ÍA…¹•°¹¡¥±‘É•¸¹‘¡¹•ÜQ•áÑ	±½¬(€€€€€€€ì(€€€€€€€€€€€Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹Í•ÍÉ¥ÁÑ¥½¸ˆ¤°(€€€€€€€€€€€½É•É½Õ¹€ô¹•ÜM½±¥‘½±½É	ÉÕÍ ¡5¥É½Í½™Ğ¹U$¹½±½ÉÌ¹É…ä¤°(€€€€€€€€€€€Q•áÑ]É…ÁÁ¥¹œ€ôQ•áÑ]É…ÁÁ¥¹œ¹]É…À°(€€€€€€€ô¤ì((€€€€€€€™½É•… €¡Ù…ÈÁÉ½™¥±”¥¸¹Õ´¹•ÑY…±Õ•ÌñEÕ¥­Ñ¥½¹AÉ½™¥±”ø ¤¤(€€€€€€€ì(€€€€€€€€€€€Ù…ÈÉ½ÕÀ€ô¹•ÜMÑ…­A…¹•°ìMÁ…¥¹œ€ô€Øôì(€€€€€€€€€€€É½ÕÀ¹¡¥±‘É•¸¹‘¡¹•ÜQ•áÑ	±½¬(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€Q•áĞ€ô•ÑEÕ¥­Ñ¥½¹AÉ½™¥±•1…‰•°¡ÁÉ½™¥±”¤°(€€€€€€€€€€€€€€€½¹Ñ]•¥¡Ğ€ô5¥É½Í½™Ğ¹U$¹Q•áĞ¹½¹Ñ]•¥¡ÑÌ¹M•µ¥	½±°(€€€€€€€€€€€ô¤ì((€€€€€€€€€€€Ù…È…ÕÑ½µ…Ñ¥Q½±”€ô¹•ÜQ½±•Mİ¥Ñ (€€€€€€€€€€€ì(€€€€€€€€€€€€€€€!•…‘•È€ô}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹ÕÑ½µ…Ñ¥Œˆ¤°(€€€€€€€€€€€€€€€Q…œ€ôÁÉ½™¥±”°(€€€€€€€€€€€ôì(€€€€€€€€€€€ÕÑ½µ…Ñ¥½¹AÉ½Á•ÉÑ¥•Ì¹M•Ñ9…µ”¡…ÕÑ½µ…Ñ¥Q½±”°}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹ÕÑ½µ…Ñ¥Œˆ¤¤ì(€€€€€€€€€€€…ÕÑ½µ…Ñ¥Q½±”¹Q½±•€¬ô=¹EÕ¥­Ñ¥½¹ÕÑ½µ…Ñ¥Q½±•ì(€€€€€€€€€€€É½ÕÀ¹¡¥±‘É•¸¹‘¡…ÕÑ½µ…Ñ¥Q½±”¤ì((€€€€€€€€€€€Ù…ÈÍ±½ÑÍÉ¥€ô¹•ÜÉ¥ì½±Õµ¹MÁ…¥¹œ€ô€àôì(€€€€€€€€€€€Ù…ÈÍ±½ÑÌ€ô¹•Ü½µ‰½	½ámEÕ¥­Ñ¥½¹AÉ•™•É•¹•A½±¥ä¹5…á¥µÕµAÉ¥µ…ÉåÑ¥½¹Ítì(€€€€€€€€€€€™½È€¡Ù…È¥¹‘•à€ô€Àì¥¹‘•à€ğÍ±½ÑÌ¹1•¹Ñ ì¥¹‘•à¬¬¤(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€Í±½ÑÍÉ¥¹½±Õµ¹•™¥¹¥Ñ¥½¹Ì¹‘¡¹•Ü½±Õµ¹•™¥¹¥Ñ¥½¸ì]¥‘Ñ €ô¹•ÜÉ¥‘1•¹Ñ  Ä°É¥‘U¹¥ÑQåÁ”¹MÑ…È¤ô¤ì(€€€€€€€€€€€€€€€Ù…ÈÍ±½Ğ€ô¹•Ü½µ‰½	½à(€€€€€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€€€€!•…‘•È€ô}ÍÑÉ¥¹Ì¹½Éµ…Ğ ‰EÕ¥­Ñ¥½¹M±½Ğˆ°¥¹‘•à€¬€Ä¤°(€€€€€€€€€€€€€€€€€€€Q…œ€ô¹•ÜEÕ¥­Ñ¥½¹M±½Ñ½¹Ñ•áĞ¡ÁÉ½™¥±”°¥¹‘•à¤°(€€€€€€€€€€€€€€€€€€€!½É¥é½¹Ñ…±±¥¹µ•¹Ğ€ô!½É¥é½¹Ñ…±±¥¹µ•¹Ğ¹MÑÉ•Ñ °(€€€€€€€€€€€€€€€ôì(€€€€€€€€€€€€€€€Í±½Ğ¹%Ñ•µÌ¹‘¡¹•Ü½µ‰½	½á%Ñ•´(€€€€€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€€€€½¹Ñ•¹Ğ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹9½¹”ˆ¤°(€€€€€€€€€€€€€€€€€€€Q…œ€ôÍÑÉ¥¹œ¹µÁÑä°(€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€€€€€™½É•… €¡Ù…È…Ñ¥½¸¥¸}…Ñ¥½¹Ì¹Ñ¥½¹Ì¤(€€€€€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€€€€Í±½Ğ¹%Ñ•µÌ¹‘¡¹•Ü½µ‰½	½á%Ñ•´(€€€€€€€€€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€€€€€€€€½¹Ñ•¹Ğ€ô}ÍÑÉ¥¹Ì¹•Ğ¡…Ñ¥½¸¹•ÍÉ¥ÁÑ½È¹1…‰•±I•Í½ÕÉ•-•ä¤°(€€€€€€€€€€€€€€€€€€€€€€€Q…œ€ô…Ñ¥½¸¹•ÍÉ¥ÁÑ½È¹%¹Q½MÑÉ¥¹œ ¤°(€€€€€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€€€€€ô((€€€€€€€€€€€€€€€Í±½Ğ¹M•±•Ñ¥½¹¡…¹•€¬ô=¹EÕ¥­Ñ¥½¹M±½Ñ¡…¹•ì(€€€€€€€€€€€€€€€É¥¹M•Ñ½±Õµ¸¡Í±½Ğ°¥¹‘•à¤ì(€€€€€€€€€€€€€€€Í±½ÑÍÉ¥¹¡¥±‘É•¸¹‘¡Í±½Ğ¤ì(€€€€€€€€€€€€€€€Í±½ÑÍm¥¹‘•át€ôÍ±½Ğì(€€€€€€€€€€€ô((€€€€€€€€€€€É½ÕÀ¹¡¥±‘É•¸¹‘¡Í±½ÑÍÉ¥¤ì(€€€€€€€€€€€Ù…ÈÉ•Í•Ñ	ÕÑÑ½¸€ô¹•Ü	ÕÑÑ½¸(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€½¹Ñ•¹Ğ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰I•Í•ÑEÕ¥­Ñ¥½¹Ìˆ¤°(€€€€€€€€€€€€€€€Q…œ€ôÁÉ½™¥±”°(€€€€€€€€€€€€€€€!½É¥é½¹Ñ…±±¥¹µ•¹Ğ€ô!½É¥é½¹Ñ…±±¥¹µ•¹Ğ¹1•™Ğ°(€€€€€€€€€€€ôì(€€€€€€€€€€€É•Í•Ñ	ÕÑÑ½¸¹±¥¬€¬ô=¹I•Í•ÑEÕ¥­Ñ¥½¹Í±¥­•ì(€€€€€€€€€€€É½ÕÀ¹¡¥±‘É•¸¹‘¡É•Í•Ñ	ÕÑÑ½¸¤ì(€€€€€€€€€€€EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹ÍA…¹•°¹¡¥±‘É•¸¹‘¡É½ÕÀ¤ì(€€€€€€€€€€€}ÅÕ¥­Ñ¥½¹½¹ÑÉ½±ÍmÁÉ½™¥±•t€ô¹•ÜEÕ¥­Ñ¥½¹M•ÑÑ¥¹Í½¹ÑÉ½±Ì¡…ÕÑ½µ…Ñ¥Q½±”°Í±½ÑÌ¤ì(€€€€€€€ô((€€€€€€€Ù…ÈÉ•Í•Ñ±±	ÕÑÑ½¸€ô¹•Ü	ÕÑÑ½¸(€€€€€€€ì(€€€€€€€€€€€½¹Ñ•¹Ğ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰I•Í•Ñ±±EÕ¥­Ñ¥½¹Ìˆ¤°(€€€€€€€€€€€!½É¥é½¹Ñ…±±¥¹µ•¹Ğ€ô!½É¥é½¹Ñ…±±¥¹µ•¹Ğ¹1•™Ğ°(€€€€€€€ôì(€€€€€€€É•Í•Ñ±±	ÕÑÑ½¸¹±¥¬€¬ô=¹I•Í•Ñ±±EÕ¥­Ñ¥½¹Í±¥­•ì(€€€€€€€EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹ÍA…¹•°¹¡¥±‘É•¸¹‘¡É•Í•Ñ±±	ÕÑÑ½¸¤ì(€€€€€€€}ÅÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹Í	Õ¥±Ğ€ôÑÉÕ”ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹EÕ¥­Ñ¥½¹ÕÑ½µ…Ñ¥Q½±•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€ …}Íå¹¥¹M•ÑÑ¥¹Ì¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞM…Ù•EÕ¥­Ñ¥½¹M•ÑÑ¥¹ÍÍå¹Œ ¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹EÕ¥­Ñ¥½¹M±½Ñ¡…¹•¡½‰©•ĞÍ•¹‘•È°M•±•Ñ¥½¹¡…¹•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡}Íå¹¥¹M•ÑÑ¥¹ÌñğÍ•¹‘•È¥Ì¹½Ğ½µ‰½	½à¡…¹•ñğ(€€€€€€€€€€€¡…¹•¹Q…œ¥Ì¹½ĞEÕ¥­Ñ¥½¹M±½Ñ½¹Ñ•áĞ½¹Ñ•áĞ¤(€€€€€€€ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô((€€€€€€€Ù…ÈÍ•±•Ñ•€ô•ÑM•±•Ñ•‘EÕ¥­Ñ¥½¸¡¡…¹•¤ì(€€€€€€€Ù…È½¹ÑÉ½±Ì€ô}ÅÕ¥­Ñ¥½¹½¹ÑÉ½±Ím½¹Ñ•áĞ¹AÉ½™¥±•tì(€€€€€€€¥˜€¡Í•±•Ñ•¥ÌìôÍ•±•Ñ•‘%€˜˜½¹ÑÉ½±Ì¹M±½ÑÌ¹¹ä¡Í±½Ğ€ôø€…I•™•É•¹•ÅÕ…±Ì¡Í±½Ğ°¡…¹•¤€˜˜•ÑM•±•Ñ•‘EÕ¥­Ñ¥½¸¡Í±½Ğ¤€ôôÍ•±•Ñ•‘%¤¤(€€€€€€€ì(€€€€€€€€€€€}Íå¹¥¹M•ÑÑ¥¹Ì€ôÑÉÕ”ì(€€€€€€€€€€€ÑÉä(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€M•±•ÑEÕ¥­Ñ¥½¸¡¡…¹•°¹Õ±°¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€™¥¹…±±ä(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€}Íå¹¥¹M•ÑÑ¥¹Ì€ô™…±Í”ì(€€€€€€€€€€€ô((€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô((€€€€€€€…İ…¥ĞM…Ù•EÕ¥­Ñ¥½¹M•ÑÑ¥¹ÍÍå¹Œ ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒQ…Í¬M…Ù•EÕ¥­Ñ¥½¹M•ÑÑ¥¹ÍÍå¹Œ ¤(€€€ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ¡…Íå¹Œ€ ¤€ôø(€€€€€€€ì(€€€€€€€€€€€Ù…ÈÁÉ•™•É•¹•Ì€ôEÕ¥­Ñ¥½¹AÉ•™•É•¹•A½±¥ä¹É•…Ñ•ÕÑ½µ…Ñ¥AÉ•™•É•¹•Ì ¤ì(€€€€€€€€€€€™½É•… €¡Ù…È€¡ÁÉ½™¥±”°½¹ÑÉ½±Ì¤¥¸}ÅÕ¥­Ñ¥½¹½¹ÑÉ½±Ì¤(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€¥˜€¡½¹ÑÉ½±Ì¹ÕÑ½µ…Ñ¥Q½±”¹%Í=¸¤(€€€€€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€€€€½¹Ñ¥¹Õ”ì(€€€€€€€€€€€€€€€ô((€€€€€€€€€€€€€€€Ù…ÈÍ±½ÑÌ€ô½¹ÑÉ½±Ì¹M±½ÑÌ¹M•±•Ğ¡•ÑM•±•Ñ•‘EÕ¥­Ñ¥½¸¤¹Q½ÉÉ…ä ¤ì(€€€€€€€€€€€€€€€ÁÉ•™•É•¹•ÍmÁÉ½™¥±•t€ô¹•ÜEÕ¥­Ñ¥½¹AÉ•™•É•¹”¡™…±Í”°Í±½ÑÍlÁt°Í±½ÑÍlÅt°Í±½ÑÍlÉt¤ì(€€€€€€€€€€€ô((€€€€€€€€€€€ÑÉä(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€…İ…¥Ğ}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ¡}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ (€€€€€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€€€€EÕ¥­Ñ¥½¹AÉ•™•É•¹•Ì€ôÁÉ•™•É•¹•Ì°(€€€€€€€€€€€€€€€ô¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€…Ñ (€€€€€€€€€€€ì(€€€€€€€€€€€€€€€Må¹M•ÑÑ¥¹Í½¹ÑÉ½±Ì ¤ì(€€€€€€€€€€€€€€€Ñ¡É½Üì(€€€€€€€€€€€ô(€€€€€€€ô¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹I•Í•ÑEÕ¥­Ñ¥½¹Í±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€¥˜€¡Í•¹‘•È¥Ì¹½ĞÉ…µ•İ½É­±•µ•¹ĞìQ…œèEÕ¥­Ñ¥½¹AÉ½™¥±”ÁÉ½™¥±”ô¤(€€€€€€€ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô((€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ¡}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ (€€€€€€€ì(€€€€€€€€€€€EÕ¥­Ñ¥½¹AÉ•™•É•¹•Ì€ô¹•ÜEÕ¥­Ñ¥½¹AÉ•™•É•¹•½±±•Ñ¥½¸ (€€€€€€€€€€€€€€€}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ì¹EÕ¥­Ñ¥½¹AÉ•™•É•¹•Ì¤(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€mÁÉ½™¥±•t€ôEÕ¥­Ñ¥½¹AÉ•™•É•¹”¹ÕÑ½µ…Ñ¥Œ°(€€€€€€€€€€€ô°(€€€€€€€ô¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒÙ½¥=¹I•Í•Ñ±±EÕ¥­Ñ¥½¹Í±¥­•¡½‰©•ĞÍ•¹‘•È°I½ÕÑ•‘Ù•¹ÑÉÌ…ÉÌ¤(€€€ì(€€€€€€€…İ…¥ĞIÕ¹Íå¹Œ  ¤€ôø}Ù¥•İ5½‘•°¹UÁ‘…Ñ•M•ÑÑ¥¹ÍÍå¹Œ¡}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ìİ¥Ñ (€€€€€€€ì(€€€€€€€€€€€EÕ¥­Ñ¥½¹AÉ•™•É•¹•Ì€ôEÕ¥­Ñ¥½¹AÉ•™•É•¹•A½±¥ä¹É•…Ñ•ÕÑ½µ…Ñ¥AÉ•™•É•¹•Ì ¤°(€€€€€€€ô¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Må¹EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹Ì ¤(€€€ì(€€€€€€€¹ÍÕÉ•EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹Ì ¤ì(€€€€€€€™½É•… €¡Ù…È€¡ÁÉ½™¥±”°½¹ÑÉ½±Ì¤¥¸}ÅÕ¥­Ñ¥½¹½¹ÑÉ½±Ì¤(€€€€€€€ì(€€€€€€€€€€€Ù…ÈÁÉ•™•É•¹”€ô}Ù¥•İ5½‘•°¹M•ÑÑ¥¹Ì¹EÕ¥­Ñ¥½¹AÉ•™•É•¹•Ì¹QÉå•ÑY…±Õ”¡ÁÉ½™¥±”°½ÕĞÙ…È½¹™¥ÕÉ•¤(€€€€€€€€€€€€€€€€ü½¹™¥ÕÉ•(€€€€€€€€€€€€€€€€èEÕ¥­Ñ¥½¹AÉ•™•É•¹”¹ÕÑ½µ…Ñ¥Œì(€€€€€€€€€€€½¹ÑÉ½±Ì¹ÕÑ½µ…Ñ¥Q½±”¹%Í=¸€ôÁÉ•™•É•¹”¹%ÍÕÑ½µ…Ñ¥Œì(€€€€€€€€€€€Ù…ÈÍ±½ÑÌ€ôÁÉ•™•É•¹”¹M±½ÑÌì(€€€€€€€€€€€™½È€¡Ù…È¥¹‘•à€ô€Àì¥¹‘•à€ğ½¹ÑÉ½±Ì¹M±½ÑÌ¹1•¹Ñ ì¥¹‘•à¬¬¤(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€M•±•ÑEÕ¥­Ñ¥½¸¡½¹ÑÉ½±Ì¹M±½ÑÍm¥¹‘•át°Í±½ÑÍm¥¹‘•át¤ì(€€€€€€€€€€€€€€€½¹ÑÉ½±Ì¹M±½ÑÍm¥¹‘•át¹%Í¹…‰±•€ô€…ÁÉ•™•É•¹”¹%ÍÕÑ½µ…Ñ¥Œì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ%Ñ•µÑ¥½¹%ü•ÑM•±•Ñ•‘EÕ¥­Ñ¥½¸¡½µ‰½	½à½µ‰½	½à¤€ôø(€€€€€€€½µ‰½	½à¹M•±•Ñ•‘%Ñ•´¥Ì½µ‰½	½á%Ñ•´ìQ…œèÍÑÉ¥¹œÙ…±Õ”ô€˜˜(€€€€€€€¹Õ´¹QÉåA…ÉÍ”ñ%Ñ•µÑ¥½¹%ø¡Ù…±Õ”°½ÕĞÙ…È…Ñ¥½¸¤(€€€€€€€€€€€€ü…Ñ¥½¸(€€€€€€€€€€€€è¹Õ±°ì((€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥ŒÙ½¥M•±•ÑEÕ¥­Ñ¥½¸¡½µ‰½	½à½µ‰½	½à°%Ñ•µÑ¥½¹%ü…Ñ¥½¸¤(€€€ì(€€€€€€€Ù…ÈÑ…œ€ô…Ñ¥½¸ü¹Q½MÑÉ¥¹œ ¤€üüÍÑÉ¥¹œ¹µÁÑäì(€€€€€€€½µ‰½	½à¹M•±•Ñ•‘%Ñ•´€ô½µ‰½	½à¹%Ñ•µÌ(€€€€€€€€€€€€¹=™QåÁ”ñ½µ‰½	½á%Ñ•´ø ¤(€€€€€€€€€€€€¹¥ÉÍÑ=É•™…Õ±Ğ¡¥Ñ•´€ôøÍÑÉ¥¹œ¹ÅÕ…±Ì¡¥Ñ•´¹Q…œ…ÌÍÑÉ¥¹œ°Ñ…œ°MÑÉ¥¹½µÁ…É¥Í½¸¹=É‘¥¹…°¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”ÍÑÉ¥¹œ•ÑEÕ¥­Ñ¥½¹AÉ½™¥±•1…‰•°¡EÕ¥­Ñ¥½¹AÉ½™¥±”ÁÉ½™¥±”¤€ôøÁÉ½™¥±”Íİ¥Ñ (€€€ì(€€€€€€€EÕ¥­Ñ¥½¹AÉ½™¥±”¹¥±”€ôø}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹¥±•Ìˆ¤°(€€€€€€€EÕ¥­Ñ¥½¹AÉ½™¥±”¹%µ…”€ôø}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹%µ…•Ìˆ¤°(€€€€€€€EÕ¥­Ñ¥½¹AÉ½™¥±”¹Q•áĞ€ôø}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹Q•áĞˆ¤°(€€€€€€€EÕ¥­Ñ¥½¹AÉ½™¥±”¹UÉ°€ôø}ÍÑÉ¥¹Ì¹•Ğ ‰EÕ¥­Ñ¥½¹UÉ±Ìˆ¤°(€€€€€€€|€ôøÁÉ½™¥±”¹Q½MÑÉ¥¹œ ¤°(€€€ôì((€€€ÁÉ¥Ù…Ñ”9…Ù¥…Ñ¥½¹Y¥•İ%Ñ•´•Ñ9…Ù¥…Ñ¥½¹%Ñ•´¡ÍÑÉ¥¹œÍ•Ñ¥½¸¤€ôøÍ•Ñ¥½¸Íİ¥Ñ (€€€ì(€€€€€€€€‰±¥Á‰½…Éˆ€ôø±¥Á‰½…É‘9…Ù¥…Ñ¥½¹%Ñ•´°(€€€€€€€€‰A¥¹¹•ˆ€ôøA¥¹¹•‘9…Ù¥…Ñ¥½¹%Ñ•´°(€€€€€€€€‰M•ÑÑ¥¹Ìˆ€ôøM•ÑÑ¥¹Í9…Ù¥…Ñ¥½¹%Ñ•´°(€€€€€€€|€ôøMÁ…•9…Ù¥…Ñ¥½¹%Ñ•´°(€€€ôì((€€€ÁÉ¥Ù…Ñ”Ù½¥Må¹M•ÑÑ¥¹Í½¹ÑÉ½±Ì ¤(€€€ì(€€€€€€€}Íå¹¥¹M•ÑÑ¥¹Ì€ôÑÉÕ”ì(€€€€€€€ÑÉä(€€€€€€€ì(€€€€€€€€€€€A…ÕÍ•Q½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹%Í±¥Á‰½…É‘A…ÕÍ•ì(€€€€€€€€€€€…ÁÑÕÉ•%µ…•ÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹…ÁÑÕÉ•%µ…•Ìì(€€€€€€€€€€€…ÁÑÕÉ•¥±•ÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹…ÁÑÕÉ•¥±•Ìì(€€€€€€€€€€€…ÁÑÕÉ•½±‘•ÉÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹…ÁÑÕÉ•½±‘•ÉÌì(€€€€€€€€€€€•Ù¥•!…¹‘½™™Q½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹¹…‰±••Ù¥•!…¹‘½™˜ì(€€€€€€€€€€€É½ÍÍ•Ù¥•±¥Á‰½…É‘Q½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹¹…‰±•É½ÍÍ•Ù¥•±¥Á‰½…Éì(€€€€€€€€€€€9•…É‰åM¡…É¥¹Q½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹¹…‰±•9•…É‰åM¡…É¥¹œì(€€€€€€€€€€€%¹Ñ•É¹•ÑM¡…É¥¹Q½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹¹…‰±•%¹Ñ•É¹•ÑM¡…É¥¹œì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡•™…Õ±Ñ±¥Á‰½…É‘Må¹5½‘•½µ‰¼°}Ù¥•İ5½‘•°¹•™…Õ±Ñ±¥Á‰½…É‘Må¹5½‘”¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€MÑ…ÉÑ]¥Ñ¡]¥¹‘½İÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹MÑ…ÉÑ]¥Ñ¡]¥¹‘½İÌì(€€€€€€€€€€€ÕÑ½¡•­UÁ‘…Ñ•ÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹ÕÑ½¡•­½ÉUÁ‘…Ñ•Ìì(€€€€€€€€€€€ÕÑ½½İ¹±½…‘UÁ‘…Ñ•ÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹ÕÑ½½İ¹±½…‘UÁ‘…Ñ•Ìì(€€€€€€€€€€€ÕÑ½%¹ÍÑ…±±UÁ‘…Ñ•ÍQ½±”¹%Í=¸€ô}Ù¥•İ5½‘•°¹ÕÑ½%¹ÍÑ…±±UÁ‘…Ñ•Ìì(€€€€€€€€€€€5…á%µ…•5•…‰åÑ•Í9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹5…á%µ…•5•…‰åÑ•Ìì(€€€€€€€€€€€5…á%µ…•5•…Á¥á•±Í9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹5…á%µ…•5•…Á¥á•±Ìì(€€€€€€€€€€€5…á±¥Á‰½…É‘¥±•5•…‰åÑ•Í9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹5…á±¥Á‰½…É‘¥±•5•…‰åÑ•Ìì(€€€€€€€€€€€5…á±¥Á‰½…É‘¥±•Q½Ñ…±5•…‰åÑ•Í9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹5…á±¥Á‰½…É‘¥±•Q½Ñ…±5•…‰åÑ•Ìì(€€€€€€€€€€€5…á±¥Á‰½…É‘¥±•%Ñ•µÍ9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹5…á±¥Á‰½…É‘¥±•%Ñ•µÌì(€€€€€€€€€€€I•Ñ•¹Ñ¥½¹…åÍ9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹I•Ñ•¹Ñ¥½¹…åÌì(€€€€€€€€€€€I•Ñ•¹Ñ¥½¹½Õ¹Ñ9Õµ‰•È¹Y…±Õ”€ô}Ù¥•İ5½‘•°¹I•Ñ•¹Ñ¥½¹%Ñ•µ½Õ¹Ğì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡Q¡•µ•½µ‰¼°}Ù¥•İ5½‘•°¹Q¡•µ”¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡1…¹Õ…•½µ‰¼°}Ù¥•İ5½‘•°¹1…¹Õ…”¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡±½Í•	•¡…Ù¥½É½µ‰¼°}Ù¥•İ5½‘•°¹±½Í•	•¡…Ù¥½È¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡=Ù•É±…å5½Ñ¥½¹½µ‰¼°}Ù¥•İ5½‘•°¹=Ù•É±…å5½Ñ¥½¸¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡=Ù•É±…å5½¹¥Ñ½É½µ‰¼°}Ù¥•İ5½‘•°¹=Ù•É±…å5½¹¥Ñ½È¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡¥±•É…]…­•5½‘•½µ‰¼°}Ù¥•İ5½‘•°¹¥±•É…]…­•5½‘”¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€%I•…‘=¹±å1¥ÍĞñ=Ù•É±…å5½¹¥Ñ½É¡½¥”ø…Ù…¥±…‰±•=Ù•É±…å5½¹¥Ñ½ÉÌì(€€€€€€€€€€€ÑÉä(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€…Ù…¥±…‰±•=Ù•É±…å5½¹¥Ñ½ÉÌ€ô}Ù¥•İ5½‘•°¹Ù…¥±…‰±•=Ù•É±…å5½¹¥Ñ½ÉÌì(€€€€€€€€€€€ô(€€€€€€€€€€€…Ñ €¡%¹Ù…±¥‘=Á•É…Ñ¥½¹á•ÁÑ¥½¸•á•ÁÑ¥½¸¤İ¡•¸€ (€€€€€€€€€€€€€€€•á•ÁÑ¥½¸¹5•ÍÍ…”¹½¹Ñ…¥¹Ì ‰…Ñ¥Ù”‘¥ÍÁ±…äˆ°MÑÉ¥¹½µÁ…É¥Í½¸¹=É‘¥¹…±%¹½É•…Í”¤¤(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€¼¼¥ÍÁ±…ä•¹Õµ•É…Ñ¥½¸…¸‰É¥•™±äÉ•ÑÕÉ¸¹¼µ½¹¥Ñ½ÉÌ‘ÕÉ¥¹œ„¡•…‘±•ÍÌ½È‘¥ÍÁ±…ä(€€€€€€€€€€€€€€€€¼¼É•½¹¹•Ñ¥¹œÍ•ÍÍ¥½¸¸-••ÀÑ¡”Í•ÑÑ¥¹ÌÁ…”ÕÍ…‰±”ìÑ¡”½Ù•É±…äÍ•ÉÙ¥”İ¥±°(€€€€€€€€€€€€€€€€¼¼É•ÑÉä½¸¥ÑÌ¹•áĞÑ½Á½±½äÉ•™É•Í ¸(€€€€€€€€€€€€€€€…Ù…¥±…‰±•=Ù•É±…å5½¹¥Ñ½ÉÌ€ôÉÉ…ä¹µÁÑäñ=Ù•É±…å5½¹¥Ñ½É¡½¥”ø ¤ì(€€€€€€€€€€€ô((€€€€€€€€€€€=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹%Ñ•µÍM½ÕÉ”€ô…Ù…¥±…‰±•=Ù•É±…å5½¹¥Ñ½ÉÌì(€€€€€€€€€€€=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘%¹‘•à€ô5…Ñ ¹5…à À°=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘%¹‘•à¤ì(€€€€€€€€€€€EÕ¥­A…¹•±!½Ñ­•åQ•áĞ¹Q•áĞ€ô}Ù¥•İ5½‘•°¹EÕ¥­A…¹•±!½Ñ­•äì(€€€€€€€€€€€Mµ…ÉÑÉ…á±ÕÍ¥½¹ÍQ•áĞ¹Q•áĞ€ô}Ù¥•İ5½‘•°¹Mµ…ÉÑÉ…á±Õ‘•‘AÉ½•ÍÍ•ÍQ•áĞì(€€€€€€€€€€€Må¹EÕ¥­Ñ¥½¹ÍM•ÑÑ¥¹Ì ¤ì(€€€€€€€€€€€Må¹A±…•µ•¹Ñ½½É‘¥¹…Ñ•Ì ¤ì(€€€€€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡UÁ‘…Ñ•¡…¹¹•±½µ‰¼°}Ù¥•İ5½‘•°¹UÁ‘…Ñ•¡…¹¹•°¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€€€€€UÁ‘…Ñ••Ù¥•MÑ…ÑÕÌ ¤ì(€€€€€€€ô(€€€€€€€™¥¹…±±ä(€€€€€€€ì(€€€€€€€€€€€}Íå¹¥¹M•ÑÑ¥¹Ì€ô™…±Í”ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Må¹A±…•µ•¹Ñ½½É‘¥¹…Ñ•Ì ¤(€€€ì(€€€€€€€¥˜€¡=Ù•É±…åA±…•µ•¹Ñ5½¹¥Ñ½É½µ‰¼¹M•±•Ñ•‘Y…±Õ”¥Ì¹½ĞÍÑÉ¥¹œµ½¹¥Ñ½É%¤(€€€€€€€ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€Ù…ÈÁ±…•µ•¹Ğ€ô}Ù¥•İ5½‘•°¹•Ñ=Ù•É±…åA±…•µ•¹Ğ¡µ½¹¥Ñ½É%¤ì(€€€€€€€Ù…È…¹A•ÉÍ¥ÍĞ€ô}Ù¥•İ5½‘•°¹…¹A•ÉÍ¥ÍÑ=Ù•É±…åA±…•µ•¹Ğ¡µ½¹¥Ñ½É%¤ì(€€€€€€€M•±•Ñ½µ‰½%Ñ•´¡=Ù•É±…åA±…•µ•¹Ñ5½‘•½µ‰¼°Á±…•µ•¹Ğ¹5½‘”¹Q½MÑÉ¥¹œ ¤¤ì(€€€€€€€=Ù•É±…åA±…•µ•¹ÑÕÍÑ½µ%Ñ•´¹%Í¹…‰±•€ô…¹A•ÉÍ¥ÍĞì(€€€€€€€=Ù•É±…åA±…•µ•¹Ña9Õµ‰•È¹Y…±Õ”€ôÁ±…•µ•¹Ğ¹`ì(€€€€€€€=Ù•É±…åA±…•µ•¹Ñe9Õµ‰•È¹Y…±Õ”€ôÁ±…•µ•¹Ğ¹dì(€€€€€€€=Ù•É±…åA±…•µ•¹Ña9Õµ‰•È¹%Í¹…‰±•€ô…¹A•ÉÍ¥ÍĞì(€€€€€€€=Ù•É±…åA±…•µ•¹Ñe9Õµ‰•È¹%Í¹…‰±•€ô…¹A•ÉÍ¥ÍĞì(€€€€€€€‘©ÕÍÑ%Í±…¹‘A±…•µ•¹Ñ	ÕÑÑ½¸¹%Í¹…‰±•€ô…¹A•ÉÍ¥ÍĞì(€€€€€€€ÁÁ±å%Í±…¹‘A±…•µ•¹Ñ	ÕÑÑ½¸¹%Í¹…‰±•€ô…¹A•ÉÍ¥ÍĞì(€€€€€€€=Ù•É±…åA±…•µ•¹ÑA•ÉÍ¥ÍÑ•¹•]…É¹¥¹Q•áĞ¹Y¥Í¥‰¥±¥Ñä€ô…¹A•ÉÍ¥ÍĞ(€€€€€€€€€€€€üY¥Í¥‰¥±¥Ñä¹½±±…ÁÍ•(€€€€€€€€€€€€èY¥Í¥‰¥±¥Ñä¹Y¥Í¥‰±”ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥UÁ‘…Ñ•M•Ñ¥½¹¡É½µ” ¤(€€€ì(€€€€€€€Ù…ÈÍ•Ñ¥½¸€ô}Ù¥•İ5½‘•°¹ÕÉÉ•¹ÑM•Ñ¥½¸ì(€€€€€€€‘‘	ÕÑÑ½¸¹Y¥Í¥‰¥±¥Ñä€ôÍ•Ñ¥½¸€ôô€‰MÁ…”ˆ€üY¥Í¥‰¥±¥Ñä¹Y¥Í¥‰±”€èY¥Í¥‰¥±¥Ñä¹½±±…ÁÍ•ì(€€€€€€€M•…É¡	½à¹Y¥Í¥‰¥±¥Ñä€ôÍ•Ñ¥½¸€ôô€‰M•ÑÑ¥¹Ìˆ€üY¥Í¥‰¥±¥Ñä¹½±±…ÁÍ•€èY¥Í¥‰¥±¥Ñä¹Y¥Í¥‰±”ì(€€€€€€€±¥Á‰½…É‘MÑ…ÑÕÍQ•áĞ¹Y¥Í¥‰¥±¥Ñä€ôÍ•Ñ¥½¸€ôô€‰±¥Á‰½…Éˆ€üY¥Í¥‰¥±¥Ñä¹Y¥Í¥‰±”€èY¥Í¥‰¥±¥Ñä¹½±±…ÁÍ•ì(€€€€€€€Íİ¥Ñ €¡Í•Ñ¥½¸¤(€€€€€€€ì(€€€€€€€€€€€…Í”€‰±¥Á‰½…Éˆè(€€€€€€€€€€€€€€€µÁÑåQ¥Ñ±”¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰µÁÑå±¥Á‰½…É‘Q¥Ñ±”ˆ¤ì(€€€€€€€€€€€€€€€µÁÑå•ÍÉ¥ÁÑ¥½¸¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰µÁÑå±¥Á‰½…É‘•ÍÉ¥ÁÑ¥½¸ˆ¤ì(€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€€€€€…Í”€‰A¥¹¹•ˆè(€€€€€€€€€€€€€€€µÁÑåQ¥Ñ±”¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰µÁÑåA¥¹¹•‘Q¥Ñ±”ˆ¤ì(€€€€€€€€€€€€€€€µÁÑå•ÍÉ¥ÁÑ¥½¸¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰µÁÑåA¥¹¹•‘•ÍÉ¥ÁÑ¥½¸ˆ¤ì(€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€€€€€‘•™…Õ±Ğè(€€€€€€€€€€€€€€€µÁÑåQ¥Ñ±”¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰µÁÑåMÁ…•Q¥Ñ±”ˆ¤ì(€€€€€€€€€€€€€€€µÁÑå•ÍÉ¥ÁÑ¥½¸¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰µÁÑåMÁ…••ÍÉ¥ÁÑ¥½¸ˆ¤ì(€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥UÁ‘…Ñ••Ù¥•MÑ…ÑÕÌ ¤(€€€ì(€€€€€€€¥˜€ …}Ù¥•İ5½‘•°¹¹…‰±••Ù¥•!…¹‘½™˜¤(€€€€€€€ì(€€€€€€€€€€€•Ù¥•MÑ…ÑÕÍQ•áĞ¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰•Ù¥•Í¥Í…‰±•‘½¹Ñ•¹Ğˆ¤ì(€€€€€€€ô(€€€€€€€•±Í”¥˜€¡}‘•Ù¥•!…¹‘½™˜¹U¹…Ù…¥±…‰±•I•…Í½¸¥Ìì1•¹Ñ è€ø€ÀôÉ•…Í½¸¤(€€€€€€€ì(€€€€€€€€€€€•Ù¥•MÑ…ÑÕÍQ•áĞ¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹½Éµ…Ğ ‰•Ù¥•M•ÉÙ¥•U¹…Ù…¥±…‰±”ˆ°É•…Í½¸¤ì(€€€€€€€ô(€€€€€€€•±Í”¥˜€¡}‘•Ù¥•!…¹‘½™˜¹¥É•İ…±±MÑ…ÑÕÌ¥Ììô™¥É•İ…±°¤(€€€€€€€ì(€€€€€€€€€€€•Ù¥•MÑ…ÑÕÍQ•áĞ¹Q•áĞ€ô™¥É•İ…±°¹…¹I••¥Ù”(€€€€€€€€€€€€€€€€ü}ÍÑÉ¥¹Ì¹•Ğ ‰•Ù¥•M•ÉÙ¥•I•…‘äˆ¤(€€€€€€€€€€€€€€€€è}ÍÑÉ¥¹Ì¹½Éµ…Ğ ‰•Ù¥•M•ÉÙ¥•	±½­•ˆ°™¥É•İ…±°¹I•…Í½¸€üüÍÑÉ¥¹œ¹µÁÑä¤ì(€€€€€€€ô(€€€€€€€•±Í”(€€€€€€€ì(€€€€€€€€€€€•Ù¥•MÑ…ÑÕÍQ•áĞ¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰•Ù¥•M•ÉÙ¥•MÑ…ÉÑ¥¹œˆ¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥M•ÑÉ½Á!¥¹Ğ¡É…Ù•¹ÑÉÌ…ÉÌ°‰½½°Ù¥Í¥‰±”¤(€€€ì(€€€€€€€Ù…È…•ÁÑÍ%Ñ•µÌ€ô…ÉÌ¹…Ñ…Y¥•Ü¹½¹Ñ…¥¹Ì¡MÑ…¹‘…É‘…Ñ…½Éµ…ÑÌ¹MÑ½É…•%Ñ•µÌ¤ñğ(€€€€€€€€€€€€€€€€€€€€€€€€€€…ÉÌ¹…Ñ…Y¥•Ü¹½¹Ñ…¥¹Ì¡MÑ…¹‘…É‘…Ñ…½Éµ…ÑÌ¹Q•áĞ¤ñğ(€€€€€€€€€€€€€€€€€€€€€€€€€€…ÉÌ¹…Ñ…Y¥•Ü¹½¹Ñ…¥¹Ì¡MÑ…¹‘…É‘…Ñ…½Éµ…ÑÌ¹]•‰1¥¹¬¤ì(€€€€€€€…ÉÌ¹•ÁÑ•‘=Á•É…Ñ¥½¸€ô…•ÁÑÍ%Ñ•µÌ€ü…Ñ…A…­…•=Á•É…Ñ¥½¸¹½Áä€è…Ñ…A…­…•=Á•É…Ñ¥½¸¹9½¹”ì(€€€€€€€É½Á!¥¹Ğ¹Y¥Í¥‰¥±¥Ñä€ôÙ¥Í¥‰±”€˜˜…•ÁÑÍ%Ñ•µÌ€üY¥Í¥‰¥±¥Ñä¹Y¥Í¥‰±”€èY¥Í¥‰¥±¥Ñä¹½±±…ÁÍ•ì(€€€€€€€¥˜€¡…•ÁÑÍ%Ñ•µÌ¤(€€€€€€€ì(€€€€€€€€€€€…ÉÌ¹É…U%=Ù•ÉÉ¥‘”¹…ÁÑ¥½¸€ô}ÍÑÉ¥¹Ì¹•Ğ ‰É……ÁÑ¥½¹‘‘Q½É½ÁMÁ…”ˆ¤ì(€€€€€€€€€€€…ÉÌ¹É…U%=Ù•ÉÉ¥‘”¹%Í…ÁÑ¥½¹Y¥Í¥‰±”€ôÑÉÕ”ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ%Ñ•µ…É‘Y¥•İ5½‘•°ü•Ñ…É¡½‰©•ĞÍ•¹‘•È¤€ôøÍ•¹‘•ÈÍİ¥Ñ (€€€ì(€€€€€€€É…µ•İ½É­±•µ•¹ĞìQ…œè%Ñ•µ…É‘Y¥•İ5½‘•°…Éô€ôø…É°(€€€€€€€É…µ•İ½É­±•µ•¹Ğì…Ñ…½¹Ñ•áĞè%Ñ•µ…É‘Y¥•İ5½‘•°…Éô€ôø…É°(€€€€€€€|€ôø¹Õ±°°(€€€ôì((€€€ÁÉ¥Ù…Ñ”Í•…±•É•½ÉEÕ¥­Ñ¥½¹M±½Ñ½¹Ñ•áĞ¡EÕ¥­Ñ¥½¹AÉ½™¥±”AÉ½™¥±”°¥¹Ğ%¹‘•à¤ì((€€€ÁÉ¥Ù…Ñ”Í•…±•É•½ÉEÕ¥­Ñ¥½¹M•ÑÑ¥¹Í½¹ÑÉ½±Ì (€€€€€€€Q½±•Mİ¥Ñ ÕÑ½µ…Ñ¥Q½±”°(€€€€€€€½µ‰½	½ámtM±½ÑÌ¤ì((€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥ŒÙ½¥M•±•Ñ½µ‰½%Ñ•´¡½µ‰½	½à½µ‰½	½à°ÍÑÉ¥¹œÑ…œ¤(€€€ì(€€€€€€€½µ‰½	½à¹M•±•Ñ•‘%Ñ•´€ô½µ‰½	½à¹%Ñ•µÌ(€€€€€€€€€€€€¹=™QåÁ”ñ½µ‰½	½á%Ñ•´ø ¤(€€€€€€€€€€€€¹¥ÉÍÑ=É•™…Õ±Ğ¡¥Ñ•´€ôøÍÑÉ¥¹œ¹ÅÕ…±Ì¡¥Ñ•´¹Q…œ…ÌÍÑÉ¥¹œ°Ñ…œ°MÑÉ¥¹½µÁ…É¥Í½¸¹=É‘¥¹…°¤¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒQ…Í¬ñ‰½½°øM¡½İ½¹™¥Éµ…Ñ¥½¹Íå¹Œ¡ÍÑÉ¥¹œÑ¥Ñ±”°ÍÑÉ¥¹œ½¹Ñ•¹Ğ°ÍÑÉ¥¹œÁÉ¥µ…ÉåQ•áĞ¤(€€€ì(€€€€€€€…İ…¥Ğ}‘¥…±½…Ñ”¹]…¥ÑÍå¹Œ ¤ì(€€€€€€€ÑÉä(€€€€€€€ì(€€€€€€€€€€€Ù…È‘¥…±½œ€ô¹•Ü½¹Ñ•¹Ñ¥…±½œ(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€a…µ±I½½Ğ€ôa…µ±I½½Ğ°(€€€€€€€€€€€€€€€Q¥Ñ±”€ôÑ¥Ñ±”°(€€€€€€€€€€€€€€€½¹Ñ•¹Ğ€ô½¹Ñ•¹Ğ°(€€€€€€€€€€€€€€€AÉ¥µ…Éå	ÕÑÑ½¹Q•áĞ€ôÁÉ¥µ…ÉåQ•áĞ°(€€€€€€€€€€€€€€€±½Í•	ÕÑÑ½¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰½µµ½¹…¹•°ˆ¤°(€€€€€€€€€€€€€€€•™…Õ±Ñ	ÕÑÑ½¸€ô½¹Ñ•¹Ñ¥…±½	ÕÑÑ½¸¹±½Í”°(€€€€€€€€€€€ôì(€€€€€€€€€€€É•ÑÕÉ¸…İ…¥Ğ‘¥…±½œ¹M¡½İÍå¹Œ ¤€ôô½¹Ñ•¹Ñ¥…±½I•ÍÕ±Ğ¹AÉ¥µ…Éäì(€€€€€€€ô(€€€€€€€™¥¹…±±ä(€€€€€€€ì(€€€€€€€€€€€}‘¥…±½…Ñ”¹I•±•…Í” ¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒQ…Í¬M¡½İ5•ÍÍ…•Íå¹Œ¡ÍÑÉ¥¹œÑ¥Ñ±”°ÍÑÉ¥¹œ½¹Ñ•¹Ğ¤(€€€ì(€€€€€€€…İ…¥Ğ}‘¥…±½…Ñ”¹]…¥ÑÍå¹Œ ¤ì(€€€€€€€ÑÉä(€€€€€€€ì(€€€€€€€€€€€Ù…È‘¥…±½œ€ô¹•Ü½¹Ñ•¹Ñ¥…±½œ(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€a…µ±I½½Ğ€ôa…µ±I½½Ğ°(€€€€€€€€€€€€€€€Q¥Ñ±”€ôÑ¥Ñ±”°(€€€€€€€€€€€€€€€½¹Ñ•¹Ğ€ô½¹Ñ•¹Ğ°(€€€€€€€€€€€€€€€±½Í•	ÕÑÑ½¹Q•áĞ€ô}ÍÑÉ¥¹Ì¹•Ğ ‰½µµ½¹­¹½İ±•‘”ˆ¤°(€€€€€€€€€€€ôì(€€€€€€€€€€€…İ…¥Ğ‘¥…±½œ¹M¡½İÍå¹Œ ¤ì(€€€€€€€ô(€€€€€€€™¥¹…±±ä(€€€€€€€ì(€€€€€€€€€€€}‘¥…±½…Ñ”¹I•±•…Í” ¤ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”…Íå¹ŒQ…Í¬IÕ¹Íå¹Œ¡Õ¹ŒñQ…Í¬ø½Á•É…Ñ¥½¸¤(€€€ì(€€€€€€€ÑÉä(€€€€€€€ì(€€€€€€€€€€€…İ…¥Ğ½Á•É…Ñ¥½¸ ¤ì(€€€€€€€ô(€€€€€€€…Ñ €¡=Á•É…Ñ¥½¹…¹•±•‘á•ÁÑ¥½¸¤(€€€€€€€ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€…Ñ €¡á•ÁÑ¥½¸¤(€€€€€€€ì(€€€€€€€€€€€…İ…¥ĞM¡½İ5•ÍÍ…•Íå¹Œ (€€€€€€€€€€€€€€€}ÍÑÉ¥¹Ì¹•Ğ ‰=Á•É…Ñ¥½¹%¹½µÁ±•Ñ•Q¥Ñ±”ˆ¤°(€€€€€€€€€€€€€€€}ÍÑÉ¥¹Ì¹•Ğ ‰=Á•É…Ñ¥½¹%¹½µÁ±•Ñ•½¹Ñ•¹Ğˆ¤¤ì(€€€€€€€ô(€€€ô((€€€ÁÕ‰±¥ŒÙ½¥Y•É¥™å1½…±¥é•‘I•Í½ÕÉ•Ì ¤(€€€ì(€€€€€€€Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡MÁ…•9…Ù¥…Ñ¥½¹%Ñ•´¹½¹Ñ•¹Ğ°€‰9…ÙMÁ…”¹½¹Ñ•¹Ğˆ¤ì(€€€€€€€Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡±¥Á‰½…É‘9…Ù¥…Ñ¥½¹%Ñ•´¹½¹Ñ•¹Ğ°€‰9…Ù±¥Á‰½…É¹½¹Ñ•¹Ğˆ¤ì(€€€€€€€Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡A¥¹¹•‘9…Ù¥…Ñ¥½¹%Ñ•´¹½¹Ñ•¹Ğ°€‰9…ÙA¥¹¹•¹½¹Ñ•¹Ğˆ¤ì(€€€€€€€Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡M•ÑÑ¥¹Í9…Ù¥…Ñ¥½¹%Ñ•´¹½¹Ñ•¹Ğ°€‰9…ÙM•ÑÑ¥¹Ì¹½¹Ñ•¹Ğˆ¤ì(€€€€€€€Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡M•…É¡	½à¹A±…•¡½±‘•ÉQ•áĞ°€‰M•…É¡	½à¹A±…•¡½±‘•ÉQ•áĞˆ¤ì(€€€€€€€Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡‘‘	ÕÑÑ½¸¹½¹Ñ•¹Ğ°€‰‘‘	ÕÑÑ½¸¹½¹Ñ•¹Ğˆ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Y•É¥™åI•Í½ÕÉ•Y…±Õ”¡½‰©•Ğü…ÑÕ…°°ÍÑÉ¥¹œ­•ä¤(€€€ì(€€€€€€€Ù…È•áÁ•Ñ•€ô}ÍÑÉ¥¹Ì¹•Ğ¡­•ä¤ì(€€€€€€€¥˜€ …ÍÑÉ¥¹œ¹ÅÕ…±Ì¡…ÑÕ…°…ÌÍÑÉ¥¹œ°•áÁ•Ñ•°MÑÉ¥¹½µÁ…É¥Í½¸¹=É‘¥¹…°¤¤(€€€€€€€ì(€€€€€€€€€€€Ñ¡É½Ü¹•Ü%¹Ù…±¥‘=Á•É…Ñ¥½¹á•ÁÑ¥½¸ ‰1½…±¥é•a50É•Í½ÕÉ”€í­•åôœ‘¥¹½ĞÉ•Í½±Ù”¸ˆ¤ì(€€€€€€€ô(€€€ô)ô(
