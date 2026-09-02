@@ -240,6 +240,18 @@ public sealed partial class OverlayWindow : Window
         return target.RunSyntheticCfHDropAsync(paths, point, cancellationToken);
     }
 
+    internal bool TryEnsureNativeDropTargetForSmoke()
+    {
+        if (!_isVisible || !_nativeWindowSafeToShow ||
+            _viewModel.Snapshot.State is not (OverlayState.Compact or OverlayState.Expanded))
+        {
+            return false;
+        }
+
+        EnsureNativeDropTargetRegistered();
+        return _nativeDropTarget is not null;
+    }
+
     internal long RunGeometryStress(int cycles)
     {
         if (cycles is < 1 or > 1_000)

@@ -274,6 +274,7 @@ public sealed class OverlayWindowService : IDisposable
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
             await Task.Delay(500, cancellationToken);
             var activeWindow = GetActiveWindow();
+            await EnsureVisibleNativeDropTargetAsync(activeWindow, cancellationToken);
             await activeWindow.RunSyntheticCfHDropAsync([compactDrop], cancellationToken);
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
             var compactDropAccepted = _mainViewModel.Items.Any(item =>
@@ -285,6 +286,7 @@ public sealed class OverlayWindowService : IDisposable
 
             await _viewModel.ExpandAsync(cancellationToken);
             await Task.Delay(500, cancellationToken);
+            await EnsureVisibleNativeDropTargetAsync(activeWindow, cancellationToken);
             await activeWindow.RunSyntheticCfHDropAsync([expandedDrop], cancellationToken);
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
             var expandedDropAccepted = _mainViewModel.Items.Any(item =>
@@ -326,6 +328,30 @@ public sealed class OverlayWindowService : IDisposable
                 Directory.Delete(testRoot, recursive: false);
             }
         }
+    }
+
+    private async Task EnsureVisibleNativeDropTargetAsync(
+        OverlayWindow window,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            if (window.TryEnsureNativeDropTargetForSmoke())
+            {
+                return;
+            }
+
+            // Projection refresh and state publication are serialized through the dispatcher,
+            // while this smoke runs on the same UI thread. Re-apply the current snapshot between
+            // bounded polls so a just-published Compact/Expanded state can complete its native
+            // show/registration transition before the synthetic OLE call.
+            ApplySnapshot(_viewModel.Snapshot);
+            await Task.Delay(100, cancellationToken);
+        }
+
+        throw new InvalidOperationException(
+            $"The visible Overlay OLE target did not become registered within the bounded smoke wait. " +
+            $"{window.NativeVisibilityDiagnostics}.");
     }
 
     public async Task<ProjectionDeletionStressMetrics> RunProjectionDeletionStressAsync(
