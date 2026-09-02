@@ -13,7 +13,6 @@ internal static class OverlayWindowInterop
     private const long ExtendedStyleDialogModalFrame = 0x00000001L;
     private const long ExtendedStyleNoActivate = 0x08000000L;
     private const long ExtendedStyleToolWindow = 0x00000080L;
-    private const long StylePopup = unchecked((int)0x80000000L);
     private const long StyleChild = 0x40000000L;
     private const long StyleMinimize = 0x20000000L;
     private const long StyleMaximize = 0x01000000L;
@@ -96,8 +95,9 @@ internal static class OverlayWindowInterop
         else
         {
             // AppWindow presenters can leave an overlapped/non-client style behind even after
-            // SetBorderAndTitleBar(false, false). Force a true popup style so DWM has no frame to
-            // paint around the XAML region on either Windows 10 or Windows 11.
+            // SetBorderAndTitleBar(false, false). Remove every frame-bearing bit while retaining
+            // the window class's managed top-level style; converting a WinUI-managed HWND to a
+            // different top-level style after presenter creation can break its hit-test bridge.
             var configuredStyle = style.ToInt64();
             configuredStyle &= ~(StyleBorder |
                                  StyleCaption |
@@ -109,7 +109,6 @@ internal static class OverlayWindowInterop
                                  StyleSystemMenu |
                                  StyleHorizontalScroll |
                                  StyleVerticalScroll);
-            configuredStyle |= StylePopup;
             if (!TrySetWindowLongPointer(
                     window,
                     StyleIndex,
@@ -261,11 +260,17 @@ internal static class OverlayWindowInterop
     public static VisibleWindowProbe ProbeWindowAtPoint(nint rootWindow, int x, int y)
     {
         var discovered = WindowFromPoint(new NativePoint { X = x, Y = y });
+        var hasRootRectangle = GetWindowRect(rootWindow, out var rootRectangle);
         return new VisibleWindowProbe(
             rootWindow,
             discovered,
             discovered == rootWindow || discovered != nint.Zero && IsChild(rootWindow, discovered),
-            GetWindowClassName(discovered));
+            GetWindowClassName(discovered),
+            IsWindowVisible(rootWindow),
+            hasRootRectangle ? rootRectangle.Left : 0,
+            hasRootRectangle ? rootRectangle.Top : 0,
+            hasRootRectangle ? rootRectangle.Right - rootRectangle.Left : 0,
+            hasRootRectangle ? rootRectangle.Bottom - rootRectangle.Top : 0);
     }
 
     public static bool SetNoActivate(
@@ -630,6 +635,10 @@ internal static class OverlayWindowInterop
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetClientRect(nint window, out NativeRectangle rectangle);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(nint window, out NativeRectangle rectangle);
+
     [DllImport("gdi32.dll")]
     private static extern nint CreateRectRgn(int left, int top, int right, int bottom);
 
@@ -711,4 +720,9 @@ internal sealed record VisibleWindowProbe(
     nint RootWindow,
     nint DiscoveredWindow,
     bool IsRootOrDescendant,
-    string WindowClassName);
+    string WindowClassName,
+    bool IsRootVisible,
+    int RootLeft,
+    int RootTop,
+    int RootWidth,
+    int RootHeight);

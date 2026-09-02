@@ -148,8 +148,10 @@ public sealed class OverlayWindowService : IDisposable
         {
             throw new InvalidOperationException(
                 $"WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states. " +
-                $"Compact: root={compactVisualProbe.RootWindow}, discovered={compactVisualProbe.DiscoveredWindow}, class={compactVisualProbe.WindowClassName}, owned={compactVisualProbe.IsRootOrDescendant}; " +
-                $"Expanded: root={expandedVisualProbe.RootWindow}, discovered={expandedVisualProbe.DiscoveredWindow}, class={expandedVisualProbe.WindowClassName}, owned={expandedVisualProbe.IsRootOrDescendant}.");
+                $"Compact: root={compactVisualProbe.RootWindow}, visible={compactVisualProbe.IsRootVisible}, rect={compactVisualProbe.RootLeft},{compactVisualProbe.RootTop},{compactVisualProbe.RootWidth}x{compactVisualProbe.RootHeight}, " +
+                $"discovered={compactVisualProbe.DiscoveredWindow}, class={compactVisualProbe.WindowClassName}, owned={compactVisualProbe.IsRootOrDescendant}; " +
+                $"Expanded: root={expandedVisualProbe.RootWindow}, visible={expandedVisualProbe.IsRootVisible}, rect={expandedVisualProbe.RootLeft},{expandedVisualProbe.RootTop},{expandedVisualProbe.RootWidth}x{expandedVisualProbe.RootHeight}, " +
+                $"discovered={expandedVisualProbe.DiscoveredWindow}, class={expandedVisualProbe.WindowClassName}, owned={expandedVisualProbe.IsRootOrDescendant}.");
         }
 
         var idleTopEdgePassThrough = _windows.All(window => window.ProbeIdleTopEdgePassThrough());
