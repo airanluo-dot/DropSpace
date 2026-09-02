@@ -536,11 +536,13 @@ public sealed partial class OverlayWindow : Window
     {
         var width = ToPixels(HostWidth);
         var height = ToPixels(HostHeight);
-        AppWindow.MoveAndResize(new RectInt32(
+        // The animated HRGN is expressed in client coordinates. ResizeClient keeps that
+        // coordinate space exact even when Windows reports a presenter-specific outer frame;
+        // Move uses independent screen coordinates for the host's origin.
+        AppWindow.ResizeClient(new SizeInt32(width, height));
+        AppWindow.Move(new PointInt32(
             _resolvedPlacement.HostLeftPixels,
-            _resolvedPlacement.HostTopPixels,
-            width,
-            height));
+            _resolvedPlacement.HostTopPixels));
         var matches = OverlayWindowInterop.TryGetClientSize(_windowHandle, out var actualWidth, out var actualHeight) &&
                       actualWidth == width && actualHeight == height;
         if (!matches)
