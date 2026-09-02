@@ -675,7 +675,7 @@ public sealed partial class OverlayWindow : Window
 
     private bool ApplyMotionFrame(OverlayMotionValues values)
     {
-        values = values.ProjectToSafeRange();
+        values = ProjectMotionToHostSurface(values.ProjectToSafeRange());
         Surface.Width = values.Width;
         Surface.Height = values.Height;
         Surface.CornerRadius = new CornerRadius(
@@ -747,6 +747,35 @@ public sealed partial class OverlayWindow : Window
         }
 
         return true;
+    }
+
+    private OverlayMotionValues ProjectMotionToHostSurface(OverlayMotionValues values)
+    {
+        // Spring overshoot is expected during reversals, but the native HRGN must remain inside
+        // the fixed client surface on every frame. Keep a small physical-pixel safety margin and
+        // project the rendered frame before applying WinUI dimensions or Win32 geometry.
+        var marginDips = 2d / _monitor.Scale;
+        var scale = Math.Min(values.DropTargetScale, 1);
+        var topOffset = Math.Clamp(
+            values.TopOffset,
+            0,
+            Math.Max(0, HostHeight - marginDips));
+        var width = Math.Min(
+            values.Width,
+            Math.Max(OverlayMotionValues.MinimumDimension, (HostWidth - marginDips * 2) / scale));
+        var height = Math.Min(
+            values.Height,
+            Math.Max(
+                OverlayMotionValues.MinimumDimension,
+                2 * (HostHeight - topOffset - marginDips) / (1 + scale)));
+
+        return (values with
+        {
+            Width = width,
+            Height = height,
+            TopOffset = topOffset,
+            DropTargetScale = scale,
+        }).ProjectToSafeRange();
     }
 
     private void PrepareContentForTarget(OverlayMotionValues target)
