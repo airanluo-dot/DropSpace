@@ -109,15 +109,18 @@ public sealed partial class OverlayWindow : Window
             FileDragWakeMode.SmartExperimental,
             new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
         var hostGeometrySafe = PositionFixedHost();
-        _nativeWindowSafeToShow = nativeConfiguration.IsSafeToShow && hostGeometrySafe;
+        // A newly-created WinUI HWND can report its pre-layout client size until the first
+        // show/layout pass. Keep the native configuration result authoritative here and
+        // revalidate the fixed client surface immediately before every visible transition.
+        _nativeWindowSafeToShow = nativeConfiguration.IsSafeToShow;
         if (!hostGeometrySafe)
         {
-            _logger.LogError(
-                "Overlay HWND {WindowHandle} on monitor {MonitorId} will remain hidden because its client surface does not match the fixed host geometry.",
+            _logger.LogWarning(
+                "Overlay HWND {WindowHandle} on monitor {MonitorId} did not report its fixed client geometry during initial construction; it will be revalidated before showing.",
                 _windowHandle,
                 _monitor.Id);
         }
-        if (!_nativeWindowSafeToShow)
+        if (!nativeConfiguration.IsSafeToShow)
         {
             _logger.LogError(
                 "Overlay HWND {WindowHandle} on monitor {MonitorId} will remain hidden because its borderless native configuration was not safe to show.",

@@ -135,17 +135,21 @@ public sealed class OverlayWindowService : IDisposable
 
         _stateMachine.Restore(1);
         await Task.Delay(750, cancellationToken);
-        var compactVisualTargetDiscoverable = ProbeActiveVisualCenter();
+        var compactVisualProbe = ProbeActiveVisualCenter();
         _stateMachine.Expand();
         await Task.Delay(750, cancellationToken);
-        var expandedVisualTargetDiscoverable = ProbeActiveVisualCenter();
+        var expandedVisualProbe = ProbeActiveVisualCenter();
+        var compactVisualTargetDiscoverable = compactVisualProbe.IsRootOrDescendant;
+        var expandedVisualTargetDiscoverable = expandedVisualProbe.IsRootOrDescendant;
         // Activation-host discovery is meaningful only while the visual Overlay is truly hidden.
         _stateMachine.Restore(0);
         await Task.Delay(300, cancellationToken);
         if (!compactVisualTargetDiscoverable || !expandedVisualTargetDiscoverable)
         {
             throw new InvalidOperationException(
-                "WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states.");
+                $"WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states. " +
+                $"Compact: root={compactVisualProbe.RootWindow}, discovered={compactVisualProbe.DiscoveredWindow}, class={compactVisualProbe.WindowClassName}, owned={compactVisualProbe.IsRootOrDescendant}; " +
+                $"Expanded: root={expandedVisualProbe.RootWindow}, discovered={expandedVisualProbe.DiscoveredWindow}, class={expandedVisualProbe.WindowClassName}, owned={expandedVisualProbe.IsRootOrDescendant}.");
         }
 
         var idleTopEdgePassThrough = _windows.All(window => window.ProbeIdleTopEdgePassThrough());
@@ -1158,9 +1162,9 @@ public sealed class OverlayWindowService : IDisposable
         _stateMachine.CompleteDismissal();
     }
 
-    private bool ProbeActiveVisualCenter()
+    private VisibleWindowProbe ProbeActiveVisualCenter()
     {
-        return GetActiveWindow().ProbeVisibleCenter().IsRootOrDescendant;
+        return GetActiveWindow().ProbeVisibleCenter();
     }
 
     private bool VerifyWakeModeSwitchOwnership(FileDragWakeMode originalMode)
