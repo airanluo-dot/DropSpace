@@ -620,6 +620,10 @@ internal static class OverlayWindowInterop
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(nint window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsWindow(nint window);
 
     [DllImport("user32.dll", SetLastError = true)]

@@ -128,7 +128,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
         var target = width.HasValue && height.HasValue
             ? CalculateSize(decoder.PixelWidth, decoder.PixelHeight, width.Value, height.Value, keepAspectRatio)
-            : ((int)decoder.PixelWidth, (int)decoder.PixelHeight);
+            : (Width: (int)decoder.PixelWidth, Height: (int)decoder.PixelHeight);
         if ((long)target.Width * target.Height > MaximumPixels)
         {
             throw new InvalidDataException("The requested image dimensions are not supported.");
@@ -138,7 +138,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
         using var destination = new InMemoryRandomAccessStream();
         using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
         cancellationToken.ThrowIfCancellationRequested();
-        using var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
+        var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
         imageEncoder.SetSoftwareBitmap(bitmap);
         imageEncoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
         imageEncoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);

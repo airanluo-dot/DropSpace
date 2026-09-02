@@ -7,6 +7,7 @@ using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Core.Preview;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
