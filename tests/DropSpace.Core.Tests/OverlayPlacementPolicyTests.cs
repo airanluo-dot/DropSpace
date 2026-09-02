@@ -38,7 +38,7 @@ public sealed class OverlayPlacementPolicyTests
     [TestMethod]
     public void SmartExpandedSurfaceFitsInsideTheFixedHostAtSupportedDpiScales()
     {
-        foreach (var scale in new[] { 1d, 1.25d, 1.5d, 1.75d, 2d })
+        foreach (var scale in new[] { 0.8d, 1d, 1.25d, 1.5d, 1.75d, 2d })
         {
             var top = OverlayPlacementPolicy.GetTopOffsetDips(
                 FileDragWakeMode.SmartExperimental,
@@ -46,9 +46,20 @@ public sealed class OverlayPlacementPolicyTests
             Assert.IsTrue(
                 top + OverlayPlacementPolicy.MaximumSurfaceHeightDips +
                 OverlayPlacementPolicy.HostBottomMarginDips <=
-                OverlayPlacementPolicy.MinimumHostHeightDips,
+                OverlayPlacementPolicy.GetMinimumHostHeightDips(scale),
                 $"Dynamic Island at {scale:P0} exceeded the visual host.");
         }
+    }
+
+    [TestMethod]
+    public void ScaleAwareHostHeightRetainsTheLegacyOneToOneValue()
+    {
+        Assert.AreEqual(
+            OverlayPlacementPolicy.MinimumHostHeightDips,
+            OverlayPlacementPolicy.GetMinimumHostHeightDips(1),
+            0.001);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            OverlayPlacementPolicy.GetMinimumHostHeightDips(0));
     }
 
     [TestMethod]

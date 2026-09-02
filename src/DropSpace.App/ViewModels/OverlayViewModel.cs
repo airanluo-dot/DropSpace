@@ -268,6 +268,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         CancellationToken cancellationToken = default) =>
         _mainViewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId, cancellationToken);
 
+    public Task<ItemActionResult> ExecuteQuickActionAsync(
+        QuickActionButtonViewModel quickAction,
+        ItemActionContext context,
+        CancellationToken cancellationToken = default) =>
+        _mainViewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId, context, cancellationToken);
+
     public async Task ShowShellIntakeAcknowledgementAsync(
         int acceptedCount,
         CancellationToken cancellationToken = default)

@@ -1,9 +1,10 @@
 using System.Security.Cryptography;
 using DropSpace.Core.Actions;
+using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Actions;
 
-public sealed class HashActionService : IItemAction
+public sealed class HashActionService(AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.HashSha256, "ActionHashSha256.Text", "Hash", ItemActionGroup.General, 40, true, false);
 
@@ -23,21 +24,52 @@ public sealed class HashActionService : IItemAction
         var path = item.OriginalPath!;
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         var hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
-        var outputDirectory = context.DestinationDirectory ?? Path.GetDirectoryName(path) ?? Environment.CurrentDirectory;
+        var outputDirectory = ActionOutputPolicy.ResolveDirectory(paths, context.DestinationDirectory);
         Directory.CreateDirectory(outputDirectory);
-        var outputPath = CreateUniquePath(outputDirectory, string.Concat(Path.GetFileName(path), ".sha256.txt"));
-        await File.WriteAllTextAsync(outputPath, string.Concat(Convert.ToHexString(hash).ToLowerInvariant(), "  ", Path.GetFileName(path), Environment.NewLine), cancellationToken).ConfigureAwait(false);
+        var outputPath = string.Empty;
+        try
+        {
+            await using var output = ActionOutputPolicy.CreateNewFile(
+                outputDirectory,
+                string.Concat(Path.GetFileName(path), ".sha256"),
+                ".txt",
+                out outputPath);
+            var contents = string.Concat(
+                Convert.ToHexString(hash).ToLowerInvariant(),
+                "  ",
+                Path.GetFileName(path),
+                Environment.NewLine);
+            await using var writer = new StreamWriter(output, new System.Text.UTF8Encoding(false), 1_024, leaveOpen: true);
+            await writer.WriteAsync(contents.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(outputPath))
+            {
+                TryDelete(outputPath);
+            }
+
+            throw;
+        }
+
         return ItemActionResult.Success([outputPath], messageResourceKey: "ActionCompleted");
     }
 
-    private static string CreateUniquePath(string directory, string fileName)
+    private static void TryDelete(string path)
     {
-        var candidate = Path.Combine(directory, fileName);
-        for (var index = 1; File.Exists(candidate); index++)
+        try
         {
-            candidate = Path.Combine(directory, string.Concat(Path.GetFileNameWithoutExtension(fileName), " (", index, ")", Path.GetExtension(fileName)));
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
-
-        return candidate;
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 }

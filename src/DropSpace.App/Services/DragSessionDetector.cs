@@ -22,7 +22,8 @@ public sealed record DragSessionCandidate(
 /// <summary>
 /// Event-driven, non-injecting observer for source-agnostic candidate file drags. It never blocks
 /// input and never reads dragged content. Explorer/Desktop item evidence and documented drag-start
-/// events take the fast path; generic threshold candidates require bounded OLE verification.
+/// events provide candidate intent; every Smart candidate requires bounded OLE verification before
+/// the application reveals its visual target.
 /// </summary>
 public sealed class DragSessionDetector : IDisposable
 {
@@ -110,6 +111,8 @@ public sealed class DragSessionDetector : IDisposable
     }
 
     public event EventHandler<DragSessionCandidate>? CandidateStarted;
+
+    public event EventHandler<DragSessionCandidate>? VerifiedFileDragStarted;
 
     public event EventHandler<long>? CandidateEnded;
 
@@ -747,11 +750,23 @@ public sealed class DragSessionDetector : IDisposable
         if (transition.Kind == DragSessionTransitionKind.Verified)
         {
             Interlocked.Increment(ref _verifiedCandidateCount);
+            var monitor = _monitorLayout.GetMonitorAtPoint(transition.Point.X, transition.Point.Y);
             _logger.LogInformation(
-                "Smart drag candidate session {SessionId} was verified: evidenceLevel={EvidenceLevel}, evidence={Evidence}.",
+                "Smart drag candidate session {SessionId} was verified for visual ownership on monitor {MonitorId}: evidenceLevel={EvidenceLevel}, evidence={Evidence}.",
                 transition.SessionId,
+                monitor.Id,
                 transition.EvidenceLevel,
                 transition.Evidence);
+            VerifiedFileDragStarted?.Invoke(this, new DragSessionCandidate(
+                transition.SessionId,
+                monitor.Id,
+                transition.Point,
+                transition.Source,
+                transition.EvidenceLevel,
+                transition.Evidence,
+                false,
+                transition.DragIntentConfidence,
+                transition.PayloadConfidence));
             return;
         }
 

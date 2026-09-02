@@ -160,6 +160,10 @@ The first shippable MVP is deliberately smaller than the original list.
 
 Preview.9 makes intake and item recovery safer without changing the local-first product boundary. Installer-only per-user Explorer and SendTo entries are direct executable integrations, while Portable stays registration-free. Quick Actions are capability-driven projections of the existing action registry, with four content profiles and three primary slots. Undo is a single short-lived inverse operation: it restores DropSpace metadata/state or pin state, and it never restores or changes an external source file.
 
+## v0.3.0-preview.10 product boundary
+
+Preview.10 makes Smart Drag fail closed until positive file-like OLE evidence is verified, hardens the Dynamic Island's native borderless HWND path across the Windows 10/11 baseline, and completes the source-safe Quick Action export flow. Image resize/convert/metadata actions use explicit parameters, dedicated user-writable exports, collision-safe output names, and actionable localized errors. No action mutates or replaces an external source file, and no Smart candidate becomes visible from pointer, accessibility, Explorer-surface, or drag-threshold evidence alone.
+
 ## v0.3.0-preview.7 3.0 boundary
 
 The 3.0 Preview keeps local-first storage while adding explicit Windows-to-Windows handoff and sharing. Quick Preview is bounded and uses native PDF/media surfaces only after explicit user action; Quick Actions never mutate source files; DropLink pairing uses bilateral ECDH/SAS/certificate confirmation and certificate pinning; text/URL handoff is separate from Clipboard History; cross-device clipboard is opt-in, pause-aware, and loop-guarded; Nearby links are private-LAN and expiring; Internet Share is client-encrypted, revocable, and unavailable without an explicitly configured HTTPS Worker. These features do not change the non-scope for native Apple/Android/Linux clients, cloud accounts, WebRTC, or automatic public sharing.

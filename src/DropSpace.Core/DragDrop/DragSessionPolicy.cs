@@ -52,8 +52,9 @@ public readonly record struct DragSessionTransition(
 /// Pure, testable gate for candidate file-drag sessions. This policy never reads files and never
 /// accepts a drop; it only combines trusted source classification, the configured Windows drag
 /// threshold and optional accessibility drag events into one deduplicated candidate session.
-/// Unknown sources may form a speculative candidate, but they require a bounded OLE verification
-/// probe before the session becomes a verified file drag. The policy never reads user data.
+/// Unknown sources may form a speculative candidate, but every Smart candidate requires a bounded
+/// OLE verification probe before the session becomes a verified file drag. The policy never reads
+/// user data and never treats a candidate as permission to reveal a visual target.
 /// </summary>
 public sealed class DragSessionPolicy
 {
@@ -151,7 +152,7 @@ public sealed class DragSessionPolicy
         return Start(
             point,
             trustedFileCandidate ? DragEvidenceLevel.Strong : DragEvidenceLevel.GenericCandidate,
-            requiresOleVerification: !trustedFileCandidate);
+            requiresOleVerification: true);
     }
 
     public DragSessionTransition AccessibilityDragStarted(
@@ -165,10 +166,10 @@ public sealed class DragSessionPolicy
             _evidenceLevel = DragEvidenceLevel.Strong;
             // Accessibility confirms drag intent only. Unknown payloads must continue through the
             // bounded OLE probe before DropSpace activates the accepting target.
-            if (_payloadConfidence == PayloadConfidence.Unknown)
+            if (_payloadConfidence == PayloadConfidence.Unknown && _state == DragSessionState.ProbePending)
             {
                 _requiresOleVerification = true;
-                _state = DragSessionState.SpeculativeReveal;
+                _state = DragSessionState.ProbePending;
             }
 
             return DragSessionTransition.None;
@@ -182,7 +183,9 @@ public sealed class DragSessionPolicy
         _intentConfidence = DragIntentConfidence.AccessibilityConfirmed;
         var fileLike = IsSupportedFileSource(_source) && _exactFileItem;
         _payloadConfidence = fileLike ? PayloadConfidence.FileLike : PayloadConfidence.Unknown;
-        return Start(point, DragEvidenceLevel.Strong, requiresOleVerification: !fileLike);
+        // Accessibility proves drag intent only. Even an exact Explorer/Desktop item must pass
+        // the same positive OLE file-format gate before Smart mode can reveal its visual target.
+        return Start(point, DragEvidenceLevel.Strong, requiresOleVerification: true);
     }
 
     public DragSessionTransition PointerReleased(DragScreenPoint point)
@@ -211,7 +214,8 @@ public sealed class DragSessionPolicy
 
     public DragSessionTransition ProbeVerified(long sessionId, DragScreenPoint point)
     {
-        if (!_active || _activeSessionId != sessionId)
+        if (!_active || _activeSessionId != sessionId || !_requiresOleVerification ||
+            _state != DragSessionState.ProbePending)
         {
             return DragSessionTransition.None;
         }
@@ -265,7 +269,7 @@ public sealed class DragSessionPolicy
         _evidenceLevel = evidenceLevel;
         _requiresOleVerification = requiresOleVerification;
         _state = requiresOleVerification
-            ? DragSessionState.SpeculativeReveal
+            ? DragSessionState.ProbePending
             : DragSessionState.VisibleTargetActive;
         return CreateTransition(DragSessionTransitionKind.Started, point);
     }

@@ -328,3 +328,25 @@ Preview providers, item actions, bilateral DropLink pairing/transfer, explicit t
 `QuickActionPreferencePolicy` separates the content-profile decision from the action registry. Automatic takes the registry's available order; Custom projects only configured available IDs into the three primary slots, skips unavailable IDs without replacement, and computes More from the remaining available capabilities. The Main page and Dynamic Island use the same projection.
 
 Schema 3 adds nullable pending-delete token/expiry columns and an index to `items`. `UndoCoordinator` owns one eight-second operation, while `SqliteItemRepository` atomically marks pending rows, hides them from ordinary queries, restores them by token, or finalizes them. Finalization returns only DropSpace-owned payload paths that were actually unreferenced; the App payload store performs confined physical cleanup. Startup recovers expired transactions and graceful shutdown finalizes the active one.
+
+## v0.3.0-preview.10 architecture additions
+
+Smart Drag now has an explicit invisible candidate phase. Pointer thresholds,
+source attribution, and accessibility drag-start signals can create a bounded
+candidate, but only the shared query-only OLE classifier can promote it to
+visual ownership. Late, duplicate, rejected, and post-release probe callbacks
+are ignored by the Core session policy, so the Dynamic Island cannot reopen from
+an old session.
+
+The Dynamic Island's AppWindow presenter is followed by a narrow native HWND
+adapter that forces popup/no-caption/non-client-free styles, disables non-client
+DWM rendering, checks every critical Win32/HRESULT result, and validates the
+physical client surface before applying each HRGN. A critical failure leaves
+the window hidden and records only numeric/native diagnostics.
+
+Quick Action exports share one user-writable output policy. It resolves omitted
+destinations to the DropSpace-owned exports directory, reserves names with
+`FileMode.CreateNew`, and maps action exceptions to localized categories. Image
+resize, conversion, and metadata stripping share one bounded Windows Imaging
+Component transform path and require explicit parameters at the UI/action
+boundary; outputs are always new files.

@@ -46,7 +46,23 @@ public sealed class DragSessionPolicyTests
 
         Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
         Assert.AreEqual(source, transition.Source);
+        Assert.AreEqual(DragSessionState.ProbePending, transition.State);
+        Assert.IsTrue(transition.RequiresOleVerification);
         Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void ExactExplorerItemStillWaitsForPositiveOleEvidence()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.ExplorerFileView);
+
+        var candidate = policy.PointerMoved(new(120, 100));
+
+        Assert.AreEqual(DragEvidenceLevel.Strong, candidate.EvidenceLevel);
+        Assert.AreEqual(PayloadConfidence.FileLike, candidate.PayloadConfidence);
+        Assert.AreEqual(DragSessionState.ProbePending, candidate.State);
+        Assert.IsTrue(candidate.RequiresOleVerification);
     }
 
     [TestMethod]
@@ -93,7 +109,7 @@ public sealed class DragSessionPolicyTests
     }
 
     [TestMethod]
-    public void AccessibilityDragStartRevealsUnknownProviderButStillRequiresPayloadProof()
+    public void AccessibilityDragStartIdentifiesUnknownProviderButStillRequiresPayloadProof()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
@@ -104,8 +120,22 @@ public sealed class DragSessionPolicyTests
         Assert.AreEqual(DragEvidenceLevel.Strong, transition.EvidenceLevel);
         Assert.AreEqual(DragIntentConfidence.AccessibilityConfirmed, transition.DragIntentConfidence);
         Assert.AreEqual(PayloadConfidence.Unknown, transition.PayloadConfidence);
+        Assert.AreEqual(DragSessionState.ProbePending, transition.State);
         Assert.IsTrue(transition.RequiresOleVerification);
         Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void AccessibilityOnlyCandidateCanBeVerifiedWithoutObservedPointerDown()
+    {
+        var policy = Create();
+        var started = policy.AccessibilityDragStarted(new(120, 120), DragSourceKind.Unknown);
+
+        var verified = policy.ProbeVerified(started.SessionId, new(125, 125));
+
+        Assert.AreEqual(DragSessionTransitionKind.Verified, verified.Kind);
+        Assert.AreEqual(DragSessionState.VerifiedFileDrag, policy.ActiveState);
+        Assert.AreEqual(PayloadConfidence.FileVerified, verified.PayloadConfidence);
     }
 
     [TestMethod]
@@ -137,11 +167,13 @@ public sealed class DragSessionPolicyTests
 
         Assert.AreEqual(DragSessionTransitionKind.Started, transition.Kind);
         Assert.AreEqual(DragSourceKind.ExplorerFileView, transition.Source);
+        Assert.AreEqual(DragSessionState.ProbePending, transition.State);
+        Assert.IsTrue(transition.RequiresOleVerification);
         Assert.IsTrue(policy.IsActive);
     }
 
     [TestMethod]
-    public void ProbeVerifiedFileCommitsSpeculativeSessionWithoutRestartingIt()
+    public void ProbeVerifiedFileCommitsCandidateWithoutRestartingIt()
     {
         var policy = Create();
         policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
@@ -154,6 +186,36 @@ public sealed class DragSessionPolicyTests
         Assert.AreEqual(DragEvidenceLevel.VerifiedFile, transition.EvidenceLevel);
         Assert.IsFalse(transition.RequiresOleVerification);
         Assert.IsTrue(policy.IsActive);
+    }
+
+    [TestMethod]
+    public void ProbeVerificationAfterReleaseCannotRevealOrPromoteSession()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var candidate = policy.PointerMoved(new(140, 120));
+        _ = policy.PointerReleased(new(145, 125));
+
+        var lateVerification = policy.ProbeVerified(candidate.SessionId, new(145, 125));
+
+        Assert.AreEqual(DragSessionTransitionKind.None, lateVerification.Kind);
+        Assert.AreEqual(DragSessionState.AwaitingOleCompletion, policy.ActiveState);
+        Assert.IsTrue(policy.RequiresOleVerification);
+    }
+
+    [TestMethod]
+    public void DuplicateProbeVerificationCannotReopenOrReemitVisualOwnership()
+    {
+        var policy = Create();
+        policy.PointerPressed(new(100, 100), DragPointerButton.Left, DragSourceKind.Unknown);
+        var candidate = policy.PointerMoved(new(140, 120));
+
+        var first = policy.ProbeVerified(candidate.SessionId, new(145, 125));
+        var duplicate = policy.ProbeVerified(candidate.SessionId, new(146, 126));
+
+        Assert.AreEqual(DragSessionTransitionKind.Verified, first.Kind);
+        Assert.AreEqual(DragSessionTransitionKind.None, duplicate.Kind);
+        Assert.AreEqual(DragSessionState.VerifiedFileDrag, policy.ActiveState);
     }
 
     [TestMethod]

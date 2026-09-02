@@ -4,6 +4,9 @@
 
 Test pure policies heavily, OS adapters with integration harnesses, and a small number of critical end-to-end flows. Manual compatibility testing remains necessary for cross-process drag, tray, display/DPI, and clipboard behavior.
 
+The release-specific P0 recovery matrix for `v0.3.0-preview.10` is in the
+[Preview.10 recovery test plan](docs/test-plan/v0.3.0-preview.10.md).
+
 ## Quality gates
 
 - Build succeeds; every warning is reviewed, fixed, or documented.
@@ -41,7 +44,7 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 - Settings validation/revert on failure.
 - Overlay state transitions for empty/drag/compact/expanded/dismiss/mode-transition paths, including interruption and count preservation.
 - One hundred Reveal/Hide and Compact/Expanded cycles return to stable Hidden state without retained scheduler state.
-- Smart drag policy: click, stationary press, below-threshold movement, unknown threshold → generic candidate, Explorer/Desktop exact item → strong candidate, recognized blank Shell surface → generic candidate, unknown accessibility drag-start → strong candidate, probe verify/reject/timeout, strong-signal promotion while a probe is pending, release/Escape/completion, stale-session timeout/reject, duplicate WinEvent/mouse signals, and 1,000 sequential sessions.
+- Smart drag policy: click, stationary press, below-threshold movement, unknown threshold → invisible generic candidate, Explorer/Desktop exact item → invisible strong candidate, recognized blank Shell surface → invisible generic candidate, unknown accessibility drag-start → invisible strong candidate, positive file-like OLE verification before visual ownership, reject/timeout, release/Escape/completion, stale-session timeout/reject, duplicate WinEvent/mouse signals, and 1,000 sequential sessions.
 - Smart accessibility adapter: `SetWinEventHook` registers the documented object-drag and system drag/drop ranges before the observer message pump is declared ready; callbacks remain bounded; deprecated root-wide `UiaAddEvent` registration cannot block startup; COM initialization occurs on the actual classifier thread; UIA/MSAA nested item leaves can resolve through bounded inspection; and all returned COM objects have bounded lifetime.
 - Overlay placement policy: one Smart physical offset at 100%, 125%, 150%, 175%, and 200% DPI; Dynamic Island top gap; Classic/Disabled top-edge anchors; offset 340-DIP Expanded geometry remains inside the fixed host.
 - Reliable/lossy signal lanes: a reliable burst is fully readable, a one-slot move lane keeps the newest position, and a completed critical lane reports a write failure instead of blocking.

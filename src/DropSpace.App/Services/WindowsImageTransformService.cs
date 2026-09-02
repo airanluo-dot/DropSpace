@@ -1,6 +1,7 @@
 using DropSpace.Core.Actions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
+using DropSpace.Infrastructure.Actions;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -9,7 +10,11 @@ namespace DropSpace.App.Services;
 
 public sealed class WindowsImageTransformService : IImageTransformService
 {
-    public async Task<ItemActionResult> ResizeAsync(
+    private const int MaximumDimension = 16_384;
+    private const long MaximumPixels = 64L * 1024 * 1024;
+    private const int MaximumEncodedBytes = 256 * 1024 * 1024;
+
+    public Task<ItemActionResult> ResizeAsync(
         DropItemSnapshot item,
         string destinationDirectory,
         int width,
@@ -20,180 +25,373 @@ public sealed class WindowsImageTransformService : IImageTransformService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        if (string.IsNullOrWhiteSpace(item.OriginalPath) || item.Kind != ItemKind.Image || width is < 1 or > 16_384 || height is < 1 or > 16_384)
+        var validation = ValidateImage(item, destinationDirectory, width, height, outputFormat, requireFormat: false);
+        if (validation is not null)
         {
-            return ItemActionResult.Failure("image-transform-unavailable", "ActionUnavailable");
+            return Task.FromResult(validation);
         }
 
-        if (string.IsNullOrWhiteSpace(destinationDirectory)) return ItemActionResult.Failure("image-transform-unavailable", "ActionUnavailable");
-        Directory.CreateDirectory(destinationDirectory);
-        cancellationToken.ThrowIfCancellationRequested();
-        var source = await StorageFile.GetFileFromPathAsync(item.OriginalPath);
-        cancellationToken.ThrowIfCancellationRequested();
-        using var input = await source.OpenReadAsync();
-        var decoder = await BitmapDecoder.CreateAsync(input);
-        var target = CalculateSize(decoder.PixelWidth, decoder.PixelHeight, width, height, keepAspectRatio);
-        var encoderId = outputFormat?.ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" or "jpg" or "jpeg" => BitmapEncoder.JpegEncoderId,
-            ".bmp" or "bmp" => BitmapEncoder.BmpEncoderId,
-            _ => BitmapEncoder.PngEncoderId,
-        };
-        var extension = encoderId == BitmapEncoder.JpegEncoderId ? ".jpg" : encoderId == BitmapEncoder.BmpEncoderId ? ".bmp" : ".png";
-        var output = CreateUniquePath(destinationDirectory, Path.GetFileNameWithoutExtension(item.Title), extension);
-        using var destination = new InMemoryRandomAccessStream();
-        using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-        var encoder = await BitmapEncoder.CreateAsync(encoderId, destination);
-        encoder.SetSoftwareBitmap(bitmap);
-        encoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
-        encoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);
-        encoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
-        // Re-encoding through a SoftwareBitmap intentionally omits arbitrary source metadata.
+        // A new SoftwareBitmap is encoded, so source metadata is not copied. Keep the flag in
+        // the interface for callers that explicitly request the privacy-preserving path.
         _ = stripMetadata;
-        await encoder.FlushAsync();
-
-        destination.Seek(0);
-        using var reader = new DataReader(destination.GetInputStreamAt(0));
-        var bytes = new byte[checked((int)destination.Size)];
-        await reader.LoadAsync((uint)bytes.Length);
-        reader.ReadBytes(bytes);
-        await File.WriteAllBytesAsync(output, bytes, cancellationToken).ConfigureAwait(false);
-        return ItemActionResult.Success([output], messageResourceKey: "ActionCompleted");
+        return TransformAsync(
+            item,
+            destinationDirectory,
+            outputFormat,
+            width,
+            height,
+            keepAspectRatio,
+            "resized",
+            cancellationToken);
     }
 
-    public async Task<ItemActionResult> StripMetadataAsync(
+    public Task<ItemActionResult> ConvertAsync(
+        DropItemSnapshot item,
+        string destinationDirectory,
+        string outputFormat,
+        int? width = null,
+        int? height = null,
+        bool keepAspectRatio = true,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        var validation = ValidateImage(
+            item,
+            destinationDirectory,
+            width,
+            height,
+            outputFormat,
+            requireFormat: true);
+        if (validation is not null)
+        {
+            return Task.FromResult(validation);
+        }
+
+        return TransformAsync(
+            item,
+            destinationDirectory,
+            outputFormat,
+            width,
+            height,
+            keepAspectRatio,
+            "converted",
+            cancellationToken);
+    }
+
+    public Task<ItemActionResult> StripMetadataAsync(
         DropItemSnapshot item,
         string destinationDirectory,
         string? outputFormat = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        if (string.IsNullOrWhiteSpace(item.OriginalPath) || item.Kind != ItemKind.Image)
+        var validation = ValidateImage(item, destinationDirectory, null, null, outputFormat, requireFormat: false);
+        if (validation is not null)
         {
-            return ItemActionResult.Failure("image-transform-unavailable", "ActionUnavailable");
+            return Task.FromResult(validation);
         }
 
-        Directory.CreateDirectory(destinationDirectory);
-        cancellationToken.ThrowIfCancellationRequested();
-        var source = await StorageFile.GetFileFromPathAsync(item.OriginalPath);
-        using var input = await source.OpenReadAsync();
-        var decoder = await BitmapDecoder.CreateAsync(input);
-        var width = checked((int)decoder.PixelWidth);
-        var height = checked((int)decoder.PixelHeight);
-        return await WriteTransformedAsync(item, destinationDirectory, width, height, outputFormat, decoder, cancellationToken).ConfigureAwait(false);
+        return TransformAsync(
+            item,
+            destinationDirectory,
+            outputFormat,
+            width: null,
+            height: null,
+            keepAspectRatio: true,
+            outputSuffix: "clean",
+            cancellationToken: cancellationToken);
     }
 
-    private static async Task<ItemActionResult> WriteTransformedAsync(
+    private static async Task<ItemActionResult> TransformAsync(
         DropItemSnapshot item,
         string destinationDirectory,
-        int width,
-        int height,
         string? outputFormat,
-        BitmapDecoder decoder,
+        int? width,
+        int? height,
+        bool keepAspectRatio,
+        string outputSuffix,
         CancellationToken cancellationToken)
     {
-        var encoderId = outputFormat?.ToLowerInvariant() switch
+        Directory.CreateDirectory(destinationDirectory);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var source = await StorageFile.GetFileFromPathAsync(item.OriginalPath!);
+        cancellationToken.ThrowIfCancellationRequested();
+        using var input = await source.OpenReadAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+        var decoder = await BitmapDecoder.CreateAsync(input);
+        if (decoder.PixelWidth is 0 or > MaximumDimension || decoder.PixelHeight is 0 or > MaximumDimension ||
+            (long)decoder.PixelWidth * decoder.PixelHeight > MaximumPixels)
         {
-            ".jpg" or ".jpeg" or "jpg" or "jpeg" => BitmapEncoder.JpegEncoderId,
-            ".bmp" or "bmp" => BitmapEncoder.BmpEncoderId,
-            _ => BitmapEncoder.PngEncoderId,
-        };
-        var extension = encoderId == BitmapEncoder.JpegEncoderId ? ".jpg" : encoderId == BitmapEncoder.BmpEncoderId ? ".bmp" : ".png";
-        var output = CreateUniquePath(destinationDirectory, string.Concat(Path.GetFileNameWithoutExtension(item.Title), "-clean"), extension);
+            throw new InvalidDataException("The source image dimensions are not supported.");
+        }
+
+        var target = width.HasValue && height.HasValue
+            ? CalculateSize(decoder.PixelWidth, decoder.PixelHeight, width.Value, height.Value, keepAspectRatio)
+            : (Width: (int)decoder.PixelWidth, Height: (int)decoder.PixelHeight);
+        if ((long)target.Width * target.Height > MaximumPixels)
+        {
+            throw new InvalidDataException("The requested image dimensions are not supported.");
+        }
+        var encoder = ResolveEncoder(outputFormat, item.Extension, item.MimeType);
+
         using var destination = new InMemoryRandomAccessStream();
         using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-        var encoder = await BitmapEncoder.CreateAsync(encoderId, destination);
-        encoder.SetSoftwareBitmap(bitmap);
-        encoder.BitmapTransform.ScaledWidth = checked((uint)width);
-        encoder.BitmapTransform.ScaledHeight = checked((uint)height);
-        await encoder.FlushAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+        var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
+        imageEncoder.SetSoftwareBitmap(bitmap);
+        imageEncoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
+        imageEncoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);
+        imageEncoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
+        // Re-encoding through a SoftwareBitmap intentionally omits arbitrary source metadata.
+        await imageEncoder.FlushAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (destination.Size is 0 or > MaximumEncodedBytes)
+        {
+            throw new InvalidDataException("The encoded image is too large to export safely.");
+        }
 
         destination.Seek(0);
         using var reader = new DataReader(destination.GetInputStreamAt(0));
         var bytes = new byte[checked((int)destination.Size)];
         await reader.LoadAsync((uint)bytes.Length);
+        cancellationToken.ThrowIfCancellationRequested();
         reader.ReadBytes(bytes);
-        await File.WriteAllBytesAsync(output, bytes, cancellationToken).ConfigureAwait(false);
-        return ItemActionResult.Success([output], messageResourceKey: "ActionCompleted");
+
+        string? outputPath = null;
+        try
+        {
+            await using var output = ActionOutputPolicy.CreateNewFile(
+                destinationDirectory,
+                string.Concat(Path.GetFileNameWithoutExtension(item.Title), "-", outputSuffix),
+                encoder.Extension,
+                out outputPath);
+            await output.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            return ItemActionResult.Success([outputPath!], messageResourceKey: "ActionCompleted");
+        }
+        catch
+        {
+            if (outputPath is not null)
+            {
+                TryDelete(outputPath);
+            }
+
+            throw;
+        }
     }
 
-    private static (int Width, int Height) CalculateSize(uint sourceWidth, uint sourceHeight, int width, int height, bool keepAspectRatio)
+    private static ItemActionResult? ValidateImage(
+        DropItemSnapshot item,
+        string destinationDirectory,
+        int? width,
+        int? height,
+        string? outputFormat,
+        bool requireFormat)
     {
-        if (!keepAspectRatio) return (width, height);
+        if (string.IsNullOrWhiteSpace(item.OriginalPath) ||
+            item.Kind != ItemKind.Image ||
+            item.Status != ItemStatus.Available)
+        {
+            return ItemActionResult.Failure("image-source-unavailable", "ActionSourceUnavailable");
+        }
+
+        if (string.IsNullOrWhiteSpace(destinationDirectory))
+        {
+            return ItemActionResult.Failure("output-directory-unavailable", "ActionOutputUnavailable");
+        }
+
+        if (width.HasValue != height.HasValue ||
+            (width.HasValue && (width.Value is < 1 or > MaximumDimension || height!.Value is < 1 or > MaximumDimension)))
+        {
+            return ItemActionResult.Failure("invalid-image-parameters", "ActionParametersRequired");
+        }
+
+        if (requireFormat && string.IsNullOrWhiteSpace(outputFormat))
+        {
+            return ItemActionResult.Failure("image-format-required", "ActionParametersRequired");
+        }
+
+        if (!string.IsNullOrWhiteSpace(outputFormat) && !IsSupportedFormat(outputFormat))
+        {
+            return ItemActionResult.Failure("unsupported-image-format", "ActionParametersRequired");
+        }
+
+        return null;
+    }
+
+    private static bool IsSupportedFormat(string format) => format.Trim().ToLowerInvariant() switch
+    {
+        ".png" or "png" or
+        ".jpg" or ".jpeg" or "jpg" or "jpeg" or
+        ".bmp" or "bmp" => true,
+        _ => false,
+    };
+
+    private static (Guid EncoderId, string Extension) ResolveEncoder(
+        string? requestedFormat,
+        string? sourceExtension,
+        string? mimeType)
+    {
+        var format = string.IsNullOrWhiteSpace(requestedFormat)
+            ? sourceExtension ?? mimeType
+            : requestedFormat;
+        return format?.Trim().ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" or "jpg" or "jpeg" or "image/jpeg" =>
+                (BitmapEncoder.JpegEncoderId, ".jpg"),
+            ".bmp" or "bmp" or "image/bmp" =>
+                (BitmapEncoder.BmpEncoderId, ".bmp"),
+            ".png" or "png" or "image/png" =>
+                (BitmapEncoder.PngEncoderId, ".png"),
+            _ when !string.IsNullOrWhiteSpace(requestedFormat) =>
+                throw new InvalidDataException("The requested image format is not supported."),
+            _ => (BitmapEncoder.PngEncoderId, ".png"),
+        };
+    }
+
+    private static (int Width, int Height) CalculateSize(
+        uint sourceWidth,
+        uint sourceHeight,
+        int width,
+        int height,
+        bool keepAspectRatio)
+    {
+        if (!keepAspectRatio)
+        {
+            return (width, height);
+        }
+
         var scale = Math.Min(width / (double)sourceWidth, height / (double)sourceHeight);
-        return (Math.Max(1, (int)Math.Round(sourceWidth * scale)), Math.Max(1, (int)Math.Round(sourceHeight * scale)));
+        return (
+            Math.Clamp((int)Math.Round(sourceWidth * scale), 1, MaximumDimension),
+            Math.Clamp((int)Math.Round(sourceHeight * scale), 1, MaximumDimension));
     }
 
-    private static string CreateUniquePath(string directory, string stem, string extension)
+    private static void TryDelete(string path)
     {
-        var safeStem = string.Concat((string.IsNullOrWhiteSpace(stem) ? "DropSpace image" : stem).Where(character => !Path.GetInvalidFileNameChars().Contains(character)));
-        var candidate = Path.Combine(directory, string.Concat(safeStem, extension));
-        for (var index = 1; File.Exists(candidate); index++) candidate = Path.Combine(directory, string.Concat(safeStem, " (", index, ")", extension));
-        return candidate;
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 }
 
-public sealed class ImageTransformActionService(IImageTransformService transforms) : IItemAction
+public sealed class ImageTransformActionService(
+    IImageTransformService transforms,
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ResizeImage, "ActionResizeImageMenuItem.Text", "ResizeImage", ItemActionGroup.Transform, 20, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle && selection.Single.Kind == ItemKind.Image && selection.Single.OriginalPath is not null;
+        var available = selection.IsSingle &&
+            selection.Single.Kind == ItemKind.Image &&
+            selection.Single.Status == ItemStatus.Available &&
+            selection.Single.OriginalPath is not null;
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)
     {
         var capability = Evaluate(context.Selection);
-        if (!capability.IsAvailable) return Task.FromResult(ItemActionResult.Failure("not-available", "ActionUnavailable"));
-        var item = context.Selection.Single;
-        var width = context.Width ?? 1024;
-        var height = context.Height ?? 1024;
-        var directory = context.DestinationDirectory ?? Path.GetDirectoryName(item.OriginalPath!) ?? Environment.CurrentDirectory;
-        return transforms.ResizeAsync(item, directory, width, height, context.KeepAspectRatio, context.OutputFormat, stripMetadata: true, cancellationToken: cancellationToken);
+        if (!capability.IsAvailable)
+        {
+            return Task.FromResult(ItemActionResult.Failure("not-available", "ActionUnavailable"));
+        }
+
+        if (context.Width is null || context.Height is null)
+        {
+            return Task.FromResult(ItemActionResult.Failure("image-size-required", "ActionParametersRequired"));
+        }
+
+        var directory = ActionOutputPolicy.ResolveDirectory(paths, context.DestinationDirectory);
+        return transforms.ResizeAsync(
+            context.Selection.Single,
+            directory,
+            context.Width.Value,
+            context.Height.Value,
+            context.KeepAspectRatio,
+            context.OutputFormat,
+            stripMetadata: true,
+            cancellationToken: cancellationToken);
     }
 }
 
-public sealed class ConvertImageActionService(IImageTransformService transforms) : IItemAction
+public sealed class ConvertImageActionService(
+    IImageTransformService transforms,
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ConvertImage, "ActionConvertImage.Text", "Photo2", ItemActionGroup.Transform, 21, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle && selection.Single.Kind == ItemKind.Image &&
-            selection.Single.Status == ItemStatus.Available && selection.Single.OriginalPath is not null;
+        var available = selection.IsSingle &&
+            selection.Single.Kind == ItemKind.Image &&
+            selection.Single.Status == ItemStatus.Available &&
+            selection.Single.OriginalPath is not null;
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)
     {
         var capability = Evaluate(context.Selection);
-        if (!capability.IsAvailable) return Task.FromResult(ItemActionResult.Failure("not-available", "ActionUnavailable"));
-        var item = context.Selection.Single;
-        var directory = context.DestinationDirectory ?? Path.GetDirectoryName(item.OriginalPath!) ?? Environment.CurrentDirectory;
-        return transforms.ResizeAsync(item, directory, context.Width ?? 1024, context.Height ?? 1024, context.KeepAspectRatio,
-            context.OutputFormat ?? ".jpg", stripMetadata: false, cancellationToken: cancellationToken);
+        if (!capability.IsAvailable)
+        {
+            return Task.FromResult(ItemActionResult.Failure("not-available", "ActionUnavailable"));
+        }
+
+        if (string.IsNullOrWhiteSpace(context.OutputFormat) || context.Width.HasValue != context.Height.HasValue)
+        {
+            return Task.FromResult(ItemActionResult.Failure("image-conversion-parameters-required", "ActionParametersRequired"));
+        }
+
+        var directory = ActionOutputPolicy.ResolveDirectory(paths, context.DestinationDirectory);
+        return transforms.ConvertAsync(
+            context.Selection.Single,
+            directory,
+            context.OutputFormat,
+            context.Width,
+            context.Height,
+            context.KeepAspectRatio,
+            cancellationToken);
     }
 }
 
-public sealed class StripMetadataActionService(IImageTransformService transforms) : IItemAction
+public sealed class StripMetadataActionService(
+    IImageTransformService transforms,
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.StripMetadata, "ActionStripMetadata.Text", "ProtectiveCover", ItemActionGroup.Transform, 22, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle && selection.Single.Kind == ItemKind.Image &&
-            selection.Single.Status == ItemStatus.Available && selection.Single.OriginalPath is not null;
+        var available = selection.IsSingle &&
+            selection.Single.Kind == ItemKind.Image &&
+            selection.Single.Status == ItemStatus.Available &&
+            selection.Single.OriginalPath is not null;
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)
     {
         var capability = Evaluate(context.Selection);
-        if (!capability.IsAvailable) return Task.FromResult(ItemActionResult.Failure("not-available", "ActionUnavailable"));
-        var item = context.Selection.Single;
-        var directory = context.DestinationDirectory ?? Path.GetDirectoryName(item.OriginalPath!) ?? Environment.CurrentDirectory;
-        return transforms.StripMetadataAsync(item, directory, context.OutputFormat, cancellationToken);
+        if (!capability.IsAvailable)
+        {
+            return Task.FromResult(ItemActionResult.Failure("not-available", "ActionUnavailable"));
+        }
+
+        var directory = ActionOutputPolicy.ResolveDirectory(paths, context.DestinationDirectory);
+        return transforms.StripMetadataAsync(context.Selection.Single, directory, context.OutputFormat, cancellationToken);
     }
 }

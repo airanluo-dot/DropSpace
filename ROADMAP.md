@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.8 is the current compatibility Preview: it preserves the Preview.7 completion-hardening contracts and adds the Windows 10 version 1809 (Build 17763) baseline, runtime capability gates, Windows 10 visual fallbacks, and distribution/static checks. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor matrix, official share backend, and physical two-device evidence remain explicit operational gates.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.10 is the current recovery Preview: it preserves the Preview.9 shell-intake/Quick-Action/Undo contracts, makes Smart Drag visual ownership require positive OLE file evidence, hardens the Dynamic Island HWND/DWM boundary, and completes source-safe image export parameters and output policy. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor/provider matrix, official share backend, and physical two-device evidence remain explicit operational gates.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -557,3 +557,10 @@ until executable evidence is attached.
 - Ship capability-driven custom Quick Actions for File, Image, Text, and URL profiles, with three primary slots, Automatic defaults, and shared Main/Quick Panel projection.
 - Ship one eight-second Undo coordinator for remove/clear/pin operations, schema-3 pending-delete persistence, startup recovery, graceful finalization, and source/payload safety tests.
 - Keep the release conditional until the hosted Windows build plus the real Explorer/SendTo, DPI, startup, installer upgrade/uninstall, and manual Undo matrix has executable evidence. Linux static checks do not substitute for that matrix.
+
+## v0.3.0-preview.10 delivery slice
+
+- Make Smart Drag candidate state fully invisible until positive file-like OLE evidence is returned by the bounded, query-only probe; keep late, duplicate, non-file, and timeout paths fail closed.
+- Replace best-effort Dynamic Island HWND styling with checked Win32/DWM/non-client/region operations, explicit Win10 fallback behavior, and geometry diagnostics for mixed-DPI Windows 10/11 validation.
+- Complete Quick Action export UX and policy: explicit image parameters, dedicated user-writable exports, atomic collision-safe names, source-preserving output, localized actionable errors, and shared Main/Quick Panel execution through the registry.
+- Keep the release conditional until hosted Windows build/lifecycle gates and the real Explorer/Desktop/provider, mixed-DPI, border-leak, Quick Action, and no-false-reveal matrix have executable evidence.

@@ -141,6 +141,8 @@ public partial class App : Application
                 _services.GetRequiredService<IWindowsCapabilityService>(),
                 _services.GetRequiredService<QuickPreviewService>(),
                 _services.GetRequiredService<IItemActionRegistry>(),
+                _services.GetRequiredService<QuickActionDialogService>(),
+                _services.GetRequiredService<ILogger<Views.MainPage>>(),
                 _services.GetRequiredService<DeviceHandoffService>(),
                 _services.GetRequiredService<CrossDeviceClipboardService>(),
                 _services.GetRequiredService<DropLinkHost>(),
@@ -348,6 +350,7 @@ public partial class App : Application
         services.AddSingleton<IPreviewProvider, UnknownPreviewProvider>();
         services.AddSingleton<IPreviewProviderRegistry, PreviewProviderRegistry>();
         services.AddSingleton<QuickPreviewService>();
+        services.AddSingleton<QuickActionDialogService>();
         services.AddSingleton<IImageTransformService, WindowsImageTransformService>();
         services.AddSingleton<IItemAction, HashActionService>();
         services.AddSingleton<IItemAction, ZipActionService>();

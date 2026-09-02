@@ -17,6 +17,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly MainViewModel _mainViewModel;
+    private readonly QuickActionDialogService _quickActionDialog;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly IWindowsCapabilityService _capabilities;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
@@ -46,6 +47,7 @@ public sealed class OverlayWindowService : IDisposable
         OverlayViewModel viewModel,
         IAppStringLocalizer strings,
         MainViewModel mainViewModel,
+        QuickActionDialogService quickActionDialog,
         MonitorLayoutService monitorLayout,
         IWindowsCapabilityService capabilities,
         ForegroundWindowMonitor foregroundWindowMonitor,
@@ -60,6 +62,7 @@ public sealed class OverlayWindowService : IDisposable
         _viewModel = viewModel;
         _strings = strings;
         _mainViewModel = mainViewModel;
+        _quickActionDialog = quickActionDialog;
         _monitorLayout = monitorLayout;
         _capabilities = capabilities;
         _foregroundWindowMonitor = foregroundWindowMonitor;
@@ -96,6 +99,7 @@ public sealed class OverlayWindowService : IDisposable
         _displayTopologyWatcher = new DisplayTopologyWatcher();
         _displayTopologyWatcher.Changed += OnDisplayTopologyChanged;
         _dragSessionDetector.CandidateStarted += OnSmartDragCandidateStarted;
+        _dragSessionDetector.VerifiedFileDragStarted += OnSmartVerifiedFileDragStarted;
         _dragSessionDetector.CandidateEnded += OnSmartDragCandidateEnded;
         _dragSessionDetector.PlacementEditEscapeRequested += OnPlacementEditEscapeRequested;
         _quickPanelHotkey.Invoked += OnQuickPanelHotkeyInvoked;
@@ -131,17 +135,24 @@ public sealed class OverlayWindowService : IDisposable
 
         _stateMachine.Restore(1);
         await Task.Delay(750, cancellationToken);
-        var compactVisualTargetDiscoverable = ProbeActiveVisualCenter();
+        var compactVisualProbe = ProbeActiveVisualCenter();
         _stateMachine.Expand();
         await Task.Delay(750, cancellationToken);
-        var expandedVisualTargetDiscoverable = ProbeActiveVisualCenter();
+        var expandedVisualProbe = ProbeActiveVisualCenter();
+        var compactVisualTargetDiscoverable = compactVisualProbe.IsRootOrDescendant;
+        var expandedVisualTargetDiscoverable = expandedVisualProbe.IsRootOrDescendant;
         // Activation-host discovery is meaningful only while the visual Overlay is truly hidden.
         _stateMachine.Restore(0);
         await Task.Delay(300, cancellationToken);
         if (!compactVisualTargetDiscoverable || !expandedVisualTargetDiscoverable)
         {
             throw new InvalidOperationException(
-                "WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states.");
+                $"WindowFromPoint did not resolve to the visible Overlay HWND or a WinUI descendant in Compact and Expanded states. " +
+                $"Compact: root={compactVisualProbe.RootWindow}, visible={compactVisualProbe.IsRootVisible}, rect={compactVisualProbe.RootLeft},{compactVisualProbe.RootTop},{compactVisualProbe.RootWidth}x{compactVisualProbe.RootHeight}, " +
+                $"discovered={compactVisualProbe.DiscoveredWindow}, class={compactVisualProbe.WindowClassName}, owned={compactVisualProbe.IsRootOrDescendant}; " +
+                $"Expanded: root={expandedVisualProbe.RootWindow}, visible={expandedVisualProbe.IsRootVisible}, rect={expandedVisualProbe.RootLeft},{expandedVisualProbe.RootTop},{expandedVisualProbe.RootWidth}x{expandedVisualProbe.RootHeight}, " +
+                $"discovered={expandedVisualProbe.DiscoveredWindow}, class={expandedVisualProbe.WindowClassName}, owned={expandedVisualProbe.IsRootOrDescendant}. " +
+                $"Overlay state: {GetActiveWindow().NativeVisibilityDiagnostics}.");
         }
 
         var idleTopEdgePassThrough = _windows.All(window => window.ProbeIdleTopEdgePassThrough());
@@ -263,6 +274,7 @@ public sealed class OverlayWindowService : IDisposable
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
             await Task.Delay(500, cancellationToken);
             var activeWindow = GetActiveWindow();
+            await EnsureVisibleNativeDropTargetAsync(activeWindow, cancellationToken);
             await activeWindow.RunSyntheticCfHDropAsync([compactDrop], cancellationToken);
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
             var compactDropAccepted = _mainViewModel.Items.Any(item =>
@@ -274,6 +286,7 @@ public sealed class OverlayWindowService : IDisposable
 
             await _viewModel.ExpandAsync(cancellationToken);
             await Task.Delay(500, cancellationToken);
+            await EnsureVisibleNativeDropTargetAsync(activeWindow, cancellationToken);
             await activeWindow.RunSyntheticCfHDropAsync([expandedDrop], cancellationToken);
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
             var expandedDropAccepted = _mainViewModel.Items.Any(item =>
@@ -315,6 +328,30 @@ public sealed class OverlayWindowService : IDisposable
                 Directory.Delete(testRoot, recursive: false);
             }
         }
+    }
+
+    private async Task EnsureVisibleNativeDropTargetAsync(
+        OverlayWindow window,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            if (window.TryEnsureNativeDropTargetForSmoke())
+            {
+                return;
+            }
+
+            // Projection refresh and state publication are serialized through the dispatcher,
+            // while this smoke runs on the same UI thread. Re-apply the current snapshot between
+            // bounded polls so a just-published Compact/Expanded state can complete its native
+            // show/registration transition before the synthetic OLE call.
+            ApplySnapshot(_viewModel.Snapshot);
+            await Task.Delay(100, cancellationToken);
+        }
+
+        throw new InvalidOperationException(
+            $"The visible Overlay OLE target did not become registered within the bounded smoke wait. " +
+            $"{window.NativeVisibilityDiagnostics}.");
     }
 
     public async Task<ProjectionDeletionStressMetrics> RunProjectionDeletionStressAsync(
@@ -439,6 +476,7 @@ public sealed class OverlayWindowService : IDisposable
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
         _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
+        _dragSessionDetector.VerifiedFileDragStarted -= OnSmartVerifiedFileDragStarted;
         _dragSessionDetector.CandidateEnded -= OnSmartDragCandidateEnded;
         _dragSessionDetector.PlacementEditEscapeRequested -= OnPlacementEditEscapeRequested;
         _dragSessionDetector.SetPlacementEditing(false);
@@ -743,6 +781,7 @@ public sealed class OverlayWindowService : IDisposable
                 _monitorLayout,
                 _capabilities,
                 _dragDropService,
+                _quickActionDialog,
                 visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
                 _loggerFactory.CreateLogger<OverlayWindow>());
@@ -814,10 +853,8 @@ public sealed class OverlayWindowService : IDisposable
 
             _activeSmartSessionId = candidate.SessionId;
             _activeSmartSessionPoint = candidate.Point;
-            _activeDragOwner = DragTargetOwner.SmartDetector;
-            _viewModel.BeginDragApproach(candidate.MonitorId);
             _logger.LogInformation(
-                "Smart drag candidate {SessionId} began speculative reveal on monitor {MonitorId}; source={Source}, evidenceLevel={EvidenceLevel}, requiresOleVerification={RequiresOleVerification}.",
+                "Smart drag candidate {SessionId} is awaiting positive OLE file evidence on monitor {MonitorId}; source={Source}, evidenceLevel={EvidenceLevel}, requiresOleVerification={RequiresOleVerification}; the visual target remains hidden.",
                 candidate.SessionId,
                 candidate.MonitorId,
                 candidate.Source,
@@ -825,6 +862,10 @@ public sealed class OverlayWindowService : IDisposable
                 candidate.RequiresOleVerification);
             if (!candidate.RequiresOleVerification)
             {
+                _logger.LogError(
+                    "Smart drag candidate {SessionId} did not require OLE verification; refusing to reveal the visual target.",
+                    candidate.SessionId);
+                _dragSessionDetector.NotifyProbeTimedOut(candidate.SessionId, candidate.Point);
                 return;
             }
 
@@ -839,10 +880,33 @@ public sealed class OverlayWindowService : IDisposable
             {
                 _logger.LogWarning(
                     exception,
-                    "Smart OLE verification probe could not start for session {SessionId}; the speculative reveal will fail closed.",
+                    "Smart OLE verification probe could not start for session {SessionId}; the visual target remains hidden.",
                     candidate.SessionId);
                 _dragSessionDetector.NotifyProbeTimedOut(candidate.SessionId, candidate.Point);
             }
+        });
+    }
+
+    private void OnSmartVerifiedFileDragStarted(object? sender, DragSessionCandidate candidate)
+    {
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_disposed ||
+                _viewModel.FileDragWakeMode != FileDragWakeMode.SmartExperimental ||
+                _activeSmartSessionId != candidate.SessionId)
+            {
+                return;
+            }
+
+            _activeSmartSessionPoint = candidate.Point;
+            _activeDragOwner = DragTargetOwner.SmartDetector;
+            _viewModel.BeginDragApproach(candidate.MonitorId);
+            _logger.LogInformation(
+                "Smart drag candidate {SessionId} passed positive OLE file evidence and revealed the visual target on monitor {MonitorId}: evidenceLevel={EvidenceLevel}, payloadConfidence={PayloadConfidence}.",
+                candidate.SessionId,
+                candidate.MonitorId,
+                candidate.EvidenceLevel,
+                candidate.PayloadConfidence);
         });
     }
 
@@ -866,7 +930,7 @@ public sealed class OverlayWindowService : IDisposable
             _activeDragOwner = DragTargetOwner.None;
             ApplySnapshot(_viewModel.Snapshot);
             _logger.LogInformation(
-                "Smart drag candidate {SessionId} ended before a visual OLE target accepted ownership.",
+                "Smart drag candidate {SessionId} ended after the Smart visual ownership session was active.",
                 sessionId);
         });
     }
@@ -1127,9 +1191,9 @@ public sealed class OverlayWindowService : IDisposable
         _stateMachine.CompleteDismissal();
     }
 
-    private bool ProbeActiveVisualCenter()
+    private VisibleWindowProbe ProbeActiveVisualCenter()
     {
-        return GetActiveWindow().ProbeVisibleCenter().IsRootOrDescendant;
+        return GetActiveWindow().ProbeVisibleCenter();
     }
 
     private bool VerifyWakeModeSwitchOwnership(FileDragWakeMode originalMode)

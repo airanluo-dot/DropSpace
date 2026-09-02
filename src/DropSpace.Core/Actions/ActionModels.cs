@@ -118,6 +118,15 @@ public interface IImageTransformService
         bool stripMetadata,
         CancellationToken cancellationToken = default);
 
+    Task<ItemActionResult> ConvertAsync(
+        DropItemSnapshot item,
+        string destinationDirectory,
+        string outputFormat,
+        int? width = null,
+        int? height = null,
+        bool keepAspectRatio = true,
+        CancellationToken cancellationToken = default);
+
     Task<ItemActionResult> StripMetadataAsync(
         DropItemSnapshot item,
         string destinationDirectory,

@@ -1,6 +1,6 @@
 # DropSpace Windows compatibility baseline
 
-Status: implementation baseline for `v0.3.0-preview.8` (conditional until the
+Status: implementation baseline for `v0.3.0-preview.10` (conditional until the
 Windows matrix below has executable evidence).
 
 ## Supported operating systems

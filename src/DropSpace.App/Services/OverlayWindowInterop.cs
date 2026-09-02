@@ -32,70 +32,206 @@ internal static class OverlayWindowInterop
     private const uint DwmColorNone = 0xFFFFFFFE;
     private static readonly nint Topmost = new(-1);
 
-    public static void ConfigureVisualWindow(nint window, bool modernDwmAttributes)
+    public static OverlayNativeConfigurationResult ConfigureVisualWindow(
+        nint window,
+        bool modernDwmAttributes)
     {
-        var extendedStyle = GetWindowLongPointer(window, ExtendedStyleIndex).ToInt64();
-        extendedStyle |= ExtendedStyleToolWindow | ExtendedStyleNoActivate;
-        extendedStyle &= ~(ExtendedStyleAppWindow |
-                           ExtendedStyleClientEdge |
-                           ExtendedStyleWindowEdge |
-                           ExtendedStyleDialogModalFrame);
-        SetWindowLongPointer(window, ExtendedStyleIndex, new nint(extendedStyle));
+        var failures = new List<OverlayNativeFailure>();
+        var criticalFailure = false;
+        if (window == nint.Zero || !IsWindow(window))
+        {
+            failures.Add(new OverlayNativeFailure(
+                "IsWindow",
+                Critical: true,
+                Win32Error: 1400));
+            return new OverlayNativeConfigurationResult(false, failures);
+        }
 
-        var style = GetWindowLongPointer(window, StyleIndex).ToInt64();
-        style &= ~(StyleBorder | StyleCaption | StyleDialogFrame | StyleThickFrame);
-        SetWindowLongPointer(window, StyleIndex, new nint(style));
+        if (!TryGetWindowLongPointer(window, ExtendedStyleIndex, out var extendedStyle, out var extendedGetError))
+        {
+            failures.Add(new OverlayNativeFailure(
+                "GetWindowLongPtrW(extended-style)",
+                Critical: true,
+                Win32Error: extendedGetError));
+            criticalFailure = true;
+        }
+        else
+        {
+            var configuredExtendedStyle = extendedStyle.ToInt64() |
+                                          ExtendedStyleToolWindow |
+                                          ExtendedStyleNoActivate;
+            configuredExtendedStyle &= ~(ExtendedStyleAppWindow |
+                                         ExtendedStyleClientEdge |
+                                         ExtendedStyleWindowEdge |
+                                         ExtendedStyleDialogModalFrame);
+            if (!TrySetWindowLongPointer(
+                    window,
+                    ExtendedStyleIndex,
+                    new nint(configuredExtendedStyle),
+                    out var extendedSetError))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "SetWindowLongPtrW(extended-style)",
+                    Critical: true,
+                    Win32Error: extendedSetError));
+                criticalFailure = true;
+            }
+        }
+
+        if (!TryGetWindowLongPointer(window, StyleIndex, out var style, out var styleGetError))
+        {
+            failures.Add(new OverlayNativeFailure(
+                "GetWindowLongPtrW(style)",
+                Critical: true,
+                Win32Error: styleGetError));
+            criticalFailure = true;
+        }
+        else
+        {
+            // AppWindow presenters can leave an overlapped/non-client style behind even after
+            // SetBorderAndTitleBar(false, false). Remove every frame-bearing bit while retaining
+            // the window class's managed top-level style; converting a WinUI-managed HWND to a
+            // different top-level style after presenter creation can break its hit-test bridge.
+            var configuredStyle = style.ToInt64();
+            configuredStyle &= ~(StyleBorder |
+                                 StyleCaption |
+                                 StyleDialogFrame |
+                                 StyleThickFrame);
+            if (!TrySetWindowLongPointer(
+                    window,
+                    StyleIndex,
+                    new nint(configuredStyle),
+                    out var styleSetError))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "SetWindowLongPtrW(style)",
+                    Critical: true,
+                    Win32Error: styleSetError));
+                criticalFailure = true;
+            }
+        }
 
         var nonClientPolicy = DwmNonClientRenderingDisabled;
-        DwmSetWindowAttribute(
-            window,
-            DwmWindowAttributeNonClientRenderingPolicy,
-            ref nonClientPolicy,
-            sizeof(int));
+        if (!TrySetDwmAttribute(
+                window,
+                DwmWindowAttributeNonClientRenderingPolicy,
+                ref nonClientPolicy,
+                sizeof(int),
+                out var nonClientHResult))
+        {
+            failures.Add(new OverlayNativeFailure(
+                "DwmSetWindowAttribute(non-client-policy)",
+                Critical: true,
+                HResult: nonClientHResult));
+            criticalFailure = true;
+        }
         if (modernDwmAttributes)
         {
             var cornerPreference = DwmCornerDoNotRound;
-            DwmSetWindowAttribute(
-                window,
-                DwmWindowAttributeCornerPreference,
-                ref cornerPreference,
-                sizeof(int));
+            if (!TrySetDwmAttribute(
+                    window,
+                    DwmWindowAttributeCornerPreference,
+                    ref cornerPreference,
+                    sizeof(int),
+                    out var cornerHResult))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "DwmSetWindowAttribute(corner-preference)",
+                    Critical: false,
+                    HResult: cornerHResult));
+            }
+
             var borderColor = DwmColorNone;
-            DwmSetWindowAttribute(
-                window,
-                DwmWindowAttributeBorderColor,
-                ref borderColor,
-                sizeof(uint));
+            if (!TrySetDwmAttribute(
+                    window,
+                    DwmWindowAttributeBorderColor,
+                    ref borderColor,
+                    sizeof(uint),
+                    out var borderHResult))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "DwmSetWindowAttribute(border-color)",
+                    Critical: false,
+                    HResult: borderHResult));
+            }
         }
-        SetWindowPos(
-            window,
-            Topmost,
-            0,
-            0,
-            0,
-            0,
-            SetWindowPositionNoMove |
-            SetWindowPositionNoSize |
-            SetWindowPositionNoActivate |
-            SetWindowPositionFrameChanged);
+
+        if (!TrySetWindowPos(
+                window,
+                Topmost,
+                SetWindowPositionNoMove |
+                SetWindowPositionNoSize |
+                SetWindowPositionNoActivate |
+                SetWindowPositionFrameChanged,
+                out var frameError))
+        {
+            failures.Add(new OverlayNativeFailure(
+                "SetWindowPos(frame-changed)",
+                Critical: true,
+                Win32Error: frameError));
+            criticalFailure = true;
+        }
+
+        return new OverlayNativeConfigurationResult(!criticalFailure, failures);
     }
 
-    public static void ShowNoActivateAndTopmost(nint window)
+    public static bool ShowNoActivateAndTopmost(
+        nint window,
+        out OverlayNativeFailure? failure)
     {
-        SetWindowPos(
-            window,
-            Topmost,
-            0,
-            0,
-            0,
-            0,
-            SetWindowPositionNoMove |
-            SetWindowPositionNoSize |
-            SetWindowPositionNoActivate);
-        ShowWindow(window, ShowNoActivate);
+        if (!IsValidWindow(window, out var invalidWindowFailure))
+        {
+            failure = invalidWindowFailure;
+            return false;
+        }
+
+        if (!TrySetWindowPos(
+                window,
+                Topmost,
+                SetWindowPositionNoMove |
+                SetWindowPositionNoSize |
+                SetWindowPositionNoActivate,
+                out var positionError))
+        {
+            failure = new OverlayNativeFailure("SetWindowPos(show-topmost)", true, positionError);
+            return false;
+        }
+
+        _ = ShowWindow(window, ShowNoActivate);
+        if (!IsWindowVisible(window))
+        {
+            failure = new OverlayNativeFailure(
+                "ShowWindow(SW_SHOWNOACTIVATE)",
+                Critical: true,
+                Win32Error: Marshal.GetLastWin32Error());
+            return false;
+        }
+
+        failure = null;
+        return true;
     }
 
-    public static void Hide(nint window) => ShowWindow(window, ShowHide);
+    public static bool Hide(nint window, out OverlayNativeFailure? failure)
+    {
+        if (!IsValidWindow(window, out var invalidWindowFailure))
+        {
+            failure = invalidWindowFailure;
+            return false;
+        }
+
+        _ = ShowWindow(window, ShowHide);
+        if (IsWindowVisible(window))
+        {
+            failure = new OverlayNativeFailure(
+                "ShowWindow(SW_HIDE)",
+                Critical: true,
+                Win32Error: Marshal.GetLastWin32Error());
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
 
     public static bool TryGetCursorPosition(out DragScreenPoint point)
     {
@@ -112,31 +248,61 @@ internal static class OverlayWindowInterop
     public static VisibleWindowProbe ProbeWindowAtPoint(nint rootWindow, int x, int y)
     {
         var discovered = WindowFromPoint(new NativePoint { X = x, Y = y });
+        var hasRootRectangle = GetWindowRect(rootWindow, out var rootRectangle);
         return new VisibleWindowProbe(
             rootWindow,
             discovered,
             discovered == rootWindow || discovered != nint.Zero && IsChild(rootWindow, discovered),
-            GetWindowClassName(discovered));
+            GetWindowClassName(discovered),
+            IsWindowVisible(rootWindow),
+            hasRootRectangle ? rootRectangle.Left : 0,
+            hasRootRectangle ? rootRectangle.Top : 0,
+            hasRootRectangle ? rootRectangle.Right - rootRectangle.Left : 0,
+            hasRootRectangle ? rootRectangle.Bottom - rootRectangle.Top : 0);
     }
 
-    public static void SetNoActivate(nint window, bool noActivate)
+    public static bool SetNoActivate(
+        nint window,
+        bool noActivate,
+        out OverlayNativeFailure? failure)
     {
-        var style = GetWindowLongPointer(window, ExtendedStyleIndex).ToInt64();
+        if (!IsValidWindow(window, out var invalidWindowFailure))
+        {
+            failure = invalidWindowFailure;
+            return false;
+        }
+
+        if (!TryGetWindowLongPointer(window, ExtendedStyleIndex, out var currentStyle, out var getError))
+        {
+            failure = new OverlayNativeFailure("GetWindowLongPtrW(extended-style)", true, getError);
+            return false;
+        }
+
+        var style = currentStyle.ToInt64();
         style = noActivate
             ? style | ExtendedStyleNoActivate
             : style & ~ExtendedStyleNoActivate;
-        SetWindowLongPointer(window, ExtendedStyleIndex, new nint(style));
-        SetWindowPos(
-            window,
-            Topmost,
-            0,
-            0,
-            0,
-            0,
-            SetWindowPositionNoMove |
-            SetWindowPositionNoSize |
-            SetWindowPositionNoActivate |
-            SetWindowPositionFrameChanged);
+        if (!TrySetWindowLongPointer(window, ExtendedStyleIndex, new nint(style), out var setError))
+        {
+            failure = new OverlayNativeFailure("SetWindowLongPtrW(extended-style)", true, setError);
+            return false;
+        }
+
+        if (!TrySetWindowPos(
+                window,
+                Topmost,
+                SetWindowPositionNoMove |
+                SetWindowPositionNoSize |
+                SetWindowPositionNoActivate |
+                SetWindowPositionFrameChanged,
+                out var positionError))
+        {
+            failure = new OverlayNativeFailure("SetWindowPos(frame-changed)", true, positionError);
+            return false;
+        }
+
+        failure = null;
+        return true;
     }
 
     public static bool ApplyVisualRegion(
@@ -146,36 +312,75 @@ internal static class OverlayWindowInterop
         int width,
         int height,
         int topRadius,
-        int bottomRadius)
+        int bottomRadius,
+        out OverlayNativeFailure? failure)
     {
-        var region = CreateAsymmetricRoundRectRegion(
-            left,
-            top,
-            width,
-            height,
-            Math.Max(topRadius, 1),
-            bottomRadius);
-        if (region == nint.Zero)
+        if (!IsValidWindow(window, out var invalidWindowFailure))
         {
+            failure = invalidWindowFailure;
+            return false;
+        }
+
+        nint region;
+        try
+        {
+            region = CreateAsymmetricRoundRectRegion(
+                left,
+                top,
+                width,
+                height,
+                Math.Max(topRadius, 1),
+                bottomRadius,
+                out var creationFailure);
+            if (region == nint.Zero)
+            {
+                failure = creationFailure ?? new OverlayNativeFailure("Create overlay HRGN", true, Marshal.GetLastWin32Error());
+                return false;
+            }
+        }
+        catch (OverflowException)
+        {
+            failure = new OverlayNativeFailure("Create overlay HRGN (geometry overflow)", true, 534);
             return false;
         }
 
         if (SetWindowRgn(window, region, true) == 0)
         {
-            DeleteObject(region);
+            _ = DeleteObject(region);
+            failure = new OverlayNativeFailure("SetWindowRgn(visible-region)", true, Marshal.GetLastWin32Error());
             return false;
         }
 
+        // SetWindowRgn transfers ownership to the window after success.
+        failure = null;
         return true;
     }
 
-    public static void ApplyEmptyRegion(nint window)
+    public static bool ApplyEmptyRegion(nint window, out OverlayNativeFailure? failure)
     {
-        var region = CreateRectRgn(0, 0, 0, 0);
-        if (region != nint.Zero && SetWindowRgn(window, region, false) == 0)
+        if (!IsValidWindow(window, out var invalidWindowFailure))
         {
-            DeleteObject(region);
+            failure = invalidWindowFailure;
+            return false;
         }
+
+        var region = CreateRectRgn(0, 0, 0, 0);
+        if (region == nint.Zero)
+        {
+            failure = new OverlayNativeFailure("Create empty overlay HRGN", true, Marshal.GetLastWin32Error());
+            return false;
+        }
+
+        if (SetWindowRgn(window, region, false) == 0)
+        {
+            _ = DeleteObject(region);
+            failure = new OverlayNativeFailure("SetWindowRgn(empty-region)", true, Marshal.GetLastWin32Error());
+            return false;
+        }
+
+        // SetWindowRgn transfers ownership to the window after success.
+        failure = null;
+        return true;
     }
 
     private static nint CreateAsymmetricRoundRectRegion(
@@ -184,8 +389,16 @@ internal static class OverlayWindowInterop
         int width,
         int height,
         int topRadius,
-        int bottomRadius)
+        int bottomRadius,
+        out OverlayNativeFailure? failure)
     {
+        failure = null;
+        if (width <= 0 || height <= 0)
+        {
+            failure = new OverlayNativeFailure("Validate overlay HRGN geometry", true, 87);
+            return nint.Zero;
+        }
+
         topRadius = Math.Clamp(topRadius, 0, Math.Min(width / 2, height / 2));
         bottomRadius = Math.Clamp(bottomRadius, 0, Math.Min(width / 2, height / 2));
         var destination = CreateRectRgn(
@@ -225,26 +438,140 @@ internal static class OverlayWindowInterop
 
             if (bottomPart != nint.Zero)
             {
-                DeleteObject(bottomPart);
+                _ = DeleteObject(bottomPart);
             }
 
+            failure = new OverlayNativeFailure("Create overlay HRGN components", true, Marshal.GetLastWin32Error());
             return nint.Zero;
         }
 
-        CombineRgn(destination, destination, topPart, RegionOr);
-        CombineRgn(destination, destination, bottomPart, RegionOr);
-        DeleteObject(topPart);
-        DeleteObject(bottomPart);
+        if (CombineRgn(destination, destination, topPart, RegionOr) == 0 ||
+            CombineRgn(destination, destination, bottomPart, RegionOr) == 0)
+        {
+            _ = DeleteObject(destination);
+            _ = DeleteObject(topPart);
+            _ = DeleteObject(bottomPart);
+            failure = new OverlayNativeFailure("CombineRgn(overlay-region)", true, Marshal.GetLastWin32Error());
+            return nint.Zero;
+        }
+
+        _ = DeleteObject(topPart);
+        _ = DeleteObject(bottomPart);
         return destination;
     }
 
-    private static nint GetWindowLongPointer(nint window, int index) => IntPtr.Size == 8
-        ? GetWindowLongPtr64(window, index)
-        : new nint(GetWindowLong32(window, index));
+    public static bool TryGetClientSize(nint window, out int width, out int height)
+    {
+        if (!IsWindow(window) || !GetClientRect(window, out var rectangle))
+        {
+            width = 0;
+            height = 0;
+            return false;
+        }
 
-    private static nint SetWindowLongPointer(nint window, int index, nint value) => IntPtr.Size == 8
-        ? SetWindowLongPtr64(window, index, value)
-        : new nint(SetWindowLong32(window, index, value.ToInt32()));
+        width = rectangle.Right - rectangle.Left;
+        height = rectangle.Bottom - rectangle.Top;
+        return width >= 0 && height >= 0;
+    }
+
+    private static bool IsValidWindow(nint window, out OverlayNativeFailure? failure)
+    {
+        if (window == nint.Zero || !IsWindow(window))
+        {
+            failure = new OverlayNativeFailure("IsWindow", Critical: true, Win32Error: 1400);
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
+    private static bool TryGetWindowLongPointer(
+        nint window,
+        int index,
+        out nint value,
+        out int error)
+    {
+        Marshal.SetLastPInvokeError(0);
+        value = IntPtr.Size == 8
+            ? GetWindowLongPtr64(window, index)
+            : new nint(GetWindowLong32(window, index));
+        error = Marshal.GetLastWin32Error();
+        return value != nint.Zero || error == 0;
+    }
+
+    private static bool TrySetWindowLongPointer(
+        nint window,
+        int index,
+        nint value,
+        out int error)
+    {
+        Marshal.SetLastPInvokeError(0);
+        var previous = IntPtr.Size == 8
+            ? SetWindowLongPtr64(window, index, value)
+            : new nint(SetWindowLong32(window, index, value.ToInt32()));
+        error = Marshal.GetLastWin32Error();
+        return previous != nint.Zero || error == 0;
+    }
+
+    private static bool TrySetWindowPos(
+        nint window,
+        nint insertAfter,
+        uint flags,
+        out int error)
+    {
+        var success = SetWindowPos(window, insertAfter, 0, 0, 0, 0, flags);
+        error = success ? 0 : Marshal.GetLastWin32Error();
+        return success;
+    }
+
+    private static bool TrySetDwmAttribute(
+        nint window,
+        int attribute,
+        ref int value,
+        int valueSize,
+        out int hResult)
+    {
+        try
+        {
+            hResult = DwmSetWindowAttribute(window, attribute, ref value, valueSize);
+            return hResult >= 0;
+        }
+        catch (DllNotFoundException exception)
+        {
+            hResult = exception.HResult;
+            return false;
+        }
+        catch (EntryPointNotFoundException exception)
+        {
+            hResult = exception.HResult;
+            return false;
+        }
+    }
+
+    private static bool TrySetDwmAttribute(
+        nint window,
+        int attribute,
+        ref uint value,
+        int valueSize,
+        out int hResult)
+    {
+        try
+        {
+            hResult = DwmSetWindowAttribute(window, attribute, ref value, valueSize);
+            return hResult >= 0;
+        }
+        catch (DllNotFoundException exception)
+        {
+            hResult = exception.HResult;
+            return false;
+        }
+        catch (EntryPointNotFoundException exception)
+        {
+            hResult = exception.HResult;
+            return false;
+        }
+    }
 
     private static string GetWindowClassName(nint window)
     {
@@ -283,6 +610,22 @@ internal static class OverlayWindowInterop
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ShowWindow(nint window, int command);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(nint window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(nint window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(nint window, out NativeRectangle rectangle);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(nint window, out NativeRectangle rectangle);
 
     [DllImport("gdi32.dll")]
     private static extern nint CreateRectRgn(int left, int top, int right, int bottom);
@@ -340,10 +683,34 @@ internal static class OverlayWindowInterop
         public int X;
         public int Y;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRectangle
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
 }
+
+internal sealed record OverlayNativeFailure(
+    string Operation,
+    bool Critical,
+    int Win32Error = 0,
+    int HResult = 0);
+
+internal sealed record OverlayNativeConfigurationResult(
+    bool IsSafeToShow,
+    IReadOnlyList<OverlayNativeFailure> Failures);
 
 internal sealed record VisibleWindowProbe(
     nint RootWindow,
     nint DiscoveredWindow,
     bool IsRootOrDescendant,
-    string WindowClassName);
+    string WindowClassName,
+    bool IsRootVisible,
+    int RootLeft,
+    int RootTop,
+    int RootWidth,
+    int RootHeight);
