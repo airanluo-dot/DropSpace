@@ -47,6 +47,7 @@ public sealed partial class OverlayWindow : Window
     private bool _suppressedForFullscreen;
     private long _regionFailureCount;
     private bool _nativeWindowSafeToShow;
+    private readonly string _nativeConfigurationDiagnostics;
     private readonly int _operatingSystemBuild;
     private bool _visualDragActive;
     private OverlayResolvedPlacement _resolvedPlacement;
@@ -105,6 +106,12 @@ public sealed partial class OverlayWindow : Window
         {
             LogNativeFailure(failure);
         }
+        _nativeConfigurationDiagnostics = nativeConfiguration.Failures.Count == 0
+            ? "none"
+            : string.Join(
+                "|",
+                nativeConfiguration.Failures.Select(failure =>
+                    $"{failure.Operation}:critical={failure.Critical},win32={failure.Win32Error},hr=0x{failure.HResult:X8}"));
         _resolvedPlacement = ResolvePlacement(
             FileDragWakeMode.SmartExperimental,
             new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
@@ -142,6 +149,10 @@ public sealed partial class OverlayWindow : Window
     public string MonitorId => _monitor.Id;
 
     public bool IsPlacementEditing => _placementEditActive;
+
+    internal string NativeVisibilityDiagnostics =>
+        $"active={_isActiveWindow},safe={_nativeWindowSafeToShow},visible={_isVisible},phase={_visualPhase}," +
+        $"regions={RegionFailureCount},configuration={_nativeConfigurationDiagnostics}";
 
     public event EventHandler<OverlayPlacementEditEventArgs>? PlacementCommitted;
 

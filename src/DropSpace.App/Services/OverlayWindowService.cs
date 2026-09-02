@@ -151,7 +151,8 @@ public sealed class OverlayWindowService : IDisposable
                 $"Compact: root={compactVisualProbe.RootWindow}, visible={compactVisualProbe.IsRootVisible}, rect={compactVisualProbe.RootLeft},{compactVisualProbe.RootTop},{compactVisualProbe.RootWidth}x{compactVisualProbe.RootHeight}, " +
                 $"discovered={compactVisualProbe.DiscoveredWindow}, class={compactVisualProbe.WindowClassName}, owned={compactVisualProbe.IsRootOrDescendant}; " +
                 $"Expanded: root={expandedVisualProbe.RootWindow}, visible={expandedVisualProbe.IsRootVisible}, rect={expandedVisualProbe.RootLeft},{expandedVisualProbe.RootTop},{expandedVisualProbe.RootWidth}x{expandedVisualProbe.RootHeight}, " +
-                $"discovered={expandedVisualProbe.DiscoveredWindow}, class={expandedVisualProbe.WindowClassName}, owned={expandedVisualProbe.IsRootOrDescendant}.");
+                $"discovered={expandedVisualProbe.DiscoveredWindow}, class={expandedVisualProbe.WindowClassName}, owned={expandedVisualProbe.IsRootOrDescendant}. " +
+                $"Overlay state: {GetActiveWindow().NativeVisibilityDiagnostics}.");
         }
 
         var idleTopEdgePassThrough = _windows.All(window => window.ProbeIdleTopEdgePassThrough());

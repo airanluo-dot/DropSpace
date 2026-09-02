@@ -13,12 +13,6 @@ internal static class OverlayWindowInterop
     private const long ExtendedStyleDialogModalFrame = 0x00000001L;
     private const long ExtendedStyleNoActivate = 0x08000000L;
     private const long ExtendedStyleToolWindow = 0x00000080L;
-    private const long StyleChild = 0x40000000L;
-    private const long StyleMinimize = 0x20000000L;
-    private const long StyleMaximize = 0x01000000L;
-    private const long StyleSystemMenu = 0x00080000L;
-    private const long StyleHorizontalScroll = 0x00100000L;
-    private const long StyleVerticalScroll = 0x00200000L;
     private const long StyleBorder = 0x00800000L;
     private const long StyleCaption = 0x00C00000L;
     private const long StyleDialogFrame = 0x00400000L;
@@ -102,13 +96,7 @@ internal static class OverlayWindowInterop
             configuredStyle &= ~(StyleBorder |
                                  StyleCaption |
                                  StyleDialogFrame |
-                                 StyleThickFrame |
-                                 StyleChild |
-                                 StyleMinimize |
-                                 StyleMaximize |
-                                 StyleSystemMenu |
-                                 StyleHorizontalScroll |
-                                 StyleVerticalScroll);
+                                 StyleThickFrame);
             if (!TrySetWindowLongPointer(
                     window,
                     StyleIndex,
