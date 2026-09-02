@@ -48,6 +48,7 @@ public sealed partial class OverlayWindow : Window
     private long _regionFailureCount;
     private bool _nativeWindowSafeToShow;
     private readonly string _nativeConfigurationDiagnostics;
+    private string _lastNativeFailureDiagnostics = "none";
     private readonly int _operatingSystemBuild;
     private bool _visualDragActive;
     private OverlayResolvedPlacement _resolvedPlacement;
@@ -152,7 +153,7 @@ public sealed partial class OverlayWindow : Window
 
     internal string NativeVisibilityDiagnostics =>
         $"active={_isActiveWindow},safe={_nativeWindowSafeToShow},visible={_isVisible},phase={_visualPhase}," +
-        $"regions={RegionFailureCount},configuration={_nativeConfigurationDiagnostics}";
+        $"regions={RegionFailureCount},configuration={_nativeConfigurationDiagnostics},lastFailure={_lastNativeFailureDiagnostics}";
 
     public event EventHandler<OverlayPlacementEditEventArgs>? PlacementCommitted;
 
@@ -211,6 +212,8 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
+        _lastNativeFailureDiagnostics =
+            $"{failure.Operation}:critical={failure.Critical},win32={failure.Win32Error},hr=0x{failure.HResult:X8}";
         var level = failure.Critical ? LogLevel.Error : LogLevel.Warning;
         _logger.Log(
             level,
