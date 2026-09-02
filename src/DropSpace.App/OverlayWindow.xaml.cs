@@ -25,7 +25,7 @@ namespace DropSpace.App;
 public sealed partial class OverlayWindow : Window
 {
     private const double HostWidth = 600;
-    private const double HostHeight = OverlayPlacementPolicy.MinimumHostHeightDips;
+    private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly MonitorDescriptor _monitor;

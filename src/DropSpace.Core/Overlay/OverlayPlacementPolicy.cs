@@ -19,6 +19,22 @@ public static class OverlayPlacementPolicy
         SmartTopOffsetPhysicalPixels + DynamicIslandTopGapDips +
         MaximumSurfaceHeightDips + HostBottomMarginDips;
 
+    public static double GetMinimumHostHeightDips(double monitorScale)
+    {
+        if (!double.IsFinite(monitorScale) || monitorScale <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(monitorScale));
+        }
+
+        // The Dynamic Island compatibility offset is a physical-pixel requirement, while the
+        // remaining host dimensions are DIPs. Convert only that fixed physical segment back to
+        // DIPs so the native client surface remains large enough at every display scale.
+        return SmartTopOffsetPhysicalPixels / monitorScale +
+               DynamicIslandTopGapDips +
+               MaximumSurfaceHeightDips +
+               HostBottomMarginDips;
+    }
+
     public static double GetTopOffsetDips(
         FileDragWakeMode wakeMode,
         double monitorScale)
