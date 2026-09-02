@@ -136,7 +136,7 @@ internal sealed class WindowsApiAvailabilityService : IApiAvailabilityService
     }
 }
 
-internal sealed class WindowsAppRuntimeDependencyProbe(IApiAvailabilityService api) : IRuntimeDependencyProbe
+internal sealed class WindowsAppRuntimeDependencyProbe : IRuntimeDependencyProbe
 {
     public RuntimeDependencyState Probe()
     {
@@ -217,10 +217,14 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
                 "Mica is a Windows 11 visual capability; the solid base visual is used on Windows 10.");
         }
 
-        return GetApiCapability(
+        // Microsoft.UI.Xaml types are managed Windows App SDK types, not Windows Runtime
+        // metadata. The application assembly has already loaded the runtime at this point, so
+        // the OS build is the capability gate and MainWindow still keeps a catch-based fallback
+        // around MicaBackdrop construction.
+        return new WindowsCapabilityState(
             WindowsCapability.ModernWindowAppearance,
-            "Microsoft.UI.Xaml.Media.MicaBackdrop",
-            "Mica window appearance is available.");
+            CompatibilityStatus.Available,
+            "Windows 11 supports the optional Mica window appearance.");
     }
 
     private WindowsCapabilityState GetModernDwmAttributes()
@@ -233,13 +237,10 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
                 "Windows 11 DWM corner and border attributes are not used on Windows 10.");
         }
 
-        var available = _api.IsTypePresent("Microsoft.UI.Windowing.AppWindow");
         return new WindowsCapabilityState(
             WindowsCapability.ModernDwmAttributes,
-            available ? CompatibilityStatus.Available : CompatibilityStatus.MissingRuntime,
-            available
-                ? "Modern DWM attributes are available."
-                : "The Windows App SDK AppWindow type is not available.");
+            CompatibilityStatus.Available,
+            "Windows 11 supports the optional DWM corner and border attributes; each HRESULT is checked at the HWND boundary.");
     }
 
     private WindowsCapabilityState GetWindowsShareTarget()

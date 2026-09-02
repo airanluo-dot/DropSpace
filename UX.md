@@ -70,7 +70,7 @@ Stable accepts only final releases. Preview accepts both release kinds and choos
 
 ## Top Overlay
 
-- With zero Temporary Space items and no drag, Smart mode leaves every visual Overlay hidden with an empty region and no registered OLE target. It does not create a top-edge input window. Exact Explorer/Desktop item evidence and strong accessibility drag-start evidence take the fast path. An unknown/non-exact press crossing the Windows drag threshold begins speculative reveal about 76 physical pixels below the edge and concurrently creates one 60 ms hollow local OLE verification ring. File evidence commits the matching reveal; non-file/timeout reverses it. Traditional top-edge mode restores the former 1/255-alpha 12-physical-pixel compatibility band only when the user explicitly selects it.
+- With zero Temporary Space items and no drag, Smart mode leaves every visual Overlay hidden with an empty region and no registered OLE target. It does not create a top-edge input window. Exact Explorer/Desktop item evidence and strong accessibility drag-start evidence take the evidence fast path, but remain invisible until positive file-like OLE evidence arrives. An unknown/non-exact press crossing the Windows drag threshold creates one invisible 60 ms hollow local OLE verification ring. File evidence then commits the matching reveal about 76 physical pixels below the edge; non-file/timeout never reveals it. Traditional top-edge mode restores the former 1/255-alpha 12-physical-pixel compatibility band only when the user explicitly selects it.
 - A valid storage-item drag enters `DragApproaching`, grows to `DragReady`, and states that dropping adds references without moving originals.
 - A successful drop becomes Compact. One item shows a short title; several show a count. Clipboard captures do not affect visibility.
 - Clicking Compact opens a bounded Expanded surface with up to five recent items, Open, Pin, Remove Reference, external drag-out, and Open DropSpace.
@@ -147,7 +147,7 @@ Copy is the advertised operation. DropSpace never claims the target moved the so
 
 - Main window activation redirects to the existing instance.
 - Hidden-to-tray is distinct from minimized.
-- Modal dialogs are limited to destructive clear operations, unrecoverable migration recovery, and file replacement confirmation.
+- Modal dialogs are limited to destructive clear operations, unrecoverable migration recovery, file replacement confirmation, and explicit image-action parameters.
 - Theme, scale, display changes update without requiring relaunch where supported.
 - Closing the main window may hide it to the tray; it does not stop the Overlay or clipboard listener. Only Exit DropSpace ends the process.
 - Ordinary visible, uncloaked fullscreen application windows suppress non-drag Overlay presentation. Desktop/Shell classes (`Progman`, `WorkerW`, taskbars), shell identity, hidden/cloaked/iconic/tool windows never count as fullscreen. An explicit storage-item drag into the activation zone is allowed to reveal the target.
@@ -200,6 +200,10 @@ Quick Preview opens from the item More menu and shows bounded text/metadata or a
 
 Explorer and SendTo commands acknowledge completion through the existing non-activating projection/overlay path. The acknowledgement is generic (“Added to DropSpace” / count) and contains no path or payload. The main window remains hidden unless the user opens it.
 
-Each item shows the configured available primary Quick Actions directly below its preview. The More menu is the remaining registry projection after those primary IDs are excluded. Settings exposes Automatic/custom controls for Files and folders, Images, Text and code, and URLs; duplicate selections are rejected and Reset returns the profile to Automatic.
+Each item shows the configured available primary Quick Actions directly below its preview. The More menu is the remaining registry projection after those primary IDs are excluded. Settings exposes Automatic/custom controls for Files and folders, Images, Text and code, and URLs; duplicate selections are rejected and Reset returns the profile to Automatic. Hash, ZIP, QR, and image exports use the dedicated DropSpace exports folder unless the user chooses another folder. Resize requires explicit width and height; conversion requires an output format and preserves source dimensions unless both optional size fields are supplied; metadata stripping makes a new export and never overwrites the source.
 
 After Remove, Clear, Pin, or Unpin, an informational Undo surface shows the operation and an Undo button for eight seconds. Only one operation is visible at once; starting a new undoable operation finalizes the previous one. `Ctrl+Z` invokes the same coordinator, and expiry removes the surface without changing source files.
+
+## Preview.10 regression recovery
+
+Smart Drag has a strict invisible-candidate phase. The Dynamic Island does not change opacity, geometry, state, focus, or hit testing for pointer movement, drag-threshold crossing, accessibility drag-start, Explorer/Desktop attribution, or an unverified OLE loop. Only positive file-like OLE formats commit visual ownership. Image resize, conversion, and metadata removal open an explicit parameter surface; exports report their destination, use a new collision-safe file, and leave the current source untouched.

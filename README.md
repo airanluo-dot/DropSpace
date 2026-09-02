@@ -11,9 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.9 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.10 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.9](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.9). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.10](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.10). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+
+The **v0.3.0-preview.10** P0 recovery build keeps every Smart Drag candidate invisible until positive file-like OLE evidence, hardens the Dynamic Island's borderless native HWND/DWM boundary, and completes explicit, collision-safe Quick Action image exports. It remains conditional until the hosted Windows and manual Explorer/provider, cursor-feedback, border-leak, DPI, and Quick Action matrix is evidenced; see the [Preview.10 recovery test plan](docs/test-plan/v0.3.0-preview.10.md).
 
 The **v0.3.0-preview.9** usability build adds Installer-only per-user Explorer and SendTo intake, capability-driven custom Quick Actions for four content profiles, and one eight-second Undo slot for removals, Clipboard clear, and pin changes. It preserves the local-first/source-safe boundary and remains conditional until the hosted Windows and manual Explorer, installer, DPI, startup, and Undo matrix is evidenced; see the [Preview.9 test plan](docs/test-plan/v0.3.0-preview.9.md).
 
@@ -89,6 +91,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Windows compatibility baseline](compatibility-baseline.md)
 - [Preview.8 compatibility test plan](docs/test-plan/v0.3.0-preview.8.md)
 - [Preview.9 shell/Quick Actions/Undo test plan](docs/test-plan/v0.3.0-preview.9.md)
+- [Preview.10 P0 recovery test plan](docs/test-plan/v0.3.0-preview.10.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)
 - [Licensing policy](LICENSING.md)

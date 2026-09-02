@@ -12,6 +12,7 @@ using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Actions;
 using DropSpace.Infrastructure.Network;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -41,6 +42,8 @@ public sealed partial class MainPage : Page
     private readonly IWindowsCapabilityService _capabilities;
     private readonly QuickPreviewService _previews;
     private readonly IItemActionRegistry _actions;
+    private readonly QuickActionDialogService _quickActionDialog;
+    private readonly ILogger<MainPage> _logger;
     private readonly DeviceHandoffService _deviceHandoff;
     private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly DropLinkHost _dropLinkHost;
@@ -60,6 +63,8 @@ public sealed partial class MainPage : Page
         IWindowsCapabilityService capabilities,
         QuickPreviewService previews,
         IItemActionRegistry actions,
+        QuickActionDialogService quickActionDialog,
+        ILogger<MainPage> logger,
         DeviceHandoffService deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
@@ -72,6 +77,8 @@ public sealed partial class MainPage : Page
         _capabilities = capabilities;
         _previews = previews;
         _actions = actions;
+        _quickActionDialog = quickActionDialog;
+        _logger = logger;
         _deviceHandoff = deviceHandoff;
         _crossDeviceClipboard = crossDeviceClipboard;
         _dropLinkHost = dropLinkHost;
@@ -367,12 +374,24 @@ public sealed partial class MainPage : Page
 
         await RunAsync(async () =>
         {
-            var result = await _viewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId);
-            await ShowMessageAsync(
-                result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
-                result.OutputPaths.Count == 0
-                    ? result.ErrorCategory ?? _strings.Get("ActionUnavailable")
-                    : string.Join(Environment.NewLine, result.OutputPaths));
+            if (XamlRoot is not { } xamlRoot)
+            {
+                _logger.LogWarning("Main-page quick action could not open its parameter surface because XamlRoot is unavailable.");
+                return;
+            }
+
+            var context = await _quickActionDialog.RequestAsync(
+                new ItemSelectionSnapshot([DropItemSnapshot.FromItem(quickAction.Card.Item)]),
+                quickAction.ActionId,
+                xamlRoot,
+                _windowHandle);
+            if (context is null)
+            {
+                return;
+            }
+
+            var result = await _viewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId, context);
+            await ShowActionResultAsync(result);
         });
     }
 
@@ -890,7 +909,6 @@ public sealed partial class MainPage : Page
         if (!Enum.TryParse<ItemActionId>(actionText, out var action)) return;
         await RunAsync(async () =>
         {
-            var snapshot = DropItemSnapshot.FromItem(card.Item);
             if (action == ItemActionId.SendToDevice)
             {
                 await SendToDeviceAsync(card.Item);
@@ -906,10 +924,24 @@ public sealed partial class MainPage : Page
                 await ShowShareDescriptorAsync(await _sharing.CreateInternetAsync([card.Item], _viewModel.Settings));
                 return;
             }
-            var result = await _actions.ExecuteAsync(action, new ItemActionContext(new ItemSelectionSnapshot([snapshot])));
-            await ShowMessageAsync(
-                result.Succeeded ? _strings.Get("ActionCompleted") : _strings.Get("ActionUnavailable"),
-                result.OutputPaths.Count == 0 ? result.ErrorCategory ?? _strings.Get("ActionUnavailable") : string.Join(Environment.NewLine, result.OutputPaths));
+            if (XamlRoot is not { } xamlRoot)
+            {
+                _logger.LogWarning("Main-page More action could not open its parameter surface because XamlRoot is unavailable.");
+                return;
+            }
+
+            var context = await _quickActionDialog.RequestAsync(
+                new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]),
+                action,
+                xamlRoot,
+                _windowHandle);
+            if (context is null)
+            {
+                return;
+            }
+
+            var result = await _viewModel.ExecuteQuickActionAsync(card, action, context);
+            await ShowActionResultAsync(result);
         });
     }
 
@@ -2027,6 +2059,16 @@ public sealed partial class MainPage : Page
         {
             _dialogGate.Release();
         }
+    }
+
+    private Task ShowActionResultAsync(ItemActionResult result)
+    {
+        var messageKey = result.MessageResourceKey ?? "ActionUnavailable";
+        var title = _strings.Get(messageKey);
+        var content = result.OutputPaths.Count == 0
+            ? _strings.Get(messageKey)
+            : _strings.Format("ActionOutputSaved", string.Join(Environment.NewLine, result.OutputPaths));
+        return ShowMessageAsync(title, content);
     }
 
     private async Task RunAsync(Func<Task> operation)

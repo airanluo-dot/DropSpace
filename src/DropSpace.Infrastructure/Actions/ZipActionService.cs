@@ -1,9 +1,10 @@
 using System.IO.Compression;
 using DropSpace.Core.Actions;
+using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Actions;
 
-public sealed class ZipActionService : IItemAction
+public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
 {
     private const int MaximumEntries = 10_000;
     private const long MaximumBytes = 64L * 1024 * 1024 * 1024;
@@ -23,12 +24,16 @@ public sealed class ZipActionService : IItemAction
     {
         var capability = Evaluate(context.Selection);
         if (!capability.IsAvailable) return ItemActionResult.Failure("not-available", "ActionUnavailable");
-        var root = context.DestinationDirectory ?? Path.GetDirectoryName(context.Selection.Items[0].OriginalPath!) ?? Environment.CurrentDirectory;
+        var root = ActionOutputPolicy.ResolveDirectory(paths, context.DestinationDirectory);
         Directory.CreateDirectory(root);
-        var archivePath = UniqueArchivePath(root, context.Selection.Items.Count == 1 ? Path.GetFileName(context.Selection.Items[0].OriginalPath!) : "DropSpace files");
+        string? archivePath = null;
         try
         {
-            await using var output = new FileStream(archivePath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            await using var output = ActionOutputPolicy.CreateNewFile(
+                root,
+                context.Selection.Items.Count == 1 ? Path.GetFileName(context.Selection.Items[0].OriginalPath!) : "DropSpace files",
+                ".zip",
+                out archivePath);
             using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
             var budget = new ArchiveBudget();
             foreach (var selected in context.Selection.Items)
@@ -37,7 +42,7 @@ public sealed class ZipActionService : IItemAction
                 var baseName = SanitizeEntryName(Path.GetFileName(source));
                 if (File.GetAttributes(source).HasFlag(FileAttributes.Directory))
                 {
-                    await AddDirectoryAsync(archive, source, baseName, budget, cancellationToken).ConfigureAwait(false);
+                    await AddDirectoryAsync(archive, source, baseName, archivePath!, budget, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -46,16 +51,26 @@ public sealed class ZipActionService : IItemAction
             }
 
             await output.FlushAsync(cancellationToken).ConfigureAwait(false);
-            return ItemActionResult.Success([archivePath], messageResourceKey: "ActionCompleted");
+            return ItemActionResult.Success([archivePath!], messageResourceKey: "ActionCompleted");
         }
         catch
         {
-            TryDelete(archivePath);
+            if (archivePath is not null)
+            {
+                TryDelete(archivePath);
+            }
+
             throw;
         }
     }
 
-    private static async Task AddDirectoryAsync(ZipArchive archive, string root, string prefix, ArchiveBudget budget, CancellationToken cancellationToken)
+    private static async Task AddDirectoryAsync(
+        ZipArchive archive,
+        string root,
+        string prefix,
+        string archivePath,
+        ArchiveBudget budget,
+        CancellationToken cancellationToken)
     {
         var pending = new Queue<(string Path, string Name)>();
         pending.Enqueue((root, prefix));
@@ -67,6 +82,7 @@ public sealed class ZipActionService : IItemAction
             if (attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
             foreach (var child in Directory.EnumerateFileSystemEntries(current.Path))
             {
+                if (PathsEqual(child, archivePath)) continue;
                 var childName = string.Concat(current.Name, "/", SanitizeEntryName(Path.GetFileName(child)));
                 var childAttributes = File.GetAttributes(child);
                 if (childAttributes.HasFlag(FileAttributes.ReparsePoint)) continue;
@@ -75,6 +91,9 @@ public sealed class ZipActionService : IItemAction
             }
         }
     }
+
+    private static bool PathsEqual(string left, string right) =>
+        string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
 
     private static async Task AddFileAsync(ZipArchive archive, string path, string name, ArchiveBudget budget, CancellationToken cancellationToken)
     {
@@ -86,14 +105,6 @@ public sealed class ZipActionService : IItemAction
         await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         await using var output = entry.Open();
         await input.CopyToAsync(output, 81_920, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static string UniqueArchivePath(string root, string name)
-    {
-        var stem = Path.GetFileNameWithoutExtension(name);
-        var candidate = Path.Combine(root, string.Concat(stem, ".zip"));
-        for (var index = 1; File.Exists(candidate); index++) candidate = Path.Combine(root, string.Concat(stem, " (", index, ").zip"));
-        return candidate;
     }
 
     private static string SanitizeEntryName(string name) =>

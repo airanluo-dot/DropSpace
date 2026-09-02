@@ -15,5 +15,6 @@ public sealed class AppStoragePathsTests
         Assert.IsTrue(paths.Root.StartsWith(localAppData, StringComparison.OrdinalIgnoreCase));
         Assert.AreEqual("DropSpace", Path.GetFileName(paths.Root));
         Assert.AreEqual(Path.Combine(paths.Root, "data", "dropspace.db"), paths.Database);
+        Assert.AreEqual(Path.Combine(paths.Root, "exports"), paths.Exports);
     }
 }

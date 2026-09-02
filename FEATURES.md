@@ -223,3 +223,9 @@ Settings save immediately after validation. Failed saves revert the control and 
 - Explorer's classic per-user **Send to DropSpace** verb and the per-user **SendTo → DropSpace** shortcut feed files/folders into normal Temporary Space records without elevation, source movement, clipboard writes, or main-window activation.
 - Quick Actions support independent File, Image, Text, and URL profiles. Each profile is Automatic or a validated custom order of up to three registry actions; unavailable choices are skipped and remaining registry actions stay in More.
 - Remove item/batch, clear unpinned Clipboard history, and pin/unpin operations share one eight-second Undo slot. Pending removals are hidden transactionally, preserve the original record identity/metadata, and delete only DropSpace-owned payloads after expiry/finalization.
+
+## v0.3.0-preview.10 additions
+
+- Smart Drag keeps every candidate invisible until the ephemeral OLE probe positively classifies `CF_HDROP`, Shell Item array, or the virtual-file descriptor pair. Pointer threshold, accessibility drag-start, Explorer/Desktop attribution, and rejected/late/duplicate probe callbacks cannot reveal or reopen a session.
+- The Dynamic Island HWND uses checked Win32/DWM/non-client/region operations, verifies client geometry after placement, and remains hidden when a critical native operation fails. Windows 10 retains the base visual; Windows 11 DWM corner/border enhancements are optional and HRESULT-checked.
+- Hash, ZIP, QR, resize, conversion, and metadata exports default to a dedicated DropSpace exports folder, reserve names atomically, surface localized access/source/output/parameter errors, and never overwrite the current source. Image actions collect explicit output format and size choices; conversion preserves source dimensions when optional resize fields are blank.

@@ -1463,6 +1463,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ItemCardViewModel card,
         ItemActionId actionId,
         CancellationToken cancellationToken = default)
+        => await ExecuteQuickActionAsync(
+            card,
+            actionId,
+            actionContext: null,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    public async Task<ItemActionResult> ExecuteQuickActionAsync(
+        ItemCardViewModel card,
+        ItemActionId actionId,
+        ItemActionContext? actionContext,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
         var selection = new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]);
@@ -1473,10 +1484,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return ItemActionResult.Failure("action-unavailable", "ActionUnavailable");
         }
 
-        var result = await _actions.ExecuteAsync(
-                actionId,
-                new ItemActionContext(selection, CancellationToken: cancellationToken),
-                cancellationToken);
+        var context = actionContext is null
+            ? new ItemActionContext(selection, CancellationToken: cancellationToken)
+            : actionContext with
+            {
+                // The card is the authority for availability; never execute a context for a
+                // stale or different selection supplied by a view.
+                Selection = selection,
+                CancellationToken = cancellationToken,
+            };
+        var result = await _actions.ExecuteAsync(actionId, context, cancellationToken);
         if (!string.IsNullOrWhiteSpace(result.MessageResourceKey))
         {
             StatusMessage = _strings.Get(result.MessageResourceKey);

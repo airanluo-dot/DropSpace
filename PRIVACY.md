@@ -232,3 +232,18 @@ Network features are opt-in. DropLink sends only authenticated pairing/transfer 
 Shell intake receives only the filesystem paths supplied by Explorer/SendTo, validates bounded input, and routes references through the existing local file-reference service. It does not copy or move source data, write Clipboard History, or log paths/filenames. The per-user registry verb and SendTo shortcut are the only Installer-owned shell entries; Portable does not create persistent registration.
 
 Undo stores a token and expiry in the local SQLite row rather than making a second source copy. Pending rows are hidden while the eight-second window is active. On finalization, only payload files under the DropSpace-owned payload root are eligible for cleanup; original source files are never passed to the payload deletion boundary. Pin Undo stores only the previous boolean state in memory.
+
+## Preview.10 Smart Drag and export boundary
+
+Smart Drag source inspection and the ephemeral OLE probe never read dragged
+payload content. The probe performs bounded `QueryGetData` checks for file-like
+formats, remains hollow and non-activating, returns `DROPEFFECT_NONE`, and
+records only format categories and numeric timing. A candidate cannot reveal
+the Dynamic Island until the positive file-like classification is complete.
+
+Quick Action exports default to a DropSpace-owned `exports` directory or an
+explicit folder chosen by the user. Output names are reserved atomically and
+the current source is never opened for write, replaced, or deleted. Completion
+surfaces show the selected output path; diagnostics retain the existing
+path-redaction policy and use localized error categories rather than raw
+exception text.

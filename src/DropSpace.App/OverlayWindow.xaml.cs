@@ -33,6 +33,7 @@ public sealed partial class OverlayWindow : Window
     private readonly ILogger<OverlayWindow> _logger;
     private readonly DragActivationCallbacks _visualDragCallbacks;
     private readonly OleDragDropService _dragDropService;
+    private readonly QuickActionDialogService _quickActionDialog;
     private readonly nint _windowHandle;
     private OleDropTargetRegistration? _nativeDropTarget;
     private readonly OverlayMotionController _motion = new(OverlayMotionValues.Hidden);
@@ -44,6 +45,8 @@ public sealed partial class OverlayWindow : Window
     private bool _hideWhenSettled;
     private bool _suppressedForFullscreen;
     private long _regionFailureCount;
+    private bool _nativeWindowSafeToShow;
+    private readonly int _operatingSystemBuild;
     private bool _visualDragActive;
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
@@ -58,6 +61,7 @@ public sealed partial class OverlayWindow : Window
         MonitorLayoutService monitorLayout,
         IWindowsCapabilityService capabilities,
         OleDragDropService dragDropService,
+        QuickActionDialogService quickActionDialog,
         DragActivationCallbacks dragCallbacks,
         Action openMainWindow,
         ILogger<OverlayWindow> logger)
@@ -70,6 +74,8 @@ public sealed partial class OverlayWindow : Window
         _logger = logger;
         _visualDragCallbacks = dragCallbacks;
         _dragDropService = dragDropService;
+        _quickActionDialog = quickActionDialog;
+        _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
         try
         {
             InitializeComponent();
@@ -91,15 +97,42 @@ public sealed partial class OverlayWindow : Window
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
-        OverlayWindowInterop.ConfigureVisualWindow(
+        var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
             capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
+        foreach (var failure in nativeConfiguration.Failures)
+        {
+            LogNativeFailure(failure);
+        }
         _resolvedPlacement = ResolvePlacement(
             FileDragWakeMode.SmartExperimental,
             new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
-        PositionFixedHost();
-        OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
-        OverlayWindowInterop.Hide(_windowHandle);
+        var hostGeometrySafe = PositionFixedHost();
+        _nativeWindowSafeToShow = nativeConfiguration.IsSafeToShow && hostGeometrySafe;
+        if (!hostGeometrySafe)
+        {
+            _logger.LogError(
+                "Overlay HWND {WindowHandle} on monitor {MonitorId} will remain hidden because its client surface does not match the fixed host geometry.",
+                _windowHandle,
+                _monitor.Id);
+        }
+        if (!_nativeWindowSafeToShow)
+        {
+            _logger.LogError(
+                "Overlay HWND {WindowHandle} on monitor {MonitorId} will remain hidden because its borderless native configuration was not safe to show.",
+                _windowHandle,
+                _monitor.Id);
+        }
+        if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+        {
+            LogNativeFailure(emptyRegionFailure);
+            _nativeWindowSafeToShow = false;
+        }
+        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+        {
+            LogNativeFailure(hideFailure);
+            _nativeWindowSafeToShow = false;
+        }
     }
 
     public string MonitorId => _monitor.Id;
@@ -154,6 +187,26 @@ public sealed partial class OverlayWindow : Window
         {
             throw new InvalidOperationException($"Localized Overlay XAML resource '{key}' did not resolve.");
         }
+    }
+
+    private void LogNativeFailure(OverlayNativeFailure? failure)
+    {
+        if (failure is null)
+        {
+            return;
+        }
+
+        var level = failure.Critical ? LogLevel.Error : LogLevel.Warning;
+        _logger.Log(
+            level,
+            "Overlay native operation {Operation} failed on monitor {MonitorId}, HWND {WindowHandle}, scale {Scale:F2}, OS build {OperatingSystemBuild}; win32Error={Win32Error}, hresult=0x{HResult:X8}.",
+            failure.Operation,
+            _monitor.Id,
+            _windowHandle,
+            _monitor.Scale,
+            _operatingSystemBuild,
+            failure.Win32Error,
+            failure.HResult);
     }
 
     internal Task RunSyntheticCfHDropAsync(
@@ -219,7 +272,10 @@ public sealed partial class OverlayWindow : Window
                 throw new InvalidOperationException($"Unsafe overlay motion frame: {controller.Current}.");
             }
 
-            ApplyMotionFrame(controller.Current);
+            if (!ApplyMotionFrame(controller.Current))
+            {
+                throw new InvalidOperationException("The overlay native region could not be applied during geometry stress.");
+            }
         }
     }
 
@@ -242,7 +298,10 @@ public sealed partial class OverlayWindow : Window
                 OverlayPlacementMode.Custom,
                 _placementEdit.Preview.X,
                 _placementEdit.Preview.Y));
-            PositionFixedHost();
+            if (!PositionFixedHost())
+            {
+                HideForNativeFailure();
+            }
             return;
         }
 
@@ -284,7 +343,11 @@ public sealed partial class OverlayWindow : Window
         _suppressedForFullscreen = false;
         _hideWhenSettled = false;
         _resolvedPlacement = ResolvePlacement(wakeMode, placement);
-        PositionFixedHost();
+        if (!PositionFixedHost())
+        {
+            HideForNativeFailure();
+            return;
+        }
 
         if (snapshot.State == OverlayState.Hidden)
         {
@@ -322,18 +385,61 @@ public sealed partial class OverlayWindow : Window
 
     private void EnsureVisualHostShown(bool allowActivation)
     {
-        EnsureNativeDropTargetRegistered();
-        PositionFixedHost();
-        OverlayWindowInterop.SetNoActivate(_windowHandle, !allowActivation);
-        if (_isVisible)
+        if (!_nativeWindowSafeToShow)
         {
-            OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
+            _logger.LogError(
+                "Skipped showing overlay HWND {WindowHandle} on monitor {MonitorId} because native borderless setup failed.",
+                _windowHandle,
+                _monitor.Id);
             return;
         }
 
-        ApplyMotionFrame(_motion.Current);
-        OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
-        _isVisible = true;
+        if (!PositionFixedHost())
+        {
+            _logger.LogError(
+                "Skipped showing overlay HWND {WindowHandle} on monitor {MonitorId} because its current client geometry is unsafe.",
+                _windowHandle,
+                _monitor.Id);
+            HideForNativeFailure();
+            return;
+        }
+
+        EnsureNativeDropTargetRegistered();
+        if (!OverlayWindowInterop.SetNoActivate(_windowHandle, !allowActivation, out var noActivateFailure))
+        {
+            LogNativeFailure(noActivateFailure);
+            HideForNativeFailure();
+            return;
+        }
+        if (_isVisible)
+        {
+            if (!OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            {
+                LogNativeFailure(showFailure);
+                HideForNativeFailure();
+            }
+            return;
+        }
+
+        var failuresBeforeFrame = RegionFailureCount;
+        if (!ApplyMotionFrame(_motion.Current))
+        {
+            return;
+        }
+        if (RegionFailureCount != failuresBeforeFrame)
+        {
+            return;
+        }
+
+        if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var firstShowFailure))
+        {
+            _isVisible = true;
+        }
+        else
+        {
+            LogNativeFailure(firstShowFailure);
+            HideForNativeFailure();
+        }
     }
 
     private void HideImmediately()
@@ -344,12 +450,45 @@ public sealed partial class OverlayWindow : Window
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
-        OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
-        OverlayWindowInterop.Hide(_windowHandle);
+        if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+        {
+            LogNativeFailure(emptyRegionFailure);
+            _nativeWindowSafeToShow = false;
+        }
+        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+        {
+            LogNativeFailure(hideFailure);
+            _nativeWindowSafeToShow = false;
+        }
         RevokeNativeDropTarget();
         _motion.SnapTo(OverlayMotionValues.Hidden);
         _isVisible = false;
         _hideWhenSettled = false;
+        _visualPhase = OverlayVisualPhase.Invisible;
+    }
+
+    private void HideForNativeFailure()
+    {
+        _nativeWindowSafeToShow = false;
+        StopAnimationFrames();
+        Surface.Opacity = 0;
+        ShadowSurface.Opacity = 0;
+        CompactPanel.Visibility = Visibility.Collapsed;
+        DragPanel.Visibility = Visibility.Collapsed;
+        ExpandedPanel.Visibility = Visibility.Collapsed;
+        _motion.SnapTo(OverlayMotionValues.Hidden);
+        _hideWhenSettled = false;
+        if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+        {
+            LogNativeFailure(emptyRegionFailure);
+        }
+        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+        {
+            LogNativeFailure(hideFailure);
+        }
+
+        RevokeNativeDropTarget();
+        _isVisible = false;
         _visualPhase = OverlayVisualPhase.Invisible;
     }
 
@@ -378,7 +517,7 @@ public sealed partial class OverlayWindow : Window
         StartAnimationFrames();
     }
 
-    private void PositionFixedHost()
+    private bool PositionFixedHost()
     {
         var width = ToPixels(HostWidth);
         var height = ToPixels(HostHeight);
@@ -387,6 +526,22 @@ public sealed partial class OverlayWindow : Window
             _resolvedPlacement.HostTopPixels,
             width,
             height));
+        var matches = OverlayWindowInterop.TryGetClientSize(_windowHandle, out var actualWidth, out var actualHeight) &&
+                      actualWidth == width && actualHeight == height;
+        if (!matches)
+        {
+            _logger.LogWarning(
+                "Overlay HWND/client geometry mismatch on monitor {MonitorId}: expected {ExpectedWidth}x{ExpectedHeight}px, actual {ActualWidth}x{ActualHeight}px, scale {Scale:F2}, OS build {OperatingSystemBuild}.",
+                _monitor.Id,
+                width,
+                height,
+                actualWidth,
+                actualHeight,
+                _monitor.Scale,
+                _operatingSystemBuild);
+        }
+
+        return matches;
     }
 
     private OverlayResolvedPlacement ResolvePlacement(
@@ -431,7 +586,10 @@ public sealed partial class OverlayWindow : Window
         var elapsed = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now);
         _lastFrameTimestamp = now;
         _motion.Step(elapsed);
-        ApplyMotionFrame(_motion.Current);
+        if (!ApplyMotionFrame(_motion.Current))
+        {
+            return;
+        }
         if (_motion.IsAnimating)
         {
             return;
@@ -453,8 +611,16 @@ public sealed partial class OverlayWindow : Window
             Surface.Opacity = 0;
             ShadowSurface.Opacity = 0;
             CollapseInvisibleContent(_motion.Current);
-            OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
-            OverlayWindowInterop.Hide(_windowHandle);
+            if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+            {
+                LogNativeFailure(emptyRegionFailure);
+                _nativeWindowSafeToShow = false;
+            }
+            if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+            {
+                LogNativeFailure(hideFailure);
+                _nativeWindowSafeToShow = false;
+            }
             RevokeNativeDropTarget();
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
@@ -475,7 +641,7 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
-    private void ApplyMotionFrame(OverlayMotionValues values)
+    private bool ApplyMotionFrame(OverlayMotionValues values)
     {
         values = values.ProjectToSafeRange();
         Surface.Width = values.Width;
@@ -505,6 +671,30 @@ public sealed partial class OverlayWindow : Window
         var height = ToPixels(values.Height * values.DropTargetScale);
         var left = (ToPixels(HostWidth) - width) / 2;
         var top = ToPixels(values.TopOffset + values.Height * (1 - values.DropTargetScale) / 2);
+        var hostWidth = ToPixels(HostWidth);
+        var hostHeight = ToPixels(HostHeight);
+        if (left < 0 || top < 0 || width <= 0 || height <= 0 ||
+            left > hostWidth - width || top > hostHeight - height)
+        {
+            Interlocked.Increment(ref _regionFailureCount);
+            var geometryFailure = new OverlayNativeFailure(
+                "Validate overlay region against fixed client surface",
+                Critical: true,
+                Win32Error: 87);
+            LogNativeFailure(geometryFailure);
+            HideForNativeFailure();
+            _logger.LogError(
+                "The overlay frame {Width}x{Height}+{Left}+{Top} exceeded the fixed client surface {HostWidth}x{HostHeight} on monitor {MonitorId}; the unsafe frame was hidden.",
+                width,
+                height,
+                left,
+                top,
+                hostWidth,
+                hostHeight,
+                _monitor.Id);
+            return false;
+        }
+
         if (!OverlayWindowInterop.ApplyVisualRegion(
             _windowHandle,
             left,
@@ -512,14 +702,19 @@ public sealed partial class OverlayWindow : Window
             width,
             height,
             ToPixels(values.TopRadius),
-            ToPixels(values.BottomRadius)))
+            ToPixels(values.BottomRadius),
+            out var regionFailure))
         {
             Interlocked.Increment(ref _regionFailureCount);
-            OverlayWindowInterop.ApplyEmptyRegion(_windowHandle);
+            LogNativeFailure(regionFailure);
+            HideForNativeFailure();
             _logger.LogError(
                 "The overlay HRGN could not be applied for monitor {MonitorId}; the unsafe frame was hidden.",
                 _monitor.Id);
+            return false;
         }
+
+        return true;
     }
 
     private void PrepareContentForTarget(OverlayMotionValues target)
@@ -686,22 +881,48 @@ public sealed partial class OverlayWindow : Window
         _resolvedPlacement = ResolvePlacement(
             _viewModel.FileDragWakeMode,
             new OverlayMonitorPlacement(OverlayPlacementMode.Custom, projectedStart.X, projectedStart.Y));
-        PositionFixedHost();
+        if (!PositionFixedHost())
+        {
+            _logger.LogError(
+                "Placement edit kept overlay HWND {WindowHandle} hidden on monitor {MonitorId} because its client geometry is unsafe.",
+                _windowHandle,
+                _monitor.Id);
+            HideForNativeFailure();
+            return;
+        }
         RevokeNativeDropTarget();
         PlacementEditSurface.Visibility = Visibility.Visible;
         PlacementEditSurface.IsHitTestVisible = true;
         PrepareContentForTarget(CreateMotionTarget(OverlayState.Compact, 0));
         _motion.SetTarget(CreateMotionTarget(OverlayState.Compact, 0), IsReducedMotion());
-        OverlayWindowInterop.SetNoActivate(_windowHandle, true);
+        if (!OverlayWindowInterop.SetNoActivate(_windowHandle, true, out var noActivateFailure))
+        {
+            LogNativeFailure(noActivateFailure);
+            HideForNativeFailure();
+            return;
+        }
         if (!_isVisible)
         {
-            ApplyMotionFrame(_motion.Current);
-            OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
-            _isVisible = true;
+            if (!ApplyMotionFrame(_motion.Current))
+            {
+                return;
+            }
+            if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            {
+                _isVisible = true;
+            }
+            else
+            {
+                LogNativeFailure(showFailure);
+                HideForNativeFailure();
+            }
         }
         else
         {
-            OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle);
+            if (!OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            {
+                LogNativeFailure(showFailure);
+            }
         }
 
         StartAnimationFrames();
@@ -746,7 +967,12 @@ public sealed partial class OverlayWindow : Window
                 OverlayPlacementMode.Custom,
                 _placementEdit.Preview.X,
                 _placementEdit.Preview.Y));
-        PositionFixedHost();
+        if (!PositionFixedHost())
+        {
+            HideForNativeFailure();
+            CancelPlacementEdit();
+            return;
+        }
         args.Handled = true;
     }
 
@@ -791,7 +1017,11 @@ public sealed partial class OverlayWindow : Window
         try
         {
             await _viewModel.ExpandAsync();
-            OverlayWindowInterop.SetNoActivate(_windowHandle, false);
+            if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
+            {
+                LogNativeFailure(noActivateFailure);
+                return;
+            }
             Activate();
         }
         catch (Exception exception)
@@ -868,11 +1098,24 @@ public sealed partial class OverlayWindow : Window
 
         try
         {
-            var result = await _viewModel.ExecuteQuickActionAsync(quickAction);
-            if (!result.Succeeded)
+            if (Root.XamlRoot is not { } xamlRoot)
             {
-                _logger.LogInformation("Overlay quick action was unavailable.");
+                _logger.LogWarning("Overlay quick action could not open its parameter surface because XamlRoot is unavailable.");
+                return;
             }
+
+            var context = await _quickActionDialog.RequestAsync(
+                new ItemSelectionSnapshot([DropItemSnapshot.FromItem(quickAction.Card.Item)]),
+                quickAction.ActionId,
+                xamlRoot,
+                _windowHandle);
+            if (context is null)
+            {
+                return;
+            }
+
+            var result = await _viewModel.ExecuteQuickActionAsync(quickAction, context);
+            await _quickActionDialog.ShowResultAsync(result, xamlRoot);
         }
         catch (Exception exception)
         {

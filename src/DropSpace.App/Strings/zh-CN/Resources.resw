@@ -320,11 +320,37 @@
   <data name="PreviewUnavailable" xml:space="preserve"><value>此项目没有可用的受限预览。</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>操作已成功完成。</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>当前选择无法使用此操作。</value></data>
+  <data name="ActionParametersRequired" xml:space="preserve"><value>请先选择所有必需的操作参数。</value></data>
+  <data name="ActionAccessDenied" xml:space="preserve"><value>DropSpace 无法访问源文件或导出位置。</value></data>
+  <data name="ActionSourceUnavailable" xml:space="preserve"><value>源文件已不可用或无法读取。</value></data>
+  <data name="ActionOutputUnavailable" xml:space="preserve"><value>DropSpace 无法创建导出文件。请检查目标位置后重试。</value></data>
+  <data name="ActionInvalidData" xml:space="preserve"><value>源数据无效，或超出操作的安全限制。</value></data>
+  <data name="ActionCancelled" xml:space="preserve"><value>操作已取消。</value></data>
+  <data name="ActionFailed" xml:space="preserve"><value>操作无法完成。请查看日志获取诊断信息。</value></data>
+  <data name="ActionOutputSaved" xml:space="preserve"><value>输出已保存到：{0}</value></data>
+  <data name="QuickActionParametersTitle" xml:space="preserve"><value>操作参数</value></data>
+  <data name="QuickActionParametersDescription" xml:space="preserve"><value>选择导出文件夹，或留空以使用私有的 DropSpace 导出文件夹。图像操作需要明确的输出设置。</value></data>
+  <data name="QuickActionDestination" xml:space="preserve"><value>导出文件夹</value></data>
+  <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace 导出文件夹（默认）</value></data>
+  <data name="QuickActionChooseFolder" xml:space="preserve"><value>选择…</value></data>
+  <data name="QuickActionOutputFormat" xml:space="preserve"><value>输出格式</value></data>
+  <data name="QuickActionKeepOriginalFormat" xml:space="preserve"><value>保留原格式</value></data>
+  <data name="QuickActionFormatPng" xml:space="preserve"><value>PNG</value></data>
+  <data name="QuickActionFormatJpeg" xml:space="preserve"><value>JPEG</value></data>
+  <data name="QuickActionFormatBmp" xml:space="preserve"><value>BMP</value></data>
+  <data name="QuickActionWidth" xml:space="preserve"><value>宽度（像素）</value></data>
+  <data name="QuickActionHeight" xml:space="preserve"><value>高度（像素）</value></data>
+  <data name="QuickActionRequiredValue" xml:space="preserve"><value>必填</value></data>
+  <data name="QuickActionResizeOptional" xml:space="preserve"><value>转换时可选择调整大小。两个字段都留空可保留源图像尺寸。</value></data>
+  <data name="QuickActionKeepAspectRatio" xml:space="preserve"><value>保持纵横比</value></data>
+  <data name="QuickActionApply" xml:space="preserve"><value>导出</value></data>
+  <data name="QuickActionCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="QuickActionFolderPickerFailed" xml:space="preserve"><value>无法打开导出文件夹选择器。</value></data>
   <data name="ActionHashSha256.Text" xml:space="preserve"><value>计算 SHA-256 哈希</value></data>
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>压缩为 ZIP</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>生成二维码</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整大小或转换图像</value></data>
-  <data name="ActionConvertImage.Text" xml:space="preserve"><value>转换图像为 JPEG</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>转换图像格式</value></data>
   <data name="ActionStripMetadata.Text" xml:space="preserve"><value>清除图像元数据</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>

@@ -320,11 +320,37 @@
   <data name="PreviewUnavailable" xml:space="preserve"><value>No bounded preview is available for this item.</value></data>
   <data name="ActionCompleted" xml:space="preserve"><value>The action completed successfully.</value></data>
   <data name="ActionUnavailable" xml:space="preserve"><value>This action is unavailable for the current selection.</value></data>
+  <data name="ActionParametersRequired" xml:space="preserve"><value>Choose all required action parameters before continuing.</value></data>
+  <data name="ActionAccessDenied" xml:space="preserve"><value>DropSpace could not access the source or export location.</value></data>
+  <data name="ActionSourceUnavailable" xml:space="preserve"><value>The source is no longer available or could not be read.</value></data>
+  <data name="ActionOutputUnavailable" xml:space="preserve"><value>DropSpace could not create the export. Check the destination and try again.</value></data>
+  <data name="ActionInvalidData" xml:space="preserve"><value>The source data is invalid or exceeds the safe action limits.</value></data>
+  <data name="ActionCancelled" xml:space="preserve"><value>The action was cancelled.</value></data>
+  <data name="ActionFailed" xml:space="preserve"><value>The action could not be completed. Check the log for diagnostics.</value></data>
+  <data name="ActionOutputSaved" xml:space="preserve"><value>Output saved to: {0}</value></data>
+  <data name="QuickActionParametersTitle" xml:space="preserve"><value>Action parameters</value></data>
+  <data name="QuickActionParametersDescription" xml:space="preserve"><value>Choose an export folder or leave it blank for the private DropSpace exports folder. Image actions require explicit output settings.</value></data>
+  <data name="QuickActionDestination" xml:space="preserve"><value>Export folder</value></data>
+  <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace exports (default)</value></data>
+  <data name="QuickActionChooseFolder" xml:space="preserve"><value>Choose…</value></data>
+  <data name="QuickActionOutputFormat" xml:space="preserve"><value>Output format</value></data>
+  <data name="QuickActionKeepOriginalFormat" xml:space="preserve"><value>Keep original format</value></data>
+  <data name="QuickActionFormatPng" xml:space="preserve"><value>PNG</value></data>
+  <data name="QuickActionFormatJpeg" xml:space="preserve"><value>JPEG</value></data>
+  <data name="QuickActionFormatBmp" xml:space="preserve"><value>BMP</value></data>
+  <data name="QuickActionWidth" xml:space="preserve"><value>Width (pixels)</value></data>
+  <data name="QuickActionHeight" xml:space="preserve"><value>Height (pixels)</value></data>
+  <data name="QuickActionRequiredValue" xml:space="preserve"><value>Required</value></data>
+  <data name="QuickActionResizeOptional" xml:space="preserve"><value>Optional resize for conversion. Leave both fields blank to keep the source dimensions.</value></data>
+  <data name="QuickActionKeepAspectRatio" xml:space="preserve"><value>Keep aspect ratio</value></data>
+  <data name="QuickActionApply" xml:space="preserve"><value>Export</value></data>
+  <data name="QuickActionCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="QuickActionFolderPickerFailed" xml:space="preserve"><value>The export folder picker could not be opened.</value></data>
   <data name="ActionHashSha256.Text" xml:space="preserve"><value>Calculate SHA-256 hash</value></data>
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>Compress as ZIP</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>Generate QR code</value></data>
   <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>Resize or convert image</value></data>
-  <data name="ActionConvertImage.Text" xml:space="preserve"><value>Convert image to JPEG</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>Convert image format</value></data>
   <data name="ActionStripMetadata.Text" xml:space="preserve"><value>Strip image metadata</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows-to-Windows handoff and clipboard sync are opt-in. Nearby links stay on a private network; Internet Share needs an explicitly configured HTTPS backend.</value></data>
