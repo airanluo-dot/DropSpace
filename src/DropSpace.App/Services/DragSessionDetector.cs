@@ -164,6 +164,14 @@ public sealed class DragSessionDetector : IDisposable
 
     public bool CandidateCreationSuppressed => Volatile.Read(ref _candidateCreationSuppressed) != 0;
 
+    public bool IsVerificationPending(long sessionId) =>
+        !_disposed &&
+        _mode == FileDragWakeMode.SmartExperimental &&
+        _policy.IsActive &&
+        _policy.ActiveSessionId == sessionId &&
+        _policy.ActiveState == DragSessionState.ProbePending &&
+        _policy.RequiresOleVerification;
+
     public void SetPlacementEditing(bool active)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
