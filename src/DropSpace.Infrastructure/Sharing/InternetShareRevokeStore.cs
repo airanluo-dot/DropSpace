@@ -133,7 +133,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
     private static string GetPath(string directory, Guid shareId) =>
         Path.Combine(directory, string.Concat(shareId.ToString("N"), ".bin"));
 
-    private static void Validate(Guid shareId, ShareBackendUploadSession session, DateTimeOffset expiresAtUtc)
+    private static void Validate(Guid shareId, ShareBackendUploadSession? session, DateTimeOffset expiresAtUtc)
     {
         if (shareId == Guid.Empty ||
             session is null ||
@@ -152,7 +152,8 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         }
     }
 
-    private static bool IsSafeHttpsUrl(Uri uri) =>
+    private static bool IsSafeHttpsUrl(Uri? uri) =>
+        uri is not null &&
         uri.IsAbsoluteUri &&
         uri.Scheme == Uri.UriSchemeHttps &&
         string.IsNullOrEmpty(uri.UserInfo) &&
