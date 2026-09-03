@@ -161,6 +161,17 @@ public partial class App : Application
                 await viewModel.InitializeAsync();
                 try
                 {
+                    await _services.GetRequiredService<SecureInternetShareService>().InitializeAsync();
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(
+                        exception,
+                        "Internet Share revoke-handle recovery failed; local workspace remains available.");
+                }
+
+                try
+                {
                     await _services.GetRequiredService<DeviceHandoffService>().InitializeAsync(viewModel.Settings);
                 }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
