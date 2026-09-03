@@ -294,7 +294,8 @@ public sealed class DropLinkHost(
                 var receive = new ReceiveTransfer(session, request.Manifest, staging, GetReceiveRoot(), new ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>>());
                 if (!_sessions.TryAdd(session.Id, receive)) return Results.Conflict(new { error = "session-exists" });
                 await transfers.CreateSessionAsync(session, cancellationToken).ConfigureAwait(false);
-                _ = NotifyTransferOfferedAsync(new IncomingTransferOffer(session.Id, request.PeerId, request.Manifest));
+                await NotifyTransferOfferedAsync(
+                    new IncomingTransferOffer(session.Id, request.PeerId, request.Manifest)).ConfigureAwait(false);
                 return Results.Json(new TransferOfferResponse(session.Id, session.State, null));
             }
             catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
