@@ -20,7 +20,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
     private readonly object _gate = new();
     private DnsRegistration? _registration;
 
-    public async Task<IDisposable> RegisterAsync(DeviceDescriptor descriptor, CancellationToken cancellationToken = default)
+    public async Task<IAsyncDisposable> RegisterAsync(DeviceDescriptor descriptor, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
         lock (_gate)
