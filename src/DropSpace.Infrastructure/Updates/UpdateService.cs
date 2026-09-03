@@ -180,6 +180,9 @@ public sealed class UpdateService : IUpdateService
         }
 
         var trust = await _trustedVerifier.VerifyPublisherAsync(download.FilePath, cancellationToken).ConfigureAwait(false);
+        // D-035: a manual install is an explicit user action and may install an unsigned Preview
+        // after the manifest/size/hash checks above. Only unattended installation is gated on
+        // publisher trust; Preview builds remain usable without pretending to be signed.
         if (unattended && !trust.IsTrusted)
         {
             return Publish(Status with

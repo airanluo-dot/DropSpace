@@ -108,6 +108,38 @@ public sealed class UpdateCoordinatorTests
             ReleaseVersion.Parse("0.1.0"), DeploymentMode.Installer))?.State);
     }
 
+    [TestMethod]
+    public async Task ManualInstallerInstall_AllowsUnsignedPreviewAfterIntegrityVerification()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+        var update = CreateInstallerUpdate(paths);
+        Directory.CreateDirectory(Path.GetDirectoryName(update.FilePath)!);
+        await File.WriteAllBytesAsync(update.FilePath, [1]);
+        await store.SaveAsync(update, "ReadyToInstall");
+        var launcher = new SuccessfulLauncher();
+        var service = new UpdateService(
+            ReleaseVersion.Parse("0.1.0"),
+            new FakeSource(),
+            new UpdateManifestParser(),
+            new NeverDownloader(),
+            new AlwaysVerifier(),
+            new UntrustedVerifier(),
+            launcher,
+            new FakeDeploymentMode(DeploymentMode.Installer),
+            store,
+            IdentityAppStringLocalizer.Instance,
+            NullLogger<UpdateService>.Instance);
+
+        await service.RecoverPendingAsync();
+        var result = await service.InstallAsync(unattended: false);
+
+        Assert.IsTrue(launcher.Started);
+        Assert.AreEqual(UpdateState.Installing, result.State);
+    }
+
     private UpdateService Create(IUpdateSource source)
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
@@ -213,5 +245,16 @@ public sealed class UpdateCoordinatorTests
     {
         public Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default) =>
             throw new System.ComponentModel.Win32Exception(5, "Simulated ShellExecute denial.");
+    }
+
+    private sealed class SuccessfulLauncher : IUpdateInstallerLauncher
+    {
+        public bool Started { get; private set; }
+
+        public Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default)
+        {
+            Started = true;
+            return Task.FromResult(true);
+        }
     }
 }

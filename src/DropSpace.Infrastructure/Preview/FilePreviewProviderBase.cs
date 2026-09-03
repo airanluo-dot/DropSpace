@@ -1,24 +1,27 @@
 using System.Text;
+using DropSpace.Core.Content;
 using DropSpace.Core.Preview;
 
 namespace DropSpace.Infrastructure.Preview;
 
-public abstract class FilePreviewProviderBase(PreviewLimits limits)
+public abstract class FilePreviewProviderBase(PreviewLimits limits, IItemContentResolver contentResolver)
 {
     protected PreviewLimits Limits { get; } = limits.Validate();
 
-    protected static string Extension(DropItemSnapshot item) =>
-        (item.Extension ?? Path.GetExtension(item.OriginalPath ?? string.Empty)).Trim().ToLowerInvariant();
+    protected IItemContentResolver ContentResolver { get; } = contentResolver;
 
-    protected static FileStream OpenFile(DropItemSnapshot item)
+    protected string Extension(DropItemSnapshot item) => ContentResolver.Resolve(item).Extension ?? string.Empty;
+
+    protected FileStream OpenFile(DropItemSnapshot item)
     {
-        if (string.IsNullOrWhiteSpace(item.OriginalPath))
+        var content = ContentResolver.Resolve(item);
+        if (!content.HasReadablePath)
         {
-            throw new InvalidDataException("The item has no source path.");
+            throw new InvalidDataException(content.UnavailableReason ?? "The item has no readable source path.");
         }
 
         return new FileStream(
-            item.OriginalPath,
+            content.ReadablePath!,
             FileMode.Open,
             FileAccess.Read,
             FileShare.Read,

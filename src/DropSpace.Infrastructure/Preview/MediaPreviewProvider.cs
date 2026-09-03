@@ -1,8 +1,9 @@
+using DropSpace.Core.Content;
 using DropSpace.Core.Preview;
 
 namespace DropSpace.Infrastructure.Preview;
 
-public sealed class MediaPreviewProvider(PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits()), IPreviewProvider
+public sealed class MediaPreviewProvider(IItemContentResolver contentResolver, PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits(), contentResolver), IPreviewProvider
 {
     private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -21,9 +22,11 @@ public sealed class MediaPreviewProvider(PreviewLimits? limits = null) : FilePre
     public ValueTask<PreviewCapability> ProbeAsync(DropItemSnapshot item, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var extension = Extension(item);
+        var content = ContentResolver.Resolve(item);
+        var extension = content.Extension ?? string.Empty;
         var kind = AudioExtensions.Contains(extension) ? PreviewKind.Audio : VideoExtensions.Contains(extension) ? PreviewKind.Video : PreviewKind.Unknown;
-        return ValueTask.FromResult(new PreviewCapability(kind != PreviewKind.Unknown, kind, Id, MimeFor(extension), kind == PreviewKind.Unknown ? "Unsupported media type." : null, item.KnownSize, null, null, null));
+        var canPreview = kind != PreviewKind.Unknown && content.HasReadablePath;
+        return ValueTask.FromResult(new PreviewCapability(canPreview, kind, Id, MimeFor(extension), canPreview ? null : "Unsupported or unreadable media type.", content.KnownBytes, null, null, null));
     }
 
     public async Task<PreviewDescriptor> LoadAsync(PreviewRequest request, CancellationToken cancellationToken = default)

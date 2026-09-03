@@ -162,7 +162,9 @@ public sealed class OleDragDropService : IDisposable
     {
         EnsureOleInitialized();
         using var dataObject = new CfHDropDataObject([@"C:\DropSpace-probe-smoke.txt"]);
-        var classification = _fileDataClassifier.Classify(dataObject);
+        var classification = _fileDataClassifier.ResolveAcceptance(
+            dataObject,
+            _fileDataClassifier.Classify(dataObject));
         if (classification.Kind != OleFileDataKind.FileSystemPaths || !classification.CanAccept)
         {
             throw new InvalidOperationException("The shared OLE classifier rejected synthetic CF_HDROP data.");
@@ -182,9 +184,9 @@ public sealed class OleDragDropService : IDisposable
                 0)));
         var unsupported = _fileDataClassifier.Classify(new QueryOnlyDataObject(
             new OleFormatAdvertisement(13, TYMED.TYMED_HGLOBAL)));
-        if (shellItems.Kind != OleFileDataKind.ShellItems || !shellItems.IsFileLikeEvidence || shellItems.CanAcceptNow ||
+        if (shellItems.Kind != OleFileDataKind.ShellItems || !shellItems.IsFileLikeEvidence || shellItems.CanAcceptNow || shellItems.CanAuthorizeVisual ||
             virtualFiles.Kind != OleFileDataKind.VirtualFiles || !virtualFiles.IsFileLikeEvidence ||
-            virtualFiles.CanAcceptNow || !virtualFiles.CanMaterialize ||
+            virtualFiles.CanAcceptNow || !virtualFiles.CanMaterialize || !virtualFiles.CanAuthorizeVisual ||
             unsupported.Kind != OleFileDataKind.None || unsupported.CanAccept)
         {
             throw new InvalidOperationException(
@@ -890,7 +892,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 _monitorId);
         }
 
-        _canAccept = _classification.CanAcceptNow || _classification.CanMaterialize;
+        _canAccept = _classification.CanAuthorizeVisual;
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         _logger.LogInformation(
             "OLE DragEnter received by {SurfaceKind} on monitor {MonitorId}: classification={Classification}, fileLike={FileLike}, accepted={Accepted}, WindowFromPoint={DiscoveredWindow}, targetMatches={TargetMatches}.",

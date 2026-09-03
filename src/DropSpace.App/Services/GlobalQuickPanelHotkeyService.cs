@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace DropSpace.App.Services;
 
 /// <summary>Owns a process-lifetime RegisterHotKey message thread for the Dynamic Island Quick Panel.</summary>
-public sealed class GlobalQuickPanelHotkeyService : IDisposable
+public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposable
 {
     private const int HotkeyId = 0x4453;
     private const uint WindowMessageHotkey = 0x0312;
@@ -15,11 +15,16 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
     private const uint ModifierWindows = 0x0008;
     private const uint ModifierNoRepeat = 0x4000;
     private readonly ILogger<GlobalQuickPanelHotkeyService> _logger;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private Thread? _thread;
     private uint _threadId;
     private HotkeyDefinition _definition;
     private string? _gesture;
-    private readonly ManualResetEventSlim _ready = new(false);
+    private TaskCompletionSource<bool>? _readySignal;
+    private TaskCompletionSource<object?>? _exitSignal;
+    private readonly object _disposeGate = new();
+    private Task? _disposeTask;
+    private int _isRegistered;
     private bool _disposed;
 
     public GlobalQuickPanelHotkeyService(ILogger<GlobalQuickPanelHotkeyService> logger) =>
@@ -27,7 +32,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
 
     public event EventHandler? Invoked;
 
-    public bool IsRegistered { get; private set; }
+    public bool IsRegistered => Volatile.Read(ref _isRegistered) != 0;
 
     public bool CanRegister(string gesture)
     {
@@ -46,7 +51,9 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
         return true;
     }
 
-    public bool TryStart(string gesture)
+    public async Task<bool> TryStartAsync(
+        string gesture,
+        CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _ = Parse(gesture);
@@ -54,38 +61,65 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
         {
             return true;
         }
-        if (!CanRegister(gesture))
+
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (IsRegistered && string.Equals(_gesture, gesture, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!CanRegister(gesture))
+            {
+                return false;
+            }
+
+            var previous = _gesture;
+            if (!await StopCoreAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return false;
+            }
+
+            StartCore(gesture);
+            if (await WaitUntilReadyAsync(cancellationToken).ConfigureAwait(false))
+            {
+                _gesture = gesture;
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(previous) &&
+                await StopCoreAsync(cancellationToken).ConfigureAwait(false))
+            {
+                StartCore(previous);
+                if (await WaitUntilReadyAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    _gesture = previous;
+                }
+            }
+
             return false;
         }
-        var previous = _gesture;
-        Stop();
-        StartCore(gesture);
-        _ = _ready.Wait(TimeSpan.FromSeconds(2));
-        if (IsRegistered)
+        finally
         {
-            _gesture = gesture;
-            return true;
+            _lifecycleGate.Release();
         }
-        if (!string.IsNullOrWhiteSpace(previous))
-        {
-            Stop();
-            StartCore(previous);
-            _ = _ready.Wait(TimeSpan.FromSeconds(2));
-            if (IsRegistered)
-            {
-                _gesture = previous;
-            }
-        }
-        return false;
     }
 
-    public void Start(string gesture) => _ = TryStart(gesture);
+    public async Task StartAsync(string gesture, CancellationToken cancellationToken = default)
+    {
+        if (!await TryStartAsync(gesture, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogWarning("Quick Panel hotkey could not be registered; the Dynamic Island remains available by pointer.");
+        }
+    }
 
     private void StartCore(string gesture)
     {
-        _ready.Reset();
         _definition = Parse(gesture);
+        _readySignal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _exitSignal = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _thread = new Thread(MessageThreadMain)
         {
             IsBackground = true,
@@ -94,57 +128,64 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
         _thread.Start();
     }
 
-    public void Stop()
+    public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_thread is { IsAlive: true } && _threadId != 0)
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            _ = PostThreadMessage(_threadId, WindowMessageQuit, nint.Zero, nint.Zero);
-            _thread.Join(TimeSpan.FromSeconds(2));
+            await StopCoreAsync(cancellationToken).ConfigureAwait(false);
         }
-        else if (_thread is { IsAlive: true })
+        finally
         {
-            _ = _ready.Wait(TimeSpan.FromSeconds(2));
-            if (_threadId != 0)
-            {
-                _ = PostThreadMessage(_threadId, WindowMessageQuit, nint.Zero, nint.Zero);
-                _thread.Join(TimeSpan.FromSeconds(2));
-            }
+            _lifecycleGate.Release();
         }
-        _thread = null;
-        _threadId = 0;
-        IsRegistered = false;
     }
 
     public void Dispose()
     {
-        if (_disposed)
+        _ = DisposeAsync().AsTask();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        lock (_disposeGate)
         {
-            return;
+            if (_disposeTask is null)
+            {
+                _disposed = true;
+                _disposeTask = DisposeCoreAsync();
+            }
+
+            return new ValueTask(_disposeTask);
         }
-        Stop();
-        _ready.Dispose();
-        _disposed = true;
+    }
+
+    private async Task DisposeCoreAsync()
+    {
+        await StopAsync(CancellationToken.None).ConfigureAwait(false);
+        _lifecycleGate.Dispose();
     }
 
     private void MessageThreadMain()
     {
-        _threadId = GetCurrentThreadId();
+        Volatile.Write(ref _threadId, GetCurrentThreadId());
         try
         {
+            _ = PeekMessage(out _, nint.Zero, 0, 0, 0);
             if (!RegisterHotKey(
                 nint.Zero,
                 HotkeyId,
                 _definition.Modifiers | ModifierNoRepeat,
                 _definition.VirtualKey))
             {
-                _ready.Set();
+                _readySignal?.TrySetResult(false);
                 _logger.LogWarning(
                     "Quick Panel hotkey registration failed with Win32 error {Error}; the Dynamic Island remains available by pointer.",
                     Marshal.GetLastWin32Error());
                 return;
             }
-            IsRegistered = true;
-            _ready.Set();
+            Volatile.Write(ref _isRegistered, 1);
+            _readySignal?.TrySetResult(true);
             _logger.LogInformation("Quick Panel global hotkey registered without logging the configured key sequence.");
             while (GetMessage(out var message, nint.Zero, 0, 0) > 0)
             {
@@ -160,10 +201,87 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
         }
         finally
         {
-            _ready.Set();
             _ = UnregisterHotKey(nint.Zero, HotkeyId);
-            IsRegistered = false;
+            Volatile.Write(ref _isRegistered, 0);
+            _readySignal?.TrySetResult(false);
+            _exitSignal?.TrySetResult(null);
         }
+    }
+
+    private async Task<bool> WaitUntilReadyAsync(CancellationToken cancellationToken)
+    {
+        var readySignal = _readySignal;
+        if (readySignal is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            await readySignal.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogWarning("Quick Panel hotkey thread did not report readiness within the bounded startup window.");
+            return false;
+        }
+
+        return IsRegistered;
+    }
+
+    private async Task<bool> StopCoreAsync(CancellationToken cancellationToken)
+    {
+        var thread = _thread;
+        var exitSignal = _exitSignal;
+        if (thread is null)
+        {
+            Volatile.Write(ref _threadId, 0);
+            Volatile.Write(ref _isRegistered, 0);
+            return true;
+        }
+
+        if (thread.IsAlive)
+        {
+            var threadId = Volatile.Read(ref _threadId);
+            if (threadId == 0 && _readySignal is { } readySignal)
+            {
+                try
+                {
+                    await readySignal.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    _logger.LogWarning("Quick Panel hotkey thread did not expose its message queue within the bounded stop window.");
+                }
+
+                threadId = Volatile.Read(ref _threadId);
+            }
+
+            if (threadId != 0 && !PostThreadMessage(threadId, WindowMessageQuit, nint.Zero, nint.Zero))
+            {
+                _logger.LogWarning(
+                    "Quick Panel hotkey thread quit message could not be posted; Win32 error {Error}.",
+                    Marshal.GetLastWin32Error());
+            }
+        }
+
+        if (thread.IsAlive && exitSignal is not null)
+        {
+            try
+            {
+                await exitSignal.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                _logger.LogError("Quick Panel hotkey thread did not stop within the bounded lifecycle window; native state remains owned by that thread.");
+                return false;
+            }
+        }
+
+        _thread = null;
+        Volatile.Write(ref _threadId, 0);
+        Volatile.Write(ref _isRegistered, 0);
+        return true;
     }
 
     internal static HotkeyDefinition Parse(string gesture)
@@ -213,6 +331,10 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable
 
     [DllImport("user32.dll")]
     private static extern int GetMessage(out NativeMessage message, nint window, uint minimum, uint maximum);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PeekMessage(out NativeMessage message, nint window, uint minimum, uint maximum, uint removeMessage);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

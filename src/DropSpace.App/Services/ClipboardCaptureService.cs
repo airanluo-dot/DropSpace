@@ -622,7 +622,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private Task<ClipboardSnapshot?> ReadSnapshotAsync(
         CaptureSignal signal,
         CancellationToken cancellationToken) =>
-        _dispatcher.EnqueueAsync(async () =>
+        _dispatcher.EnqueueAsync<ClipboardSnapshot?>(async () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             var view = Clipboard.GetContent();

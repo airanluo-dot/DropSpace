@@ -92,7 +92,8 @@ public sealed record DropItemSnapshot(
     string? MimeType,
     string? Text,
     UrlMetadata? Url,
-    int Revision)
+    int Revision,
+    PayloadRecord? Payload = null)
 {
     public static DropItemSnapshot FromItem(DropItem item) => new(
         item.Id,
@@ -105,7 +106,8 @@ public sealed record DropItemSnapshot(
         item.Image?.MimeType,
         item.Text?.InlineText,
         item.Url,
-        item.Revision);
+        item.Revision,
+        item.Payload);
 }
 
 public interface IPreviewProvider

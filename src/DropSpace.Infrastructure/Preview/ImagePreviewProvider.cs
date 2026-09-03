@@ -1,15 +1,11 @@
+using DropSpace.Core.Content;
 using DropSpace.Core.Preview;
 using DropSpace.Core.Models;
 
 namespace DropSpace.Infrastructure.Preview;
 
-public sealed class ImagePreviewProvider(PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits()), IPreviewProvider
+public sealed class ImagePreviewProvider(IItemContentResolver contentResolver, PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits(), contentResolver), IPreviewProvider
 {
-    private static readonly HashSet<string> Extensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico",
-    };
-
     public string Id => "image";
 
     public int Priority => 100;
@@ -19,10 +15,11 @@ public sealed class ImagePreviewProvider(PreviewLimits? limits = null) : FilePre
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var extension = Extension(item);
-        var canPreview = item.Kind == ItemKind.Image || Extensions.Contains(extension);
-        var dimensions = canPreview && !string.IsNullOrWhiteSpace(item.OriginalPath)
-            ? TryReadDimensions(item.OriginalPath!, extension)
+        var content = ContentResolver.Resolve(item);
+        var extension = content.Extension ?? string.Empty;
+        var canPreview = content.IsImage && content.HasReadablePath;
+        var dimensions = canPreview
+            ? TryReadDimensions(content.ReadablePath!, extension)
             : (Width: (int?)null, Height: (int?)null);
         if (dimensions.Width is > 0 && dimensions.Height is > 0 &&
             (long)dimensions.Width.Value * dimensions.Height.Value > Limits.MaxImagePixels)
@@ -34,9 +31,9 @@ public sealed class ImagePreviewProvider(PreviewLimits? limits = null) : FilePre
             canPreview,
             PreviewKind.Image,
             Id,
-            item.MimeType ?? MimeFor(extension),
+            content.MimeType ?? MimeFor(extension),
             canPreview ? null : "The image is unsupported or exceeds the pixel limit.",
-            item.KnownSize,
+            content.KnownBytes,
             dimensions.Width,
             dimensions.Height,
             null));
@@ -60,7 +57,7 @@ public sealed class ImagePreviewProvider(PreviewLimits? limits = null) : FilePre
             request.Item.Id,
             PreviewKind.Image,
             request.Item.Title,
-            request.Item.MimeType ?? MimeFor(extension),
+            ContentResolver.Resolve(request.Item).MimeType ?? MimeFor(extension),
             null,
             bytes,
             dimensions.Width,

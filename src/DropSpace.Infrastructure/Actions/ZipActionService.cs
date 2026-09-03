@@ -1,11 +1,18 @@
 using System.IO.Compression;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Content;
+using DropSpace.Core.Preview;
+using DropSpace.Infrastructure.Content;
 using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Actions;
 
-public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
+public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver contentResolver) : IItemAction
 {
+    public ZipActionService(AppStoragePaths paths) : this(paths, new ItemContentResolver(paths))
+    {
+    }
+
     private const int MaximumEntries = 10_000;
     private const long MaximumBytes = 64L * 1024 * 1024 * 1024;
 
@@ -14,9 +21,10 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
         var available = !selection.IsEmpty && selection.Items.All(item =>
-            item.OriginalPath is not null &&
-            item.Status == Core.Models.ItemStatus.Available &&
-            (item.Kind is Core.Models.ItemKind.File or Core.Models.ItemKind.Folder));
+        {
+            var content = contentResolver.Resolve(item);
+            return content.HasReadablePath && content.Type is (ItemContentType.File or ItemContentType.Folder or ItemContentType.Image);
+        });
         return new ItemActionCapability(available, available ? null : "Select readable files or folders.", Descriptor);
     }
 
@@ -31,15 +39,16 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
         {
             await using var output = ActionOutputPolicy.CreateNewFile(
                 root,
-                context.Selection.Items.Count == 1 ? Path.GetFileName(context.Selection.Items[0].OriginalPath!) : "DropSpace files",
+                context.Selection.Items.Count == 1 ? GetEntryName(context.Selection.Items[0], contentResolver) : "DropSpace files",
                 ".zip",
                 out archivePath);
             using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
             var budget = new ArchiveBudget();
             foreach (var selected in context.Selection.Items)
             {
-                var source = selected.OriginalPath!;
-                var baseName = SanitizeEntryName(Path.GetFileName(source));
+                var content = contentResolver.Resolve(selected);
+                var source = content.ReadablePath!;
+                var baseName = GetEntryName(selected, contentResolver);
                 if (File.GetAttributes(source).HasFlag(FileAttributes.Directory))
                 {
                     await AddDirectoryAsync(archive, source, baseName, archivePath!, budget, cancellationToken).ConfigureAwait(false);
@@ -106,6 +115,13 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
 
     private static string SanitizeEntryName(string name) =>
         string.IsNullOrWhiteSpace(name) ? "item" : name.Replace('\0', '_').Replace('/', '_').Replace('\\', '_');
+
+    private static string GetEntryName(DropItemSnapshot item, IItemContentResolver contentResolver)
+    {
+        var content = contentResolver.Resolve(item);
+        var fallback = content.ReadablePath is { } path ? Path.GetFileName(path) : item.Title;
+        return SanitizeEntryName(string.IsNullOrWhiteSpace(item.Title) ? fallback : item.Title);
+    }
 
     private static string GetUniqueEntryName(string name, ArchiveBudget budget)
     {

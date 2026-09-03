@@ -1,10 +1,11 @@
+using DropSpace.Core.Content;
 using System.Text;
 using System.Text.RegularExpressions;
 using DropSpace.Core.Preview;
 
 namespace DropSpace.Infrastructure.Preview;
 
-public sealed partial class PdfPreviewProvider(PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits()), IPreviewProvider
+public sealed partial class PdfPreviewProvider(IItemContentResolver contentResolver, PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits(), contentResolver), IPreviewProvider
 {
     public string Id => "pdf";
 
@@ -15,8 +16,9 @@ public sealed partial class PdfPreviewProvider(PreviewLimits? limits = null) : F
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var canPreview = string.Equals(Extension(item), ".pdf", StringComparison.OrdinalIgnoreCase);
-        return ValueTask.FromResult(new PreviewCapability(canPreview, PreviewKind.Pdf, Id, "application/pdf", canPreview ? null : "Not a PDF file.", item.KnownSize, null, null, null));
+        var content = ContentResolver.Resolve(item);
+        var canPreview = string.Equals(content.Extension, ".pdf", StringComparison.OrdinalIgnoreCase) && content.HasReadablePath;
+        return ValueTask.FromResult(new PreviewCapability(canPreview, PreviewKind.Pdf, Id, "application/pdf", canPreview ? null : "Not a readable PDF file.", content.KnownBytes, null, null, null));
     }
 
     public async Task<PreviewDescriptor> LoadAsync(PreviewRequest request, CancellationToken cancellationToken = default)

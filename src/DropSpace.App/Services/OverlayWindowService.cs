@@ -103,7 +103,7 @@ public sealed class OverlayWindowService : IDisposable
         _dragSessionDetector.CandidateEnded += OnSmartDragCandidateEnded;
         _dragSessionDetector.PlacementEditEscapeRequested += OnPlacementEditEscapeRequested;
         _quickPanelHotkey.Invoked += OnQuickPanelHotkeyInvoked;
-        _quickPanelHotkey.Start(_viewModel.QuickPanelHotkey);
+        await _quickPanelHotkey.StartAsync(_viewModel.QuickPanelHotkey, cancellationToken);
         _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
         ConfigureWakeMode(_viewModel.FileDragWakeMode);
         ApplySnapshot(_viewModel.Snapshot);
@@ -485,7 +485,7 @@ public sealed class OverlayWindowService : IDisposable
         _activeSmartSessionId = 0;
         _dragSessionDetector.SetMode(FileDragWakeMode.Disabled);
         _quickPanelHotkey.Invoked -= OnQuickPanelHotkeyInvoked;
-        _quickPanelHotkey.Stop();
+        _ = _quickPanelHotkey.StopAsync();
         if (_displayTopologyWatcher is not null)
         {
             _displayTopologyWatcher.Changed -= OnDisplayTopologyChanged;
@@ -551,10 +551,7 @@ public sealed class OverlayWindowService : IDisposable
         }
         else if (args.PropertyName == nameof(OverlayViewModel.QuickPanelHotkey))
         {
-            if (!_quickPanelHotkey.TryStart(_viewModel.QuickPanelHotkey))
-            {
-                _logger.LogWarning("Quick Panel retained its previous registered hotkey after a registration conflict.");
-            }
+            _ = RestartQuickPanelHotkeyAsync(_viewModel.QuickPanelHotkey);
         }
         else if (args.PropertyName == nameof(OverlayViewModel.SmartDragExcludedProcesses))
         {
@@ -707,6 +704,21 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var window in _windows)
         {
             window.ResumeAfterPlacementEdit();
+        }
+    }
+
+    private async Task RestartQuickPanelHotkeyAsync(string gesture)
+    {
+        try
+        {
+            if (!await _quickPanelHotkey.TryStartAsync(gesture).ConfigureAwait(false))
+            {
+                _logger.LogWarning("Quick Panel retained its previous registered hotkey after a registration conflict.");
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(exception, "Quick Panel hotkey restart failed safely.");
         }
     }
 

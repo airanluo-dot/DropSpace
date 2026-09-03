@@ -35,6 +35,11 @@ public readonly record struct OleFileDataClassification(
 
     public bool IsFileLike => IsFileLikeEvidence;
 
+    // Visual authorization is the only condition that may reveal a Smart drag surface. Evidence
+    // alone is deliberately insufficient: Shell data must resolve to real paths, while virtual
+    // files are allowed because the real drop target can materialize them on Drop.
+    public bool CanAuthorizeVisual => CanAcceptNow || CanMaterialize;
+
     // Compatibility alias for existing target code. New code should use the explicit capability.
     public bool CanAccept => CanAcceptNow;
 }

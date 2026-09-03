@@ -31,7 +31,7 @@ internal sealed class OleFileDataClassifier
                 0,
                 OlePreferredDropEffect.Copy,
                 true,
-                true,
+                false,
                 false);
         }
 
@@ -83,7 +83,12 @@ internal sealed class OleFileDataClassifier
     {
         if (classification.Kind == OleFileDataKind.FileSystemPaths)
         {
-            return classification;
+            var paths = ReadHDropPaths(dataObject);
+            return classification with
+            {
+                ItemCount = paths.Count,
+                CanAcceptNow = paths.Count > 0,
+            };
         }
 
         if (classification.Kind == OleFileDataKind.ShellItems)
@@ -138,7 +143,11 @@ internal sealed class OleFileDataClassifier
                 var buffer = new char[length + 1];
                 if (DragQueryFile(medium.unionmember, index, buffer, (uint)buffer.Length) > 0)
                 {
-                    paths.Add(new string(buffer, 0, checked((int)length)));
+                    var path = new string(buffer, 0, checked((int)length));
+                    if (!string.IsNullOrWhiteSpace(path))
+                    {
+                        paths.Add(path);
+                    }
                 }
             }
 

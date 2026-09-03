@@ -11,9 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.12 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.13 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.12](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.12). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.13](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.13). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+
+The **v0.3.0-preview.13** audit follow-up unifies readable external and app-owned payload content for Preview and Quick Actions, requires actual acceptance before Smart Drag reveals the Dynamic Island, completes owner-thread OLE cleanup, routes current multi-selection correctly, and bounds asynchronous hotkey/DropLink lifetimes. It remains conditional until the hosted Windows and manual OS/DPI/provider/OLE, multi-selection, two-device DropLink, and Worker/browser matrix is evidenced; see the [Preview.13 release notes](.github/release-notes/v0.3.0-preview.13.md).
 
 The **v0.3.0-preview.12** full-audit hardening Preview keeps every Smart Drag candidate invisible until positive file-like OLE evidence, hardens the Dynamic Island's borderless native HWND/DWM boundary, closes encrypted-share quota and revoke races, completes collision-safe Quick Action exports, and streams large encrypted-share downloads to disk when the browser supports it. It remains conditional until the hosted Windows and manual Explorer/provider, cursor-feedback, border-leak, DPI, Quick Action, and Worker/browser matrix is evidenced; see the [Preview.12 release notes](.github/release-notes/v0.3.0-preview.12.md) and [full-audit execution report](DropSpace_v0.3.0-preview.11_FULL_AUDIT_EXECUTION_REPORT.md).
 

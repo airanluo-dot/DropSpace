@@ -1523,10 +1523,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
     }
 
-    public QuickActionPartition EvaluateQuickActions(ItemCardViewModel card)
+    public ItemSelectionSnapshot ResolveActionSelection(
+        ItemCardViewModel card,
+        IEnumerable<ItemCardViewModel>? selectedCards = null)
     {
         ArgumentNullException.ThrowIfNull(card);
-        var selection = new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]);
+        var clicked = DropItemSnapshot.FromItem(card.Item);
+        var selected = selectedCards?.Select(candidate => DropItemSnapshot.FromItem(candidate.Item));
+        return ItemSelectionResolver.ForClickedItem(clicked, selected);
+    }
+
+    public QuickActionPartition EvaluateQuickActions(
+        ItemCardViewModel card,
+        ItemSelectionSnapshot? selection = null)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        selection ??= ResolveActionSelection(card);
         return QuickActionPreferencePolicy.Partition(
             _actions.Evaluate(selection),
             selection,
@@ -1541,6 +1553,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             card,
             actionId,
             actionContext: null,
+            selection: null,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
     public async Task<ItemActionResult> ExecuteQuickActionAsync(
@@ -1548,9 +1561,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ItemActionId actionId,
         ItemActionContext? actionContext,
         CancellationToken cancellationToken = default)
+        => await ExecuteQuickActionAsync(
+            card,
+            actionId,
+            actionContext,
+            selection: null,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    public async Task<ItemActionResult> ExecuteQuickActionAsync(
+        ItemCardViewModel card,
+        ItemActionId actionId,
+        ItemActionContext? actionContext,
+        ItemSelectionSnapshot? selection,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        var selection = new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]);
+        selection ??= ResolveActionSelection(card);
         var capability = _actions.Evaluate(selection)
             .FirstOrDefault(candidate => candidate.Descriptor.Id == actionId && candidate.IsAvailable);
         if (capability is null)
