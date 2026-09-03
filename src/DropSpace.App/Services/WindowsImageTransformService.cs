@@ -4,7 +4,6 @@ using DropSpace.Core.Preview;
 using DropSpace.Infrastructure.Actions;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
-using Windows.Storage.Streams;
 
 namespace DropSpace.App.Services;
 
@@ -13,7 +12,6 @@ public sealed class WindowsImageTransformService : IImageTransformService
     private const int MaximumDimension = 16_384;
     private const long MaximumPixels = 64L * 1024 * 1024;
     private const int MaximumEncodedBytes = 256 * 1024 * 1024;
-    private const int EncodedCopyBufferBytes = 64 * 1024;
 
     public Task<ItemActionResult> ResizeAsync(
         DropItemSnapshot item,
@@ -136,52 +134,38 @@ public sealed class WindowsImageTransformService : IImageTransformService
         }
         var encoder = ResolveEncoder(outputFormat, item.Extension, item.MimeType);
 
-        using var destination = new InMemoryRandomAccessStream();
-        using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-        cancellationToken.ThrowIfCancellationRequested();
-        var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
-        imageEncoder.SetSoftwareBitmap(bitmap);
-        imageEncoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
-        imageEncoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);
-        imageEncoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
-        // Re-encoding through a SoftwareBitmap intentionally omits arbitrary source metadata.
-        await imageEncoder.FlushAsync();
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (destination.Size is 0 or > MaximumEncodedBytes)
-        {
-            throw new InvalidDataException("The encoded image is too large to export safely.");
-        }
-
-        destination.Seek(0);
-        using var reader = new DataReader(destination.GetInputStreamAt(0));
-        var remaining = checked((long)destination.Size);
-
         string? outputPath = null;
         try
         {
-            await using var output = ActionOutputPolicy.CreateNewFile(
+            // Reserve the final path atomically before encoding, then let the WinRT encoder write
+            // directly to that file. This avoids a second full-size encoded byte buffer and keeps
+            // an incomplete export inside the shared cleanup policy.
+            using (ActionOutputPolicy.CreateNewFile(
                 destinationDirectory,
                 string.Concat(Path.GetFileNameWithoutExtension(item.Title), "-", outputSuffix),
                 encoder.Extension,
-                out outputPath);
-            while (remaining > 0)
+                out outputPath))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var chunkLength = (int)Math.Min(EncodedCopyBufferBytes, remaining);
-                var chunk = new byte[chunkLength];
-                var loaded = await reader.LoadAsync((uint)chunkLength);
-                if (loaded != chunkLength)
-                {
-                    throw new InvalidDataException("The encoded image stream ended unexpectedly.");
-                }
-
-                reader.ReadBytes(chunk);
-                await output.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
-                remaining -= chunkLength;
             }
 
-            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            var outputFile = await StorageFile.GetFileFromPathAsync(outputPath!);
+            using var destination = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
+            using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            cancellationToken.ThrowIfCancellationRequested();
+            var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
+            imageEncoder.SetSoftwareBitmap(bitmap);
+            imageEncoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
+            imageEncoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);
+            imageEncoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
+            // Re-encoding through a SoftwareBitmap intentionally omits arbitrary source metadata.
+            await imageEncoder.FlushAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (destination.Size is 0 or > MaximumEncodedBytes)
+            {
+                throw new InvalidDataException("The encoded image is too large to export safely.");
+            }
+
             return ItemActionResult.Success([outputPath!], messageResourceKey: "ActionCompleted");
         }
         catch
