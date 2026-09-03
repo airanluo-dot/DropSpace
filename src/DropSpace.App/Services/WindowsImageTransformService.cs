@@ -13,6 +13,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
     private const int MaximumDimension = 16_384;
     private const long MaximumPixels = 64L * 1024 * 1024;
     private const int MaximumEncodedBytes = 256 * 1024 * 1024;
+    private const int EncodedCopyBufferBytes = 64 * 1024;
 
     public Task<ItemActionResult> ResizeAsync(
         DropItemSnapshot item,
@@ -154,10 +155,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
         destination.Seek(0);
         using var reader = new DataReader(destination.GetInputStreamAt(0));
-        var bytes = new byte[checked((int)destination.Size)];
-        await reader.LoadAsync((uint)bytes.Length);
-        cancellationToken.ThrowIfCancellationRequested();
-        reader.ReadBytes(bytes);
+        var remaining = checked((long)destination.Size);
 
         string? outputPath = null;
         try
@@ -167,17 +165,28 @@ public sealed class WindowsImageTransformService : IImageTransformService
                 string.Concat(Path.GetFileNameWithoutExtension(item.Title), "-", outputSuffix),
                 encoder.Extension,
                 out outputPath);
-            await output.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            while (remaining > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunkLength = (int)Math.Min(EncodedCopyBufferBytes, remaining);
+                var chunk = new byte[chunkLength];
+                var loaded = await reader.LoadAsync((uint)chunkLength);
+                if (loaded != chunkLength)
+                {
+                    throw new InvalidDataException("The encoded image stream ended unexpectedly.");
+                }
+
+                reader.ReadBytes(chunk);
+                await output.WriteAsync(chunk, cancellationToken).ConfigureAwait(false);
+                remaining -= chunkLength;
+            }
+
             await output.FlushAsync(cancellationToken).ConfigureAwait(false);
             return ItemActionResult.Success([outputPath!], messageResourceKey: "ActionCompleted");
         }
         catch
         {
-            if (outputPath is not null)
-            {
-                TryDelete(outputPath);
-            }
-
+            ActionOutputPolicy.TryDeleteIncompleteOutput(outputPath);
             throw;
         }
     }
@@ -269,22 +278,6 @@ public sealed class WindowsImageTransformService : IImageTransformService
             Math.Clamp((int)Math.Round(sourceHeight * scale), 1, MaximumDimension));
     }
 
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
-    }
 }
 
 public sealed class ImageTransformActionService(
