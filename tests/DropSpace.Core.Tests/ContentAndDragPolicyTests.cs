@@ -1,6 +1,7 @@
 using DropSpace.Core.Content;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
+using DropSpace.Core.Preview;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DropSpace.Core.Tests;
