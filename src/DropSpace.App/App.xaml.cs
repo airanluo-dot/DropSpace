@@ -318,7 +318,7 @@ public partial class App : Application
         {
             try
             {
-                await _startupUpdateTask.ConfigureAwait(false);
+                await _startupUpdateTask;
             }
             catch (OperationCanceledException)
             {
