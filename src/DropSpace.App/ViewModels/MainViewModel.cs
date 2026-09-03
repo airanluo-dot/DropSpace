@@ -17,7 +17,7 @@ using PlacementMode = DropSpace.Core.Models.OverlayPlacementMode;
 
 namespace DropSpace.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject, IDisposable
+public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     private readonly IItemRepository _repository;
     private readonly IItemActionRegistry _actions;
@@ -42,6 +42,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
+    private readonly object _backgroundTaskGate = new();
+    private readonly HashSet<Task> _backgroundTasks = [];
+    private int _asyncResourcesDisposed;
     private string _currentSection = "Space";
     private string _searchText = string.Empty;
     private string _pageTitle = string.Empty;
@@ -145,7 +149,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _searchText, value))
             {
-                _ = DebouncedReloadAsync();
+                TrackBackgroundTask(DebouncedReloadAsync(), "search refresh");
             }
         }
     }
@@ -588,7 +592,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         await _clipboard.InitializeAsync(cancellationToken);
         ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
         UpdateStatus = await _updates.RecoverPendingAsync(cancellationToken);
-        _ = RefreshStorageSummaryAsync(cancellationToken);
+        TrackBackgroundTask(RefreshStorageSummaryAsync(cancellationToken), "storage summary refresh");
         await NavigateAsync(Settings.LaunchPage, cancellationToken);
     }
 
@@ -723,7 +727,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 var card = new ItemCardViewModel(item, _strings);
                 RefreshPrimaryQuickActions(card);
                 Items.Add(card);
-                _ = LoadThumbnailSafelyAsync(card, cancellationToken);
+                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, cancellationToken), "thumbnail load");
             }
             ApplyBatchProjectionState();
 
@@ -1257,8 +1261,74 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _updates.StatusChanged -= OnUpdateStatusChanged;
         _undo.StateChanged -= OnUndoStateChanged;
         _queryCancellation?.Cancel();
-        _queryCancellation?.Dispose();
+        _lifetimeCancellation.Cancel();
         _disposed = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        while (true)
+        {
+            Task[] tasks;
+            lock (_backgroundTaskGate)
+            {
+                tasks = _backgroundTasks.ToArray();
+            }
+
+            if (tasks.Length == 0)
+            {
+                break;
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // User-requested shutdown cancellation is expected for owned background work.
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Owned MainViewModel background work failed during shutdown.");
+            }
+        }
+
+        if (Interlocked.Exchange(ref _asyncResourcesDisposed, 1) == 0)
+        {
+            _queryCancellation?.Dispose();
+            _lifetimeCancellation.Dispose();
+        }
+    }
+
+    private void TrackBackgroundTask(Task task, string operation)
+    {
+        lock (_backgroundTaskGate)
+        {
+            _backgroundTasks.Add(task);
+        }
+
+        task.ContinueWith(
+            completed =>
+            {
+                lock (_backgroundTaskGate)
+                {
+                    _backgroundTasks.Remove(task);
+                }
+
+                if (completed.IsFaulted)
+                {
+                    _logger.LogWarning(
+                        completed.Exception?.GetBaseException(),
+                        "Owned MainViewModel {Operation} failed.",
+                        operation);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     private async Task<DropItem> RefreshFileAvailabilityAsync(ItemCardViewModel card, CancellationToken cancellationToken)
@@ -1371,7 +1441,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                     var card = new ItemCardViewModel(item, _strings);
                     RefreshPrimaryQuickActions(card);
                     Items.Insert(0, card);
-                    _ = LoadThumbnailSafelyAsync(card, CancellationToken.None);
+                    TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
                 }
 
                 ItemCount = Items.Count;
@@ -1418,7 +1488,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(UndoMessage));
             if (state is null && wasRemoval && !_undoRequested)
             {
-                _ = RefreshAfterUndoFinalizationAsync();
+                TrackBackgroundTask(RefreshAfterUndoFinalizationAsync(_lifetimeCancellation.Token), "undo projection refresh");
             }
         }
 
@@ -1432,18 +1502,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task RefreshAfterUndoFinalizationAsync()
+    private async Task RefreshAfterUndoFinalizationAsync(CancellationToken cancellationToken)
     {
         try
         {
             if (!IsSettingsVisible)
             {
-                await ReloadAsync(CancellationToken.None);
+                await ReloadAsync(cancellationToken);
             }
 
-            await PublishSpaceProjectionChangedAsync(CancellationToken.None);
+            await PublishSpaceProjectionChangedAsync(cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The owned refresh was superseded or the view model is shutting down.
+        }
+        catch (Exception exception)
         {
             _logger.LogWarning(exception, "The item projection could not refresh after Undo finalization.");
         }
