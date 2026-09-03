@@ -462,7 +462,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     {
         if (IsOwnerThread)
         {
-            if (message == WindowMessageProbeComplete)
+            if (message == WindowMessageProbeComplete || message == WindowMessageProbeCleanup)
             {
                 CompleteOnOwnerThread();
             }
