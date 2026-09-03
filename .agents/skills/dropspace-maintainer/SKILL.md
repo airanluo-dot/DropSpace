@@ -1723,3 +1723,11 @@ When authoritative production release metadata cannot be verified, fail safely r
 - Quick Action hash, QR, ZIP, image, and metadata exports share bounded/collision-safe output naming and incomplete-output cleanup. Encoded image output writes directly to the reserved destination file instead of creating a second full-size managed buffer.
 - Startup update checks, incoming transfer approval notifications, pairing expiry, undo expiry, projection refresh, DNS-SD registration, detector tasks, and file logging have explicit ownership or awaited asynchronous shutdown paths. Incoming transfer HTTP offers return before UI approval is complete.
 - Preview.11 remains CONDITIONAL until real Windows 10 1809/22H2, Windows 11, mixed-DPI multi-monitor, Explorer/provider, cursor-feedback, border-leak, accessibility, and complete Quick Action acceptance evidence is recorded. Hosted CI and static checks do not substitute for those cells.
+
+## v0.3.0-preview.12 durable product facts
+
+- Preview.12 preserves the Preview.11 Smart Drag/OLE, asynchronous lifecycle, output-safety, encrypted-share quota/revoke, DPAPI, release, and website/API synchronization boundaries.
+- The encrypted-share receiver prefers the browser File System Access API (`showSaveFilePicker`) to decrypt and write one chunk at a time directly to a user-selected file. It uses incremental SHA-256 and aborts the destination when the final length or digest does not match.
+- Browsers without file streaming support have an explicit 256 MiB in-memory fallback limit; do not reintroduce unbounded Blob aggregation for the 2 GiB server-side share limit.
+- Receiver CSP remains nonce-based with no `unsafe-inline`, and display names remain text/download metadata rather than HTML. The Worker remains reference deployment code and still requires the Durable Object binding plus deployment-level abuse/rate-limit controls.
+- Preview.12 remains CONDITIONAL until real Windows OS/DPI/monitor/native Smart Drag evidence and operator-deployed Worker/browser acceptance are recorded. Hosted CI and source-level receiver contract tests do not substitute for those cells.
