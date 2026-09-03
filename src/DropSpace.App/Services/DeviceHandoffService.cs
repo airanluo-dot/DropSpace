@@ -16,7 +16,6 @@ public sealed class DeviceHandoffService(
     FirewallCapabilityService firewall,
     ILogger<DeviceHandoffService> logger) : IAsyncDisposable
 {
-    private IDisposable? _registration;
     private bool _initialized;
     private string? _unavailableReason;
 
@@ -51,7 +50,7 @@ public sealed class DeviceHandoffService(
                 PeerCapability.ClipboardImage | PeerCapability.NearbyBrowserShare,
                 identity.Fingerprint,
                 endpoint);
-            _registration = await discovery.RegisterAsync(descriptor, cancellationToken).ConfigureAwait(false);
+            await discovery.RegisterAsync(descriptor, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is SocketException or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
@@ -79,8 +78,7 @@ public sealed class DeviceHandoffService(
             if (IsEnabled || host.IsRunning)
             {
                 IsEnabled = false;
-                _registration?.Dispose();
-                _registration = null;
+                await discovery.DisposeAsync().ConfigureAwait(false);
                 await host.StopAsync().ConfigureAwait(false);
             }
             _initialized = false;
@@ -156,8 +154,6 @@ public sealed class DeviceHandoffService(
 
     public async ValueTask DisposeAsync()
     {
-        _registration?.Dispose();
-        _registration = null;
         await discovery.DisposeAsync().ConfigureAwait(false);
         await host.DisposeAsync().ConfigureAwait(false);
     }
