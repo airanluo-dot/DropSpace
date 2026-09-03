@@ -2,11 +2,19 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.11 is the current full-audit hardening Preview: it preserves the Preview.10 shell-intake/Quick-Action/Undo contracts, makes Smart Drag visual ownership require positive OLE file evidence, hardens the Dynamic Island HWND/DWM boundary, closes encrypted-share quota/revoke races, and completes source-safe image export parameters and output policy. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor/provider matrix, official share backend, and physical two-device evidence remain explicit operational gates.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.12 is the current full-audit hardening Preview: it preserves the Preview.10 shell-intake/Quick-Action/Undo contracts, makes Smart Drag visual ownership require positive OLE file evidence, hardens the Dynamic Island HWND/DWM boundary, closes encrypted-share quota/revoke races, completes source-safe image export parameters and output policy, and adds bounded streaming downloads for large encrypted shares. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor/provider matrix, official share backend, and physical two-device evidence remain explicit operational gates.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
 v0.2.0 promotes the original event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option; v0.3 Smart never falls back to it implicitly. Preview.2 separates drag intent from payload proof, uses official Shell item resolution before its bounded CIDA fallback, and materializes virtual content only after a real Drop.
+
+
+## v0.3.0-preview.12 delivery slice
+
+- Keep Preview.11 Smart Drag/OLE, task-ownership, output-policy, encrypted-share quota, DPAPI revoke, and release/API synchronization hardening intact.
+- Stream decrypted Internet Share chunks directly to a user-selected file through the browser File System Access API when available, with incremental SHA-256 and abort-on-integrity-failure behavior.
+- Bound browsers without file streaming support to a 256 MiB in-memory fallback and expose an explicit user-facing failure above that limit.
+- Keep Preview.12 CONDITIONAL until the real Windows OS/DPI/monitor/native Smart Drag matrix and operator-deployed Worker/browser acceptance are evidenced.
 
 ## v0.3 — Smart Drag Detection v2 Preview sequence
 
