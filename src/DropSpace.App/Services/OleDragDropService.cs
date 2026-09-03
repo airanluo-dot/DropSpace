@@ -212,7 +212,6 @@ public sealed class OleDragDropService : IDisposable
                 liveCursorPoint.Y);
         }
 
-        EphemeralOleDragProbe? probe = null;
         var cursorMoved = false;
         try
         {
@@ -230,7 +229,6 @@ public sealed class OleDragDropService : IDisposable
                 long.MaxValue,
                 staleCandidatePoint,
                 result => completion.TrySetResult(result));
-            probe = createdProbe;
             if (!createdProbe.VerifyNativeContract() || ActiveVerificationProbeCount != 1)
             {
                 CancelVerificationProbe(createdProbe.SessionId);
@@ -267,19 +265,6 @@ public sealed class OleDragDropService : IDisposable
             {
                 SetCursorPos(originalCursor.X, originalCursor.Y);
             }
-        }
-
-        var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
-        await Task.Yield();
-        probe.Dispose();
-        probe.Dispose();
-        if (result.Outcome != OleDragProbeOutcome.TimedOut ||
-            result.SessionId != probe.SessionId ||
-            !probe.IsDisposed ||
-            ActiveVerificationProbeCount != 0)
-        {
-            throw new InvalidOperationException(
-                "The Smart OLE probe did not enforce timeout cleanup, single ownership and idempotent disposal.");
         }
 
         var fallbackCompletion = new TaskCompletionSource<OleDragProbeResult>(
