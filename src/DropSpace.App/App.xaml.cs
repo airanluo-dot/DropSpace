@@ -327,7 +327,14 @@ public partial class App : Application
 
         _overlayWindows?.Dispose();
         _overlayWindows = null;
-        _window?.AllowCloseAndClose();
+        var window = _window;
+        window?.AllowCloseAndClose();
+        if (window is not null)
+        {
+            await window.DisposeAsync();
+        }
+
+        _window = null;
         if (services is not null)
         {
             await services.DisposeAsync();
