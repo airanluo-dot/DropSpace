@@ -35,6 +35,8 @@ public partial class App : Application
     private OverlayWindowService? _overlayWindows;
     private AppInstance? _mainInstance;
     private int _shuttingDown;
+    private readonly CancellationTokenSource _appLifetimeCancellation = new();
+    private Task? _startupUpdateTask;
 
     public App()
     {
@@ -261,7 +263,7 @@ public partial class App : Application
                     !string.Equals(Environment.GetEnvironmentVariable("DROPSPACE_TEST_MODE"), "1", StringComparison.Ordinal))
                 {
                     // Process-lifetime ownership: opening or hiding windows never calls this path.
-                    _ = viewModel.CheckForUpdatesAtStartupAsync();
+                    _startupUpdateTask = viewModel.CheckForUpdatesAtStartupAsync(_appLifetimeCancellation.Token);
                 }
             }
             catch (Exception exception)
@@ -310,6 +312,19 @@ public partial class App : Application
 
         var services = _services;
         _services = null;
+        _appLifetimeCancellation.Cancel();
+        if (_startupUpdateTask is not null)
+        {
+            try
+            {
+                await _startupUpdateTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Application shutdown cancellation is expected for the owned startup check.
+            }
+        }
+
         _overlayWindows?.Dispose();
         _overlayWindows = null;
         _window?.AllowCloseAndClose();
@@ -317,6 +332,8 @@ public partial class App : Application
         {
             await services.DisposeAsync();
         }
+
+        _appLifetimeCancellation.Dispose();
     }
 
     private ServiceProvider BuildServices()
