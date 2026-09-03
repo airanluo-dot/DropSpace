@@ -254,6 +254,7 @@ async function download(id,master,item){
   }
   let writable = null;
   const out = canStreamToFile ? null : [];
+  let fallbackReleaseScheduled = false;
   if (canStreamToFile) {
     const handle = await window.showSaveFilePicker({suggestedName:String(item.displayName || "download")});
     writable = await handle.createWritable();
@@ -274,12 +275,21 @@ async function download(id,master,item){
     }
     if (written !== plainLength || hash.hex() !== item.sha256.toLowerCase()) throw Error("integrity check failed");
     if (writable) { await writable.close(); writable = null; }
-    else { const blob=new Blob(out,{type:item.mimeType}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=item.displayName; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),60000); }
+    else {
+      const blob=new Blob(out,{type:item.mimeType});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;
+      a.download=item.displayName;
+      a.click();
+      fallbackReleaseScheduled = true;
+      setTimeout(()=>{ URL.revokeObjectURL(url); fallbackDownloadActive = false; },15000);
+    }
   } catch (error) {
     if (writable) await writable.abort().catch(()=>{});
     throw error;
   } finally {
-    if (!canStreamToFile) fallbackDownloadActive = false;
+    if (!canStreamToFile && !fallbackReleaseScheduled) fallbackDownloadActive = false;
   }
 }
 async function get(path){const r=await fetch(path,{cache:"no-store"});if(!r.ok)throw Error("share object unavailable ("+r.status+")");return new Uint8Array(await r.arrayBuffer())}
