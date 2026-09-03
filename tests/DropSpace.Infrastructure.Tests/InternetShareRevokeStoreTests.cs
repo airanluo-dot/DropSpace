@@ -27,9 +27,9 @@ public sealed class InternetShareRevokeStoreTests
 
             var persistedPath = Path.Combine(paths.Data, "share-revokes", shareId.ToString("N") + ".bin");
             Assert.IsTrue(File.Exists(persistedPath));
-            StringAssert.DoesNotContain(
-                "Bearer test-secret-that-must-not-be-stored-in-plaintext",
-                Convert.ToBase64String(await File.ReadAllBytesAsync(persistedPath)));
+            Assert.IsFalse(
+                Convert.ToBase64String(await File.ReadAllBytesAsync(persistedPath))
+                    .Contains("Bearer test-secret-that-must-not-be-stored-in-plaintext", StringComparison.Ordinal));
 
             var restored = await new InternetShareRevokeStore(paths).LoadAllAsync();
             Assert.AreEqual(1, restored.Count);
