@@ -19,3 +19,7 @@ The browser receiver uses WebCrypto, validates the manifest and each chunk hash,
 
 
 The Worker requires the `SHARE_COORDINATOR` Durable Object binding shown in `wrangler.toml.example`. It is the authoritative concurrency-safe ledger for the token's aggregate item and plaintext-byte limits; requests fail closed when the binding is absent. The revoke path marks the coordinator first and paginates R2 deletion, so a large share cannot leave undeleted objects after the first listing page.
+
+## Receiver download memory boundary
+
+The receiver prefers the browser File System Access API (showSaveFilePicker) when available. It decrypts and hashes one chunk at a time, writes each plaintext chunk directly to the selected file, and aborts the destination if integrity verification fails. Browsers without that API keep a bounded in-memory fallback of 256 MiB; larger files fail with an explicit message instead of attempting an unbounded Blob allocation. Fallback downloads are serialized through the temporary Blob URL lifetime so retained Blob memory cannot accumulate concurrently.

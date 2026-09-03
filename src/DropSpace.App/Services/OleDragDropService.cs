@@ -191,30 +191,80 @@ public sealed class OleDragDropService : IDisposable
                 "The shared OLE classifier did not distinguish Shell items, virtual files, and unsupported text formats.");
         }
 
-        var completion = new TaskCompletionSource<OleDragProbeResult>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        var probe = StartVerificationProbe(
-            long.MaxValue,
-            point,
-            result => completion.TrySetResult(result));
-        if (!probe.VerifyNativeContract() || ActiveVerificationProbeCount != 1)
+        if (!GetCursorPos(out var originalCursor))
         {
-            CancelVerificationProbe(probe.SessionId);
-            throw new InvalidOperationException(
-                "The Smart OLE probe did not satisfy its hollow Region, NOACTIVATE, TOOLWINDOW and TOPMOST contract.");
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error(),
+                "The Smart OLE cursor-refresh smoke could not read the original cursor position.");
         }
 
-        var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
-        await Task.Yield();
-        probe.Dispose();
-        probe.Dispose();
-        if (result.Outcome != OleDragProbeOutcome.TimedOut ||
-            result.SessionId != probe.SessionId ||
-            !probe.IsDisposed ||
-            ActiveVerificationProbeCount != 0)
+        var liveCursorMonitor = _monitorLayout.GetMonitorAtPoint(point.X, point.Y);
+        var liveCursorPoint = new DragScreenPoint(
+            liveCursorMonitor.Left + liveCursorMonitor.Width / 2,
+            liveCursorMonitor.Top + liveCursorMonitor.Height / 2);
+        var staleCandidatePoint = new DragScreenPoint(
+            liveCursorMonitor.Left + liveCursorMonitor.Width / 4,
+            liveCursorPoint.Y);
+        if (Math.Abs(staleCandidatePoint.X - liveCursorPoint.X) < _probeOptions.OuterSizePixels)
         {
-            throw new InvalidOperationException(
-                "The Smart OLE probe did not enforce timeout cleanup, single ownership and idempotent disposal.");
+            staleCandidatePoint = new DragScreenPoint(
+                liveCursorMonitor.Left + Math.Min(liveCursorMonitor.Width - 1, liveCursorMonitor.Width * 3 / 4),
+                liveCursorPoint.Y);
+        }
+
+        var cursorMoved = false;
+        try
+        {
+            if (!SetCursorPos(liveCursorPoint.X, liveCursorPoint.Y))
+            {
+                throw new Win32Exception(
+                    Marshal.GetLastWin32Error(),
+                    "The Smart OLE cursor-refresh smoke could not move the test cursor.");
+            }
+
+            cursorMoved = true;
+            var completion = new TaskCompletionSource<OleDragProbeResult>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var createdProbe = StartVerificationProbe(
+                long.MaxValue,
+                staleCandidatePoint,
+                result => completion.TrySetResult(result));
+            if (!createdProbe.VerifyNativeContract() || ActiveVerificationProbeCount != 1)
+            {
+                CancelVerificationProbe(createdProbe.SessionId);
+                throw new InvalidOperationException(
+                    "The Smart OLE probe did not satisfy its hollow Region, NOACTIVATE, TOOLWINDOW and TOPMOST contract.");
+            }
+
+            if (createdProbe.ProbeCenter.X != liveCursorPoint.X || createdProbe.ProbeCenter.Y != liveCursorPoint.Y)
+            {
+                CancelVerificationProbe(createdProbe.SessionId);
+                throw new InvalidOperationException(
+                    $"The Smart OLE probe used the stale candidate point ({staleCandidatePoint.X},{staleCandidatePoint.Y}) instead of the live cursor ({liveCursorPoint.X},{liveCursorPoint.Y}).");
+            }
+
+            SetCursorPos(originalCursor.X, originalCursor.Y);
+            cursorMoved = false;
+
+            var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
+            await Task.Yield();
+            createdProbe.Dispose();
+            createdProbe.Dispose();
+            if (result.Outcome != OleDragProbeOutcome.TimedOut ||
+                result.SessionId != createdProbe.SessionId ||
+                !createdProbe.IsDisposed ||
+                ActiveVerificationProbeCount != 0)
+            {
+                throw new InvalidOperationException(
+                    "The Smart OLE probe did not enforce timeout cleanup, single ownership and idempotent disposal.");
+            }
+        }
+        finally
+        {
+            if (cursorMoved)
+            {
+                SetCursorPos(originalCursor.X, originalCursor.Y);
+            }
         }
 
         var fallbackCompletion = new TaskCompletionSource<OleDragProbeResult>(
@@ -291,6 +341,10 @@ public sealed class OleDragDropService : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetCursorPos(int x, int y);
 }
 
 public sealed class DragActivationHost : IDisposable
