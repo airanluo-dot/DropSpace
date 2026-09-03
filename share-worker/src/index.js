@@ -363,7 +363,13 @@ export class ShareUsageCoordinator {
       if ((!file && index !== 0) || (file && file.nextIndex !== index)) {
         throw new HttpError("chunk-order-invalid", 409);
       }
-      if (!file && Object.keys(current.files).length >= current.itemCount) {
+      const pendingFileIds = new Set(
+        Object.values(current.pending)
+          .filter(item => item?.kind === "chunk" && item.index === 0 && typeof item.fileId === "string")
+          .map(item => item.fileId)
+      );
+      if (!file && !pendingFileIds.has(match[1]) &&
+          Object.keys(current.files).length + pendingFileIds.size >= current.itemCount) {
         throw new HttpError("item-limit-exceeded", 413);
       }
     }
