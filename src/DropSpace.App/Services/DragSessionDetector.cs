@@ -413,7 +413,14 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
     {
         foreach (var cancellation in _scheduledTasks.Keys)
         {
-            cancellation.Cancel();
+            try
+            {
+                cancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                _scheduledTasks.TryRemove(cancellation, out _);
+            }
         }
 
         var scheduledTasks = _scheduledTasks.Values.ToArray();
@@ -1011,6 +1018,11 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         var sessionId = _policy.ActiveSessionId;
         var task = CompleteAfterGraceAsync(sessionId, point, cancellation);
         _scheduledTasks[cancellation] = task;
+        if (task.IsCompleted)
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+        }
+
         TrackLifecycleTask(task, "completion grace");
     }
 
@@ -1049,6 +1061,11 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
     {
         var task = TimeoutAsync(sessionId, point, cancellation);
         _scheduledTasks[cancellation] = task;
+        if (task.IsCompleted)
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+        }
+
         TrackLifecycleTask(task, "session timeout");
     }
 
