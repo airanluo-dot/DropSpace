@@ -455,7 +455,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         public Dictionary<string, string>? Txt { get; set; }
     }
 
-    private sealed class DnsRegistration(UdpClient socket, DeviceDescriptor descriptor, string hostName) : IAsyncDisposable, IDisposable
+    private sealed class DnsRegistration(UdpClient socket, DeviceDescriptor descriptor, string hostName) : IAsyncDisposable
     {
         private readonly CancellationTokenSource _cancellation = new();
         private Task? _loop;
@@ -484,7 +484,6 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
             }, CancellationToken.None);
         }
 
-        public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
         public async ValueTask DisposeAsync()
         {
             _cancellation.Cancel(); socket.Dispose();
