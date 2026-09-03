@@ -581,7 +581,7 @@ public sealed partial class MainPage : Page
                         _logger.LogWarning(
                             rejectionException,
                             "Incoming DropLink transfer rejection could not be sent for session {SessionId}.",
-                            rejectionException);
+                            offer.SessionId);
                     }
                 }
                 finally
