@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using DropSpace.Core.Transfer;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Network;
 
@@ -49,14 +50,23 @@ public sealed class PairingHandshake : IDisposable
 }
 
 [SupportedOSPlatform("windows")]
-public sealed class DropLinkPairingService(DeviceIdentityStore identities, DeviceSecretStore secrets)
+public sealed class DropLinkPairingService(
+    DeviceIdentityStore identities,
+    DeviceSecretStore secrets,
+    ILogger<DropLinkPairingService>? logger = null) : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, PendingPairing> _pending = new();
+    private readonly ConcurrentDictionary<Guid, Task> _expirationTasks = new();
+    private readonly CancellationTokenSource _shutdown = new();
+    private readonly object _disposeGate = new();
+    private Task? _disposeTask;
+    private int _disposed;
 
     public async Task<PairingHandshake> CreateHelloAsync(
         PeerCapability capabilities,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
         var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         var ephemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
         var hello = new PairingHello(
@@ -76,6 +86,7 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
         PeerCapability localCapabilities,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
         ValidateHello(remote);
         var local = await CreateHelloAsync(localCapabilities, cancellationToken).ConfigureAwait(false);
         try
@@ -85,7 +96,9 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
             var expires = DateTimeOffset.UtcNow.AddMinutes(5);
             var sas = ComputeSas(secret, local.Hello, remote);
             _pending[sessionId] = new PendingPairing(sessionId, remote, local.Hello, secret, sas, expires, local);
-            _ = ExpirePendingAsync(sessionId, expires);
+            var expirationTask = ExpirePendingAsync(sessionId, expires, _shutdown.Token);
+            _expirationTasks[sessionId] = expirationTask;
+            ObserveExpirationTask(expirationTask, sessionId);
             return new PairingOffer(sessionId, remote, local.Hello, sas, expires, PairingState.AwaitingLocalSasConfirmation);
         }
         catch
@@ -102,6 +115,7 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
         PairingDecision decision = PairingDecision.Confirm,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
         if (!_pending.TryRemove(sessionId, out var pending)) throw new InvalidOperationException("Pairing session is not available.");
         try
         {
@@ -227,19 +241,76 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
         }
     }
 
-    private async Task ExpirePendingAsync(Guid sessionId, DateTimeOffset expiresAtUtc)
+    public ValueTask DisposeAsync()
     {
-        var delay = expiresAtUtc - DateTimeOffset.UtcNow;
-        if (delay > TimeSpan.Zero)
+        lock (_disposeGate)
+        {
+            if (_disposeTask is null)
+            {
+                _disposeTask = DisposeCoreAsync();
+            }
+
+            return new ValueTask(_disposeTask);
+        }
+    }
+
+    private async Task DisposeCoreAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        _shutdown.Cancel();
+        foreach (var entry in _pending.ToArray())
+        {
+            if (_pending.TryRemove(entry.Key, out var pending))
+            {
+                pending.LocalHandshake.Dispose();
+                CryptographicOperations.ZeroMemory(pending.Secret);
+            }
+        }
+
+        var expirationTasks = _expirationTasks.Values.ToArray();
+        if (expirationTasks.Length > 0)
         {
             try
             {
-                await Task.Delay(delay).ConfigureAwait(false);
+                await Task.WhenAll(expirationTasks).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
             {
-                return;
+                // Shutdown races are expected after pending pairing state has been released.
             }
+            catch (Exception exception)
+            {
+                logger?.LogError(exception, "A DropLink pairing expiration task failed during shutdown.");
+            }
+        }
+
+        _shutdown.Dispose();
+    }
+
+    private async Task ExpirePendingAsync(
+        Guid sessionId,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var delay = expiresAtUtc - DateTimeOffset.UtcNow;
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        finally
+        {
+            _expirationTasks.TryRemove(sessionId, out _);
         }
 
         if (_pending.TryRemove(sessionId, out var pending))
@@ -247,6 +318,29 @@ public sealed class DropLinkPairingService(DeviceIdentityStore identities, Devic
             pending.LocalHandshake.Dispose();
             CryptographicOperations.ZeroMemory(pending.Secret);
         }
+    }
+
+    private void ObserveExpirationTask(Task task, Guid sessionId)
+    {
+        task.ContinueWith(
+            completed =>
+            {
+                if (completed.IsFaulted)
+                {
+                    logger?.LogError(
+                        completed.Exception?.GetBaseException(),
+                        "DropLink pairing expiration failed for session {SessionId}.",
+                        sessionId);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
     }
 
     private sealed record PendingPairing(
