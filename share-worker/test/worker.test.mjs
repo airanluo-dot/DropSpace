@@ -170,7 +170,7 @@ test("receiver page uses nonce CSP and bounded streaming download fallback", asy
   assert.doesNotMatch(html, /const words = new Uint32Array\(64\)/);
   assert.match(html, /fallbackDownloadActive = true/);
   assert.match(html, /fallbackReleaseScheduled/);
-  assert.match(html, /URL\\.revokeObjectURL\\(url\\)/);
+  assert.match(html, /URL\.revokeObjectURL\(url\)/);
   assert.match(html, /button.disabled=true/);
   assert.match(html, /256 \* 1024 \* 1024/);
 });
