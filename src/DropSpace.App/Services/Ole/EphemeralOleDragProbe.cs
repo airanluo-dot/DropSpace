@@ -174,6 +174,8 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
     public long SessionId => _sessionId;
 
+    internal DragScreenPoint ProbeCenter => _probeCenter;
+
     public bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
 
     internal bool VerifyNativeContract()
