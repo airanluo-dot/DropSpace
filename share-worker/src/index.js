@@ -150,7 +150,7 @@ async function receiverPage(env, shareId, request) {
 
 
 function receiverScript(origin, shareId) {
-  return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('/v1/shares/${shareId}/objects/manifest.bin'),nonce=manifestBin.slice(0,12),tag=manifestBin.slice(-16),cipher=manifestBin.slice(12,-16),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('DropSpaceShare:v1\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=()=>download('${shareId}',key,item).catch(e=>alert(e.message));li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
+  return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('/v1/shares/${shareId}/objects/manifest.bin'),nonce=manifestBin.slice(0,12),tag=manifestBin.slice(-16),cipher=manifestBin.slice(12,-16),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('DropSpaceShare:v1\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
 const SHA256_K = new Uint32Array([
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
@@ -166,6 +166,7 @@ class Sha256 {
   constructor() {
     this.h = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
     this.buffer = new Uint8Array(64);
+    this.words = new Uint32Array(64);
     this.bufferLength = 0;
     this.bytes = 0;
   }
@@ -210,25 +211,24 @@ class Sha256 {
   }
 
   process(data, offset) {
-    const rotr = (value, bits) => (value >>> bits) | (value << (32 - bits));
-    const words = new Uint32Array(64);
+    const words = this.words;
     for (let i = 0; i < 16; i++) {
       const p = offset + i * 4;
       words[i] = (data[p] << 24) | (data[p + 1] << 16) | (data[p + 2] << 8) | data[p + 3];
     }
     for (let i = 16; i < 64; i++) {
       const value = words[i - 15];
-      const s0 = rotr(value, 7) ^ rotr(value, 18) ^ (value >>> 3);
+      const s0 = rotateRight(value, 7) ^ rotateRight(value, 18) ^ (value >>> 3);
       const prior = words[i - 2];
-      const s1 = rotr(prior, 17) ^ rotr(prior, 19) ^ (prior >>> 10);
+      const s1 = rotateRight(prior, 17) ^ rotateRight(prior, 19) ^ (prior >>> 10);
       words[i] = (words[i - 16] + s0 + words[i - 7] + s1) >>> 0;
     }
     let [a,b,c,d,e,f,g,h] = this.h;
     for (let i = 0; i < 64; i++) {
-      const s1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const s1 = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25);
       const choose = (e & f) ^ (~e & g);
       const t1 = (h + s1 + choose + SHA256_K[i] + words[i]) >>> 0;
-      const s0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const s0 = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22);
       const majority = (a & b) ^ (a & c) ^ (b & c);
       const t2 = (s0 + majority) >>> 0;
       h=g; g=f; f=e; e=(d+t1)>>>0; d=c; c=b; b=a; a=(t1+t2)>>>0;
@@ -240,11 +240,18 @@ class Sha256 {
   }
 }
 
+const rotateRight = (value, bits) => (value >>> bits) | (value << (32 - bits));
+let fallbackDownloadActive = false;
+
 async function download(id,master,item){
   const plainLength = Number(item.plainLength);
   if (!Number.isSafeInteger(plainLength) || plainLength < 0) throw Error("invalid file length");
   const canStreamToFile = typeof window.showSaveFilePicker === "function";
   if (!canStreamToFile && plainLength > 256 * 1024 * 1024) throw Error("This browser cannot safely download files larger than 256 MiB. Use a browser with file streaming support.");
+  if (!canStreamToFile) {
+    if (fallbackDownloadActive) throw Error("Another in-memory download is already in progress. Wait for it to finish before starting another.");
+    fallbackDownloadActive = true;
+  }
   let writable = null;
   const out = canStreamToFile ? null : [];
   if (canStreamToFile) {
@@ -271,6 +278,8 @@ async function download(id,master,item){
   } catch (error) {
     if (writable) await writable.abort().catch(()=>{});
     throw error;
+  } finally {
+    if (!canStreamToFile) fallbackDownloadActive = false;
   }
 }
 async function get(path){const r=await fetch(path,{cache:"no-store"});if(!r.ok)throw Error("share object unavailable ("+r.status+")");return new Uint8Array(await r.arrayBuffer())}
