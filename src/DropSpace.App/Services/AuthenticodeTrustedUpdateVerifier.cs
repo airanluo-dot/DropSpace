@@ -33,7 +33,13 @@ public sealed class AuthenticodeTrustedUpdateVerifier : ITrustedUpdateVerifier
 
         try
         {
-            using var certificate = new X509Certificate2(X509Certificate.CreateFromSignedFile(filePath));
+            // WinVerifyTrust above validates the Authenticode PE. The legacy API is still
+            // the BCL surface that extracts a signer certificate from a signed PE; the
+            // newer X509CertificateLoader APIs accept plain X.509/PKCS content, not PE files.
+#pragma warning disable SYSLIB0057
+            using var signedCertificate = X509Certificate.CreateFromSignedFile(filePath);
+#pragma warning restore SYSLIB0057
+            using var certificate = X509CertificateLoader.LoadCertificate(signedCertificate.GetRawCertData());
             return Task.FromResult(TrustedSubjects.Contains(certificate.Subject)
                 ? new TrustedUpdateVerification(true, "Authenticode signature and DropSpace publisher identity are valid.")
                 : new TrustedUpdateVerification(false, "The signature is valid but the publisher is not trusted by DropSpace."));

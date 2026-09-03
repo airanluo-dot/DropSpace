@@ -1529,7 +1529,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         ArgumentNullException.ThrowIfNull(card);
         var clicked = DropItemSnapshot.FromItem(card.Item);
-        var selected = selectedCards?.Select(candidate => DropItemSnapshot.FromItem(candidate));
+        var selected = selectedCards?.Select(candidate => DropItemSnapshot.FromItem(candidate.Item));
         return ItemSelectionResolver.ForClickedItem(clicked, selected);
     }
 

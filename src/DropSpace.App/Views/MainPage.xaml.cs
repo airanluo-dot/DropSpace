@@ -1576,7 +1576,8 @@ public sealed partial class MainPage : Page
         }
         var exclusions = SmartDragExclusionsText.Text
             .Split([',', ';', '\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(Path.GetFileNameWithoutExtension)
+            .Select(value => Path.GetFileNameWithoutExtension(value) ?? string.Empty)
+            .Where(value => value.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         await RunAsync(() => _viewModel.UpdateSettingsAsync(
