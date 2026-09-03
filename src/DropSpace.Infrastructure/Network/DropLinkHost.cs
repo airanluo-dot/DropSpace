@@ -42,7 +42,7 @@ public sealed class DropLinkHost(
     ILogger<DropLinkHost> logger) : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, ReceiveTransfer> _sessions = new();
-    private readonly ConcurrentDictionary<string, DateTimeOffset> _usedNonces = new(StringComparer.Ordinal);
+    private readonly DropLinkNonceCache _usedNonces = new();
     private readonly ConcurrentDictionary<Guid, DateTimeOffset> _usedHandoffSessions = new();
     private readonly ConcurrentDictionary<Guid, Task> _offerNotificationTasks = new();
     private readonly object _offerNotificationGate = new();
@@ -533,16 +533,15 @@ public sealed class DropLinkHost(
         var nonce = context.Request.Headers["X-DropLink-Nonce"].ToString();
         var auth = context.Request.Headers["X-DropLink-Auth"].ToString();
         if (!Guid.TryParse(deviceHeader, out var peerId) || expectedPeerId is not null && expectedPeerId != peerId || string.IsNullOrWhiteSpace(nonce) || string.IsNullOrWhiteSpace(auth)) return false;
-        var now = DateTimeOffset.UtcNow;
-        foreach (var entry in _usedNonces.Where(entry => now - entry.Value > TimeSpan.FromMinutes(10))) _usedNonces.TryRemove(entry.Key, out _);
-        if (!_usedNonces.TryAdd(string.Concat(peerId.ToString("N"), ":", nonce), now)) return false;
         var secret = await secrets.GetAsync(peerId, cancellationToken).ConfigureAwait(false);
         if (secret is null) return false;
+        var now = DateTimeOffset.UtcNow;
+        if (!_usedNonces.TryReserve(peerId, nonce, now)) return false;
         var bodyHash = context.Request.Headers["X-DropLink-Body-SHA256"].ToString();
         if (string.IsNullOrWhiteSpace(bodyHash)) bodyHash = Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant();
         var expected = DropLinkPairingService.ComputeAuth(secret, context.Request.Method, context.Request.Path.ToString(), nonce, bodyHash);
         var valid = DropLinkPairingService.FixedTimeEquals(expected, auth);
-        if (!valid) _usedNonces.TryRemove(string.Concat(peerId.ToString("N"), ":", nonce), out _);
+        if (!valid) _usedNonces.Remove(peerId, nonce);
         return valid;
     }
 

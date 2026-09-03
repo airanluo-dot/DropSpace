@@ -1,4 +1,5 @@
 using DropSpace.Core.Actions;
+using DropSpace.Core.Content;
 using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
 using DropSpace.Infrastructure.Actions;
@@ -7,7 +8,7 @@ using Windows.Storage;
 
 namespace DropSpace.App.Services;
 
-public sealed class WindowsImageTransformService : IImageTransformService
+public sealed class WindowsImageTransformService(IItemContentResolver contentResolver) : IImageTransformService
 {
     private const int MaximumDimension = 16_384;
     private const long MaximumPixels = 64L * 1024 * 1024;
@@ -24,7 +25,8 @@ public sealed class WindowsImageTransformService : IImageTransformService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        var validation = ValidateImage(item, destinationDirectory, width, height, outputFormat, requireFormat: false);
+        var content = contentResolver.Resolve(item);
+        var validation = ValidateImage(content, destinationDirectory, width, height, outputFormat, requireFormat: false);
         if (validation is not null)
         {
             return Task.FromResult(validation);
@@ -35,6 +37,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
         _ = stripMetadata;
         return TransformAsync(
             item,
+            content,
             destinationDirectory,
             outputFormat,
             width,
@@ -54,8 +57,9 @@ public sealed class WindowsImageTransformService : IImageTransformService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
+        var content = contentResolver.Resolve(item);
         var validation = ValidateImage(
-            item,
+            content,
             destinationDirectory,
             width,
             height,
@@ -68,6 +72,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
         return TransformAsync(
             item,
+            content,
             destinationDirectory,
             outputFormat,
             width,
@@ -84,7 +89,8 @@ public sealed class WindowsImageTransformService : IImageTransformService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        var validation = ValidateImage(item, destinationDirectory, null, null, outputFormat, requireFormat: false);
+        var content = contentResolver.Resolve(item);
+        var validation = ValidateImage(content, destinationDirectory, null, null, outputFormat, requireFormat: false);
         if (validation is not null)
         {
             return Task.FromResult(validation);
@@ -92,6 +98,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
         return TransformAsync(
             item,
+            content,
             destinationDirectory,
             outputFormat,
             width: null,
@@ -103,6 +110,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
     private static async Task<ItemActionResult> TransformAsync(
         DropItemSnapshot item,
+        ResolvedItemContent content,
         string destinationDirectory,
         string? outputFormat,
         int? width,
@@ -114,7 +122,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
         Directory.CreateDirectory(destinationDirectory);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var source = await StorageFile.GetFileFromPathAsync(item.OriginalPath!);
+        var source = await StorageFile.GetFileFromPathAsync(content.ReadablePath!);
         cancellationToken.ThrowIfCancellationRequested();
         using var input = await source.OpenReadAsync();
         cancellationToken.ThrowIfCancellationRequested();
@@ -132,7 +140,7 @@ public sealed class WindowsImageTransformService : IImageTransformService
         {
             throw new InvalidDataException("The requested image dimensions are not supported.");
         }
-        var encoder = ResolveEncoder(outputFormat, item.Extension, item.MimeType);
+        var encoder = ResolveEncoder(outputFormat, content.Extension, content.MimeType);
 
         string? outputPath = null;
         try
@@ -176,16 +184,14 @@ public sealed class WindowsImageTransformService : IImageTransformService
     }
 
     private static ItemActionResult? ValidateImage(
-        DropItemSnapshot item,
+        ResolvedItemContent content,
         string destinationDirectory,
         int? width,
         int? height,
         string? outputFormat,
         bool requireFormat)
     {
-        if (string.IsNullOrWhiteSpace(item.OriginalPath) ||
-            item.Kind != ItemKind.Image ||
-            item.Status != ItemStatus.Available)
+        if (!content.IsImage || !content.HasReadablePath)
         {
             return ItemActionResult.Failure("image-source-unavailable", "ActionSourceUnavailable");
         }
@@ -266,18 +272,19 @@ public sealed class WindowsImageTransformService : IImageTransformService
 
 public sealed class ImageTransformActionService(
     IImageTransformService transforms,
-    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths,
+    IItemContentResolver contentResolver) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ResizeImage, "ActionResizeImageMenuItem.Text", "ResizeImage", ItemActionGroup.Transform, 20, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle &&
-            selection.Single.Kind == ItemKind.Image &&
-            selection.Single.Status == ItemStatus.Available &&
-            selection.Single.OriginalPath is not null;
+        var available = IsAvailableImage(selection, contentResolver);
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
+
+    internal static bool IsAvailableImage(ItemSelectionSnapshot selection, IItemContentResolver contentResolver) =>
+        selection.IsSingle && contentResolver.Resolve(selection.Single) is { IsImage: true, HasReadablePath: true };
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)
     {
@@ -307,16 +314,14 @@ public sealed class ImageTransformActionService(
 
 public sealed class ConvertImageActionService(
     IImageTransformService transforms,
-    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths,
+    IItemContentResolver contentResolver) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.ConvertImage, "ActionConvertImage.Text", "Photo2", ItemActionGroup.Transform, 21, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle &&
-            selection.Single.Kind == ItemKind.Image &&
-            selection.Single.Status == ItemStatus.Available &&
-            selection.Single.OriginalPath is not null;
+        var available = ImageTransformActionService.IsAvailableImage(selection, contentResolver);
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
@@ -347,16 +352,14 @@ public sealed class ConvertImageActionService(
 
 public sealed class StripMetadataActionService(
     IImageTransformService transforms,
-    DropSpace.Infrastructure.Storage.AppStoragePaths paths) : IItemAction
+    DropSpace.Infrastructure.Storage.AppStoragePaths paths,
+    IItemContentResolver contentResolver) : IItemAction
 {
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.StripMetadata, "ActionStripMetadata.Text", "ProtectiveCover", ItemActionGroup.Transform, 22, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle &&
-            selection.Single.Kind == ItemKind.Image &&
-            selection.Single.Status == ItemStatus.Available &&
-            selection.Single.OriginalPath is not null;
+        var available = ImageTransformActionService.IsAvailableImage(selection, contentResolver);
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 

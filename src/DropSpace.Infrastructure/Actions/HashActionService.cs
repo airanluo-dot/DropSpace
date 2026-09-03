@@ -1,18 +1,22 @@
 using System.Security.Cryptography;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Content;
+using DropSpace.Infrastructure.Content;
 using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Actions;
 
-public sealed class HashActionService(AppStoragePaths paths) : IItemAction
+public sealed class HashActionService(AppStoragePaths paths, IItemContentResolver contentResolver) : IItemAction
 {
+    public HashActionService(AppStoragePaths paths) : this(paths, new ItemContentResolver(paths))
+    {
+    }
+
     public ItemActionDescriptor Descriptor { get; } = new(ItemActionId.HashSha256, "ActionHashSha256.Text", "Hash", ItemActionGroup.General, 40, true, false);
 
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
-        var available = selection.IsSingle && selection.Single.OriginalPath is not null &&
-            selection.Single.Status == Core.Models.ItemStatus.Available &&
-            selection.Single.Kind != Core.Models.ItemKind.Folder;
+        var available = selection.IsSingle && contentResolver.Resolve(selection.Single) is { HasReadablePath: true, Type: not ItemContentType.Folder };
         return new ItemActionCapability(available, available ? null : "A readable single file is required.", Descriptor);
     }
 
@@ -21,7 +25,8 @@ public sealed class HashActionService(AppStoragePaths paths) : IItemAction
         var capability = Evaluate(context.Selection);
         if (!capability.IsAvailable) return ItemActionResult.Failure("not-available", "ActionUnavailable");
         var item = context.Selection.Single;
-        var path = item.OriginalPath!;
+        var content = contentResolver.Resolve(item);
+        var path = content.ReadablePath!;
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         var hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
         var outputDirectory = ActionOutputPolicy.ResolveDirectory(paths, context.DestinationDirectory);

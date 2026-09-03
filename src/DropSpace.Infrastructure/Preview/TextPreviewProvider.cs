@@ -1,11 +1,12 @@
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Models;
+using DropSpace.Core.Content;
 using DropSpace.Core.Preview;
 
 namespace DropSpace.Infrastructure.Preview;
 
-public sealed class TextPreviewProvider(PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits()), IPreviewProvider
+public sealed class TextPreviewProvider(IItemContentResolver contentResolver, PreviewLimits? limits = null) : FilePreviewProviderBase(limits ?? new PreviewLimits(), contentResolver), IPreviewProvider
 {
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -24,8 +25,10 @@ public sealed class TextPreviewProvider(PreviewLimits? limits = null) : FilePrev
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var extension = Extension(item);
-        var canPreview = item.Kind is ItemKind.Text or ItemKind.Code || TextExtensions.Contains(extension);
+        var content = ContentResolver.Resolve(item);
+        var extension = content.Extension ?? string.Empty;
+        var isTextLike = item.Kind is ItemKind.Text or ItemKind.Code or ItemKind.Color || TextExtensions.Contains(extension);
+        var canPreview = content.IsAvailable && isTextLike;
         var kind = extension is ".json" ? PreviewKind.Json : extension is ".md" or ".markdown" ? PreviewKind.Markdown :
             item.Kind == ItemKind.Code ? PreviewKind.Code : PreviewKind.Text;
         return ValueTask.FromResult(new PreviewCapability(
@@ -34,7 +37,7 @@ public sealed class TextPreviewProvider(PreviewLimits? limits = null) : FilePrev
             Id,
             "text/plain",
             canPreview ? null : "The file is not recognized as bounded text.",
-            item.KnownSize,
+            content.KnownBytes,
             null,
             null,
             null));

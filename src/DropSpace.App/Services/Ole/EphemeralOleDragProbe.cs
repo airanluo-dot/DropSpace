@@ -260,6 +260,11 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             return;
         }
 
+        lock (_completionGate)
+        {
+            _pendingResult = null;
+        }
+        Interlocked.Exchange(ref _ownerMessagePending, 0);
         _lifetimeTimer?.Dispose();
         _lifetimeTimer = null;
         _cleanupWatchdog?.Dispose();
@@ -464,9 +469,13 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     {
         if (IsOwnerThread)
         {
-            if (message == WindowMessageProbeComplete || message == WindowMessageProbeCleanup)
+            if (message == WindowMessageProbeComplete)
             {
                 CompleteOnOwnerThread();
+            }
+            else if (message == WindowMessageProbeCleanup)
+            {
+                DisposeOnOwnerThread();
             }
             else
             {
@@ -580,7 +589,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             return new nint(1);
         }
 
-        if (message == WindowMessageProbeComplete)
+        if (message is WindowMessageProbeComplete or WindowMessageProbeCleanup)
         {
             EphemeralOleDragProbe? probe;
             lock (ClassGate)
@@ -651,14 +660,15 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             try
             {
                 var classification = _classifier.Classify(dataObject);
-                var outcome = classification.IsFileLike
+                classification = _classifier.ResolveAcceptance(dataObject, classification);
+                var outcome = classification.CanAuthorizeVisual
                     ? OleDragProbeOutcome.VerifiedFile
                     : OleDragProbeOutcome.Rejected;
                 _logger.LogInformation(
-                    "Smart OLE probe DragEnter received for session {SessionId}: classification={Classification}, fileLike={FileLike}; effect=None.",
+                    "Smart OLE probe DragEnter received for session {SessionId}: classification={Classification}, visualAuthorized={VisualAuthorized}; effect=None.",
                     _owner.SessionId,
                     classification.Kind,
-                    classification.IsFileLike);
+                    classification.CanAuthorizeVisual);
                 _owner.QueueCompletion(
                     outcome,
                     classification,

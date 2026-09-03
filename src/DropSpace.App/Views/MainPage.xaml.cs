@@ -380,8 +380,9 @@ public sealed partial class MainPage : Page
                 return;
             }
 
+            var selection = ResolveActionSelection(quickAction.Card);
             var context = await _quickActionDialog.RequestAsync(
-                new ItemSelectionSnapshot([DropItemSnapshot.FromItem(quickAction.Card.Item)]),
+                selection,
                 quickAction.ActionId,
                 xamlRoot,
                 _windowHandle);
@@ -390,7 +391,7 @@ public sealed partial class MainPage : Page
                 return;
             }
 
-            var result = await _viewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId, context);
+            var result = await _viewModel.ExecuteQuickActionAsync(quickAction.Card, quickAction.ActionId, context, selection);
             await ShowActionResultAsync(result);
         });
     }
@@ -959,8 +960,9 @@ public sealed partial class MainPage : Page
                 return;
             }
 
+            var selection = ResolveActionSelection(card);
             var context = await _quickActionDialog.RequestAsync(
-                new ItemSelectionSnapshot([DropItemSnapshot.FromItem(card.Item)]),
+                selection,
                 action,
                 xamlRoot,
                 _windowHandle);
@@ -969,7 +971,7 @@ public sealed partial class MainPage : Page
                 return;
             }
 
-            var result = await _viewModel.ExecuteQuickActionAsync(card, action, context);
+            var result = await _viewModel.ExecuteQuickActionAsync(card, action, context, selection);
             await ShowActionResultAsync(result);
         });
     }
@@ -987,7 +989,7 @@ public sealed partial class MainPage : Page
                 ItemActionId.SendToDevice => _viewModel.EnableDeviceHandoff && _pairedPeers.Count > 0,
                 ItemActionId.CreateNearbyLink => _viewModel.EnableNearbySharing,
                 ItemActionId.CreateSecureInternetLink => _viewModel.EnableInternetSharing && _sharing.IsInternetConfigured,
-                _ => _viewModel.EvaluateQuickActions(card).More.Any(
+                _ => _viewModel.EvaluateQuickActions(card, ResolveActionSelection(card)).More.Any(
                     capability => capability.Descriptor.Id == action),
             };
             menu.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
@@ -2034,6 +2036,14 @@ public sealed partial class MainPage : Page
         FrameworkElement { DataContext: ItemCardViewModel card } => card,
         _ => null,
     };
+
+    private ItemSelectionSnapshot ResolveActionSelection(ItemCardViewModel clickedCard)
+    {
+        ArgumentNullException.ThrowIfNull(clickedCard);
+        return _viewModel.ResolveActionSelection(
+            clickedCard,
+            ItemsList.SelectedItems.OfType<ItemCardViewModel>());
+    }
 
     private sealed record QuickActionSlotContext(QuickActionProfile Profile, int Index);
 

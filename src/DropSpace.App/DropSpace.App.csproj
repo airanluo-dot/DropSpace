@@ -32,7 +32,7 @@
     <IncludeAllContentForSelfExtract Condition="'$(DropSpaceDeployment)' == 'Portable'">true</IncludeAllContentForSelfExtract>
     <PublishReadyToRun>false</PublishReadyToRun>
     <PublishTrimmed>false</PublishTrimmed>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DropSpaceWin32ResourceDependsOn Condition="'$(WindowsAppSDKSelfContained)' == 'true'">CreateWinRTRegistration</DropSpaceWin32ResourceDependsOn>
   </PropertyGroup>
   <ItemGroup>

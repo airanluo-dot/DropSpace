@@ -1,3 +1,5 @@
+using DropSpace.Core.Content;
+
 namespace DropSpace.Core.Models;
 
 public sealed record ItemCapabilities(
@@ -18,7 +20,10 @@ public sealed record ItemCapabilities(
             CanOpen: isReadable && (isFile || item.Kind == ItemKind.Url),
             CanCopy: isReadable && item.Kind != ItemKind.Unknown,
             CanDrag: isReadable && isFile,
-            CanExport: isReadable && item.Kind == ItemKind.Image,
+            CanExport: isReadable && ItemContentPolicy.IsImage(
+                item.Kind,
+                item.File?.Extension,
+                item.Image?.MimeType),
             CanLocate: isFile && item.Status is ItemStatus.Missing or ItemStatus.Unavailable,
             CanPin: true,
             CanRemove: true);

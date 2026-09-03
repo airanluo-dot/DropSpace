@@ -1,5 +1,6 @@
 using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
+using DropSpace.Core.Content;
 
 namespace DropSpace.Core.Actions;
 
@@ -155,7 +156,7 @@ public static class QuickActionPreferencePolicy
 
     private static QuickActionProfile GetProfile(DropItemSnapshot item) => item.Kind switch
     {
-        ItemKind.Image => QuickActionProfile.Image,
+        _ when ItemContentPolicy.IsImage(item.Kind, item.Extension, item.MimeType) => QuickActionProfile.Image,
         ItemKind.Url => QuickActionProfile.Url,
         ItemKind.Text or ItemKind.Code or ItemKind.Color => QuickActionProfile.Text,
         _ => QuickActionProfile.File,
