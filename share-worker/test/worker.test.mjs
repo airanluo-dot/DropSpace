@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ShareUsageCoordinator } from "../src/index.js";
+import worker, { ShareUsageCoordinator } from "../src/index.js";
 
 const shareId = "00112233445566778899aabbccddeeff";
 const fileOne = "11112222333344445555666677778888";
@@ -137,4 +137,34 @@ test("revocation closes the coordinator before object deletion completes", async
   });
   assert.equal(rejected.status, 410);
   assert.equal(rejected.body.error, "share-expired");
+});
+
+
+test("receiver page uses nonce CSP and bounded streaming download fallback", async () => {
+  const response = await worker.fetch(
+    new Request("https://share.example.invalid/s/" + shareId),
+    {
+      PUBLIC_ORIGIN: "https://share.example.invalid",
+      SHARES: {
+        async get(key) {
+          if (key === "shares/" + shareId + "/meta.json") {
+            return new Response(JSON.stringify({
+              shareId,
+              expiresAt: Date.now() + 60 * 60 * 1000,
+              itemCount: 1,
+              totalBytes: 5,
+            }));
+          }
+          return null;
+        },
+      },
+    },
+  );
+  const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(html, /script-src 'nonce-[^']+'/);
+  assert.doesNotMatch(html, /unsafe-inline/);
+  assert.match(html, /showSaveFilePicker/);
+  assert.match(html, /class Sha256/);
+  assert.match(html, /256 \* 1024 \* 1024/);
 });
