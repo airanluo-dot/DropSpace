@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Undo;
@@ -15,6 +16,7 @@ public sealed class UndoCoordinator(
     private readonly SemaphoreSlim _gate = new(1, 1);
     private ActiveUndo? _active;
     private CancellationTokenSource? _expirationCancellation;
+    private readonly ConcurrentDictionary<string, Task> _expirationTasks = new(StringComparer.Ordinal);
     private bool _disposed;
 
     public UndoState? State { get; private set; }
@@ -220,9 +222,22 @@ public sealed class UndoCoordinator(
             }
 
             await FinalizeActiveCoreAsync(CancellationToken.None).ConfigureAwait(false);
+            var expirationTasks = _expirationTasks.Values.ToArray();
+            if (expirationTasks.Length > 0)
+            {
+                try
+                {
+                    await Task.WhenAll(expirationTasks).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    logger.LogWarning(exception, "Undo expiration task shutdown observed an unexpected failure.");
+                }
+            }
+
             _disposed = true;
-            _expirationCancellation?.Dispose();
             _expirationCancellation = null;
+            _expirationTasks.Clear();
         }
         finally
         {
@@ -235,7 +250,8 @@ public sealed class UndoCoordinator(
     {
         var cancellation = new CancellationTokenSource();
         _expirationCancellation = cancellation;
-        _ = ExpireAsync(active, cancellation);
+        var task = ExpireAsync(active, cancellation);
+        _expirationTasks[active.State.Token] = task;
     }
 
     private async Task ExpireAsync(ActiveUndo active, CancellationTokenSource cancellation)
@@ -267,6 +283,7 @@ public sealed class UndoCoordinator(
         finally
         {
             cancellation.Dispose();
+            _expirationTasks.TryRemove(active.State.Token, out _);
         }
     }
 

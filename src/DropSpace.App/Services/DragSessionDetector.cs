@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -25,7 +26,7 @@ public sealed record DragSessionCandidate(
 /// events provide candidate intent; every Smart candidate requires bounded OLE verification before
 /// the application reveals its visual target.
 /// </summary>
-public sealed class DragSessionDetector : IDisposable
+public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
 {
     private const int HookMouseLowLevel = 14;
     private const int HookKeyboardLowLevel = 13;
@@ -57,7 +58,8 @@ public sealed class DragSessionDetector : IDisposable
     private readonly DragSignalQueue<DetectorSignal> _criticalSignals = new(reliable: true);
     private readonly DragSignalQueue<DetectorSignal> _moveSignals = new(reliable: false, lossyCapacity: 1);
     private readonly DragSessionPolicy _policy;
-    private readonly object _lifecycleGate = new();
+    private readonly SemaphoreSlim _lifecycleSemaphore = new(1, 1);
+    private readonly object _disposeGate = new();
     private readonly ManualResetEventSlim _hookMessageQueueReady = new(false);
     private readonly ManualResetEventSlim _observerRegistrationReady = new(false);
     private CancellationTokenSource? _runCancellation;
@@ -73,8 +75,11 @@ public sealed class DragSessionDetector : IDisposable
     private nint _dragWinEventHook;
     private CancellationTokenSource? _completionGrace;
     private CancellationTokenSource? _sessionTimeout;
+    private readonly ConcurrentDictionary<CancellationTokenSource, Task> _scheduledTasks = new();
     private FileDragWakeMode _mode = FileDragWakeMode.Disabled;
     private bool _disposed;
+    private int _disposeRequested;
+    private Task? _disposeTask;
     private long _observedSignals;
     private long _recognizedSourceCount;
     private long _rejectedSourceCount;
@@ -164,17 +169,47 @@ public sealed class DragSessionDetector : IDisposable
 
     public bool CandidateCreationSuppressed => Volatile.Read(ref _candidateCreationSuppressed) != 0;
 
+    public bool IsVerificationPending(long sessionId) =>
+        !_disposed &&
+        Volatile.Read(ref _disposeRequested) == 0 &&
+        _mode == FileDragWakeMode.SmartExperimental &&
+        _policy.IsActive &&
+        _policy.ActiveSessionId == sessionId &&
+        _policy.ActiveState == DragSessionState.ProbePending &&
+        _policy.RequiresOleVerification;
+
     public void SetPlacementEditing(bool active)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (Volatile.Read(ref _disposeRequested) != 0)
+        {
+            throw new ObjectDisposedException(nameof(DragSessionDetector));
+        }
+
         Volatile.Write(ref _candidateCreationSuppressed, active ? 1 : 0);
     }
 
     public void SetMode(FileDragWakeMode mode)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        lock (_lifecycleGate)
+        TrackLifecycleTask(SetModeAsync(mode), "mode change");
+    }
+
+    public async Task SetModeAsync(
+        FileDragWakeMode mode,
+        CancellationToken cancellationToken = default)
+    {
+        if (Volatile.Read(ref _disposeRequested) != 0)
         {
+            throw new ObjectDisposedException(nameof(DragSessionDetector));
+        }
+
+        await _lifecycleSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (Volatile.Read(ref _disposeRequested) != 0)
+            {
+                throw new ObjectDisposedException(nameof(DragSessionDetector));
+            }
+
             if (_mode == mode &&
                 (mode != FileDragWakeMode.SmartExperimental || _hookThread is { IsAlive: true }))
             {
@@ -188,8 +223,14 @@ public sealed class DragSessionDetector : IDisposable
             }
             else
             {
-                StopCore();
+                // Shutdown waits are deliberately asynchronous. The UI thread can request a mode
+                // transition without synchronously waiting for a native hook thread to exit.
+                await StopCoreAsync().ConfigureAwait(false);
             }
+        }
+        finally
+        {
+            _lifecycleSemaphore.Release();
         }
     }
 
@@ -273,25 +314,77 @@ public sealed class DragSessionDetector : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
+        // Keep the synchronous compatibility surface non-blocking. The async-disposable path is
+        // awaited by the host service provider; this wrapper records and observes its task.
+        TrackLifecycleTask(DisposeAsync().AsTask(), "dispose");
+    }
 
-        lock (_lifecycleGate)
+    public ValueTask DisposeAsync()
+    {
+        lock (_disposeGate)
         {
-            StopCore();
-            _disposed = true;
+            if (_disposeTask is null)
+            {
+                Interlocked.Exchange(ref _disposeRequested, 1);
+                _disposeTask = DisposeCoreAsync();
+            }
+
+            return new ValueTask(_disposeTask);
+        }
+    }
+
+    private async Task DisposeCoreAsync()
+    {
+        await _lifecycleSemaphore.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            _mode = FileDragWakeMode.Disabled;
+            await StopCoreAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            Volatile.Write(ref _disposed, true);
             _criticalSignals.Complete();
             _moveSignals.Complete();
-            _hookMessageQueueReady.Dispose();
-            _observerRegistrationReady.Dispose();
+            if (_hookThread is not { IsAlive: true })
+            {
+                _hookMessageQueueReady.Dispose();
+                _observerRegistrationReady.Dispose();
+            }
+            else
+            {
+                _logger.LogError(
+                    "The smart drag observer remained alive during asynchronous disposal; native resources were left reachable for its eventual thread exit.");
+            }
+
+            _lifecycleSemaphore.Release();
         }
+    }
+
+    private void TrackLifecycleTask(Task task, string operation)
+    {
+        // The detector owns the returned task through the lifecycle semaphore. This continuation
+        // observes failures for legacy void callers without blocking their UI thread.
+        task.ContinueWith(
+            completed =>
+            {
+                if (completed.IsFaulted)
+                {
+                    _logger.LogError(
+                        completed.Exception?.GetBaseException(),
+                        "Asynchronous smart-drag {Operation} failed.",
+                        operation);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
     }
 
     private void StartCore()
     {
-        if (_hookThread is { IsAlive: true })
+        if (_hookThread is { IsAlive: true } ||
+            _processor is { IsCompleted: false })
         {
             return;
         }
@@ -316,42 +409,88 @@ public sealed class DragSessionDetector : IDisposable
             "Smart file-drag detection enabled: idle top-edge activation HWNDs are not required; mouse hooks observe only and never suppress input.");
     }
 
-    private void StopCore()
+    private async Task StopCoreAsync()
     {
-        _completionGrace?.Cancel();
-        _completionGrace?.Dispose();
-        _completionGrace = null;
-        _sessionTimeout?.Cancel();
-        _sessionTimeout?.Dispose();
-        _sessionTimeout = null;
-        _runCancellation?.Cancel();
-        if (_hookThread is { IsAlive: true })
-        {
-            _ = _hookMessageQueueReady.Wait(TimeSpan.FromSeconds(2));
-            if (_hookThreadId != 0)
-            {
-                _ = PostThreadMessage(_hookThreadId, WindowMessageQuit, nint.Zero, nint.Zero);
-            }
-        }
-
-        if (_hookThread is { IsAlive: true })
-        {
-            _hookThread.Join(TimeSpan.FromSeconds(2));
-        }
-
-        if (_processor is not null)
+        foreach (var cancellation in _scheduledTasks.Keys)
         {
             try
             {
-                _processor.Wait(TimeSpan.FromSeconds(2));
+                cancellation.Cancel();
             }
-            catch (AggregateException exception) when (exception.InnerExceptions.All(
-                       static inner => inner is OperationCanceledException))
+            catch (ObjectDisposedException)
             {
+                _scheduledTasks.TryRemove(cancellation, out _);
             }
         }
 
-        if (_hookThread is not { IsAlive: true })
+        var scheduledTasks = _scheduledTasks.Values.ToArray();
+        _completionGrace?.Cancel();
+        _sessionTimeout?.Cancel();
+        _runCancellation?.Cancel();
+
+        if (scheduledTasks.Length > 0)
+        {
+            try
+            {
+                await Task.WhenAll(scheduledTasks).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation is the expected shutdown path for owned grace and timeout tasks.
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "A smart-drag lifecycle task failed during shutdown.");
+            }
+        }
+
+        _completionGrace = null;
+        _sessionTimeout = null;
+
+        var hookThread = _hookThread;
+        var processor = _processor;
+        var hookExited = hookThread is not { IsAlive: true };
+        if (!hookExited)
+        {
+            if (!await WaitForEventAsync(_hookMessageQueueReady, TimeSpan.FromSeconds(2)).ConfigureAwait(false))
+            {
+                _logger.LogError("The smart drag observer message queue did not become ready during asynchronous shutdown.");
+            }
+
+            if (_hookThreadId != 0 && !PostThreadMessage(_hookThreadId, WindowMessageQuit, nint.Zero, nint.Zero))
+            {
+                _logger.LogError(
+                    "Posting WM_QUIT to the smart drag observer failed with Win32 error {Error}.",
+                    Marshal.GetLastWin32Error());
+            }
+
+            hookExited = await WaitForThreadExitAsync(hookThread!, TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+
+        var processorExited = processor is null;
+        if (processor is not null)
+        {
+            try
+            {
+                await processor.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                processorExited = true;
+            }
+            catch (OperationCanceledException)
+            {
+                processorExited = true;
+            }
+            catch (TimeoutException)
+            {
+                processorExited = processor.IsCompleted;
+            }
+            catch (Exception exception)
+            {
+                processorExited = true;
+                _logger.LogWarning(exception, "Smart drag signal processing ended with an asynchronous shutdown exception.");
+            }
+        }
+
+        if (hookExited)
         {
             _hookThread = null;
             _hookThreadId = 0;
@@ -359,22 +498,93 @@ public sealed class DragSessionDetector : IDisposable
         else
         {
             _logger.LogError(
-                "The smart drag observer did not exit within the bounded shutdown interval; its queued WM_QUIT remains pending and no replacement observer will be started concurrently.");
+                "The smart drag observer did not exit within the bounded asynchronous shutdown interval; its queued WM_QUIT remains pending and no replacement observer will be started concurrently.");
         }
-        _runCancellation?.Dispose();
-        _runCancellation = null;
-        _processor = null;
+
+        if (processorExited)
+        {
+            _processor = null;
+        }
+        else
+        {
+            _logger.LogError(
+                "The smart drag signal processor did not exit within the bounded asynchronous shutdown interval; no replacement processor will be started concurrently.");
+        }
+
+        if (hookExited && processorExited)
+        {
+            _runCancellation?.Dispose();
+            _runCancellation = null;
+        }
+
         while (_criticalSignals.TryRead(out _))
         {
         }
+
         while (_moveSignals.TryRead(out _))
         {
         }
+
         Interlocked.Exchange(ref _pointerObservationActive, 0);
         Volatile.Write(ref _candidateCreationSuppressed, 0);
-        _observerRegistrationReady.Reset();
+        if (!_disposed)
+        {
+            _observerRegistrationReady.Reset();
+        }
+
         _policy.Reset();
         _logger.LogInformation("Smart file-drag detection disabled and all observer hooks were removed.");
+    }
+
+    private static async Task<bool> WaitForEventAsync(
+        ManualResetEventSlim signal,
+        TimeSpan timeout)
+    {
+        if (signal.IsSet)
+        {
+            return true;
+        }
+
+        var deadline = Stopwatch.GetTimestamp() +
+            checked((long)(timeout.TotalSeconds * Stopwatch.Frequency));
+        while (!signal.IsSet)
+        {
+            var remainingTicks = deadline - Stopwatch.GetTimestamp();
+            if (remainingTicks <= 0)
+            {
+                return signal.IsSet;
+            }
+
+            var remaining = TimeSpan.FromSeconds(remainingTicks / (double)Stopwatch.Frequency);
+            await Task.Delay(
+                remaining < TimeSpan.FromMilliseconds(20)
+                    ? remaining
+                    : TimeSpan.FromMilliseconds(20)).ConfigureAwait(false);
+        }
+
+        return true;
+    }
+
+    private static async Task<bool> WaitForThreadExitAsync(Thread thread, TimeSpan timeout)
+    {
+        var deadline = Stopwatch.GetTimestamp() +
+            checked((long)(timeout.TotalSeconds * Stopwatch.Frequency));
+        while (thread.IsAlive)
+        {
+            var remainingTicks = deadline - Stopwatch.GetTimestamp();
+            if (remainingTicks <= 0)
+            {
+                return !thread.IsAlive;
+            }
+
+            var remaining = TimeSpan.FromSeconds(remainingTicks / (double)Stopwatch.Frequency);
+            await Task.Delay(
+                remaining < TimeSpan.FromMilliseconds(20)
+                    ? remaining
+                    : TimeSpan.FromMilliseconds(20)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     private void HookThreadMain()
@@ -722,9 +932,9 @@ public sealed class DragSessionDetector : IDisposable
 
             _completionGrace?.Cancel();
             _sessionTimeout?.Cancel();
-            _sessionTimeout?.Dispose();
-            _sessionTimeout = new CancellationTokenSource();
-            ScheduleTimeout(transition.SessionId, transition.Point, _sessionTimeout.Token);
+            var timeoutCancellation = new CancellationTokenSource();
+            _sessionTimeout = timeoutCancellation;
+            ScheduleTimeout(transition.SessionId, transition.Point, timeoutCancellation);
             var monitor = _monitorLayout.GetMonitorAtPoint(transition.Point.X, transition.Point.Y);
             _logger.LogInformation(
                 "Smart file-drag candidate session {SessionId} started on monitor {MonitorId}: source={Source}, evidenceLevel={EvidenceLevel}, evidence={Evidence}, requiresOleVerification={RequiresOleVerification}; no user path was inspected.",
@@ -803,44 +1013,84 @@ public sealed class DragSessionDetector : IDisposable
         }
 
         _completionGrace?.Cancel();
-        _completionGrace?.Dispose();
-        _completionGrace = CancellationTokenSource.CreateLinkedTokenSource(runCancellation);
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(runCancellation);
+        _completionGrace = cancellation;
         var sessionId = _policy.ActiveSessionId;
-        _ = CompleteAfterGraceAsync(sessionId, point, _completionGrace.Token);
+        var task = CompleteAfterGraceAsync(sessionId, point, cancellation);
+        _scheduledTasks[cancellation] = task;
+        if (task.IsCompleted)
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+        }
+
+        TrackLifecycleTask(task, "completion grace");
     }
 
     private async Task CompleteAfterGraceAsync(
         long sessionId,
         DragScreenPoint point,
-        CancellationToken cancellationToken)
+        CancellationTokenSource cancellation)
     {
         try
         {
-            await Task.Delay(PointerReleaseGrace, cancellationToken);
+            await Task.Delay(PointerReleaseGrace, cancellation.Token);
             TryWrite(new DetectorSignal(
                 DetectorSignalKind.CompletionGraceElapsed,
                 point,
                 SessionId: sessionId));
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
+        }
+        finally
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+            if (ReferenceEquals(_completionGrace, cancellation))
+            {
+                _completionGrace = null;
+            }
+
+            cancellation.Dispose();
         }
     }
 
-    private void ScheduleTimeout(long sessionId, DragScreenPoint point, CancellationToken cancellationToken)
+    private void ScheduleTimeout(
+        long sessionId,
+        DragScreenPoint point,
+        CancellationTokenSource cancellation)
     {
-        _ = TimeoutAsync(sessionId, point, cancellationToken);
+        var task = TimeoutAsync(sessionId, point, cancellation);
+        _scheduledTasks[cancellation] = task;
+        if (task.IsCompleted)
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+        }
+
+        TrackLifecycleTask(task, "session timeout");
     }
 
-    private async Task TimeoutAsync(long sessionId, DragScreenPoint point, CancellationToken cancellationToken)
+    private async Task TimeoutAsync(
+        long sessionId,
+        DragScreenPoint point,
+        CancellationTokenSource cancellation)
     {
         try
         {
-            await Task.Delay(SessionTimeout, cancellationToken);
+            await Task.Delay(SessionTimeout, cancellation.Token);
             TryWrite(new DetectorSignal(DetectorSignalKind.Timeout, point, SessionId: sessionId));
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
+        }
+        finally
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+            if (ReferenceEquals(_sessionTimeout, cancellation))
+            {
+                _sessionTimeout = null;
+            }
+
+            cancellation.Dispose();
         }
     }
 

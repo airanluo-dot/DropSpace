@@ -45,7 +45,9 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private const uint WindowMessageMouseActivate = 0x0021;
     private const uint WindowMessageEraseBackground = 0x0014;
     private const uint WindowMessageProbeComplete = 0x8000 + 0x2D1;
+    private const uint WindowMessageProbeCleanup = 0x8000 + 0x2D2;
     private const uint GetWindowOwner = 4;
+    private const uint SendMessageTimeoutAbortIfHung = 0x0002;
     private const string WindowClassName = "DropSpace.EphemeralOleDragProbe.v1";
     private static readonly object ClassGate = new();
     private static readonly Dictionary<nint, EphemeralOleDragProbe> Probes = [];
@@ -60,6 +62,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private readonly ILogger _logger;
     private readonly ProbeDropTarget _dropTarget;
     private readonly SynchronizationContext? _ownerContext;
+    private readonly uint _ownerThreadId;
     private readonly Func<nint, uint, nint, nint, bool> _postCompletion;
     private readonly long _createdTimestamp = Stopwatch.GetTimestamp();
     private Timer? _lifetimeTimer;
@@ -67,6 +70,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private OleDragProbeResult? _pendingResult;
     private bool _registered;
     private int _disposeState;
+    private int _ownerMessagePending;
 
     public EphemeralOleDragProbe(
         long sessionId,
@@ -93,6 +97,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         _completed = completed;
         _logger = logger;
         _ownerContext = SynchronizationContext.Current;
+        _ownerThreadId = GetCurrentThreadId();
         _postCompletion = postCompletion ?? PostMessage;
         _dropTarget = new ProbeDropTarget(this, classifier, logger);
 
@@ -218,10 +223,41 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
     public void Dispose()
     {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        if (!IsOwnerThread)
+        {
+            if (!RequestOwnerThreadMessage(WindowMessageProbeCleanup))
+            {
+                _logger.LogError(
+                    "Smart OLE probe cleanup could not reach its owner thread for session {SessionId}; native cleanup remains deferred.",
+                    _sessionId);
+            }
+
+            return;
+        }
+
+        DisposeOnOwnerThread();
+    }
+
+    private void DisposeOnOwnerThread()
+    {
+        if (!IsOwnerThread)
+        {
+            _logger.LogError(
+                "Smart OLE probe native cleanup was requested from the wrong thread for session {SessionId}; cleanup remains deferred.",
+                _sessionId);
+            return;
+        }
+
         if (Interlocked.Exchange(ref _disposeState, 1) != 0)
         {
             return;
         }
+
         _lifetimeTimer?.Dispose();
         _lifetimeTimer = null;
         _cleanupWatchdog?.Dispose();
@@ -354,16 +390,11 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             TimeSpan.FromMilliseconds(250),
             Timeout.InfiniteTimeSpan);
 
-        if (!_postCompletion(WindowHandle, WindowMessageProbeComplete, nint.Zero, nint.Zero))
+        if (!RequestOwnerThreadMessage(WindowMessageProbeComplete))
         {
-            _logger.LogWarning(
-                "Smart OLE probe PostMessage completion failed for session {SessionId}; Win32 error {Error}. Falling back to the owner work queue and forced cleanup watchdog.",
-                _sessionId,
-                Marshal.GetLastWin32Error());
-            if (_ownerContext is { } ownerContext)
-            {
-                ownerContext.Post(static state => ((EphemeralOleDragProbe)state!).CompleteOnOwnerThread(), this);
-            }
+            _logger.LogError(
+                "Smart OLE probe completion could not reach its owner thread for session {SessionId}; native cleanup remains deferred.",
+                _sessionId);
         }
     }
 
@@ -375,14 +406,30 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         }
 
         _logger.LogWarning(
-            "Smart OLE probe forced cleanup watchdog fired for session {SessionId}; registry, timer, HWND and OLE registration will be released.",
+            "Smart OLE probe forced cleanup watchdog fired for session {SessionId}; requesting owner-thread completion without direct native destruction.",
             _sessionId);
-        CompleteOnOwnerThread();
-        Dispose();
+        if (!RequestOwnerThreadMessage(WindowMessageProbeComplete))
+        {
+            _logger.LogError(
+                "Smart OLE probe watchdog could not reach its owner thread for session {SessionId}; HWND/OLE cleanup is not falsely marked complete.",
+                _sessionId);
+        }
     }
 
     private void CompleteOnOwnerThread()
     {
+        if (!IsOwnerThread)
+        {
+            if (!RequestOwnerThreadMessage(WindowMessageProbeComplete))
+            {
+                _logger.LogError(
+                    "Smart OLE probe completion was invoked off owner thread and could not be marshalled for session {SessionId}.",
+                    _sessionId);
+            }
+
+            return;
+        }
+
         OleDragProbeResult? result;
         lock (_completionGate)
         {
@@ -405,9 +452,90 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         }
         finally
         {
-            Dispose();
+            DisposeOnOwnerThread();
         }
     }
+
+    private bool IsOwnerThread => GetCurrentThreadId() == _ownerThreadId;
+
+    private bool RequestOwnerThreadMessage(uint message)
+    {
+        if (IsOwnerThread)
+        {
+            if (message == WindowMessageProbeComplete || message == WindowMessageProbeCleanup)
+            {
+                CompleteOnOwnerThread();
+            }
+            else
+            {
+                DisposeOnOwnerThread();
+            }
+
+            return true;
+        }
+
+        if (Interlocked.Exchange(ref _ownerMessagePending, 1) != 0)
+        {
+            return true;
+        }
+
+        try
+        {
+            if (_postCompletion(WindowHandle, message, nint.Zero, nint.Zero))
+            {
+                return true;
+            }
+
+            if (_ownerContext is { } ownerContext)
+            {
+                ownerContext.Post(
+                    static state =>
+                    {
+                        var request = (ProbeOwnerMessage)state!;
+                        request.Probe.HandleOwnerThreadMessage(request.Message);
+                    },
+                    new ProbeOwnerMessage(this, message));
+                return true;
+            }
+
+            if (SendMessageTimeout(
+                    WindowHandle,
+                    message,
+                    nint.Zero,
+                    nint.Zero,
+                    SendMessageTimeoutAbortIfHung,
+                    100,
+                    out _))
+            {
+                return true;
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Smart OLE probe owner-thread cleanup request failed for session {SessionId}.",
+                _sessionId);
+        }
+
+        Interlocked.Exchange(ref _ownerMessagePending, 0);
+        return false;
+    }
+
+    private void HandleOwnerThreadMessage(uint message)
+    {
+        Interlocked.Exchange(ref _ownerMessagePending, 0);
+        if (message == WindowMessageProbeComplete)
+        {
+            CompleteOnOwnerThread();
+        }
+        else if (message == WindowMessageProbeCleanup)
+        {
+            DisposeOnOwnerThread();
+        }
+    }
+
+    private readonly record struct ProbeOwnerMessage(EphemeralOleDragProbe Probe, uint Message);
 
     private static void EnsureWindowClass()
     {
@@ -458,7 +586,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
                 Probes.TryGetValue(window, out probe);
             }
 
-            probe?.CompleteOnOwnerThread();
+            probe?.HandleOwnerThreadMessage(message);
             return nint.Zero;
         }
 
@@ -613,6 +741,20 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostMessage(nint window, uint message, nint wParam, nint lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SendMessageTimeout(
+        nint window,
+        uint message,
+        nint wParam,
+        nint lParam,
+        uint flags,
+        uint timeoutMilliseconds,
+        out nint result);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

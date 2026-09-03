@@ -9,6 +9,13 @@ namespace DropSpace.Infrastructure.Actions;
 public static class ActionOutputPolicy
 {
     private const int MaximumCollisionAttempts = 1_000;
+    private const int MaximumStemLength = 160;
+    private static readonly HashSet<string> ReservedDeviceNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    };
 
     public static string ResolveDirectory(AppStoragePaths paths, string? requestedDirectory)
     {
@@ -63,7 +70,63 @@ public static class ActionOutputPolicy
         ArgumentException.ThrowIfNullOrWhiteSpace(fallback);
         var source = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
         var invalidCharacters = Path.GetInvalidFileNameChars();
-        var sanitized = string.Concat(source.Where(character => !invalidCharacters.Contains(character)));
-        return string.IsNullOrWhiteSpace(sanitized) ? fallback : sanitized;
+        var sanitized = string.Concat(source.Where(character =>
+            character >= ' ' &&
+            character != '\\' &&
+            !invalidCharacters.Contains(character)));
+        sanitized = sanitized.TrimEnd(' ', '.');
+        if (string.IsNullOrWhiteSpace(sanitized))
+        {
+            sanitized = fallback.Trim().TrimEnd(' ', '.');
+        }
+
+        if (string.IsNullOrWhiteSpace(sanitized))
+        {
+            sanitized = "DropSpace export";
+        }
+
+        if (IsReservedDeviceName(sanitized))
+        {
+            sanitized = string.Concat('_', sanitized);
+        }
+
+        if (sanitized.Length > MaximumStemLength)
+        {
+            sanitized = sanitized[..MaximumStemLength].TrimEnd(' ', '.');
+        }
+
+        return string.IsNullOrWhiteSpace(sanitized) ? "DropSpace export" : sanitized;
+    }
+
+    public static void TryDeleteIncompleteOutput(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+            // Preserve the original action failure; cleanup is best effort for our new output only.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Preserve the original action failure; cleanup is best effort for our new output only.
+        }
+    }
+
+    private static bool IsReservedDeviceName(string value)
+    {
+        var name = value.TrimEnd(' ', '.');
+        var separator = name.IndexOf('.');
+        var baseName = separator >= 0 ? name[..separator] : name;
+        return ReservedDeviceNames.Contains(baseName);
     }
 }

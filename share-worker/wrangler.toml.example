@@ -12,3 +12,11 @@ PUBLIC_ORIGIN = "https://share.example.invalid"
 
 # Set with: wrangler secret put UPLOAD_TOKEN_SECRET
 # UPLOAD_TOKEN_SECRET is deliberately not stored in this file.
+
+[[durable_objects.bindings]]
+name = "SHARE_COORDINATOR"
+class_name = "ShareUsageCoordinator"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ShareUsageCoordinator"]

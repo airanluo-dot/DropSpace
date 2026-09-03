@@ -55,11 +55,7 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
         }
         catch
         {
-            if (archivePath is not null)
-            {
-                TryDelete(archivePath);
-            }
-
+            ActionOutputPolicy.TryDeleteIncompleteOutput(archivePath);
             throw;
         }
     }
@@ -101,7 +97,8 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
         var info = new FileInfo(path);
         checked { budget.Bytes += info.Length; }
         if (budget.Bytes > MaximumBytes) throw new InvalidDataException("The ZIP byte limit was exceeded.");
-        var entry = archive.CreateEntry(name, CompressionLevel.Fastest);
+        var uniqueName = GetUniqueEntryName(name, budget);
+        var entry = archive.CreateEntry(uniqueName, CompressionLevel.Fastest);
         await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         await using var output = entry.Open();
         await input.CopyToAsync(output, 81_920, cancellationToken).ConfigureAwait(false);
@@ -110,11 +107,26 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
     private static string SanitizeEntryName(string name) =>
         string.IsNullOrWhiteSpace(name) ? "item" : name.Replace('\0', '_').Replace('/', '_').Replace('\\', '_');
 
-    private static void TryDelete(string path)
+    private static string GetUniqueEntryName(string name, ArchiveBudget budget)
     {
-        try { if (File.Exists(path)) File.Delete(path); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        var candidate = SanitizeEntryName(name);
+        if (budget.EntryNames.Add(candidate))
+        {
+            return candidate;
+        }
+
+        var extension = Path.GetExtension(candidate);
+        var stem = extension.Length == 0 ? candidate : candidate[..^extension.Length];
+        for (var suffix = 1; suffix <= MaximumEntries; suffix++)
+        {
+            var alternative = string.Concat(stem, " (", suffix, ")", extension);
+            if (budget.EntryNames.Add(alternative))
+            {
+                return alternative;
+            }
+        }
+
+        throw new InvalidDataException("The ZIP entry name collision limit was exceeded.");
     }
 
     private sealed class ArchiveBudget
@@ -122,5 +134,7 @@ public sealed class ZipActionService(AppStoragePaths paths) : IItemAction
         public int Entries { get; set; }
 
         public long Bytes { get; set; }
+
+        public HashSet<string> EntryNames { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }

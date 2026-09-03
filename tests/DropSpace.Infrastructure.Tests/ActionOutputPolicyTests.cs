@@ -47,6 +47,27 @@ public sealed class ActionOutputPolicyTests
     }
 
     [TestMethod]
+    [DataRow("CON.txt")]
+    [DataRow("con")]
+    [DataRow("LPT9.")]
+    public void WindowsReservedDeviceNamesAreMadeSafe(string value)
+    {
+        var sanitized = ActionOutputPolicy.SanitizeFileName(value, "fallback");
+
+        Assert.IsFalse(string.Equals(sanitized.Split('.')[0], value.TrimEnd('.', ' '), StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(sanitized.EndsWith(' '));
+        Assert.IsFalse(sanitized.EndsWith('.'));
+    }
+
+    [TestMethod]
+    public void LongStemsAreBoundedForCollisionAndExtensionBudget()
+    {
+        var sanitized = ActionOutputPolicy.SanitizeFileName(new string('x', 512), "fallback");
+
+        Assert.IsTrue(sanitized.Length <= 160);
+    }
+
+    [TestMethod]
     public async Task HashActionWritesASeparateExportAndPreservesTheSource()
     {
         var paths = new AppStoragePaths(_root);

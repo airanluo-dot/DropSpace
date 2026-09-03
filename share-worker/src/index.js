@@ -1,8 +1,14 @@
 const MAX_ITEMS = 100;
 const MAX_BYTES = 2 * 1024 * 1024 * 1024;
 const MAX_OBJECT_BYTES = 6 * 1024 * 1024;
+const CHUNK_PLAIN_BYTES = 5 * 1024 * 1024;
+const AUTH_TAG_BYTES = 16;
+const MAX_MANIFEST_BYTES = 512 * 1024;
 const MAX_TTL_SECONDS = 7 * 24 * 60 * 60;
 const MIN_TTL_SECONDS = 60;
+const RESERVATION_TTL_MS = 10 * 60 * 1000;
+const MAX_CHUNK_INDEX = Math.ceil(MAX_BYTES / CHUNK_PLAIN_BYTES) - 1;
+const MAX_COORDINATOR_OBJECTS = MAX_ITEMS + Math.ceil(MAX_BYTES / CHUNK_PLAIN_BYTES) + 1;
 
 export default {
   async fetch(request, env) {
@@ -22,7 +28,8 @@ export default {
     } catch (error) {
       // Do not log request URLs: the key is carried in a fragment in normal use, but never put
       // secrets or request bodies in a provider log if a platform-level request logger is enabled.
-      return json({ error: error instanceof HttpError ? error.code : "request-failed" }, error instanceof HttpError ? error.status : 400);
+      const status = error instanceof HttpError ? error.status : 500;
+      return json({ error: error instanceof HttpError ? error.code : "request-failed" }, status);
     }
   },
 };
@@ -30,6 +37,7 @@ export default {
 async function createShare(request, env) {
   requireHttps(request);
   const body = await readJson(request, 16 * 1024);
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new HttpError("request-invalid", 400);
   const shareId = String(body.shareId || "").replaceAll("-", "").toLowerCase();
   if (!/^[0-9a-f]{32}$/.test(shareId)) throw new HttpError("share-id-invalid", 400);
   const expiresAt = Date.parse(body.expiresAtUtc || "");
@@ -40,31 +48,66 @@ async function createShare(request, env) {
   if (!Number.isInteger(itemCount) || itemCount < 1 || itemCount > MAX_ITEMS || !Number.isSafeInteger(totalBytes) || totalBytes < 1 || totalBytes > MAX_BYTES) throw new HttpError("limits-invalid", 400);
   const token = await sign({ shareId, expiresAt, itemCount, totalBytes }, env.UPLOAD_TOKEN_SECRET);
   const meta = { shareId, expiresAt, itemCount, totalBytes };
-  await env.SHARES.put(metaKey(shareId), JSON.stringify(meta), { httpMetadata: { contentType: "application/json", cacheControl: "no-store" } });
+  try {
+    await env.SHARES.put(metaKey(shareId), JSON.stringify(meta), { httpMetadata: { contentType: "application/json", cacheControl: "no-store" } });
+    await coordinatorRequest(env, shareId, "init", meta);
+  } catch (error) {
+    await env.SHARES.delete(metaKey(shareId)).catch(() => {});
+    await coordinatorRequest(env, shareId, "revoke").catch(() => {});
+    throw error;
+  }
   const origin = publicOrigin(env, request);
   return json({
-    uploadBaseUrl: `${origin}/v1/shares/${shareId}/objects/`,
+    uploadBaseUrl: origin + "/v1/shares/" + shareId + "/objects/",
     downloadBaseUrl: origin,
-    uploadAuthorization: `Bearer ${token}`,
-    revokeUrl: `${origin}/v1/shares/${shareId}`,
+    uploadAuthorization: "Bearer " + token,
+    revokeUrl: origin + "/v1/shares/" + shareId,
   });
 }
+
 
 async function putObject(request, env, shareId, objectName) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   const claims = await verifyBearer(request, env.UPLOAD_TOKEN_SECRET);
-  if (claims.shareId !== shareId || claims.expiresAt !== meta.expiresAt) throw new HttpError("not-authorized", 401);
+  if (!sameShareClaims(claims, meta)) throw new HttpError("not-authorized", 401);
   const length = Number(request.headers.get("content-length"));
-  if (!Number.isSafeInteger(length) || length < 1 || length > MAX_OBJECT_BYTES) throw new HttpError("object-too-large", 413);
-  const existing = await env.SHARES.head(objectKey(shareId, objectName));
-  if (existing) throw new HttpError("object-exists", 409);
-  await env.SHARES.put(objectKey(shareId, objectName), request.body, {
-    httpMetadata: { contentType: request.headers.get("content-type") || "application/octet-stream", cacheControl: "no-store" },
-    customMetadata: { expiresAt: String(meta.expiresAt), shareId },
-  });
-  return cors(new Response(null, { status: 201 }));
+  if (!Number.isSafeInteger(length) || length < 1) throw new HttpError("object-length-invalid", 400);
+  if (!request.body) throw new HttpError("body-missing", 400);
+  const descriptor = describeUploadObject(objectName, length);
+  const reservation = await coordinatorRequest(env, shareId, "reserve", descriptor);
+  const key = objectKey(shareId, objectName);
+  let putStarted = false;
+  try {
+    const existing = await env.SHARES.head(key);
+    if (existing) throw new HttpError("object-exists", 409);
+    putStarted = true;
+    await env.SHARES.put(key, request.body, {
+      httpMetadata: { contentType: request.headers.get("content-type") || "application/octet-stream", cacheControl: "no-store" },
+      customMetadata: { expiresAt: String(meta.expiresAt), shareId },
+    });
+    await coordinatorRequest(env, shareId, "commit", { reservationId: reservation.reservationId });
+    return cors(new Response(null, { status: 201 }));
+  } catch (error) {
+    await coordinatorRequest(env, shareId, "rollback", { reservationId: reservation.reservationId }).catch(() => {});
+    if (putStarted) await env.SHARES.delete(key).catch(() => {});
+    throw error;
+  }
 }
+
+function describeUploadObject(objectName, length) {
+  if (objectName === "manifest.bin") {
+    if (length > MAX_MANIFEST_BYTES) throw new HttpError("manifest-too-large", 413);
+    return { objectName, kind: "manifest", plainBytes: 0 };
+  }
+  const match = objectName.match(/^([0-9a-f]{32})\.([0-9]+)\.bin$/);
+  if (!match) throw new HttpError("object-name-invalid", 400);
+  const index = Number(match[2]);
+  if (!Number.isSafeInteger(index) || index < 0 || index > MAX_CHUNK_INDEX) throw new HttpError("chunk-index-invalid", 400);
+  if (length <= AUTH_TAG_BYTES || length > MAX_OBJECT_BYTES) throw new HttpError("chunk-size-invalid", 413);
+  return { objectName, kind: "chunk", plainBytes: length - AUTH_TAG_BYTES, fileId: match[1], index };
+}
+
 
 async function getObject(request, env, shareId, objectName) {
   requireHttps(request);
@@ -80,22 +123,31 @@ async function revokeShare(request, env, shareId) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   const claims = await verifyBearer(request, env.UPLOAD_TOKEN_SECRET);
-  if (claims.shareId !== shareId || claims.expiresAt !== meta.expiresAt) throw new HttpError("not-authorized", 401);
-  const listed = await env.SHARES.list({ prefix: `shares/${shareId}/` });
-  await Promise.all(listed.objects.map(object => env.SHARES.delete(object.key)));
+  if (!sameShareClaims(claims, meta)) throw new HttpError("not-authorized", 401);
+  await coordinatorRequest(env, shareId, "revoke");
+  let cursor;
+  do {
+    const listed = await env.SHARES.list({ prefix: "shares/" + shareId + "/", limit: 1000, ...(cursor ? { cursor } : {}) });
+    await Promise.all(listed.objects.map(object => env.SHARES.delete(object.key)));
+    if (listed.truncated && !listed.cursor) throw new HttpError("listing-incomplete", 503);
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
   await env.SHARES.delete(metaKey(shareId));
   return cors(new Response(null, { status: 204 }));
 }
+
 
 async function receiverPage(env, shareId, request) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
   const origin = publicOrigin(env, request);
+  const nonce = toB64(crypto.getRandomValues(new Uint8Array(16)));
   const script = receiverScript(origin, shareId);
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src ${origin}; img-src blob:;"><title>DropSpace Secure Share</title><style>body{font:16px system-ui;max-width:48rem;margin:3rem auto;padding:0 1rem}li{margin:.75rem 0}small{color:#666}</style></head><body><h1>DropSpace Secure Share</h1><p id="status">Decrypting the encrypted manifest locally…</p><ul id="files"></ul><script>${script}</script></body></html>`;
+  const html = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'nonce-" + nonce + "'; style-src 'nonce-" + nonce + "'; connect-src " + origin + "; img-src blob:;\"><title>DropSpace Secure Share</title><style nonce=\"" + nonce + "\">body{font:16px system-ui;max-width:48rem;margin:3rem auto;padding:0 1rem}li{margin:.75rem 0}small{color:#666}</style></head><body><h1>DropSpace Secure Share</h1><p id=\"status\">Decrypting the encrypted manifest locally…</p><ul id=\"files\"></ul><script nonce=\"" + nonce + "\">" + script + "</script></body></html>";
   return cors(new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Cross-Origin-Resource-Policy": "same-origin" } }));
 }
+
 
 function receiverScript(origin, shareId) {
   return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('/v1/shares/${shareId}/objects/manifest.bin'),nonce=manifestBin.slice(0,12),tag=manifestBin.slice(-16),cipher=manifestBin.slice(12,-16),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('DropSpaceShare:v1\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=()=>download('${shareId}',key,item).catch(e=>alert(e.message));li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
@@ -106,11 +158,22 @@ async function get(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)t
 async function loadMeta(env, shareId) {
   const object = await env.SHARES.get(metaKey(shareId));
   if (!object) throw new HttpError("not-found", 404);
-  const meta = JSON.parse(await object.text());
-  if (meta.shareId !== shareId || !Number.isSafeInteger(meta.expiresAt)) throw new HttpError("metadata-invalid", 500);
+  let meta;
+  try {
+    meta = JSON.parse(await object.text());
+  } catch {
+    throw new HttpError("metadata-invalid", 500);
+  }
+  if (!meta || meta.shareId !== shareId ||
+      !Number.isSafeInteger(meta.expiresAt) ||
+      !Number.isInteger(meta.itemCount) || meta.itemCount < 1 || meta.itemCount > MAX_ITEMS ||
+      !Number.isSafeInteger(meta.totalBytes) || meta.totalBytes < 1 || meta.totalBytes > MAX_BYTES) {
+    throw new HttpError("metadata-invalid", 500);
+  }
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
   return meta;
 }
+
 
 async function verifyBearer(request, secret) {
   const header = request.headers.get("authorization") || "";
@@ -121,10 +184,21 @@ async function verifyBearer(request, secret) {
   const encoded = token.slice(0, dot), signature = token.slice(dot + 1);
   const expected = await hmac(secret, encoded);
   if (!constantTime(expected, signature)) throw new HttpError("not-authorized", 401);
-  const claims = JSON.parse(new TextDecoder().decode(fromB64(encoded)));
-  if (!claims || claims.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+  let claims;
+  try {
+    claims = JSON.parse(new TextDecoder().decode(fromB64(encoded)));
+  } catch {
+    throw new HttpError("not-authorized", 401);
+  }
+  if (!claims || typeof claims.shareId !== "string" || !/^[0-9a-f]{32}$/.test(claims.shareId) ||
+      !Number.isSafeInteger(claims.expiresAt) || !Number.isInteger(claims.itemCount) ||
+      !Number.isSafeInteger(claims.totalBytes)) {
+    throw new HttpError("not-authorized", 401);
+  }
+  if (claims.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
   return claims;
 }
+
 
 async function sign(claims, secret) {
   const encoded = toB64(new TextEncoder().encode(JSON.stringify(claims)));
@@ -132,6 +206,7 @@ async function sign(claims, secret) {
 }
 
 async function hmac(secret, text) {
+  if (typeof secret !== "string" || secret.length < 32) throw new HttpError("secret-unavailable", 503);
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return toB64(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text))));
 }
@@ -151,4 +226,214 @@ function publicOrigin(env, request) {
 async function readJson(request, maximum) { const text = await request.text(); if (text.length > maximum) throw new HttpError("body-too-large", 413); try { return JSON.parse(text); } catch { throw new HttpError("json-invalid", 400); } }
 function json(value, status = 200) { return cors(new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } })); }
 function cors(response) { response.headers.set("Access-Control-Allow-Origin", "*"); response.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS"); response.headers.set("Access-Control-Allow-Headers", "Authorization,Content-Type"); return response; }
+function sameShareClaims(claims, meta) {
+  return claims.shareId === meta.shareId &&
+    claims.expiresAt === meta.expiresAt &&
+    claims.itemCount === meta.itemCount &&
+    claims.totalBytes === meta.totalBytes;
+}
+
+async function coordinatorRequest(env, shareId, operation, payload = {}) {
+  const binding = env.SHARE_COORDINATOR;
+  if (!binding || typeof binding.idFromName !== "function" || typeof binding.get !== "function") {
+    throw new HttpError("coordinator-unavailable", 503);
+  }
+  const stub = binding.get(binding.idFromName(shareId));
+  const response = await stub.fetch("https://dropspace-coordinator/" + operation, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operation, shareId, ...payload }),
+  });
+  let result = {};
+  try {
+    result = await response.json();
+  } catch {
+    result = {};
+  }
+  if (!response.ok) {
+    const status = response.status >= 400 && response.status <= 599 ? response.status : 503;
+    throw new HttpError(result.error || "coordinator-failed", status);
+  }
+  return result;
+}
+
+function coordinatorJson(value, status = 200) {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
+
+function cleanupCoordinatorState(state) {
+  const now = Date.now();
+  for (const [reservationId, reservation] of Object.entries(state.pending || {})) {
+    if (!reservation || reservation.expiresAt <= now) delete state.pending[reservationId];
+  }
+  return state;
+}
+
+export class ShareUsageCoordinator {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    try {
+      const body = await request.json();
+      return await this.state.blockConcurrencyWhile(async () => {
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+            typeof body.operation !== "string" || typeof body.shareId !== "string" ||
+            !/^[0-9a-f]{32}$/.test(body.shareId)) {
+          throw new HttpError("coordinator-request-invalid", 400);
+        }
+        let current = await this.state.storage.get("state");
+        if (body.operation === "init") {
+          if (!Number.isSafeInteger(body.expiresAt) ||
+              !Number.isInteger(body.itemCount) || body.itemCount < 1 || body.itemCount > MAX_ITEMS ||
+              !Number.isSafeInteger(body.totalBytes) || body.totalBytes < 1 || body.totalBytes > MAX_BYTES) {
+            throw new HttpError("coordinator-metadata-invalid", 400);
+          }
+          if (current) {
+            if (current.shareId !== body.shareId ||
+                current.expiresAt !== body.expiresAt ||
+                current.itemCount !== body.itemCount ||
+                current.totalBytes !== body.totalBytes) {
+              throw new HttpError("coordinator-conflict", 409);
+            }
+            return coordinatorJson({ ok: true });
+          }
+          current = {
+            shareId: body.shareId,
+            expiresAt: body.expiresAt,
+            itemCount: body.itemCount,
+            totalBytes: body.totalBytes,
+            committedPlainBytes: 0,
+            manifestUploaded: false,
+            objects: {},
+            files: {},
+            pending: {},
+            revoked: false,
+          };
+          await this.state.storage.put("state", current);
+          return coordinatorJson({ ok: true });
+        }
+
+        if (!current || current.shareId !== body.shareId) throw new HttpError("coordinator-not-found", 404);
+        current = cleanupCoordinatorState(current);
+        if (body.operation === "reserve") return this.reserve(current, body);
+        if (body.operation === "commit") return this.commit(current, body);
+        if (body.operation === "rollback") return this.rollback(current, body);
+        if (body.operation === "revoke") return this.revoke(current);
+        throw new HttpError("coordinator-operation-invalid", 400);
+      });
+    } catch (error) {
+      const status = error instanceof HttpError ? error.status : 500;
+      return coordinatorJson({ error: error instanceof HttpError ? error.code : "coordinator-failed" }, status);
+    }
+  }
+
+  async reserve(current, body) {
+    if (current.revoked || current.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+    const objectName = String(body.objectName || "");
+    const kind = objectName === "manifest.bin" ? "manifest" : "chunk";
+    const plainBytes = Number(body.plainBytes);
+    if (objectName.length < 1 || objectName.length > 180 ||
+        !/^[A-Za-z0-9._-]+$/.test(objectName) ||
+        objectName === "." || objectName === ".." ||
+        body.kind !== kind || !Number.isSafeInteger(plainBytes) || plainBytes < 0) {
+      throw new HttpError("coordinator-object-invalid", 400);
+    }
+    if (kind === "manifest") {
+      if (plainBytes !== 0 || current.manifestUploaded || Object.values(current.pending).some(item => item?.objectName === objectName)) {
+        throw new HttpError("object-exists", 409);
+      }
+    } else {
+      const match = objectName.match(/^([0-9a-f]{32})\.([0-9]+)\.bin$/);
+      const index = Number(body.index);
+      if (!match || body.fileId !== match[1] ||
+          !Number.isSafeInteger(index) || index < 0 || index > MAX_CHUNK_INDEX ||
+          String(index) !== match[2] ||
+          plainBytes < 1 || plainBytes > MAX_OBJECT_BYTES - AUTH_TAG_BYTES) {
+        throw new HttpError("coordinator-object-invalid", 400);
+      }
+      if (current.objects[objectName] || Object.values(current.pending).some(item => item?.objectName === objectName)) {
+        throw new HttpError("object-exists", 409);
+      }
+      const file = current.files[match[1]];
+      if ((!file && index !== 0) || (file && file.nextIndex !== index)) {
+        throw new HttpError("chunk-order-invalid", 409);
+      }
+      const pendingFileIds = new Set(
+        Object.values(current.pending)
+          .filter(item => item?.kind === "chunk" && item.index === 0 && typeof item.fileId === "string")
+          .map(item => item.fileId)
+      );
+      if (!file && !pendingFileIds.has(match[1]) &&
+          Object.keys(current.files).length + pendingFileIds.size >= current.itemCount) {
+        throw new HttpError("item-limit-exceeded", 413);
+      }
+    }
+    const objectCount = Object.keys(current.objects).length + Object.keys(current.pending).length;
+    if (objectCount >= MAX_COORDINATOR_OBJECTS) throw new HttpError("object-limit-exceeded", 413);
+    const pendingBytes = Object.values(current.pending).reduce((sum, item) => sum + item.plainBytes, 0);
+    if (current.committedPlainBytes + pendingBytes + plainBytes > current.totalBytes) {
+      throw new HttpError("byte-limit-exceeded", 413);
+    }
+    const reservationId = crypto.randomUUID();
+    current.pending[reservationId] = {
+      objectName,
+      kind,
+      plainBytes,
+      fileId: kind === "chunk" ? body.fileId : undefined,
+      index: kind === "chunk" ? Number(body.index) : undefined,
+      expiresAt: Math.min(current.expiresAt, Date.now() + RESERVATION_TTL_MS),
+    };
+    await this.state.storage.put("state", current);
+    return coordinatorJson({ ok: true, reservationId });
+  }
+
+  async commit(current, body) {
+    const reservationId = String(body.reservationId || "");
+    const reservation = current.pending[reservationId];
+    if (!reservation) throw new HttpError("reservation-missing", 409);
+    if (reservation.expiresAt <= Date.now()) {
+      delete current.pending[reservationId];
+      await this.state.storage.put("state", current);
+      throw new HttpError("reservation-expired", 409);
+    }
+    current.objects[reservation.objectName] = {
+      kind: reservation.kind,
+      plainBytes: reservation.plainBytes,
+      fileId: reservation.fileId,
+      index: reservation.index,
+    };
+    current.committedPlainBytes += reservation.plainBytes;
+    if (reservation.kind === "manifest") {
+      current.manifestUploaded = true;
+    } else {
+      const file = current.files[reservation.fileId] || { nextIndex: 0 };
+      if (file.nextIndex !== reservation.index) throw new HttpError("chunk-order-invalid", 409);
+      file.nextIndex += 1;
+      current.files[reservation.fileId] = file;
+    }
+    delete current.pending[reservationId];
+    await this.state.storage.put("state", current);
+    return coordinatorJson({ ok: true });
+  }
+
+  async rollback(current, body) {
+    const reservationId = String(body.reservationId || "");
+    if (current.pending[reservationId]) delete current.pending[reservationId];
+    await this.state.storage.put("state", current);
+    return coordinatorJson({ ok: true });
+  }
+
+  async revoke(current) {
+    current.revoked = true;
+    current.pending = {};
+    await this.state.storage.put("state", current);
+    return coordinatorJson({ ok: true });
+  }
+}
+
 class HttpError extends Error { constructor(code, status) { super(code); this.code = code; this.status = status; } }

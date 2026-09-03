@@ -86,20 +86,49 @@ public sealed class OleDragDropService : IDisposable
 
     internal EphemeralOleDragProbe StartVerificationProbe(
         long sessionId,
-        DragScreenPoint point,
-        Action<OleDragProbeResult> completed)
+        DragScreenPoint candidatePoint,
+        Action<OleDragProbeResult> completed,
+        Func<bool>? isStillValid = null)
     {
         EnsureOleInitialized();
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(completed);
 
+        if (isStillValid is not null && !isStillValid())
+        {
+            throw new OperationCanceledException("The Smart drag candidate is no longer valid.");
+        }
+
+        if (!GetCursorPos(out var nativePoint))
+        {
+            var error = Marshal.GetLastWin32Error();
+            _logger.LogWarning(
+                "Smart OLE verification probe could not read the current cursor position; candidate=({CandidateX},{CandidateY}), win32Error={Win32Error}.",
+                candidatePoint.X,
+                candidatePoint.Y,
+                error);
+            throw new Win32Exception(error, "The current cursor position could not be read.");
+        }
+
+        var currentPoint = new DragScreenPoint(nativePoint.X, nativePoint.Y);
+        if (isStillValid is not null && !isStillValid())
+        {
+            throw new OperationCanceledException("The Smart drag candidate became stale before probe creation.");
+        }
+
         _activeProbe?.Dispose();
         _activeProbe = null;
         EphemeralOleDragProbe? probe = null;
+        var monitor = _monitorLayout.GetMonitorAtPoint(currentPoint.X, currentPoint.Y);
+        if (isStillValid is not null && !isStillValid())
+        {
+            throw new OperationCanceledException("The Smart drag candidate became stale while resolving its monitor.");
+        }
+
         probe = new EphemeralOleDragProbe(
             sessionId,
-            point,
-            _monitorLayout.GetMonitorAtPoint(point.X, point.Y),
+            currentPoint,
+            monitor,
             _probeOptions,
             _fileDataClassifier,
             result =>
@@ -258,6 +287,10 @@ public sealed class OleDragDropService : IDisposable
 
     [DllImport("ole32.dll")]
     private static extern void OleUninitialize();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativePoint point);
 }
 
 public sealed class DragActivationHost : IDisposable

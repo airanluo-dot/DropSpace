@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Logging;
 
-public sealed class RedactingFileLoggerProvider : ILoggerProvider
+public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposable
 {
     private const long MaximumLogBytes = 2 * 1024 * 1024;
     private readonly ConcurrentDictionary<string, RedactingFileLogger> _loggers = new(StringComparer.Ordinal);
@@ -19,6 +19,8 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _logPath;
     private readonly Task _writer;
+    private readonly object _disposeGate = new();
+    private Task? _disposeTask;
     private int _disposed;
 
     public RedactingFileLoggerProvider(AppStoragePaths paths)
@@ -33,6 +35,20 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider
 
     public void Dispose()
     {
+        ObserveDisposeTask(DisposeAsync().AsTask());
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        lock (_disposeGate)
+        {
+            _disposeTask ??= DisposeCoreAsync();
+            return new ValueTask(_disposeTask);
+        }
+    }
+
+    private async Task DisposeCoreAsync()
+    {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
@@ -41,17 +57,43 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider
         _messages.Writer.TryComplete();
         try
         {
-            _writer.Wait(TimeSpan.FromSeconds(2));
+            await _writer.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
         }
-        catch (AggregateException exception)
+        catch (TimeoutException)
         {
-            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
+            // The synchronous compatibility surface never waits. Cancel the writer after the
+            // bounded asynchronous drain interval and leave its CTS for GC if it is still running.
+            _cancellation.Cancel();
+            System.Diagnostics.Debug.WriteLine("DropSpace log writer shutdown timed out.");
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is expected when the writer is stopped after a bounded drain.
         }
         finally
         {
             _cancellation.Cancel();
-            _cancellation.Dispose();
+            if (_writer.IsCompleted)
+            {
+                _cancellation.Dispose();
+            }
         }
+    }
+
+    private static void ObserveDisposeTask(Task task)
+    {
+        task.ContinueWith(
+            completed =>
+            {
+                if (completed.IsFaulted)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        completed.Exception?.GetBaseException().GetType().Name);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
     }
 
     private async Task WriteLoopAsync()

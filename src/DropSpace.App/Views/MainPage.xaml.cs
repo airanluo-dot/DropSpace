@@ -407,8 +407,8 @@ public sealed partial class MainPage : Page
     {
         if (!_syncingSettings)
         {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableDeviceHandoff = DeviceHandoffToggle.IsOn }));
+            await ApplySettingChangeAsync(
+                settings => settings with { EnableDeviceHandoff = DeviceHandoffToggle.IsOn });
             UpdateDeviceStatus();
         }
     }
@@ -417,8 +417,8 @@ public sealed partial class MainPage : Page
     {
         if (!_syncingSettings)
         {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableCrossDeviceClipboard = CrossDeviceClipboardToggle.IsOn }));
+            await ApplySettingChangeAsync(
+                settings => settings with { EnableCrossDeviceClipboard = CrossDeviceClipboardToggle.IsOn });
         }
     }
 
@@ -426,8 +426,8 @@ public sealed partial class MainPage : Page
     {
         if (!_syncingSettings)
         {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableNearbySharing = NearbySharingToggle.IsOn }));
+            await ApplySettingChangeAsync(
+                settings => settings with { EnableNearbySharing = NearbySharingToggle.IsOn });
         }
     }
 
@@ -435,8 +435,8 @@ public sealed partial class MainPage : Page
     {
         if (!_syncingSettings)
         {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { EnableInternetSharing = InternetSharingToggle.IsOn }));
+            await ApplySettingChangeAsync(
+                settings => settings with { EnableInternetSharing = InternetSharingToggle.IsOn });
             UpdateDeviceStatus();
         }
     }
@@ -446,8 +446,8 @@ public sealed partial class MainPage : Page
         if (!_syncingSettings && DefaultClipboardSyncModeCombo.SelectedItem is ComboBoxItem { Tag: string value } &&
             Enum.TryParse<ClipboardSyncMode>(value, out var mode))
         {
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(
-                _viewModel.Settings with { DefaultClipboardSyncMode = mode }));
+            await ApplySettingChangeAsync(
+                settings => settings with { DefaultClipboardSyncMode = mode });
         }
     }
 
@@ -550,21 +550,50 @@ public sealed partial class MainPage : Page
         return completion.Task.WaitAsync(cancellationToken);
     }
 
-    private Task OnTransferOfferedAsync(IncomingTransferOffer offer)
+    private Task OnTransferOfferedAsync(IncomingTransferOffer offer, CancellationToken cancellationToken)
     {
-        _ = DispatcherQueue.TryEnqueue(async () =>
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var accepted = await ShowIncomingTransferDialogAsync(offer);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, accepted);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    completion.TrySetCanceled(cancellationToken);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogWarning(
+                        exception,
+                        "Incoming DropLink transfer notification failed for session {SessionId}; attempting rejection.",
+                        offer.SessionId);
+                    try
+                    {
+                        await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, false);
+                    }
+                    catch (Exception rejectionException)
+                    {
+                        _logger.LogWarning(
+                            rejectionException,
+                            "Incoming DropLink transfer rejection could not be sent for session {SessionId}.",
+                            offer.SessionId);
+                    }
+                }
+                finally
+                {
+                    completion.TrySetResult();
+                }
+            }))
         {
-            try
-            {
-                var accepted = await ShowIncomingTransferDialogAsync(offer);
-                await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, accepted);
-            }
-            catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
-            {
-                await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, false);
-            }
-        });
-        return Task.CompletedTask;
+            completion.TrySetException(new InvalidOperationException("The DropSpace UI dispatcher is unavailable."));
+        }
+
+        return completion.Task;
     }
 
     private async Task<bool> ShowIncomingTransferDialogAsync(IncomingTransferOffer offer)
@@ -1792,22 +1821,22 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        await ApplySettingChangeAsync(settings => settings with
         {
             QuickActionPreferences = new QuickActionPreferenceCollection(
-                _viewModel.Settings.QuickActionPreferences)
+                settings.QuickActionPreferences)
             {
                 [profile] = QuickActionPreference.Automatic,
             },
-        }));
+        });
     }
 
     private async void OnResetAllQuickActionsClicked(object sender, RoutedEventArgs args)
     {
-        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        await ApplySettingChangeAsync(settings => settings with
         {
             QuickActionPreferences = QuickActionPreferencePolicy.CreateAutomaticPreferences(),
-        }));
+        });
     }
 
     private void SyncQuickActionsSettings()
@@ -2071,6 +2100,24 @@ public sealed partial class MainPage : Page
         return ShowMessageAsync(title, content);
     }
 
+    private async Task ApplySettingChangeAsync(
+        Func<AppSettings, AppSettings> update,
+        Action? rollback = null)
+    {
+        await RunAsync(async () =>
+        {
+            try
+            {
+                await _viewModel.UpdateSettingsAsync(update(_viewModel.Settings));
+            }
+            catch
+            {
+                rollback?.Invoke();
+                throw;
+            }
+        });
+    }
+
     private async Task RunAsync(Func<Task> operation)
     {
         try
@@ -2081,8 +2128,9 @@ public sealed partial class MainPage : Page
         {
             return;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            _logger.LogWarning(exception, "A main-page operation failed.");
             await ShowMessageAsync(
                 _strings.Get("OperationIncompleteTitle"),
                 _strings.Get("OperationIncompleteContent"));

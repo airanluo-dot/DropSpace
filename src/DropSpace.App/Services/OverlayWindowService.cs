@@ -874,7 +874,11 @@ public sealed class OverlayWindowService : IDisposable
                 _dragDropService.StartVerificationProbe(
                     candidate.SessionId,
                     candidate.Point,
-                    OnSmartProbeCompleted);
+                    OnSmartProbeCompleted,
+                    () => !_disposed &&
+                          _viewModel.FileDragWakeMode == FileDragWakeMode.SmartExperimental &&
+                          _activeSmartSessionId == candidate.SessionId &&
+                          _dragSessionDetector.IsVerificationPending(candidate.SessionId));
             }
             catch (Exception exception)
             {

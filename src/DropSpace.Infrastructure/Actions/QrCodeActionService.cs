@@ -40,11 +40,7 @@ public sealed class QrCodeActionService(AppStoragePaths paths) : IItemAction
         }
         catch
         {
-            if (!string.IsNullOrWhiteSpace(path))
-            {
-                TryDelete(path);
-            }
-
+            ActionOutputPolicy.TryDeleteIncompleteOutput(path);
             throw;
         }
 
@@ -60,20 +56,4 @@ public sealed class QrCodeActionService(AppStoragePaths paths) : IItemAction
         return renderer.GetGraphic(8, drawQuietZones: true);
     }
 
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
-    }
 }

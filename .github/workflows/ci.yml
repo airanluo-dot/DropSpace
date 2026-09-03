@@ -142,3 +142,23 @@ jobs:
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
           retention-days: 7
+
+  share-worker:
+    name: Test encrypted share worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Syntax-check and test Worker coordinator
+        working-directory: share-worker
+        run: |
+          node --check src/index.js
+          npm test

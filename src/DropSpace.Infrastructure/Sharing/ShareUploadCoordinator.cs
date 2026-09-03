@@ -223,7 +223,11 @@ public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri)
         using var request = new HttpRequestMessage(HttpMethod.Delete, revokeUri);
         request.Headers.Add("Authorization", session.UploadAuthorization);
         using var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode &&
+            response.StatusCode is not System.Net.HttpStatusCode.NotFound and not System.Net.HttpStatusCode.Gone)
+        {
+            response.EnsureSuccessStatusCode();
+        }
     }
 
     private static void ValidateBaseUri(Uri uri)

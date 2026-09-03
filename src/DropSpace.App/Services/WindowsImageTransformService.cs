@@ -4,7 +4,6 @@ using DropSpace.Core.Preview;
 using DropSpace.Infrastructure.Actions;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
-using Windows.Storage.Streams;
 
 namespace DropSpace.App.Services;
 
@@ -135,49 +134,43 @@ public sealed class WindowsImageTransformService : IImageTransformService
         }
         var encoder = ResolveEncoder(outputFormat, item.Extension, item.MimeType);
 
-        using var destination = new InMemoryRandomAccessStream();
-        using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-        cancellationToken.ThrowIfCancellationRequested();
-        var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
-        imageEncoder.SetSoftwareBitmap(bitmap);
-        imageEncoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
-        imageEncoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);
-        imageEncoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
-        // Re-encoding through a SoftwareBitmap intentionally omits arbitrary source metadata.
-        await imageEncoder.FlushAsync();
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (destination.Size is 0 or > MaximumEncodedBytes)
-        {
-            throw new InvalidDataException("The encoded image is too large to export safely.");
-        }
-
-        destination.Seek(0);
-        using var reader = new DataReader(destination.GetInputStreamAt(0));
-        var bytes = new byte[checked((int)destination.Size)];
-        await reader.LoadAsync((uint)bytes.Length);
-        cancellationToken.ThrowIfCancellationRequested();
-        reader.ReadBytes(bytes);
-
         string? outputPath = null;
         try
         {
-            await using var output = ActionOutputPolicy.CreateNewFile(
+            // Reserve the final path atomically before encoding, then let the WinRT encoder write
+            // directly to that file. This avoids a second full-size encoded byte buffer and keeps
+            // an incomplete export inside the shared cleanup policy.
+            using (ActionOutputPolicy.CreateNewFile(
                 destinationDirectory,
                 string.Concat(Path.GetFileNameWithoutExtension(item.Title), "-", outputSuffix),
                 encoder.Extension,
-                out outputPath);
-            await output.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
-            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                out outputPath))
+            {
+            }
+
+            var outputFile = await StorageFile.GetFileFromPathAsync(outputPath!);
+            using var destination = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
+            using var bitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            cancellationToken.ThrowIfCancellationRequested();
+            var imageEncoder = await BitmapEncoder.CreateAsync(encoder.EncoderId, destination);
+            imageEncoder.SetSoftwareBitmap(bitmap);
+            imageEncoder.BitmapTransform.ScaledWidth = checked((uint)target.Width);
+            imageEncoder.BitmapTransform.ScaledHeight = checked((uint)target.Height);
+            imageEncoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
+            // Re-encoding through a SoftwareBitmap intentionally omits arbitrary source metadata.
+            await imageEncoder.FlushAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (destination.Size is 0 or > MaximumEncodedBytes)
+            {
+                throw new InvalidDataException("The encoded image is too large to export safely.");
+            }
+
             return ItemActionResult.Success([outputPath!], messageResourceKey: "ActionCompleted");
         }
         catch
         {
-            if (outputPath is not null)
-            {
-                TryDelete(outputPath);
-            }
-
+            ActionOutputPolicy.TryDeleteIncompleteOutput(outputPath);
             throw;
         }
     }
@@ -269,22 +262,6 @@ public sealed class WindowsImageTransformService : IImageTransformService
             Math.Clamp((int)Math.Round(sourceHeight * scale), 1, MaximumDimension));
     }
 
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
-    }
 }
 
 public sealed class ImageTransformActionService(

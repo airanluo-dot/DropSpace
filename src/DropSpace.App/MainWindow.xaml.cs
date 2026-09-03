@@ -15,7 +15,7 @@ using WinRT.Interop;
 
 namespace DropSpace.App;
 
-public sealed partial class MainWindow : Window
+public sealed partial class MainWindow : Window, IAsyncDisposable
 {
     private readonly MainViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
@@ -24,6 +24,8 @@ public sealed partial class MainWindow : Window
     private NativeTrayService? _tray;
     private bool _allowClose;
     private bool _closeExplanationInProgress;
+    private readonly CancellationTokenSource _closeExplanationCancellation = new();
+    private Task? _closeExplanationTask;
 
     public MainWindow(
         MainViewModel viewModel,
@@ -162,6 +164,7 @@ public sealed partial class MainWindow : Window
     public void AllowCloseAndClose()
     {
         _allowClose = true;
+        _closeExplanationCancellation.Cancel();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();
         _tray?.Dispose();
@@ -201,7 +204,7 @@ public sealed partial class MainWindow : Window
             if (!_viewModel.Settings.CloseExplanationShown && !_closeExplanationInProgress)
             {
                 _closeExplanationInProgress = true;
-                _ = ExplainCloseToTrayAsync();
+                _closeExplanationTask = ExplainCloseToTrayAsync(_closeExplanationCancellation.Token);
             }
             else
             {
@@ -214,7 +217,7 @@ public sealed partial class MainWindow : Window
         ExitRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private async Task ExplainCloseToTrayAsync()
+    private async Task ExplainCloseToTrayAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -226,8 +229,15 @@ public sealed partial class MainWindow : Window
                 PrimaryButtonText = _strings.Get("CommonAcknowledge"),
             };
             await dialog.ShowAsync();
-            await _viewModel.UpdateSettingsAsync(_viewModel.Settings with { CloseExplanationShown = true });
+            cancellationToken.ThrowIfCancellationRequested();
+            await _viewModel.UpdateSettingsAsync(
+                _viewModel.Settings with { CloseExplanationShown = true },
+                cancellationToken);
             AppWindow.Hide();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Closing the application cancels the owned explanation task.
         }
         catch (Exception exception)
         {
@@ -237,6 +247,24 @@ public sealed partial class MainWindow : Window
         {
             _closeExplanationInProgress = false;
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _closeExplanationCancellation.Cancel();
+        if (_closeExplanationTask is not null)
+        {
+            try
+            {
+                await _closeExplanationTask.ConfigureAwait(true);
+            }
+            catch (OperationCanceledException) when (_closeExplanationCancellation.IsCancellationRequested)
+            {
+                // The close explanation is owned by the window and is canceled during shutdown.
+            }
+        }
+
+        _closeExplanationCancellation.Dispose();
     }
 
     private async void OnTrayTogglePauseRequested(object? sender, EventArgs args)

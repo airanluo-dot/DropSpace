@@ -35,6 +35,9 @@ public partial class App : Application
     private OverlayWindowService? _overlayWindows;
     private AppInstance? _mainInstance;
     private int _shuttingDown;
+    private readonly CancellationTokenSource _appLifetimeCancellation = new();
+    private Task? _startupUpdateTask;
+    private RedactingFileLoggerProvider? _fileLogger;
 
     public App()
     {
@@ -161,6 +164,17 @@ public partial class App : Application
                 await viewModel.InitializeAsync();
                 try
                 {
+                    await _services.GetRequiredService<SecureInternetShareService>().InitializeAsync();
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(
+                        exception,
+                        "Internet Share revoke-handle recovery failed; local workspace remains available.");
+                }
+
+                try
+                {
                     await _services.GetRequiredService<DeviceHandoffService>().InitializeAsync(viewModel.Settings);
                 }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
@@ -250,7 +264,7 @@ public partial class App : Application
                     !string.Equals(Environment.GetEnvironmentVariable("DROPSPACE_TEST_MODE"), "1", StringComparison.Ordinal))
                 {
                     // Process-lifetime ownership: opening or hiding windows never calls this path.
-                    _ = viewModel.CheckForUpdatesAtStartupAsync();
+                    _startupUpdateTask = viewModel.CheckForUpdatesAtStartupAsync(_appLifetimeCancellation.Token);
                 }
             }
             catch (Exception exception)
@@ -299,19 +313,49 @@ public partial class App : Application
 
         var services = _services;
         _services = null;
+        _appLifetimeCancellation.Cancel();
+        if (_startupUpdateTask is not null)
+        {
+            try
+            {
+                await _startupUpdateTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Application shutdown cancellation is expected for the owned startup check.
+            }
+        }
+
         _overlayWindows?.Dispose();
         _overlayWindows = null;
-        _window?.AllowCloseAndClose();
+        var window = _window;
+        window?.AllowCloseAndClose();
+        if (window is not null)
+        {
+            await window.DisposeAsync();
+        }
+
+        _window = null;
         if (services is not null)
         {
             await services.DisposeAsync();
         }
+
+        var fileLogger = _fileLogger;
+        _fileLogger = null;
+        if (fileLogger is not null)
+        {
+            await fileLogger.DisposeAsync();
+        }
+
+        _appLifetimeCancellation.Dispose();
     }
 
     private ServiceProvider BuildServices()
     {
         var paths = AppStoragePaths.CreateForCurrentUser();
         var fileLogger = new RedactingFileLoggerProvider(paths);
+        _fileLogger = fileLogger;
         var services = new ServiceCollection();
         services.AddSingleton(paths);
         services.AddSingleton<IOsVersionPolicy, WindowsOsVersionPolicy>();

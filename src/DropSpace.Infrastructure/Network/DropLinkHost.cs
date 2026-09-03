@@ -44,6 +44,9 @@ public sealed class DropLinkHost(
     private readonly ConcurrentDictionary<Guid, ReceiveTransfer> _sessions = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _usedNonces = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Guid, DateTimeOffset> _usedHandoffSessions = new();
+    private readonly ConcurrentDictionary<Guid, Task> _offerNotificationTasks = new();
+    private readonly object _offerNotificationGate = new();
+    private CancellationTokenSource _offerNotificationCancellation = new();
     private WebApplication? _app;
     private DeviceIdentity? _identity;
     private Uri? _endpoint;
@@ -55,7 +58,7 @@ public sealed class DropLinkHost(
 
     public event Func<ClipboardEnvelope, CancellationToken, Task>? ClipboardReceived;
 
-    public event Func<IncomingTransferOffer, Task>? TransferOffered;
+    public event Func<IncomingTransferOffer, CancellationToken, Task>? TransferOffered;
 
     public event Func<IncomingPairingOffer, CancellationToken, Task<bool>>? PairingOffered;
 
@@ -64,6 +67,7 @@ public sealed class DropLinkHost(
     public async Task<Uri> StartAsync(int port = 0, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        EnsureOfferNotificationCancellation();
         if (_endpoint is not null) return _endpoint;
         var identity = _identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
@@ -294,7 +298,8 @@ public sealed class DropLinkHost(
                 var receive = new ReceiveTransfer(session, request.Manifest, staging, GetReceiveRoot(), new ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>>());
                 if (!_sessions.TryAdd(session.Id, receive)) return Results.Conflict(new { error = "session-exists" });
                 await transfers.CreateSessionAsync(session, cancellationToken).ConfigureAwait(false);
-                _ = NotifyTransferOfferedAsync(new IncomingTransferOffer(session.Id, request.PeerId, request.Manifest));
+                QueueTransferOfferNotification(
+                    new IncomingTransferOffer(session.Id, request.PeerId, request.Manifest));
                 return Results.Json(new TransferOfferResponse(session.Id, session.State, null));
             }
             catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
@@ -427,20 +432,98 @@ public sealed class DropLinkHost(
         return true;
     }
 
-    private async Task NotifyTransferOfferedAsync(IncomingTransferOffer offer)
+    private void QueueTransferOfferNotification(IncomingTransferOffer offer)
+    {
+        var task = RunTransferOfferNotificationAsync(offer);
+        _offerNotificationTasks[offer.SessionId] = task;
+        if (task.IsCompleted)
+        {
+            _offerNotificationTasks.TryRemove(offer.SessionId, out _);
+        }
+    }
+
+    private async Task RunTransferOfferNotificationAsync(IncomingTransferOffer offer)
+    {
+        var cancellationToken = GetOfferNotificationToken();
+        try
+        {
+            await NotifyTransferOfferedAsync(offer, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Host shutdown or settings disablement canceled the UI approval notification.
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Incoming DropLink offer notification failed for session {SessionId}.", offer.SessionId);
+        }
+        finally
+        {
+            _offerNotificationTasks.TryRemove(offer.SessionId, out _);
+        }
+    }
+
+    private async Task NotifyTransferOfferedAsync(
+        IncomingTransferOffer offer,
+        CancellationToken cancellationToken)
     {
         var handlers = TransferOffered?.GetInvocationList();
         if (handlers is null) return;
-        foreach (var handler in handlers.Cast<Func<IncomingTransferOffer, Task>>())
+        foreach (var handler in handlers.Cast<Func<IncomingTransferOffer, CancellationToken, Task>>())
         {
             try
             {
-                await handler(offer).ConfigureAwait(false);
+                await handler(offer, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
             }
             catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
             {
                 logger.LogWarning(exception, "Incoming DropLink offer notification failed for session {SessionId}.", offer.SessionId);
             }
+        }
+    }
+
+    private CancellationToken GetOfferNotificationToken()
+    {
+        lock (_offerNotificationGate)
+        {
+            if (_offerNotificationCancellation.IsCancellationRequested)
+            {
+                _offerNotificationCancellation.Dispose();
+                _offerNotificationCancellation = new CancellationTokenSource();
+            }
+
+            return _offerNotificationCancellation.Token;
+        }
+    }
+
+    private void EnsureOfferNotificationCancellation()
+    {
+        lock (_offerNotificationGate)
+        {
+            if (_offerNotificationCancellation.IsCancellationRequested)
+            {
+                _offerNotificationCancellation.Dispose();
+                _offerNotificationCancellation = new CancellationTokenSource();
+            }
+        }
+    }
+
+    private async Task AwaitOfferNotificationsAsync()
+    {
+        var tasks = _offerNotificationTasks.Values.ToArray();
+        if (tasks.Length == 0) return;
+
+        try
+        {
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Individual UI notifications observe the host cancellation token.
         }
     }
 
@@ -535,10 +618,22 @@ public sealed class DropLinkHost(
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         await StopAsync().ConfigureAwait(false);
+        lock (_offerNotificationGate)
+        {
+            _offerNotificationCancellation.Dispose();
+        }
     }
 
     public async Task StopAsync()
     {
+        CancellationTokenSource notificationCancellation;
+        lock (_offerNotificationGate)
+        {
+            notificationCancellation = _offerNotificationCancellation;
+            notificationCancellation.Cancel();
+        }
+        await AwaitOfferNotificationsAsync().ConfigureAwait(false);
+
         if (_app is not null)
         {
             await _app.StopAsync(CancellationToken.None).ConfigureAwait(false);

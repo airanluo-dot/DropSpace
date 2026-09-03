@@ -45,31 +45,11 @@ public sealed class HashActionService(AppStoragePaths paths) : IItemAction
         }
         catch
         {
-            if (!string.IsNullOrWhiteSpace(outputPath))
-            {
-                TryDelete(outputPath);
-            }
-
+            ActionOutputPolicy.TryDeleteIncompleteOutput(outputPath);
             throw;
         }
 
         return ItemActionResult.Success([outputPath], messageResourceKey: "ActionCompleted");
     }
 
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
-    }
 }

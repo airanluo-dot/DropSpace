@@ -11,6 +11,7 @@ public sealed class SerializedProjectionRefreshCoordinator<T> : IDisposable, IAs
     private readonly Func<IReadOnlyList<T>, long, CancellationToken, Task> _applyAsync;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SortedDictionary<long, List<TaskCompletionSource>> _waiters = [];
+    private Task? _workerTask;
     private long _requestedRevision = -1;
     private long _appliedRevision = -1;
     private bool _running;
@@ -59,7 +60,9 @@ public sealed class SerializedProjectionRefreshCoordinator<T> : IDisposable, IAs
             if (!_running)
             {
                 _running = true;
-                _ = RunAsync();
+                // Keep the worker task owned by the coordinator so asynchronous disposal can
+                // observe its final cancellation/unwind.
+                _workerTask = RunAsync();
             }
         }
 
@@ -71,7 +74,23 @@ public sealed class SerializedProjectionRefreshCoordinator<T> : IDisposable, IAs
     public async ValueTask DisposeAsync()
     {
         Dispose();
-        await Task.CompletedTask;
+        Task? worker;
+        lock (_gate)
+        {
+            worker = _workerTask;
+        }
+
+        if (worker is not null)
+        {
+            try
+            {
+                await worker.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+            {
+                // Shutdown cancellation is the expected worker completion path.
+            }
+        }
     }
 
     public void Dispose()
