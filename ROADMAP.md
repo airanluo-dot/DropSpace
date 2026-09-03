@@ -13,7 +13,7 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 
 - Keep Preview.11 Smart Drag/OLE, task-ownership, output-policy, encrypted-share quota, DPAPI revoke, and release/API synchronization hardening intact.
 - Stream decrypted Internet Share chunks directly to a user-selected file through the browser File System Access API when available, with incremental SHA-256 and abort-on-integrity-failure behavior.
-- Bound browsers without file streaming support to a 256 MiB in-memory fallback and expose an explicit user-facing failure above that limit.
+- Bound browsers without file streaming support to a 256 MiB in-memory fallback, serialize fallback Blob lifetimes, and expose an explicit user-facing failure above that limit.
 - Keep Preview.12 CONDITIONAL until the real Windows OS/DPI/monitor/native Smart Drag matrix and operator-deployed Worker/browser acceptance are evidenced.
 
 ## v0.3 — Smart Drag Detection v2 Preview sequence
