@@ -550,15 +550,21 @@ public sealed partial class MainPage : Page
         return completion.Task.WaitAsync(cancellationToken);
     }
 
-    private Task OnTransferOfferedAsync(IncomingTransferOffer offer)
+    private Task OnTransferOfferedAsync(IncomingTransferOffer offer, CancellationToken cancellationToken)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!DispatcherQueue.TryEnqueue(async () =>
             {
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var accepted = await ShowIncomingTransferDialogAsync(offer);
+                    cancellationToken.ThrowIfCancellationRequested();
                     await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, accepted);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    completion.TrySetCanceled(cancellationToken);
                 }
                 catch (Exception exception)
                 {
@@ -575,7 +581,7 @@ public sealed partial class MainPage : Page
                         _logger.LogWarning(
                             rejectionException,
                             "Incoming DropLink transfer rejection could not be sent for session {SessionId}.",
-                            offer.SessionId);
+                            rejectionException);
                     }
                 }
                 finally
