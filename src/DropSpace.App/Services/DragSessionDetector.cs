@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -74,6 +75,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
     private nint _dragWinEventHook;
     private CancellationTokenSource? _completionGrace;
     private CancellationTokenSource? _sessionTimeout;
+    private readonly ConcurrentDictionary<CancellationTokenSource, Task> _scheduledTasks = new();
     private FileDragWakeMode _mode = FileDragWakeMode.Disabled;
     private bool _disposed;
     private int _disposeRequested;
@@ -409,13 +411,34 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
 
     private async Task StopCoreAsync()
     {
+        foreach (var cancellation in _scheduledTasks.Keys)
+        {
+            cancellation.Cancel();
+        }
+
+        var scheduledTasks = _scheduledTasks.Values.ToArray();
         _completionGrace?.Cancel();
-        _completionGrace?.Dispose();
-        _completionGrace = null;
         _sessionTimeout?.Cancel();
-        _sessionTimeout?.Dispose();
-        _sessionTimeout = null;
         _runCancellation?.Cancel();
+
+        if (scheduledTasks.Length > 0)
+        {
+            try
+            {
+                await Task.WhenAll(scheduledTasks).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation is the expected shutdown path for owned grace and timeout tasks.
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "A smart-drag lifecycle task failed during shutdown.");
+            }
+        }
+
+        _completionGrace = null;
+        _sessionTimeout = null;
 
         var hookThread = _hookThread;
         var processor = _processor;
@@ -902,9 +925,9 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
 
             _completionGrace?.Cancel();
             _sessionTimeout?.Cancel();
-            _sessionTimeout?.Dispose();
-            _sessionTimeout = new CancellationTokenSource();
-            ScheduleTimeout(transition.SessionId, transition.Point, _sessionTimeout.Token);
+            var timeoutCancellation = new CancellationTokenSource();
+            _sessionTimeout = timeoutCancellation;
+            ScheduleTimeout(transition.SessionId, transition.Point, timeoutCancellation);
             var monitor = _monitorLayout.GetMonitorAtPoint(transition.Point.X, transition.Point.Y);
             _logger.LogInformation(
                 "Smart file-drag candidate session {SessionId} started on monitor {MonitorId}: source={Source}, evidenceLevel={EvidenceLevel}, evidence={Evidence}, requiresOleVerification={RequiresOleVerification}; no user path was inspected.",
@@ -983,44 +1006,74 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         }
 
         _completionGrace?.Cancel();
-        _completionGrace?.Dispose();
-        _completionGrace = CancellationTokenSource.CreateLinkedTokenSource(runCancellation);
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(runCancellation);
+        _completionGrace = cancellation;
         var sessionId = _policy.ActiveSessionId;
-        _ = CompleteAfterGraceAsync(sessionId, point, _completionGrace.Token);
+        var task = CompleteAfterGraceAsync(sessionId, point, cancellation);
+        _scheduledTasks[cancellation] = task;
+        TrackLifecycleTask(task, "completion grace");
     }
 
     private async Task CompleteAfterGraceAsync(
         long sessionId,
         DragScreenPoint point,
-        CancellationToken cancellationToken)
+        CancellationTokenSource cancellation)
     {
         try
         {
-            await Task.Delay(PointerReleaseGrace, cancellationToken);
+            await Task.Delay(PointerReleaseGrace, cancellation.Token);
             TryWrite(new DetectorSignal(
                 DetectorSignalKind.CompletionGraceElapsed,
                 point,
                 SessionId: sessionId));
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
+        }
+        finally
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+            if (ReferenceEquals(_completionGrace, cancellation))
+            {
+                _completionGrace = null;
+            }
+
+            cancellation.Dispose();
         }
     }
 
-    private void ScheduleTimeout(long sessionId, DragScreenPoint point, CancellationToken cancellationToken)
+    private void ScheduleTimeout(
+        long sessionId,
+        DragScreenPoint point,
+        CancellationTokenSource cancellation)
     {
-        _ = TimeoutAsync(sessionId, point, cancellationToken);
+        var task = TimeoutAsync(sessionId, point, cancellation);
+        _scheduledTasks[cancellation] = task;
+        TrackLifecycleTask(task, "session timeout");
     }
 
-    private async Task TimeoutAsync(long sessionId, DragScreenPoint point, CancellationToken cancellationToken)
+    private async Task TimeoutAsync(
+        long sessionId,
+        DragScreenPoint point,
+        CancellationTokenSource cancellation)
     {
         try
         {
-            await Task.Delay(SessionTimeout, cancellationToken);
+            await Task.Delay(SessionTimeout, cancellation.Token);
             TryWrite(new DetectorSignal(DetectorSignalKind.Timeout, point, SessionId: sessionId));
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
+        }
+        finally
+        {
+            _scheduledTasks.TryRemove(cancellation, out _);
+            if (ReferenceEquals(_sessionTimeout, cancellation))
+            {
+                _sessionTimeout = null;
+            }
+
+            cancellation.Dispose();
         }
     }
 
