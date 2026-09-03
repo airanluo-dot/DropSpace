@@ -70,6 +70,12 @@ test("the coordinator reserves concurrent plaintext byte usage atomically", asyn
   ]);
   assert.equal(first.status, 200);
   assert.equal(second.status, 200);
+  assert.equal((await invoke(coordinator, "commit", {
+    reservationId: first.body.reservationId,
+  })).status, 200);
+  assert.equal((await invoke(coordinator, "commit", {
+    reservationId: second.body.reservationId,
+  })).status, 200);
 
   const overBudget = await invoke(coordinator, "reserve", {
     objectName: fileOne + ".1.bin",
