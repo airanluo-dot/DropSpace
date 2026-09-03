@@ -37,6 +37,7 @@ public partial class App : Application
     private int _shuttingDown;
     private readonly CancellationTokenSource _appLifetimeCancellation = new();
     private Task? _startupUpdateTask;
+    private RedactingFileLoggerProvider? _fileLogger;
 
     public App()
     {
@@ -340,6 +341,13 @@ public partial class App : Application
             await services.DisposeAsync();
         }
 
+        var fileLogger = _fileLogger;
+        _fileLogger = null;
+        if (fileLogger is not null)
+        {
+            await fileLogger.DisposeAsync();
+        }
+
         _appLifetimeCancellation.Dispose();
     }
 
@@ -347,6 +355,7 @@ public partial class App : Application
     {
         var paths = AppStoragePaths.CreateForCurrentUser();
         var fileLogger = new RedactingFileLoggerProvider(paths);
+        _fileLogger = fileLogger;
         var services = new ServiceCollection();
         services.AddSingleton(paths);
         services.AddSingleton<IOsVersionPolicy, WindowsOsVersionPolicy>();
