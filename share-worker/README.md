@@ -22,4 +22,4 @@ The Worker requires the `SHARE_COORDINATOR` Durable Object binding shown in `wra
 
 ## Receiver download memory boundary
 
-The receiver prefers the browser File System Access API (showSavePicker) when available. It decrypts and hashes one chunk at a time, writes each plaintext chunk directly to the selected file, and aborts the destination if integrity verification fails. Browsers without that API keep a bounded in-memory fallback of 256 MiB; larger files fail with an explicit message instead of attempting an unbounded Blob allocation.
+The receiver prefers the browser File System Access API (showSaveFilePicker) when available. It decrypts and hashes one chunk at a time, writes each plaintext chunk directly to the selected file, and aborts the destination if integrity verification fails. Browsers without that API keep a bounded in-memory fallback of 256 MiB; larger files fail with an explicit message instead of attempting an unbounded Blob allocation.
