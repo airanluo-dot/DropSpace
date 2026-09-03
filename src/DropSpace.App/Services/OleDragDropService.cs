@@ -226,20 +226,21 @@ public sealed class OleDragDropService : IDisposable
             cursorMoved = true;
             var completion = new TaskCompletionSource<OleDragProbeResult>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
-            probe = StartVerificationProbe(
+            var createdProbe = StartVerificationProbe(
                 long.MaxValue,
                 staleCandidatePoint,
                 result => completion.TrySetResult(result));
-            if (!probe.VerifyNativeContract() || ActiveVerificationProbeCount != 1)
+            probe = createdProbe;
+            if (!createdProbe.VerifyNativeContract() || ActiveVerificationProbeCount != 1)
             {
-                CancelVerificationProbe(probe.SessionId);
+                CancelVerificationProbe(createdProbe.SessionId);
                 throw new InvalidOperationException(
                     "The Smart OLE probe did not satisfy its hollow Region, NOACTIVATE, TOOLWINDOW and TOPMOST contract.");
             }
 
-            if (probe.ProbeCenter.X != liveCursorPoint.X || probe.ProbeCenter.Y != liveCursorPoint.Y)
+            if (createdProbe.ProbeCenter.X != liveCursorPoint.X || createdProbe.ProbeCenter.Y != liveCursorPoint.Y)
             {
-                CancelVerificationProbe(probe.SessionId);
+                CancelVerificationProbe(createdProbe.SessionId);
                 throw new InvalidOperationException(
                     $"The Smart OLE probe used the stale candidate point ({staleCandidatePoint.X},{staleCandidatePoint.Y}) instead of the live cursor ({liveCursorPoint.X},{liveCursorPoint.Y}).");
             }
@@ -249,11 +250,11 @@ public sealed class OleDragDropService : IDisposable
 
             var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
             await Task.Yield();
-            probe.Dispose();
-            probe.Dispose();
+            createdProbe.Dispose();
+            createdProbe.Dispose();
             if (result.Outcome != OleDragProbeOutcome.TimedOut ||
-                result.SessionId != probe.SessionId ||
-                !probe.IsDisposed ||
+                result.SessionId != createdProbe.SessionId ||
+                !createdProbe.IsDisposed ||
                 ActiveVerificationProbeCount != 0)
             {
                 throw new InvalidOperationException(
