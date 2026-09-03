@@ -88,6 +88,36 @@ test("the coordinator reserves concurrent plaintext byte usage atomically", asyn
   assert.equal(overBudget.body.error, "byte-limit-exceeded");
 });
 
+test("pending first chunks consume the item quota", async () => {
+  const coordinator = createCoordinator();
+  const expiresAt = Date.now() + 60 * 60 * 1000;
+  assert.equal((await invoke(coordinator, "init", {
+    expiresAt,
+    itemCount: 1,
+    totalBytes: 10,
+  })).status, 200);
+
+  const [first, second] = await Promise.all([
+    invoke(coordinator, "reserve", {
+      objectName: fileOne + ".0.bin",
+      kind: "chunk",
+      plainBytes: 5,
+      fileId: fileOne,
+      index: 0,
+    }),
+    invoke(coordinator, "reserve", {
+      objectName: fileTwo + ".0.bin",
+      kind: "chunk",
+      plainBytes: 5,
+      fileId: fileTwo,
+      index: 0,
+    }),
+  ]);
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 413);
+  assert.equal(second.body.error, "item-limit-exceeded");
+});
+
 test("revocation closes the coordinator before object deletion completes", async () => {
   const coordinator = createCoordinator();
   const expiresAt = Date.now() + 60 * 60 * 1000;
