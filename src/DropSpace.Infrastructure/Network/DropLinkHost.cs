@@ -599,14 +599,22 @@ public sealed class DropLinkHost(
                         return Results.Ok(new { accepted = true, duplicate = true, length });
                     }
 
-                receive.Session = receive.Session with
+                    receive.Session = receive.Session with
+                    {
+                        State = TransferSessionState.Transferring,
+                        TransferredBytes = checked(receive.Session.TransferredBytes + length),
+                    };
+                    receive.Touch();
+                    await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
+                    return Results.Ok(new { accepted = true, duplicate = false, hash, length });
+                }
+                finally
                 {
-                    State = TransferSessionState.Transferring,
-                    TransferredBytes = checked(receive.Session.TransferredBytes + length),
-                };
-                receive.Touch();
-                await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-                return Results.Ok(new { accepted = true, duplicate = false, hash, length });
+                    if (temporaryPartPath is not null)
+                    {
+                        TryDelete(temporaryPartPath);
+                    }
+                }
             }
             finally
             {
