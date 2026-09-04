@@ -653,7 +653,9 @@ public sealed partial class MainPage : Page
     {
         if (descriptor.Bytes is { Length: > 0 } bytes && descriptor.Kind == PreviewKind.Image)
         {
-            return await CreateImageElementAsync(bytes, 640, 520);
+            try { return await CreateImageElementAsync(bytes, 640, 520); }
+            catch (Exception exception) when (exception is InvalidDataException or IOException or COMException or ArgumentException)
+            { return CreateUnavailablePreviewContent(descriptor); }
         }
 
         if (descriptor.Bytes is { Length: > 0 } pdfBytes && descriptor.Kind == PreviewKind.Pdf)
@@ -715,7 +717,7 @@ public sealed partial class MainPage : Page
         };
     }
 
-    private static async Task<Image> CreateImageElementAsync(byte[] bytes, double maxWidth, double maxHeight)
+    private async Task<Image> CreateImageElementAsync(byte[] bytes, double maxWidth, double maxHeight)
     {
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
@@ -725,8 +727,9 @@ public sealed partial class MainPage : Page
             await writer.FlushAsync();
             writer.DetachStream();
         }
+        await ImageDecoderPreflight.ValidateAsync(stream, _viewModel.Settings.MaxImageBytes, _viewModel.Settings.MaxImagePixels);
         stream.Seek(0);
-        var bitmap = new BitmapImage();
+        var bitmap = new BitmapImage { DecodePixelWidth = checked((int)Math.Ceiling(maxWidth)) };
         await bitmap.SetSourceAsync(stream);
         return new Image
         {
@@ -1076,8 +1079,6 @@ public sealed partial class MainPage : Page
 
     private async Task ShowShareDescriptorAsync(ShareDescriptor descriptor)
     {
-        var qrPath = Path.Combine(Path.GetTempPath(), string.Concat("DropSpace-share-", descriptor.ShareId.ToString("N"), ".png"));
-        await File.WriteAllBytesAsync(qrPath, QrCodeActionService.RenderPng(descriptor.Url.ToString()));
         var content = new StackPanel { Spacing = 8 };
         content.Children.Add(new TextBlock
         {
@@ -1132,7 +1133,27 @@ public sealed partial class MainPage : Page
         }
         else if (result == ContentDialogResult.Secondary)
         {
-            Process.Start(new ProcessStartInfo(qrPath) { UseShellExecute = true });
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(QrCodeActionService.RenderPng(descriptor.Url.ToString()));
+                await writer.StoreAsync();
+            }
+            stream.Seek(0);
+            var bitmap = new BitmapImage();
+            await bitmap.SetSourceAsync(stream);
+            var qr = new Image { Source = bitmap, MaxWidth = 320, MaxHeight = 320 };
+            try
+            {
+                await new ContentDialog
+                {
+                    XamlRoot = XamlRoot,
+                    Title = _strings.Get("OpenShareQr"),
+                    Content = qr,
+                    CloseButtonText = _strings.Get("CommonClose"),
+                }.ShowAsync();
+            }
+            finally { qr.Source = null; }
         }
     }
 

@@ -1,6 +1,7 @@
 using DropSpace.Core.Actions;
 using DropSpace.Infrastructure.Storage;
 using QRCoder;
+using System.Text;
 
 namespace DropSpace.Infrastructure.Actions;
 
@@ -11,7 +12,7 @@ public sealed class QrCodeActionService(AppStoragePaths paths) : IItemAction
     public ItemActionCapability Evaluate(ItemSelectionSnapshot selection)
     {
         var available = selection.IsSingle &&
-            (selection.Single.Text is { Length: > 0 } || selection.Single.Url?.NormalizedUrl is { Length: > 0 });
+            CanEncode(selection.Single.Text ?? selection.Single.Url?.NormalizedUrl);
         return new ItemActionCapability(available, available ? null : "Select a text or URL item.", Descriptor);
     }
 
@@ -47,9 +48,16 @@ public sealed class QrCodeActionService(AppStoragePaths paths) : IItemAction
         return ItemActionResult.Success([path], messageResourceKey: "ActionCompleted");
     }
 
+    // Version 40, byte mode, ECC Q: reserve ECI/header overhead conservatively.
+    public const int MaximumUtf8Bytes = 1600;
+
+    public static bool CanEncode(string? value) => !string.IsNullOrWhiteSpace(value) &&
+        value.Length <= MaximumUtf8Bytes && Encoding.UTF8.GetByteCount(value) <= MaximumUtf8Bytes;
+
     public static byte[] RenderPng(string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        if (!CanEncode(value)) throw new InvalidDataException("QR payload exceeds the bounded encoder capacity.");
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(value, QRCodeGenerator.ECCLevel.Q);
         var renderer = new PngByteQRCode(data);
