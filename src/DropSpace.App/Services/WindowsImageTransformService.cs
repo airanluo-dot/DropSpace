@@ -237,7 +237,7 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         var format = string.IsNullOrWhiteSpace(requestedFormat)
             ? sourceExtension ?? mimeType
             : requestedFormat;
-        var encoder = format?.Trim().ToLowerInvariant() switch
+        (Guid EncoderId, string Extension) encoder = format?.Trim().ToLowerInvariant() switch
         {
             ".jpg" or ".jpeg" or "jpg" or "jpeg" or "image/jpeg" =>
                 (BitmapEncoder.JpegEncoderId, ".jpg"),
