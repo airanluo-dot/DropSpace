@@ -360,8 +360,7 @@ public sealed class DropLinkHost(
                     session,
                     request.Manifest,
                     staging,
-                    GetReceiveRoot(),
-                    new ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>>());
+                    GetReceiveRoot());
 
                 lock (_sessionAdmissionGate)
                 {
@@ -534,10 +533,7 @@ public sealed class DropLinkHost(
                     return Results.BadRequest(new { error = "chunk-length-invalid" });
                 }
 
-                var itemChunks = receive.Chunks.GetOrAdd(
-                    itemId,
-                    _ => new ConcurrentDictionary<int, long>());
-                if (itemChunks.TryGetValue(index, out var existingLength) &&
+                if (receive.Chunks.TryGet(itemId, index, out var existingLength) &&
                     File.Exists(Path.Combine(receive.StagingRoot, string.Concat(itemId.ToString("N"), ".", index, ".part"))))
                 {
                     return Results.Ok(new { accepted = true, duplicate = true, length = existingLength });
@@ -598,7 +594,7 @@ public sealed class DropLinkHost(
                     File.Move(temporaryPartPath, partPath);
                     temporaryPartPath = null;
 
-                    if (!itemChunks.TryAdd(index, length))
+                    if (!receive.Chunks.TryAdd(itemId, index, length))
                     {
                         return Results.Ok(new { accepted = true, duplicate = true, length });
                     }
@@ -1042,13 +1038,11 @@ public sealed class DropLinkHost(
         .Select(value => value.Address.ToString())
         .FirstOrDefault();
 
-    private static IReadOnlyDictionary<Guid, IReadOnlyList<int>> SnapshotChunks(ReceiveTransfer receive) =>
-        receive.Chunks.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<int>)pair.Value.Keys.Order().ToArray());
+    private static IReadOnlyDictionary<Guid, IReadOnlyList<int>> SnapshotChunks(ReceiveTransfer receive) => receive.Chunks.Snapshot();
 
     private static async Task CommitItemAsync(ReceiveTransfer receive, TransferItemManifest item, CancellationToken cancellationToken)
     {
-        var chunks = receive.Chunks.GetValueOrDefault(item.Id);
-        if (item.ChunkCount is null || (chunks?.Count ?? 0) != item.ChunkCount.Value)
+        if (item.ChunkCount is null || receive.Chunks.GetItemCount(item.Id) != item.ChunkCount.Value)
         {
             throw new InvalidDataException("A transfer item is missing chunks.");
         }
@@ -1194,15 +1188,13 @@ public sealed class DropLinkHost(
             TransferSession session,
             TransferManifest manifest,
             string stagingRoot,
-            string destinationRoot,
-            ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>> chunks)
+            string destinationRoot)
         {
             _peerId = session.PeerId ?? throw new InvalidDataException("A receive transfer peer is required.");
             Session = session;
             Manifest = manifest;
             StagingRoot = stagingRoot;
             DestinationRoot = destinationRoot;
-            Chunks = chunks;
             LastActivityUtc = session.CreatedAtUtc;
         }
 
@@ -1216,7 +1208,7 @@ public sealed class DropLinkHost(
 
         public string DestinationRoot { get; }
 
-        public ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>> Chunks { get; }
+        public DropLinkChunkLedger Chunks { get; } = new();
 
         public ConcurrentQueue<string> CompletedPaths { get; } = new();
 
