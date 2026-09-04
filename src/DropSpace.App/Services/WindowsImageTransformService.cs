@@ -191,9 +191,10 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         string? outputFormat,
         bool requireFormat)
     {
-        if (!content.IsImage || !content.HasReadablePath)
+        if (!content.IsImage || !content.HasReadablePath ||
+            !WindowsImageCodecPreflight.CanDecode(content.ReadablePath!, content.Extension, content.MimeType))
         {
-            return ItemActionResult.Failure("image-source-unavailable", "ActionSourceUnavailable");
+            return ItemActionResult.Failure("image-codec-unavailable", "ActionSourceUnavailable");
         }
 
         if (string.IsNullOrWhiteSpace(destinationDirectory))
@@ -236,7 +237,7 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         var format = string.IsNullOrWhiteSpace(requestedFormat)
             ? sourceExtension ?? mimeType
             : requestedFormat;
-        return format?.Trim().ToLowerInvariant() switch
+        var encoder = format?.Trim().ToLowerInvariant() switch
         {
             ".jpg" or ".jpeg" or "jpg" or "jpeg" or "image/jpeg" =>
                 (BitmapEncoder.JpegEncoderId, ".jpg"),
@@ -248,6 +249,12 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
                 throw new InvalidDataException("The requested image format is not supported."),
             _ => (BitmapEncoder.PngEncoderId, ".png"),
         };
+        if (!WindowsImageCodecPreflight.CanEncode(encoder.Extension))
+        {
+            throw new InvalidDataException("The requested image encoder is unavailable.");
+        }
+
+        return encoder;
     }
 
     private static (int Width, int Height) CalculateSize(
@@ -283,8 +290,16 @@ public sealed class ImageTransformActionService(
         return new ItemActionCapability(available, available ? null : "Select one available image.", Descriptor);
     }
 
-    internal static bool IsAvailableImage(ItemSelectionSnapshot selection, IItemContentResolver contentResolver) =>
-        selection.IsSingle && contentResolver.Resolve(selection.Single) is { IsImage: true, HasReadablePath: true };
+    internal static bool IsAvailableImage(ItemSelectionSnapshot selection, IItemContentResolver contentResolver)
+    {
+        if (!selection.IsSingle || contentResolver.Resolve(selection.Single) is not
+            { IsImage: true, HasReadablePath: true, ReadablePath: not null } content)
+        {
+            return false;
+        }
+
+        return WindowsImageCodecPreflight.CanDecode(content.ReadablePath, content.Extension, content.MimeType);
+    }
 
     public Task<ItemActionResult> ExecuteAsync(ItemActionContext context, CancellationToken cancellationToken = default)
     {
