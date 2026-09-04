@@ -19,7 +19,6 @@ public sealed class SystemVisualPreferenceService : IDisposable
     public SystemVisualPreferenceService(IWindowsCapabilityService capabilities)
     {
         _capabilities = capabilities;
-        _uiSettings.AnimationsEnabledChanged += OnSystemVisualPreferenceChanged;
         _uiSettings.AdvancedEffectsEnabledChanged += OnSystemVisualPreferenceChanged;
         _uiSettings.ColorValuesChanged += OnSystemVisualPreferenceChanged;
         _accessibilitySettings.HighContrastChanged += OnSystemVisualPreferenceChanged;
@@ -89,7 +88,6 @@ public sealed class SystemVisualPreferenceService : IDisposable
         }
 
         _disposed = true;
-        _uiSettings.AnimationsEnabledChanged -= OnSystemVisualPreferenceChanged;
         _uiSettings.AdvancedEffectsEnabledChanged -= OnSystemVisualPreferenceChanged;
         _uiSettings.ColorValuesChanged -= OnSystemVisualPreferenceChanged;
         _accessibilitySettings.HighContrastChanged -= OnSystemVisualPreferenceChanged;

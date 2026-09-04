@@ -101,7 +101,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         var to = pressed && !reducedMotion ? OverlayMotionTokens.PressScale : 1;
         var animation = _compositor.CreateVector3KeyFrameAnimation();
         animation.InsertKeyFrame(0f, new Vector3(from, from, 1));
-        animation.InsertKeyFrame(1f, new Vector3(to, to, 1));
+        animation.InsertKeyFrame(1f, new Vector3((float)to, (float)to, 1));
         animation.Duration = TimeSpan.FromMilliseconds(
             reducedMotion ? OverlayMotionTokens.FasterMilliseconds : OverlayMotionTokens.FasterMilliseconds);
         _content.StartAnimation(nameof(Visual.Scale), animation);
