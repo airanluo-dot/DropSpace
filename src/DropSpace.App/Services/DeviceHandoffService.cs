@@ -17,6 +17,9 @@ public sealed class DeviceHandoffService(
     ILogger<DeviceHandoffService> logger) : IAsyncDisposable
 {
     private bool _initialized;
+    private bool _disposed;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    private IAsyncDisposable? _registration;
     private string? _unavailableReason;
 
     public bool IsEnabled { get; private set; }
@@ -27,16 +30,24 @@ public sealed class DeviceHandoffService(
 
     public string? UnavailableReason => _unavailableReason;
 
-    public async Task InitializeAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    public Task InitializeAsync(AppSettings settings, CancellationToken cancellationToken = default) =>
+        UpdateSettingsAsync(settings, cancellationToken);
+
+    public Task<IReadOnlyList<DeviceDescriptor>> DiscoverAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        discovery.BrowseAsync(timeout, cancellationToken);
+
+    public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        if (_initialized) return;
-        _initialized = true;
-        IsEnabled = settings.EnableDeviceHandoff;
-        if (!IsEnabled) return;
-
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!settings.EnableDeviceHandoff) { await DisableCoreAsync().ConfigureAwait(false); return; }
+            if (_initialized && host.IsRunning && _registration is not null) return;
+            await DisableCoreAsync().ConfigureAwait(false);
+            try
+            {
             var endpoint = await host.StartAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             FirewallStatus = firewall.CheckInboundCapability(endpoint.Port);
             var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -50,45 +61,37 @@ public sealed class DeviceHandoffService(
                 PeerCapability.ClipboardImage | PeerCapability.NearbyBrowserShare,
                 identity.Fingerprint,
                 endpoint);
-            await discovery.RegisterAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                _registration = await discovery.RegisterAsync(descriptor, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                _unavailableReason = null;
+                _initialized = true;
+                IsEnabled = true;
+            }
+            catch (Exception exception)
+            {
+                _unavailableReason = exception.GetType().Name;
+                try { await DisableCoreAsync().ConfigureAwait(false); }
+                catch (Exception cleanup) { logger.LogError("Handoff rollback failed: {Category}.", cleanup.GetType().Name); }
+                throw;
+            }
         }
-        catch (Exception exception) when (exception is SocketException or InvalidOperationException or IOException or UnauthorizedAccessException)
-        {
-            _initialized = false;
-            IsEnabled = false;
-            _unavailableReason = exception.Message;
-            logger.LogWarning(exception, "DropLink LAN discovery is unavailable; direct HTTPS pairing remains available.");
-        }
+        finally { _lifecycleGate.Release(); }
     }
 
-    public Task<IReadOnlyList<DeviceDescriptor>> DiscoverAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
-        discovery.BrowseAsync(timeout, cancellationToken);
-
-    public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    private async Task DisableCoreAsync()
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (!_initialized)
-        {
-            await InitializeAsync(settings, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        if (!settings.EnableDeviceHandoff)
-        {
-            if (IsEnabled || host.IsRunning)
-            {
-                IsEnabled = false;
-                await discovery.DisposeAsync().ConfigureAwait(false);
-                await host.StopAsync().ConfigureAwait(false);
-            }
-            _initialized = false;
-            return;
-        }
-
-        if (IsEnabled && host.IsRunning) return;
+        IsEnabled = false;
         _initialized = false;
-        _unavailableReason = null;
-        await InitializeAsync(settings, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await discovery.DisposeAsync().ConfigureAwait(false);
+            _registration = null;
+        }
+        finally
+        {
+            await host.StopAsync().ConfigureAwait(false);
+            FirewallStatus = null;
+        }
     }
 
     public async Task<PeerDevice> PairAsync(
@@ -154,7 +157,8 @@ public sealed class DeviceHandoffService(
 
     public async ValueTask DisposeAsync()
     {
-        await discovery.DisposeAsync().ConfigureAwait(false);
-        await host.DisposeAsync().ConfigureAwait(false);
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try { _disposed = true; await DisableCoreAsync().ConfigureAwait(false); }
+        finally { _lifecycleGate.Release(); }
     }
 }

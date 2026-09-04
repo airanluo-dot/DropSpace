@@ -23,6 +23,8 @@ public sealed class CrossDeviceClipboardService(
     private AppSettings _settings = new();
     private long _originSequence;
     private bool _initialized;
+    private bool _disposed;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
 
     public bool IsEnabled { get; private set; }
 
@@ -31,47 +33,52 @@ public sealed class CrossDeviceClipboardService(
         get { lock (_gate) return _peers.Values.ToArray(); }
     }
 
-    public async Task InitializeAsync(AppSettings settings, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (_initialized) return;
-        _initialized = true;
-        _settings = settings;
-        IsEnabled = settings.EnableCrossDeviceClipboard;
-        if (!IsEnabled) return;
-        _identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        capture.ItemCaptured += OnItemCaptured;
-        host.ClipboardReceived += OnClipboardReceivedAsync;
-    }
+    public Task InitializeAsync(AppSettings settings, CancellationToken cancellationToken = default) =>
+        UpdateSettingsAsync(settings, cancellationToken);
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        if (!_initialized)
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            await InitializeAsync(settings, cancellationToken).ConfigureAwait(false);
-            return;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!settings.EnableCrossDeviceClipboard)
+            {
+                DisableCore();
+                _settings = settings;
+                return;
+            }
+            if (_initialized) { _settings = settings; return; }
+            try
+            {
+                var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                _identity = identity;
+                capture.ItemCaptured += OnItemCaptured;
+                host.ClipboardReceived += OnClipboardReceivedAsync;
+                _settings = settings;
+                _initialized = true;
+                IsEnabled = true;
+            }
+            catch
+            {
+                DisableCore();
+                throw;
+            }
         }
+        finally { _lifecycleGate.Release(); }
+    }
 
-        var wasEnabled = IsEnabled;
-        _settings = settings;
-        IsEnabled = settings.EnableCrossDeviceClipboard;
-        if (wasEnabled == IsEnabled) return;
-
-        if (IsEnabled)
-        {
-            _identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            capture.ItemCaptured += OnItemCaptured;
-            host.ClipboardReceived += OnClipboardReceivedAsync;
-        }
-        else
-        {
-            capture.ItemCaptured -= OnItemCaptured;
-            host.ClipboardReceived -= OnClipboardReceivedAsync;
-            lock (_gate) _peers.Clear();
-            _loopGuard.Clear();
-            _identity = null;
-        }
+    private void DisableCore()
+    {
+        IsEnabled = false;
+        _initialized = false;
+        capture.ItemCaptured -= OnItemCaptured;
+        host.ClipboardReceived -= OnClipboardReceivedAsync;
+        lock (_gate) _peers.Clear();
+        _loopGuard.Clear();
+        _identity = null;
     }
 
     public void ConfigurePeer(PeerDevice peer, Uri endpoint, ClipboardSyncMode? mode = null)
@@ -155,15 +162,10 @@ public sealed class CrossDeviceClipboardService(
         return null;
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        if (_initialized)
-        {
-            capture.ItemCaptured -= OnItemCaptured;
-            host.ClipboardReceived -= OnClipboardReceivedAsync;
-        }
-        lock (_gate) _peers.Clear();
-        _loopGuard.Clear();
-        return ValueTask.CompletedTask;
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try { _disposed = true; DisableCore(); }
+        finally { _lifecycleGate.Release(); }
     }
 }
