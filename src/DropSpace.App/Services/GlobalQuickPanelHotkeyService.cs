@@ -191,7 +191,7 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
             {
                 if (message.Message == WindowMessageHotkey && message.WParam.ToInt32() == HotkeyId)
                 {
-                    Invoked?.Invoke(this, EventArgs.Empty);
+                    NativeSubscriberNotification.Invoke(Invoked, this, _logger);
                 }
             }
         }
@@ -287,19 +287,33 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
     internal static HotkeyDefinition Parse(string gesture)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(gesture);
-        var parts = gesture.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var parts = gesture.Split('+', StringSplitOptions.TrimEntries);
         uint modifiers = 0;
         uint key = 0;
         foreach (var part in parts)
         {
-            if (part.Equals("Win", StringComparison.OrdinalIgnoreCase)) modifiers |= ModifierWindows;
-            else if (part.Equals("Shift", StringComparison.OrdinalIgnoreCase)) modifiers |= ModifierShift;
-            else if (part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase)) modifiers |= ModifierControl;
-            else if (part.Equals("Alt", StringComparison.OrdinalIgnoreCase)) modifiers |= ModifierAlt;
-            else if (part.Equals("Space", StringComparison.OrdinalIgnoreCase)) key = 0x20;
-            else if (part.Length == 1 && char.IsAsciiLetterOrDigit(part[0])) key = char.ToUpperInvariant(part[0]);
-            else throw new ArgumentException("The Quick Panel hotkey contains an unsupported key.", nameof(gesture));
+            uint modifier = part.ToUpperInvariant() switch
+            {
+                "WIN" => ModifierWindows,
+                "SHIFT" => ModifierShift,
+                "CTRL" => ModifierControl,
+                "ALT" => ModifierAlt,
+                _ => 0,
+            };
+            if (modifier != 0)
+            {
+                if ((modifiers & modifier) != 0) throw new ArgumentException("Duplicate hotkey modifier.", nameof(gesture));
+                modifiers |= modifier;
+            }
+            else
+            {
+                if (key != 0) throw new ArgumentException("Multiple hotkey keys.", nameof(gesture));
+                if (part.Equals("Space", StringComparison.OrdinalIgnoreCase)) key = 0x20;
+                else if (part.Length == 1 && char.IsAsciiLetterOrDigit(part[0])) key = char.ToUpperInvariant(part[0]);
+                else throw new ArgumentException("Unsupported hotkey key.", nameof(gesture));
+            }
         }
+
         if (modifiers == 0 || key == 0)
         {
             throw new ArgumentException("The Quick Panel hotkey requires a modifier and a key.", nameof(gesture));
