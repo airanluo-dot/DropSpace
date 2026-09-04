@@ -59,6 +59,7 @@ $sendToShortcut = Join-Path $env:APPDATA "Microsoft\Windows\SendTo\DropSpace.lnk
 $startupRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $runningProcess = $null
 $restartProcess = $null
+$maintenanceShutdownWaitSeconds = 30
 
 function Invoke-CheckedProcess
 {
@@ -287,7 +288,7 @@ try
         Write-ApplicationStartupDiagnostics
         throw
     }
-    if (-not $runningProcess.WaitForExit(15000))
+    if (-not $runningProcess.WaitForExit($maintenanceShutdownWaitSeconds * 1000))
     {
         throw "In-place upgrade did not gracefully stop the running DropSpace process."
     }
@@ -364,10 +365,10 @@ try
         -FilePath $installedExe `
         -Arguments @("--shutdown-for-maintenance") `
         -Description "post-update graceful maintenance shutdown" `
-        -TimeoutSeconds 30
-    if (-not $restartProcess.WaitForExit(15000))
+        -TimeoutSeconds $maintenanceShutdownWaitSeconds
+    if (-not $restartProcess.WaitForExit($maintenanceShutdownWaitSeconds * 1000))
     {
-        throw "The restarted app acknowledged maintenance shutdown but did not exit within 15 seconds."
+        throw "The restarted app acknowledged maintenance shutdown but did not exit within $maintenanceShutdownWaitSeconds seconds."
     }
     $restartProcess = $null
 

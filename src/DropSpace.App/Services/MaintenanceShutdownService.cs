@@ -18,6 +18,9 @@ public sealed class MaintenanceShutdownService(
     private EventWaitHandle? _stoppedEvent;
     private Mutex? _runningMutex;
     private int _requestHandled;
+    private readonly TaskCompletionSource _startupReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public const int RequestTimeoutSeconds = 30;
 
     public void Start(Func<Task> shutdown)
     {
@@ -42,6 +45,7 @@ public sealed class MaintenanceShutdownService(
 
                 try
                 {
+                    await _startupReady.Task.ConfigureAwait(false);
                     logger.LogInformation("A maintenance shutdown was requested by Setup or the uninstaller.");
                     await dispatcher.EnqueueAsync(shutdown);
                     // ShutdownAsync disposes the application services, but the named
@@ -63,6 +67,8 @@ public sealed class MaintenanceShutdownService(
             Timeout.InfiniteTimeSpan,
             executeOnlyOnce: false);
     }
+
+    public void MarkReady() => _startupReady.TrySetResult();
 
     private void ReleaseRunningMutex()
     {

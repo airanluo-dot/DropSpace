@@ -119,7 +119,7 @@ const
   EventModifyState = $0002;
   SynchronizeAccess = $00100000;
   WaitObject0 = 0;
-  MaintenanceWaitMilliseconds = 15000;
+  MaintenanceWaitMilliseconds = 30000;
   MaintenanceMutexReleasePollCount = 50;
   MaintenanceMutexReleasePollIntervalMilliseconds = 100;
 
