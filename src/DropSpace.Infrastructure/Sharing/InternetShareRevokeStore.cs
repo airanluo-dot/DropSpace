@@ -8,6 +8,7 @@ namespace DropSpace.Infrastructure.Sharing;
 [SupportedOSPlatform("windows")]
 public sealed class InternetShareRevokeStore(AppStoragePaths paths)
 {
+    private static readonly SemaphoreSlim StoreGate = new(1, 1);
     private const int MaximumPersistedRecords = 128;
     private const int MaximumAuthorizationLength = 4096;
     private const int MaximumUrlLength = 2048;
@@ -20,6 +21,18 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         ShareBackendUploadSession session,
         DateTimeOffset expiresAtUtc,
         CancellationToken cancellationToken = default)
+    {
+        await StoreGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await SaveCoreAsync(shareId, session, expiresAtUtc, cancellationToken).ConfigureAwait(false);
+            await LoadCoreAsync(CancellationToken.None, shareId).ConfigureAwait(false);
+        }
+        finally { StoreGate.Release(); }
+    }
+
+    private async Task SaveCoreAsync(Guid shareId, ShareBackendUploadSession session, DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken)
     {
         Validate(shareId, session, expiresAtUtc);
         paths.EnsureCreated();
@@ -69,6 +82,14 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
     public async Task<IReadOnlyList<RestorableInternetShareSession>> LoadAllAsync(
         CancellationToken cancellationToken = default)
     {
+        await StoreGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { return await LoadCoreAsync(cancellationToken).ConfigureAwait(false); }
+        finally { StoreGate.Release(); }
+    }
+
+    private async Task<IReadOnlyList<RestorableInternetShareSession>> LoadCoreAsync(
+        CancellationToken cancellationToken, Guid? preserveId = null)
+    {
         var directory = GetDirectory();
         if (!Directory.Exists(directory))
         {
@@ -76,7 +97,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         }
 
         var result = new List<RestorableInternetShareSession>();
-        foreach (var path in Directory.EnumerateFiles(directory, "*.bin", SearchOption.TopDirectoryOnly).Take(MaximumPersistedRecords))
+        foreach (var path in Directory.EnumerateFiles(directory, "*.bin", SearchOption.TopDirectoryOnly))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!Guid.TryParseExact(Path.GetFileNameWithoutExtension(path), "N", out var shareId))
@@ -134,6 +155,14 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                         revokeUrl);
                     Validate(shareId, session, handle.ExpiresAtUtc);
                     result.Add(new RestorableInternetShareSession(shareId, session, handle.ExpiresAtUtc));
+                    result = result.OrderByDescending(entry => entry.ShareId == preserveId)
+                        .ThenByDescending(entry => File.GetLastWriteTimeUtc(GetPath(directory, entry.ShareId)))
+                        .ThenBy(entry => entry.ShareId).ToList();
+                    if (result.Count > MaximumPersistedRecords)
+                    {
+                        File.Delete(GetPath(directory, result[^1].ShareId));
+                        result.RemoveAt(result.Count - 1);
+                    }
                 }
                 finally
                 {
@@ -158,11 +187,11 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
             }
             catch (IOException)
             {
-                // A transient read failure must not prevent the local workspace from starting.
+                throw; // Recovery must remain retryable after transient I/O failures.
             }
             catch (UnauthorizedAccessException)
             {
-                // A transient access failure must not prevent the local workspace from starting.
+                throw; // Do not permanently mark partial recovery as initialized.
             }
         }
 
