@@ -279,8 +279,10 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
 
     private WindowsCapabilityState GetCompositionEffects()
     {
-        var available = _api.IsTypePresent("Windows.UI.Composition.Compositor") ||
-                        _api.IsTypePresent("Microsoft.UI.Composition.Compositor");
+        // The Windows.UI.Composition metadata probe is valid for the OS-backed
+        // compositor. Microsoft.UI.Composition is a managed WinAppSDK surface and
+        // must never be passed to Windows Runtime ApiInformation.
+        var available = _api.IsTypePresent("Windows.UI.Composition.Compositor");
         return new WindowsCapabilityState(
             WindowsCapability.CompositionEffects,
             available ? CompatibilityStatus.Available : CompatibilityStatus.MissingRuntime,
