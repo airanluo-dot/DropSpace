@@ -217,9 +217,11 @@ public sealed class ClipboardIntegrationSmoke(
             RequestedOperation = DataPackageOperation.Copy,
         };
         package.SetText(text);
-        Clipboard.SetContent(package);
-        Clipboard.Flush();
-        return Task.CompletedTask;
+        return ClipboardAccessPolicy.SetContentAsync(() =>
+        {
+            Clipboard.SetContent(package);
+            Clipboard.Flush();
+        });
     });
 
     private Task SetClipboardItemsAsync(params string[] paths) => dispatcher.EnqueueAsync(async () =>
@@ -237,8 +239,11 @@ public sealed class ClipboardIntegrationSmoke(
             RequestedOperation = DataPackageOperation.Copy,
         };
         package.SetStorageItems(items, readOnly: true);
-        Clipboard.SetContent(package);
-        Clipboard.Flush();
+        await ClipboardAccessPolicy.SetContentAsync(() =>
+        {
+            Clipboard.SetContent(package);
+            Clipboard.Flush();
+        });
     });
 
     private async Task<bool> ContainsTextAsync(string text, CancellationToken cancellationToken)
