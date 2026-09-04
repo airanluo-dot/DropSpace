@@ -73,7 +73,7 @@ public static class ShellIntakeCommandLineParser
                 return ShellIntakeParseResult.Failure("unexpected-option");
             }
 
-            if (string.IsNullOrWhiteSpace(path) || path.IndexOf('\0') >= 0)
+            if (string.IsNullOrWhiteSpace(path) || path.Contains('\0'))
             {
                 return ShellIntakeParseResult.Failure("invalid-path");
             }

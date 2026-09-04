@@ -10,6 +10,7 @@ public interface IAppStringLocalizer
 {
     CultureInfo Culture { get; }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716", Justification = "Get is the established localization contract member.")]
     string Get(string key);
 
     bool TryGet(string key, out string value);

@@ -28,6 +28,8 @@ public static class SettingsValidationPolicy
     public const int MaximumSmartDragExcludedProcesses = 128;
     public const int MaximumSmartDragProcessLength = 260;
 
+    private static readonly string[] CanonicalModifierOrder = ["Win", "Ctrl", "Alt", "Shift"];
+
     public static string? CanonicalizeHotkey(string? gesture)
     {
         if (string.IsNullOrWhiteSpace(gesture) || gesture.Length > MaximumQuickPanelHotkeyLength)
@@ -80,7 +82,7 @@ public static class SettingsValidationPolicy
             return null;
         }
 
-        var orderedModifiers = new[] { "Win", "Ctrl", "Alt", "Shift" }
+        var orderedModifiers = CanonicalModifierOrder
             .Where(modifiers.Contains);
         return string.Join('+', orderedModifiers.Append(key));
     }

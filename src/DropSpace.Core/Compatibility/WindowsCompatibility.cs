@@ -88,6 +88,7 @@ public interface IWindowsCapabilityService
 {
     WindowsCompatibilitySnapshot Snapshot { get; }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716", Justification = "Get is the established Windows capability contract member.")]
     WindowsCapabilityState Get(WindowsCapability capability);
 
     bool IsAvailable(WindowsCapability capability);

@@ -54,7 +54,7 @@ public static class ItemContentPolicy
         try
         {
             extension = value.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0 ||
-                (!value.StartsWith('.') && value.Contains(".", StringComparison.Ordinal))
+                (!value.StartsWith('.') && value.Contains('.'))
                 ? Path.GetExtension(value)
                 : value;
         }

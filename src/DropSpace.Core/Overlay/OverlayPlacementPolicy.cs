@@ -60,10 +60,7 @@ public static class OverlayPlacementPolicy
             throw new ArgumentOutOfRangeException(nameof(request));
         }
 
-        if (placement is null)
-        {
-            throw new ArgumentNullException(nameof(placement));
-        }
+        ArgumentNullException.ThrowIfNull(placement);
 
         if (placement.Mode != OverlayPlacementMode.Custom)
         {

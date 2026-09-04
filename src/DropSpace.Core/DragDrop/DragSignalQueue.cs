@@ -8,6 +8,7 @@ namespace DropSpace.Core.DragDrop;
 /// lifecycle signals cannot be silently discarded. Lossy lanes keep only the newest signal and
 /// expose replacement diagnostics for high-frequency pointer movement.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711", Justification = "Queue is the established name for this Smart Drag signal contract.")]
 public sealed class DragSignalQueue<T>
 {
     private readonly Channel<T> _channel;
