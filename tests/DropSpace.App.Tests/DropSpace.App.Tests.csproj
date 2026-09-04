@@ -7,8 +7,7 @@
     <NoWarn>$(NoWarn);CA1707;CA1861</NoWarn>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <!-- The RID selects Windows assets; testhost itself must remain framework-dependent. -->
+    <!-- The referenced App project selects win-x64 from Platform; VSTest stays framework-dependent. -->
     <SelfContained>false</SelfContained>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
