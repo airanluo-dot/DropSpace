@@ -59,26 +59,15 @@ public sealed class JsonSettingsService : ISettingsService
             try
             {
                 var hadUpdateChannel = false;
-                await using (var stream = new FileStream(
-                                 _paths.Settings,
-                                 FileMode.Open,
-                                 FileAccess.Read,
-                                 FileShare.Read,
-                                 16_384,
-                                 FileOptions.Asynchronous | FileOptions.SequentialScan))
-                {
-                    if (stream.Length > 1_048_576)
-                    {
-                        throw new JsonException("settings.json exceeds the supported size limit.");
-                    }
-
-                    using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
-                        .ConfigureAwait(false);
-                    hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
-                        document.RootElement.EnumerateObject().Any(property =>
-                            string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
-                    settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
-                }
+                var bytes = await SettingsIoPolicy.ReadBoundedAsync(
+                        _paths.Settings,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                using var document = JsonDocument.Parse(bytes);
+                hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
+                    document.RootElement.EnumerateObject().Any(property =>
+                        string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
+                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
 
                 settings ??= CreateDefaults();
                 var migratedVersion = false;
@@ -204,16 +193,12 @@ public sealed class JsonSettingsService : ISettingsService
             return CreateDefaults();
         }
 
-        await using var stream = new FileStream(
-            _paths.Settings,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            16_384,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
-            .ConfigureAwait(false) ?? CreateDefaults();
-        return settings;
+        var bytes = await SettingsIoPolicy.ReadBoundedAsync(
+                _paths.Settings,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var settings = JsonSerializer.Deserialize<AppSettings>(bytes, SerializerOptions);
+        return settings ?? CreateDefaults();
     }
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)
@@ -221,20 +206,27 @@ public sealed class JsonSettingsService : ISettingsService
         settings.Validate();
         _paths.EnsureCreated();
         var temporaryPath = string.Concat(_paths.Settings, ".tmp");
-        await using (var stream = new FileStream(
-                         temporaryPath,
-                         FileMode.Create,
-                         FileAccess.Write,
-                         FileShare.None,
-                         16_384,
-                         FileOptions.Asynchronous | FileOptions.WriteThrough))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, settings, SerializerOptions, cancellationToken)
-                .ConfigureAwait(false);
-            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
+            await using (var stream = new FileStream(
+                             temporaryPath,
+                             FileMode.Create,
+                             FileAccess.Write,
+                             FileShare.None,
+                             16_384,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await JsonSerializer.SerializeAsync(stream, settings, SerializerOptions, cancellationToken)
+                    .ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
 
-        File.Move(temporaryPath, _paths.Settings, true);
+            File.Move(temporaryPath, _paths.Settings, true);
+        }
+        finally
+        {
+            SettingsIoPolicy.TryDeleteTemporary(temporaryPath, _logger);
+        }
     }
 
     private AppSettings TryPreserveNonUiPreferences(AppSettings? candidate, out bool preserved)
@@ -271,6 +263,7 @@ public sealed class JsonSettingsService : ISettingsService
             File.Move(_paths.Settings, destination, false);
         }
 
+        SettingsIoPolicy.TrimQuarantine(_paths.Quarantine, _logger);
         return destination;
     }
 
