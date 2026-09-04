@@ -47,7 +47,9 @@ public sealed record RuntimeDependencyState(CompatibilityStatus Status, string R
 public sealed record WindowsCapabilityState(
     WindowsCapability Capability,
     CompatibilityStatus Status,
-    string Reason)
+    string Reason,
+    bool IsFast = false,
+    bool IsRemoteSession = false)
 {
     public bool IsAvailable => Status == CompatibilityStatus.Available;
 }

@@ -80,19 +80,19 @@
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Border Width="32" Height="32" CornerRadius="16" Background="#267C5CFC">
-              <FontIcon FontSize="17" Foreground="White" Glyph="&#xECC8;" />
+            <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource DropSpaceOverlayAccentBrush}">
+              <FontIcon FontSize="17" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="&#xECC8;" />
             </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
               <TextBlock
                 MaxWidth="230"
                 FontWeight="SemiBold"
-                Foreground="White"
+                Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                 Text="{Binding CompactTitle}"
                 TextTrimming="CharacterEllipsis" />
-              <TextBlock x:Name="CompactSubtitleText" services:XamlResourceOverride.Uid="OverlayCompactSubtitle" FontSize="11" Foreground="#BFFFFFFF" />
+              <TextBlock x:Name="CompactSubtitleText" services:XamlResourceOverride.Uid="OverlayCompactSubtitle" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
             </StackPanel>
-            <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="#BFFFFFFF" Glyph="&#xE70D;" />
+            <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Glyph="&#xE70D;" />
           </Grid>
         </Button>
 
@@ -107,12 +107,12 @@
             HorizontalAlignment="Center"
             FontSize="17"
             FontWeight="SemiBold"
-            Foreground="White"
+            Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
             Text="{Binding DragTitle}" />
           <TextBlock
             HorizontalAlignment="Center"
             FontSize="12"
-            Foreground="#BFFFFFFF"
+            Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}"
             Text="{Binding DragSubtitle}" />
         </StackPanel>
 
@@ -128,8 +128,8 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-              <TextBlock x:Name="ExpandedTitleText" services:XamlResourceOverride.Uid="OverlayExpandedTitle" FontSize="18" FontWeight="SemiBold" Foreground="White" />
-              <TextBlock x:Name="ExpandedSubtitleText" services:XamlResourceOverride.Uid="OverlayExpandedSubtitle" FontSize="12" Foreground="#BFFFFFFF" />
+              <TextBlock x:Name="ExpandedTitleText" services:XamlResourceOverride.Uid="OverlayExpandedTitle" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+              <TextBlock x:Name="ExpandedSubtitleText" services:XamlResourceOverride.Uid="OverlayExpandedSubtitle" FontSize="12" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
             </StackPanel>
             <Button
  services:XamlResourceOverride.Uid="OverlayCollapseButton"
@@ -139,7 +139,7 @@
               Background="Transparent"
               BorderThickness="0"
               Click="OnCollapseClicked">
-              <FontIcon Foreground="White" Glyph="&#xE70E;" />
+              <FontIcon Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="&#xE70E;" />
             </Button>
           </Grid>
 
@@ -167,7 +167,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                   </Grid.ColumnDefinitions>
-                  <Border Width="36" Height="36" CornerRadius="8" Background="#18FFFFFF">
+                  <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}">
                     <Grid>
                       <Image
                         Width="34"
@@ -176,7 +176,7 @@
                         Stretch="UniformToFill"
                         Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}" />
                       <FontIcon
-                        Foreground="White"
+                        Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                         Glyph="{Binding Glyph}"
                         Visibility="{Binding Thumbnail, Converter={StaticResource InverseNullToVisibilityConverter}}" />
                     </Grid>
@@ -185,13 +185,13 @@
                     <TextBlock
                       MaxWidth="320"
                       FontWeight="SemiBold"
-                      Foreground="White"
+                      Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                       Text="{Binding Title}"
                       TextTrimming="CharacterEllipsis" />
                     <TextBlock
                       MaxWidth="320"
                       FontSize="11"
-                      Foreground="#AFFFFFFF"
+                      Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}"
                       Text="{Binding Preview}"
                       TextTrimming="CharacterEllipsis" />
                     <ItemsControl ItemsSource="{Binding PrimaryQuickActions}">
@@ -206,7 +206,7 @@
                             AutomationProperties.Name="{Binding AutomationName}"
                             Click="OnPrimaryQuickActionClicked"
                             Content="{Binding Label}"
-                            Foreground="White"
+                            Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                             Padding="6,2"
                             Tag="{Binding}" />
                         </DataTemplate>
@@ -220,7 +220,7 @@
                       Background="Transparent"
                       BorderThickness="0"
                       Click="OnOpenItemClicked"
-                      Foreground="White"
+                      Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                       Tag="{Binding}">
                       <FontIcon FontSize="13" Glyph="&#xE8A7;" />
                     </Button>
@@ -230,7 +230,7 @@
                       Background="Transparent"
                       BorderThickness="0"
                       Click="OnPinItemClicked"
-                      Foreground="White"
+                      Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                       Tag="{Binding}">
                       <FontIcon FontSize="13" Glyph="&#xE718;" />
                     </Button>
@@ -240,7 +240,7 @@
                       Background="Transparent"
                       BorderThickness="0"
                       Click="OnRemoveItemClicked"
-                      Foreground="White"
+                      Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
                       Tag="{Binding}">
                       <FontIcon FontSize="13" Glyph="&#xE711;" />
                     </Button>
@@ -255,7 +255,7 @@
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="RemoveHintText" services:XamlResourceOverride.Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="#AFFFFFFF" />
+            <TextBlock x:Name="RemoveHintText" services:XamlResourceOverride.Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" />
             <Button x:Name="OpenMainButton" services:XamlResourceOverride.Uid="OverlayOpenMainButton" Grid.Column="1" Click="OnOpenMainWindowClicked" />
           </Grid>
         </Grid>
@@ -264,15 +264,15 @@
           Margin="8"
           Padding="20"
           IsHitTestVisible="False"
-          Background="#337C5CFC"
-          BorderBrush="#FF9B87FF"
+          Background="{StaticResource DropSpaceOverlayDropTargetBrush}"
+          BorderBrush="{StaticResource DropSpaceOverlayFocusBrush}"
           BorderThickness="2"
           CornerRadius="22"
           Visibility="{Binding IsExpandedDropTargetActive, Converter={StaticResource BoolToVisibilityConverter}}">
           <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="5">
-            <FontIcon FontSize="24" Foreground="White" Glyph="&#xECC8;" />
-            <TextBlock x:Name="DropTargetTitleText" services:XamlResourceOverride.Uid="OverlayDropTargetTitle" FontSize="17" FontWeight="SemiBold" Foreground="White" />
-            <TextBlock services:XamlResourceOverride.Uid="OverlayDropTargetSubtitle" FontSize="12" Foreground="#DFFFFFFF" />
+            <FontIcon FontSize="24" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="&#xECC8;" />
+            <TextBlock x:Name="DropTargetTitleText" services:XamlResourceOverride.Uid="OverlayDropTargetTitle" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+            <TextBlock services:XamlResourceOverride.Uid="OverlayDropTargetSubtitle" FontSize="12" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
           </StackPanel>
         </Border>
 
@@ -291,7 +291,7 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             FontSize="12"
-            Foreground="#DFFFFFFF" />
+            Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
         </Border>
         </Grid>
         </Grid>
