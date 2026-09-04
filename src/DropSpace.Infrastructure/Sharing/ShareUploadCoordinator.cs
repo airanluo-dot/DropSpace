@@ -27,7 +27,7 @@ public sealed class InternetShareClient(
     TransferLimits? transferLimits = null)
 {
     private readonly TransferLimits _limits = (transferLimits ?? new TransferLimits()).Validate();
-    private const int ShareChunkBytes = 5 * 1024 * 1024;
+    private const int ShareChunkBytes = ShareLimits.InternetChunkPlainBytes;
 
     public async Task<ShareDescriptor> CreateAsync(
         IReadOnlyList<ShareFileSource> sources,
@@ -166,7 +166,7 @@ public sealed class InternetShareClient(
 
     private static void ValidateObjectName(string objectName)
     {
-        if (string.IsNullOrWhiteSpace(objectName) || objectName.Length > 180 ||
+        if (string.IsNullOrWhiteSpace(objectName) || objectName.Length > ShareLimits.InternetMaxObjectNameLength ||
             objectName is "." or ".." || objectName.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '.' or '-' or '_')))
         {
             throw new InvalidDataException("The secure share object name is invalid.");

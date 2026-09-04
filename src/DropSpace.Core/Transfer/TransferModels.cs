@@ -235,6 +235,14 @@ public enum ClipboardSyncMode
 
 public sealed record ShareLimits
 {
+    // Internet Share wire values are fixed protocol/security contracts and mirror share-worker/src.
+    public const int InternetChunkPlainBytes = 5 * 1024 * 1024;
+    public const int InternetAuthTagBytes = 16;
+    public const int InternetManifestNonceBytes = 12;
+    public const int InternetMaxObjectBytes = 6 * 1024 * 1024;
+    public const int InternetMaxManifestBytes = 512 * 1024;
+    public const int InternetMaxObjectNameLength = 180;
+
     public const int DefaultNearbyTokenBytes = 24;
     public const int DefaultNearbyTtlMinutes = 10;
     public const int DefaultMaxNearbyReceivers = 2;

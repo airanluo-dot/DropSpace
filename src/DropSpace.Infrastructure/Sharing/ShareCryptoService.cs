@@ -26,8 +26,8 @@ public sealed record EncryptedShareManifestItem(
 
 public sealed class ShareCryptoService
 {
-    public const int ManifestNonceBytes = 12;
-    public const int AuthenticationTagBytes = 16;
+    public const int ManifestNonceBytes = ShareLimits.InternetManifestNonceBytes;
+    public const int AuthenticationTagBytes = ShareLimits.InternetAuthTagBytes;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
