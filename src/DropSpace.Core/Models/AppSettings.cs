@@ -297,7 +297,9 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
-        return this with { QuickPanelHotkey = normalizedHotkey };
+        return string.Equals(QuickPanelHotkey, normalizedHotkey, StringComparison.Ordinal)
+            ? this
+            : this with { QuickPanelHotkey = normalizedHotkey };
     }
 
 }

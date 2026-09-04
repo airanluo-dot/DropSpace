@@ -23,7 +23,7 @@ public sealed class ClipboardImageBudgetPolicyTests
 
         Assert.IsFalse(assessment.IsWithinBudget);
         Assert.AreEqual("image-budget-limit", assessment.ErrorCategory);
-        Assert.AreEqual(400L * 1024 * 1024, assessment.DecodedBytes);
+        Assert.AreEqual(400_000_000L, assessment.DecodedBytes);
     }
 
     [TestMethod]
@@ -48,6 +48,6 @@ public sealed class ClipboardImageBudgetPolicyTests
             1);
         Assert.AreEqual(
             "image-budget-overflow",
-            overflowBudget.Assess(1, long.MaxValue, long.MaxValue).ErrorCategory);
+            overflowBudget.Assess(1, int.MaxValue, int.MaxValue).ErrorCategory);
     }
 }
