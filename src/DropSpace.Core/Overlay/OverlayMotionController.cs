@@ -15,7 +15,7 @@ public readonly record struct OverlayMotionValues(
 {
     public const double MinimumDimension = 1;
     public const double MinimumDropTargetScale = 0.75;
-    public const double MaximumDropTargetScale = 1.25;
+    public const double MaximumDropTargetScale = 1.03;
 
     public static OverlayMotionValues Hidden { get; } = new(
         120,
@@ -97,17 +97,27 @@ public readonly record struct OverlayMotionValues(
 /// </summary>
 public sealed class OverlayMotionController
 {
-    private const double ValueEpsilon = 0.025;
-    private const double VelocityEpsilon = 0.025;
+    private const double MinimumStepSeconds = 1d / 1_000d;
+    private const double MaximumElapsedSeconds = 1d / 30d;
+    private const double MaximumStableStepSeconds = 1d / 120d;
+    private readonly OverlayMotionProfileSet _profiles;
     private readonly SpringChannel[] _channels;
     private OverlayMotionValues _target;
 
-    public OverlayMotionController(OverlayMotionValues initial)
+    public OverlayMotionController(
+        OverlayMotionValues initial,
+        OverlayMotionProfileSet? profiles = null)
     {
         Validate(initial);
+        _profiles = profiles ?? OverlayMotionProfileSet.Default;
+        if (!_profiles.IsValid)
+        {
+            throw new ArgumentException("The overlay motion profile set is invalid.", nameof(profiles));
+        }
+
         Current = initial.ProjectToSafeRange();
         _target = Current;
-        _channels = CreateChannels(Current);
+        _channels = CreateChannels(Current, _profiles);
     }
 
     public OverlayMotionValues Current { get; private set; }
@@ -115,6 +125,8 @@ public sealed class OverlayMotionController
     public OverlayMotionValues Target => _target;
 
     public bool IsAnimating => _channels.Any(channel => !channel.IsSettled);
+
+    public OverlayMotionProfileSet Profiles => _profiles;
 
     public void SetTarget(OverlayMotionValues target, bool reducedMotion)
     {
@@ -124,16 +136,26 @@ public sealed class OverlayMotionController
         for (var index = 0; index < _channels.Length; index++)
         {
             _channels[index].Target = values[index];
-            _channels[index].ReducedMotion = reducedMotion;
+            _channels[index].SetProfile(reducedMotion);
         }
     }
 
     public bool Step(TimeSpan elapsed)
     {
-        var seconds = Math.Clamp(elapsed.TotalSeconds, 1d / 1_000d, 1d / 30d);
-        foreach (var channel in _channels)
+        var seconds = Math.Clamp(elapsed.TotalSeconds, MinimumStepSeconds, MaximumElapsedSeconds);
+        var substepCount = Math.Max(1, (int)Math.Ceiling(seconds / MaximumStableStepSeconds));
+        var substepSeconds = seconds / substepCount;
+        for (var substep = 0; substep < substepCount; substep++)
         {
-            channel.Step(seconds);
+            foreach (var channel in _channels)
+            {
+                channel.Step(substepSeconds);
+            }
+
+            if (!IsAnimating)
+            {
+                break;
+            }
         }
 
         Current = FromChannels(_channels).ProjectToSafeRange();
@@ -164,12 +186,27 @@ public sealed class OverlayMotionController
         }
 
         var channel = _channels[9];
-        channel.Value = scale;
+        channel.Value = Math.Clamp(scale, 1 - 0.03, 1);
         channel.Velocity = 0;
+        Current = FromChannels(_channels).ProjectToSafeRange();
     }
 
-    private static SpringChannel[] CreateChannels(OverlayMotionValues values) =>
-        ToArray(values).Select(value => new SpringChannel(value)).ToArray();
+    private static SpringChannel[] CreateChannels(
+        OverlayMotionValues values,
+        OverlayMotionProfileSet profiles) =>
+        ToArray(values)
+            .Select((value, index) => new SpringChannel(value, GetChannel(index), profiles))
+            .ToArray();
+
+    private static OverlayMotionChannel GetChannel(int index) => index switch
+    {
+        <= 4 => OverlayMotionChannel.Geometry,
+        5 => OverlayMotionChannel.SurfaceOpacity,
+        <= 8 => OverlayMotionChannel.ContentTransition,
+        9 => OverlayMotionChannel.InteractionFeedback,
+        10 => OverlayMotionChannel.ShadowElevation,
+        _ => throw new ArgumentOutOfRangeException(nameof(index)),
+    };
 
     private static double[] ToArray(OverlayMotionValues values) =>
     [
@@ -220,19 +257,27 @@ public sealed class OverlayMotionController
         }
     }
 
-    private sealed class SpringChannel(double value)
+    private sealed class SpringChannel(
+        double value,
+        OverlayMotionChannel motionChannel,
+        OverlayMotionProfileSet profiles)
     {
+        private readonly OverlayMotionChannel _motionChannel = motionChannel;
+        private readonly OverlayMotionProfileSet _profiles = profiles;
+        private OverlaySpringProfile _profile = profiles.GetSpring(motionChannel, false);
+
         public double Value { get; set; } = value;
 
         public double Target { get; set; } = value;
 
         public double Velocity { get; set; }
 
-        public bool ReducedMotion { get; set; }
-
         public bool IsSettled =>
-            Math.Abs(Target - Value) <= ValueEpsilon &&
-            Math.Abs(Velocity) <= VelocityEpsilon;
+            Math.Abs(Target - Value) <= _profile.RestDistance &&
+            Math.Abs(Velocity) <= _profile.RestSpeed;
+
+        public void SetProfile(bool reducedMotion) =>
+            _profile = _profiles.GetSpring(_motionChannel, reducedMotion);
 
         public void Step(double seconds)
         {
@@ -243,10 +288,17 @@ public sealed class OverlayMotionController
                 return;
             }
 
+            if (_profile.IsInstant)
+            {
+                Value = Target;
+                Velocity = 0;
+                return;
+            }
+
             // Semi-implicit Euler is stable for this bounded dt and lets a new target retain the
             // current velocity, which is what makes a mid-transition reversal visually continuous.
-            var angularFrequency = ReducedMotion ? 30d : 18d;
-            var dampingRatio = ReducedMotion ? 1d : 0.82d;
+            var angularFrequency = _profile.AngularFrequency;
+            var dampingRatio = _profile.DampingRatio;
             var acceleration =
                 angularFrequency * angularFrequency * (Target - Value) -
                 2d * dampingRatio * angularFrequency * Velocity;

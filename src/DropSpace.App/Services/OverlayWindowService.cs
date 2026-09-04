@@ -29,6 +29,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OverlayWindowService> _logger;
     private readonly CrashDiagnosticsService _crashDiagnostics;
+    private readonly SystemVisualPreferenceService _visualPreferences;
     private readonly List<OverlayWindow> _windows = [];
     private readonly List<DragActivationHost> _activationHosts = [];
     private DisplayTopologyWatcher? _displayTopologyWatcher;
@@ -57,7 +58,8 @@ public sealed class OverlayWindowService : IDisposable
         GlobalQuickPanelHotkeyService quickPanelHotkey,
         DispatcherQueue dispatcher,
         ILoggerFactory loggerFactory,
-        CrashDiagnosticsService crashDiagnostics)
+        CrashDiagnosticsService crashDiagnostics,
+        SystemVisualPreferenceService visualPreferences)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -74,6 +76,7 @@ public sealed class OverlayWindowService : IDisposable
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
         _crashDiagnostics = crashDiagnostics;
+        _visualPreferences = visualPreferences;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -134,16 +137,16 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _stateMachine.Restore(1);
-        await Task.Delay(750, cancellationToken);
+        await WaitForOverlayMotionSettledAsync(cancellationToken);
         var compactVisualProbe = ProbeActiveVisualCenter();
         _stateMachine.Expand();
-        await Task.Delay(750, cancellationToken);
+        await WaitForOverlayMotionSettledAsync(cancellationToken);
         var expandedVisualProbe = ProbeActiveVisualCenter();
         var compactVisualTargetDiscoverable = compactVisualProbe.IsRootOrDescendant;
         var expandedVisualTargetDiscoverable = expandedVisualProbe.IsRootOrDescendant;
         // Activation-host discovery is meaningful only while the visual Overlay is truly hidden.
         _stateMachine.Restore(0);
-        await Task.Delay(300, cancellationToken);
+        await WaitForOverlayMotionSettledAsync(cancellationToken);
         if (!compactVisualTargetDiscoverable || !expandedVisualTargetDiscoverable)
         {
             throw new InvalidOperationException(
@@ -185,7 +188,7 @@ public sealed class OverlayWindowService : IDisposable
                 probeMonitor.Top + probeMonitor.Height / 2),
             cancellationToken);
 
-        await Task.Delay(300, cancellationToken);
+        await WaitForOverlayMotionSettledAsync(cancellationToken);
         CollectReleasedResources();
         var before = CaptureResources();
 
@@ -195,12 +198,12 @@ public sealed class OverlayWindowService : IDisposable
             ExerciseLifecycle();
             if (index % 10 == 9)
             {
-                await Task.Delay(16, cancellationToken);
+                await WaitForOverlayMotionSettledAsync(cancellationToken);
             }
         }
 
         _stateMachine.Restore(original.TemporaryItemCount);
-        await Task.Delay(500, cancellationToken);
+        await WaitForOverlayMotionSettledAsync(cancellationToken);
         CollectReleasedResources();
         var after = CaptureResources();
         var metrics = new OverlayLifecycleMetrics(
@@ -272,7 +275,7 @@ public sealed class OverlayWindowService : IDisposable
             }
 
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
-            await Task.Delay(500, cancellationToken);
+            await WaitForOverlayMotionSettledAsync(cancellationToken);
             var activeWindow = GetActiveWindow();
             await EnsureVisibleNativeDropTargetAsync(activeWindow, cancellationToken);
             await activeWindow.RunSyntheticCfHDropAsync([compactDrop], cancellationToken);
@@ -285,7 +288,7 @@ public sealed class OverlayWindowService : IDisposable
             }
 
             await _viewModel.ExpandAsync(cancellationToken);
-            await Task.Delay(500, cancellationToken);
+            await WaitForOverlayMotionSettledAsync(cancellationToken);
             await EnsureVisibleNativeDropTargetAsync(activeWindow, cancellationToken);
             await activeWindow.RunSyntheticCfHDropAsync([expandedDrop], cancellationToken);
             await _viewModel.RefreshRecentItemsAsync(cancellationToken);
@@ -346,12 +349,21 @@ public sealed class OverlayWindowService : IDisposable
             // bounded polls so a just-published Compact/Expanded state can complete its native
             // show/registration transition before the synthetic OLE call.
             ApplySnapshot(_viewModel.Snapshot);
-            await Task.Delay(100, cancellationToken);
+            await window.WaitForMotionSettledAsync(cancellationToken);
+            await Task.Yield();
         }
 
         throw new InvalidOperationException(
             $"The visible Overlay OLE target did not become registered within the bounded smoke wait. " +
             $"{window.NativeVisibilityDiagnostics}.");
+    }
+
+    private async Task WaitForOverlayMotionSettledAsync(CancellationToken cancellationToken)
+    {
+        foreach (var window in _windows)
+        {
+            await window.WaitForMotionSettledAsync(cancellationToken);
+        }
     }
 
     public async Task<ProjectionDeletionStressMetrics> RunProjectionDeletionStressAsync(
@@ -515,11 +527,13 @@ public sealed class OverlayWindowService : IDisposable
     private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot)
     {
         _logger.LogInformation(
-            "Overlay state transition: {State}, temporary item count {TemporaryItemCount}, monitor {MonitorId}, revision {Revision}.",
+            "Overlay state transition: {State}, temporary item count {TemporaryItemCount}, monitor {MonitorId}, revision {Revision}, cause {Cause}, motion {MotionPreference}.",
             snapshot.State,
             snapshot.TemporaryItemCount,
             _viewModel.ActiveMonitorId ?? "unselected",
-            snapshot.Revision);
+            snapshot.Revision,
+            snapshot.Transition?.Cause,
+            snapshot.Transition?.MotionPreference);
         ApplySnapshot(snapshot);
     }
 
@@ -539,6 +553,13 @@ public sealed class OverlayWindowService : IDisposable
         else if (args.PropertyName == nameof(OverlayViewModel.ActiveMonitorId))
         {
             ApplySnapshot(_viewModel.Snapshot);
+        }
+        else if (args.PropertyName == nameof(OverlayViewModel.MotionPreference))
+        {
+            if (!_stateMachine.SetMotionPreference(_viewModel.MotionPreference))
+            {
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
         else if (args.PropertyName == nameof(OverlayViewModel.FileDragWakeMode))
         {
@@ -796,7 +817,8 @@ public sealed class OverlayWindowService : IDisposable
                 _quickActionDialog,
                 visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
-                _loggerFactory.CreateLogger<OverlayWindow>());
+                _loggerFactory.CreateLogger<OverlayWindow>(),
+                _visualPreferences);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementCancelled += OnPlacementCancelled;
             _windows.Add(window);

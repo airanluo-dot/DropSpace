@@ -350,3 +350,11 @@ destinations to the DropSpace-owned exports directory, reserves names with
 resize, conversion, and metadata stripping share one bounded Windows Imaging
 Component transform path and require explicit parameters at the UI/action
 boundary; outputs are always new files.
+
+## v0.3.0-preview.14 architecture additions
+
+`OverlayMotionOrchestrator` owns one interruptible semantic controller and the compositor adapter. `OverlayMotionProfileSet` separates `GeometryMorphProfile`, `SurfaceOpacityProfile`, `ContentTransitionProfile`, `InteractionFeedbackProfile`, and `ShadowElevationProfile`; the controller clamps exposed values and preserves velocity only inside its bounded frame contract. `OverlayTransitionDescriptor` records the previous/next state, cause, and requested motion preference so every interruption remains explainable.
+
+`OverlayCompositionAnimator` handles opacity/content choreography, hover tint, and press feedback through WinUI Composition. The UI thread continues to own layout, fixed-host placement, visibility/lifecycle, and all precise OLE hit-region decisions. `OverlayNativeRegionController` converts the projected surface to a DPI-aware physical `OverlayRegionSignature` and skips repeated `SetWindowRgn` calls, including repeated empty-region application.
+
+`SystemVisualPreferenceService` holds one `UISettings`/`AccessibilitySettings` subscription set for animation, advanced-effects, color/theme, and high-contrast changes. `OverlayMaterialController` selects a bounded `SystemBackdropElement` + `DesktopAcrylicBackdrop` only on supported Windows 11 with advanced effects enabled; Windows 10, disabled effects, unsupported backdrops, and high contrast stay on the solid fallback. No backdrop is applied to the main window or used to alter drag authorization.

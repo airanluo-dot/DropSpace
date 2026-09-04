@@ -36,8 +36,12 @@ public sealed partial class OverlayWindow : Window
     private readonly OleDragDropService _dragDropService;
     private readonly QuickActionDialogService _quickActionDialog;
     private readonly nint _windowHandle;
+    private readonly SystemVisualPreferenceService _visualPreferences;
+    private readonly OverlayMaterialController _materialController;
+    private readonly OverlayCompositionAnimator _compositionAnimator;
+    private readonly OverlayNativeRegionController _nativeRegionController;
+    private readonly OverlayMotionOrchestrator _motion;
     private OleDropTargetRegistration? _nativeDropTarget;
-    private readonly OverlayMotionController _motion = new(OverlayMotionValues.Hidden);
     private OverlayState _previousState = OverlayState.Hidden;
     private long _lastFrameTimestamp;
     private bool _isActiveWindow;
@@ -56,6 +60,7 @@ public sealed partial class OverlayWindow : Window
     private readonly OverlayPlacementEditSession _placementEdit = new();
     private bool _placementEditActive;
     private bool _suppressedForPlacementEdit;
+    private TaskCompletionSource<object?>? _motionSettled;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -67,7 +72,8 @@ public sealed partial class OverlayWindow : Window
         QuickActionDialogService quickActionDialog,
         DragActivationCallbacks dragCallbacks,
         Action openMainWindow,
-        ILogger<OverlayWindow> logger)
+        ILogger<OverlayWindow> logger,
+        SystemVisualPreferenceService visualPreferences)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -78,6 +84,7 @@ public sealed partial class OverlayWindow : Window
         _visualDragCallbacks = dragCallbacks;
         _dragDropService = dragDropService;
         _quickActionDialog = quickActionDialog;
+        _visualPreferences = visualPreferences;
         _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
         try
         {
@@ -90,6 +97,22 @@ public sealed partial class OverlayWindow : Window
 
         XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
+        _materialController = new OverlayMaterialController(
+            AcrylicBackdrop,
+            FallbackSurface,
+            SurfaceStroke,
+            capabilities);
+        _compositionAnimator = new OverlayCompositionAnimator(
+            Surface,
+            SurfaceStroke,
+            CompactPanel,
+            DragPanel,
+            ExpandedPanel,
+            SurfaceContent,
+            InteractionTintOverlay);
+        _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
+        _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));
+        _visualPreferences.Changed += OnSystemVisualPreferencesChanged;
 
         var presenter = OverlappedPresenter.Create();
         presenter.SetBorderAndTitleBar(false, false);
@@ -100,6 +123,7 @@ public sealed partial class OverlayWindow : Window
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
+        _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
         var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
             capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
@@ -135,7 +159,7 @@ public sealed partial class OverlayWindow : Window
                 _windowHandle,
                 _monitor.Id);
         }
-        if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+        if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
         {
             LogNativeFailure(emptyRegionFailure);
             _nativeWindowSafeToShow = false;
@@ -153,7 +177,9 @@ public sealed partial class OverlayWindow : Window
 
     internal string NativeVisibilityDiagnostics =>
         $"active={_isActiveWindow},safe={_nativeWindowSafeToShow},visible={_isVisible},phase={_visualPhase}," +
-        $"regions={RegionFailureCount},configuration={_nativeConfigurationDiagnostics},lastFailure={_lastNativeFailureDiagnostics}";
+        $"regions={RegionFailureCount},regionSkips={_nativeRegionController.SkippedUpdates}," +
+        $"acrylic={_materialController.IsUsingDesktopAcrylic},configuration={_nativeConfigurationDiagnostics}," +
+        $"lastFailure={_lastNativeFailureDiagnostics}";
 
     public event EventHandler<OverlayPlacementEditEventArgs>? PlacementCommitted;
 
@@ -393,7 +419,7 @@ public sealed partial class OverlayWindow : Window
         PrepareContentForTarget(target);
         if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
         {
-            _motion.PulseDropTarget(0.94);
+            _motion.PulseDropTarget(OverlayMotionTokens.DropConfirmationScale);
         }
 
         _motion.SetTarget(target, IsReducedMotion());
@@ -410,6 +436,9 @@ public sealed partial class OverlayWindow : Window
         _suppressedForPlacementEdit = false;
         StopAnimationFrames();
         RevokeNativeDropTarget();
+        _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
+        _motion.Dispose();
+        _materialController.Dispose();
         Close();
     }
 
@@ -475,12 +504,10 @@ public sealed partial class OverlayWindow : Window
     private void HideImmediately()
     {
         StopAnimationFrames();
-        Surface.Opacity = 0;
-        ShadowSurface.Opacity = 0;
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
-        if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+        if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
         {
             LogNativeFailure(emptyRegionFailure);
             _nativeWindowSafeToShow = false;
@@ -492,6 +519,7 @@ public sealed partial class OverlayWindow : Window
         }
         RevokeNativeDropTarget();
         _motion.SnapTo(OverlayMotionValues.Hidden);
+        CompleteMotionWaiters();
         _isVisible = false;
         _hideWhenSettled = false;
         _visualPhase = OverlayVisualPhase.Invisible;
@@ -501,14 +529,13 @@ public sealed partial class OverlayWindow : Window
     {
         _nativeWindowSafeToShow = false;
         StopAnimationFrames();
-        Surface.Opacity = 0;
-        ShadowSurface.Opacity = 0;
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
         _motion.SnapTo(OverlayMotionValues.Hidden);
+        CompleteMotionWaiters();
         _hideWhenSettled = false;
-        if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+        if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
         {
             LogNativeFailure(emptyRegionFailure);
         }
@@ -591,6 +618,7 @@ public sealed partial class OverlayWindow : Window
 
     private void StartAnimationFrames()
     {
+        _motionSettled ??= new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (_hasFrameSubscription)
         {
             return;
@@ -610,6 +638,23 @@ public sealed partial class OverlayWindow : Window
 
         CompositionTarget.Rendering -= OnAnimationFrame;
         _hasFrameSubscription = false;
+    }
+
+    internal Task WaitForMotionSettledAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_hasFrameSubscription && !_motion.IsAnimating)
+        {
+            return Task.CompletedTask;
+        }
+
+        _motionSettled ??= new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _motionSettled.Task.WaitAsync(cancellationToken);
+    }
+
+    private void CompleteMotionWaiters()
+    {
+        var settled = Interlocked.Exchange(ref _motionSettled, null);
+        settled?.TrySetResult(null);
     }
 
     private void OnAnimationFrame(object? sender, object args)
@@ -640,10 +685,9 @@ public sealed partial class OverlayWindow : Window
                 return;
             }
             _hideWhenSettled = false;
-            Surface.Opacity = 0;
-            ShadowSurface.Opacity = 0;
+            _motion.CompleteVisualAnimations();
             CollapseInvisibleContent(_motion.Current);
-            if (!OverlayWindowInterop.ApplyEmptyRegion(_windowHandle, out var emptyRegionFailure))
+            if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
             {
                 LogNativeFailure(emptyRegionFailure);
                 _nativeWindowSafeToShow = false;
@@ -656,6 +700,7 @@ public sealed partial class OverlayWindow : Window
             RevokeNativeDropTarget();
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
+            CompleteMotionWaiters();
             return;
         }
 
@@ -671,6 +716,21 @@ public sealed partial class OverlayWindow : Window
         {
             _viewModel.CompleteDismissal();
         }
+        CompleteMotionWaiters();
+    }
+
+    private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
+    {
+        _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
+        if (_viewModel.Snapshot.State != OverlayState.Hidden)
+        {
+            ApplySnapshot(
+                _viewModel.Snapshot,
+                _isActiveWindow,
+                _isActiveWindow,
+                _viewModel.FileDragWakeMode,
+                _viewModel.GetOverlayPlacement(_monitor.Id));
+        }
     }
 
     private bool ApplyMotionFrame(OverlayMotionValues values)
@@ -683,20 +743,11 @@ public sealed partial class OverlayWindow : Window
             values.TopRadius,
             values.BottomRadius,
             values.BottomRadius);
+        _materialController.SetCornerRadius(Surface.CornerRadius);
+        InteractionTintOverlay.CornerRadius = Surface.CornerRadius;
         SurfaceTransform.TranslateY = values.TopOffset;
         SurfaceTransform.ScaleX = values.DropTargetScale;
         SurfaceTransform.ScaleY = values.DropTargetScale;
-        Surface.Opacity = values.Opacity;
-        ShadowSurface.Width = values.Width;
-        ShadowSurface.Height = values.Height;
-        ShadowSurface.CornerRadius = Surface.CornerRadius;
-        ShadowTransform.TranslateY = values.TopOffset + 5;
-        ShadowTransform.ScaleX = values.DropTargetScale;
-        ShadowTransform.ScaleY = values.DropTargetScale;
-        ShadowSurface.Opacity = values.Opacity * values.ShadowOpacity * 0.35;
-        CompactPanel.Opacity = values.CompactContent;
-        DragPanel.Opacity = values.DragContent;
-        ExpandedPanel.Opacity = values.ExpandedContent;
         CollapseInvisibleContent(values);
 
         var width = ToPixels(values.Width * values.DropTargetScale);
@@ -727,15 +778,14 @@ public sealed partial class OverlayWindow : Window
             return false;
         }
 
-        if (!OverlayWindowInterop.ApplyVisualRegion(
-            _windowHandle,
-            left,
-            top,
-            width,
-            height,
-            ToPixels(values.TopRadius),
-            ToPixels(values.BottomRadius),
-            out var regionFailure))
+        if (!_nativeRegionController.Apply(
+                left,
+                top,
+                width,
+                height,
+                values.TopRadius,
+                values.BottomRadius,
+                out var regionFailure))
         {
             Interlocked.Increment(ref _regionFailureCount);
             LogNativeFailure(regionFailure);
@@ -829,12 +879,7 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
-    private bool IsReducedMotion() => _viewModel.MotionPreference switch
-    {
-        OverlayMotionPreference.Reduced => true,
-        OverlayMotionPreference.Full => false,
-        _ => !new Windows.UI.ViewManagement.UISettings().AnimationsEnabled,
-    };
+    private bool IsReducedMotion() => _visualPreferences.IsReducedMotion(_viewModel.MotionPreference);
 
     private int ToPixels(double dips) => Math.Max(0, (int)Math.Round(dips * _monitor.Scale));
 
@@ -1217,13 +1262,26 @@ public sealed partial class OverlayWindow : Window
     {
         if (_viewModel.Snapshot.State == OverlayState.Compact)
         {
-            Surface.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(248, 20, 20, 27));
+            _motion.ApplyHover(true, IsReducedMotion());
         }
     }
 
     private void OnSurfacePointerExited(object sender, PointerRoutedEventArgs args)
     {
-        Surface.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(242, 13, 13, 17));
+        _motion.ApplyHover(false, IsReducedMotion());
+    }
+
+    private void OnSurfacePointerPressed(object sender, PointerRoutedEventArgs args)
+    {
+        if (_viewModel.Snapshot.State == OverlayState.Compact)
+        {
+            _motion.ApplyPress(true, IsReducedMotion());
+        }
+    }
+
+    private void OnSurfacePointerReleased(object sender, PointerRoutedEventArgs args)
+    {
+        _motion.ApplyPress(false, IsReducedMotion());
     }
 
     private void OnSurfaceDragEnter(object sender, DragEventArgs args)

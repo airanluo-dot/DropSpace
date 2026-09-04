@@ -6,6 +6,14 @@ Status: Fluent design specification v1. No visual prototype was generated in thi
 
 Use Windows 11 Fluent design as a native utility, drawing structural cues from Windows Settings and PowerToys: calm Mica foundation, restrained cards, compact rows, clear status, and native menus. Avoid dashboard metrics, oversized marketing headings, floating glass panels, and excessive gradients.
 
+## Preview.14 transient motion and material
+
+The Dynamic Island is a bounded transient surface, not a general glass layer. On capable Windows 11 systems it may use `SystemBackdropElement` with `DesktopAcrylicBackdrop`; the main window remains on its existing Mica/base policy. Windows 10, high contrast, disabled advanced effects, and unavailable backdrop APIs use the opaque solid surface.
+
+Motion tokens are `instant=0 ms`, `faster=83 ms`, `fast=167 ms`, `normal=250 ms`, and `slow=333 ms`. Geometry uses a critically damped, low-overshoot morph; opacity/content/elevation use their own profiles. Incoming content waits about 35–60 ms and fades over 120–167 ms with a 4 DIP visual offset; outgoing content fades in about 83–100 ms. Hover is a low-opacity overlay, never a replacement for the Acrylic/base brush. Press uses a 0.985 content scale, and accepted-drop confirmation compresses inward to 0.97 and returns to 1.0 without outward expansion.
+
+Reduced motion removes bounce, overshoot, noticeable translation, and noticeable scale. Geometry is immediate or completes within roughly 83 ms; content uses a 0–83 ms opacity transition; drop confirmation is an instant state change with a short border/highlight cue. High contrast owns the final colors and stroke resources.
+
 ## Design principles
 
 - Content first; material stays behind content.
