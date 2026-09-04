@@ -1227,13 +1227,7 @@ public sealed class DropLinkHost(
 
         public void Touch() => LastActivityUtc = DateTimeOffset.UtcNow;
 
-        public Task? GetFinalizationTask()
-        {
-            lock (FinalizationTaskGate)
-            {
-                return FinalizationTask;
-            }
-        }
+        public Task? GetFinalizationTask() => Finalization.CurrentTask;
 
         public void CancelLifetime() => LifetimeCancellation.Cancel();
 

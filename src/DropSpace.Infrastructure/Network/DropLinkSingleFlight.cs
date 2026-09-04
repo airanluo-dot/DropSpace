@@ -6,6 +6,17 @@ internal sealed class DropLinkSingleFlight<T>
     private readonly object _gate = new();
     private Task<T>? _task;
 
+    public Task<T>? CurrentTask
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _task;
+            }
+        }
+    }
+
     public Task<T> GetOrStart(Func<Task<T>> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
