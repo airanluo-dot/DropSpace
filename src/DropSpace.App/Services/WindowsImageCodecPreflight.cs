@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using DropSpace.Core.Content;
 using Windows.Graphics.Imaging;
 
@@ -46,7 +47,7 @@ internal static class WindowsImageCodecPreflight
                 BitmapDecoder.GetDecoderInformationEnumerator(),
                 detectedExtension);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or InvalidOperationException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or InvalidOperationException or COMException)
         {
             return false;
         }
@@ -66,7 +67,7 @@ internal static class WindowsImageCodecPreflight
                 BitmapEncoder.GetEncoderInformationEnumerator(),
                 normalizedExtension);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or InvalidOperationException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or InvalidOperationException or COMException)
         {
             return false;
         }
