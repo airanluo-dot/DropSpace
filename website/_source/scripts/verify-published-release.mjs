@@ -91,10 +91,20 @@ do {
       if (siteAssets.get(name)?.downloadUrl !== assets.get(name).browser_download_url) throw new Error(`Website API ${name} URL disagrees with GitHub.`);
     }
     latestChangeApi = validateLatestChangeApi(await (await fetchOk(`${siteOrigin}/api/v1/latest-change.json?verify=${Date.now()}`)).json());
-    if (latestChangeApi.release.tagName !== tag || latestChangeApi.release.htmlUrl !== release.html_url ||
-        latestChangeApi.release.channel !== (release.prerelease ? "preview" : "stable")) {
+    if (verificationMode === "release" &&
+        (latestChangeApi.release.tagName !== tag || latestChangeApi.release.htmlUrl !== release.html_url ||
+         latestChangeApi.release.channel !== (release.prerelease ? "preview" : "stable"))) {
       throw new Error("Latest-change API does not present the newly published release.");
     }
+
+    if (verificationMode === "live") {
+      const latestSiteRelease = api.releases?.find(candidate => candidate.tagName === latestChangeApi.release.tagName);
+      if (!latestSiteRelease || latestSiteRelease.htmlUrl !== latestChangeApi.release.htmlUrl ||
+          latestSiteRelease.isPrerelease !== (latestChangeApi.release.channel === "preview")) {
+        throw new Error("Latest-change API does not match the synchronized website release list.");
+      }
+    }
+
     lastError = undefined;
     break;
   } catch (error) {
@@ -106,8 +116,9 @@ do {
 if (lastError) throw lastError;
 
 const latestHome = await (await fetchOk(`${siteOrigin}/en/?verify=${Date.now()}`)).text();
-if (!latestHome.includes(`data-latest-change-tag="">${tag}<`)) {
-  throw new Error(`The live website does not present ${tag} in the latest-change design.`);
+const expectedLatestChangeTag = latestChangeApi.release.tagName;
+if (!latestHome.includes(`data-latest-change-tag="">${expectedLatestChangeTag}<`)) {
+  throw new Error(`The live website does not present ${expectedLatestChangeTag} in the latest-change design.`);
 }
 
 if (!release.prerelease) {
