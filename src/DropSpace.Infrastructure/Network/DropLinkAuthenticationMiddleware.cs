@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Security.Cryptography;
+using System.Runtime.Versioning;
 using Microsoft.AspNetCore.Http;
 
 namespace DropSpace.Infrastructure.Network;
@@ -8,6 +9,7 @@ namespace DropSpace.Infrastructure.Network;
 /// Authenticates DropLink requests before endpoint model binding can materialize attacker-controlled JSON.
 /// The request body is hashed from the raw bytes and then rewound for the endpoint.
 /// </summary>
+[SupportedOSPlatform("windows")]
 internal sealed class DropLinkAuthenticationMiddleware
 {
     internal const string AuthenticatedPeerContextKey = "DropLink.AuthenticatedPeer";
