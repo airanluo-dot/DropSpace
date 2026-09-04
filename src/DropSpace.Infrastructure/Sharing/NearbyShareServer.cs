@@ -25,6 +25,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
 {
     private readonly ShareLimits _limits = (limits ?? new ShareLimits()).Validate();
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
+    private readonly SemaphoreSlim _startGate = new(1, 1);
     private WebApplication? _app;
     private Uri? _baseUri;
     private int _disposed;
@@ -67,35 +68,46 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     {
         if (_app is not null) return;
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
-        var privateAddress = GetPrivateAddress();
-        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
+        await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            ApplicationName = typeof(NearbyShareServer).Assembly.GetName().Name ?? "DropSpace",
-            EnvironmentName = "Production",
-        });
-        builder.Logging.ClearProviders();
-        builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Parse(privateAddress), 0));
-        var app = builder.Build();
-        MapRoutes(app);
-        await app.StartAsync(cancellationToken).ConfigureAwait(false);
-        var address = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
-            .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var bound))
-        {
-            await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-            await app.DisposeAsync().ConfigureAwait(false);
-            throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
-        }
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
+            if (_app is not null) return;
 
-        _baseUri = new Uri(string.Concat("http://", privateAddress, ":", bound.Port, "/"));
-        _app = app;
+            var privateAddress = GetPrivateAddress();
+            var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
+            {
+                ApplicationName = typeof(NearbyShareServer).Assembly.GetName().Name ?? "DropSpace",
+                EnvironmentName = "Production",
+            });
+            builder.Logging.ClearProviders();
+            builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Parse(privateAddress), 0));
+            var app = builder.Build();
+            MapRoutes(app);
+            await app.StartAsync(cancellationToken).ConfigureAwait(false);
+            var address = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
+                .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var bound))
+            {
+                await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
+                await app.DisposeAsync().ConfigureAwait(false);
+                throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
+            }
+
+            _baseUri = new Uri(string.Concat("http://", privateAddress, ":", bound.Port, "/"));
+            _app = app;
+        }
+        finally
+        {
+            _startGate.Release();
+        }
     }
 
     private void MapRoutes(WebApplication app)
     {
         app.MapGet("/s/{shareId:guid}/{token}", async (HttpContext context, Guid shareId, string token, CancellationToken cancellationToken) =>
         {
-            if (!TryGetShare(shareId, token, out var share, out var error)) return Results.StatusCode(error);
+            if (!TryGetShare(shareId, token, context.Connection.RemoteIpAddress, out var share, out var error)) return Results.StatusCode(error);
             if (!share.TryRegisterReceiver(context.Connection.RemoteIpAddress)) return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             var builder = new StringBuilder("<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>DropSpace Nearby Share</title><h1>DropSpace Nearby Share</h1><ul>");
             foreach (var item in share.Items)
@@ -104,16 +116,18 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                 var href = string.Concat("/s/", shareId.ToString("N"), "/", token, "/file/", item.Id.ToString("N"));
                 builder.Append("<li><a download=\"").Append(safeName).Append("\" href=\"").Append(href).Append("\">").Append(safeName).Append("</a> <small>").Append(item.Length).Append(" bytes</small></li>");
             }
-            builder.Append("</ul><p>This link is local-network only and expires automatically.</p>");
+            builder.Append("</ul><p><strong>Security notice:</strong> this nearby link uses unencrypted HTTP on the private network. Anyone on that network who obtains the link can read these files. It expires automatically; use Internet Share for encrypted transport.</p>");
             context.Response.Headers["Cache-Control"] = "no-store";
+            context.Response.Headers["Referrer-Policy"] = "no-referrer";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            context.Response.Headers["X-DropSpace-Transport"] = "unencrypted-private-http";
             context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
             return Results.Content(builder.ToString(), "text/html; charset=utf-8");
         });
 
         app.MapGet("/s/{shareId:guid}/{token}/file/{itemId:guid}", async (HttpContext context, Guid shareId, string token, Guid itemId, CancellationToken cancellationToken) =>
         {
-            if (!TryGetShare(shareId, token, out var share, out var error)) return Results.StatusCode(error);
+            if (!TryGetShare(shareId, token, context.Connection.RemoteIpAddress, out var share, out var error)) return Results.StatusCode(error);
             if (!share.TryRegisterReceiver(context.Connection.RemoteIpAddress)) return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             var item = share.Items.FirstOrDefault(candidate => candidate.Id == itemId);
             if (item is null) return Results.NotFound();
@@ -142,23 +156,47 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             context.Response.ContentLength = end - start + 1;
             context.Response.Headers["Content-Disposition"] = string.Concat("attachment; filename=\"", EscapeHeader(item.DisplayName), "\"");
             context.Response.Headers["Cache-Control"] = "no-store";
+            context.Response.Headers["Referrer-Policy"] = "no-referrer";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            context.Response.Headers["X-DropSpace-Transport"] = "unencrypted-private-http";
             if (partial) context.Response.Headers["Content-Range"] = string.Concat("bytes ", start, "-", end, "/", total);
             await CopyExactlyAsync(stream, context.Response.Body, end - start + 1, cancellationToken).ConfigureAwait(false);
             return Results.Empty;
         });
     }
 
-    private bool TryGetShare(Guid shareId, string token, out NearbyShare share, out int error)
+    private bool TryGetShare(
+        Guid shareId,
+        string token,
+        IPAddress? remoteAddress,
+        out NearbyShare share,
+        out int error)
     {
         error = StatusCodes.Status404NotFound;
-        if (!_shares.TryGetValue(shareId, out share!) || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(share.Token), Encoding.UTF8.GetBytes(token))) return false;
+        share = null!;
+        if (remoteAddress is null || !IsPrivate(remoteAddress))
+        {
+            error = StatusCodes.Status403Forbidden;
+            return false;
+        }
+
+        if (!_shares.TryGetValue(shareId, out share) ||
+            !CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(share.Token),
+                Encoding.UTF8.GetBytes(token)))
+        {
+            share = null!;
+            return false;
+        }
+
         if (share.ExpiresAtUtc <= DateTimeOffset.UtcNow)
         {
             _shares.TryRemove(shareId, out _);
             error = StatusCodes.Status410Gone;
+            share = null!;
             return false;
         }
+
         return true;
     }
 
@@ -217,8 +255,15 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
 
     private static bool IsPrivate(IPAddress address)
     {
+        if (address.AddressFamily != AddressFamily.InterNetwork)
+        {
+            return false;
+        }
+
         var bytes = address.GetAddressBytes();
-        return bytes[0] == 10 || bytes[0] == 192 && bytes[1] == 168 || bytes[0] == 172 && bytes[1] is >= 16 and <= 31;
+        return bytes[0] == 10 ||
+            bytes[0] == 192 && bytes[1] == 168 ||
+            bytes[0] == 172 && bytes[1] is >= 16 and <= 31;
     }
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -239,14 +284,24 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        _shares.Clear();
-        if (_app is not null)
+
+        await _startGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
         {
-            await _app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-            await _app.DisposeAsync().ConfigureAwait(false);
+            _shares.Clear();
+            var app = _app;
+            _app = null;
+            _baseUri = null;
+            if (app is not null)
+            {
+                await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
+                await app.DisposeAsync().ConfigureAwait(false);
+            }
         }
-        _app = null;
-        _baseUri = null;
+        finally
+        {
+            _startGate.Release();
+        }
     }
 
     private sealed class NearbyShare(Guid id, string token, DateTimeOffset expiresAtUtc, IReadOnlyList<NearbyShareItem> items, int maxReceivers)
