@@ -184,6 +184,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         }
 
         Volatile.Write(ref _candidateCreationSuppressed, active ? 1 : 0);
+        if (active) TryWrite(new DetectorSignal(DetectorSignalKind.AccessibleObjectCancelled, GetCursorPoint()));
     }
 
     public void SetMode(FileDragWakeMode mode)
@@ -814,7 +815,17 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                         PlacementEditEscapeRequested?.Invoke(this, EventArgs.Empty);
                     }
 
-                    continue;
+                    // Suppression forbids creation/promotion only. Terminal events still
+                    // converge the active session, including signals queued before editing.
+                    if (signal.Kind is DetectorSignalKind.LeftPressed or DetectorSignalKind.RightPressed or
+                        DetectorSignalKind.PointerMoved or DetectorSignalKind.AccessibleObjectStarted or
+                        DetectorSignalKind.ProbeVerified)
+                    {
+                        PublishTransition(_policy.DragCancelled(signal.Point));
+                        pressedShellSurface = DragSourceKind.Unknown;
+                        pressedExcluded = false;
+                        continue;
+                    }
                 }
 
                 DragSessionTransition transition;
