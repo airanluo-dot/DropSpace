@@ -546,55 +546,62 @@ public sealed class DropLinkHost(
                 var partPath = Path.Combine(
                     receive.StagingRoot,
                     string.Concat(itemId.ToString("N"), ".", index, ".part"));
-                await using (var output = new FileStream(
+                string? temporaryPartPath = string.Concat(
                     partPath,
-                    FileMode.Create,
-                    FileAccess.Write,
-                    FileShare.None,
-                    81_920,
-                    FileOptions.Asynchronous | FileOptions.WriteThrough))
-                {
-                    await context.Request.Body.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
-                    await output.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                var length = new FileInfo(partPath).Length;
-                if (length != expectedLength)
-                {
-                    TryDelete(partPath);
-                    return Results.BadRequest(new { error = "chunk-length-mismatch" });
-                }
-
-                var hash = await HashFileAsync(partPath, cancellationToken).ConfigureAwait(false);
-                var expectedHash = context.Request.Headers[DropLinkProtocolHeaders.ChunkSha256].ToString();
-                if (!DropLinkProtocolPolicy.IsLowerHexHash(expectedHash))
-                {
-                    TryDelete(partPath);
-                    return Results.BadRequest(new { error = "chunk-integrity" });
-                }
-
-                bool chunkMatches;
+                    ".",
+                    Guid.NewGuid().ToString("N"),
+                    ".tmp");
                 try
                 {
-                    chunkMatches = CryptographicOperations.FixedTimeEquals(
-                        Convert.FromHexString(hash),
-                        Convert.FromHexString(expectedHash));
-                }
-                catch (FormatException)
-                {
-                    chunkMatches = false;
-                }
+                    await using (var output = new FileStream(
+                        temporaryPartPath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None,
+                        81_920,
+                        FileOptions.Asynchronous | FileOptions.WriteThrough))
+                    {
+                        await context.Request.Body.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                        await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
 
-                if (!chunkMatches)
-                {
-                    TryDelete(partPath);
-                    return Results.BadRequest(new { error = "chunk-integrity" });
-                }
+                    var length = new FileInfo(temporaryPartPath).Length;
+                    if (length != expectedLength)
+                    {
+                        return Results.BadRequest(new { error = "chunk-length-mismatch" });
+                    }
 
-                if (!itemChunks.TryAdd(index, length))
-                {
-                    return Results.Ok(new { accepted = true, duplicate = true, length });
-                }
+                    var hash = await HashFileAsync(temporaryPartPath, cancellationToken).ConfigureAwait(false);
+                    var expectedHash = context.Request.Headers[DropLinkProtocolHeaders.ChunkSha256].ToString();
+                    if (!DropLinkProtocolPolicy.IsLowerHexHash(expectedHash))
+                    {
+                        return Results.BadRequest(new { error = "chunk-integrity" });
+                    }
+
+                    bool chunkMatches;
+                    try
+                    {
+                        chunkMatches = CryptographicOperations.FixedTimeEquals(
+                            Convert.FromHexString(hash),
+                            Convert.FromHexString(expectedHash));
+                    }
+                    catch (FormatException)
+                    {
+                        chunkMatches = false;
+                    }
+
+                    if (!chunkMatches)
+                    {
+                        return Results.BadRequest(new { error = "chunk-integrity" });
+                    }
+
+                    File.Move(temporaryPartPath, partPath);
+                    temporaryPartPath = null;
+
+                    if (!itemChunks.TryAdd(index, length))
+                    {
+                        return Results.Ok(new { accepted = true, duplicate = true, length });
+                    }
 
                 receive.Session = receive.Session with
                 {
