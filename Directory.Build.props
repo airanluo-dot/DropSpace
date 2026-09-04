@@ -7,7 +7,7 @@
     <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
-    <AnalysisLevel>10.0-recommended</AnalysisLevel>
+    <AnalysisLevel>10.0</AnalysisLevel>
     <Deterministic>true</Deterministic>
     <DropSpaceMinimumWindowsBuild>17763</DropSpaceMinimumWindowsBuild>
     <DropSpaceMinimumWindowsVersion>10.0.17763.0</DropSpaceMinimumWindowsVersion>
