@@ -57,6 +57,8 @@ public sealed class DropLinkPairingService(
 {
     private readonly ConcurrentDictionary<Guid, PendingPairing> _pending = new();
     private readonly ConcurrentDictionary<Guid, Task> _expirationTasks = new();
+    private readonly Dictionary<string, RateWindow> _rateWindows = new(StringComparer.Ordinal);
+    private readonly object _admissionGate = new();
     private readonly CancellationTokenSource _shutdown = new();
     private readonly object _disposeGate = new();
     private Task? _disposeTask;
@@ -84,28 +86,92 @@ public sealed class DropLinkPairingService(
     public async Task<PairingOffer> AcceptHelloAsync(
         PairingHello remote,
         PeerCapability localCapabilities,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? remoteAddress = null)
     {
         ThrowIfDisposed();
+        var address = NormalizeRemoteAddress(remoteAddress);
+        ReserveRate(address);
         ValidateHello(remote);
         var local = await CreateHelloAsync(localCapabilities, cancellationToken).ConfigureAwait(false);
         try
         {
-            var secret = DeriveSecret(local, remote);
-            var sessionId = Guid.NewGuid();
-            var expires = DateTimeOffset.UtcNow.AddMinutes(5);
-            var sas = ComputeSas(secret, local.Hello, remote);
-            _pending[sessionId] = new PendingPairing(sessionId, remote, local.Hello, secret, sas, expires, local);
-            var expirationTask = ExpirePendingAsync(sessionId, expires, _shutdown.Token);
-            _expirationTasks[sessionId] = expirationTask;
-            ObserveExpirationTask(expirationTask, sessionId);
-            return new PairingOffer(sessionId, remote, local.Hello, sas, expires, PairingState.AwaitingLocalSasConfirmation);
+            PairingOffer offer;
+            Task expirationTask;
+            lock (_admissionGate)
+            {
+                var now = DateTimeOffset.UtcNow;
+                PruneExpiredPendingLocked(now);
+                EnsureAdmissionAvailableLocked(remote, address);
+
+                var secret = DeriveSecret(local, remote);
+                var sessionId = Guid.NewGuid();
+                var expires = now + DropLinkPairingPolicy.PendingLifetime;
+                var sas = ComputeSas(secret, local.Hello, remote);
+                var pending = new PendingPairing(
+                    sessionId,
+                    remote,
+                    local.Hello,
+                    secret,
+                    sas,
+                    expires,
+                    address,
+                    local);
+                if (!_pending.TryAdd(sessionId, pending))
+                {
+                    CryptographicOperations.ZeroMemory(secret);
+                    throw new PairingAdmissionException("pairing-capacity");
+                }
+
+                offer = new PairingOffer(
+                    sessionId,
+                    remote,
+                    local.Hello,
+                    sas,
+                    expires,
+                    PairingState.AwaitingLocalSasConfirmation);
+                expirationTask = ExpirePendingAsync(sessionId, expires, _shutdown.Token);
+                _expirationTasks[sessionId] = expirationTask;
+            }
+
+            ObserveExpirationTask(expirationTask, offer.SessionId);
+            return offer;
         }
         catch
         {
             local.Dispose();
             throw;
         }
+    }
+
+    public int PendingCount => _pending.Count;
+
+    public bool TryGetPendingOffer(Guid sessionId, out PairingOffer offer)
+    {
+        offer = default!;
+        if (sessionId == Guid.Empty || !_pending.TryGetValue(sessionId, out var pending))
+        {
+            return false;
+        }
+
+        if (pending.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+        {
+            if (_pending.TryRemove(sessionId, out var expired))
+            {
+                ReleasePending(expired);
+            }
+
+            return false;
+        }
+
+        offer = new PairingOffer(
+            pending.SessionId,
+            pending.RemoteHello,
+            pending.LocalHello,
+            pending.Sas,
+            pending.ExpiresAtUtc,
+            PairingState.AwaitingLocalSasConfirmation);
+        return true;
     }
 
     public async Task<PairingConfirmationResult> ConfirmAsync(
@@ -262,12 +328,16 @@ public sealed class DropLinkPairingService(
         }
 
         _shutdown.Cancel();
+        lock (_admissionGate)
+        {
+            _rateWindows.Clear();
+        }
+
         foreach (var entry in _pending.ToArray())
         {
             if (_pending.TryRemove(entry.Key, out var pending))
             {
-                pending.LocalHandshake.Dispose();
-                CryptographicOperations.ZeroMemory(pending.Secret);
+                ReleasePending(pending);
             }
         }
 
@@ -315,8 +385,7 @@ public sealed class DropLinkPairingService(
 
         if (_pending.TryRemove(sessionId, out var pending))
         {
-            pending.LocalHandshake.Dispose();
-            CryptographicOperations.ZeroMemory(pending.Secret);
+            ReleasePending(pending);
         }
     }
 
@@ -338,10 +407,95 @@ public sealed class DropLinkPairingService(
             TaskScheduler.Default);
     }
 
+    private void EnsureAdmissionAvailableLocked(PairingHello remote, string address)
+    {
+        if (_pending.Count >= DropLinkPairingPolicy.MaximumPending)
+        {
+            throw new PairingAdmissionException("pairing-capacity");
+        }
+
+        var pendingForAddress = _pending.Values.Count(candidate =>
+            string.Equals(candidate.RemoteAddress, address, StringComparison.Ordinal));
+        if (pendingForAddress >= DropLinkPairingPolicy.MaximumPendingPerAddress)
+        {
+            throw new PairingAdmissionException("pairing-address-capacity");
+        }
+
+        var pendingForDevice = _pending.Values.Count(candidate =>
+            candidate.RemoteHello.DeviceId == remote.DeviceId ||
+            string.Equals(candidate.RemoteHello.PublicKeyBase64, remote.PublicKeyBase64, StringComparison.Ordinal));
+        if (pendingForDevice >= DropLinkPairingPolicy.MaximumPendingPerDevice)
+        {
+            throw new PairingAdmissionException("pairing-duplicate");
+        }
+    }
+
+    private void ReserveRate(string address)
+    {
+        lock (_admissionGate)
+        {
+            var now = DateTimeOffset.UtcNow;
+            foreach (var key in _rateWindows
+                         .Where(entry => now - entry.Value.WindowStartedAtUtc > DropLinkPairingPolicy.RateWindow)
+                         .Select(entry => entry.Key)
+                         .ToArray())
+            {
+                _rateWindows.Remove(key);
+            }
+
+            if (!_rateWindows.TryGetValue(address, out var window))
+            {
+                if (_rateWindows.Count >= DropLinkPairingPolicy.MaximumRateEntries)
+                {
+                    throw new PairingAdmissionException("pairing-rate-capacity");
+                }
+
+                window = new RateWindow(now, 0);
+            }
+
+            if (window.Attempts >= DropLinkPairingPolicy.MaximumAttemptsPerWindow)
+            {
+                throw new PairingAdmissionException("pairing-rate-limited");
+            }
+
+            _rateWindows[address] = window with { Attempts = window.Attempts + 1 };
+        }
+    }
+
+    private void PruneExpiredPendingLocked(DateTimeOffset now)
+    {
+        foreach (var entry in _pending.Where(entry => entry.Value.ExpiresAtUtc <= now).ToArray())
+        {
+            if (_pending.TryRemove(entry.Key, out var expired))
+            {
+                ReleasePending(expired);
+            }
+        }
+    }
+
+    private static string NormalizeRemoteAddress(string? address)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            return "unknown";
+        }
+
+        var normalized = address.Trim();
+        return normalized.Length <= 128 ? normalized : normalized[..128];
+    }
+
+    private static void ReleasePending(PendingPairing pending)
+    {
+        pending.LocalHandshake.Dispose();
+        CryptographicOperations.ZeroMemory(pending.Secret);
+    }
+
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
     }
+
+    private sealed record RateWindow(DateTimeOffset WindowStartedAtUtc, int Attempts);
 
     private sealed record PendingPairing(
         Guid SessionId,
@@ -350,5 +504,6 @@ public sealed class DropLinkPairingService(
         byte[] Secret,
         int Sas,
         DateTimeOffset ExpiresAtUtc,
+        string RemoteAddress,
         PairingHandshake LocalHandshake);
 }

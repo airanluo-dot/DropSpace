@@ -22,7 +22,7 @@ public sealed class DropLinkClient(
     public async Task<DeviceDescriptor> GetDeviceAsync(Uri endpoint, string expectedFingerprint, CancellationToken cancellationToken = default)
     {
         using var client = CreateClient(endpoint, expectedFingerprint);
-        using var response = await client.GetAsync("/v1/device", cancellationToken).ConfigureAwait(false);
+        using var response = await client.GetAsync(DropLinkProtocolRoutes.Device, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<DeviceDescriptor>(JsonOptions, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("The remote device descriptor was empty.");
@@ -38,7 +38,7 @@ public sealed class DropLinkClient(
         using var handshake = await pairing.CreateHelloAsync(capabilities, cancellationToken).ConfigureAwait(false);
         using var client = CreateClient(endpoint, expectedFingerprint);
         using var helloContent = JsonContent.Create(handshake.Hello, options: JsonOptions);
-        using var response = await client.PostAsync("/v1/pairing/hello", helloContent, cancellationToken).ConfigureAwait(false);
+        using var response = await client.PostAsync(DropLinkProtocolRoutes.PairingHello, helloContent, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var offer = await response.Content.ReadFromJsonAsync<PairingOffer>(JsonOptions, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("The remote pairing offer was empty.");
@@ -131,7 +131,7 @@ public sealed class DropLinkClient(
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
         return await SendAuthenticatedJsonAsync<HandoffMessageRequest, HandoffMessageResponse>(
                 authenticated,
-                "/v1/handoff/text",
+                DropLinkProtocolRoutes.HandoffText,
                 new HandoffMessageRequest(authenticated.LocalDeviceId, message),
                 HttpMethod.Post,
                 cancellationToken)
@@ -156,7 +156,7 @@ public sealed class DropLinkClient(
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
         return await SendAuthenticatedJsonAsync<ClipboardSyncRequest, ClipboardSyncResponse>(
                 authenticated,
-                "/v1/clipboard",
+                DropLinkProtocolRoutes.Clipboard,
                 new ClipboardSyncRequest(authenticated.LocalDeviceId, envelope),
                 HttpMethod.Post,
                 cancellationToken)
@@ -189,7 +189,7 @@ public sealed class DropLinkClient(
 
         var manifest = TransferManifestPolicy.Create(sessionId, items, limits);
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
-        var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, "/v1/transfers/offers", new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+        var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, DropLinkProtocolRoutes.TransferOffers, new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
         var accepted = await WaitForAcceptanceAsync(authenticated, offer.SessionId, cancellationToken).ConfigureAwait(false);
         if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(offer.SessionId, accepted.State, [], accepted.ErrorCategory);
 
@@ -204,7 +204,7 @@ public sealed class DropLinkClient(
                 transferred += item.Size;
             }
 
-            return await SendAuthenticatedJsonAsync<object, TransferCompleteResponse>(authenticated, string.Concat("/v1/transfers/", offer.SessionId.ToString("D"), "/complete"), new { }, HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+            return await SendAuthenticatedJsonAsync<object, TransferCompleteResponse>(authenticated, DropLinkProtocolRoutes.TransferComplete(offer.SessionId), new { }, HttpMethod.Post, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -239,7 +239,7 @@ public sealed class DropLinkClient(
         CancellationToken cancellationToken = default)
     {
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
-        return await SendAuthenticatedJsonAsync<TransferAcceptRequest, TransferStatusResponse>(authenticated, string.Concat("/v1/transfers/", sessionId.ToString("D"), "/accept"), new TransferAcceptRequest(accepted), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
+        return await SendAuthenticatedJsonAsync<TransferAcceptRequest, TransferStatusResponse>(authenticated, DropLinkProtocolRoutes.TransferAccept(sessionId), new TransferAcceptRequest(accepted), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<TransferStatusResponse> WaitForAcceptanceAsync(AuthenticatedClient authenticated, Guid sessionId, CancellationToken cancellationToken)
@@ -247,7 +247,7 @@ public sealed class DropLinkClient(
         var deadline = DateTimeOffset.UtcNow.AddMinutes(5);
         while (DateTimeOffset.UtcNow < deadline)
         {
-            var status = await SendAuthenticatedJsonAsync<object, TransferStatusResponse>(authenticated, string.Concat("/v1/transfers/", sessionId.ToString("D"), "/status"), new { }, HttpMethod.Get, cancellationToken).ConfigureAwait(false);
+            var status = await SendAuthenticatedJsonAsync<object, TransferStatusResponse>(authenticated, DropLinkProtocolRoutes.TransferStatus(sessionId), new { }, HttpMethod.Get, cancellationToken).ConfigureAwait(false);
             if (status.State is TransferSessionState.Accepted or TransferSessionState.Rejected or TransferSessionState.Cancelled or TransferSessionState.Failed) return status;
             await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
         }
@@ -261,7 +261,7 @@ public sealed class DropLinkClient(
         CancellationToken cancellationToken) =>
         SendAuthenticatedJsonAsync<object, TransferStatusResponse>(
             authenticated,
-            string.Concat("/v1/transfers/", sessionId.ToString("D"), "/cancel"),
+            DropLinkProtocolRoutes.TransferCancel(sessionId),
             new { },
             HttpMethod.Post,
             cancellationToken);
@@ -276,7 +276,7 @@ public sealed class DropLinkClient(
     {
         var confirmation = new PairingConfirmationRequest(offer.SessionId, sas, confirmed, decision);
         using var confirmationContent = JsonContent.Create(confirmation, options: JsonOptions);
-        using var response = await client.PostAsync("/v1/pairing/confirm", confirmationContent, cancellationToken).ConfigureAwait(false);
+        using var response = await client.PostAsync(DropLinkProtocolRoutes.PairingConfirm, confirmationContent, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PairingConfirmationResponse>(JsonOptions, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("The remote pairing confirmation was empty.");
@@ -317,7 +317,7 @@ public sealed class DropLinkClient(
             }
 
             var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-            var pathValue = string.Concat("/v1/transfers/", sessionId.ToString("D"), "/items/", item.Id.ToString("D"), "/chunks/", index);
+            var pathValue = DropLinkProtocolRoutes.TransferChunk(sessionId, item.Id, index);
             await SendAuthenticatedBytesAsync(authenticated, pathValue, bytes, hash, cancellationToken).ConfigureAwait(false);
             progress?.Report(new TransferProgress(sessionId, item.Id, alreadyTransferred + offset + length, totalBytes));
         }
@@ -344,7 +344,7 @@ public sealed class DropLinkClient(
     {
         var bytes = method == HttpMethod.Get ? Array.Empty<byte>() : JsonSerializer.SerializeToUtf8Bytes(body, JsonOptions);
         using var content = new ByteArrayContent(bytes);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        content.Headers.ContentType = new MediaTypeHeaderValue(DropLinkProtocolHeaders.JsonContentType);
         using var request = CreateRequest(method, path, authenticated.Secret, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), authenticated.LocalDeviceId, content);
         using var response = await authenticated.Client.SendAsync(request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -354,12 +354,12 @@ public sealed class DropLinkClient(
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, string path, byte[] secret, string bodyHash, Guid peerId, HttpContent content)
     {
-        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
+        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(DropLinkProtocolPolicy.AuthenticationNonceBytes));
         var request = new HttpRequestMessage(method, path) { Content = content };
-        request.Headers.Add("X-DropLink-Device", peerId.ToString("D"));
-        request.Headers.Add("X-DropLink-Nonce", nonce);
-        request.Headers.Add("X-DropLink-Body-SHA256", bodyHash);
-        request.Headers.Add("X-DropLink-Auth", DropLinkPairingService.ComputeAuth(secret, method.Method, path, nonce, bodyHash));
+        request.Headers.Add(DropLinkProtocolHeaders.Device, peerId.ToString("D"));
+        request.Headers.Add(DropLinkProtocolHeaders.Nonce, nonce);
+        request.Headers.Add(DropLinkProtocolHeaders.BodySha256, bodyHash);
+        request.Headers.Add(DropLinkProtocolHeaders.Auth, DropLinkPairingService.ComputeAuth(secret, method.Method, path, nonce, bodyHash));
         return request;
     }
 
