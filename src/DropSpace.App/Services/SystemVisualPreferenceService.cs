@@ -9,7 +9,7 @@ namespace DropSpace.App.Services;
 /// Owns the process-wide Windows visual preference subscriptions used by transient surfaces.
 /// It deliberately keeps system settings out of the per-frame motion path.
 /// </summary>
-internal sealed class SystemVisualPreferenceService : IDisposable
+public sealed class SystemVisualPreferenceService : IDisposable
 {
     private readonly UISettings _uiSettings = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
