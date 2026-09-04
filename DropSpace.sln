@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DropSpace.Infrastructure", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DropSpace.App", "src\DropSpace.App\DropSpace.App.csproj", "{D46C7B1C-624A-4E89-8A34-3E4BA24CB00C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DropSpace.App.Tests", "tests\DropSpace.App.Tests\DropSpace.App.Tests.csproj", "{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DropSpace.Core.Tests", "tests\DropSpace.Core.Tests\DropSpace.Core.Tests.csproj", "{039B37AA-21F8-4E96-80B8-A353D26DA2B1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DropSpace.Infrastructure.Tests", "tests\DropSpace.Infrastructure.Tests\DropSpace.Infrastructure.Tests.csproj", "{0186B40A-6793-463C-9A4A-1243762C500E}"
@@ -20,6 +22,12 @@ Global
 		x64|x64 = x64|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}.x64|x64.ActiveCfg = Release|x64
+		{F2B9D6AF-98A0-4D85-84F0-2E3F8B0B9CE1}.x64|x64.Build.0 = Release|x64
 		{735DB7E5-7E02-4F0C-ABCB-330DC65C9020}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{735DB7E5-7E02-4F0C-ABCB-330DC65C9020}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{735DB7E5-7E02-4F0C-ABCB-330DC65C9020}.Release|Any CPU.ActiveCfg = Release|Any CPU
