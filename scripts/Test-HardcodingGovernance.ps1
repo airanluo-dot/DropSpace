@@ -14,13 +14,28 @@ $visualFiles = @(
     "src/DropSpace.App/Views/MainPage.xaml",
     "src/DropSpace.App/Views/DesignTokens.xaml"
 )
+$directColorForms = @(
+    'Color="#',
+    'Background="#',
+    'Foreground="#',
+    'BorderBrush="#',
+    'Fill="#',
+    "Color='#",
+    "Background='#",
+    "Foreground='#",
+    "BorderBrush='#",
+    "Fill='#"
+)
 foreach ($relativePath in $visualFiles)
 {
     $path = Join-Path $repositoryRoot $relativePath
-    $nakedColors = Select-String -LiteralPath $path -Pattern '(?i)(?:Color|Background|Foreground|BorderBrush|Fill)s*=s*["'']#'
-    if ($null -ne $nakedColors)
+    foreach ($directColorForm in $directColorForms)
     {
-        throw "Naked XAML color found in $relativePath. Use semantic ThemeResource or DesignTokens resources."
+        $nakedColors = Select-String -LiteralPath $path -SimpleMatch $directColorForm
+        if ($null -ne $nakedColors)
+        {
+            throw "Naked XAML color found in $relativePath. Use semantic ThemeResource or DesignTokens resources."
+        }
     }
 }
 
@@ -56,7 +71,7 @@ foreach ($file in $routeFiles)
     $directRoute = Select-String -LiteralPath $file.FullName -Pattern "/v1/" -SimpleMatch
     if ($null -ne $directRoute)
     {
-        throw "Direct /v1/ route literal found in $($file.FullName). Consume DropLinkProtocolRoutes instead."
+        throw "Direct /v1/ route literal found in $($file.Name). Consume DropLinkProtocolRoutes instead."
     }
 }
 if ($dropLinkContract.IndexOf("VersionPrefix = ""/v1""", [StringComparison]::Ordinal) -lt 0)
@@ -84,7 +99,8 @@ $delayFiles = @(
 )
 foreach ($relativePath in $delayFiles)
 {
-    $literalDelay = Select-String -LiteralPath (Join-Path $repositoryRoot $relativePath) -Pattern 'Task.Delay(s*(?:d+|TimeSpan.From(?:Milliseconds|Seconds)(s*d+)'
+    $literalDelay = Select-String -LiteralPath (Join-Path $repositoryRoot $relativePath) -SimpleMatch "Task.Delay(" |
+        Where-Object { $_.Line -notlike "*SmartDragRuntimePolicy*" }
     if ($null -ne $literalDelay)
     {
         throw "Unowned Task.Delay literal found in $relativePath. Use SmartDragRuntimePolicy."
