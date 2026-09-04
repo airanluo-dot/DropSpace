@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.14 is the current motion-system follow-up Preview: it preserves the Preview.13 content/OLE/async boundaries while separating motion profiles, using compositor-backed visual-only channels, deduplicating physical native region updates, and selecting bounded Windows 11 Desktop Acrylic only when capabilities and user effects permit it. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor/provider matrix, official share backend, and physical two-device evidence remain explicit operational gates.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.15 is the current three-axis unified-hardening Preview: it unifies native/OLE identity and ownership, motion/material/accessibility policy, DropLink authentication and lifecycle, clipboard image/update/storage bounds, SSOT governance, and x64 release validation. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -16,6 +16,15 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 - Require resolved OLE acceptance or virtual-file materialization before Smart visual authorization; route completion and cleanup through the probe owner thread.
 - Pass the current ListView multi-selection to Main-page actions only when the clicked card is selected; use bounded asynchronous Quick Panel lifecycle signals and bounded known-peer DropLink nonce admission.
 - Keep Preview.13 CONDITIONAL until the real Windows OS/DPI/provider/OLE/manual selection matrix, two-device DropLink evidence, and operator-deployed Worker/browser acceptance are evidenced.
+
+## v0.3.0-preview.15 delivery slice
+
+- Close the three unified hardening axes without changing the Windows 10 Build 17763 or x64 product boundary: physical native region identity, OLE capability fail-closed behavior, state/motion deduplication, and topology enqueue recovery.
+- Keep motion geometry/layout/native ownership on the UI thread; centralize wall-clock animation tokens, reduced-motion behavior, semantic high-contrast resources, compositor-only visual channels, and capability-gated material fallbacks.
+- Bind DropLink authentication to the actual request body hash, enforce pairing admission/rate/replay/session limits, make completion and chunk commits single-flight/atomic/idempotent, bound secret/revoke material, and make Nearby's private-network/security fallback explicit.
+- Enforce pre-decode clipboard image budgets and installed-codec preflight; coordinate updater operations; bound settings, logging, schema, cleanup, and key reads.
+- Make release, installer, website artifact kinds, Worker constants, routes, motion, Smart Drag policy, and overlays consume SSOT owners; add governance scanning, App/native-boundary tests, and reproducible SDK/analyzer settings.
+- Keep Preview.15 **CONDITIONAL** until the required hosted checks pass and the real Windows OS/DPI/provider/OLE/accessibility, performance, two-device DropLink, and Worker/browser evidence is attached; hosted CI does not substitute for those rows.
 
 ## v0.3.0-preview.14 delivery slice
 
