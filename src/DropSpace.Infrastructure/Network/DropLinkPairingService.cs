@@ -223,20 +223,50 @@ public sealed class DropLinkPairingService(
             : (remote, local.Hello);
         var salt = SHA256.HashData(Encoding.UTF8.GetBytes(string.Concat(ordered.Item1.NonceBase64, "|", ordered.Item2.NonceBase64)));
         var shared = local.Key.DeriveKeyMaterial(remoteKey.PublicKey);
-        return HKDF.DeriveKey(HashAlgorithmName.SHA256, shared, 32, salt, Encoding.UTF8.GetBytes("DropLink pairing v1"));
+        try
+        {
+            return HKDF.DeriveKey(
+                HashAlgorithmName.SHA256,
+                shared,
+                32,
+                salt,
+                Encoding.UTF8.GetBytes("DropLink pairing v1"));
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(shared);
+            CryptographicOperations.ZeroMemory(salt);
+        }
     }
 
     public static int ComputeSas(ReadOnlySpan<byte> secret, PairingHello first, PairingHello second)
     {
         var transcript = CanonicalTranscript(first, second);
         var digest = HMACSHA256.HashData(secret, transcript);
-        return (int)(BitConverter.ToUInt32(digest, 0) % DropLinkPairingPolicy.SasModulo);
+        try
+        {
+            return (int)(BitConverter.ToUInt32(digest, 0) % DropLinkPairingPolicy.SasModulo);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(digest);
+            CryptographicOperations.ZeroMemory(transcript);
+        }
     }
 
     public static string ComputeAuth(ReadOnlySpan<byte> secret, string method, string path, string nonce, string bodyHash)
     {
         var transcript = Encoding.UTF8.GetBytes(string.Concat("DropLink:v1\n", method.ToUpperInvariant(), "\n", path, "\n", nonce, "\n", bodyHash));
-        return Convert.ToBase64String(HMACSHA256.HashData(secret, transcript));
+        var digest = HMACSHA256.HashData(secret, transcript);
+        try
+        {
+            return Convert.ToBase64String(digest);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(digest);
+            CryptographicOperations.ZeroMemory(transcript);
+        }
     }
 
     public static bool FixedTimeEquals(string expectedBase64, string actualBase64)
