@@ -98,7 +98,7 @@ public readonly record struct OverlayMotionValues(
 public sealed class OverlayMotionController
 {
     private const double MinimumStepSeconds = 1d / 1_000d;
-    private const double MaximumElapsedSeconds = 1d / 30d;
+    private const double MaximumCatchUpSeconds = 1d / 4d;
     private const double MaximumStableStepSeconds = 1d / 120d;
     private readonly OverlayMotionProfileSet _profiles;
     private readonly SpringChannel[] _channels;
@@ -142,7 +142,22 @@ public sealed class OverlayMotionController
 
     public bool Step(TimeSpan elapsed)
     {
-        var seconds = Math.Clamp(elapsed.TotalSeconds, MinimumStepSeconds, MaximumElapsedSeconds);
+        var requestedSeconds = elapsed.TotalSeconds;
+        if (!double.IsFinite(requestedSeconds) || requestedSeconds <= 0)
+        {
+            requestedSeconds = MinimumStepSeconds;
+        }
+
+        // Consume ordinary dropped-frame time so motion remains wall-clock honest. A long
+        // suspend/resume interval is not simulated with an unbounded loop; it settles directly
+        // to the already-authorized target and cannot leave unsafe geometry behind.
+        if (requestedSeconds > MaximumCatchUpSeconds)
+        {
+            SnapTo(_target);
+            return false;
+        }
+
+        var seconds = Math.Max(requestedSeconds, MinimumStepSeconds);
         var substepCount = Math.Max(1, (int)Math.Ceiling(seconds / MaximumStableStepSeconds));
         var substepSeconds = seconds / substepCount;
         for (var substep = 0; substep < substepCount; substep++)

@@ -54,6 +54,10 @@ public sealed class OverlayStateMachine
     private OverlayMotionPreference _motionPreference = OverlayMotionPreference.System;
     private OverlayTransitionDescriptor? _transition;
     private OverlayState _lastPublishedState = OverlayState.Hidden;
+    private int _lastPublishedTemporaryItemCount;
+    private bool _lastPublishedExpandedDropActive;
+    private OverlayMotionPreference _lastPublishedMotionPreference = OverlayMotionPreference.System;
+    private bool _hasPublishedSnapshot;
 
     public event EventHandler<OverlaySnapshot>? Changed;
 
@@ -223,9 +227,22 @@ public sealed class OverlayStateMachine
 
     private void Publish(OverlayTransitionCause cause)
     {
+        if (_hasPublishedSnapshot &&
+            _lastPublishedState == _state &&
+            _lastPublishedTemporaryItemCount == _temporaryItemCount &&
+            _lastPublishedExpandedDropActive == _expandedDropActive &&
+            _lastPublishedMotionPreference == _motionPreference)
+        {
+            return;
+        }
+
         var from = _lastPublishedState;
         _transition = new OverlayTransitionDescriptor(from, _state, cause, _motionPreference);
         _lastPublishedState = _state;
+        _lastPublishedTemporaryItemCount = _temporaryItemCount;
+        _lastPublishedExpandedDropActive = _expandedDropActive;
+        _lastPublishedMotionPreference = _motionPreference;
+        _hasPublishedSnapshot = true;
         _revision++;
         Changed?.Invoke(this, Snapshot);
     }

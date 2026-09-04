@@ -1160,7 +1160,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _topologyRefreshPending = true;
-        _dispatcher.TryEnqueue(() =>
+        if (!_dispatcher.TryEnqueue(() =>
         {
             _topologyRefreshPending = false;
             if (_disposed)
@@ -1214,7 +1214,13 @@ public sealed class OverlayWindowService : IDisposable
             {
                 _logger.LogError(exception, "Display-topology refresh failed.");
             }
-        });
+        }))
+        {
+            // A failed enqueue must release the gate; otherwise every later display event is
+            // permanently suppressed after a dispatcher shutdown race.
+            _topologyRefreshPending = false;
+            _logger.LogWarning("Display-topology refresh could not be enqueued; the pending gate was released.");
+        }
     }
 
     private void ExerciseLifecycle()
