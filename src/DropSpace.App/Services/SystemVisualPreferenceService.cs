@@ -14,6 +14,7 @@ public sealed class SystemVisualPreferenceService : IDisposable
     private readonly UISettings _uiSettings = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly IWindowsCapabilityService _capabilities;
+    private bool _highContrastSubscriptionActive;
     private bool _disposed;
 
     public SystemVisualPreferenceService(IWindowsCapabilityService capabilities)
@@ -21,7 +22,16 @@ public sealed class SystemVisualPreferenceService : IDisposable
         _capabilities = capabilities;
         _uiSettings.AdvancedEffectsEnabledChanged += OnSystemVisualPreferenceChanged;
         _uiSettings.ColorValuesChanged += OnSystemVisualPreferenceChanged;
-        _accessibilitySettings.HighContrastChanged += OnSystemVisualPreferenceChanged;
+        try
+        {
+            _accessibilitySettings.HighContrastChanged += OnSystemVisualPreferenceChanged;
+            _highContrastSubscriptionActive = true;
+        }
+        catch (Exception) when (OperatingSystem.IsWindows())
+        {
+            // Some headless/session-isolated Windows environments expose the value but
+            // do not provide an event source. The initial snapshot remains authoritative.
+        }
         Current = ReadPreferences(OverlayMotionPreference.System);
     }
 
@@ -90,6 +100,9 @@ public sealed class SystemVisualPreferenceService : IDisposable
         _disposed = true;
         _uiSettings.AdvancedEffectsEnabledChanged -= OnSystemVisualPreferenceChanged;
         _uiSettings.ColorValuesChanged -= OnSystemVisualPreferenceChanged;
-        _accessibilitySettings.HighContrastChanged -= OnSystemVisualPreferenceChanged;
+        if (_highContrastSubscriptionActive)
+        {
+            _accessibilitySettings.HighContrastChanged -= OnSystemVisualPreferenceChanged;
+        }
     }
 }
