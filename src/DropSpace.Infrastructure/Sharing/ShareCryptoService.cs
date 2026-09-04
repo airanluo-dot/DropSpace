@@ -216,13 +216,17 @@ public sealed class ShareCryptoService
         ReadOnlySpan<byte> info)
     {
         var keyMaterial = masterKey.ToArray();
+        var saltBytes = salt.ToArray();
+        var infoBytes = info.ToArray();
         try
         {
-            return HKDF.DeriveKey(HashAlgorithmName.SHA256, keyMaterial, 32, salt, info);
+            return HKDF.DeriveKey(HashAlgorithmName.SHA256, keyMaterial, 32, saltBytes, infoBytes);
         }
         finally
         {
             CryptographicOperations.ZeroMemory(keyMaterial);
+            CryptographicOperations.ZeroMemory(saltBytes);
+            CryptographicOperations.ZeroMemory(infoBytes);
         }
     }
 

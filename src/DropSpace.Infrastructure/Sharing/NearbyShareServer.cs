@@ -180,14 +180,17 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             return false;
         }
 
-        if (!_shares.TryGetValue(shareId, out share) ||
+        if (!_shares.TryGetValue(shareId, out var candidate) ||
+            candidate is null ||
             !CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(share.Token),
+                Encoding.UTF8.GetBytes(candidate.Token),
                 Encoding.UTF8.GetBytes(token)))
         {
             share = null!;
             return false;
         }
+
+        share = candidate;
 
         if (share.ExpiresAtUtc <= DateTimeOffset.UtcNow)
         {
