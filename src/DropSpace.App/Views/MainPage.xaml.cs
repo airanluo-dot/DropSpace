@@ -912,7 +912,7 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private static async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
+    private async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
     {
         var file = await StorageFile.GetFileFromPathAsync(path);
         var player = new MediaPlayer { AutoPlay = false };
@@ -927,7 +927,7 @@ public sealed partial class MainPage : Page
                 MaxHeight = 520,
             };
             element.SetMediaPlayer(player);
-            return new MediaPreviewHost(element, player);
+            return new MediaPreviewHost(element, player, _strings.Get("PreviewUnavailable"));
         }
         catch
         {
@@ -1138,6 +1138,7 @@ public sealed partial class MainPage : Page
             {
                 writer.WriteBytes(QrCodeActionService.RenderPng(descriptor.Url.ToString()));
                 await writer.StoreAsync();
+                writer.DetachStream();
             }
             stream.Seek(0);
             var bitmap = new BitmapImage();
@@ -1163,16 +1164,31 @@ public sealed partial class MainPage : Page
     {
         private readonly MediaPlayer _player;
         private int _disposed;
+        private readonly string _fallback;
 
-        public MediaPreviewHost(MediaPlayerElement element, MediaPlayer player)
+        public MediaPreviewHost(MediaPlayerElement element, MediaPlayer player, string fallback)
         {
             _player = player;
+            _fallback = fallback;
             Children.Add(element);
+            _player.MediaFailed += OnMediaFailed;
+        }
+
+        private void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (Volatile.Read(ref _disposed) != 0) return;
+                _player.Source = null;
+                Children.Clear();
+                Children.Add(new TextBlock { Text = _fallback, TextWrapping = TextWrapping.Wrap });
+            });
         }
 
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            _player.MediaFailed -= OnMediaFailed;
             _player.Pause();
             _player.Source = null;
             _player.Dispose();

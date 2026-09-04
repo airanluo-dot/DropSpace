@@ -126,7 +126,7 @@ public sealed class WindowsImageTransformService(IItemContentResolver contentRes
         cancellationToken.ThrowIfCancellationRequested();
         using var input = await source.OpenReadAsync();
         cancellationToken.ThrowIfCancellationRequested();
-        var decoder = await BitmapDecoder.CreateAsync(input);
+        var decoder = await ImageDecoderPreflight.ValidateAsync(input, MaximumEncodedBytes, MaximumPixels, cancellationToken);
         if (decoder.PixelWidth is 0 or > MaximumDimension || decoder.PixelHeight is 0 or > MaximumDimension ||
             (long)decoder.PixelWidth * decoder.PixelHeight > MaximumPixels)
         {

@@ -39,12 +39,12 @@ internal sealed class VirtualFileMaterializer
         var asyncCapability = dataObject as IDataObjectAsyncCapability;
         var asyncOperationStarted = false;
         var operationResult = 0;
-        if (asyncCapability is not null &&
-            asyncCapability.GetAsyncMode(out var asyncMode) >= 0 && asyncMode &&
-            asyncCapability.StartOperation(nint.Zero) >= 0)
+        try
         {
-            asyncOperationStarted = true;
+            if (asyncCapability is not null && asyncCapability.GetAsyncMode(out var asyncMode) >= 0 && asyncMode &&
+                asyncCapability.StartOperation(nint.Zero) >= 0) asyncOperationStarted = true;
         }
+        catch (COMException) { /* No async lifetime was acquired: copy synchronously before Drop returns. */ }
         var batchRoot = Path.Combine(_paths.Staging, $"virtual-{Guid.NewGuid():N}");
         try
         {
@@ -224,7 +224,8 @@ internal sealed class VirtualFileMaterializer
                 cancellationToken.ThrowIfCancellationRequested();
                 stream.Read(buffer, buffer.Length, countPointer);
                 var count = Marshal.ReadInt32(countPointer);
-                if (count <= 0)
+                if (count < 0 || count > buffer.Length) throw new InvalidDataException("Invalid virtual stream read count.");
+                if (count == 0)
                 {
                     break;
                 }
@@ -356,7 +357,7 @@ internal sealed class VirtualFileMaterializer
     [ComImport]
     [Guid("3D8B0590-F691-11D2-8EA9-006097DF5BD4")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IDataObjectAsyncCapability
+    internal interface IDataObjectAsyncCapability
     {
         [PreserveSig] int SetAsyncMode([MarshalAs(UnmanagedType.Bool)] bool asyncMode);
         [PreserveSig] int GetAsyncMode([MarshalAs(UnmanagedType.Bool)] out bool asyncMode);

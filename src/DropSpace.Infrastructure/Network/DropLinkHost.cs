@@ -87,8 +87,12 @@ public sealed class DropLinkHost(
             }
             catch
             {
-                try { await StopCoreAsync().ConfigureAwait(false); }
-                finally { _state = HostLifecycleState.Stopped; }
+                try { await StopCoreAsync().ConfigureAwait(false); _state = HostLifecycleState.Stopped; }
+                catch (Exception cleanup)
+                {
+                    _state = HostLifecycleState.Stopping;
+                    logger.LogError("Host initialization cleanup failed: {Category}.", cleanup.GetType().Name);
+                }
                 throw;
             }
         }
@@ -915,6 +919,7 @@ public sealed class DropLinkHost(
                 receive.Session.Id);
             return await MarkFinalizationFailedAsync(receive, exception).ConfigureAwait(false);
         }
+        finally { receive.FinalizationGate.Release(); }
     }
 
     private async Task<TransferCompleteResponse> MarkFinalizationFailedAsync(
@@ -1218,10 +1223,7 @@ public sealed class DropLinkHost(
     {
         private readonly Guid _peerId;
         private int _disposed;
-    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
-    private HostLifecycleState _state;
-    public enum HostLifecycleState { Stopped, Starting, Running, Stopping, Disposed }
-    public HostLifecycleState State => _state;
+
 
         public ReceiveTransfer(
             TransferSession session,
