@@ -356,6 +356,9 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
         }
     }
 
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern int GetSystemMetrics(int index);
+
     private WindowsCapabilityState GetAdvancedMotion()
     {
         var composition = GetCompositionEffects();

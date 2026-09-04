@@ -17,7 +17,7 @@ public sealed class SystemVisualPreferenceService : IDisposable
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly IWindowsCapabilityService _capabilities;
     private readonly DispatcherQueue? _dispatcher;
-    private bool _animationsSubscriptionActive;
+    private DispatcherQueueTimer? _preferencePollTimer;
     private bool _highContrastSubscriptionActive;
     private bool _disposed;
 
@@ -29,6 +29,14 @@ public sealed class SystemVisualPreferenceService : IDisposable
         _dispatcher = dispatcher;
         TrySubscribePreferenceEvents();
         Current = ReadPreferences(OverlayMotionPreference.System);
+        if (_dispatcher is not null)
+        {
+            _preferencePollTimer = _dispatcher.CreateTimer();
+            _preferencePollTimer.Interval = TimeSpan.FromMilliseconds(250);
+            _preferencePollTimer.IsRepeating = true;
+            _preferencePollTimer.Tick += OnPreferencePollTick;
+            _preferencePollTimer.Start();
+        }
     }
 
     public event EventHandler? Changed;
@@ -43,17 +51,6 @@ public sealed class SystemVisualPreferenceService : IDisposable
 
     private void TrySubscribePreferenceEvents()
     {
-        try
-        {
-            _uiSettings.AnimationsEnabledChanged += OnSystemVisualPreferenceChanged;
-            _animationsSubscriptionActive = true;
-        }
-        catch (Exception) when (OperatingSystem.IsWindows())
-        {
-            // Windows 10 1809 exposes AnimationsEnabled but not its change event. The initial
-            // snapshot remains authoritative on that baseline.
-        }
-
         try
         {
             _uiSettings.AdvancedEffectsEnabledChanged += OnSystemVisualPreferenceChanged;
@@ -153,6 +150,23 @@ public sealed class SystemVisualPreferenceService : IDisposable
         }
     }
 
+    private void OnPreferencePollTick(DispatcherQueueTimer sender, object args)
+    {
+        _ = sender;
+        _ = args;
+        if (_disposed)
+        {
+            return;
+        }
+
+        var next = ReadPreferences(OverlayMotionPreference.System);
+        if (!next.Equals(Current))
+        {
+            Current = next;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     private void PublishPreferenceChange()
     {
         if (_disposed)
@@ -172,9 +186,11 @@ public sealed class SystemVisualPreferenceService : IDisposable
         }
 
         _disposed = true;
-        if (_animationsSubscriptionActive)
+        if (_preferencePollTimer is not null)
         {
-            _uiSettings.AnimationsEnabledChanged -= OnSystemVisualPreferenceChanged;
+            _preferencePollTimer.Stop();
+            _preferencePollTimer.Tick -= OnPreferencePollTick;
+            _preferencePollTimer = null;
         }
 
         _uiSettings.AdvancedEffectsEnabledChanged -= OnSystemVisualPreferenceChanged;
