@@ -128,7 +128,7 @@ public sealed class JsonSettingsService : ISettingsService
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        settings.Validate();
+        settings = settings.Validate();
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -203,7 +203,7 @@ public sealed class JsonSettingsService : ISettingsService
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)
     {
-        settings.Validate();
+        settings = settings.Validate();
         _paths.EnsureCreated();
         var temporaryPath = string.Concat(_paths.Settings, ".tmp");
         try
