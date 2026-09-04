@@ -244,8 +244,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 RequestedOperation = DataPackageOperation.Copy,
             };
             package.SetText(text);
-            Clipboard.SetContent(package);
-            return Task.CompletedTask;
+            return ClipboardAccessPolicy.SetContentAsync(
+                () => Clipboard.SetContent(package),
+                cancellationToken);
         }).ConfigureAwait(false);
     }
 
@@ -339,7 +340,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 RequestedOperation = DataPackageOperation.Copy,
             };
             package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
-            Clipboard.SetContent(package);
+            await ClipboardAccessPolicy.SetContentAsync(
+                () => Clipboard.SetContent(package),
+                cancellationToken);
         }).ConfigureAwait(false);
     }
 
@@ -375,7 +378,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 RequestedOperation = DataPackageOperation.Copy,
             };
             package.SetStorageItems(storageItems, readOnly: true);
-            Clipboard.SetContent(package);
+            await ClipboardAccessPolicy.SetContentAsync(
+                () => Clipboard.SetContent(package),
+                cancellationToken);
         }).ConfigureAwait(false);
     }
 
