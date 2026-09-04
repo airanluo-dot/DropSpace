@@ -33,9 +33,12 @@ internal static class WindowsImageCodecPreflight
                 return false;
             }
 
+            var pathExtension = NormalizeCodecExtension(Path.GetExtension(path));
             var declaredExtension = NormalizeCodecExtension(extension);
             var declaredMime = NormalizeRequestedFormat(mimeType);
-            if ((!string.IsNullOrEmpty(declaredExtension) &&
+            if ((!string.IsNullOrEmpty(pathExtension) &&
+                 !string.Equals(pathExtension, detectedExtension, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(declaredExtension) &&
                  !string.Equals(declaredExtension, detectedExtension, StringComparison.OrdinalIgnoreCase)) ||
                 (!string.IsNullOrEmpty(declaredMime) &&
                  !string.Equals(declaredMime, detectedExtension, StringComparison.OrdinalIgnoreCase)))
