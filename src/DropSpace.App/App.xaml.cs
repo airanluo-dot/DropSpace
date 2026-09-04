@@ -379,6 +379,7 @@ public partial class App : Application
         services.AddSingleton<UndoCoordinator>();
         services.AddSingleton<DeviceIdentityStore>();
         services.AddSingleton<DeviceSecretStore>();
+        services.AddSingleton<DropLinkNonceCache>();
         services.AddSingleton<DropLinkPairingService>();
         services.AddSingleton<TransferRepository>();
         services.AddSingleton<DropLinkHost>();

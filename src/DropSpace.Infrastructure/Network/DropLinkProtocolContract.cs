@@ -15,6 +15,11 @@ public static class DropLinkProtocolRoutes
     public const string Clipboard = VersionPrefix + "/clipboard";
     public const string HandoffText = VersionPrefix + "/handoff/text";
     public const string TransferOffers = VersionPrefix + "/transfers/offers";
+    public const string TransferAcceptTemplate = VersionPrefix + "/transfers/{sessionId:guid}/accept";
+    public const string TransferStatusTemplate = VersionPrefix + "/transfers/{sessionId:guid}/status";
+    public const string TransferCancelTemplate = VersionPrefix + "/transfers/{sessionId:guid}/cancel";
+    public const string TransferChunkTemplate = VersionPrefix + "/transfers/{sessionId:guid}/items/{itemId:guid}/chunks/{index:int}";
+    public const string TransferCompleteTemplate = VersionPrefix + "/transfers/{sessionId:guid}/complete";
 
     public static string TransferStatus(Guid sessionId) =>
         string.Concat(VersionPrefix, "/transfers/", sessionId.ToString("D"), "/status");
@@ -69,6 +74,7 @@ public static class DropLinkProtocolPolicy
     public const int MaximumHandoffReplayEntries = 4_096;
     public const int MaximumHandoffReplayEntriesPerPeer = 256;
     public static readonly TimeSpan HandoffReplayRetention = TimeSpan.FromMinutes(10);
+    public static readonly TimeSpan HandoffMaximumFutureSkew = TimeSpan.FromMinutes(1);
     public static readonly TimeSpan AuthenticationNonceRetention = DropLinkNonceCache.Retention;
 
     public static bool IsLowerHexHash(string value)
@@ -107,6 +113,7 @@ public static class DropLinkPairingPolicy
     public const int MaximumPendingPerDevice = 1;
     public const int MaximumRateEntries = 1_024;
     public const int MaximumAttemptsPerWindow = 20;
+    public const int SasModulo = 1_000_000;
     public static readonly TimeSpan RateWindow = TimeSpan.FromMinutes(1);
     public static readonly TimeSpan PendingLifetime = TimeSpan.FromMinutes(5);
 }

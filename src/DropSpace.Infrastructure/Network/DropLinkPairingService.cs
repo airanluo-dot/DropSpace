@@ -79,7 +79,7 @@ public sealed class DropLinkPairingService(
             capabilities,
             identity.Fingerprint,
             Convert.ToBase64String(ephemeral.PublicKey.ExportSubjectPublicKeyInfo()),
-            Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+            Convert.ToBase64String(RandomNumberGenerator.GetBytes(DropLinkProtocolPolicy.PairingNonceBytes)));
         return new PairingHandshake(identity, hello, ephemeral);
     }
 
@@ -230,7 +230,7 @@ public sealed class DropLinkPairingService(
     {
         var transcript = CanonicalTranscript(first, second);
         var digest = HMACSHA256.HashData(secret, transcript);
-        return (int)(BitConverter.ToUInt32(digest, 0) % 1_000_000);
+        return (int)(BitConverter.ToUInt32(digest, 0) % DropLinkPairingPolicy.SasModulo);
     }
 
     public static string ComputeAuth(ReadOnlySpan<byte> secret, string method, string path, string nonce, string bodyHash)
@@ -291,7 +291,7 @@ public sealed class DropLinkPairingService(
         {
             throw new InvalidDataException("The pairing hello key or nonce encoding is invalid.", exception);
         }
-        if (publicKey.Length is < 64 or > 256 || nonce.Length != 32)
+        if (publicKey.Length is < 64 or > 256 || nonce.Length != DropLinkProtocolPolicy.PairingNonceBytes)
         {
             throw new InvalidDataException("The pairing hello key or nonce length is invalid.");
         }
