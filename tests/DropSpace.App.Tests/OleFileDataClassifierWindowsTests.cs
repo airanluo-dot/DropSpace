@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Versioning;
+using DropSpace.App.Services;
 using DropSpace.Core.DragDrop;
 
 namespace DropSpace.App.Tests;
@@ -59,10 +60,13 @@ public sealed class OleFileDataClassifierWindowsTests
 
         public int QueryGetData(ref FORMATETC formatetc)
         {
+            var requestedFormat = formatetc.cfFormat;
+            var requestedIndex = formatetc.lindex;
+            var requestedMedium = formatetc.tymed;
             return _entries.Any(entry =>
-                       entry.Format == formatetc.cfFormat &&
-                       entry.Index == formatetc.lindex &&
-                       (entry.Medium & formatetc.tymed) != 0)
+                       entry.Format == requestedFormat &&
+                       entry.Index == requestedIndex &&
+                       (entry.Medium & requestedMedium) != 0)
                 ? Success
                 : 1;
         }
