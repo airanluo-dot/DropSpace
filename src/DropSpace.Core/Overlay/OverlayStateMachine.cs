@@ -1,3 +1,5 @@
+using DropSpace.Core.Models;
+
 namespace DropSpace.Core.Overlay;
 
 public enum OverlayState
@@ -10,11 +12,38 @@ public enum OverlayState
     Dismissing,
 }
 
+public enum OverlayTransitionCause
+{
+    Restore,
+    ItemCountChanged,
+    DragApproach,
+    DragReady,
+    DropTargetEntered,
+    DragCancelled,
+    DropCompleted,
+    VisibleDropCompleted,
+    Expanded,
+    QuickPanelOpened,
+    Collapsed,
+    Dismissed,
+    MotionPreferenceChanged,
+    VisualPreferenceChanged,
+    FullscreenSuppressed,
+    MonitorChanged,
+}
+
+public sealed record OverlayTransitionDescriptor(
+    OverlayState From,
+    OverlayState To,
+    OverlayTransitionCause Cause,
+    OverlayMotionPreference MotionPreference);
+
 public sealed record OverlaySnapshot(
     OverlayState State,
     int TemporaryItemCount,
     bool ExpandedDropActive,
-    long Revision);
+    long Revision,
+    OverlayTransitionDescriptor? Transition = null);
 
 public sealed class OverlayStateMachine
 {
@@ -22,6 +51,9 @@ public sealed class OverlayStateMachine
     private int _temporaryItemCount;
     private bool _expandedDropActive;
     private long _revision;
+    private OverlayMotionPreference _motionPreference = OverlayMotionPreference.System;
+    private OverlayTransitionDescriptor? _transition;
+    private OverlayState _lastPublishedState = OverlayState.Hidden;
 
     public event EventHandler<OverlaySnapshot>? Changed;
 
@@ -29,7 +61,20 @@ public sealed class OverlayStateMachine
         _state,
         _temporaryItemCount,
         _expandedDropActive,
-        _revision);
+        _revision,
+        _transition);
+
+    public bool SetMotionPreference(OverlayMotionPreference preference)
+    {
+        if (_motionPreference == preference)
+        {
+            return false;
+        }
+
+        _motionPreference = preference;
+        Publish(OverlayTransitionCause.MotionPreferenceChanged);
+        return true;
+    }
 
     public void Restore(int temporaryItemCount)
     {
@@ -37,7 +82,7 @@ public sealed class OverlayStateMachine
         _temporaryItemCount = temporaryItemCount;
         _expandedDropActive = false;
         _state = temporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
-        Publish();
+        Publish(OverlayTransitionCause.Restore);
     }
 
     public void SetTemporaryItemCount(int temporaryItemCount)
@@ -58,14 +103,14 @@ public sealed class OverlayStateMachine
             _state = OverlayState.Compact;
         }
 
-        Publish();
+        Publish(OverlayTransitionCause.ItemCountChanged);
     }
 
     public void BeginDragApproach()
     {
         _state = OverlayState.DragApproaching;
         _expandedDropActive = false;
-        Publish();
+        Publish(OverlayTransitionCause.DragApproach);
     }
 
     public void BeginVisibleDrag()
@@ -73,7 +118,7 @@ public sealed class OverlayStateMachine
         if (_state == OverlayState.Expanded)
         {
             _expandedDropActive = true;
-            Publish();
+            Publish(OverlayTransitionCause.DropTargetEntered);
             return;
         }
 
@@ -84,7 +129,7 @@ public sealed class OverlayStateMachine
     {
         if (_expandedDropActive)
         {
-            Publish();
+            Publish(OverlayTransitionCause.DropTargetEntered);
             return;
         }
 
@@ -94,7 +139,7 @@ public sealed class OverlayStateMachine
         }
 
         _state = ready ? OverlayState.DragReady : OverlayState.DragApproaching;
-        Publish();
+        Publish(OverlayTransitionCause.DragReady);
     }
 
     public void CancelDrag()
@@ -102,7 +147,7 @@ public sealed class OverlayStateMachine
         if (_expandedDropActive)
         {
             _expandedDropActive = false;
-            Publish();
+            Publish(OverlayTransitionCause.DragCancelled);
             return;
         }
 
@@ -112,7 +157,7 @@ public sealed class OverlayStateMachine
         }
 
         _state = _temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
-        Publish();
+        Publish(OverlayTransitionCause.DragCancelled);
     }
 
     public void CompleteDrop(int temporaryItemCount)
@@ -121,7 +166,7 @@ public sealed class OverlayStateMachine
         _temporaryItemCount = temporaryItemCount;
         _expandedDropActive = false;
         _state = temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
-        Publish();
+        Publish(OverlayTransitionCause.DropCompleted);
     }
 
     public void CompleteVisibleDrop(int temporaryItemCount)
@@ -133,7 +178,7 @@ public sealed class OverlayStateMachine
         _state = temporaryItemCount == 0
             ? OverlayState.Dismissing
             : remainExpanded ? OverlayState.Expanded : OverlayState.Compact;
-        Publish();
+        Publish(OverlayTransitionCause.VisibleDropCompleted);
     }
 
     public void Expand()
@@ -141,7 +186,7 @@ public sealed class OverlayStateMachine
         if (_temporaryItemCount > 0 && _state == OverlayState.Compact)
         {
             _state = OverlayState.Expanded;
-            Publish();
+            Publish(OverlayTransitionCause.Expanded);
         }
     }
 
@@ -149,7 +194,7 @@ public sealed class OverlayStateMachine
     {
         _expandedDropActive = false;
         _state = OverlayState.Expanded;
-        Publish();
+        Publish(OverlayTransitionCause.QuickPanelOpened);
     }
 
     public void Collapse()
@@ -161,7 +206,7 @@ public sealed class OverlayStateMachine
 
         _state = _temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
         _expandedDropActive = false;
-        Publish();
+        Publish(OverlayTransitionCause.Collapsed);
     }
 
     public void CompleteDismissal()
@@ -173,11 +218,14 @@ public sealed class OverlayStateMachine
 
         _state = _temporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
         _expandedDropActive = false;
-        Publish();
+        Publish(OverlayTransitionCause.Dismissed);
     }
 
-    private void Publish()
+    private void Publish(OverlayTransitionCause cause)
     {
+        var from = _lastPublishedState;
+        _transition = new OverlayTransitionDescriptor(from, _state, cause, _motionPreference);
+        _lastPublishedState = _state;
         _revision++;
         Changed?.Invoke(this, Snapshot);
     }

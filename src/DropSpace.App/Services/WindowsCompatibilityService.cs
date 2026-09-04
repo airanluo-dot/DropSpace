@@ -198,6 +198,10 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
                 capability,
                 "Windows.Media.Playback.MediaPlayer",
                 "Windows media playback APIs are available."),
+            WindowsCapability.TransientSystemBackdrop => GetTransientSystemBackdrop(),
+            WindowsCapability.DesktopAcrylic => GetDesktopAcrylic(),
+            WindowsCapability.CompositionEffects => GetCompositionEffects(),
+            WindowsCapability.AdvancedMotion => GetAdvancedMotion(),
             _ => new WindowsCapabilityState(
                 capability,
                 CompatibilityStatus.FailedFatal,
@@ -241,6 +245,64 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
             WindowsCapability.ModernDwmAttributes,
             CompatibilityStatus.Available,
             "Windows 11 supports the optional DWM corner and border attributes; each HRESULT is checked at the HWND boundary.");
+    }
+
+    private WindowsCapabilityState GetTransientSystemBackdrop()
+    {
+        if (!_osVersion.IsAtLeast(WindowsCompatibilityPolicy.Windows11Build))
+        {
+            return new WindowsCapabilityState(
+                WindowsCapability.TransientSystemBackdrop,
+                CompatibilityStatus.UnsupportedByOs,
+                "System backdrop surfaces are limited to Windows 11; a solid visual is used on Windows 10.");
+        }
+
+        return new WindowsCapabilityState(
+            WindowsCapability.TransientSystemBackdrop,
+            CompatibilityStatus.Available,
+            "Windows 11 supports a bounded SystemBackdropElement surface when user effects permit it.");
+    }
+
+    private WindowsCapabilityState GetDesktopAcrylic()
+    {
+        var transient = GetTransientSystemBackdrop();
+        return transient.IsAvailable
+            ? new WindowsCapabilityState(
+                WindowsCapability.DesktopAcrylic,
+                CompatibilityStatus.Available,
+                "Windows 11 supports DesktopAcrylicBackdrop for bounded transient surfaces.")
+            : new WindowsCapabilityState(
+                WindowsCapability.DesktopAcrylic,
+                transient.Status,
+                transient.Reason);
+    }
+
+    private WindowsCapabilityState GetCompositionEffects()
+    {
+        // The Windows.UI.Composition metadata probe is valid for the OS-backed
+        // compositor. Microsoft.UI.Composition is a managed WinAppSDK surface and
+        // must never be passed to Windows Runtime ApiInformation.
+        var available = _api.IsTypePresent("Windows.UI.Composition.Compositor");
+        return new WindowsCapabilityState(
+            WindowsCapability.CompositionEffects,
+            available ? CompatibilityStatus.Available : CompatibilityStatus.MissingRuntime,
+            available
+                ? "The Windows composition compositor is available for visual-only animation channels."
+                : "The optional composition compositor is not available; UI-thread animation remains the safe fallback.");
+    }
+
+    private WindowsCapabilityState GetAdvancedMotion()
+    {
+        var composition = GetCompositionEffects();
+        return composition.IsAvailable
+            ? new WindowsCapabilityState(
+                WindowsCapability.AdvancedMotion,
+                CompatibilityStatus.Available,
+                "Composition-backed motion channels are available; native geometry remains UI-thread owned.")
+            : new WindowsCapabilityState(
+                WindowsCapability.AdvancedMotion,
+                composition.Status,
+                composition.Reason);
     }
 
     private WindowsCapabilityState GetWindowsShareTarget()

@@ -477,6 +477,7 @@ public partial class App : Application
         services.AddSingleton<OleDragDropService>();
         services.AddSingleton<DragSessionDetector>();
         services.AddSingleton<GlobalQuickPanelHotkeyService>();
+        services.AddSingleton<SystemVisualPreferenceService>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();
@@ -607,6 +608,10 @@ public partial class App : Application
             windowsRuntimeStatus = compatibility.Snapshot.RuntimeDependency.Status.ToString(),
             modernWindowAppearanceAvailable = compatibility.IsAvailable(WindowsCapability.ModernWindowAppearance),
             modernDwmAttributesAvailable = compatibility.IsAvailable(WindowsCapability.ModernDwmAttributes),
+            transientSystemBackdropAvailable = compatibility.IsAvailable(WindowsCapability.TransientSystemBackdrop),
+            desktopAcrylicAvailable = compatibility.IsAvailable(WindowsCapability.DesktopAcrylic),
+            compositionEffectsAvailable = compatibility.IsAvailable(WindowsCapability.CompositionEffects),
+            advancedMotionAvailable = compatibility.IsAvailable(WindowsCapability.AdvancedMotion),
             pdfPreviewAvailable = compatibility.IsAvailable(WindowsCapability.PdfPreview),
             mediaPreviewAvailable = compatibility.IsAvailable(WindowsCapability.MediaPreview),
             overlayCycles = metrics.Cycles,

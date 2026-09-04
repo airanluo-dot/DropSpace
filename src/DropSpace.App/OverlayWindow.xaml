@@ -5,6 +5,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:controls="using:Microsoft.UI.Xaml.Controls"
   xmlns:services="using:DropSpace.App.Services"
 
   mc:Ignorable="d">
@@ -12,27 +13,12 @@
     x:Name="Root"
     Background="Transparent">
     <Border
-      x:Name="ShadowSurface"
-      HorizontalAlignment="Center"
-      VerticalAlignment="Top"
-      Width="340"
-      Height="64"
-      Background="#AA000000"
-      CornerRadius="32"
-      IsHitTestVisible="False"
-      Opacity="0"
-      RenderTransformOrigin="0.5,0.5">
-      <Border.RenderTransform>
-        <CompositeTransform x:Name="ShadowTransform" />
-      </Border.RenderTransform>
-    </Border>
-    <Border
       x:Name="Surface"
       HorizontalAlignment="Center"
       VerticalAlignment="Top"
       Width="340"
       Height="64"
-      Background="#F20D0D11"
+      Background="Transparent"
       BorderThickness="0"
       CornerRadius="32"
       AllowDrop="True"
@@ -40,15 +26,45 @@
       DragOver="OnSurfaceDragOver"
       DragLeave="OnSurfaceDragLeave"
       Drop="OnSurfaceDrop"
-      Opacity="0"
+      Opacity="1"
       RenderTransformOrigin="0.5,0.5"
       PointerEntered="OnSurfacePointerEntered"
-      PointerExited="OnSurfacePointerExited">
+      PointerExited="OnSurfacePointerExited"
+      PointerPressed="OnSurfacePointerPressed"
+      PointerReleased="OnSurfacePointerReleased">
+      <Border.Shadow>
+        <ThemeShadow />
+      </Border.Shadow>
       <Border.RenderTransform>
         <CompositeTransform x:Name="SurfaceTransform" />
       </Border.RenderTransform>
 
       <Grid>
+        <controls:SystemBackdropElement
+          x:Name="AcrylicBackdrop"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          CornerRadius="{StaticResource DropSpaceOverlayRadius}"
+          Visibility="Collapsed" />
+        <Border
+          x:Name="FallbackSurface"
+          Background="{StaticResource DropSpaceOverlayFallbackBrush}"
+          CornerRadius="{StaticResource DropSpaceOverlayRadius}"
+          IsHitTestVisible="False" />
+        <Border
+          x:Name="InteractionTintOverlay"
+          Background="{StaticResource DropSpaceOverlayInteractionBrush}"
+          CornerRadius="{StaticResource DropSpaceOverlayRadius}"
+          IsHitTestVisible="False"
+          Opacity="0" />
+        <Border
+          x:Name="SurfaceStroke"
+          BorderBrush="{StaticResource DropSpaceOverlayStrokeBrush}"
+          BorderThickness="1"
+          CornerRadius="{StaticResource DropSpaceOverlayRadius}"
+          IsHitTestVisible="False" />
+        <Grid x:Name="SurfaceContent">
+        <Grid>
         <Button
           x:Name="CompactPanel"
  services:XamlResourceOverride.Uid="OverlayCompactPanel"
@@ -277,6 +293,8 @@
             FontSize="12"
             Foreground="#DFFFFFFF" />
         </Border>
+        </Grid>
+        </Grid>
       </Grid>
     </Border>
   </Grid>

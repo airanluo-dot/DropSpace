@@ -2,7 +2,7 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.13 is the current full-audit follow-up Preview: it preserves the Preview.12 contracts while unifying external/payload content resolution for Preview and Quick Actions, requiring actual OLE acceptance before Smart visual reveal, completing owner-thread probe cleanup, routing extended selection semantics, and bounding asynchronous hotkey and DropLink lifetimes. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor/provider matrix, official share backend, and physical two-device evidence remain explicit operational gates.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.14 is the current motion-system follow-up Preview: it preserves the Preview.13 content/OLE/async boundaries while separating motion profiles, using compositor-backed visual-only channels, deduplicating physical native region updates, and selecting bounded Windows 11 Desktop Acrylic only when capabilities and user effects permit it. CI/release automation tests portable, installed `/UPDATE`, restart, upgrade and uninstall lifecycles, emits SHA-256 plus an exact update manifest, and publishes Stable or Preview from one SemVer source. Commercial signing remains optional and credential-gated; the historical OS/DPI/monitor/provider matrix, official share backend, and physical two-device evidence remain explicit operational gates.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -16,6 +16,14 @@ v0.2.0 promotes the original event-driven Smart drag candidate detector and temp
 - Require resolved OLE acceptance or virtual-file materialization before Smart visual authorization; route completion and cleanup through the probe owner thread.
 - Pass the current ListView multi-selection to Main-page actions only when the clicked card is selected; use bounded asynchronous Quick Panel lifecycle signals and bounded known-peer DropLink nonce admission.
 - Keep Preview.13 CONDITIONAL until the real Windows OS/DPI/provider/OLE/manual selection matrix, two-device DropLink evidence, and operator-deployed Worker/browser acceptance are evidenced.
+
+## v0.3.0-preview.14 delivery slice
+
+- Separate geometry morph, surface opacity, content choreography, interaction feedback, and shadow/elevation profiles with bounded interruption and a reduced-motion mode that has no bounce or outward scale.
+- Keep geometry/layout/native ownership on the UI thread while compositor-backed visual channels handle opacity, content fades, hover tint, press feedback, and bounded content choreography.
+- Deduplicate `SetWindowRgn` by a DPI-aware physical `RegionSignature`; steady frames and repeated hidden transitions must not allocate new HRGNs.
+- Use a bounded Win11 `SystemBackdropElement` with `DesktopAcrylicBackdrop` for the transient island only; Windows 10, transparency-off, unsupported, and high-contrast paths use a solid fallback.
+- Keep Smart Drag, OLE authorization, precise hit-region ownership, no-focus/taskbar/Alt+Tab behavior, and the Windows 10 Build 17763 baseline unchanged. Preview.14 remains CONDITIONAL until hosted Windows release and real OS/DPI/OLE/accessibility evidence is attached.
 
 ## v0.3.0-preview.12 delivery slice
 

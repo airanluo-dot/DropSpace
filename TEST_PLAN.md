@@ -6,6 +6,8 @@ Test pure policies heavily, OS adapters with integration harnesses, and a small 
 
 The release-specific P0 recovery matrix for `v0.3.0-preview.10` is in the
 [Preview.10 recovery test plan](docs/test-plan/v0.3.0-preview.10.md).
+The release-specific Preview.14 motion and Acrylic matrix is in the
+[Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md).
 
 ## Quality gates
 

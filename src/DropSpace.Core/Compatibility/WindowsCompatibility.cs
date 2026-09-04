@@ -28,6 +28,10 @@ public enum WindowsCapability
     WindowsShareTarget,
     PdfPreview,
     MediaPreview,
+    TransientSystemBackdrop,
+    DesktopAcrylic,
+    CompositionEffects,
+    AdvancedMotion,
 }
 
 public sealed record WindowsOsVersion(int Major, int Minor, int Build, int Revision)
