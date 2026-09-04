@@ -18,27 +18,32 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 32215207,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 231172785,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "DropSpaceSetup.exe",
             "size": 63268141,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpaceSetup.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/DropSpaceSetup.exe",
+            "kind": "installer"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/SHA256SUMS.txt",
+            "kind": "checksums"
           },
           {
             "name": "update-manifest.json",
             "size": 786,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/update-manifest.json"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.2/update-manifest.json",
+            "kind": "manifest"
           }
         ]
       },
@@ -54,27 +59,32 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 32207774,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 231152305,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "DropSpaceSetup.exe",
             "size": 63253797,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpaceSetup.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/DropSpaceSetup.exe",
+            "kind": "installer"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/SHA256SUMS.txt",
+            "kind": "checksums"
           },
           {
             "name": "update-manifest.json",
             "size": 705,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/update-manifest.json"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.2.0-preview.1/update-manifest.json",
+            "kind": "manifest"
           }
         ]
       },
@@ -90,27 +100,32 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 32192923,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 231106375,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "DropSpaceSetup.exe",
             "size": 63283603,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/DropSpaceSetup.exe",
+            "kind": "installer"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt",
+            "kind": "checksums"
           },
           {
             "name": "update-manifest.json",
             "size": 642,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/update-manifest.json"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/update-manifest.json",
+            "kind": "manifest"
           }
         ]
       },
@@ -126,22 +141,26 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 30019355,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 229135878,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "DropSpaceSetup.exe",
             "size": 61473311,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpaceSetup.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/DropSpaceSetup.exe",
+            "kind": "installer"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.5/SHA256SUMS.txt",
+            "kind": "checksums"
           }
         ]
       },
@@ -157,22 +176,26 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 29994082,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 229052606,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "DropSpaceSetup.exe",
             "size": 61462506,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpaceSetup.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/DropSpaceSetup.exe",
+            "kind": "installer"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.4/SHA256SUMS.txt",
+            "kind": "checksums"
           }
         ]
       },
@@ -188,22 +211,26 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 29983956,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 229012518,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "DropSpaceSetup.exe",
             "size": 61458994,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpaceSetup.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/DropSpaceSetup.exe",
+            "kind": "installer"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 253,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.3/SHA256SUMS.txt",
+            "kind": "checksums"
           }
         ]
       },
@@ -219,17 +246,20 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 29969777,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 228979750,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 167,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.2/SHA256SUMS.txt",
+            "kind": "checksums"
           }
         ]
       },
@@ -245,17 +275,20 @@
           {
             "name": "DropSpace-x64.msix",
             "size": 29951757,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace-x64.msix"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace-x64.msix",
+            "kind": "msix"
           },
           {
             "name": "DropSpace.exe",
             "size": 228926494,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace.exe"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/DropSpace.exe",
+            "kind": "portable"
           },
           {
             "name": "SHA256SUMS.txt",
             "size": 167,
-            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/SHA256SUMS.txt"
+            "downloadUrl": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0-preview.1/SHA256SUMS.txt",
+            "kind": "checksums"
           }
         ]
       }

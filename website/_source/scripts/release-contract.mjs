@@ -55,7 +55,7 @@ export function validateReleaseApi(payload) {
     const names = new Set();
     for (const asset of release.assets) {
       if (!asset.name || !Number.isSafeInteger(asset.size) || asset.size <= 0) throw new TypeError("Invalid release asset.");
-      if (asset.kind !== null && (!Object.hasOwn(RELEASE_ARTIFACTS, asset.kind) ||
+      if (asset.kind !== null && asset.kind !== undefined && (!Object.hasOwn(RELEASE_ARTIFACTS, asset.kind) ||
           RELEASE_ARTIFACTS[asset.kind] !== asset.name)) {
         throw new TypeError("Invalid release artifact kind.");
       }
