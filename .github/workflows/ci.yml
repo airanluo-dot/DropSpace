@@ -36,7 +36,7 @@ jobs:
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.100
           cache: true
           cache-dependency-path: Directory.Packages.props
 
@@ -61,6 +61,10 @@ jobs:
       - name: Enforce Windows 10/11 compatibility baseline
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
+
+      - name: Enforce hardcoding governance
+        shell: pwsh
+        run: ./scripts/Test-HardcodingGovernance.ps1
 
       - name: Restore
         run: dotnet restore DropSpace.sln -p:Configuration=Release

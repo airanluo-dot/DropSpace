@@ -35,7 +35,7 @@ The implemented vertical slice includes:
 - Event-driven, bounded Clipboard history driven by the desktop `WM_CLIPBOARDUPDATE` listener for text, URLs, colors, code-like text, images, and Explorer file/folder references. Image and file batch limits are user-configurable; immediately repeated identical snapshots are collapsed without globally deduplicating later `A → B → A` history.
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, display-language selection, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
-- Deterministic branded Windows assets and x64/ARM64 project configurations.
+- Deterministic branded Windows assets and the validated x64 release configuration. The ARM64 project configuration is non-release and is not claimed as a supported target until matching build and package evidence exists.
 - A responsive header that stacks controls before text scaling can collapse the page title, an embedded Win32 taskbar/tray icon chain, and a documented brand-asset map.
 - A truly hidden visual Overlay, formal state machine, and one continuously morphing Dynamic Island with Compact/Drop Ready/Expanded states. Smart Drag Detection v2 combines documented drag events, bounded UI Automation/MSAA evidence, source-agnostic mouse-threshold candidates, and an ephemeral 60 ms hollow local OLE verification probe while leaving the screen edge unowned at idle.
 - An opt-in traditional top-edge OLE activation zone remains as an explicit compatibility fallback. Settings disclose that it participates in top-edge hit testing and may conflict with Windows Drop Tray or title-bar controls; Smart never switches to it implicitly.
@@ -121,7 +121,7 @@ dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.
 dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 ```
 
-Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 10 build 17763 and includes x64 and ARM64 configurations; Windows 11-only visuals are selected at runtime.
+Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 10 build 17763. The formal release and compatibility evidence are x64-only; Windows 11-only visuals are selected at runtime.
 
 To validate package generation from PowerShell, run:
 

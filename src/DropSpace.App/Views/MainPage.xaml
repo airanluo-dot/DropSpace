@@ -39,7 +39,7 @@
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
 
-      <Grid x:Name="ResponsiveHeader" Padding="28,20,28,14" ColumnSpacing="20" RowSpacing="12">
+      <Grid x:Name="ResponsiveHeader" Padding="{StaticResource DropSpaceHeaderPadding}" ColumnSpacing="20" RowSpacing="12">
         <VisualStateManager.VisualStateGroups>
           <VisualStateGroup x:Name="HeaderWidthStates">
             <VisualState x:Name="NarrowHeader">
@@ -135,7 +135,7 @@
         </DropDownButton>
       </Grid>
 
-      <StackPanel Grid.Row="1" Margin="28,0,28,10" Spacing="6">
+      <StackPanel Grid.Row="1" Margin="{StaticResource DropSpaceStatusMargin}" Spacing="6">
         <InfoBar
           IsClosable="True"
           IsOpen="{Binding HasStatusMessage, Mode=OneWay}"
@@ -162,7 +162,7 @@
         DragOver="OnDragOver"
         Drop="OnDrop"
         Visibility="{Binding IsCollectionVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-        <Grid Padding="28,0,28,28">
+        <Grid Padding="{StaticResource DropSpaceCollectionPadding}">
           <ListView
             x:Name="ItemsList"
  services:XamlResourceOverride.Uid="ItemsList"
@@ -184,7 +184,7 @@
             </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
               <DataTemplate>
-                <Grid MinHeight="76" Padding="12,9" ColumnSpacing="12" Visibility="{Binding IsBatchMemberVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid MinHeight="{StaticResource DropSpaceRowMinHeight}" Padding="12,9" ColumnSpacing="12" Visibility="{Binding IsBatchMemberVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="52" />
                     <ColumnDefinition Width="*" />
@@ -195,7 +195,7 @@
                     Height="48"
                     VerticalAlignment="Center"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    CornerRadius="8">
+                    CornerRadius="{StaticResource DropSpaceCardRadius}">
                     <Grid>
                       <Image
                         Width="44"
@@ -361,7 +361,7 @@
 
       <ScrollViewer
         Grid.Row="2"
-        Padding="28,0,28,32"
+        Padding="{StaticResource DropSpaceSettingsPadding}"
         Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
         <StackPanel MaxWidth="780" HorizontalAlignment="Left" Spacing="28">
           <StackPanel Spacing="12">
@@ -569,7 +569,7 @@
               Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
               BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
               BorderThickness="1"
-              CornerRadius="8">
+              CornerRadius="{StaticResource DropSpaceCardRadius}">
               <StackPanel Spacing="10">
                 <TextBlock services:XamlResourceOverride.Uid="DropTrayCompatibilityTitle" FontWeight="SemiBold" />
                 <TextBlock
@@ -686,7 +686,7 @@
                 <ComboBoxItem services:XamlResourceOverride.Uid="MonitorPrimary" Tag="Primary" />
               </ComboBox>
             </Grid>
-            <Border Padding="14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8">
+            <Border Padding="14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
               <StackPanel Spacing="10">
                 <TextBlock services:XamlResourceOverride.Uid="IslandPlacementTitle" FontWeight="SemiBold" />
                 <TextBlock services:XamlResourceOverride.Uid="IslandPlacementDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
@@ -801,7 +801,7 @@
               Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
               BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
               BorderThickness="1"
-              CornerRadius="8">
+              CornerRadius="{StaticResource DropSpaceCardRadius}">
               <StackPanel Spacing="8">
                 <TextBlock FontWeight="SemiBold" Text="{Binding CurrentVersionDisplayText}" />
                 <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding DeploymentModeText}" TextWrapping="Wrap" />

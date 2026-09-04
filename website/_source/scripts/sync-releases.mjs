@@ -1,13 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createWebsiteReleaseData, validateWebsiteReleaseData } from "./release-contract.mjs";
-
-const OFFICIAL_API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=20&page=1";
+import { createWebsiteReleaseData, validateWebsiteReleaseData, OFFICIAL_RELEASES_API } from "./release-contract.mjs";
 const DEFAULT_OUTPUT = fileURLToPath(new URL("../data/releases.json", import.meta.url));
 
 export async function syncAuthoritativeReleases({
-  apiUrl = OFFICIAL_API,
+  apiUrl = OFFICIAL_RELEASES_API,
   output = DEFAULT_OUTPUT,
   fetchImpl = fetch,
   token = process.env.GITHUB_TOKEN
@@ -59,7 +57,7 @@ async function main() {
   if (validateOnly) throw new Error("--validate-only requires --fixture.");
 
   const testApi = process.env.NODE_ENV === "test" ? process.env.DROPSPACE_TEST_RELEASES_API : undefined;
-  data = await syncAuthoritativeReleases({ apiUrl: testApi ?? OFFICIAL_API, output });
+  data = await syncAuthoritativeReleases({ apiUrl: testApi ?? OFFICIAL_RELEASES_API, output });
   console.log(`Synced ${data.stable.tag} and ${data.previews.length} Preview releases from GitHub Releases.`);
 }
 

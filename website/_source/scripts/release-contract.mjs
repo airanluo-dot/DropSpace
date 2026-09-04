@@ -1,3 +1,4 @@
+export const OFFICIAL_RELEASES_API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=20&page=1";
 export const RELEASE_API_SCHEMA_VERSION = 1;
 export const RELEASE_API_MAX_ITEMS = 20;
 export const LATEST_CHANGE_API_SCHEMA_VERSION = 1;
