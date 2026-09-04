@@ -4,16 +4,22 @@ export const RELEASE_API_MAX_ITEMS = 20;
 export const LATEST_CHANGE_API_SCHEMA_VERSION = 1;
 export const LATEST_CHANGE_MAX_HIGHLIGHTS = 6;
 
-export const REQUIRED_RELEASE_ASSETS = Object.freeze([
-  "DropSpaceSetup.exe",
-  "DropSpace.exe",
-  "DropSpace-x64.msix",
-  "SHA256SUMS.txt",
-  "update-manifest.json"
-]);
+export const RELEASE_ARTIFACTS = Object.freeze({
+  installer: "DropSpaceSetup.exe",
+  portable: "DropSpace.exe",
+  msix: "DropSpace-x64.msix",
+  checksums: "SHA256SUMS.txt",
+  manifest: "update-manifest.json"
+});
+
+export const REQUIRED_RELEASE_ASSETS = Object.freeze(Object.values(RELEASE_ARTIFACTS));
 
 const OFFICIAL_DOWNLOAD = /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/download\/([^/]+)\/([^/?#]+)$/;
 const OFFICIAL_RELEASE = /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/tag\/([^/?#]+)$/;
+
+function releaseArtifactKind(name) {
+  return Object.entries(RELEASE_ARTIFACTS).find(([, artifactName]) => artifactName === name)?.[0] ?? null;
+}
 
 export function normalizeGitHubReleases(releases, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(releases)) throw new TypeError("GitHub release payload must be an array.");
@@ -49,6 +55,10 @@ export function validateReleaseApi(payload) {
     const names = new Set();
     for (const asset of release.assets) {
       if (!asset.name || !Number.isSafeInteger(asset.size) || asset.size <= 0) throw new TypeError("Invalid release asset.");
+      if (asset.kind !== null && (!Object.hasOwn(RELEASE_ARTIFACTS, asset.kind) ||
+          RELEASE_ARTIFACTS[asset.kind] !== asset.name)) {
+        throw new TypeError("Invalid release artifact kind.");
+      }
       if (names.has(asset.name)) throw new TypeError("Duplicate release asset.");
       names.add(asset.name);
       const match = OFFICIAL_DOWNLOAD.exec(asset.downloadUrl ?? "");
@@ -158,6 +168,7 @@ function normalizeRelease(release) {
   const htmlUrl = String(release.html_url ?? "");
   const assets = (release.assets ?? []).map((asset) => ({
     name: String(asset.name ?? ""),
+    kind: releaseArtifactKind(String(asset.name ?? "")),
     size: Number(asset.size),
     downloadUrl: String(asset.browser_download_url ?? "")
   }));
@@ -182,6 +193,8 @@ function normalizeRelease(release) {
 
 function normalizeWebsiteRelease(release) {
   const byName = Object.fromEntries((release.assets ?? []).map((asset) => [asset.name, asset.browser_download_url]));
+  const byKind = Object.fromEntries(
+    Object.entries(RELEASE_ARTIFACTS).map(([kind, name]) => [kind, byName[name]]));
   const title = release.body?.match(/^#.+?—\s*(.+)$/m)?.[1] ?? release.name ?? release.tag_name;
   return {
     tag: release.tag_name,
@@ -196,10 +209,10 @@ function normalizeWebsiteRelease(release) {
       .map((line) => line.replace(/^[-*] +/, "").replace(/[*_`]/g, ""))
       .slice(0, 5),
     assets: {
-      installer: byName["DropSpaceSetup.exe"],
-      portable: byName["DropSpace.exe"],
-      msix: byName["DropSpace-x64.msix"],
-      checksums: byName["SHA256SUMS.txt"]
+      installer: byKind.installer,
+      portable: byKind.portable,
+      msix: byKind.msix,
+      checksums: byKind.checksums
     }
   };
 }
@@ -251,10 +264,10 @@ function validateWebsiteEntry(entry, apiByTag, prerelease) {
   }
   const apiAssets = Object.fromEntries(apiRelease.assets.map((asset) => [asset.name, asset.downloadUrl]));
   const expected = {
-    installer: apiAssets["DropSpaceSetup.exe"],
-    portable: apiAssets["DropSpace.exe"],
-    msix: apiAssets["DropSpace-x64.msix"],
-    checksums: apiAssets["SHA256SUMS.txt"]
+    installer: apiAssets[RELEASE_ARTIFACTS.installer],
+    portable: apiAssets[RELEASE_ARTIFACTS.portable],
+    msix: apiAssets[RELEASE_ARTIFACTS.msix],
+    checksums: apiAssets[RELEASE_ARTIFACTS.checksums]
   };
   for (const [kind, url] of Object.entries(expected)) {
     if (!url || entry.assets?.[kind] !== url) throw new TypeError(`Website release is missing its ${kind} asset.`);
