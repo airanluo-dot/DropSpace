@@ -99,11 +99,23 @@ $delayFiles = @(
 )
 foreach ($relativePath in $delayFiles)
 {
-    $literalDelay = Select-String -LiteralPath (Join-Path $repositoryRoot $relativePath) -SimpleMatch "Task.Delay(" |
-        Where-Object { $_.Line -notlike "*SmartDragRuntimePolicy*" }
-    if ($null -ne $literalDelay)
+    $delayText = Read-TextFile $relativePath
+    $searchIndex = 0
+    while (($delayIndex = $delayText.IndexOf("Task.Delay(", $searchIndex, [StringComparison]::Ordinal)) -ge 0)
     {
-        throw "Unowned Task.Delay literal found in $relativePath. Use SmartDragRuntimePolicy."
+        $statementEnd = $delayText.IndexOf(";", $delayIndex, [StringComparison]::Ordinal)
+        if ($statementEnd -lt 0)
+        {
+            throw "Unterminated Task.Delay invocation found in $relativePath."
+        }
+
+        $invocation = $delayText.Substring($delayIndex, $statementEnd - $delayIndex + 1)
+        if ($invocation.IndexOf("SmartDragRuntimePolicy", [StringComparison]::Ordinal) -lt 0)
+        {
+            throw "Unowned Task.Delay value found in $relativePath. Use SmartDragRuntimePolicy."
+        }
+
+        $searchIndex = $statementEnd + 1
     }
 }
 
