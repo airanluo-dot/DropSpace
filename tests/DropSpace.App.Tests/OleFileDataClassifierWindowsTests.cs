@@ -92,7 +92,6 @@ public sealed class OleFileDataClassifierWindowsTests
         public void DUnadvise(int connection) =>
             throw new NotSupportedException();
 
-        public IEnumSTATDATA EnumDAdvise() =>
-            throw new NotSupportedException();
+        public void EnumDAdvise(out IEnumSTATDATA? enumAdvise) => enumAdvise = null;
     }
 }
