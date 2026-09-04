@@ -3,6 +3,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Test method underscores and inline fixture arrays are intentional diagnostic names/data. -->
+    <NoWarn>$(NoWarn);CA1707;CA1861</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DropSpace.Core\DropSpace.Core.csproj" />
