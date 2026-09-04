@@ -54,10 +54,14 @@ public sealed class DropLinkHost(
     private DeviceIdentity? _identity;
     private Uri? _endpoint;
     private int _disposed;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    private HostLifecycleState _state;
+    public enum HostLifecycleState { Stopped, Starting, Running, Stopping, Disposed }
+    public HostLifecycleState State => _state;
 
-    public bool IsRunning => _app is not null;
+    public bool IsRunning => _state == HostLifecycleState.Running;
 
-    public Uri? Endpoint => _endpoint;
+    public Uri? Endpoint => IsRunning ? _endpoint : null;
 
     public event Func<ClipboardEnvelope, CancellationToken, Task>? ClipboardReceived;
 
@@ -69,6 +73,30 @@ public sealed class DropLinkHost(
 
     public async Task<Uri> StartAsync(int port = 0, CancellationToken cancellationToken = default)
     {
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
+            if (IsRunning) return _endpoint!;
+            _state = HostLifecycleState.Starting;
+            try
+            {
+                var endpoint = await StartCoreAsync(port, cancellationToken).ConfigureAwait(false);
+                _state = HostLifecycleState.Running;
+                return endpoint;
+            }
+            catch
+            {
+                try { await StopCoreAsync().ConfigureAwait(false); }
+                finally { _state = HostLifecycleState.Stopped; }
+                throw;
+            }
+        }
+        finally { _lifecycleGate.Release(); }
+    }
+
+    private async Task<Uri> StartCoreAsync(int port, CancellationToken cancellationToken)
+    {
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
         EnsureOfferNotificationCancellation();
         if (_endpoint is not null) return _endpoint;
@@ -78,21 +106,19 @@ public sealed class DropLinkHost(
             ApplicationName = typeof(DropLinkHost).Assembly.GetName().Name ?? "DropSpace",
             EnvironmentName = "Production",
         });
+        var bindAddress = LocalNetworkInterfaceResolver.Resolve();
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.AddServerHeader = false;
             options.Limits.MaxRequestBodySize = DropLinkProtocolPolicy.MaximumAuthenticatedBodyBytes;
-            var bindAddress = TryGetPrivateAddress() is { } privateAddress
-                ? IPAddress.Parse(privateAddress)
-                : IPAddress.Loopback;
             options.Listen(bindAddress, port, listen => listen.UseHttps(identity.Certificate));
         });
         builder.Logging.ClearProviders();
         var app = builder.Build();
         app.UseMiddleware<DropLinkAuthenticationMiddleware>();
         MapRoutes(app);
-        await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
+        await app.StartAsync(cancellationToken).ConfigureAwait(false);
         var serverAddress = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>()
             .Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(serverAddress) || !Uri.TryCreate(serverAddress, UriKind.Absolute, out var uri))
@@ -103,9 +129,7 @@ public sealed class DropLinkHost(
             throw new InvalidOperationException("DropLink host did not expose a bound HTTPS endpoint.");
         }
 
-        _endpoint = TryGetPrivateAddress() is { } privateAddress
-            ? new Uri(string.Concat("https://", privateAddress, ":", uri.Port, "/"))
-            : uri;
+        _endpoint = new UriBuilder(Uri.UriSchemeHttps, bindAddress.ToString(), uri.Port).Uri;
         StartSessionLifetimeLoop();
         logger.LogInformation("DropLink host started on port {Port} with protocol {Protocol}.", uri.Port, DropLinkProtocolVersion.V1);
         return _endpoint!;
@@ -822,7 +846,9 @@ public sealed class DropLinkHost(
 
     private async Task<TransferCompleteResponse> FinalizeTransferAsync(ReceiveTransfer receive)
     {
-        await receive.FinalizationGate.WaitAsync(receive.LifetimeCancellation.Token).ConfigureAwait(false);
+        using var finalizationDeadline = CancellationTokenSource.CreateLinkedTokenSource(receive.LifetimeCancellation.Token);
+        finalizationDeadline.CancelAfter(DropLinkSessionPolicy.ActiveSessionLifetime);
+        await receive.FinalizationGate.WaitAsync(finalizationDeadline.Token).ConfigureAwait(false);
         try
         {
             await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
@@ -860,7 +886,7 @@ public sealed class DropLinkHost(
                 await CommitItemAsync(
                     receive,
                     item,
-                    receive.LifetimeCancellation.Token).ConfigureAwait(false);
+                    finalizationDeadline.Token).ConfigureAwait(false);
             }
 
             await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
@@ -1031,16 +1057,6 @@ public sealed class DropLinkHost(
         return root;
     }
 
-    private static string? TryGetPrivateAddress() => NetworkInterface.GetAllNetworkInterfaces()
-        .Where(network => network.OperationalStatus == OperationalStatus.Up && network.NetworkInterfaceType is not NetworkInterfaceType.Loopback)
-        .SelectMany(network => network.GetIPProperties().UnicastAddresses)
-        .Select(address => address.Address)
-        .Where(address => address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-        .Select(address => new { Address = address, Bytes = address.GetAddressBytes() })
-        .Where(value => value.Bytes.Length == 4 && (value.Bytes[0] == 10 || value.Bytes[0] == 192 && value.Bytes[1] == 168 || value.Bytes[0] == 172 && value.Bytes[1] is >= 16 and <= 31))
-        .Select(value => value.Address.ToString())
-        .FirstOrDefault();
-
     private static IReadOnlyDictionary<Guid, IReadOnlyList<int>> SnapshotChunks(ReceiveTransfer receive) => receive.Chunks.Snapshot();
 
     private static async Task CommitItemAsync(ReceiveTransfer receive, TransferItemManifest item, CancellationToken cancellationToken)
@@ -1091,18 +1107,34 @@ public sealed class DropLinkHost(
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        await StopAsync().ConfigureAwait(false);
-        lock (_offerNotificationGate)
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            _offerNotificationCancellation.Dispose();
+            if (_disposed != 0) return;
+            _disposed = 1;
+            _state = HostLifecycleState.Stopping;
+            await StopCoreAsync().ConfigureAwait(false);
+            _state = HostLifecycleState.Disposed;
         }
-
-        _sessionLifetimeCancellation.Dispose();
+        finally { _lifecycleGate.Release(); }
     }
 
     public async Task StopAsync()
     {
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_state == HostLifecycleState.Disposed) return;
+            _state = HostLifecycleState.Stopping;
+            await StopCoreAsync().ConfigureAwait(false);
+            _state = HostLifecycleState.Stopped;
+        }
+        finally { _lifecycleGate.Release(); }
+    }
+
+    private async Task StopCoreAsync()
+    {
+        _endpoint = null;
         lock (_offerNotificationGate)
         {
             _offerNotificationCancellation.Cancel();
@@ -1186,6 +1218,10 @@ public sealed class DropLinkHost(
     {
         private readonly Guid _peerId;
         private int _disposed;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    private HostLifecycleState _state;
+    public enum HostLifecycleState { Stopped, Starting, Running, Stopping, Disposed }
+    public HostLifecycleState State => _state;
 
         public ReceiveTransfer(
             TransferSession session,
