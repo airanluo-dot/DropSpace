@@ -155,6 +155,14 @@ public sealed class UndoRepositoryTests
             CREATE TABLE url_metadata (item_id BLOB PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE, normalized_url TEXT NOT NULL, display_url TEXT NOT NULL, host TEXT NOT NULL, scheme TEXT NOT NULL);
             CREATE TABLE paired_devices (id TEXT PRIMARY KEY, display_name TEXT NOT NULL, platform INTEGER NOT NULL, identity_fingerprint TEXT NOT NULL, secret_key_id TEXT NOT NULL, capabilities INTEGER NOT NULL, created_at_utc TEXT NOT NULL, last_seen_at_utc TEXT NULL, is_blocked INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE transfer_sessions (id TEXT PRIMARY KEY, direction INTEGER NOT NULL, mode INTEGER NOT NULL, peer_id TEXT NULL, state INTEGER NOT NULL, created_at_utc TEXT NOT NULL, completed_at_utc TEXT NULL, item_count INTEGER NOT NULL, total_bytes INTEGER NOT NULL, transferred_bytes INTEGER NOT NULL DEFAULT 0, error_category TEXT NULL);
+            CREATE INDEX ix_items_source_created ON items(source, created_at_utc DESC);
+            CREATE INDEX ix_items_pinned_created ON items(is_pinned, created_at_utc DESC);
+            CREATE INDEX ix_items_kind_created ON items(kind, created_at_utc DESC);
+            CREATE INDEX ix_items_fingerprint_source_created ON items(fingerprint, source, created_at_utc DESC);
+            CREATE INDEX ix_file_references_normalized_path ON file_references(normalized_path COLLATE NOCASE);
+            CREATE INDEX ix_url_metadata_host ON url_metadata(host COLLATE NOCASE);
+            CREATE INDEX ix_transfer_sessions_peer_created ON transfer_sessions(peer_id, created_at_utc DESC);
+            CREATE INDEX ix_paired_devices_last_seen ON paired_devices(last_seen_at_utc DESC);
             PRAGMA user_version = 2;
             """;
         await command.ExecuteNonQueryAsync();

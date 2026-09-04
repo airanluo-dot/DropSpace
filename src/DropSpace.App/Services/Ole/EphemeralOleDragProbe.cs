@@ -394,7 +394,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         _cleanupWatchdog ??= new Timer(
             static state => ((EphemeralOleDragProbe)state!).ForceCleanupAfterQueueFailure(),
             this,
-            TimeSpan.FromMilliseconds(250),
+            SmartDragRuntimePolicy.ProbeCleanupWatchdog,
             Timeout.InfiniteTimeSpan);
 
         if (!RequestOwnerThreadMessage(WindowMessageProbeComplete))

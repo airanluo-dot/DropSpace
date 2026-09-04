@@ -47,7 +47,9 @@ public sealed record RuntimeDependencyState(CompatibilityStatus Status, string R
 public sealed record WindowsCapabilityState(
     WindowsCapability Capability,
     CompatibilityStatus Status,
-    string Reason)
+    string Reason,
+    bool IsFast = false,
+    bool IsRemoteSession = false)
 {
     public bool IsAvailable => Status == CompatibilityStatus.Available;
 }
@@ -86,6 +88,7 @@ public interface IWindowsCapabilityService
 {
     WindowsCompatibilitySnapshot Snapshot { get; }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716", Justification = "Get is the established Windows capability contract member.")]
     WindowsCapabilityState Get(WindowsCapability capability);
 
     bool IsAvailable(WindowsCapability capability);

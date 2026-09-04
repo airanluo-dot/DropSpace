@@ -52,7 +52,7 @@ internal sealed class OleFileDataClassifier
             HasFormat(
                 dataObject,
                 FileContentsFormat,
-                TYMED.TYMED_ISTREAM | TYMED.TYMED_HGLOBAL | TYMED.TYMED_ISTORAGE,
+                TYMED.TYMED_ISTREAM | TYMED.TYMED_HGLOBAL,
                 index: 0))
         {
             return new OleFileDataClassification(

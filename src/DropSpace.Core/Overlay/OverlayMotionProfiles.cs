@@ -157,14 +157,80 @@ public enum OverlayVisualPreferenceMode
     Reduced,
 }
 
+public enum OverlayMaterialTier
+{
+    HighContrastSystemSurface,
+    Windows10Solid,
+    Windows11Solid,
+    DesktopAcrylic,
+    DesktopAcrylicFast,
+}
+
+public readonly record struct OverlayMaterialCapabilityMatrix(
+    bool IsWindows11OrLater,
+    bool DesktopAcrylicSupported,
+    bool CompositionEffectsSupported,
+    bool CompositionEffectsFast,
+    bool AdvancedEffectsEnabled,
+    bool HighContrast,
+    bool TransparencyEnabled,
+    bool IsRemoteSession)
+{
+    public OverlayMaterialTier Tier
+    {
+        get
+        {
+            if (HighContrast)
+            {
+                return OverlayMaterialTier.HighContrastSystemSurface;
+            }
+
+            if (!IsWindows11OrLater || IsRemoteSession || !TransparencyEnabled || !AdvancedEffectsEnabled)
+            {
+                return IsWindows11OrLater
+                    ? OverlayMaterialTier.Windows11Solid
+                    : OverlayMaterialTier.Windows10Solid;
+            }
+
+            if (!DesktopAcrylicSupported || !CompositionEffectsSupported)
+            {
+                return OverlayMaterialTier.Windows11Solid;
+            }
+
+            return CompositionEffectsFast
+                ? OverlayMaterialTier.DesktopAcrylicFast
+                : OverlayMaterialTier.DesktopAcrylic;
+        }
+    }
+
+    public bool CanUseDesktopAcrylic =>
+        Tier is OverlayMaterialTier.DesktopAcrylic or OverlayMaterialTier.DesktopAcrylicFast;
+}
+
 public readonly record struct OverlayVisualPreferences(
     OverlayVisualPreferenceMode Motion,
     bool AdvancedEffectsEnabled,
     bool HighContrast,
-    bool IsWindows11OrLater)
+    bool IsWindows11OrLater,
+    bool DesktopAcrylicSupported = true,
+    bool CompositionEffectsSupported = true,
+    bool CompositionEffectsFast = true,
+    bool TransparencyEnabled = true,
+    bool IsRemoteSession = false)
 {
     public bool ReducedMotion => Motion == OverlayVisualPreferenceMode.Reduced;
 
-    public bool CanUseDesktopAcrylic =>
-        IsWindows11OrLater && AdvancedEffectsEnabled && !HighContrast;
+    public OverlayMaterialCapabilityMatrix MaterialCapabilities => new(
+        IsWindows11OrLater,
+        DesktopAcrylicSupported,
+        CompositionEffectsSupported,
+        CompositionEffectsFast,
+        AdvancedEffectsEnabled,
+        HighContrast,
+        TransparencyEnabled,
+        IsRemoteSession);
+
+    public OverlayMaterialTier MaterialTier => MaterialCapabilities.Tier;
+
+    public bool CanUseDesktopAcrylic => MaterialCapabilities.CanUseDesktopAcrylic;
 }

@@ -11,9 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.14 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.15 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.14](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.14). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.15](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.15). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+
+The **v0.3.0-preview.15** unified-hardening Preview closes the three planning axes together: native/OLE identity and ownership, motion/material/accessibility behavior, and DropLink/clipboard/update/storage security boundaries. It also makes release artifacts, website metadata, policy constants, and tests consume single-source contracts. Hosted Windows build/release checks are the publication gate; real Windows OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicitly conditional. See the [Preview.15 release notes](.github/release-notes/v0.3.0-preview.15.md), [unified hardening test plan](docs/test-plan/v0.3.0-preview.15.md), and [execution report](DropSpace_v0.3.0-preview.15_UNIFIED_HARDENING_EXECUTION_REPORT.md).
 
 The **v0.3.0-preview.14** motion-system Preview separates geometry, opacity, content, interaction, and elevation profiles; moves visual-only opacity/content feedback to the Windows compositor; deduplicates native HRGN updates by physical geometry; and adds a bounded Windows 11 Desktop Acrylic surface with Windows 10, reduced-effects, and high-contrast fallbacks. It remains conditional until hosted Windows build/release, real OS/DPI/OLE/manual interaction, and accessibility evidence is recorded; see the [Preview.14 release notes](.github/release-notes/v0.3.0-preview.14.md), [motion test plan](docs/test-plan/v0.3.0-preview.14.md), and [execution report](DropSpace_v0.3.0-preview.14_MOTION_SYSTEM_EXECUTION_REPORT.md).
 
@@ -35,7 +37,7 @@ The implemented vertical slice includes:
 - Event-driven, bounded Clipboard history driven by the desktop `WM_CLIPBOARDUPDATE` listener for text, URLs, colors, code-like text, images, and Explorer file/folder references. Image and file batch limits are user-configurable; immediately repeated identical snapshots are collapsed without globally deduplicating later `A → B → A` history.
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, display-language selection, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
-- Deterministic branded Windows assets and x64/ARM64 project configurations.
+- Deterministic branded Windows assets and the validated x64 release configuration. The ARM64 project configuration is non-release and is not claimed as a supported target until matching build and package evidence exists.
 - A responsive header that stacks controls before text scaling can collapse the page title, an embedded Win32 taskbar/tray icon chain, and a documented brand-asset map.
 - A truly hidden visual Overlay, formal state machine, and one continuously morphing Dynamic Island with Compact/Drop Ready/Expanded states. Smart Drag Detection v2 combines documented drag events, bounded UI Automation/MSAA evidence, source-agnostic mouse-threshold candidates, and an ephemeral 60 ms hollow local OLE verification probe while leaving the screen edge unowned at idle.
 - An opt-in traditional top-edge OLE activation zone remains as an explicit compatibility fallback. Settings disclose that it participates in top-edge hit testing and may conflict with Windows Drop Tray or title-bar controls; Smart never switches to it implicitly.
@@ -96,6 +98,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Preview.8 compatibility test plan](docs/test-plan/v0.3.0-preview.8.md)
 - [Preview.9 shell/Quick Actions/Undo test plan](docs/test-plan/v0.3.0-preview.9.md)
 - [Preview.10 P0 recovery test plan](docs/test-plan/v0.3.0-preview.10.md)
+- [Preview.15 unified hardening test plan](docs/test-plan/v0.3.0-preview.15.md)
 - [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)
@@ -121,7 +124,7 @@ dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.
 dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 ```
 
-Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 10 build 17763 and includes x64 and ARM64 configurations; Windows 11-only visuals are selected at runtime.
+Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 10 build 17763. The formal release and compatibility evidence are x64-only; Windows 11-only visuals are selected at runtime.
 
 To validate package generation from PowerShell, run:
 

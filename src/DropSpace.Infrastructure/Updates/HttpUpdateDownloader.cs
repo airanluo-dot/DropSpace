@@ -117,12 +117,29 @@ public sealed class HttpUpdateDownloader(
         }
         catch
         {
-            if (File.Exists(partialPath))
-            {
-                File.Delete(partialPath);
-            }
-
+            TryDeletePartial(partialPath);
             throw;
+        }
+    }
+
+    private static void TryDeletePartial(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException exception)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Update partial cleanup deferred: {exception.GetType().Name}");
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Update partial cleanup deferred: {exception.GetType().Name}");
         }
     }
 

@@ -57,7 +57,7 @@ jobs:
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.100
           cache: true
           cache-dependency-path: Directory.Packages.props
 
@@ -91,6 +91,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
 
+      - name: Enforce hardcoding governance
+        shell: pwsh
+        run: ./scripts/Test-HardcodingGovernance.ps1
+
       - name: Generate brand assets from canonical masters
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1
@@ -107,6 +111,9 @@ jobs:
 
       - name: Test persistence, manifests, downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure-release.trx"
+
+      - name: Test App policies and native-boundary contracts
+        run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --logger "trx;LogFileName=app-release.trx"
 
       - name: Build WinUI Release
         run: dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false

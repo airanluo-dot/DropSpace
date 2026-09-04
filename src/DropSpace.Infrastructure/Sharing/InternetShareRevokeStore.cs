@@ -11,6 +11,8 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
     private const int MaximumPersistedRecords = 128;
     private const int MaximumAuthorizationLength = 4096;
     private const int MaximumUrlLength = 2048;
+    private const int MaximumPayloadBytes = 32 * 1024;
+    private const int MaximumProtectedPayloadBytes = 64 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task SaveAsync(
@@ -33,10 +35,35 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                 session.RevokeUrl.ToString(),
                 expiresAtUtc),
             JsonOptions);
-        var protectedPayload = ProtectedData.Protect(payload, null, DataProtectionScope.CurrentUser);
+        if (payload.Length > MaximumPayloadBytes)
+        {
+            CryptographicOperations.ZeroMemory(payload);
+            throw new InvalidDataException("The persisted secure share revoke handle is too large.");
+        }
+
+        byte[]? protectedPayload = null;
         var temporary = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
-        await File.WriteAllBytesAsync(temporary, protectedPayload, cancellationToken).ConfigureAwait(false);
-        File.Move(temporary, path, true);
+        try
+        {
+            protectedPayload = ProtectedData.Protect(payload, null, DataProtectionScope.CurrentUser);
+            if (protectedPayload.Length > MaximumProtectedPayloadBytes)
+            {
+                throw new InvalidDataException("The protected secure share revoke handle is too large.");
+            }
+
+            await File.WriteAllBytesAsync(temporary, protectedPayload, cancellationToken).ConfigureAwait(false);
+            File.Move(temporary, path, true);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(payload);
+            if (protectedPayload is not null)
+            {
+                CryptographicOperations.ZeroMemory(protectedPayload);
+            }
+
+            TryDelete(temporary);
+        }
     }
 
     public async Task<IReadOnlyList<RestorableInternetShareSession>> LoadAllAsync(
@@ -60,31 +87,62 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
 
             try
             {
+                var info = new FileInfo(path);
+                if (info.Length is <= 0 or > MaximumProtectedPayloadBytes)
+                {
+                    TryDelete(path);
+                    continue;
+                }
+
                 var protectedPayload = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-                var payload = ProtectedData.Unprotect(protectedPayload, null, DataProtectionScope.CurrentUser);
-                var handle = JsonSerializer.Deserialize<PersistedHandle>(payload, JsonOptions);
-                if (handle is null ||
-                    !Uri.TryCreate(handle.UploadBaseUrl, UriKind.Absolute, out var uploadBaseUrl) ||
-                    !Uri.TryCreate(handle.DownloadBaseUrl, UriKind.Absolute, out var downloadBaseUrl) ||
-                    !Uri.TryCreate(handle.RevokeUrl, UriKind.Absolute, out var revokeUrl))
+                byte[]? payload = null;
+                try
                 {
-                    TryDelete(path);
-                    continue;
-                }
+                    if (protectedPayload.Length is <= 0 or > MaximumProtectedPayloadBytes)
+                    {
+                        TryDelete(path);
+                        continue;
+                    }
 
-                if (handle.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+                    payload = ProtectedData.Unprotect(protectedPayload, null, DataProtectionScope.CurrentUser);
+                    if (payload.Length is <= 0 or > MaximumPayloadBytes)
+                    {
+                        TryDelete(path);
+                        continue;
+                    }
+
+                    var handle = JsonSerializer.Deserialize<PersistedHandle>(payload, JsonOptions);
+                    if (handle is null ||
+                        !Uri.TryCreate(handle.UploadBaseUrl, UriKind.Absolute, out var uploadBaseUrl) ||
+                        !Uri.TryCreate(handle.DownloadBaseUrl, UriKind.Absolute, out var downloadBaseUrl) ||
+                        !Uri.TryCreate(handle.RevokeUrl, UriKind.Absolute, out var revokeUrl))
+                    {
+                        TryDelete(path);
+                        continue;
+                    }
+
+                    if (handle.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+                    {
+                        TryDelete(path);
+                        continue;
+                    }
+
+                    var session = new ShareBackendUploadSession(
+                        uploadBaseUrl,
+                        downloadBaseUrl,
+                        handle.UploadAuthorization,
+                        revokeUrl);
+                    Validate(shareId, session, handle.ExpiresAtUtc);
+                    result.Add(new RestorableInternetShareSession(shareId, session, handle.ExpiresAtUtc));
+                }
+                finally
                 {
-                    TryDelete(path);
-                    continue;
+                    CryptographicOperations.ZeroMemory(protectedPayload);
+                    if (payload is not null)
+                    {
+                        CryptographicOperations.ZeroMemory(payload);
+                    }
                 }
-
-                var session = new ShareBackendUploadSession(
-                    uploadBaseUrl,
-                    downloadBaseUrl,
-                    handle.UploadAuthorization,
-                    revokeUrl);
-                Validate(shareId, session, handle.ExpiresAtUtc);
-                result.Add(new RestorableInternetShareSession(shareId, session, handle.ExpiresAtUtc));
             }
             catch (CryptographicException)
             {
@@ -120,9 +178,16 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         }
 
         var path = GetPath(GetDirectory(), shareId);
-        if (File.Exists(path))
+        try
         {
-            File.Delete(path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (FileNotFoundException)
+        {
+            // Deletion is idempotent if another cleanup already removed the handle.
         }
 
         return Task.CompletedTask;
@@ -146,7 +211,10 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
             session.UploadBaseUrl.ToString().Length > MaximumUrlLength ||
             session.DownloadBaseUrl.ToString().Length > MaximumUrlLength ||
             session.RevokeUrl.ToString().Length > MaximumUrlLength ||
-            expiresAtUtc <= DateTimeOffset.UtcNow)
+            expiresAtUtc <= DateTimeOffset.UtcNow ||
+            expiresAtUtc > DateTimeOffset.UtcNow.AddDays(7) ||
+            !session.UploadAuthorization.StartsWith("Bearer ", StringComparison.Ordinal) ||
+            session.UploadAuthorization.Length <= "Bearer ".Length)
         {
             throw new InvalidDataException("The persisted secure share revoke handle is invalid.");
         }

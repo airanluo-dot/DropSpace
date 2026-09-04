@@ -51,8 +51,6 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
     private const uint EventObjectDragComplete = 0x8023;
     private const uint WinEventOutOfContext = 0;
     private const uint WinEventSkipOwnProcess = 2;
-    private static readonly TimeSpan PointerReleaseGrace = TimeSpan.FromMilliseconds(350);
-    private static readonly TimeSpan SessionTimeout = TimeSpan.FromSeconds(30);
     private readonly MonitorLayoutService _monitorLayout;
     private readonly ILogger<DragSessionDetector> _logger;
     private readonly DragSignalQueue<DetectorSignal> _criticalSignals = new(reliable: true);
@@ -452,7 +450,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         var hookExited = hookThread is not { IsAlive: true };
         if (!hookExited)
         {
-            if (!await WaitForEventAsync(_hookMessageQueueReady, TimeSpan.FromSeconds(2)).ConfigureAwait(false))
+            if (!await WaitForEventAsync(_hookMessageQueueReady, SmartDragRuntimePolicy.ObserverShutdownTimeout).ConfigureAwait(false))
             {
                 _logger.LogError("The smart drag observer message queue did not become ready during asynchronous shutdown.");
             }
@@ -464,7 +462,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                     Marshal.GetLastWin32Error());
             }
 
-            hookExited = await WaitForThreadExitAsync(hookThread!, TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            hookExited = await WaitForThreadExitAsync(hookThread!, SmartDragRuntimePolicy.ObserverShutdownTimeout).ConfigureAwait(false);
         }
 
         var processorExited = processor is null;
@@ -472,7 +470,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         {
             try
             {
-                await processor.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                await processor.WaitAsync(SmartDragRuntimePolicy.ObserverShutdownTimeout).ConfigureAwait(false);
                 processorExited = true;
             }
             catch (OperationCanceledException)
@@ -557,9 +555,9 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
 
             var remaining = TimeSpan.FromSeconds(remainingTicks / (double)Stopwatch.Frequency);
             await Task.Delay(
-                remaining < TimeSpan.FromMilliseconds(20)
+                remaining < SmartDragRuntimePolicy.WaitPollSlice
                     ? remaining
-                    : TimeSpan.FromMilliseconds(20)).ConfigureAwait(false);
+                    : SmartDragRuntimePolicy.WaitPollSlice).ConfigureAwait(false);
         }
 
         return true;
@@ -579,9 +577,9 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
 
             var remaining = TimeSpan.FromSeconds(remainingTicks / (double)Stopwatch.Frequency);
             await Task.Delay(
-                remaining < TimeSpan.FromMilliseconds(20)
+                remaining < SmartDragRuntimePolicy.WaitPollSlice
                     ? remaining
-                    : TimeSpan.FromMilliseconds(20)).ConfigureAwait(false);
+                    : SmartDragRuntimePolicy.WaitPollSlice).ConfigureAwait(false);
         }
 
         return true;
@@ -1033,7 +1031,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
     {
         try
         {
-            await Task.Delay(PointerReleaseGrace, cancellation.Token);
+            await Task.Delay(SmartDragRuntimePolicy.PointerReleaseGrace, cancellation.Token);
             TryWrite(new DetectorSignal(
                 DetectorSignalKind.CompletionGraceElapsed,
                 point,
@@ -1076,7 +1074,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
     {
         try
         {
-            await Task.Delay(SessionTimeout, cancellation.Token);
+            await Task.Delay(SmartDragRuntimePolicy.SessionTimeout, cancellation.Token);
             TryWrite(new DetectorSignal(DetectorSignalKind.Timeout, point, SessionId: sessionId));
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -1129,9 +1127,9 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                 Math.Pow(signal.Point.X - previous.X, 2) +
                 Math.Pow(signal.Point.Y - previous.Y, 2));
             var velocity = distance / seconds;
-            if (velocity < 500) Interlocked.Increment(ref _velocitySlowCount);
-            else if (velocity < 1_500) Interlocked.Increment(ref _velocityMediumCount);
-            else if (velocity < 3_000) Interlocked.Increment(ref _velocityFastCount);
+            if (velocity < SmartDragRuntimePolicy.SlowVelocityPixelsPerSecond) Interlocked.Increment(ref _velocitySlowCount);
+            else if (velocity < SmartDragRuntimePolicy.MediumVelocityPixelsPerSecond) Interlocked.Increment(ref _velocityMediumCount);
+            else if (velocity < SmartDragRuntimePolicy.FastVelocityPixelsPerSecond) Interlocked.Increment(ref _velocityFastCount);
             else Interlocked.Increment(ref _velocityExtremeCount);
         }
         previousPoint = signal.Point;

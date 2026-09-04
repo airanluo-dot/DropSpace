@@ -35,7 +35,9 @@ public sealed class OverlayPlacementEditSession
         State = OverlayPlacementEditState.Armed;
     }
 
-    public bool TryBeginDrag(DragScreenPoint pointer)
+    public bool TryBeginDrag(
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1720", Justification = "Pointer is the established input parameter name in this public gesture contract.")]
+        DragScreenPoint pointer)
     {
         if (State != OverlayPlacementEditState.Armed)
         {
@@ -47,7 +49,10 @@ public sealed class OverlayPlacementEditSession
         return true;
     }
 
-    public OverlayCustomPlacement Move(DragScreenPoint pointer, double monitorScale)
+    public OverlayCustomPlacement Move(
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1720", Justification = "Pointer is the established input parameter name in this public gesture contract.")]
+        DragScreenPoint pointer,
+        double monitorScale)
     {
         if (State != OverlayPlacementEditState.Dragging)
         {

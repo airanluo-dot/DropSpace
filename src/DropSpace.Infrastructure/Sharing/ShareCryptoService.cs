@@ -26,8 +26,8 @@ public sealed record EncryptedShareManifestItem(
 
 public sealed class ShareCryptoService
 {
-    public const int ManifestNonceBytes = 12;
-    public const int AuthenticationTagBytes = 16;
+    public const int ManifestNonceBytes = ShareLimits.InternetManifestNonceBytes;
+    public const int AuthenticationTagBytes = ShareLimits.InternetAuthTagBytes;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -45,10 +45,18 @@ public sealed class ShareCryptoService
         if (shareId == Guid.Empty || fileId == Guid.Empty || noncePrefix.Length != 8 || index < 0) throw new ArgumentOutOfRangeException(nameof(index));
         var ciphertext = new byte[plaintext.Length];
         var tag = new byte[AuthenticationTagBytes];
-        using var aes = new AesGcm(DeriveFileKey(masterKey, shareId, fileId), tagSizeInBytes: AuthenticationTagBytes);
-        var nonce = CreateNonce(noncePrefix, index);
-        aes.Encrypt(nonce, plaintext, ciphertext, tag, CreateAad(shareId, fileId, index, plaintext.Length));
-        return new EncryptedShareChunk(index, plaintext.Length, ciphertext, tag);
+        var fileKey = DeriveFileKey(masterKey, shareId, fileId);
+        try
+        {
+            using var aes = new AesGcm(fileKey, tagSizeInBytes: AuthenticationTagBytes);
+            var nonce = CreateNonce(noncePrefix, index);
+            aes.Encrypt(nonce, plaintext, ciphertext, tag, CreateAad(shareId, fileId, index, plaintext.Length));
+            return new EncryptedShareChunk(index, plaintext.Length, ciphertext, tag);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(fileKey);
+        }
     }
 
     public byte[] DecryptChunk(
@@ -68,9 +76,17 @@ public sealed class ShareCryptoService
             throw new InvalidDataException("The encrypted share chunk metadata is invalid.");
         }
         var plaintext = new byte[ciphertext.Length];
-        using var aes = new AesGcm(DeriveFileKey(masterKey, shareId, fileId), tagSizeInBytes: AuthenticationTagBytes);
-        aes.Decrypt(CreateNonce(noncePrefix, index), ciphertext, tag, plaintext, CreateAad(shareId, fileId, index, plainLength));
-        return plaintext;
+        var fileKey = DeriveFileKey(masterKey, shareId, fileId);
+        try
+        {
+            using var aes = new AesGcm(fileKey, tagSizeInBytes: AuthenticationTagBytes);
+            aes.Decrypt(CreateNonce(noncePrefix, index), ciphertext, tag, plaintext, CreateAad(shareId, fileId, index, plainLength));
+            return plaintext;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(fileKey);
+        }
     }
 
     public (byte[] Nonce, byte[] Ciphertext, byte[] Tag) EncryptManifest(
@@ -93,9 +109,17 @@ public sealed class ShareCryptoService
         var key = DeriveManifestKey(masterKey, shareId);
         var ciphertext = new byte[manifest.Length];
         var tag = new byte[AuthenticationTagBytes];
-        using var aes = new AesGcm(key, tagSizeInBytes: AuthenticationTagBytes);
-        aes.Encrypt(nonce, manifest, ciphertext, tag, Encoding.UTF8.GetBytes(string.Concat("DropSpaceShare:v1\n", shareId.ToString("N"))));
-        return (nonce.ToArray(), ciphertext, tag);
+        try
+        {
+            using var aes = new AesGcm(key, tagSizeInBytes: AuthenticationTagBytes);
+            aes.Encrypt(nonce, manifest, ciphertext, tag, Encoding.UTF8.GetBytes(string.Concat("DropSpaceShare:v1\n", shareId.ToString("N"))));
+            return (nonce.ToArray(), ciphertext, tag);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(manifest);
+            CryptographicOperations.ZeroMemory(key);
+        }
     }
 
     public IReadOnlyList<EncryptedShareManifestItem> DecryptManifest(
@@ -111,12 +135,21 @@ public sealed class ShareCryptoService
             throw new InvalidDataException("The encrypted share manifest metadata is invalid.");
         }
         var plaintext = new byte[ciphertext.Length];
-        using var aes = new AesGcm(DeriveManifestKey(masterKey, shareId), tagSizeInBytes: AuthenticationTagBytes);
-        aes.Decrypt(nonce, ciphertext, tag, plaintext, Encoding.UTF8.GetBytes(string.Concat("DropSpaceShare:v1\n", shareId.ToString("N"))));
-        var manifest = JsonSerializer.Deserialize<ManifestPlaintext>(plaintext, JsonOptions)
-            ?? throw new InvalidDataException("The encrypted share manifest is empty.");
-        if (manifest.ShareId != shareId) throw new InvalidDataException("The encrypted share manifest belongs to another share.");
-        return manifest.Items;
+        var key = DeriveManifestKey(masterKey, shareId);
+        try
+        {
+            using var aes = new AesGcm(key, tagSizeInBytes: AuthenticationTagBytes);
+            aes.Decrypt(nonce, ciphertext, tag, plaintext, Encoding.UTF8.GetBytes(string.Concat("DropSpaceShare:v1\n", shareId.ToString("N"))));
+            var manifest = JsonSerializer.Deserialize<ManifestPlaintext>(plaintext, JsonOptions)
+                ?? throw new InvalidDataException("The encrypted share manifest is empty.");
+            if (manifest.ShareId != shareId) throw new InvalidDataException("The encrypted share manifest belongs to another share.");
+            return manifest.Items;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+            CryptographicOperations.ZeroMemory(key);
+        }
     }
 
     public static string ToUrlFragment(ReadOnlySpan<byte> masterKey) => Base64Url(masterKey);
@@ -172,10 +205,30 @@ public sealed class ShareCryptoService
     }
 
     private static byte[] DeriveFileKey(ReadOnlySpan<byte> masterKey, Guid shareId, Guid fileId) =>
-        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, GuidWireBytes(shareId), Encoding.UTF8.GetBytes(string.Concat("file:", fileId.ToString("N"))));
+        DeriveKey(masterKey, GuidWireBytes(shareId), Encoding.UTF8.GetBytes(string.Concat("file:", fileId.ToString("N"))));
 
     private static byte[] DeriveManifestKey(ReadOnlySpan<byte> masterKey, Guid shareId) =>
-        HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey.ToArray(), 32, GuidWireBytes(shareId), Encoding.UTF8.GetBytes("manifest"));
+        DeriveKey(masterKey, GuidWireBytes(shareId), Encoding.UTF8.GetBytes("manifest"));
+
+    private static byte[] DeriveKey(
+        ReadOnlySpan<byte> masterKey,
+        ReadOnlySpan<byte> salt,
+        ReadOnlySpan<byte> info)
+    {
+        var keyMaterial = masterKey.ToArray();
+        var saltBytes = salt.ToArray();
+        var infoBytes = info.ToArray();
+        try
+        {
+            return HKDF.DeriveKey(HashAlgorithmName.SHA256, keyMaterial, 32, saltBytes, infoBytes);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(keyMaterial);
+            CryptographicOperations.ZeroMemory(saltBytes);
+            CryptographicOperations.ZeroMemory(infoBytes);
+        }
+    }
 
     /// <summary>
     /// The v1 worker uses the .NET Guid byte order for HKDF salt (the first three Guid

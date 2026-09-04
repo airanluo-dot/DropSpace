@@ -9,6 +9,9 @@ namespace DropSpace.Infrastructure.Updates;
 public sealed class UpdateService : IUpdateService
 {
     private readonly object _checkSync = new();
+    private readonly object _downloadSync = new();
+    private readonly object _installSync = new();
+    private readonly SemaphoreSlim _operationGate = new(1, 1);
     private readonly IUpdateSource _source;
     private readonly UpdateManifestParser _manifestParser;
     private readonly IUpdateDownloader _downloader;
@@ -20,6 +23,8 @@ public sealed class UpdateService : IUpdateService
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<UpdateService> _logger;
     private Task<UpdateStatusSnapshot>? _activeCheck;
+    private Task<UpdateStatusSnapshot>? _activeDownload;
+    private Task<UpdateStatusSnapshot>? _activeInstall;
     private int _startupCheckStarted;
     private UpdateStatusSnapshot _status;
 
@@ -56,7 +61,13 @@ public sealed class UpdateService : IUpdateService
 
     public event EventHandler<UpdateStatusSnapshot>? StatusChanged;
 
-    public async Task<UpdateStatusSnapshot> RecoverPendingAsync(CancellationToken cancellationToken = default)
+    public Task<UpdateStatusSnapshot> RecoverPendingAsync(
+        CancellationToken cancellationToken = default) =>
+        RunExclusiveAsync(
+            RecoverPendingCoreAsync,
+            cancellationToken);
+
+    private async Task<UpdateStatusSnapshot> RecoverPendingCoreAsync(CancellationToken cancellationToken = default)
     {
         var pending = await _stateStore.LoadHighestAsync(CurrentVersion, _deploymentMode.Current, cancellationToken)
             .ConfigureAwait(false);
@@ -86,6 +97,7 @@ public sealed class UpdateService : IUpdateService
             PreviousInstallIncomplete: incomplete));
     }
 
+
     public Task<UpdateStatusSnapshot> CheckAtStartupAsync(
         AppSettings settings,
         CancellationToken cancellationToken = default)
@@ -107,7 +119,23 @@ public sealed class UpdateService : IUpdateService
         return CheckSingleFlightAsync(settings, automatic: false, cancellationToken);
     }
 
-    public async Task<UpdateStatusSnapshot> DownloadAsync(CancellationToken cancellationToken = default)
+    public Task<UpdateStatusSnapshot> DownloadAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_downloadSync)
+        {
+            if (_activeDownload is { IsCompleted: false })
+            {
+                return _activeDownload;
+            }
+
+            _activeDownload = RunExclusiveAsync(
+                DownloadCoreAsync,
+                cancellationToken);
+            return _activeDownload;
+        }
+    }
+
+    private async Task<UpdateStatusSnapshot> DownloadCoreAsync(CancellationToken cancellationToken = default)
     {
         var candidate = Status.Candidate ?? throw new InvalidOperationException("No validated update is available.");
         if (_deploymentMode.Current == DeploymentMode.Packaged)
@@ -158,7 +186,26 @@ public sealed class UpdateService : IUpdateService
         }
     }
 
-    public async Task<UpdateStatusSnapshot> InstallAsync(
+
+    public Task<UpdateStatusSnapshot> InstallAsync(
+        bool unattended,
+        CancellationToken cancellationToken = default)
+    {
+        lock (_installSync)
+        {
+            if (_activeInstall is { IsCompleted: false })
+            {
+                return _activeInstall;
+            }
+
+            _activeInstall = RunExclusiveAsync(
+                token => InstallCoreAsync(unattended, token),
+                cancellationToken);
+            return _activeInstall;
+        }
+    }
+
+    private async Task<UpdateStatusSnapshot> InstallCoreAsync(
         bool unattended,
         CancellationToken cancellationToken = default)
     {
@@ -211,6 +258,7 @@ public sealed class UpdateService : IUpdateService
         }
     }
 
+
     public async Task MarkUpdatedLaunchAsync(ReleaseVersion updatedVersion, CancellationToken cancellationToken = default)
     {
         await _stateStore.MarkUpdatedLaunchAsync(updatedVersion, cancellationToken).ConfigureAwait(false);
@@ -234,7 +282,15 @@ public sealed class UpdateService : IUpdateService
         }
     }
 
-    private async Task<UpdateStatusSnapshot> CheckCoreAsync(
+    private Task<UpdateStatusSnapshot> CheckCoreAsync(
+        AppSettings settings,
+        bool automatic,
+        CancellationToken cancellationToken) =>
+        RunExclusiveAsync(
+            token => CheckCoreExclusiveAsync(settings, automatic, token),
+            cancellationToken);
+
+    private async Task<UpdateStatusSnapshot> CheckCoreExclusiveAsync(
         AppSettings settings,
         bool automatic,
         CancellationToken cancellationToken)
@@ -270,10 +326,10 @@ public sealed class UpdateService : IUpdateService
 
             if (_deploymentMode.Current != DeploymentMode.Packaged && settings.AutoDownloadUpdates)
             {
-                var downloaded = await DownloadAsync(cancellationToken).ConfigureAwait(false);
+                var downloaded = await DownloadCoreAsync(cancellationToken).ConfigureAwait(false);
                 if (downloaded.State == UpdateState.ReadyToInstall && settings.AutoInstallUpdates && downloaded.TrustedAutoInstallAvailable)
                 {
-                    return await InstallAsync(unattended: true, cancellationToken).ConfigureAwait(false);
+                    return await InstallCoreAsync(unattended: true, cancellationToken).ConfigureAwait(false);
                 }
 
                 return downloaded;
@@ -299,6 +355,21 @@ public sealed class UpdateService : IUpdateService
                 automatic ? _strings.Format("UpdateAutomaticCheckFailed", message) : message,
                 _deploymentMode.Current,
                 DateTimeOffset.UtcNow));
+        }
+    }
+
+    private async Task<UpdateStatusSnapshot> RunExclusiveAsync(
+        Func<CancellationToken, Task<UpdateStatusSnapshot>> operation,
+        CancellationToken cancellationToken)
+    {
+        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await operation(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _operationGate.Release();
         }
     }
 

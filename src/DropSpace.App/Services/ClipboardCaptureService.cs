@@ -619,25 +619,60 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             lastException);
     }
 
-    private Task<ClipboardSnapshot?> ReadSnapshotAsync(
+    private async Task<ClipboardSnapshot?> ReadSnapshotAsync(
         CaptureSignal signal,
-        CancellationToken cancellationToken) =>
-        _dispatcher.EnqueueAsync<ClipboardSnapshot?>(async () =>
+        CancellationToken cancellationToken)
+    {
+        var source = await _dispatcher.EnqueueAsync(
+                () => ReadClipboardSnapshotSourceAsync(signal, cancellationToken))
+            .ConfigureAwait(false);
+        if (source.Snapshot is not null)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var view = Clipboard.GetContent();
+            return source.Snapshot;
+        }
 
-            if (view.Contains(StandardDataFormats.StorageItems))
+        var imageBytes = source.ImageBytes;
+        if (imageBytes is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            // Clipboard access and the initial byte copy stay on the UI dispatcher. Decode,
+            // dimension validation, and PNG encoding continue on the worker after the dispatcher
+            // task completes so large-image work does not occupy the UI thread.
+            return await EncodeClipboardImageAsync(
+                    imageBytes,
+                    signal,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            Array.Clear(imageBytes);
+        }
+    }
+
+    private async Task<ClipboardReadResult> ReadClipboardSnapshotSourceAsync(
+        CaptureSignal signal,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var view = Clipboard.GetContent();
+
+        if (view.Contains(StandardDataFormats.StorageItems))
+        {
+            var storageItems = await view.GetStorageItemsAsync();
+            var paths = storageItems
+                .Select(item => item.Path)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (paths.Length > 0)
             {
-                var storageItems = await view.GetStorageItemsAsync();
-                var paths = storageItems
-                    .Select(item => item.Path)
-                    .Where(path => !string.IsNullOrWhiteSpace(path))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-                if (paths.Length > 0)
-                {
-                    return new ClipboardSnapshot(
+                return new ClipboardReadResult(
+                    new ClipboardSnapshot(
                         null,
                         null,
                         paths,
@@ -645,71 +680,51 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         0,
                         0,
                         null,
-                        null);
-                }
-
-                // A producer can publish the StorageItems format before its async
-                // item payload is materialized. Treat that empty read as transient;
-                // otherwise this WM_CLIPBOARDUPDATE would be marked processed and
-                // the file/folder batch could never be captured.
-                throw new COMException(
-                    "Clipboard storage items are not ready.",
-                    unchecked((int)0x8000000A)); // E_PENDING
+                        null),
+                    null);
             }
 
-            if (view.Contains(StandardDataFormats.Bitmap))
+            // A producer can publish the StorageItems format before its async item payload is
+            // materialized. Treat that empty read as transient; otherwise this WM_CLIPBOARDUPDATE
+            // would be marked processed and the file/folder batch could never be captured.
+            throw new COMException(
+                "Clipboard storage items are not ready.",
+                unchecked((int)0x8000000A)); // E_PENDING
+        }
+
+        if (view.Contains(StandardDataFormats.Bitmap))
+        {
+            var reference = await view.GetBitmapAsync();
+            using var stream = await reference.OpenReadAsync();
+            if (stream.Size == 0 ||
+                stream.Size > (ulong)_settings.MaxImageBytes ||
+                stream.Size > int.MaxValue)
             {
-                var reference = await view.GetBitmapAsync();
-                using var stream = await reference.OpenReadAsync();
-                if (stream.Size == 0 || stream.Size > (ulong)_settings.MaxImageBytes)
-                {
-                    return CreateRejectedSnapshot(signal, "image-byte-limit");
-                }
-
-                var decoder = await BitmapDecoder.CreateAsync(stream);
-                var pixels = checked((long)decoder.PixelWidth * decoder.PixelHeight);
-                if (pixels > _settings.MaxImagePixels)
-                {
-                    return CreateRejectedSnapshot(signal, "image-pixel-limit");
-                }
-
-                using var bitmap = await decoder.GetSoftwareBitmapAsync(
-                    BitmapPixelFormat.Bgra8,
-                    BitmapAlphaMode.Premultiplied);
-                using var encodedStream = new InMemoryRandomAccessStream();
-                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, encodedStream);
-                encoder.SetSoftwareBitmap(bitmap);
-                await encoder.FlushAsync();
-                if (encodedStream.Size == 0 || encodedStream.Size > (ulong)_settings.MaxImageBytes)
-                {
-                    return CreateRejectedSnapshot(signal, "encoded-image-byte-limit");
-                }
-
-                var bytes = new byte[checked((int)encodedStream.Size)];
-                using var reader = new DataReader(encodedStream.GetInputStreamAt(0));
-                await reader.LoadAsync((uint)bytes.Length);
-                reader.ReadBytes(bytes);
-                return new ClipboardSnapshot(
-                    null,
-                    bytes,
-                    null,
-                    FingerprintService.ForBytes(bytes),
-                    checked((int)decoder.PixelWidth),
-                    checked((int)decoder.PixelHeight),
-                    decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore,
-                    "image/png");
+                return new ClipboardReadResult(
+                    CreateRejectedSnapshot(signal, "image-byte-limit"),
+                    null);
             }
 
-            if (view.Contains(StandardDataFormats.Text))
-            {
-                var text = await view.GetTextAsync();
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    return CreateRejectedSnapshot(signal, "empty-text");
-                }
+            var bytes = new byte[checked((int)stream.Size)];
+            using var reader = new DataReader(stream.GetInputStreamAt(0));
+            await reader.LoadAsync(checked((uint)bytes.Length));
+            reader.ReadBytes(bytes);
+            return new ClipboardReadResult(null, bytes);
+        }
 
-                var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
-                return new ClipboardSnapshot(
+        if (view.Contains(StandardDataFormats.Text))
+        {
+            var text = await view.GetTextAsync();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return new ClipboardReadResult(
+                    CreateRejectedSnapshot(signal, "empty-text"),
+                    null);
+            }
+
+            var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+            return new ClipboardReadResult(
+                new ClipboardSnapshot(
                     normalized,
                     null,
                     null,
@@ -717,11 +732,82 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     0,
                     0,
                     null,
-                    null);
-            }
+                    null),
+                null);
+        }
 
-            return CreateRejectedSnapshot(signal, "unsupported-format");
-        });
+        return new ClipboardReadResult(
+            CreateRejectedSnapshot(signal, "unsupported-format"),
+            null);
+    }
+
+    private async Task<ClipboardSnapshot> EncodeClipboardImageAsync(
+        byte[] sourceBytes,
+        CaptureSignal signal,
+        CancellationToken cancellationToken)
+    {
+        var budget = ClipboardImageBudgetPolicy.Create(
+            _settings.MaxImageBytes,
+            _settings.MaxImagePixels);
+
+        using var stream = new InMemoryRandomAccessStream();
+        using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+        {
+            writer.WriteBytes(sourceBytes);
+            await writer.StoreAsync();
+            await writer.FlushAsync();
+            writer.DetachStream();
+        }
+
+        stream.Seek(0);
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+        var sourceAssessment = budget.Assess(
+            sourceBytes.LongLength,
+            decoder.PixelWidth,
+            decoder.PixelHeight);
+        if (!sourceAssessment.IsWithinBudget)
+        {
+            return CreateRejectedSnapshot(signal, sourceAssessment.ErrorCategory ?? "image-budget-limit");
+        }
+
+        using var bitmap = await decoder.GetSoftwareBitmapAsync(
+            BitmapPixelFormat.Bgra8,
+            BitmapAlphaMode.Premultiplied);
+        using var encodedStream = new InMemoryRandomAccessStream();
+        var encoder = await BitmapEncoder.CreateAsync(
+            BitmapEncoder.PngEncoderId,
+            encodedStream);
+        encoder.SetSoftwareBitmap(bitmap);
+        await encoder.FlushAsync();
+
+        if (encodedStream.Size == 0 || encodedStream.Size > int.MaxValue)
+        {
+            return CreateRejectedSnapshot(signal, "encoded-image-byte-limit");
+        }
+
+        var encodedAssessment = budget.Assess(
+            checked((long)encodedStream.Size),
+            decoder.PixelWidth,
+            decoder.PixelHeight);
+        if (!encodedAssessment.IsWithinBudget)
+        {
+            return CreateRejectedSnapshot(signal, "encoded-image-budget-limit");
+        }
+
+        var bytes = new byte[checked((int)encodedStream.Size)];
+        using var reader = new DataReader(encodedStream.GetInputStreamAt(0));
+        await reader.LoadAsync(checked((uint)bytes.Length));
+        reader.ReadBytes(bytes);
+        return new ClipboardSnapshot(
+            null,
+            bytes,
+            null,
+            FingerprintService.ForBytes(bytes),
+            checked((int)decoder.PixelWidth),
+            checked((int)decoder.PixelHeight),
+            decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore,
+            "image/png");
+    }
 
     private static ClipboardSnapshot CreateRejectedSnapshot(CaptureSignal signal, string reason) =>
         new(
@@ -939,6 +1025,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         long ObservedEventNumber,
         int PauseGeneration,
         DateTimeOffset ObservedAtUtc);
+
+    private sealed record ClipboardReadResult(
+        ClipboardSnapshot? Snapshot,
+        byte[]? ImageBytes);
 
     private sealed record ClipboardSnapshot(
         string? Text,

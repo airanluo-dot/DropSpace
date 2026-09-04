@@ -9,6 +9,8 @@ namespace DropSpace.Infrastructure.Logging;
 public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposable
 {
     private const long MaximumLogBytes = 2 * 1024 * 1024;
+    private const int MaximumWriteAttempts = 4;
+    private const int RetryDelayMilliseconds = 50;
     private readonly ConcurrentDictionary<string, RedactingFileLogger> _loggers = new(StringComparer.Ordinal);
     private readonly Channel<string> _messages = Channel.CreateBounded<string>(new BoundedChannelOptions(1_024)
     {
@@ -22,6 +24,8 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     private readonly object _disposeGate = new();
     private Task? _disposeTask;
     private int _disposed;
+    private int _consecutiveWriteFailures;
+    private long _writeFailureCount;
 
     public RedactingFileLoggerProvider(AppStoragePaths paths)
     {
@@ -32,6 +36,12 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
 
     public ILogger CreateLogger(string categoryName) =>
         _loggers.GetOrAdd(categoryName, name => new RedactingFileLogger(name, _messages.Writer));
+
+    public bool IsDegraded => Volatile.Read(ref _consecutiveWriteFailures) > 0;
+
+    public int ConsecutiveWriteFailures => Volatile.Read(ref _consecutiveWriteFailures);
+
+    public long WriteFailureCount => Interlocked.Read(ref _writeFailureCount);
 
     public void Dispose()
     {
@@ -102,22 +112,83 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
         {
             await foreach (var message in _messages.Reader.ReadAllAsync(_cancellation.Token).ConfigureAwait(false))
             {
-                RotateIfNeeded();
-                await File.AppendAllTextAsync(_logPath, string.Concat(message, Environment.NewLine), _cancellation.Token)
-                    .ConfigureAwait(false);
+                try
+                {
+                    if (await TryWriteMessageAsync(message).ConfigureAwait(false))
+                    {
+                        Volatile.Write(ref _consecutiveWriteFailures, 0);
+                    }
+                }
+                catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    // A single malformed filesystem state must not terminate the logger worker.
+                    RecordWriteFailure(exception);
+                }
             }
         }
         catch (OperationCanceledException)
         {
             return;
         }
-        catch (IOException exception)
+    }
+
+    private async Task<bool> TryWriteMessageAsync(string message)
+    {
+        Exception? lastException = null;
+        for (var attempt = 0; attempt < MaximumWriteAttempts; attempt++)
         {
-            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
+            try
+            {
+                RotateIfNeeded();
+                await File.AppendAllTextAsync(
+                        _logPath,
+                        string.Concat(message, Environment.NewLine),
+                        _cancellation.Token)
+                    .ConfigureAwait(false);
+                return true;
+            }
+            catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (IOException exception)
+            {
+                lastException = exception;
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                lastException = exception;
+            }
+
+            if (attempt + 1 < MaximumWriteAttempts)
+            {
+                await Task.Delay(
+                        TimeSpan.FromMilliseconds(RetryDelayMilliseconds * (attempt + 1)),
+                        _cancellation.Token)
+                    .ConfigureAwait(false);
+            }
         }
-        catch (UnauthorizedAccessException exception)
+
+        RecordWriteFailure(lastException);
+        return false;
+    }
+
+    private void RecordWriteFailure(Exception? exception)
+    {
+        Interlocked.Increment(ref _writeFailureCount);
+        Interlocked.Increment(ref _consecutiveWriteFailures);
+        if (exception is not null)
         {
-            System.Diagnostics.Debug.WriteLine(exception.GetType().Name);
+            System.Diagnostics.Debug.WriteLine(
+                $"DropSpace log write deferred after {MaximumWriteAttempts} attempts: {exception.GetType().Name}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("DropSpace log message was dropped after bounded retries.");
         }
     }
 

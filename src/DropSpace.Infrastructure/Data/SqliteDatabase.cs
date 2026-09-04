@@ -13,6 +13,127 @@ public sealed class SqliteDatabase(
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private bool _initialized;
 
+    private static readonly TableDescriptor[] RequiredTables =
+    [
+        new("payloads",
+        [
+            new("id", "BLOB", false, true),
+            new("kind", "TEXT", true, false),
+            new("relative_path", "TEXT", true, false),
+            new("byte_length", "INTEGER", true, false),
+            new("content_hash", "BLOB", true, false),
+            new("created_at_utc", "TEXT", true, false),
+            new("storage_version", "INTEGER", true, false),
+        ]),
+        new("items",
+        [
+            new("id", "BLOB", false, true),
+            new("source", "INTEGER", true, false),
+            new("kind", "INTEGER", true, false),
+            new("title", "TEXT", true, false),
+            new("created_at_utc", "TEXT", true, false),
+            new("last_used_at_utc", "TEXT", false, false),
+            new("is_pinned", "INTEGER", true, false),
+            new("status", "INTEGER", true, false),
+            new("fingerprint", "TEXT", false, false),
+            new("search_text", "TEXT", true, false),
+            new("payload_id", "BLOB", false, false),
+            new("metadata_json", "TEXT", false, false),
+            new("revision", "INTEGER", true, false),
+            new("pending_delete_token", "TEXT", false, false),
+            new("pending_delete_expires_at_utc", "TEXT", false, false),
+        ]),
+        new("file_references",
+        [
+            new("item_id", "BLOB", false, true),
+            new("original_path", "TEXT", true, false),
+            new("normalized_path", "TEXT", true, false),
+            new("entry_kind", "INTEGER", true, false),
+            new("extension", "TEXT", false, false),
+            new("known_size", "INTEGER", false, false),
+            new("known_modified_at_utc", "TEXT", false, false),
+            new("volume_hint", "TEXT", false, false),
+            new("last_checked_at_utc", "TEXT", false, false),
+            new("availability_reason", "TEXT", false, false),
+        ]),
+        new("text_payloads",
+        [
+            new("item_id", "BLOB", false, true),
+            new("inline_text", "TEXT", false, false),
+            new("character_count", "INTEGER", true, false),
+            new("detected_subtype", "INTEGER", true, false),
+            new("detection_confidence", "INTEGER", true, false),
+            new("language_hint", "TEXT", false, false),
+        ]),
+        new("image_payloads",
+        [
+            new("item_id", "BLOB", false, true),
+            new("pixel_width", "INTEGER", true, false),
+            new("pixel_height", "INTEGER", true, false),
+            new("encoded_bytes", "INTEGER", true, false),
+            new("mime_type", "TEXT", true, false),
+            new("has_alpha", "INTEGER", false, false),
+            new("thumbnail_revision", "INTEGER", true, false),
+        ]),
+        new("url_metadata",
+        [
+            new("item_id", "BLOB", false, true),
+            new("normalized_url", "TEXT", true, false),
+            new("display_url", "TEXT", true, false),
+            new("host", "TEXT", true, false),
+            new("scheme", "TEXT", true, false),
+        ]),
+        new("paired_devices",
+        [
+            new("id", "TEXT", false, true),
+            new("display_name", "TEXT", true, false),
+            new("platform", "INTEGER", true, false),
+            new("identity_fingerprint", "TEXT", true, false),
+            new("secret_key_id", "TEXT", true, false),
+            new("capabilities", "INTEGER", true, false),
+            new("created_at_utc", "TEXT", true, false),
+            new("last_seen_at_utc", "TEXT", false, false),
+            new("is_blocked", "INTEGER", true, false),
+        ]),
+        new("transfer_sessions",
+        [
+            new("id", "TEXT", false, true),
+            new("direction", "INTEGER", true, false),
+            new("mode", "INTEGER", true, false),
+            new("peer_id", "TEXT", false, false),
+            new("state", "INTEGER", true, false),
+            new("created_at_utc", "TEXT", true, false),
+            new("completed_at_utc", "TEXT", false, false),
+            new("item_count", "INTEGER", true, false),
+            new("total_bytes", "INTEGER", true, false),
+            new("transferred_bytes", "INTEGER", true, false),
+            new("error_category", "TEXT", false, false),
+        ]),
+    ];
+
+    private static readonly IndexDescriptor[] RequiredIndexes =
+    [
+        new("items", "ix_items_source_created", false, ["source", "created_at_utc"]),
+        new("items", "ix_items_pinned_created", false, ["is_pinned", "created_at_utc"]),
+        new("items", "ix_items_kind_created", false, ["kind", "created_at_utc"]),
+        new("items", "ix_items_fingerprint_source_created", false, ["fingerprint", "source", "created_at_utc"]),
+        new("items", "ix_items_pending_delete", false, ["pending_delete_token", "pending_delete_expires_at_utc"]),
+        new("file_references", "ix_file_references_normalized_path", false, ["normalized_path"]),
+        new("url_metadata", "ix_url_metadata_host", false, ["host"]),
+        new("transfer_sessions", "ix_transfer_sessions_peer_created", false, ["peer_id", "created_at_utc"]),
+        new("paired_devices", "ix_paired_devices_last_seen", false, ["last_seen_at_utc"]),
+        new("payloads", null, true, ["relative_path"]),
+    ];
+
+    private static readonly ForeignKeyDescriptor[] RequiredForeignKeys =
+    [
+        new("items", "payload_id", "payloads", "id", "NO ACTION"),
+        new("file_references", "item_id", "items", "id", "CASCADE"),
+        new("text_payloads", "item_id", "items", "id", "CASCADE"),
+        new("image_payloads", "item_id", "items", "id", "CASCADE"),
+        new("url_metadata", "item_id", "items", "id", "CASCADE"),
+    ];
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_initialized)
@@ -293,26 +414,231 @@ public sealed class SqliteDatabase(
         SqliteConnection connection,
         CancellationToken cancellationToken)
     {
-        const string sql = """
-            SELECT
-              (SELECT COUNT(*)
-               FROM sqlite_master
-               WHERE type = 'table'
-                 AND name IN ('items', 'file_references', 'text_payloads', 'image_payloads', 'url_metadata', 'payloads', 'paired_devices', 'transfer_sessions')) = 8
-              AND
-              (SELECT COUNT(*)
-               FROM pragma_table_info('items')
-               WHERE name IN ('pending_delete_token', 'pending_delete_expires_at_utc')) = 2;
-            """;
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        var count = Convert.ToInt32(
-            await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
-            System.Globalization.CultureInfo.InvariantCulture);
-        if (count != 1)
+        if (await GetUserVersionAsync(connection, cancellationToken).ConfigureAwait(false) != CurrentSchemaVersion)
         {
-            throw new InvalidDataException("Database schema validation failed.");
+            throw new InvalidDataException("Database schema version validation failed.");
+        }
+
+        await using (var foreignKeyCommand = connection.CreateCommand())
+        {
+            foreignKeyCommand.CommandText = "PRAGMA foreign_keys;";
+            var foreignKeysEnabled = Convert.ToInt32(
+                await foreignKeyCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
+                System.Globalization.CultureInfo.InvariantCulture);
+            if (foreignKeysEnabled != 1)
+            {
+                throw new InvalidDataException("SQLite foreign-key enforcement is disabled.");
+            }
+        }
+
+        var tables = await ReadTableNamesAsync(connection, cancellationToken).ConfigureAwait(false);
+        foreach (var table in RequiredTables)
+        {
+            if (!tables.Contains(table.Name))
+            {
+                throw new InvalidDataException($"Required database table '{table.Name}' is missing.");
+            }
+
+            var columns = await ReadColumnsAsync(connection, table.Name, cancellationToken).ConfigureAwait(false);
+            foreach (var expected in table.Columns)
+            {
+                if (!columns.TryGetValue(expected.Name, out var actual) ||
+                    actual.Affinity != expected.Affinity ||
+                    actual.NotNull != expected.NotNull ||
+                    actual.PrimaryKey != expected.PrimaryKey)
+                {
+                    throw new InvalidDataException($"Database column '{table.Name}.{expected.Name}' failed schema validation.");
+                }
+            }
+        }
+
+        foreach (var requiredIndex in RequiredIndexes)
+        {
+            var indexes = await ReadIndexesAsync(connection, requiredIndex.Table, cancellationToken)
+                .ConfigureAwait(false);
+            if (!indexes.Any(index =>
+                    (requiredIndex.Name is null || string.Equals(index.Name, requiredIndex.Name, StringComparison.Ordinal)) &&
+                    index.IsUnique == requiredIndex.IsUnique &&
+                    index.Columns.SequenceEqual(requiredIndex.Columns, StringComparer.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException($"Required database index on '{requiredIndex.Table}' is missing.");
+            }
+        }
+
+        var foreignKeys = await ReadForeignKeysAsync(connection, cancellationToken).ConfigureAwait(false);
+        var expectedForeignKeys = RequiredForeignKeys
+            .Select(foreignKey => foreignKey.ToKey())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!foreignKeys.SetEquals(expectedForeignKeys))
+        {
+            throw new InvalidDataException("Database foreign-key schema validation failed.");
         }
     }
+
+    private static async Task<HashSet<string>> ReadTableNamesAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT name FROM sqlite_master WHERE type = 'table';";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add(reader.GetString(0));
+        }
+
+        return result;
+    }
+
+    private static async Task<Dictionary<string, ColumnDescriptor>> ReadColumnsAsync(
+        SqliteConnection connection,
+        string table,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info('{EscapePragmaIdentifier(table)}');";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var result = new Dictionary<string, ColumnDescriptor>(StringComparer.Ordinal);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var name = reader.GetString(1);
+            var declaredType = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+            result[name] = new ColumnDescriptor(
+                name,
+                GetAffinity(declaredType),
+                reader.GetInt32(3) != 0,
+                reader.GetInt32(5) != 0);
+        }
+
+        return result;
+    }
+
+    private static async Task<IReadOnlyList<IndexDescriptor>> ReadIndexesAsync(
+        SqliteConnection connection,
+        string table,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA index_list('{EscapePragmaIdentifier(table)}');";
+        var indexHeaders = new List<(string Name, bool IsUnique)>();
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                indexHeaders.Add((reader.GetString(1), reader.GetInt32(2) != 0));
+            }
+        }
+
+        var result = new List<IndexDescriptor>(indexHeaders.Count);
+        foreach (var (name, isUnique) in indexHeaders)
+        {
+            var columns = await ReadIndexColumnsAsync(connection, name, cancellationToken).ConfigureAwait(false);
+            result.Add(new IndexDescriptor(table, name, isUnique, columns));
+        }
+
+        return result;
+    }
+
+    private static async Task<IReadOnlyList<string>> ReadIndexColumnsAsync(
+        SqliteConnection connection,
+        string index,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA index_info('{EscapePragmaIdentifier(index)}');";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var result = new List<string>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add(reader.IsDBNull(2) ? string.Empty : reader.GetString(2));
+        }
+
+        return result;
+    }
+
+    private static async Task<HashSet<string>> ReadForeignKeysAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var table in RequiredTables)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"PRAGMA foreign_key_list('{EscapePragmaIdentifier(table.Name)}');";
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                result.Add(string.Join(
+                    "|",
+                    table.Name,
+                    reader.GetString(3),
+                    reader.GetString(2),
+                    reader.GetString(4),
+                    reader.GetString(6).ToUpperInvariant()));
+            }
+        }
+
+        return result;
+    }
+
+    private static string EscapePragmaIdentifier(string value) => value.Replace("'", "''", StringComparison.Ordinal);
+
+    private static string GetAffinity(string declaredType)
+    {
+        var type = declaredType.ToUpperInvariant();
+        if (type.Contains("INT", StringComparison.Ordinal))
+        {
+            return "INTEGER";
+        }
+
+        if (type.Contains("CHAR", StringComparison.Ordinal) ||
+            type.Contains("CLOB", StringComparison.Ordinal) ||
+            type.Contains("TEXT", StringComparison.Ordinal))
+        {
+            return "TEXT";
+        }
+
+        if (type.Contains("BLOB", StringComparison.Ordinal) || type.Length == 0)
+        {
+            return "BLOB";
+        }
+
+        if (type.Contains("REAL", StringComparison.Ordinal) ||
+            type.Contains("FLOA", StringComparison.Ordinal) ||
+            type.Contains("DOUB", StringComparison.Ordinal))
+        {
+            return "REAL";
+        }
+
+        return "NUMERIC";
+    }
+
+    private readonly record struct TableDescriptor(
+        string Name,
+        IReadOnlyList<ColumnDescriptor> Columns);
+
+    private readonly record struct ColumnDescriptor(
+        string Name,
+        string Affinity,
+        bool NotNull,
+        bool PrimaryKey);
+
+    private readonly record struct IndexDescriptor(
+        string Table,
+        string? Name,
+        bool IsUnique,
+        IReadOnlyList<string> Columns);
+
+    private readonly record struct ForeignKeyDescriptor(
+        string Table,
+        string From,
+        string PrincipalTable,
+        string PrincipalColumn,
+        string OnDelete)
+    {
+        public string ToKey() =>
+            string.Join("|", Table, From, PrincipalTable, PrincipalColumn, OnDelete);
+    }
+
 }

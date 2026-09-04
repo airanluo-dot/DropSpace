@@ -7,10 +7,13 @@ public enum OverlayShapeMode
 }
 
 /// <summary>
-/// The only geometry identity that can cause a native HRGN update. Keeping it value-based makes
-/// deduplication deterministic and prevents a steady compositor frame from allocating GDI regions.
+/// The complete physical identity that can cause a native HRGN update. It includes the client
+/// origin because SetWindowRgn and the visible surface must remain identical after scale pulses,
+/// monitor relocation, and mixed-DPI transitions.
 /// </summary>
 public readonly record struct OverlayRegionSignature(
+    int LeftPixels,
+    int TopPixels,
     int WidthPixels,
     int HeightPixels,
     int TopRadiusPixels,
@@ -18,9 +21,19 @@ public readonly record struct OverlayRegionSignature(
     int DpiMilliScale,
     OverlayShapeMode ShapeMode)
 {
-    public static OverlayRegionSignature Empty { get; } = new(0, 0, 0, 0, 0, OverlayShapeMode.Empty);
+    public static OverlayRegionSignature Empty { get; } = new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        OverlayShapeMode.Empty);
 
     public static OverlayRegionSignature Create(
+        int leftPixels,
+        int topPixels,
         double widthDip,
         double heightDip,
         double topRadiusDip,
@@ -30,6 +43,8 @@ public readonly record struct OverlayRegionSignature(
     {
         var scale = double.IsFinite(dpiScale) && dpiScale > 0 ? dpiScale : 1;
         return new OverlayRegionSignature(
+            leftPixels,
+            topPixels,
             DipToPixels(widthDip, scale),
             DipToPixels(heightDip, scale),
             DipToPixels(topRadiusDip, scale),
@@ -38,7 +53,19 @@ public readonly record struct OverlayRegionSignature(
             shapeMode);
     }
 
-    public bool IsEmpty => ShapeMode == OverlayShapeMode.Empty || WidthPixels <= 0 || HeightPixels <= 0;
+    public static OverlayRegionSignature Create(
+        double widthDip,
+        double heightDip,
+        double topRadiusDip,
+        double bottomRadiusDip,
+        double dpiScale,
+        OverlayShapeMode shapeMode = OverlayShapeMode.AsymmetricRounded) =>
+        Create(0, 0, widthDip, heightDip, topRadiusDip, bottomRadiusDip, dpiScale, shapeMode);
+
+    public bool IsEmpty =>
+        ShapeMode == OverlayShapeMode.Empty ||
+        WidthPixels <= 0 ||
+        HeightPixels <= 0;
 
     private static int DipToPixels(double dip, double scale)
     {

@@ -1,6 +1,7 @@
 namespace DropSpace.Core.DragDrop;
 
 [Flags]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711", Justification = "The Flags suffix is part of the established drag evidence protocol contract.")]
 public enum DragEvidenceFlags
 {
     None = 0,

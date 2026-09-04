@@ -48,6 +48,7 @@ public sealed record ItemSelectionSnapshot(IReadOnlyList<DropItemSnapshot> Items
 {
     public bool IsEmpty => Items.Count == 0;
     public bool IsSingle => Items.Count == 1;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1720", Justification = "Single is the established public selector in the item selection contract.")]
     public DropItemSnapshot Single => IsSingle
         ? Items[0]
         : throw new InvalidOperationException("The selection does not contain exactly one item.");

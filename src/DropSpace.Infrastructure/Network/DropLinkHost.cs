@@ -36,14 +36,17 @@ public sealed record IncomingHandoffOffer(
 public sealed class DropLinkHost(
     AppStoragePaths paths,
     DeviceIdentityStore identities,
-    DeviceSecretStore secrets,
     DropLinkPairingService pairing,
     TransferRepository transfers,
-    ILogger<DropLinkHost> logger) : IAsyncDisposable
+    ILogger<DropLinkHost> logger,
+    DropLinkNonceCache usedNonces) : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, ReceiveTransfer> _sessions = new();
-    private readonly DropLinkNonceCache _usedNonces = new();
-    private readonly ConcurrentDictionary<Guid, DateTimeOffset> _usedHandoffSessions = new();
+    private readonly DropLinkNonceCache _usedNonces = usedNonces;
+    private readonly DropLinkReplayCache _usedHandoffSessions = new();
+    private readonly object _sessionAdmissionGate = new();
+    private CancellationTokenSource _sessionLifetimeCancellation = new();
+    private Task? _sessionLifetimeTask;
     private readonly ConcurrentDictionary<Guid, Task> _offerNotificationTasks = new();
     private readonly object _offerNotificationGate = new();
     private CancellationTokenSource _offerNotificationCancellation = new();
@@ -78,7 +81,7 @@ public sealed class DropLinkHost(
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.AddServerHeader = false;
-            options.Limits.MaxRequestBodySize = TransferLimits.DefaultChunkBytes + 64 * 1024;
+            options.Limits.MaxRequestBodySize = DropLinkProtocolPolicy.MaximumAuthenticatedBodyBytes;
             var bindAddress = TryGetPrivateAddress() is { } privateAddress
                 ? IPAddress.Parse(privateAddress)
                 : IPAddress.Loopback;
@@ -86,6 +89,7 @@ public sealed class DropLinkHost(
         });
         builder.Logging.ClearProviders();
         var app = builder.Build();
+        app.UseMiddleware<DropLinkAuthenticationMiddleware>();
         MapRoutes(app);
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
@@ -102,13 +106,14 @@ public sealed class DropLinkHost(
         _endpoint = TryGetPrivateAddress() is { } privateAddress
             ? new Uri(string.Concat("https://", privateAddress, ":", uri.Port, "/"))
             : uri;
+        StartSessionLifetimeLoop();
         logger.LogInformation("DropLink host started on port {Port} with protocol {Protocol}.", uri.Port, DropLinkProtocolVersion.V1);
         return _endpoint!;
     }
 
     private void MapRoutes(WebApplication app)
     {
-        app.MapGet("/v1/device", () => Results.Json(new DeviceDescriptor(
+        app.MapGet(DropLinkProtocolRoutes.Device, () => Results.Json(new DeviceDescriptor(
             DropLinkProtocolVersion.V1,
             _identity!.DeviceId,
             _identity.DisplayName,
@@ -119,22 +124,27 @@ public sealed class DropLinkHost(
             _identity.Fingerprint,
             _endpoint ?? throw new InvalidOperationException("The DropLink host has not started."))));
 
-        app.MapPost("/v1/pairing/hello", async (PairingHello hello, CancellationToken cancellationToken) =>
+        app.MapPost(DropLinkProtocolRoutes.PairingHello, async (HttpContext context, PairingHello hello, CancellationToken cancellationToken) =>
         {
             try
             {
                 ArgumentNullException.ThrowIfNull(hello);
-                var offer = await pairing.AcceptHelloAsync(hello, PeerCapability.HandoffFiles | PeerCapability.HandoffFolders |
+                var offer = await pairing.AcceptHelloAsync(
+                    hello,
+                    PeerCapability.HandoffFiles | PeerCapability.HandoffFolders |
                     PeerCapability.HandoffText | PeerCapability.HandoffUrl | PeerCapability.ClipboardText |
-                    PeerCapability.ClipboardUrl | PeerCapability.ClipboardImage, cancellationToken).ConfigureAwait(false);
-                _pendingPeers[offer.SessionId] = new PendingPeer(
-                    offer.RemoteHello,
-                    offer.LocalHello,
-                    offer.Sas,
-                    offer.ExpiresAtUtc,
-                    new PeerDevice(hello.DeviceId, hello.DisplayName, hello.Platform, hello.IdentityFingerprint, hello.Capabilities,
-                        PeerTrustState.Pairing, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+                    PeerCapability.ClipboardUrl | PeerCapability.ClipboardImage,
+                    cancellationToken,
+                    context.Connection.RemoteIpAddress?.ToString()).ConfigureAwait(false);
                 return Results.Json(offer);
+            }
+            catch (PairingAdmissionException admission)
+            {
+                logger.LogWarning(
+                    "DropLink pairing admission rejected with category {ErrorCategory}; pendingCount={PendingCount}.",
+                    admission.ErrorCategory,
+                    pairing.PendingCount);
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             }
             catch (Exception exception) when (exception is ArgumentNullException or InvalidDataException or CryptographicException or InvalidOperationException or FormatException)
             {
@@ -142,7 +152,7 @@ public sealed class DropLinkHost(
             }
         });
 
-        app.MapPost("/v1/pairing/confirm", async (PairingConfirmationRequest request, CancellationToken cancellationToken) =>
+        app.MapPost(DropLinkProtocolRoutes.PairingConfirm, async (PairingConfirmationRequest request, CancellationToken cancellationToken) =>
         {
             var pendingSessionId = Guid.Empty;
             var pendingSas = 0;
@@ -150,7 +160,7 @@ public sealed class DropLinkHost(
             {
                 ArgumentNullException.ThrowIfNull(request);
                 pendingSessionId = request.SessionId;
-                if (!_pendingPeers.TryRemove(request.SessionId, out var pending))
+                if (!pairing.TryGetPendingOffer(request.SessionId, out var pending))
                 {
                     return Results.Json(new PairingConfirmationResponse(false, Guid.Empty, PairingState.Failed, "pairing-state-missing"));
                 }
@@ -162,7 +172,12 @@ public sealed class DropLinkHost(
                     var locallyConfirmed = handlers is not null && handlers.Length > 0;
                     if (locallyConfirmed)
                     {
-                        var incoming = new IncomingPairingOffer(request.SessionId, pending.RemoteHello, pending.LocalHello, pending.Sas, pending.ExpiresAtUtc);
+                        var incoming = new IncomingPairingOffer(
+                            request.SessionId,
+                            pending.RemoteHello,
+                            pending.LocalHello,
+                            pending.Sas,
+                            pending.ExpiresAtUtc);
                         foreach (var handler in handlers!.Cast<Func<IncomingPairingOffer, CancellationToken, Task<bool>>>())
                         {
                             locallyConfirmed &= await handler(incoming, cancellationToken).ConfigureAwait(false);
@@ -176,13 +191,26 @@ public sealed class DropLinkHost(
                     };
                 }
 
-                var result = await pairing.ConfirmAsync(request.SessionId, request.Sas, request.Confirmed, request.Decision, cancellationToken).ConfigureAwait(false);
+                var result = await pairing.ConfirmAsync(
+                    request.SessionId,
+                    request.Sas,
+                    request.Confirmed,
+                    request.Decision,
+                    cancellationToken).ConfigureAwait(false);
                 if (!result.Trusted)
                 {
                     return Results.Json(new PairingConfirmationResponse(false, result.PeerId, result.State, result.ErrorCategory));
                 }
 
-                var peer = pending.Peer with { TrustState = PeerTrustState.Trusted, LastSeenAtUtc = DateTimeOffset.UtcNow };
+                var peer = new PeerDevice(
+                    pending.RemoteHello.DeviceId,
+                    pending.RemoteHello.DisplayName,
+                    pending.RemoteHello.Platform,
+                    pending.RemoteHello.IdentityFingerprint,
+                    pending.RemoteHello.Capabilities,
+                    PeerTrustState.Trusted,
+                    DateTimeOffset.UtcNow,
+                    DateTimeOffset.UtcNow);
                 await transfers.UpsertPeerAsync(peer, peer.Id.ToString("N"), cancellationToken).ConfigureAwait(false);
                 return Results.Json(new PairingConfirmationResponse(true, peer.Id, PairingState.Trusted, null));
             }
@@ -192,20 +220,31 @@ public sealed class DropLinkHost(
                 {
                     try
                     {
-                        await pairing.ConfirmAsync(pendingSessionId, pendingSas, false, PairingDecision.Reject, CancellationToken.None).ConfigureAwait(false);
+                        await pairing.ConfirmAsync(
+                            pendingSessionId,
+                            pendingSas,
+                            false,
+                            PairingDecision.Reject,
+                            CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (Exception cleanupException) when (cleanupException is InvalidOperationException or IOException or UnauthorizedAccessException)
                     {
                         logger.LogDebug(cleanupException, "Pairing cleanup could not settle session {SessionId}.", pendingSessionId);
                     }
                 }
+
                 return Results.Json(new PairingConfirmationResponse(false, Guid.Empty, PairingState.Failed, "pairing-failed"));
             }
         });
 
-        app.MapPost("/v1/clipboard", async (HttpContext context, ClipboardSyncRequest request, CancellationToken cancellationToken) =>
+        app.MapPost(DropLinkProtocolRoutes.Clipboard, async (HttpContext context, ClipboardSyncRequest request, CancellationToken cancellationToken) =>
         {
-            if (!await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
+            if (request is null ||
+                !await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
             try
             {
                 ClipboardEnvelopePolicy.Validate(request.Envelope);
@@ -238,28 +277,34 @@ public sealed class DropLinkHost(
             }
         });
 
-        app.MapPost("/v1/handoff/text", async (HttpContext context, HandoffMessageRequest request, CancellationToken cancellationToken) =>
+        app.MapPost(DropLinkProtocolRoutes.HandoffText, async (HttpContext context, HandoffMessageRequest request, CancellationToken cancellationToken) =>
         {
-            if (request is null || request.Message is null ||
-                !Guid.TryParse(context.Request.Headers["X-DropLink-Device"].ToString(), out var authenticatedPeer) ||
-                request.PeerId != authenticatedPeer || request.Message.SenderDeviceId != request.PeerId ||
-                !await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
+            if (request is null ||
+                !await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
             try
             {
+                if (request.Message is null || request.Message.SenderDeviceId != request.PeerId)
+                {
+                    return Results.BadRequest(new { error = "handoff-origin-mismatch" });
+                }
+
                 HandoffMessagePolicy.Validate(request.Message);
                 var now = DateTimeOffset.UtcNow;
-                foreach (var entry in _usedHandoffSessions.Where(entry => now - entry.Value > TimeSpan.FromMinutes(10)))
-                {
-                    _usedHandoffSessions.TryRemove(entry.Key, out _);
-                }
-                if (request.Message.CreatedAtUtc < now.AddMinutes(-10) || request.Message.CreatedAtUtc > now.AddMinutes(1))
+                if (request.Message.CreatedAtUtc < now - DropLinkProtocolPolicy.HandoffReplayRetention ||
+                    request.Message.CreatedAtUtc > now + DropLinkProtocolPolicy.HandoffMaximumFutureSkew)
                 {
                     return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "expired"));
                 }
-                if (!_usedHandoffSessions.TryAdd(request.Message.SessionId, now))
+
+                if (!_usedHandoffSessions.TryReserve(request.PeerId, request.Message.SessionId, now))
                 {
                     return Results.Json(new HandoffMessageResponse(request.Message.SessionId, false, "duplicate-session"));
                 }
+
                 var handlers = HandoffOffered?.GetInvocationList();
                 if (handlers is null || handlers.Length == 0)
                 {
@@ -284,134 +329,319 @@ public sealed class DropLinkHost(
             }
         });
 
-        app.MapPost("/v1/transfers/offers", async (HttpContext context, TransferOfferRequest request, CancellationToken cancellationToken) =>
+        app.MapPost(DropLinkProtocolRoutes.TransferOffers, async (HttpContext context, TransferOfferRequest request, CancellationToken cancellationToken) =>
         {
-            if (!Guid.TryParse(context.Request.Headers["X-DropLink-Device"].ToString(), out var authenticatedPeer) || request.PeerId != authenticatedPeer ||
-                !await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
+            if (request is null ||
+                !await AuthorizeAsync(context, cancellationToken, request.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
             try
             {
                 TransferManifestPolicy.Validate(request.Manifest);
-                var session = new TransferSession(request.Manifest.SessionId, TransferDirection.Receive, TransferMode.Handoff, request.PeerId,
-                    TransferSessionState.AwaitingApproval, DateTimeOffset.UtcNow, null, request.Manifest.Items.Count, request.Manifest.TotalBytes, 0, null);
+                await SweepSessionsAsync(cancellationToken).ConfigureAwait(false);
+
+                var session = new TransferSession(
+                    request.Manifest.SessionId,
+                    TransferDirection.Receive,
+                    TransferMode.Handoff,
+                    request.PeerId,
+                    TransferSessionState.AwaitingApproval,
+                    DateTimeOffset.UtcNow,
+                    null,
+                    request.Manifest.Items.Count,
+                    request.Manifest.TotalBytes,
+                    0,
+                    null);
                 var staging = Path.Combine(paths.Staging, "transfers", request.Manifest.SessionId.ToString("N"));
                 Directory.CreateDirectory(staging);
-                var receive = new ReceiveTransfer(session, request.Manifest, staging, GetReceiveRoot(), new ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>>());
-                if (!_sessions.TryAdd(session.Id, receive)) return Results.Conflict(new { error = "session-exists" });
-                await transfers.CreateSessionAsync(session, cancellationToken).ConfigureAwait(false);
+                var receive = new ReceiveTransfer(
+                    session,
+                    request.Manifest,
+                    staging,
+                    GetReceiveRoot());
+
+                lock (_sessionAdmissionGate)
+                {
+                    if (_sessions.Count >= DropLinkSessionPolicy.MaximumActiveSessions)
+                    {
+                        receive.Dispose();
+                        TryDeleteDirectory(staging);
+                        return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+                    }
+
+                    if (!_sessions.TryAdd(session.Id, receive))
+                    {
+                        receive.Dispose();
+                        TryDeleteDirectory(staging);
+                        return Results.Conflict(new { error = "session-exists" });
+                    }
+                }
+
+                try
+                {
+                    await transfers.CreateSessionAsync(session, cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    if (_sessions.TryRemove(session.Id, out var removed))
+                    {
+                        removed.Dispose();
+                    }
+
+                    TryDeleteDirectory(staging);
+                    throw;
+                }
+
                 QueueTransferOfferNotification(
                     new IncomingTransferOffer(session.Id, request.PeerId, request.Manifest));
                 return Results.Json(new TransferOfferResponse(session.Id, session.State, null));
             }
             catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
             {
-                logger.LogWarning("DropLink offer rejected with category {ErrorCategory}.", exception.GetType().Name);
+                logger.LogWarning(exception, "DropLink offer rejected with category {ErrorCategory}.", exception.GetType().Name);
                 return Results.BadRequest(new { error = "offer-invalid" });
             }
         });
 
-        app.MapPost("/v1/transfers/{sessionId:guid}/accept", async (HttpContext context, Guid sessionId, TransferAcceptRequest request, CancellationToken cancellationToken) =>
+        app.MapPost(DropLinkProtocolRoutes.TransferAcceptTemplate, async (HttpContext context, Guid sessionId, TransferAcceptRequest request, CancellationToken cancellationToken) =>
         {
-            if (!_sessions.TryGetValue(sessionId, out var receive)) return Results.NotFound();
-            if (!await AuthorizeAsync(context, cancellationToken, receive.Session.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
-            receive.Session = receive.Session with
+            if (request is null || !_sessions.TryGetValue(sessionId, out var receive))
             {
-                State = request.Accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
-                ErrorCategory = request.Accepted ? null : "rejected",
-            };
-            await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-            return Results.Json(new TransferStatusResponse(sessionId, receive.Session.State, receive.Session.TransferredBytes, SnapshotChunks(receive), receive.CompletedPaths.ToArray(), receive.Session.ErrorCategory));
-        });
-
-        app.MapGet("/v1/transfers/{sessionId:guid}/status", async (HttpContext context, Guid sessionId, CancellationToken cancellationToken) =>
-        {
-            if (!_sessions.TryGetValue(sessionId, out var receive)) return Results.NotFound();
-            if (!await AuthorizeAsync(context, cancellationToken, receive.Session.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
-            return Results.Json(new TransferStatusResponse(sessionId, receive.Session.State, receive.Session.TransferredBytes, SnapshotChunks(receive), receive.CompletedPaths.ToArray(), receive.Session.ErrorCategory));
-        });
-
-        app.MapPost("/v1/transfers/{sessionId:guid}/cancel", async (HttpContext context, Guid sessionId, CancellationToken cancellationToken) =>
-        {
-            if (!_sessions.TryGetValue(sessionId, out var receive)) return Results.NotFound();
-            if (!await AuthorizeAsync(context, cancellationToken, receive.Session.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
-            if (receive.Session.State is TransferSessionState.Completed or TransferSessionState.Rejected or TransferSessionState.Cancelled or TransferSessionState.Failed)
-            {
-                return Results.Json(new TransferStatusResponse(sessionId, receive.Session.State, receive.Session.TransferredBytes, SnapshotChunks(receive), receive.CompletedPaths.ToArray(), receive.Session.ErrorCategory));
+                return request is null ? Results.BadRequest(new { error = "accept-invalid" }) : Results.NotFound();
             }
 
-            receive.Session = receive.Session with { State = TransferSessionState.Cancelled, ErrorCategory = "cancelled" };
-            await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-            return Results.Json(new TransferStatusResponse(sessionId, receive.Session.State, receive.Session.TransferredBytes, SnapshotChunks(receive), receive.CompletedPaths.ToArray(), receive.Session.ErrorCategory));
-        });
-
-        app.MapPut("/v1/transfers/{sessionId:guid}/items/{itemId:guid}/chunks/{index:int}", async (HttpContext context, Guid sessionId, Guid itemId, int index, CancellationToken cancellationToken) =>
-        {
-            if (!_sessions.TryGetValue(sessionId, out var receive)) return Results.NotFound();
-            if (!await AuthorizeAsync(context, cancellationToken, receive.Session.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
-            if (receive.Session.State != TransferSessionState.Accepted && receive.Session.State != TransferSessionState.Transferring)
+            if (!await AuthorizeAsync(context, cancellationToken, receive.PeerId).ConfigureAwait(false))
             {
-                return Results.Conflict(new { error = "transfer-not-accepted" });
-            }
-            var item = receive.Manifest.Items.FirstOrDefault(candidate => candidate.Id == itemId);
-            if (item is null || index < 0 || item.ChunkCount is not null && index >= item.ChunkCount.Value) return Results.BadRequest(new { error = "chunk-invalid" });
-            var contentLength = context.Request.ContentLength;
-            if (contentLength is null || contentLength < 0 || contentLength > TransferLimits.DefaultChunkBytes + 64 * 1024)
-            {
-                return Results.BadRequest(new { error = "chunk-length-invalid" });
+                return Results.Unauthorized();
             }
 
-            var partPath = Path.Combine(receive.StagingRoot, string.Concat(itemId.ToString("N"), ".", index, ".part"));
-            await using (var output = new FileStream(partPath, FileMode.Create, FileAccess.Write, FileShare.None, 81_920, FileOptions.Asynchronous | FileOptions.WriteThrough))
-            {
-                await context.Request.Body.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
-                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
-            var length = new FileInfo(partPath).Length;
-            if (length != contentLength.Value) return Results.BadRequest(new { error = "chunk-length-mismatch" });
-            var hash = await HashFileAsync(partPath, cancellationToken).ConfigureAwait(false);
-            var expectedHash = context.Request.Headers["X-DropLink-Chunk-SHA256"].ToString();
-            var chunkMatches = false;
+            await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                chunkMatches = !string.IsNullOrWhiteSpace(expectedHash) && CryptographicOperations.FixedTimeEquals(Convert.FromHexString(hash), Convert.FromHexString(expectedHash));
-            }
-            catch (FormatException) { }
-            if (!chunkMatches)
-            {
-                TryDelete(partPath);
-                return Results.BadRequest(new { error = "chunk-integrity" });
-            }
-
-            var itemChunks = receive.Chunks.GetOrAdd(itemId, _ => new ConcurrentDictionary<int, long>());
-            if (itemChunks.TryAdd(index, length))
-            {
-                receive.Session = receive.Session with { State = TransferSessionState.Transferring, TransferredBytes = receive.Session.TransferredBytes + length };
-                await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-            }
-            return Results.Ok(new { accepted = true, hash });
-        });
-
-        app.MapPost("/v1/transfers/{sessionId:guid}/complete", async (HttpContext context, Guid sessionId, CancellationToken cancellationToken) =>
-        {
-            if (!_sessions.TryGetValue(sessionId, out var receive)) return Results.NotFound();
-            if (!await AuthorizeAsync(context, cancellationToken, receive.Session.PeerId).ConfigureAwait(false)) return Results.Unauthorized();
-            try
-            {
-                receive.Session = receive.Session with { State = TransferSessionState.Verifying };
-                await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-                foreach (var item in receive.Manifest.Items)
+                if (receive.Session.State != TransferSessionState.AwaitingApproval)
                 {
-                    await CommitItemAsync(receive, item, cancellationToken).ConfigureAwait(false);
+                    return Results.Json(SnapshotUnsafe(receive));
                 }
 
-                receive.Session = receive.Session with { State = TransferSessionState.Completed, CompletedAtUtc = DateTimeOffset.UtcNow };
+                receive.Session = receive.Session with
+                {
+                    State = request.Accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
+                    ErrorCategory = request.Accepted ? null : "rejected",
+                };
+                receive.Touch();
                 await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-                return Results.Json(new TransferCompleteResponse(sessionId, receive.Session.State, receive.CompletedPaths.ToArray(), null));
+                return Results.Json(SnapshotUnsafe(receive));
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            finally
             {
-                receive.Session = receive.Session with { State = TransferSessionState.Failed, ErrorCategory = exception.GetType().Name };
-                await transfers.UpdateSessionAsync(receive.Session, CancellationToken.None).ConfigureAwait(false);
-                return Results.BadRequest(new TransferCompleteResponse(sessionId, receive.Session.State, receive.CompletedPaths.ToArray(), "integrity-or-commit-failed"));
+                receive.MutationGate.Release();
+            }
+        });
+
+        app.MapGet(DropLinkProtocolRoutes.TransferStatusTemplate, async (HttpContext context, Guid sessionId, CancellationToken cancellationToken) =>
+        {
+            if (!_sessions.TryGetValue(sessionId, out var receive))
+            {
+                return Results.NotFound();
+            }
+
+            if (!await AuthorizeAsync(context, cancellationToken, receive.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
+            return Results.Json(await SnapshotAsync(receive, cancellationToken).ConfigureAwait(false));
+        });
+
+        app.MapPost(DropLinkProtocolRoutes.TransferCancelTemplate, async (HttpContext context, Guid sessionId, CancellationToken cancellationToken) =>
+        {
+            if (!_sessions.TryGetValue(sessionId, out var receive))
+            {
+                return Results.NotFound();
+            }
+
+            if (!await AuthorizeAsync(context, cancellationToken, receive.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
+            await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (DropLinkSessionPolicy.IsTerminal(receive.Session.State))
+                {
+                    return Results.Json(SnapshotUnsafe(receive));
+                }
+
+                if (receive.Session.State == TransferSessionState.Verifying)
+                {
+                    return Results.Conflict(new { error = "transfer-finalizing" });
+                }
+
+                receive.Session = receive.Session with
+                {
+                    State = TransferSessionState.Cancelled,
+                    CompletedAtUtc = DateTimeOffset.UtcNow,
+                    ErrorCategory = "cancelled",
+                };
+                receive.Touch();
+                await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
+                return Results.Json(SnapshotUnsafe(receive));
+            }
+            finally
+            {
+                receive.MutationGate.Release();
+            }
+        });
+
+        app.MapPut(DropLinkProtocolRoutes.TransferChunkTemplate, async (HttpContext context, Guid sessionId, Guid itemId, int index, CancellationToken cancellationToken) =>
+        {
+            if (!_sessions.TryGetValue(sessionId, out var receive))
+            {
+                return Results.NotFound();
+            }
+
+            if (!await AuthorizeAsync(context, cancellationToken, receive.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
+            await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (receive.Session.State is not (TransferSessionState.Accepted or TransferSessionState.Transferring))
+                {
+                    return Results.Conflict(new { error = "transfer-not-accepted" });
+                }
+
+                var item = receive.Manifest.Items.FirstOrDefault(candidate => candidate.Id == itemId);
+                if (item is null ||
+                    index < 0 ||
+                    item.ChunkCount is null ||
+                    index >= item.ChunkCount.Value)
+                {
+                    return Results.BadRequest(new { error = "chunk-invalid" });
+                }
+
+                var expectedLength = Math.Min(
+                    TransferLimits.DefaultChunkBytes,
+                    item.Size - ((long)index * TransferLimits.DefaultChunkBytes));
+                if (expectedLength < 0 || context.Request.ContentLength != expectedLength)
+                {
+                    return Results.BadRequest(new { error = "chunk-length-invalid" });
+                }
+
+                if (receive.Chunks.TryGet(itemId, index, out var existingLength) &&
+                    File.Exists(Path.Combine(receive.StagingRoot, string.Concat(itemId.ToString("N"), ".", index, ".part"))))
+                {
+                    return Results.Ok(new { accepted = true, duplicate = true, length = existingLength });
+                }
+
+                var partPath = Path.Combine(
+                    receive.StagingRoot,
+                    string.Concat(itemId.ToString("N"), ".", index, ".part"));
+                string? temporaryPartPath = string.Concat(
+                    partPath,
+                    ".",
+                    Guid.NewGuid().ToString("N"),
+                    ".tmp");
+                try
+                {
+                    await using (var output = new FileStream(
+                        temporaryPartPath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None,
+                        81_920,
+                        FileOptions.Asynchronous | FileOptions.WriteThrough))
+                    {
+                        await context.Request.Body.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                        await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    var length = new FileInfo(temporaryPartPath).Length;
+                    if (length != expectedLength)
+                    {
+                        return Results.BadRequest(new { error = "chunk-length-mismatch" });
+                    }
+
+                    var hash = await HashFileAsync(temporaryPartPath, cancellationToken).ConfigureAwait(false);
+                    var expectedHash = context.Request.Headers[DropLinkProtocolHeaders.ChunkSha256].ToString();
+                    if (!DropLinkProtocolPolicy.IsLowerHexHash(expectedHash))
+                    {
+                        return Results.BadRequest(new { error = "chunk-integrity" });
+                    }
+
+                    bool chunkMatches;
+                    try
+                    {
+                        chunkMatches = CryptographicOperations.FixedTimeEquals(
+                            Convert.FromHexString(hash),
+                            Convert.FromHexString(expectedHash));
+                    }
+                    catch (FormatException)
+                    {
+                        chunkMatches = false;
+                    }
+
+                    if (!chunkMatches)
+                    {
+                        return Results.BadRequest(new { error = "chunk-integrity" });
+                    }
+
+                    File.Move(temporaryPartPath, partPath);
+                    temporaryPartPath = null;
+
+                    if (!receive.Chunks.TryAdd(itemId, index, length))
+                    {
+                        return Results.Ok(new { accepted = true, duplicate = true, length });
+                    }
+
+                    receive.Session = receive.Session with
+                    {
+                        State = TransferSessionState.Transferring,
+                        TransferredBytes = checked(receive.Session.TransferredBytes + length),
+                    };
+                    receive.Touch();
+                    await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
+                    return Results.Ok(new { accepted = true, duplicate = false, hash, length });
+                }
+                finally
+                {
+                    if (temporaryPartPath is not null)
+                    {
+                        TryDelete(temporaryPartPath);
+                    }
+                }
+            }
+            finally
+            {
+                receive.MutationGate.Release();
+            }
+        });
+
+        app.MapPost(DropLinkProtocolRoutes.TransferCompleteTemplate, async (HttpContext context, Guid sessionId, CancellationToken cancellationToken) =>
+        {
+            if (!_sessions.TryGetValue(sessionId, out var receive))
+            {
+                return Results.NotFound();
+            }
+
+            if (!await AuthorizeAsync(context, cancellationToken, receive.PeerId).ConfigureAwait(false))
+            {
+                return Results.Unauthorized();
+            }
+
+            try
+            {
+                var result = await GetOrStartFinalizationTask(receive).WaitAsync(cancellationToken).ConfigureAwait(false);
+                return Results.Json(result);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return Results.StatusCode(499);
             }
         });
     }
@@ -422,14 +652,24 @@ public sealed class DropLinkHost(
         CancellationToken cancellationToken = default)
     {
         if (!_sessions.TryGetValue(sessionId, out var receive)) return false;
-        if (receive.Session.State != TransferSessionState.AwaitingApproval) return false;
-        receive.Session = receive.Session with
+
+        await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            State = accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
-            ErrorCategory = accepted ? null : "rejected",
-        };
-        await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
-        return true;
+            if (receive.Session.State != TransferSessionState.AwaitingApproval) return false;
+            receive.Session = receive.Session with
+            {
+                State = accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
+                ErrorCategory = accepted ? null : "rejected",
+            };
+            receive.Touch();
+            await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        finally
+        {
+            receive.MutationGate.Release();
+        }
     }
 
     private void QueueTransferOfferNotification(IncomingTransferOffer offer)
@@ -527,22 +767,260 @@ public sealed class DropLinkHost(
         }
     }
 
-    private async Task<bool> AuthorizeAsync(HttpContext context, CancellationToken cancellationToken, Guid? expectedPeerId = null)
+    private static Task<bool> AuthorizeAsync(
+        HttpContext context,
+        CancellationToken cancellationToken,
+        Guid? expectedPeerId = null)
     {
-        var deviceHeader = context.Request.Headers["X-DropLink-Device"].ToString();
-        var nonce = context.Request.Headers["X-DropLink-Nonce"].ToString();
-        var auth = context.Request.Headers["X-DropLink-Auth"].ToString();
-        if (!Guid.TryParse(deviceHeader, out var peerId) || expectedPeerId is not null && expectedPeerId != peerId || string.IsNullOrWhiteSpace(nonce) || string.IsNullOrWhiteSpace(auth)) return false;
-        var secret = await secrets.GetAsync(peerId, cancellationToken).ConfigureAwait(false);
-        if (secret is null) return false;
+        _ = cancellationToken;
+        if (!context.Items.TryGetValue(
+                DropLinkAuthenticationMiddleware.AuthenticatedPeerContextKey,
+                out var authenticatedPeerValue) ||
+            authenticatedPeerValue is not Guid authenticatedPeer ||
+            expectedPeerId is not null && expectedPeerId != authenticatedPeer)
+        {
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(true);
+    }
+
+    private static TransferStatusResponse SnapshotUnsafe(ReceiveTransfer receive) =>
+        new(
+            receive.Session.Id,
+            receive.Session.State,
+            receive.Session.TransferredBytes,
+            SnapshotChunks(receive),
+            receive.CompletedPaths.ToArray(),
+            receive.Session.ErrorCategory);
+
+    private static async Task<TransferStatusResponse> SnapshotAsync(
+        ReceiveTransfer receive,
+        CancellationToken cancellationToken)
+    {
+        await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            receive.Touch();
+            return SnapshotUnsafe(receive);
+        }
+        finally
+        {
+            receive.MutationGate.Release();
+        }
+    }
+
+    private static TransferCompleteResponse CompleteSnapshotUnsafe(ReceiveTransfer receive) =>
+        new(
+            receive.Session.Id,
+            receive.Session.State,
+            receive.CompletedPaths.ToArray(),
+            receive.Session.ErrorCategory);
+
+    private Task<TransferCompleteResponse> GetOrStartFinalizationTask(ReceiveTransfer receive) =>
+        receive.Finalization.GetOrStart(() => FinalizeTransferAsync(receive));
+
+    private async Task<TransferCompleteResponse> FinalizeTransferAsync(ReceiveTransfer receive)
+    {
+        await receive.FinalizationGate.WaitAsync(receive.LifetimeCancellation.Token).ConfigureAwait(false);
+        try
+        {
+            await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                if (DropLinkSessionPolicy.IsTerminal(receive.Session.State))
+                {
+                    return CompleteSnapshotUnsafe(receive);
+                }
+
+                if (receive.Session.State is not (TransferSessionState.Accepted or TransferSessionState.Transferring))
+                {
+                    return new TransferCompleteResponse(
+                        receive.Session.Id,
+                        receive.Session.State,
+                        receive.CompletedPaths.ToArray(),
+                        "transfer-not-accepted");
+                }
+
+                receive.Session = receive.Session with
+                {
+                    State = TransferSessionState.Verifying,
+                    ErrorCategory = null,
+                };
+                receive.Touch();
+                await transfers.UpdateSessionAsync(receive.Session, CancellationToken.None).ConfigureAwait(false);
+            }
+            finally
+            {
+                receive.MutationGate.Release();
+            }
+
+            foreach (var item in receive.Manifest.Items)
+            {
+                await CommitItemAsync(
+                    receive,
+                    item,
+                    receive.LifetimeCancellation.Token).ConfigureAwait(false);
+            }
+
+            await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                receive.Session = receive.Session with
+                {
+                    State = TransferSessionState.Completed,
+                    CompletedAtUtc = DateTimeOffset.UtcNow,
+                    ErrorCategory = null,
+                };
+                receive.Touch();
+                await transfers.UpdateSessionAsync(receive.Session, CancellationToken.None).ConfigureAwait(false);
+                return CompleteSnapshotUnsafe(receive);
+            }
+            finally
+            {
+                receive.MutationGate.Release();
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or OperationCanceledException)
+        {
+            logger.LogWarning(
+                exception,
+                "DropLink transfer finalization failed for session {SessionId}.",
+                receive.Session.Id);
+            return await MarkFinalizationFailedAsync(receive, exception).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<TransferCompleteResponse> MarkFinalizationFailedAsync(
+        ReceiveTransfer receive,
+        Exception exception)
+    {
+        await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            if (!DropLinkSessionPolicy.IsTerminal(receive.Session.State))
+            {
+                receive.Session = receive.Session with
+                {
+                    State = TransferSessionState.Failed,
+                    CompletedAtUtc = DateTimeOffset.UtcNow,
+                    ErrorCategory = exception.GetType().Name,
+                };
+                receive.Touch();
+                try
+                {
+                    await transfers.UpdateSessionAsync(receive.Session, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception persistenceException) when (
+                    persistenceException is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    logger.LogWarning(
+                        persistenceException,
+                        "DropLink failed to persist transfer failure for session {SessionId}.",
+                        receive.Session.Id);
+                }
+            }
+
+            return CompleteSnapshotUnsafe(receive);
+        }
+        finally
+        {
+            receive.MutationGate.Release();
+        }
+    }
+
+    private void StartSessionLifetimeLoop()
+    {
+        if (_sessionLifetimeCancellation.IsCancellationRequested)
+        {
+            _sessionLifetimeCancellation.Dispose();
+            _sessionLifetimeCancellation = new CancellationTokenSource();
+        }
+
+        if (_sessionLifetimeTask is null || _sessionLifetimeTask.IsCompleted)
+        {
+            _sessionLifetimeTask = RunSessionLifetimeLoopAsync(_sessionLifetimeCancellation.Token);
+        }
+    }
+
+    private async Task RunSessionLifetimeLoopAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(DropLinkSessionPolicy.SweepInterval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await SweepSessionsAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "DropLink session lifetime loop stopped unexpectedly.");
+        }
+    }
+
+    private async Task SweepSessionsAsync(CancellationToken cancellationToken)
+    {
         var now = DateTimeOffset.UtcNow;
-        if (!_usedNonces.TryReserve(peerId, nonce, now)) return false;
-        var bodyHash = context.Request.Headers["X-DropLink-Body-SHA256"].ToString();
-        if (string.IsNullOrWhiteSpace(bodyHash)) bodyHash = Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant();
-        var expected = DropLinkPairingService.ComputeAuth(secret, context.Request.Method, context.Request.Path.ToString(), nonce, bodyHash);
-        var valid = DropLinkPairingService.FixedTimeEquals(expected, auth);
-        if (!valid) _usedNonces.Remove(peerId, nonce);
-        return valid;
+        foreach (var receive in _sessions.Values.ToArray())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            TransferSession? persistedFailure = null;
+            var retire = false;
+
+            await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var state = receive.Session.State;
+                if (!DropLinkSessionPolicy.IsTerminal(state) &&
+                    state != TransferSessionState.Verifying &&
+                    now - receive.LastActivityUtc > DropLinkSessionPolicy.ActiveSessionLifetime)
+                {
+                    receive.Session = receive.Session with
+                    {
+                        State = TransferSessionState.Failed,
+                        CompletedAtUtc = now,
+                        ErrorCategory = "session-timeout",
+                    };
+                    receive.Touch();
+                    persistedFailure = receive.Session;
+                }
+                else if (DropLinkSessionPolicy.IsTerminal(state))
+                {
+                    var terminalAt = receive.Session.CompletedAtUtc ?? receive.LastActivityUtc;
+                    retire = now - terminalAt >= DropLinkSessionPolicy.RetentionFor(state);
+                }
+            }
+            finally
+            {
+                receive.MutationGate.Release();
+            }
+
+            if (persistedFailure is not null)
+            {
+                try
+                {
+                    await transfers.UpdateSessionAsync(persistedFailure, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (
+                    exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    logger.LogWarning(
+                        exception,
+                        "DropLink could not persist timeout for session {SessionId}.",
+                        persistedFailure.Id);
+                }
+            }
+
+            if (retire && _sessions.TryRemove(receive.Session.Id, out var removed))
+            {
+                removed.Dispose();
+                TryDeleteDirectory(removed.StagingRoot);
+            }
+        }
     }
 
     private string GetReceiveRoot()
@@ -563,13 +1041,11 @@ public sealed class DropLinkHost(
         .Select(value => value.Address.ToString())
         .FirstOrDefault();
 
-    private static IReadOnlyDictionary<Guid, IReadOnlyList<int>> SnapshotChunks(ReceiveTransfer receive) =>
-        receive.Chunks.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<int>)pair.Value.Keys.Order().ToArray());
+    private static IReadOnlyDictionary<Guid, IReadOnlyList<int>> SnapshotChunks(ReceiveTransfer receive) => receive.Chunks.Snapshot();
 
     private static async Task CommitItemAsync(ReceiveTransfer receive, TransferItemManifest item, CancellationToken cancellationToken)
     {
-        var chunks = receive.Chunks.GetValueOrDefault(item.Id);
-        if (item.ChunkCount is null || (chunks?.Count ?? 0) != item.ChunkCount.Value)
+        if (item.ChunkCount is null || receive.Chunks.GetItemCount(item.Id) != item.ChunkCount.Value)
         {
             throw new InvalidDataException("A transfer item is missing chunks.");
         }
@@ -597,7 +1073,7 @@ public sealed class DropLinkHost(
             throw new InvalidDataException("The completed transfer hash did not match the manifest.");
         }
         File.Move(temporary, destination, overwrite: false);
-        receive.CompletedPaths.Add(relative);
+        receive.CompletedPaths.Enqueue(relative);
     }
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)
@@ -621,56 +1097,147 @@ public sealed class DropLinkHost(
         {
             _offerNotificationCancellation.Dispose();
         }
+
+        _sessionLifetimeCancellation.Dispose();
     }
 
     public async Task StopAsync()
     {
-        CancellationTokenSource notificationCancellation;
         lock (_offerNotificationGate)
         {
-            notificationCancellation = _offerNotificationCancellation;
-            notificationCancellation.Cancel();
+            _offerNotificationCancellation.Cancel();
         }
         await AwaitOfferNotificationsAsync().ConfigureAwait(false);
+
+        _sessionLifetimeCancellation.Cancel();
+        var lifetimeTask = Interlocked.Exchange(ref _sessionLifetimeTask, null);
+        if (lifetimeTask is not null)
+        {
+            try
+            {
+                await lifetimeTask.ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+            {
+            }
+        }
 
         if (_app is not null)
         {
             await _app.StopAsync(CancellationToken.None).ConfigureAwait(false);
             await _app.DisposeAsync().ConfigureAwait(false);
         }
+
         _app = null;
         _endpoint = null;
-        foreach (var session in _sessions.Values)
+
+        var sessions = _sessions.Values.ToArray();
+        foreach (var session in sessions)
         {
-            try { Directory.Delete(session.StagingRoot, recursive: true); } catch (IOException) { }
+            session.CancelLifetime();
         }
-        _sessions.Clear();
-        _pendingPeers.Clear();
+
+        var finalizers = sessions
+            .Select(session => session.GetFinalizationTask())
+            .Where(task => task is not null)
+            .Cast<Task>()
+            .ToArray();
+        if (finalizers.Length > 0)
+        {
+            try
+            {
+                await Task.WhenAll(finalizers).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "DropLink transfer finalization did not settle cleanly during shutdown.");
+            }
+        }
+
+        foreach (var session in sessions)
+        {
+            if (_sessions.TryRemove(session.Session.Id, out var removed))
+            {
+                removed.Dispose();
+                TryDeleteDirectory(removed.StagingRoot);
+            }
+        }
+
         _usedNonces.Clear();
         _usedHandoffSessions.Clear();
     }
 
-    private sealed class ReceiveTransfer(
-        TransferSession session,
-        TransferManifest manifest,
-        string stagingRoot,
-        string destinationRoot,
-        ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>> chunks)
+    private void TryDeleteDirectory(string path)
     {
-        public TransferSession Session { get; set; } = session;
-        public TransferManifest Manifest { get; } = manifest;
-        public string StagingRoot { get; } = stagingRoot;
-        public string DestinationRoot { get; } = destinationRoot;
-        public ConcurrentDictionary<Guid, ConcurrentDictionary<int, long>> Chunks { get; } = chunks;
-        public List<string> CompletedPaths { get; } = [];
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(exception, "DropLink staging cleanup failed for {StagingPath}.", path);
+        }
     }
 
-    private readonly ConcurrentDictionary<Guid, PendingPeer> _pendingPeers = new();
+    private sealed class ReceiveTransfer : IDisposable
+    {
+        private readonly Guid _peerId;
+        private int _disposed;
 
-    private sealed record PendingPeer(
-        PairingHello RemoteHello,
-        PairingHello LocalHello,
-        int Sas,
-        DateTimeOffset ExpiresAtUtc,
-        PeerDevice Peer);
+        public ReceiveTransfer(
+            TransferSession session,
+            TransferManifest manifest,
+            string stagingRoot,
+            string destinationRoot)
+        {
+            _peerId = session.PeerId ?? throw new InvalidDataException("A receive transfer peer is required.");
+            Session = session;
+            Manifest = manifest;
+            StagingRoot = stagingRoot;
+            DestinationRoot = destinationRoot;
+            LastActivityUtc = session.CreatedAtUtc;
+        }
+
+        public TransferSession Session { get; set; }
+
+        public Guid PeerId => _peerId;
+
+        public TransferManifest Manifest { get; }
+
+        public string StagingRoot { get; }
+
+        public string DestinationRoot { get; }
+
+        public DropLinkChunkLedger Chunks { get; } = new();
+
+        public ConcurrentQueue<string> CompletedPaths { get; } = new();
+
+        public SemaphoreSlim MutationGate { get; } = new(1, 1);
+
+        public SemaphoreSlim FinalizationGate { get; } = new(1, 1);
+
+        public DropLinkSingleFlight<TransferCompleteResponse> Finalization { get; } = new();
+
+        public CancellationTokenSource LifetimeCancellation { get; } = new();
+
+        public DateTimeOffset LastActivityUtc { get; private set; }
+
+        public void Touch() => LastActivityUtc = DateTimeOffset.UtcNow;
+
+        public Task? GetFinalizationTask() => Finalization.CurrentTask;
+
+        public void CancelLifetime() => LifetimeCancellation.Cancel();
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            LifetimeCancellation.Cancel();
+            LifetimeCancellation.Dispose();
+            MutationGate.Dispose();
+            FinalizationGate.Dispose();
+        }
+    }
 }

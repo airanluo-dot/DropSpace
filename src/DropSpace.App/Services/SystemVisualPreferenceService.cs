@@ -1,27 +1,66 @@
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using Microsoft.UI.Dispatching;
 using Windows.UI.ViewManagement;
 
 namespace DropSpace.App.Services;
 
 /// <summary>
 /// Owns the process-wide Windows visual preference subscriptions used by transient surfaces.
-/// It deliberately keeps system settings out of the per-frame motion path.
+/// It deliberately keeps system settings out of the per-frame motion path and marshals every
+/// callback back to the owning UI dispatcher before changing visual consumers.
 /// </summary>
 public sealed class SystemVisualPreferenceService : IDisposable
 {
     private readonly UISettings _uiSettings = new();
     private readonly AccessibilitySettings _accessibilitySettings = new();
     private readonly IWindowsCapabilityService _capabilities;
+    private readonly DispatcherQueue? _dispatcher;
+    private DispatcherQueueTimer? _preferencePollTimer;
     private bool _highContrastSubscriptionActive;
     private bool _disposed;
 
-    public SystemVisualPreferenceService(IWindowsCapabilityService capabilities)
+    public SystemVisualPreferenceService(
+        IWindowsCapabilityService capabilities,
+        DispatcherQueue? dispatcher = null)
     {
         _capabilities = capabilities;
-        _uiSettings.AdvancedEffectsEnabledChanged += OnSystemVisualPreferenceChanged;
-        _uiSettings.ColorValuesChanged += OnSystemVisualPreferenceChanged;
+        _dispatcher = dispatcher;
+        TrySubscribePreferenceEvents();
+        Current = ReadPreferences(OverlayMotionPreference.System);
+        if (_dispatcher is not null)
+        {
+            _preferencePollTimer = _dispatcher.CreateTimer();
+            _preferencePollTimer.Interval = TimeSpan.FromMilliseconds(250);
+            _preferencePollTimer.IsRepeating = true;
+            _preferencePollTimer.Tick += OnPreferencePollTick;
+            _preferencePollTimer.Start();
+        }
+    }
+
+    public event EventHandler? Changed;
+
+    public OverlayVisualPreferences Current { get; private set; }
+
+    public OverlayVisualPreferences Resolve(OverlayMotionPreference preference) =>
+        ReadPreferences(preference);
+
+    public bool IsReducedMotion(OverlayMotionPreference preference) =>
+        Resolve(preference).ReducedMotion;
+
+    private void TrySubscribePreferenceEvents()
+    {
+        try
+        {
+            _uiSettings.AdvancedEffectsEnabledChanged += OnSystemVisualPreferenceChanged;
+            _uiSettings.ColorValuesChanged += OnSystemVisualPreferenceChanged;
+        }
+        catch (Exception) when (OperatingSystem.IsWindows())
+        {
+            // A session-isolated shell may expose the value but not the event source.
+        }
+
         try
         {
             _accessibilitySettings.HighContrastChanged += OnSystemVisualPreferenceChanged;
@@ -29,23 +68,10 @@ public sealed class SystemVisualPreferenceService : IDisposable
         }
         catch (Exception) when (OperatingSystem.IsWindows())
         {
-            // Some headless/session-isolated Windows environments expose the value but
-            // do not provide an event source. The initial snapshot remains authoritative.
+            // Some headless/session-isolated Windows environments expose the value but do not
+            // provide an event source. The initial snapshot remains authoritative.
         }
-        Current = ReadPreferences(OverlayMotionPreference.System);
     }
-
-    public event EventHandler? Changed;
-
-    public OverlayVisualPreferences Current { get; private set; }
-
-    public OverlayVisualPreferences Resolve(OverlayMotionPreference preference)
-    {
-        var current = ReadPreferences(preference);
-        return current;
-    }
-
-    public bool IsReducedMotion(OverlayMotionPreference preference) => Resolve(preference).ReducedMotion;
 
     private OverlayVisualPreferences ReadPreferences(OverlayMotionPreference preference)
     {
@@ -72,14 +98,76 @@ public sealed class SystemVisualPreferenceService : IDisposable
             OverlayMotionPreference.Full => OverlayVisualPreferenceMode.Full,
             _ => animationsEnabled ? OverlayVisualPreferenceMode.Full : OverlayVisualPreferenceMode.Reduced,
         };
+
+        var acrylicSupported = false;
+        var compositionSupported = false;
+        var compositionFast = false;
+        var remoteSession = false;
+        try
+        {
+            var acrylic = _capabilities.Get(WindowsCapability.DesktopAcrylic);
+            var composition = _capabilities.Get(WindowsCapability.CompositionEffects);
+            acrylicSupported = acrylic.IsAvailable;
+            compositionSupported = composition.IsAvailable;
+            compositionFast = composition.IsFast;
+            remoteSession = acrylic.IsRemoteSession;
+        }
+        catch (Exception)
+        {
+            // Material selection is fail-closed when the optional capability broker is
+            // unavailable. Motion and the solid surface remain usable.
+        }
+
         return new OverlayVisualPreferences(
             motion,
             advancedEffectsEnabled,
             highContrast,
-            _capabilities.Snapshot.OperatingSystem.Build >= WindowsCompatibilityPolicy.Windows11Build);
+            _capabilities.Snapshot.OperatingSystem.Build >= WindowsCompatibilityPolicy.Windows11Build,
+            DesktopAcrylicSupported: acrylicSupported,
+            CompositionEffectsSupported: compositionSupported,
+            CompositionEffectsFast: compositionFast,
+            TransparencyEnabled: advancedEffectsEnabled,
+            IsRemoteSession: remoteSession);
     }
 
     private void OnSystemVisualPreferenceChanged(object? sender, object args)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_dispatcher is null || _dispatcher.HasThreadAccess)
+        {
+            PublishPreferenceChange();
+            return;
+        }
+
+        if (!_dispatcher.TryEnqueue(PublishPreferenceChange))
+        {
+            // Dispatcher shutdown is a safe no-op. Dispose owns the final lifecycle boundary and
+            // no preference callback may mutate UI after that boundary.
+        }
+    }
+
+    private void OnPreferencePollTick(DispatcherQueueTimer sender, object args)
+    {
+        _ = sender;
+        _ = args;
+        if (_disposed)
+        {
+            return;
+        }
+
+        var next = ReadPreferences(OverlayMotionPreference.System);
+        if (!next.Equals(Current))
+        {
+            Current = next;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void PublishPreferenceChange()
     {
         if (_disposed)
         {
@@ -98,6 +186,13 @@ public sealed class SystemVisualPreferenceService : IDisposable
         }
 
         _disposed = true;
+        if (_preferencePollTimer is not null)
+        {
+            _preferencePollTimer.Stop();
+            _preferencePollTimer.Tick -= OnPreferencePollTick;
+            _preferencePollTimer = null;
+        }
+
         _uiSettings.AdvancedEffectsEnabledChanged -= OnSystemVisualPreferenceChanged;
         _uiSettings.ColorValuesChanged -= OnSystemVisualPreferenceChanged;
         if (_highContrastSubscriptionActive)

@@ -154,6 +154,7 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
 {
     private readonly IOsVersionPolicy _osVersion;
     private readonly IApiAvailabilityService _api;
+    private const int SystemMetricRemoteSession = 0x1000;
     private readonly RuntimeDependencyState _runtimeDependency;
 
     public WindowsCapabilityService(
@@ -266,15 +267,41 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
     private WindowsCapabilityState GetDesktopAcrylic()
     {
         var transient = GetTransientSystemBackdrop();
-        return transient.IsAvailable
-            ? new WindowsCapabilityState(
-                WindowsCapability.DesktopAcrylic,
-                CompatibilityStatus.Available,
-                "Windows 11 supports DesktopAcrylicBackdrop for bounded transient surfaces.")
-            : new WindowsCapabilityState(
+        if (!transient.IsAvailable)
+        {
+            return new WindowsCapabilityState(
                 WindowsCapability.DesktopAcrylic,
                 transient.Status,
                 transient.Reason);
+        }
+
+        if (IsRemoteSession())
+        {
+            return new WindowsCapabilityState(
+                WindowsCapability.DesktopAcrylic,
+                CompatibilityStatus.BlockedByPolicy,
+                "Desktop Acrylic is disabled in an RDP session to keep the transient surface deterministic.",
+                IsRemoteSession: true);
+        }
+
+        try
+        {
+            var supported = Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported();
+            return new WindowsCapabilityState(
+                WindowsCapability.DesktopAcrylic,
+                supported ? CompatibilityStatus.Available : CompatibilityStatus.BlockedByPolicy,
+                supported
+                    ? "Desktop Acrylic is supported by the current Windows App SDK/DWM environment."
+                    : "The current Windows App SDK/DWM environment does not support Desktop Acrylic.");
+        }
+        catch (Exception exception) when (
+            exception is COMException or InvalidOperationException or TypeInitializationException or TypeLoadException)
+        {
+            return new WindowsCapabilityState(
+                WindowsCapability.DesktopAcrylic,
+                CompatibilityStatus.FailedRecoverably,
+                $"Desktop Acrylic capability probing failed safely: {exception.GetType().Name}.");
+        }
     }
 
     private WindowsCapabilityState GetCompositionEffects()
@@ -282,14 +309,55 @@ internal sealed class WindowsCapabilityService : IWindowsCapabilityService
         // The Windows.UI.Composition metadata probe is valid for the OS-backed
         // compositor. Microsoft.UI.Composition is a managed WinAppSDK surface and
         // must never be passed to Windows Runtime ApiInformation.
-        var available = _api.IsTypePresent("Windows.UI.Composition.Compositor");
-        return new WindowsCapabilityState(
-            WindowsCapability.CompositionEffects,
-            available ? CompatibilityStatus.Available : CompatibilityStatus.MissingRuntime,
-            available
-                ? "The Windows composition compositor is available for visual-only animation channels."
-                : "The optional composition compositor is not available; UI-thread animation remains the safe fallback.");
+        if (!_api.IsTypePresent("Windows.UI.Composition.Compositor"))
+        {
+            return new WindowsCapabilityState(
+                WindowsCapability.CompositionEffects,
+                CompatibilityStatus.MissingRuntime,
+                "The optional composition compositor is not available; UI-thread animation remains the safe fallback.");
+        }
+
+        try
+        {
+            var capabilities = new Microsoft.UI.Composition.CompositionCapabilities();
+            var supported = capabilities.AreEffectsSupported();
+            var fast = supported && capabilities.AreEffectsFast();
+            return new WindowsCapabilityState(
+                WindowsCapability.CompositionEffects,
+                supported ? CompatibilityStatus.Available : CompatibilityStatus.BlockedByPolicy,
+                supported
+                    ? $"Composition effects are supported; fastEffects={fast}."
+                    : "Composition effects are not supported in the current graphics environment.",
+                IsFast: fast);
+        }
+        catch (Exception exception) when (
+            exception is COMException or InvalidOperationException or TypeInitializationException or TypeLoadException)
+        {
+            return new WindowsCapabilityState(
+                WindowsCapability.CompositionEffects,
+                CompatibilityStatus.FailedRecoverably,
+                $"Composition capability probing failed safely: {exception.GetType().Name}.");
+        }
     }
+
+    private static bool IsRemoteSession()
+    {
+        try
+        {
+            return OperatingSystem.IsWindows() && GetSystemMetrics(SystemMetricRemoteSession) != 0;
+        }
+        catch (DllNotFoundException)
+        {
+            return false;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern int GetSystemMetrics(int index);
 
     private WindowsCapabilityState GetAdvancedMotion()
     {
@@ -345,4 +413,7 @@ internal static class WindowsCompatibilityErrorDialog
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern int MessageBox(nint window, string text, string caption, uint type);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
 }

@@ -42,19 +42,26 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
             DateTimeOffset.UtcNow);
         var statePath = Path.Combine(Path.GetDirectoryName(update.FilePath)!, "update-state.json");
         var temporaryPath = string.Concat(statePath, ".tmp");
-        await using (var stream = new FileStream(
-                         temporaryPath,
-                         FileMode.Create,
-                         FileAccess.Write,
-                         FileShare.None,
-                         16 * 1024,
-                         FileOptions.Asynchronous | FileOptions.WriteThrough))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, descriptor, Options, cancellationToken).ConfigureAwait(false);
-            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
+            await using (var stream = new FileStream(
+                             temporaryPath,
+                             FileMode.Create,
+                             FileAccess.Write,
+                             FileShare.None,
+                             16 * 1024,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await JsonSerializer.SerializeAsync(stream, descriptor, Options, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
 
-        File.Move(temporaryPath, statePath, true);
+            File.Move(temporaryPath, statePath, true);
+        }
+        finally
+        {
+            TryDeleteTemporary(temporaryPath);
+        }
     }
 
     public async Task MarkUpdatedLaunchAsync(
@@ -65,19 +72,26 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
         var markerPath = Path.Combine(paths.Updates, "last-update.json");
         var temporaryPath = string.Concat(markerPath, ".tmp");
         var marker = new UpdatedLaunchState(1, version.ToString(), DateTimeOffset.UtcNow);
-        await using (var stream = new FileStream(
-                         temporaryPath,
-                         FileMode.Create,
-                         FileAccess.Write,
-                         FileShare.None,
-                         4096,
-                         FileOptions.Asynchronous | FileOptions.WriteThrough))
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, marker, Options, cancellationToken).ConfigureAwait(false);
-            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
+            await using (var stream = new FileStream(
+                             temporaryPath,
+                             FileMode.Create,
+                             FileAccess.Write,
+                             FileShare.None,
+                             4096,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await JsonSerializer.SerializeAsync(stream, marker, Options, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
 
-        File.Move(temporaryPath, markerPath, true);
+            File.Move(temporaryPath, markerPath, true);
+        }
+        finally
+        {
+            TryDeleteTemporary(temporaryPath);
+        }
     }
 
     public async Task<(DownloadedUpdate Update, string State)?> LoadHighestAsync(
@@ -156,6 +170,25 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
         return candidates.Count == 0
             ? null
             : candidates.OrderByDescending(candidate => candidate.Update.Candidate.Manifest.Version).First();
+    }
+
+    private static void TryDeleteTemporary(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+            // Cleanup is best-effort and must not mask the state write result.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Cleanup is best-effort and must not mask the state write result.
+        }
     }
 
     private static string GetContainedPath(string root, string name)

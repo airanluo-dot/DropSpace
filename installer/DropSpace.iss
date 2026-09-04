@@ -119,7 +119,9 @@ const
   EventModifyState = $0002;
   SynchronizeAccess = $00100000;
   WaitObject0 = 0;
-  MaintenanceWaitMilliseconds = 15000;
+  MaintenanceWaitMilliseconds = 30000;
+  MaintenanceMutexReleasePollCount = 50;
+  MaintenanceMutexReleasePollIntervalMilliseconds = 100;
 
 var
   DeleteDataCheckBox: TNewCheckBox;
@@ -221,11 +223,11 @@ begin
 
   { The stopped event is signaled after managed disposal completes and immediately before
     process exit. Give the kernel a bounded moment to release the process-owned mutex. }
-  for Attempt := 1 to 50 do
+  for Attempt := 1 to MaintenanceMutexReleasePollCount do
   begin
     if not CheckForMutexes('Local\DropSpace.Running.v1') then
       Break;
-    Sleep(100);
+    Sleep(MaintenanceMutexReleasePollIntervalMilliseconds);
   end;
   Result := not CheckForMutexes('Local\DropSpace.Running.v1');
   if Result then

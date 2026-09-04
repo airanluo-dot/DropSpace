@@ -1,14 +1,24 @@
-const MAX_ITEMS = 100;
-const MAX_BYTES = 2 * 1024 * 1024 * 1024;
-const MAX_OBJECT_BYTES = 6 * 1024 * 1024;
-const CHUNK_PLAIN_BYTES = 5 * 1024 * 1024;
-const AUTH_TAG_BYTES = 16;
-const MAX_MANIFEST_BYTES = 512 * 1024;
-const MAX_TTL_SECONDS = 7 * 24 * 60 * 60;
-const MIN_TTL_SECONDS = 60;
-const RESERVATION_TTL_MS = 10 * 60 * 1000;
-const MAX_CHUNK_INDEX = Math.ceil(MAX_BYTES / CHUNK_PLAIN_BYTES) - 1;
-const MAX_COORDINATOR_OBJECTS = MAX_ITEMS + Math.ceil(MAX_BYTES / CHUNK_PLAIN_BYTES) + 1;
+import {
+  API_PREFIX,
+  AUTH_TAG_BYTES,
+  CHUNK_PLAIN_BYTES,
+  MANIFEST_NONCE_BYTES,
+  MANIFEST_OBJECT_NAME,
+  MAX_OBJECT_NAME_LENGTH,
+  SHARE_AAD_PREFIX,
+} from "./protocol.js";
+import {
+  MAX_BYTES,
+  MAX_CHUNK_INDEX,
+  MAX_CREATE_REQUEST_BYTES,
+  MAX_COORDINATOR_OBJECTS,
+  MAX_ITEMS,
+  MAX_MANIFEST_BYTES,
+  MAX_OBJECT_BYTES,
+  MAX_TTL_SECONDS,
+  MIN_TTL_SECONDS,
+  RESERVATION_TTL_MS,
+} from "./policy.js";
 
 export default {
   async fetch(request, env) {
@@ -16,11 +26,11 @@ export default {
     if (request.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
 
     try {
-      if (request.method === "POST" && url.pathname === "/v1/shares") return createShare(request, env);
-      const objectMatch = url.pathname.match(/^\/v1\/shares\/([0-9a-f]{32})\/objects\/([A-Za-z0-9._-]{1,180})$/);
+      if (request.method === "POST" && url.pathname === API_PREFIX + "/shares") return createShare(request, env);
+      const objectMatch = url.pathname.match(new RegExp("^" + API_PREFIX + "/shares/([0-9a-f]{32})/objects/([A-Za-z0-9._-]{1," + MAX_OBJECT_NAME_LENGTH + "})$"));
       if (objectMatch && request.method === "PUT") return putObject(request, env, objectMatch[1], objectMatch[2]);
       if (objectMatch && request.method === "GET") return getObject(request, env, objectMatch[1], objectMatch[2]);
-      const shareMatch = url.pathname.match(/^\/v1\/shares\/([0-9a-f]{32})$/);
+      const shareMatch = url.pathname.match(new RegExp("^" + API_PREFIX + "/shares/([0-9a-f]{32})$"));
       if (shareMatch && request.method === "DELETE") return revokeShare(request, env, shareMatch[1]);
       const receiverMatch = url.pathname.match(/^\/s\/([0-9a-f]{32})$/);
       if (receiverMatch && request.method === "GET") return receiverPage(env, receiverMatch[1], request);
@@ -36,7 +46,7 @@ export default {
 
 async function createShare(request, env) {
   requireHttps(request);
-  const body = await readJson(request, 16 * 1024);
+  const body = await readJson(request, MAX_CREATE_REQUEST_BYTES);
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new HttpError("request-invalid", 400);
   const shareId = String(body.shareId || "").replaceAll("-", "").toLowerCase();
   if (!/^[0-9a-f]{32}$/.test(shareId)) throw new HttpError("share-id-invalid", 400);
@@ -58,10 +68,10 @@ async function createShare(request, env) {
   }
   const origin = publicOrigin(env, request);
   return json({
-    uploadBaseUrl: origin + "/v1/shares/" + shareId + "/objects/",
+    uploadBaseUrl: origin + API_PREFIX + "/shares/" + shareId + "/objects/",
     downloadBaseUrl: origin,
     uploadAuthorization: "Bearer " + token,
-    revokeUrl: origin + "/v1/shares/" + shareId,
+    revokeUrl: origin + API_PREFIX + "/shares/" + shareId,
   });
 }
 
@@ -96,7 +106,7 @@ async function putObject(request, env, shareId, objectName) {
 }
 
 function describeUploadObject(objectName, length) {
-  if (objectName === "manifest.bin") {
+  if (objectName === MANIFEST_OBJECT_NAME) {
     if (length > MAX_MANIFEST_BYTES) throw new HttpError("manifest-too-large", 413);
     return { objectName, kind: "manifest", plainBytes: 0 };
   }
@@ -150,7 +160,7 @@ async function receiverPage(env, shareId, request) {
 
 
 function receiverScript(origin, shareId) {
-  return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('/v1/shares/${shareId}/objects/manifest.bin'),nonce=manifestBin.slice(0,12),tag=manifestBin.slice(-16),cipher=manifestBin.slice(12,-16),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('DropSpaceShare:v1\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
+  return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('${API_PREFIX}/shares/${shareId}/objects/${MANIFEST_OBJECT_NAME}'),nonce=manifestBin.slice(0,${MANIFEST_NONCE_BYTES}),tag=manifestBin.slice(-${AUTH_TAG_BYTES}),cipher=manifestBin.slice(${MANIFEST_NONCE_BYTES},-${AUTH_TAG_BYTES}),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('${SHARE_AAD_PREFIX}\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
 const SHA256_K = new Uint32Array([
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
@@ -263,10 +273,10 @@ async function download(id,master,item){
   let written = 0;
   try {
     for(let i=0;i<item.chunkCount;i++){
-      const packed=await get("/v1/shares/"+id+"/objects/"+item.fileId.replaceAll("-","")+"."+i+".bin"),cipher=packed.slice(0,-16),tag=packed.slice(-16),fileKey=await hkdf(master,uuidBytes(id),"file:"+item.fileId.replaceAll("-","")),nonce=new Uint8Array(12);
+      const packed=await get(API_PREFIX+"/shares/"+id+"/objects/"+item.fileId.replaceAll("-","")+"."+i+".bin"),cipher=packed.slice(0,-${AUTH_TAG_BYTES}),tag=packed.slice(-${AUTH_TAG_BYTES}),fileKey=await hkdf(master,uuidBytes(id),"file:"+item.fileId.replaceAll("-","")),nonce=new Uint8Array(${MANIFEST_NONCE_BYTES});
       nonce.set(fromB64(item.noncePrefix),0);
       new DataView(nonce.buffer).setUint32(8,i,false);
-      const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:nonce,additionalData:enc("DropSpaceShare:v1\\n"+id+"\\n"+item.fileId.replaceAll("-","")+"\\n"+i+"\\n"+Math.min(5*1024*1024,plainLength-i*5*1024*1024))},fileKey,concat(cipher,tag));
+      const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:nonce,additionalData:enc("${SHARE_AAD_PREFIX}\\n"+id+"\\n"+item.fileId.replaceAll("-","")+"\\n"+i+"\\n"+Math.min(${CHUNK_PLAIN_BYTES},plainLength-i*${CHUNK_PLAIN_BYTES}))},fileKey,concat(cipher,tag));
       const bytes=new Uint8Array(plain);
       written += bytes.length;
       if (written > plainLength) throw Error("decrypted file exceeds the declared length");
@@ -476,7 +486,7 @@ export class ShareUsageCoordinator {
   async reserve(current, body) {
     if (current.revoked || current.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
     const objectName = String(body.objectName || "");
-    const kind = objectName === "manifest.bin" ? "manifest" : "chunk";
+    const kind = objectName === MANIFEST_OBJECT_NAME ? "manifest" : "chunk";
     const plainBytes = Number(body.plainBytes);
     if (objectName.length < 1 || objectName.length > 180 ||
         !/^[A-Za-z0-9._-]+$/.test(objectName) ||

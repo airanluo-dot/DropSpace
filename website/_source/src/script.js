@@ -89,8 +89,13 @@ function isValidRelease(release) {
   if (!/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release?.tagName ?? "")) return false;
   if (release.htmlUrl !== `https://github.com/airanluo-dot/DropSpace/releases/tag/${release.tagName}`) return false;
   const names = new Set();
+  const kinds = new Set();
   return Array.isArray(release.assets) && release.assets.every((asset) =>
     Number.isSafeInteger(asset.size) && asset.size > 0 &&
+    (asset.kind === null || asset.kind === undefined ||
+      ["installer", "portable", "msix", "checksums", "manifest"].includes(asset.kind)) &&
+    (asset.kind === null || asset.kind === undefined ||
+      (!kinds.has(asset.kind) && kinds.add(asset.kind))) &&
     !names.has(asset.name) && names.add(asset.name) &&
     asset.downloadUrl === `https://github.com/airanluo-dot/DropSpace/releases/download/${release.tagName}/${asset.name}`);
 }
@@ -160,16 +165,13 @@ function applyLatestChange(release) {
 function applyCurrentReleases(releases) {
   const stable = releases.find((release) => !release.isDraft && !release.isPrerelease);
   if (!stable) return;
-  const assets = Object.fromEntries(stable.assets.map((asset) => [asset.name, asset.downloadUrl]));
-  const downloadNames = {
-    installer: "DropSpaceSetup.exe",
-    portable: "DropSpace.exe",
-    msix: "DropSpace-x64.msix",
-    checksums: "SHA256SUMS.txt"
-  };
-  for (const [kind, name] of Object.entries(downloadNames)) {
+  const assets = Object.fromEntries(
+    stable.assets
+      .filter((asset) => typeof asset.kind === "string")
+      .map((asset) => [asset.kind, asset.downloadUrl]));
+  for (const kind of ["installer", "portable", "msix", "checksums"]) {
     for (const link of document.querySelectorAll(`[data-download="${kind}"]`)) {
-      if (assets[name]) link.href = assets[name];
+      if (assets[kind]) link.href = assets[kind];
     }
   }
   document.querySelectorAll("[data-release-url]").forEach((link) => { link.href = stable.htmlUrl; });
@@ -207,7 +209,7 @@ function renderReleaseEntries(container, releases, zh) {
     });
     const actions = document.createElement("div");
     actions.className = "actions";
-    const installer = release.assets.find((asset) => asset.name === "DropSpaceSetup.exe");
+    const installer = release.assets.find((asset) => asset.kind === "installer");
     for (const [label, href, className] of [
       [zh ? "下载版本" : "Download release", installer?.downloadUrl ?? release.htmlUrl, "button button-primary"],
       [zh ? "完整发布说明" : "Full release notes", release.htmlUrl, "button button-ghost"]

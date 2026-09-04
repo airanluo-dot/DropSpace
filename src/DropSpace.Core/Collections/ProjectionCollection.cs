@@ -4,6 +4,7 @@ namespace DropSpace.Core.Collections;
 /// Applies an identity-based mutation to a UI projection. Different views may wrap the same domain
 /// record in different card instances; object-reference removal is therefore never authoritative.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711", Justification = "Collection is the established name for this identity projection contract.")]
 public static class ProjectionCollection
 {
     public static bool RemoveById<T, TId>(ICollection<T> collection, Func<T, TId> idSelector, TId id)

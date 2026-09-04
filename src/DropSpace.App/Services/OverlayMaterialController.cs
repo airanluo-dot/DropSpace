@@ -36,12 +36,16 @@ internal sealed class OverlayMaterialController : IDisposable
 
     public bool IsUsingDesktopAcrylic { get; private set; }
 
+    public OverlayMaterialTier MaterialTier { get; private set; } = OverlayMaterialTier.Windows10Solid;
+
     public void Apply(OverlayVisualPreferences preferences)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var canUseAcrylic = preferences.CanUseDesktopAcrylic &&
+        var requestedTier = preferences.MaterialTier;
+        var canUseAcrylic = requestedTier is OverlayMaterialTier.DesktopAcrylic or OverlayMaterialTier.DesktopAcrylicFast &&
                             _capabilities.IsAvailable(WindowsCapability.DesktopAcrylic) &&
-                            _capabilities.IsAvailable(WindowsCapability.TransientSystemBackdrop);
+                            _capabilities.IsAvailable(WindowsCapability.TransientSystemBackdrop) &&
+                            _capabilities.IsAvailable(WindowsCapability.CompositionEffects);
         try
         {
             if (canUseAcrylic)
@@ -66,6 +70,13 @@ internal sealed class OverlayMaterialController : IDisposable
                 _stroke.BorderBrush = _normalStrokeBrush;
             }
             IsUsingDesktopAcrylic = canUseAcrylic;
+            MaterialTier = canUseAcrylic
+                ? requestedTier
+                : preferences.HighContrast
+                    ? OverlayMaterialTier.HighContrastSystemSurface
+                    : preferences.IsWindows11OrLater
+                        ? OverlayMaterialTier.Windows11Solid
+                        : OverlayMaterialTier.Windows10Solid;
         }
         catch (Exception)
         {
@@ -75,6 +86,11 @@ internal sealed class OverlayMaterialController : IDisposable
             _fallback.Background = _normalFallbackBrush;
             _stroke.BorderBrush = _normalStrokeBrush;
             IsUsingDesktopAcrylic = false;
+            MaterialTier = preferences.HighContrast
+                ? OverlayMaterialTier.HighContrastSystemSurface
+                : preferences.IsWindows11OrLater
+                    ? OverlayMaterialTier.Windows11Solid
+                    : OverlayMaterialTier.Windows10Solid;
         }
     }
 

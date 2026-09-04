@@ -34,6 +34,8 @@ internal sealed class OverlayNativeRegionController
         out OverlayNativeFailure? failure)
     {
         var signature = OverlayRegionSignature.Create(
+            left,
+            top,
             width / _scale,
             height / _scale,
             topRadiusDip,

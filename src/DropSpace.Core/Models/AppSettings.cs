@@ -62,7 +62,7 @@ public sealed record OverlayMonitorPlacement(
 
 public sealed record AppSettings
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = SettingsValidationPolicy.CurrentVersion;
 
     public int Version { get; init; } = CurrentVersion;
 
@@ -158,48 +158,48 @@ public sealed record AppSettings
 
     public AppSettings Validate()
     {
-        if (Version is < 1 or > CurrentVersion)
+        if (Version is < SettingsValidationPolicy.MinimumVersion or > CurrentVersion)
         {
             throw new InvalidOperationException($"Unsupported settings version: {Version}.");
         }
 
-        if (RetentionDays is < 1 or > 3650)
+        if (RetentionDays is < SettingsValidationPolicy.MinimumRetentionDays or > SettingsValidationPolicy.MaximumRetentionDays)
         {
             throw new ArgumentOutOfRangeException(nameof(RetentionDays));
         }
 
-        if (RetentionItemCount is < 10 or > 100_000)
+        if (RetentionItemCount is < SettingsValidationPolicy.MinimumRetentionItemCount or > SettingsValidationPolicy.MaximumRetentionItemCount)
         {
             throw new ArgumentOutOfRangeException(nameof(RetentionItemCount));
         }
 
-        if (MaxImageBytes is < 1_048_576 or > 268_435_456)
+        if (MaxImageBytes is < SettingsValidationPolicy.MinimumMaxImageBytes or > SettingsValidationPolicy.MaximumMaxImageBytes)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxImageBytes));
         }
 
-        if (MaxImagePixels is < 1_000_000 or > 200_000_000)
+        if (MaxImagePixels is < SettingsValidationPolicy.MinimumMaxImagePixels or > SettingsValidationPolicy.MaximumMaxImagePixels)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxImagePixels));
         }
 
-        if (MaxClipboardFileBytes is < 1_048_576 or > 1_099_511_627_776)
+        if (MaxClipboardFileBytes is < SettingsValidationPolicy.MinimumClipboardFileBytes or > SettingsValidationPolicy.MaximumClipboardFileBytes)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxClipboardFileBytes));
         }
 
-        if (MaxClipboardFileTotalBytes is < 1_048_576 or > 4_398_046_511_104 ||
+        if (MaxClipboardFileTotalBytes is < SettingsValidationPolicy.MinimumClipboardFileTotalBytes or > SettingsValidationPolicy.MaximumClipboardFileTotalBytes ||
             MaxClipboardFileTotalBytes < MaxClipboardFileBytes)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxClipboardFileTotalBytes));
         }
 
-        if (MaxClipboardFileItems is < 1 or > 1_000)
+        if (MaxClipboardFileItems is < SettingsValidationPolicy.MinimumClipboardFileItems or > SettingsValidationPolicy.MaximumClipboardFileItems)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxClipboardFileItems));
         }
 
-        if (MaxTextCharacters is < 1_024 or > 16_777_216)
+        if (MaxTextCharacters is < SettingsValidationPolicy.MinimumTextCharacters or > SettingsValidationPolicy.MaximumTextCharacters)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
         }
@@ -244,21 +244,21 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(OverlayPlacementMode));
         }
 
-        if (CustomOverlayPlacements is null || CustomOverlayPlacements.Count > 64 || CustomOverlayPlacements.Any(entry =>
-                string.IsNullOrWhiteSpace(entry.Key) || entry.Key.Length > 256 ||
+        if (CustomOverlayPlacements is null || CustomOverlayPlacements.Count > SettingsValidationPolicy.MaximumCustomPlacements || CustomOverlayPlacements.Any(entry =>
+                string.IsNullOrWhiteSpace(entry.Key) || entry.Key.Length > SettingsValidationPolicy.MaximumPlacementKeyLength ||
                 entry.Value is null ||
                 !double.IsFinite(entry.Value.X) || !double.IsFinite(entry.Value.Y) ||
-                Math.Abs(entry.Value.X) > 100_000 || Math.Abs(entry.Value.Y) > 100_000))
+                Math.Abs(entry.Value.X) > SettingsValidationPolicy.MaximumPlacementCoordinate || Math.Abs(entry.Value.Y) > SettingsValidationPolicy.MaximumPlacementCoordinate))
         {
             throw new ArgumentOutOfRangeException(nameof(CustomOverlayPlacements));
         }
 
-        if (OverlayPlacements is null || OverlayPlacements.Count > 64 || OverlayPlacements.Any(entry =>
-                string.IsNullOrWhiteSpace(entry.Key) || entry.Key.Length > 256 ||
+        if (OverlayPlacements is null || OverlayPlacements.Count > SettingsValidationPolicy.MaximumCustomPlacements || OverlayPlacements.Any(entry =>
+                string.IsNullOrWhiteSpace(entry.Key) || entry.Key.Length > SettingsValidationPolicy.MaximumPlacementKeyLength ||
                 entry.Value is null ||
                 !Enum.IsDefined(entry.Value.Mode) ||
                 !double.IsFinite(entry.Value.X) || !double.IsFinite(entry.Value.Y) ||
-                Math.Abs(entry.Value.X) > 100_000 || Math.Abs(entry.Value.Y) > 100_000))
+                Math.Abs(entry.Value.X) > SettingsValidationPolicy.MaximumPlacementCoordinate || Math.Abs(entry.Value.Y) > SettingsValidationPolicy.MaximumPlacementCoordinate))
         {
             throw new ArgumentOutOfRangeException(nameof(OverlayPlacements));
         }
@@ -274,13 +274,14 @@ public sealed record AppSettings
             preference.Validate();
         }
 
-        if (!IsSupportedHotkey(QuickPanelHotkey))
+        var normalizedHotkey = SettingsValidationPolicy.CanonicalizeHotkey(QuickPanelHotkey);
+        if (normalizedHotkey is null)
         {
             throw new ArgumentOutOfRangeException(nameof(QuickPanelHotkey));
         }
 
-        if (SmartDragExcludedProcesses is null || SmartDragExcludedProcesses.Length > 128 || SmartDragExcludedProcesses.Any(value =>
-                string.IsNullOrWhiteSpace(value) || value.Length > 260 ||
+        if (SmartDragExcludedProcesses is null || SmartDragExcludedProcesses.Length > SettingsValidationPolicy.MaximumSmartDragExcludedProcesses || SmartDragExcludedProcesses.Any(value =>
+                string.IsNullOrWhiteSpace(value) || value.Length > SettingsValidationPolicy.MaximumSmartDragProcessLength ||
                 value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0))
         {
             throw new ArgumentOutOfRangeException(nameof(SmartDragExcludedProcesses));
@@ -296,28 +297,9 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
-        return this;
+        return string.Equals(QuickPanelHotkey, normalizedHotkey, StringComparison.Ordinal)
+            ? this
+            : this with { QuickPanelHotkey = normalizedHotkey };
     }
 
-    private static bool IsSupportedHotkey(string? gesture)
-    {
-        if (string.IsNullOrWhiteSpace(gesture) || gesture.Length > 128)
-        {
-            return false;
-        }
-        var parts = gesture.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        var hasModifier = parts.Any(part => part.Equals("Win", StringComparison.OrdinalIgnoreCase) ||
-                                            part.Equals("Shift", StringComparison.OrdinalIgnoreCase) ||
-                                            part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
-                                            part.Equals("Alt", StringComparison.OrdinalIgnoreCase));
-        var keys = parts.Count(part => part.Equals("Space", StringComparison.OrdinalIgnoreCase) ||
-                                      part.Length == 1 && char.IsAsciiLetterOrDigit(part[0]));
-        return hasModifier && keys == 1 && parts.All(part =>
-            part.Equals("Win", StringComparison.OrdinalIgnoreCase) ||
-            part.Equals("Shift", StringComparison.OrdinalIgnoreCase) ||
-            part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
-            part.Equals("Alt", StringComparison.OrdinalIgnoreCase) ||
-            part.Equals("Space", StringComparison.OrdinalIgnoreCase) ||
-            part.Length == 1 && char.IsAsciiLetterOrDigit(part[0]));
-    }
 }

@@ -58,7 +58,8 @@ public partial class App : Application
             var shellIntake = ShellIntakeCommandLineParser.Parse(commandLine);
             if (commandLine.Contains("--shutdown-for-maintenance", StringComparer.OrdinalIgnoreCase))
             {
-                var result = await MaintenanceShutdownService.RequestRunningInstanceAsync(TimeSpan.FromSeconds(15));
+                var result = await MaintenanceShutdownService.RequestRunningInstanceAsync(
+                    TimeSpan.FromSeconds(MaintenanceShutdownService.RequestTimeoutSeconds));
                 Environment.Exit(result);
                 return;
             }
@@ -216,6 +217,7 @@ public partial class App : Application
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
+                _services.GetRequiredService<MaintenanceShutdownService>().MarkReady();
                 if (isShellActivation)
                 {
                     await _services.GetRequiredService<ShellIntakeActivationService>()
@@ -282,6 +284,7 @@ public partial class App : Application
 
                 if (_window is not null)
                 {
+                    _services?.GetService<MaintenanceShutdownService>()?.MarkReady();
                     await _window.ShowRecoveryAsync();
                 }
                 else
@@ -379,6 +382,7 @@ public partial class App : Application
         services.AddSingleton<UndoCoordinator>();
         services.AddSingleton<DeviceIdentityStore>();
         services.AddSingleton<DeviceSecretStore>();
+        services.AddSingleton<DropLinkNonceCache>();
         services.AddSingleton<DropLinkPairingService>();
         services.AddSingleton<TransferRepository>();
         services.AddSingleton<DropLinkHost>();
