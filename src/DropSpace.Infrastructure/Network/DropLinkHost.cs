@@ -817,13 +817,8 @@ public sealed class DropLinkHost(
             receive.CompletedPaths.ToArray(),
             receive.Session.ErrorCategory);
 
-    private Task<TransferCompleteResponse> GetOrStartFinalizationTask(ReceiveTransfer receive)
-    {
-        lock (receive.FinalizationTaskGate)
-        {
-            return receive.FinalizationTask ??= FinalizeTransferAsync(receive);
-        }
-    }
+    private Task<TransferCompleteResponse> GetOrStartFinalizationTask(ReceiveTransfer receive) =>
+        receive.Finalization.GetOrStart(() => FinalizeTransferAsync(receive));
 
     private async Task<TransferCompleteResponse> FinalizeTransferAsync(ReceiveTransfer receive)
     {
@@ -1224,9 +1219,7 @@ public sealed class DropLinkHost(
 
         public SemaphoreSlim FinalizationGate { get; } = new(1, 1);
 
-        public object FinalizationTaskGate { get; } = new();
-
-        public Task<TransferCompleteResponse>? FinalizationTask { get; set; }
+        public DropLinkSingleFlight<TransferCompleteResponse> Finalization { get; } = new();
 
         public CancellationTokenSource LifetimeCancellation { get; } = new();
 
