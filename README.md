@@ -11,9 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.15 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.16 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.15](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.15). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.16](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.16). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+
+The **v0.3.0-preview.16** full-hardening Preview converges service lifecycles, Smart Drag/OLE ownership, native callback safety, image decode budgets, local-network selection, DropLink/DNS-SD concurrency, revoke-store retention, updater cancellation, and cleanup error preservation. It keeps the Preview.15 product boundary and makes every enabled state reflect owned resources. Hosted Windows CI and the release workflow are green; real Windows OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicitly conditional. See the [Preview.16 release notes](.github/release-notes/v0.3.0-preview.16.md), [full hardening plan](docs/plans/DropSpace_v0.3.0-preview.16_FULL_HARDENING_PLAN.md), and [execution report](DropSpace_v0.3.0-preview.16_FULL_HARDENING_EXECUTION_REPORT.md).
 
 The **v0.3.0-preview.15** unified-hardening Preview closes the three planning axes together: native/OLE identity and ownership, motion/material/accessibility behavior, and DropLink/clipboard/update/storage security boundaries. It also makes release artifacts, website metadata, policy constants, and tests consume single-source contracts. Hosted Windows build/release checks are the publication gate; real Windows OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicitly conditional. See the [Preview.15 release notes](.github/release-notes/v0.3.0-preview.15.md), [unified hardening test plan](docs/test-plan/v0.3.0-preview.15.md), and [execution report](DropSpace_v0.3.0-preview.15_UNIFIED_HARDENING_EXECUTION_REPORT.md).
 
@@ -99,6 +101,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Preview.9 shell/Quick Actions/Undo test plan](docs/test-plan/v0.3.0-preview.9.md)
 - [Preview.10 P0 recovery test plan](docs/test-plan/v0.3.0-preview.10.md)
 - [Preview.15 unified hardening test plan](docs/test-plan/v0.3.0-preview.15.md)
+- [Preview.16 full hardening plan](docs/plans/DropSpace_v0.3.0-preview.16_FULL_HARDENING_PLAN.md)
 - [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)
