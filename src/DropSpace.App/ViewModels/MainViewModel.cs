@@ -1148,16 +1148,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 await preflight(settings, cancellationToken);
             }
 
-            await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
             rollback.Committed("startup", () => _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
-            await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
+            await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
             rollback.Committed("clipboard", () => _clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _deviceHandoff.UpdateSettingsAsync(settings, cancellationToken);
+            await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
             rollback.Committed("handoff", () => _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _crossDeviceClipboard.UpdateSettingsAsync(settings, cancellationToken);
+            await _deviceHandoff.UpdateSettingsAsync(settings, cancellationToken);
             rollback.Committed("cross-device-clipboard", () => _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _settingsService.SaveAsync(settings, cancellationToken);
+            await _crossDeviceClipboard.UpdateSettingsAsync(settings, cancellationToken);
             rollback.Committed("settings-store", () => _settingsService.SaveAsync(previous, CancellationToken.None));
+            await _settingsService.SaveAsync(settings, cancellationToken);
             Settings = settings;
             StatusMessage = settings.Language == previous.Language
                 ? _strings.Get("SettingsSaved")

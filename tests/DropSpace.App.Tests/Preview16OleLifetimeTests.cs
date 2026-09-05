@@ -64,6 +64,8 @@ public sealed class Preview16OleLifetimeTests
             {
                 bytes = new byte[596];
                 BitConverter.GetBytes(1).CopyTo(bytes, 0);
+                // FILEDESCRIPTORW.FileName begins at offset 72 within the descriptor;
+                // the native payload's four-byte count precedes it.
                 Encoding.Unicode.GetBytes("payload.txt").CopyTo(bytes, 76);
             }
             else bytes = [1, 2, 3];

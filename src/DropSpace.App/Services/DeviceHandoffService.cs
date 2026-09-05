@@ -43,8 +43,13 @@ public sealed class DeviceHandoffService(
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (!settings.EnableDeviceHandoff) { await DisableCoreAsync().ConfigureAwait(false); return; }
-            if (_initialized && host.IsRunning && _registration is not null) return;
+            if (!settings.EnableDeviceHandoff)
+            {
+                await DisableCoreAsync().ConfigureAwait(false);
+                _unavailableReason = null;
+                return;
+            }
+            if (_initialized && host.IsRunning && _registration is not null && discovery.IsRegistered) return;
             await DisableCoreAsync().ConfigureAwait(false);
             try
             {
@@ -84,8 +89,8 @@ public sealed class DeviceHandoffService(
         _initialized = false;
         try
         {
-            await discovery.DisposeAsync().ConfigureAwait(false);
-            _registration = null;
+            try { await discovery.DisposeAsync().ConfigureAwait(false); }
+            finally { _registration = null; }
         }
         finally
         {

@@ -1076,24 +1076,31 @@ public sealed class DropLinkHost(
         if (!destination.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("The transfer destination escaped its root.");
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         var temporary = string.Concat(destination, ".", receive.Session.Id.ToString("N"), ".tmp");
-        await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None, 81_920, FileOptions.Asynchronous | FileOptions.WriteThrough))
+        try
         {
-            for (var index = 0; index < item.ChunkCount.Value; index++)
+            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None, 81_920, FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
-                var part = Path.Combine(receive.StagingRoot, string.Concat(item.Id.ToString("N"), ".", index, ".part"));
-                await using var input = new FileStream(part, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-                await input.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                for (var index = 0; index < item.ChunkCount.Value; index++)
+                {
+                    var part = Path.Combine(receive.StagingRoot, string.Concat(item.Id.ToString("N"), ".", index, ".part"));
+                    await using var input = new FileStream(part, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    await input.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                }
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
-            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+            var hash = await HashFileAsync(temporary, cancellationToken).ConfigureAwait(false);
+            if (!string.Equals(hash, item.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("The completed transfer hash did not match the manifest.");
+            }
+            File.Move(temporary, destination, overwrite: false);
+            receive.CompletedPaths.Enqueue(relative);
         }
-        var hash = await HashFileAsync(temporary, cancellationToken).ConfigureAwait(false);
-        if (!string.Equals(hash, item.Sha256, StringComparison.OrdinalIgnoreCase))
+        catch
         {
             TryDelete(temporary);
-            throw new InvalidDataException("The completed transfer hash did not match the manifest.");
+            throw;
         }
-        File.Move(temporary, destination, overwrite: false);
-        receive.CompletedPaths.Enqueue(relative);
     }
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)

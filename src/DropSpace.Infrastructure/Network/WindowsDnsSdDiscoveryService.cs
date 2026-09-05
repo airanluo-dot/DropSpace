@@ -20,6 +20,8 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private DnsRegistration? _registration;
 
+    public bool IsRegistered => _registration is { IsActive: true };
+
     public async Task<IAsyncDisposable> RegisterAsync(DeviceDescriptor descriptor, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
@@ -83,8 +85,9 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         await _lifecycleGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (_registration is not null) await _registration.DisposeAsync().ConfigureAwait(false);
+            var registration = _registration;
             _registration = null;
+            if (registration is not null) await registration.DisposeAsync().ConfigureAwait(false);
         }
         finally { _lifecycleGate.Release(); }
     }
@@ -466,6 +469,8 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         private readonly CancellationTokenSource _cancellation = new();
         private Task? _loop;
 
+        public bool IsActive => _loop is { IsCompleted: false } && !_cancellation.IsCancellationRequested;
+
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             var packet = BuildAnnouncement(descriptor, hostName, IPAddress.Parse(descriptor.Endpoint.Host));
@@ -493,7 +498,12 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             _cancellation.Cancel(); socket.Dispose();
-            if (_loop is not null) { try { await _loop.ConfigureAwait(false); } catch (OperationCanceledException) { } }
+            if (_loop is not null)
+            {
+                try { await _loop.ConfigureAwait(false); }
+                catch (OperationCanceledException) { }
+                catch (ObjectDisposedException) { }
+            }
             _cancellation.Dispose();
         }
 
