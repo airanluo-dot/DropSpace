@@ -13,7 +13,7 @@ public static class LocalNetworkInterfaceResolver
     public static IPAddress Resolve() => Select(NetworkInterface.GetAllNetworkInterfaces().SelectMany(network =>
     {
         var properties = network.GetIPProperties();
-        var physical = network.NetworkInterfaceType is NetworkInterfaceType.Ethernet or NetworkInterfaceType.Wireless80211 &&
+        var physical = (network.NetworkInterfaceType is NetworkInterfaceType.Ethernet or NetworkInterfaceType.Wireless80211) &&
             !new[] { "virtual", "hyper-v", "wsl", "vpn", "tunnel", "tap", "tun" }
                 .Any(marker => (network.Name + " " + network.Description).Contains(marker, StringComparison.OrdinalIgnoreCase));
         return properties.UnicastAddresses.Select(address => new LocalNetworkCandidate(network.Id, address.Address,

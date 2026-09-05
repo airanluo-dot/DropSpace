@@ -6,7 +6,7 @@ using System.Runtime.Versioning;
 namespace DropSpace.App.Tests;
 
 [TestClass]
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.10240")]
 public sealed class Preview16ImageDecoderTests
 {
     [TestMethod]

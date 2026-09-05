@@ -1007,7 +1007,6 @@ public sealed class DropLinkHost(
             {
                 var state = receive.Session.State;
                 if (!DropLinkSessionPolicy.IsTerminal(state) &&
-                    state != TransferSessionState.Verifying &&
                     now - receive.LastActivityUtc > DropLinkSessionPolicy.ActiveSessionLifetime)
                 {
                     receive.Session = receive.Session with
