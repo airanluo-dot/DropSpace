@@ -592,7 +592,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         await _clipboard.InitializeAsync(cancellationToken);
         ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
         UpdateStatus = await _updates.RecoverPendingAsync(cancellationToken);
-        TrackBackgroundTask(RefreshStorageSummaryAsync(cancellationToken), "storage summary refresh");
+        // Background work is owned by the ViewModel, even when initialization was
+        // called with a non-cancelable startup token. Tie it to the lifetime token so
+        // maintenance shutdown cannot wait indefinitely for a storage scan that was
+        // started with CancellationToken.None.
+        TrackBackgroundTask(RefreshStorageSummaryAsync(_lifetimeCancellation.Token), "storage summary refresh");
         await NavigateAsync(Settings.LaunchPage, cancellationToken);
     }
 
@@ -727,7 +731,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 var card = new ItemCardViewModel(item, _strings);
                 RefreshPrimaryQuickActions(card);
                 Items.Add(card);
-                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, cancellationToken), "thumbnail load");
+                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
             }
             ApplyBatchProjectionState();
 
@@ -1133,6 +1137,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         settings.Validate();
         var previous = Settings;
         var preflight = UiSettingsPreflightAsync;
+        var rollback = new SettingsTransactionRollbackCoordinator();
+        var previousStatus = StatusMessage;
         try
         {
             if (!string.Equals(settings.QuickPanelHotkey, previous.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase) &&
@@ -1142,13 +1148,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             }
             if (preflight is not null)
             {
+                rollback.Committed("ui-preflight", () => preflight(previous, CancellationToken.None));
                 await preflight(settings, cancellationToken);
             }
 
+            rollback.Committed("startup", () => _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
             await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
+            rollback.Committed("clipboard", () => _clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
             await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
+            rollback.Committed("handoff", () => _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
             await _deviceHandoff.UpdateSettingsAsync(settings, cancellationToken);
+            rollback.Committed("cross-device-clipboard", () => _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
             await _crossDeviceClipboard.UpdateSettingsAsync(settings, cancellationToken);
+            rollback.Committed("settings-store", () => _settingsService.SaveAsync(previous, CancellationToken.None));
             await _settingsService.SaveAsync(settings, cancellationToken);
             Settings = settings;
             StatusMessage = settings.Language == previous.Language
@@ -1157,22 +1169,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
         catch
         {
-            await _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None);
-            await _clipboard.UpdateSettingsAsync(previous, CancellationToken.None);
-            await _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None);
-            await _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None);
-            if (preflight is not null)
-            {
-                try
-                {
-                    await preflight(previous, CancellationToken.None);
-                }
-                catch (Exception rollbackException)
-                {
-                    _logger.LogError(rollbackException, "UI settings rollback failed; the safe startup recovery remains available.");
-                }
-            }
-
+            await rollback.RollbackAsync((category, exception) =>
+                _logger.LogError("Settings rollback failed in {Category}: {FailureType}.", category, exception.GetType().Name));
+            Settings = previous;
+            StatusMessage = previousStatus;
             throw;
         }
     }

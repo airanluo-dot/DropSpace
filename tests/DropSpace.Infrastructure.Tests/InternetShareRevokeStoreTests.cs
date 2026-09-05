@@ -48,4 +48,39 @@ public sealed class InternetShareRevokeStoreTests
             }
         }
     }
+
+    [TestMethod]
+    public async Task SavePrunesToBoundedCapacityAndKeepsNewestHandle()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-share-revoke", Guid.NewGuid().ToString("N"));
+        var paths = new AppStoragePaths(root);
+        var ids = Enumerable.Range(0, 130).Select(_ => Guid.NewGuid()).ToArray();
+        try
+        {
+            var store = new InternetShareRevokeStore(paths);
+            foreach (var id in ids)
+            {
+                await store.SaveAsync(
+                    id,
+                    new ShareBackendUploadSession(
+                        new Uri("https://share.example.invalid/v1/shares/objects/"),
+                        new Uri("https://share.example.invalid/"),
+                        "Bearer bounded-retention-test-token",
+                        new Uri("https://share.example.invalid/v1/shares/" + id.ToString("N"))),
+                    DateTimeOffset.UtcNow.AddHours(1));
+            }
+
+            var restored = await store.LoadAllAsync();
+            Assert.AreEqual(128, restored.Count);
+            Assert.IsTrue(restored.Any(item => item.ShareId == ids[^1]));
+            Assert.IsTrue(File.Exists(Path.Combine(paths.Data, "share-revokes", ids[^1].ToString("N") + ".bin")));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
 }

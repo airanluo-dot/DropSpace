@@ -14,7 +14,8 @@ public sealed class SecureInternetShareService(
 {
     private readonly ConcurrentDictionary<Guid, ShareBackendUploadSession> _sessions = new();
     private readonly InternetShareRevokeStore _revokeStore = new(paths);
-    private int _initialized;
+    private bool _initialized;
+    private readonly SemaphoreSlim _initializationGate = new(1, 1);
 
     public bool IsConfigured => TryGetEndpoint() is not null;
 
@@ -22,20 +23,17 @@ public sealed class SecureInternetShareService(
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        if (Interlocked.Exchange(ref _initialized, 1) != 0)
+        await _initializationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            return;
+            if (_initialized) return;
+            var restored = await _revokeStore.LoadAllAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var handle in restored) _sessions.TryAdd(handle.ShareId, handle.Session);
+            _initialized = true;
+            logger.LogInformation("Restored {RestoredCount} encrypted share revoke handles.", restored.Count);
         }
-
-        var restored = await _revokeStore.LoadAllAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var handle in restored)
-        {
-            _sessions[handle.ShareId] = handle.Session;
-        }
-
-        logger.LogInformation(
-            "Restored {RestoredCount} encrypted Internet Share revoke handle(s) without logging credentials.",
-            restored.Count);
+        finally { _initializationGate.Release(); }
     }
 
     public async Task<ShareDescriptor> CreateAsync(

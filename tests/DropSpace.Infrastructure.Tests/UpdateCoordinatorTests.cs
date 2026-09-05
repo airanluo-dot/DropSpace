@@ -21,6 +21,24 @@ public sealed class UpdateCoordinatorTests
     }
 
     [TestMethod]
+    public async Task CallerCancellationDoesNotCancelSharedCheck()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var source = new FakeSource(gate.Task);
+        var service = Create(source);
+        var settings = new AppSettings { AutoDownloadUpdates = false };
+        using var caller = new CancellationTokenSource();
+        var first = service.CheckManuallyAsync(settings, caller.Token);
+        var second = service.CheckManuallyAsync(settings);
+        caller.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await first);
+        Assert.IsFalse(second.IsCompleted);
+        gate.SetResult();
+        await second;
+        Assert.AreEqual(1, source.CallCount);
+    }
+
+    [TestMethod]
     public async Task StartupCheck_RunsAtMostOnceForProcessLifetime()
     {
         var source = new FakeSource();

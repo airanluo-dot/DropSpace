@@ -125,13 +125,13 @@ public sealed class UpdateService : IUpdateService
         {
             if (_activeDownload is { IsCompleted: false })
             {
-                return _activeDownload;
+                return _activeDownload.WaitAsync(cancellationToken);
             }
 
             _activeDownload = RunExclusiveAsync(
                 DownloadCoreAsync,
-                cancellationToken);
-            return _activeDownload;
+                CancellationToken.None);
+            return _activeDownload.WaitAsync(cancellationToken);
         }
     }
 
@@ -195,13 +195,13 @@ public sealed class UpdateService : IUpdateService
         {
             if (_activeInstall is { IsCompleted: false })
             {
-                return _activeInstall;
+                return _activeInstall.WaitAsync(cancellationToken);
             }
 
             _activeInstall = RunExclusiveAsync(
                 token => InstallCoreAsync(unattended, token),
-                cancellationToken);
-            return _activeInstall;
+                CancellationToken.None);
+            return _activeInstall.WaitAsync(cancellationToken);
         }
     }
 
@@ -274,11 +274,11 @@ public sealed class UpdateService : IUpdateService
         {
             if (_activeCheck is { IsCompleted: false })
             {
-                return _activeCheck;
+                return _activeCheck.WaitAsync(cancellationToken);
             }
 
-            _activeCheck = CheckCoreAsync(settings, automatic, cancellationToken);
-            return _activeCheck;
+            _activeCheck = CheckCoreAsync(settings, automatic, CancellationToken.None);
+            return _activeCheck.WaitAsync(cancellationToken);
         }
     }
 

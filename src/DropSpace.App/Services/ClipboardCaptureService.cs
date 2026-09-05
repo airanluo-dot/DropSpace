@@ -269,6 +269,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             else
             {
                 var image = envelope.ImageBytes!;
+                if (image.LongLength > _settings.MaxImageBytes) throw new InvalidDataException("Image encoded byte budget exceeded.");
                 var dimensions = await ReadImageDimensionsAsync(image, cancellationToken).ConfigureAwait(false);
                 await using var stream = new MemoryStream(image, writable: false);
                 var payload = await _payloadStore.WriteAsync("images", stream, _settings.MaxImageBytes, cancellationToken).ConfigureAwait(false);
@@ -322,7 +323,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
 
             stream.Seek(0);
-            var decoder = await BitmapDecoder.CreateAsync(stream);
+            var decoder = await ImageDecoderPreflight.ValidateAsync(stream, _settings.MaxImageBytes, _settings.MaxImagePixels, cancellationToken);
             return (checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight), decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore);
         });
 

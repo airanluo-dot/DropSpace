@@ -43,7 +43,7 @@ public sealed class MediaPreviewProvider(IItemContentResolver contentResolver, P
             null,
             null,
             null,
-            Metadata(("autoPlay", "false"), ("extension", request.Item.Extension ?? string.Empty)));
+            Metadata(("capability", "candidate-requires-platform-decoder"), ("autoPlay", "false"), ("extension", request.Item.Extension ?? string.Empty)));
     }
 
     private static string MimeFor(string extension) => extension switch

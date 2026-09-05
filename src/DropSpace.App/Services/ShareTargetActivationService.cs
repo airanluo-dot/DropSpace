@@ -177,6 +177,12 @@ public sealed class ShareTargetActivationService
                 }
             }
 
+            var file = await StorageFile.GetFileFromPathAsync(path);
+            using (var encoded = await file.OpenReadAsync())
+            {
+                await ImageDecoderPreflight.ValidateAsync(encoded, _mainViewModel.Settings.MaxImageBytes,
+                    _mainViewModel.Settings.MaxImagePixels, cancellationToken);
+            }
             return await OnDispatcherAsync(() => _mainViewModel.AddOwnedPathsBatchAsync(
                 [path],
                 null,
@@ -186,9 +192,10 @@ public sealed class ShareTargetActivationService
         }
         catch
         {
-            if (File.Exists(path))
+            try { if (File.Exists(path)) File.Delete(path); }
+            catch (Exception cleanup)
             {
-                File.Delete(path);
+                _logger.LogWarning("Share Target cleanup failed: {Category}.", cleanup.GetType().Name);
             }
             throw;
         }

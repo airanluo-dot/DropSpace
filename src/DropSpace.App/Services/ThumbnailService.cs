@@ -9,7 +9,8 @@ namespace DropSpace.App.Services;
 
 public sealed class ThumbnailService(
     IPayloadStore payloadStore,
-    ILogger<ThumbnailService> logger)
+    ILogger<ThumbnailService> logger,
+    ISettingsService settingsService)
 {
     private readonly SemaphoreSlim _gate = new(4, 4);
 
@@ -25,6 +26,9 @@ public sealed class ThumbnailService(
                 {
                     var file = await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(item.Payload.RelativePath));
                     using var stream = await file.OpenReadAsync();
+                    var settings = await settingsService.LoadAsync(cancellationToken);
+                    await ImageDecoderPreflight.ValidateAsync(stream, settings.MaxImageBytes, settings.MaxImagePixels, cancellationToken);
+                    stream.Seek(0);
                     var image = new BitmapImage
                     {
                         DecodePixelWidth = checked((int)size),
@@ -63,7 +67,7 @@ public sealed class ThumbnailService(
                     }
                 }
             }
-            catch (Exception exception) when (exception is FileNotFoundException or UnauthorizedAccessException or IOException or ArgumentException)
+            catch (Exception exception) when (exception is FileNotFoundException or UnauthorizedAccessException or IOException or ArgumentException or System.Runtime.InteropServices.COMException)
             {
                 logger.LogInformation(exception, "Thumbnail unavailable for item {ItemId}.", item.Id);
             }

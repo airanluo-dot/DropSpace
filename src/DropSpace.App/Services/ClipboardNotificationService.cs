@@ -82,7 +82,7 @@ public sealed class ClipboardNotificationService : IDisposable
             "Clipboard listener registered on HWND {WindowHandle}; sequence {SequenceNumber}.",
             _windowHandle,
             GetClipboardSequenceNumber());
-        StatusChanged?.Invoke(this, Status);
+        NativeSubscriberNotification.Invoke(StatusChanged, this, Status, _logger);
     }
 
     public void Dispose()
@@ -122,6 +122,8 @@ public sealed class ClipboardNotificationService : IDisposable
             return DefSubclassProc(window, message, wParam, lParam);
         }
 
+        try
+        {
         var observedAt = DateTimeOffset.UtcNow;
         var sequence = GetClipboardSequenceNumber();
         _lastNotificationUtc = observedAt;
@@ -130,8 +132,10 @@ public sealed class ClipboardNotificationService : IDisposable
             "WM_CLIPBOARDUPDATE received; sequence {SequenceNumber}, observed count {ObservedCount}.",
             sequence,
             observed);
-        ClipboardChanged?.Invoke(this, new ClipboardNotification(sequence, observedAt));
-        StatusChanged?.Invoke(this, Status);
+        NativeSubscriberNotification.Invoke(ClipboardChanged, this, new ClipboardNotification(sequence, observedAt), _logger);
+        NativeSubscriberNotification.Invoke(StatusChanged, this, Status, _logger);
+        }
+        catch { /* Never propagate managed exceptions through the Win32 subclass. */ }
         return nint.Zero;
     }
 
@@ -140,7 +144,7 @@ public sealed class ClipboardNotificationService : IDisposable
         _registered = false;
         _error = exception.Message;
         _logger.LogError(exception, "Clipboard listener registration failed.");
-        StatusChanged?.Invoke(this, Status);
+        NativeSubscriberNotification.Invoke(StatusChanged, this, Status, _logger);
     }
 
     private delegate nint SubclassProc(

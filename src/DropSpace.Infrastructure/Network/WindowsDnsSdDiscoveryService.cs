@@ -17,35 +17,39 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
     public static readonly int MulticastPort = 5353;
     public const string ServiceType = "_dropspace._tcp.local";
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-    private readonly object _gate = new();
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private DnsRegistration? _registration;
+
+    public bool IsRegistered => _registration is { IsActive: true };
 
     public async Task<IAsyncDisposable> RegisterAsync(DeviceDescriptor descriptor, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
-        lock (_gate)
-        {
-            if (_registration is not null) return _registration;
-        }
-
-        var socket = CreateMulticastSocket();
-        socket.JoinMulticastGroup(MulticastAddress);
-        var registration = new DnsRegistration(socket, descriptor, GetLocalHostName(descriptor.DeviceId));
-        lock (_gate) _registration = registration;
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await registration.StartAsync(cancellationToken).ConfigureAwait(false);
-            return registration;
-        }
-        catch
-        {
-            lock (_gate)
+            if (_registration is not null) return _registration;
+            var address = IPAddress.Parse(descriptor.Endpoint.Host);
+            if (!LocalNetworkInterfaceResolver.IsPrivate(address)) throw new InvalidDataException("Discovery needs a private endpoint.");
+            var socket = CreateMulticastSocket();
+            DnsRegistration? registration = null;
+            try
             {
-                if (ReferenceEquals(_registration, registration)) _registration = null;
+                socket.JoinMulticastGroup(MulticastAddress, address);
+                socket.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, address.GetAddressBytes());
+                registration = new DnsRegistration(socket, descriptor, GetLocalHostName(descriptor.DeviceId));
+                await registration.StartAsync(cancellationToken).ConfigureAwait(false);
+                _registration = registration;
+                return registration;
             }
-            await registration.DisposeAsync().ConfigureAwait(false);
-            throw;
+            catch
+            {
+                if (registration is not null) await registration.DisposeAsync().ConfigureAwait(false);
+                else socket.Dispose();
+                throw;
+            }
         }
+        finally { _lifecycleGate.Release(); }
     }
 
     public async Task<IReadOnlyList<DeviceDescriptor>> BrowseAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
@@ -78,9 +82,14 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        DnsRegistration? registration;
-        lock (_gate) { registration = _registration; _registration = null; }
-        if (registration is not null) await registration.DisposeAsync().ConfigureAwait(false);
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var registration = _registration;
+            _registration = null;
+            if (registration is not null) await registration.DisposeAsync().ConfigureAwait(false);
+        }
+        finally { _lifecycleGate.Release(); }
     }
 
     public static byte[] BuildQuery()
@@ -460,9 +469,11 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         private readonly CancellationTokenSource _cancellation = new();
         private Task? _loop;
 
+        public bool IsActive => _loop is { IsCompleted: false } && !_cancellation.IsCancellationRequested;
+
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            var packet = BuildAnnouncement(descriptor, hostName, GetLocalAddress());
+            var packet = BuildAnnouncement(descriptor, hostName, IPAddress.Parse(descriptor.Endpoint.Host));
             await socket.SendAsync(packet.AsMemory(), new IPEndPoint(MulticastAddress, MulticastPort), cancellationToken).ConfigureAwait(false);
             _loop = Task.Run(async () =>
             {
@@ -473,7 +484,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
                         var result = await socket.ReceiveAsync(_cancellation.Token).ConfigureAwait(false);
                         if (IsServiceQuery(result.Buffer))
                         {
-                            var response = BuildAnnouncement(descriptor, hostName, GetLocalAddress());
+                            var response = BuildAnnouncement(descriptor, hostName, IPAddress.Parse(descriptor.Endpoint.Host));
                             await socket.SendAsync(response.AsMemory(), new IPEndPoint(MulticastAddress, MulticastPort), _cancellation.Token).ConfigureAwait(false);
                         }
                     }
@@ -487,7 +498,12 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             _cancellation.Cancel(); socket.Dispose();
-            if (_loop is not null) { try { await _loop.ConfigureAwait(false); } catch (OperationCanceledException) { } }
+            if (_loop is not null)
+            {
+                try { await _loop.ConfigureAwait(false); }
+                catch (OperationCanceledException) { }
+                catch (ObjectDisposedException) { }
+            }
             _cancellation.Dispose();
         }
 
@@ -507,11 +523,6 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
             return false;
         }
 
-        private static IPAddress GetLocalAddress() => NetworkInterface.GetAllNetworkInterfaces()
-            .Where(network => network.OperationalStatus == OperationalStatus.Up && network.NetworkInterfaceType is not NetworkInterfaceType.Loopback)
-            .SelectMany(network => network.GetIPProperties().UnicastAddresses)
-            .Select(address => address.Address)
-            .FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork && IsPrivate(address))
-            ?? throw new InvalidOperationException("DropLink discovery requires an active private-network IPv4 address.");
+
     }
 }

@@ -1,6 +1,4 @@
 using DropSpace.Core.Content;
-using System.Text;
-using System.Text.RegularExpressions;
 using DropSpace.Core.Preview;
 
 namespace DropSpace.Infrastructure.Preview;
@@ -30,8 +28,6 @@ public sealed partial class PdfPreviewProvider(IItemContentResolver contentResol
             throw new InvalidDataException("The PDF signature is invalid.");
         }
 
-        var header = Encoding.ASCII.GetString(bytes);
-        var pageCount = PageCountRegex().Matches(header).Count;
         return new PreviewDescriptor(
             request.Item.Id,
             PreviewKind.Pdf,
@@ -41,11 +37,9 @@ public sealed partial class PdfPreviewProvider(IItemContentResolver contentResol
             bytes,
             null,
             null,
-            pageCount > 0 ? pageCount : null,
+            null,
             null,
             Metadata(("page", request.Page.ToString(System.Globalization.CultureInfo.InvariantCulture))));
     }
 
-    [GeneratedRegex("/Type\\s*/Page(?:\\s|/|>)", RegexOptions.CultureInvariant)]
-    private static partial Regex PageCountRegex();
 }

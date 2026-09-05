@@ -243,18 +243,8 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
         return start >= 0 && start < total && end >= start && end < total;
     }
 
-    private static string GetPrivateAddress()
-    {
-        var addresses = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(network => network.OperationalStatus == OperationalStatus.Up && network.NetworkInterfaceType is not NetworkInterfaceType.Loopback)
-            .SelectMany(network => network.GetIPProperties().UnicastAddresses)
-            .Select(address => address.Address)
-            .OfType<IPAddress>()
-            .Where(address => address.AddressFamily == AddressFamily.InterNetwork)
-            .ToArray();
-        return addresses.FirstOrDefault(IsPrivate)?.ToString()
-            ?? throw new InvalidOperationException("Nearby sharing requires an active private-network IPv4 address.");
-    }
+    private static string GetPrivateAddress() =>
+        DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve().ToString();
 
     private static bool IsPrivate(IPAddress address)
     {
@@ -309,6 +299,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
 
     private sealed class NearbyShare(Guid id, string token, DateTimeOffset expiresAtUtc, IReadOnlyList<NearbyShareItem> items, int maxReceivers)
     {
+        private readonly object _receiverGate = new();
         private readonly ConcurrentDictionary<string, byte> _receivers = new(StringComparer.Ordinal);
         public Guid Id { get; } = id;
         public string Token { get; } = token;
@@ -317,9 +308,12 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
         public bool TryRegisterReceiver(IPAddress? address)
         {
             var key = address?.ToString() ?? "unknown";
-            if (_receivers.ContainsKey(key)) return true;
-            if (_receivers.Count >= maxReceivers) return false;
-            return _receivers.TryAdd(key, 0);
+            lock (_receiverGate)
+            {
+                if (_receivers.ContainsKey(key)) return true;
+                if (_receivers.Count >= maxReceivers) return false;
+                return _receivers.TryAdd(key, 0);
+            }
         }
     }
 }

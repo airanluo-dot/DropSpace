@@ -2,9 +2,18 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.15 is the current three-axis unified-hardening Preview: it unifies native/OLE identity and ownership, motion/material/accessibility policy, DropLink authentication and lifecycle, clipboard image/update/storage bounds, SSOT governance, and x64 release validation. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.16 is the current full-hardening Preview: it converges native/OLE ownership, service initialization and rollback, image decode budgets, native callback isolation, local-network authority, DropLink/DNS-SD lifecycle, revoke-store retention, updater cancellation, and x64 release validation. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Commercial signing remains optional and credential-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
+
+## v0.3.0-preview.16 delivery slice
+
+- Keep the Preview.15 product boundary while making encrypted-share QR rendering memory-only, Smart Drag suppression terminal-safe, and virtual-file materialization owner-safe for both async and non-async OLE providers.
+- Make Cross-device Clipboard, Device Handoff, and encrypted-share recovery transactional and retryable; make settings rollback best-effort across every committed step while preserving the original failure.
+- Isolate Clipboard and global-hotkey native subscribers, enforce strict hotkey grammar, and apply one platform decoder budget to remote/local image ingress, previews, thumbnails, Share Target, and transforms.
+- Remove PDF header heuristics, make media capability claims conservative, bound QR capacity, and preserve decoder failure fallbacks.
+- Centralize deterministic private-interface selection for DropLink, DNS-SD, and Nearby Share; serialize host/discovery lifecycles, atomically admit Nearby receivers, and bound finalization/revoke retention/update waits.
+- Add focused App/Infrastructure regression coverage and keep the Preview.16 result **CONDITIONAL** for real Windows OS/DPI/provider/accessibility, two-device LAN, and operator-deployed Worker/browser evidence.
 
 v0.2.0 promotes the original event-driven Smart drag candidate detector and temporary visual OLE target to Stable. The old top-edge band remains an explicit compatibility option; v0.3 Smart never falls back to it implicitly. Preview.2 separates drag intent from payload proof, uses official Shell item resolution before its bounded CIDA fallback, and materializes virtual content only after a real Drop.
 

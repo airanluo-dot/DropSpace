@@ -653,7 +653,9 @@ public sealed partial class MainPage : Page
     {
         if (descriptor.Bytes is { Length: > 0 } bytes && descriptor.Kind == PreviewKind.Image)
         {
-            return await CreateImageElementAsync(bytes, 640, 520);
+            try { return await CreateImageElementAsync(bytes, 640, 520); }
+            catch (Exception exception) when (exception is InvalidDataException or IOException or COMException or ArgumentException)
+            { return CreateUnavailablePreviewContent(descriptor); }
         }
 
         if (descriptor.Bytes is { Length: > 0 } pdfBytes && descriptor.Kind == PreviewKind.Pdf)
@@ -715,7 +717,7 @@ public sealed partial class MainPage : Page
         };
     }
 
-    private static async Task<Image> CreateImageElementAsync(byte[] bytes, double maxWidth, double maxHeight)
+    private async Task<Image> CreateImageElementAsync(byte[] bytes, double maxWidth, double maxHeight)
     {
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
@@ -725,8 +727,9 @@ public sealed partial class MainPage : Page
             await writer.FlushAsync();
             writer.DetachStream();
         }
+        await ImageDecoderPreflight.ValidateAsync(stream, _viewModel.Settings.MaxImageBytes, _viewModel.Settings.MaxImagePixels);
         stream.Seek(0);
-        var bitmap = new BitmapImage();
+        var bitmap = new BitmapImage { DecodePixelWidth = checked((int)Math.Ceiling(maxWidth)) };
         await bitmap.SetSourceAsync(stream);
         return new Image
         {
@@ -909,7 +912,7 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private static async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
+    private async Task<MediaPreviewHost> CreateMediaElementAsync(string path)
     {
         var file = await StorageFile.GetFileFromPathAsync(path);
         var player = new MediaPlayer { AutoPlay = false };
@@ -924,7 +927,7 @@ public sealed partial class MainPage : Page
                 MaxHeight = 520,
             };
             element.SetMediaPlayer(player);
-            return new MediaPreviewHost(element, player);
+            return new MediaPreviewHost(element, player, _strings.Get("PreviewUnavailable"));
         }
         catch
         {
@@ -1076,8 +1079,6 @@ public sealed partial class MainPage : Page
 
     private async Task ShowShareDescriptorAsync(ShareDescriptor descriptor)
     {
-        var qrPath = Path.Combine(Path.GetTempPath(), string.Concat("DropSpace-share-", descriptor.ShareId.ToString("N"), ".png"));
-        await File.WriteAllBytesAsync(qrPath, QrCodeActionService.RenderPng(descriptor.Url.ToString()));
         var content = new StackPanel { Spacing = 8 };
         content.Children.Add(new TextBlock
         {
@@ -1132,7 +1133,28 @@ public sealed partial class MainPage : Page
         }
         else if (result == ContentDialogResult.Secondary)
         {
-            Process.Start(new ProcessStartInfo(qrPath) { UseShellExecute = true });
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(QrCodeActionService.RenderPng(descriptor.Url.ToString()));
+                await writer.StoreAsync();
+                writer.DetachStream();
+            }
+            stream.Seek(0);
+            var bitmap = new BitmapImage();
+            await bitmap.SetSourceAsync(stream);
+            var qr = new Image { Source = bitmap, MaxWidth = 320, MaxHeight = 320 };
+            try
+            {
+                await new ContentDialog
+                {
+                    XamlRoot = XamlRoot,
+                    Title = _strings.Get("OpenShareQr"),
+                    Content = qr,
+                    CloseButtonText = _strings.Get("CommonClose"),
+                }.ShowAsync();
+            }
+            finally { qr.Source = null; }
         }
     }
 
@@ -1142,16 +1164,31 @@ public sealed partial class MainPage : Page
     {
         private readonly MediaPlayer _player;
         private int _disposed;
+        private readonly string _fallback;
 
-        public MediaPreviewHost(MediaPlayerElement element, MediaPlayer player)
+        public MediaPreviewHost(MediaPlayerElement element, MediaPlayer player, string fallback)
         {
             _player = player;
+            _fallback = fallback;
             Children.Add(element);
+            _player.MediaFailed += OnMediaFailed;
+        }
+
+        private void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (Volatile.Read(ref _disposed) != 0) return;
+                _player.Source = null;
+                Children.Clear();
+                Children.Add(new TextBlock { Text = _fallback, TextWrapping = TextWrapping.Wrap });
+            });
         }
 
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            _player.MediaFailed -= OnMediaFailed;
             _player.Pause();
             _player.Source = null;
             _player.Dispose();
