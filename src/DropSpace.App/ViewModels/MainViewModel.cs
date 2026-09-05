@@ -592,7 +592,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         await _clipboard.InitializeAsync(cancellationToken);
         ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
         UpdateStatus = await _updates.RecoverPendingAsync(cancellationToken);
-        TrackBackgroundTask(RefreshStorageSummaryAsync(cancellationToken), "storage summary refresh");
+        // Background work is owned by the ViewModel, even when initialization was
+        // called with a non-cancelable startup token. Tie it to the lifetime token so
+        // maintenance shutdown cannot wait indefinitely for a storage scan that was
+        // started with CancellationToken.None.
+        TrackBackgroundTask(RefreshStorageSummaryAsync(_lifetimeCancellation.Token), "storage summary refresh");
         await NavigateAsync(Settings.LaunchPage, cancellationToken);
     }
 
@@ -727,7 +731,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 var card = new ItemCardViewModel(item, _strings);
                 RefreshPrimaryQuickActions(card);
                 Items.Add(card);
-                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, cancellationToken), "thumbnail load");
+                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
             }
             ApplyBatchProjectionState();
 
