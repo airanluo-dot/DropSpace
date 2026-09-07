@@ -12,7 +12,7 @@ using Microsoft.UI.Dispatching;
 
 namespace DropSpace.App.ViewModels;
 
-public sealed class OverlayViewModel : ObservableObject, IDisposable
+public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     private readonly MainViewModel _mainViewModel;
     private readonly OverlayStateMachine _stateMachine;
@@ -302,7 +302,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         await DispatchAsync(() =>
         {
             _shellAcknowledgementCancellation?.Cancel();
-            _shellAcknowledgementCancellation?.Dispose();
             _shellAcknowledgementCancellation = acknowledgementCancellation;
             _shellAcknowledgement = message;
             OnPropertyChanged(nameof(CompactTitle));
@@ -334,6 +333,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
         await _projectionRefresh.RequestAsync(_mainViewModel.SpaceRevision, cancellationToken);
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+        await _projectionRefresh.DisposeAsync();
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -351,7 +356,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable
 
         _projectionRefresh.Dispose();
         _shellAcknowledgementCancellation?.Cancel();
-        _shellAcknowledgementCancellation?.Dispose();
         _shellAcknowledgementCancellation = null;
         _disposed = true;
     }
