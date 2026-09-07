@@ -1,13 +1,15 @@
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Preview;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
 
 public sealed class QuickPreviewService(
     IPreviewProviderRegistry providers,
     IPayloadStore payloads,
-    IPreviewCache cache)
+    IPreviewCache cache,
+    ILogger<QuickPreviewService> logger)
 {
     public string? ResolveSourcePath(DropItem item)
     {
@@ -30,7 +32,7 @@ public sealed class QuickPreviewService(
         return providers.LoadAsync(new PreviewRequest(snapshot, page, targetPixelWidth, inline), cancellationToken);
     }
 
-    public Task CacheSuccessfulAsync(
+    public async Task CacheSuccessfulAsync(
         DropItem item,
         PreviewDescriptor descriptor,
         int page = 1,
@@ -39,10 +41,17 @@ public sealed class QuickPreviewService(
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(descriptor);
-        return cache.PutAsync(
-            new PreviewRequest(CreateSnapshot(item), page, targetPixelWidth, Inline: false),
-            descriptor,
-            cancellationToken);
+        try
+        {
+            await cache.PutAsync(
+                new PreviewRequest(CreateSnapshot(item), page, targetPixelWidth, Inline: false),
+                descriptor,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            logger.LogDebug(exception, "Rendered preview remains usable despite cache write failure.");
+        }
     }
 
     private DropItemSnapshot CreateSnapshot(DropItem item)

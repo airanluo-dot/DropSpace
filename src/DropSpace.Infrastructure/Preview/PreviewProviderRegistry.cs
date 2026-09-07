@@ -63,28 +63,36 @@ public sealed class PreviewProviderRegistry(
             return UnknownPreviewProvider.CreateFallback(request.Item);
         }
 
-        // PDF descriptors contain source bytes, but the App writes them only after a
-        // Windows.Data.Pdf load + bounded raster succeeds. A cache hit is safe to return;
-        // the App still re-renders the cached bytes before showing them.
-        var cacheHit = await cache.TryGetAsync(
-            request.Item.Id,
-            request.Item.Revision,
-            capability.Kind,
-            request.Page,
-            request.TargetPixelWidth,
-            cancellationToken).ConfigureAwait(false);
-        if (cacheHit is not null)
+        if (!request.Item.HasExternalSource)
         {
-            return cacheHit;
+            try
+            {
+                var cacheHit = await cache.TryGetAsync(
+                    request.Item.Id, request.Item.Revision, capability.Kind,
+                    request.Page, request.TargetPixelWidth, cancellationToken).ConfigureAwait(false);
+                if (cacheHit is not null) return cacheHit;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                logger.LogDebug(exception, "Preview cache unavailable; loading the source.");
+            }
         }
 
         var provider = _providers.First(provider => string.Equals(provider.Id, capability.ProviderId, StringComparison.Ordinal));
         try
         {
             var descriptor = await provider.LoadAsync(request, cancellationToken).ConfigureAwait(false);
-            if (capability.Kind != PreviewKind.Pdf)
+            // PDF is cached only after successful platform rendering in the App.
+            if (capability.Kind != PreviewKind.Pdf && !request.Item.HasExternalSource)
             {
-                await cache.PutAsync(request, descriptor, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await cache.PutAsync(request, descriptor, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    logger.LogDebug(exception, "Preview cache write failed; the generated preview remains usable.");
+                }
             }
             return descriptor;
         }

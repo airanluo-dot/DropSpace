@@ -95,6 +95,9 @@ public sealed record DropItemSnapshot(
     int Revision,
     PayloadRecord? Payload = null)
 {
+    // External files can change independently of the database item revision.
+    public bool HasExternalSource => Payload is null && !string.IsNullOrWhiteSpace(OriginalPath);
+
     public static DropItemSnapshot FromItem(DropItem item) => new(
         item.Id,
         item.Kind,
