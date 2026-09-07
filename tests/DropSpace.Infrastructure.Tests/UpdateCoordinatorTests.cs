@@ -21,6 +21,28 @@ public sealed class UpdateCoordinatorTests
     }
 
     [TestMethod]
+    public async Task ShutdownCancelsSharedWorkDrainsWaitersAndRejectsNewWork()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var source = new FakeSource(gate.Task);
+        var service = Create(source);
+        var check = service.CheckManuallyAsync(new AppSettings { AutoDownloadUpdates = false });
+        await source.Started.Task;
+        var recovery = service.RecoverPendingAsync();
+        var firstStop = service.DisposeAsync().AsTask();
+        var secondStop = service.DisposeAsync().AsTask();
+        Assert.AreSame(firstStop, secondStop);
+        await firstStop.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.IsTrue(check.IsCompleted);
+        Assert.AreEqual(UpdateState.Idle, (await check).State);
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await recovery);
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await service.RecoverPendingAsync());
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+            await service.CheckManuallyAsync(new AppSettings()));
+        Assert.AreEqual(1, source.CallCount);
+    }
+
+    [TestMethod]
     public async Task CallerCancellationDoesNotCancelSharedCheck()
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -75,6 +97,7 @@ public sealed class UpdateCoordinatorTests
         var automatic = service.CheckAtStartupAsync(settings);
         var manual = service.CheckManuallyAsync(settings);
         Assert.AreSame(automatic, manual);
+        await source.Started.Task;
         Assert.AreEqual(1, source.CallCount);
         gate.SetResult();
         await Task.WhenAll(automatic, manual);
@@ -182,11 +205,13 @@ public sealed class UpdateCoordinatorTests
     private sealed class FakeSource(Task? gate = null) : IUpdateSource
     {
         private int _calls;
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int CallCount => Volatile.Read(ref _calls);
 
         public async Task<IReadOnlyList<UpdateRelease>> GetReleasesAsync(CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref _calls);
+            Started.TrySetResult();
             if (gate is not null) await gate.WaitAsync(cancellationToken);
             return [];
         }
