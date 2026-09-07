@@ -617,6 +617,6 @@ until executable evidence is attached.
 - Keep Preview.11 **CONDITIONAL** until real Windows 10 1809/22H2, Windows 11, mixed-DPI multi-monitor, Explorer/provider, cursor-feedback, border-leak, and full Quick Action acceptance evidence is attached; hosted CI and static checks do not replace those cells.
 
 
-## Preview.17 architecture audit checkpoint
+## v0.3.0-preview.17 architecture audit checkpoint
 
 Implementation and regression coverage now include projection recovery, shared database write ownership, stale-query rejection, atomic settings mutations, awaited shutdown, bounded automatic clipboard propagation, staged-file application boundaries and preview invalidation. The complete audit, all-file snapshots and remaining work are recorded in `docs/audit/2026-09-07/`. This does not close the real Windows/DPI/OLE/accessibility, two-device or deployed Worker/browser acceptance rows. Release completion requires the final commit's Windows workflows, public assets and website/API verification.
