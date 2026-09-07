@@ -19,5 +19,7 @@ public interface ISettingsService
 
     Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default);
 
+    Task<AppSettings> UpdateAsync(Func<AppSettings, AppSettings> update, CancellationToken cancellationToken = default);
+
     Task<AppSettings> ResetUiSettingsAsync(CancellationToken cancellationToken = default);
 }

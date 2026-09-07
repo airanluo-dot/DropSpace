@@ -147,8 +147,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
                 _paused = true;
                 Interlocked.Increment(ref _pauseGeneration);
-                _settings = _settings with { ClipboardPaused = true };
-                await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
+                _settings = await _settingsService.UpdateAsync(
+                    current => current with { ClipboardPaused = true }, cancellationToken).ConfigureAwait(false);
                 PublishStatus(_strings.Get("ClipboardPaused"));
             }
             finally
@@ -177,8 +177,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
                 await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
 
-                _settings = _settings with { ClipboardPaused = false };
-                await _settingsService.SaveAsync(_settings, cancellationToken).ConfigureAwait(false);
+                _settings = await _settingsService.UpdateAsync(
+                    current => current with { ClipboardPaused = false }, cancellationToken).ConfigureAwait(false);
                 _paused = false;
                 Interlocked.Increment(ref _pauseGeneration);
                 PublishStatus(_strings.Get("ClipboardResumed"));

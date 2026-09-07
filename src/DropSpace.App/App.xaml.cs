@@ -407,6 +407,7 @@ public partial class App : Application
         services.AddSingleton<SqliteDatabase>();
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
+        services.AddSingleton<StagedFileImportService>();
         services.AddSingleton<UndoCoordinator>();
         services.AddSingleton<DeviceIdentityStore>();
         services.AddSingleton<DeviceSecretStore>();
