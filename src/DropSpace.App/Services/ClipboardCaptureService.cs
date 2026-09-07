@@ -1,3 +1,4 @@
+using DropSpace.Core.Preview;
 using System.Threading.Channels;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -37,6 +38,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly IItemRepository _repository;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
+    private readonly IPreviewCache _previews;
     private readonly IFileReferenceService _fileReferences;
     private readonly ClipboardNotificationService _notifications;
     private readonly DispatcherQueue _dispatcher;
@@ -72,6 +74,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         IItemRepository repository,
         ISettingsService settingsService,
         IPayloadStore payloadStore,
+        IPreviewCache previews,
         IFileReferenceService fileReferences,
         ClipboardNotificationService notifications,
         DispatcherQueue dispatcher,
@@ -81,6 +84,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _repository = repository;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
+        _previews = previews;
         _fileReferences = fileReferences;
         _notifications = notifications;
         _dispatcher = dispatcher;
@@ -219,6 +223,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         {
             var result = await _repository.ClearClipboardAsync(fromUtc, includePinned, cancellationToken)
                 .ConfigureAwait(false);
+            await _previews.ClearAsync(CancellationToken.None).ConfigureAwait(false);
             await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
             return result;
         }
@@ -983,6 +988,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 _settings.RetentionItemCount,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (result.RemovedCount > 0)
+            await _previews.ClearAsync(CancellationToken.None).ConfigureAwait(false);
         foreach (var path in result.PayloadPaths)
         {
             try

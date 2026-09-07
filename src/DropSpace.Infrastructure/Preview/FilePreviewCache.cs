@@ -13,6 +13,10 @@ public sealed class FilePreviewCache(AppStoragePaths paths) : IPreviewCache
     internal const int MaximumEntries = 64;
     internal static readonly TimeSpan MaximumAge = TimeSpan.FromDays(1);
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private long _generation;
+    private bool _clearPending;
+
+    public long Generation => Interlocked.Read(ref _generation);
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -31,7 +35,7 @@ public sealed class FilePreviewCache(AppStoragePaths paths) : IPreviewCache
         var path = GetPath(itemId, revision, kind, page, targetPixelWidth);
         try
         {
-            if (!File.Exists(path)) return null;
+            if (_clearPending || !File.Exists(path)) return null;
             var info = new FileInfo(path);
             if (info.Length > MaximumEntryBytes || DateTime.UtcNow - info.LastWriteTimeUtc > MaximumAge)
             {
@@ -68,6 +72,12 @@ public sealed class FilePreviewCache(AppStoragePaths paths) : IPreviewCache
         var temporary = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
         try
         {
+            if (descriptor.CacheGeneration != Generation) return;
+            if (_clearPending)
+            {
+                if (Directory.Exists(paths.Previews)) Directory.Delete(paths.Previews, recursive: true);
+                _clearPending = false;
+            }
             Directory.CreateDirectory(paths.Previews);
             await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous))
             {
@@ -91,7 +101,10 @@ public sealed class FilePreviewCache(AppStoragePaths paths) : IPreviewCache
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            Interlocked.Increment(ref _generation);
+            _clearPending = true;
             if (Directory.Exists(paths.Previews)) Directory.Delete(paths.Previews, recursive: true);
+            _clearPending = false;
         }
         finally { _gate.Release(); }
     }, cancellationToken);

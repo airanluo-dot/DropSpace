@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Undo;
+using DropSpace.Core.Preview;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
@@ -9,6 +10,7 @@ namespace DropSpace.App.Services;
 public sealed class UndoCoordinator(
     IItemRepository repository,
     IPayloadStore payloadStore,
+    IPreviewCache previews,
     ILogger<UndoCoordinator> logger) : IAsyncDisposable
 {
     public static readonly TimeSpan UndoWindow = TimeSpan.FromSeconds(8);
@@ -18,6 +20,8 @@ public sealed class UndoCoordinator(
     private CancellationTokenSource? _expirationCancellation;
     private readonly ConcurrentDictionary<string, Task> _expirationTasks = new(StringComparer.Ordinal);
     private bool _disposed;
+    private readonly object _disposeGate = new();
+    private Task? _disposeTask;
 
     public UndoState? State { get; private set; }
 
@@ -206,43 +210,41 @@ public sealed class UndoCoordinator(
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed)
+        lock (_disposeGate)
         {
-            return;
+            _disposeTask ??= DisposeCoreAsync();
+            return new ValueTask(_disposeTask);
         }
+    }
 
+    private async Task DisposeCoreAsync()
+    {
+        await Task.Yield();
         await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (_disposed)
-            {
-                return;
-            }
-
-            await FinalizeActiveCoreAsync(CancellationToken.None).ConfigureAwait(false);
-            var expirationTasks = _expirationTasks.Values.ToArray();
-            if (expirationTasks.Length > 0)
-            {
-                try
-                {
-                    await Task.WhenAll(expirationTasks).ConfigureAwait(false);
-                }
-                catch (Exception exception)
-                {
-                    logger.LogWarning(exception, "Undo expiration task shutdown observed an unexpected failure.");
-                }
-            }
-
             _disposed = true;
-            _expirationCancellation = null;
+            try { await FinalizeActiveCoreAsync(CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception exception)
+            {
+                // Persisted pending-delete tokens remain recoverable on the next startup.
+                logger.LogError(exception, "Undo finalization could not finish during shutdown.");
+            }
+            CancelExpiration();
+            try { await Task.WhenAll(_expirationTasks.Values.ToArray()).ConfigureAwait(false); }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Undo expiration task shutdown observed an unexpected failure.");
+            }
             _expirationTasks.Clear();
         }
         finally
         {
+            // Queued callers still need to acquire/release this managed semaphore to
+            // observe the disposed state. It has no native wait handle to release.
             _gate.Release();
-            _gate.Dispose();
         }
     }
 
@@ -310,15 +312,26 @@ public sealed class UndoCoordinator(
         IReadOnlyList<string> relativePaths,
         CancellationToken cancellationToken)
     {
-        foreach (var relativePath in relativePaths.Distinct(StringComparer.OrdinalIgnoreCase))
+        try
         {
-            try
+            foreach (var relativePath in relativePaths.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                await payloadStore.DeleteAsync(relativePath, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await payloadStore.DeleteAsync(relativePath, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    logger.LogWarning(exception, "Owned payload cleanup failed after a completed removal.");
+                }
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        }
+        finally
+        {
+            try { await previews.ClearAsync(CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
-                logger.LogWarning(exception, "Owned payload cleanup failed after a completed removal.");
+                logger.LogWarning(exception, "Preview cache cleanup will be retried on startup or the next cache write.");
             }
         }
     }

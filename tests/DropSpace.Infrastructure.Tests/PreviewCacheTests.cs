@@ -53,19 +53,35 @@ public sealed class PreviewCacheTests
         for (var i = 0; i <= FilePreviewCache.MaximumEntries; i++)
         {
             request = new PreviewRequest(Item());
-            await cache.PutAsync(request, Descriptor(request));
+            await cache.PutAsync(request, Descriptor(request) with { CacheGeneration = cache.Generation });
         }
         Assert.AreEqual(FilePreviewCache.MaximumEntries, Directory.GetFiles(paths.Previews).Length);
         await cache.ClearAsync();
-        await cache.PutAsync(request, Descriptor(request));
+        await cache.PutAsync(request, Descriptor(request) with { CacheGeneration = cache.Generation });
         var file = Directory.GetFiles(paths.Previews).Single();
         File.SetLastWriteTimeUtc(file, DateTime.UtcNow - FilePreviewCache.MaximumAge - TimeSpan.FromMinutes(1));
         Assert.IsNull(await GetAsync(cache, request));
-        await cache.PutAsync(request, Descriptor(request));
+        await cache.PutAsync(request, Descriptor(request) with { CacheGeneration = cache.Generation });
         file = Directory.GetFiles(paths.Previews).Single();
         using (var stream = File.OpenWrite(file)) stream.SetLength(FilePreviewCache.MaximumEntryBytes + 1);
         Assert.IsNull(await GetAsync(cache, request));
         Assert.IsFalse(File.Exists(file));
+    }
+
+    [TestMethod]
+    public async Task ClearPreventsLateRenderingFromRecreatingDeletedCacheContent()
+    {
+        var paths = new AppStoragePaths(_root);
+        var cache = new FilePreviewCache(paths);
+        var request = new PreviewRequest(Item());
+        var renderedBeforeClear = Descriptor(request) with { CacheGeneration = cache.Generation };
+        await cache.PutAsync(request, renderedBeforeClear);
+        await cache.ClearAsync();
+        await cache.PutAsync(request, renderedBeforeClear);
+        Assert.IsNull(await GetAsync(cache, request));
+        Assert.IsFalse(Directory.Exists(paths.Previews));
+        await cache.PutAsync(request, Descriptor(request) with { CacheGeneration = cache.Generation });
+        Assert.IsNotNull(await GetAsync(cache, request));
     }
 
     private static DropItemSnapshot Item() => new(Guid.NewGuid(), ItemKind.Text, ItemStatus.Available,
@@ -77,6 +93,7 @@ public sealed class PreviewCacheTests
 
     private sealed class FailedCache : IPreviewCache
     {
+        public long Generation => 0;
         public Task<PreviewDescriptor?> TryGetAsync(Guid itemId, int revision, PreviewKind kind, int page, int targetPixelWidth, CancellationToken cancellationToken = default) => throw new IOException("cache unavailable");
         public Task PutAsync(PreviewRequest request, PreviewDescriptor descriptor, CancellationToken cancellationToken = default) => throw new IOException("cache unavailable");
         public Task ClearAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;

@@ -57,6 +57,7 @@ public sealed class PreviewProviderRegistry(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var generation = cache.Generation;
         var capability = await ProbeAsync(request.Item, cancellationToken).ConfigureAwait(false);
         if (!capability.CanPreview)
         {
@@ -70,7 +71,7 @@ public sealed class PreviewProviderRegistry(
                 var cacheHit = await cache.TryGetAsync(
                     request.Item.Id, request.Item.Revision, capability.Kind,
                     request.Page, request.TargetPixelWidth, cancellationToken).ConfigureAwait(false);
-                if (cacheHit is not null) return cacheHit;
+                if (cacheHit is not null) return cacheHit with { CacheGeneration = generation };
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
@@ -81,7 +82,8 @@ public sealed class PreviewProviderRegistry(
         var provider = _providers.First(provider => string.Equals(provider.Id, capability.ProviderId, StringComparison.Ordinal));
         try
         {
-            var descriptor = await provider.LoadAsync(request, cancellationToken).ConfigureAwait(false);
+            var descriptor = (await provider.LoadAsync(request, cancellationToken).ConfigureAwait(false))
+                with { CacheGeneration = generation };
             // PDF is cached only after successful platform rendering in the App.
             if (capability.Kind != PreviewKind.Pdf && !request.Item.HasExternalSource)
             {

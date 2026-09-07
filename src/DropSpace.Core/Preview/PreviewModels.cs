@@ -73,6 +73,9 @@ public sealed record PreviewDescriptor(
     IReadOnlyDictionary<string, string> Metadata)
 {
     public bool HasBytes => Bytes is { Length: > 0 };
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public long CacheGeneration { get; init; }
 }
 
 public sealed record PreviewRequest(
@@ -143,6 +146,8 @@ public interface IPreviewProviderRegistry
 
 public interface IPreviewCache
 {
+    long Generation { get; }
+
     Task<PreviewDescriptor?> TryGetAsync(
         Guid itemId,
         int revision,
