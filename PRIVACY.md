@@ -247,3 +247,8 @@ the current source is never opened for write, replaced, or deleted. Completion
 surfaces show the selected output path; diagnostics retain the existing
 path-redaction policy and use localized error categories rather than raw
 exception text.
+
+
+## Preview.17 derived data and staging cleanup
+
+Preview cache has a 24-hour age, 64-entry/64 MiB total and 16 MiB serialized-entry limit. External references are not cached. Record finalization, Undo recovery, clipboard clear and retention invalidate derived previews; cache generations reject late writes after clearing. Locked-file cleanup is logged and retried, not represented as forensic secure erasure. Staged import cleans every admitted app-owned staging path after completion or cancellation, never an external source. Automatic cross-device propagation remains opt-in/event-driven and keeps at most 16 queued items plus one active send, with bounded image reads. No telemetry, account, new network endpoint or collection category is added.
