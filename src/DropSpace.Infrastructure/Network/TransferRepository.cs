@@ -6,13 +6,12 @@ namespace DropSpace.Infrastructure.Network;
 
 public sealed class TransferRepository(SqliteDatabase database)
 {
-    private readonly SemaphoreSlim _gate = new(1, 1);
 
     public async Task UpsertPeerAsync(PeerDevice peer, string secretKeyId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(peer);
         if (string.IsNullOrWhiteSpace(secretKeyId)) throw new ArgumentException("A secret key identifier is required.", nameof(secretKeyId));
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -35,7 +34,7 @@ public sealed class TransferRepository(SqliteDatabase database)
             command.Parameters.AddWithValue("@blocked", peer.TrustState == PeerTrustState.Blocked ? 1 : 0);
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        finally { _gate.Release(); }
+        finally { database.WriteGate.Release(); }
     }
 
     public async Task<IReadOnlyList<PeerDevice>> GetPeersAsync(CancellationToken cancellationToken = default)
@@ -65,7 +64,7 @@ public sealed class TransferRepository(SqliteDatabase database)
 
     public async Task DeletePeerAsync(Guid peerId, CancellationToken cancellationToken = default)
     {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -74,12 +73,12 @@ public sealed class TransferRepository(SqliteDatabase database)
             command.Parameters.AddWithValue("@id", peerId.ToString("D"));
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        finally { _gate.Release(); }
+        finally { database.WriteGate.Release(); }
     }
 
     public async Task CreateSessionAsync(TransferSession session, CancellationToken cancellationToken = default)
     {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -91,12 +90,12 @@ public sealed class TransferRepository(SqliteDatabase database)
             AddSessionParameters(command, session);
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        finally { _gate.Release(); }
+        finally { database.WriteGate.Release(); }
     }
 
     public async Task UpdateSessionAsync(TransferSession session, CancellationToken cancellationToken = default)
     {
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -112,7 +111,7 @@ public sealed class TransferRepository(SqliteDatabase database)
             command.Parameters.AddWithValue("@error", session.ErrorCategory ?? (object)DBNull.Value);
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
-        finally { _gate.Release(); }
+        finally { database.WriteGate.Release(); }
     }
 
     private static void AddSessionParameters(SqliteCommand command, TransferSession session)

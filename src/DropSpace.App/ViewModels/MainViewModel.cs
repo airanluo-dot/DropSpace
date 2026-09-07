@@ -58,6 +58,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private int _itemCount;
     private int _spaceItemCount;
     private long _spaceRevision;
+    private long _reloadRevision;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
     private string _storageSummary = string.Empty;
@@ -149,6 +150,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         {
             if (SetProperty(ref _searchText, value))
             {
+                // Invalidate an in-flight old query immediately, including the debounce interval.
+                Interlocked.Increment(ref _reloadRevision);
                 TrackBackgroundTask(DebouncedReloadAsync(), "search refresh");
             }
         }
@@ -680,6 +683,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
     {
+        Interlocked.Increment(ref _reloadRevision);
         CurrentSection = section;
         IsSettingsVisible = string.Equals(section, "Settings", StringComparison.Ordinal);
         switch (section)
@@ -695,6 +699,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             case "Settings":
                 PageTitle = _strings.Get("PageTitleSettings");
                 PageDescription = _strings.Get("PageDescriptionSettings");
+                IsBusy = false;
                 Items.Clear();
                 ItemCount = 0;
                 IsEmpty = true;
@@ -711,6 +716,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var revision = Interlocked.Increment(ref _reloadRevision);
         IsBusy = true;
         try
         {
@@ -725,6 +732,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 };
 
             var items = await _repository.QueryAsync(query, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible)
+            {
+                return;
+            }
+
             Items.Clear();
             foreach (var item in items)
             {
@@ -737,16 +750,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
-            if (!hasGlobalSearch && CurrentSection == "Space")
-            {
-                SpaceItemCount = Items.Count;
-            }
+            // SpaceItemCount comes from the repository count, never the 500-item page.
 
             StatusMessage = hasGlobalSearch && Items.Count == 0 ? _strings.Get("SearchNoMatches") : string.Empty;
         }
         finally
         {
-            IsBusy = false;
+            if (revision == Volatile.Read(ref _reloadRevision))
+            {
+                IsBusy = false;
+            }
         }
     }
 

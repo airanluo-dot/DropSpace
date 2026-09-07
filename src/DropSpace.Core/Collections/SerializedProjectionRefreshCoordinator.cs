@@ -156,24 +156,37 @@ public sealed class SerializedProjectionRefreshCoordinator<T> : IDisposable, IAs
             }
             catch (Exception exception)
             {
-                CompleteThrough(revision, exception);
+                if (!CompleteThrough(revision, exception))
+                {
+                    return;
+                }
             }
         }
     }
 
-    private void CompleteThrough(long revision, Exception? exception = null)
+    private bool CompleteThrough(long revision, Exception? exception = null)
     {
         List<TaskCompletionSource> completed = [];
+        var keepRunning = true;
         lock (_gate)
         {
-            // A failed revision is terminal for its waiters. Advancing here prevents the worker
-            // from spinning forever on the same failed request; a later revision can retry.
-            _appliedRevision = Math.Max(_appliedRevision, revision);
+            if (exception is null)
+            {
+                _appliedRevision = Math.Max(_appliedRevision, revision);
+            }
 
             foreach (var key in _waiters.Keys.Where(key => key <= revision).ToArray())
             {
                 completed.AddRange(_waiters[key]);
                 _waiters.Remove(key);
+            }
+
+            if (exception is not null && _requestedRevision <= revision)
+            {
+                // Publish the stopped worker before notifying failed callers. An immediate
+                // same-revision retry must start a worker, not join one that is about to stop.
+                _running = false;
+                keepRunning = false;
             }
         }
 
@@ -188,6 +201,8 @@ public sealed class SerializedProjectionRefreshCoordinator<T> : IDisposable, IAs
                 completion.TrySetException(exception);
             }
         }
+
+        return keepRunning;
     }
 
     private void CompleteAllWithCancellation()

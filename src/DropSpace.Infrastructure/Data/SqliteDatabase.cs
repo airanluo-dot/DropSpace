@@ -11,7 +11,10 @@ public sealed class SqliteDatabase(
     public const int CurrentSchemaVersion = 3;
 
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
-    private bool _initialized;
+    private volatile bool _initialized;
+
+    // One database owns the write boundary across item and transfer repositories.
+    internal SemaphoreSlim WriteGate { get; } = new(1, 1);
 
     private static readonly TableDescriptor[] RequiredTables =
     [
@@ -136,6 +139,7 @@ public sealed class SqliteDatabase(
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_initialized)
         {
             return;
@@ -190,12 +194,20 @@ public sealed class SqliteDatabase(
         };
 
         var connection = new SqliteConnection(builder.ToString());
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000; PRAGMA journal_mode = WAL;";
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
+        try
+        {
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000; PRAGMA journal_mode = WAL;";
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            return connection;
+        }
+        catch
+        {
+            // Ownership transfers to the caller only after every connection pragma succeeds.
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     private async Task ApplyMigrationsAsync(
