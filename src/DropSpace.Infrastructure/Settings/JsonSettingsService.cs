@@ -141,6 +141,22 @@ public sealed class JsonSettingsService : ISettingsService
         }
     }
 
+    public async Task<AppSettings> UpdateAsync(
+        Func<AppSettings, AppSettings> update,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(update);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var current = (await LoadRawAsync(cancellationToken).ConfigureAwait(false)).Validate();
+            var updated = update(current).Validate();
+            if (updated != current) await SaveCoreAsync(updated, cancellationToken).ConfigureAwait(false);
+            return updated;
+        }
+        finally { _gate.Release(); }
+    }
+
     public async Task<AppSettings> ResetUiSettingsAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);

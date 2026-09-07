@@ -36,7 +36,8 @@ public partial class App : Application
     private MainWindow? _window;
     private OverlayWindowService? _overlayWindows;
     private AppInstance? _mainInstance;
-    private int _shuttingDown;
+    private readonly object _shutdownSync = new();
+    private Task? _shutdownTask;
     private readonly CancellationTokenSource _appLifetimeCancellation = new();
     private Task? _startupUpdateTask;
     private RedactingFileLoggerProvider? _fileLogger;
@@ -309,51 +310,78 @@ public partial class App : Application
         }
     }
 
-    public async Task ShutdownAsync()
+    public Task ShutdownAsync()
     {
-        if (Interlocked.Exchange(ref _shuttingDown, 1) != 0)
+        lock (_shutdownSync)
         {
-            return;
+            return _shutdownTask ??= ShutdownCoreAsync();
         }
+    }
 
+    private async Task ShutdownCoreAsync()
+    {
+        // Publish the shared completion task before closing windows can reenter shutdown.
+        await Task.Yield();
         var services = _services;
+        var logger = services?.GetService<ILogger<App>>();
         _services = null;
-        _appLifetimeCancellation.Cancel();
+        if (_mainInstance is not null) _mainInstance.Activated -= OnInstanceActivated;
+
+        await CleanupAsync("application cancellation", () =>
+        {
+            _appLifetimeCancellation.Cancel();
+            return Task.CompletedTask;
+        });
         if (_startupUpdateTask is not null)
-        {
-            try
-            {
-                await _startupUpdateTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // Application shutdown cancellation is expected for the owned startup check.
-            }
-        }
+            await CleanupAsync("startup update", () => _startupUpdateTask);
 
-        _overlayWindows?.Dispose();
+        var overlay = _overlayWindows;
         _overlayWindows = null;
+        await CleanupAsync("overlay windows", () =>
+        {
+            overlay?.Dispose();
+            return Task.CompletedTask;
+        });
+
         var window = _window;
-        window?.AllowCloseAndClose();
-        if (window is not null)
-        {
-            await window.DisposeAsync();
-        }
-
         _window = null;
-        if (services is not null)
+        await CleanupAsync("main window close", () =>
         {
-            await services.DisposeAsync();
-        }
+            window?.AllowCloseAndClose();
+            return Task.CompletedTask;
+        });
+        if (window is not null)
+            await CleanupAsync("main window tasks", () => window.DisposeAsync().AsTask());
+        if (services is not null)
+            await CleanupAsync("application services", () => services.DisposeAsync().AsTask());
 
+        await CleanupAsync("application cancellation resources", () =>
+        {
+            _appLifetimeCancellation.Dispose();
+            return Task.CompletedTask;
+        });
+        UnhandledException -= OnUnhandledException;
         var fileLogger = _fileLogger;
         _fileLogger = null;
         if (fileLogger is not null)
         {
-            await fileLogger.DisposeAsync();
+            try { await fileLogger.DisposeAsync(); }
+            catch (Exception exception) { Debug.WriteLine(exception); }
         }
 
-        _appLifetimeCancellation.Dispose();
+        async Task CleanupAsync(string stage, Func<Task> cleanup)
+        {
+            try { await cleanup(); }
+            catch (OperationCanceledException) when (_appLifetimeCancellation.IsCancellationRequested)
+            {
+                // Owned cancellation is expected while draining application work.
+            }
+            catch (Exception exception)
+            {
+                logger?.LogError(exception, "Application shutdown failed at {Stage}; remaining cleanup will continue.", stage);
+                Debug.WriteLine(exception);
+            }
+        }
     }
 
     private ServiceProvider BuildServices()
@@ -379,6 +407,7 @@ public partial class App : Application
         services.AddSingleton<SqliteDatabase>();
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
+        services.AddSingleton<StagedFileImportService>();
         services.AddSingleton<UndoCoordinator>();
         services.AddSingleton<DeviceIdentityStore>();
         services.AddSingleton<DeviceSecretStore>();

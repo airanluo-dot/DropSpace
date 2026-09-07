@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.Core.Collections;
+using DropSpace.Infrastructure.Storage;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
@@ -20,6 +21,8 @@ namespace DropSpace.App.ViewModels;
 public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     private readonly IItemRepository _repository;
+    private readonly StagedFileImportService _stagedFiles;
+    private readonly SemaphoreSlim _settingsChangeGate = new(1, 1);
     private readonly IItemActionRegistry _actions;
     private readonly UndoCoordinator _undo;
     private readonly ISettingsService _settingsService;
@@ -58,6 +61,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private int _itemCount;
     private int _spaceItemCount;
     private long _spaceRevision;
+    private long _reloadRevision;
     private ItemCardViewModel? _selectedItem;
     private AppSettings _settings = new();
     private string _storageSummary = string.Empty;
@@ -68,6 +72,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public MainViewModel(
         IItemRepository repository,
+        StagedFileImportService stagedFiles,
         IItemActionRegistry actions,
         UndoCoordinator undo,
         ISettingsService settingsService,
@@ -91,6 +96,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ILogger<MainViewModel> logger)
     {
         _repository = repository;
+        _stagedFiles = stagedFiles;
         _actions = actions;
         _undo = undo;
         _settingsService = settingsService;
@@ -149,6 +155,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         {
             if (SetProperty(ref _searchText, value))
             {
+                // Invalidate an in-flight old query immediately, including the debounce interval.
+                Interlocked.Increment(ref _reloadRevision);
                 TrackBackgroundTask(DebouncedReloadAsync(), "search refresh");
             }
         }
@@ -680,6 +688,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task NavigateAsync(string section, CancellationToken cancellationToken = default)
     {
+        Interlocked.Increment(ref _reloadRevision);
         CurrentSection = section;
         IsSettingsVisible = string.Equals(section, "Settings", StringComparison.Ordinal);
         switch (section)
@@ -695,6 +704,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             case "Settings":
                 PageTitle = _strings.Get("PageTitleSettings");
                 PageDescription = _strings.Get("PageDescriptionSettings");
+                IsBusy = false;
                 Items.Clear();
                 ItemCount = 0;
                 IsEmpty = true;
@@ -711,6 +721,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var revision = Interlocked.Increment(ref _reloadRevision);
         IsBusy = true;
         try
         {
@@ -725,6 +737,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 };
 
             var items = await _repository.QueryAsync(query, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible)
+            {
+                return;
+            }
+
             Items.Clear();
             foreach (var item in items)
             {
@@ -737,16 +755,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
-            if (!hasGlobalSearch && CurrentSection == "Space")
-            {
-                SpaceItemCount = Items.Count;
-            }
+            // SpaceItemCount comes from the repository count, never the 500-item page.
 
             StatusMessage = hasGlobalSearch && Items.Count == 0 ? _strings.Get("SearchNoMatches") : string.Empty;
         }
         finally
         {
-            IsBusy = false;
+            if (revision == Volatile.Read(ref _reloadRevision))
+            {
+                IsBusy = false;
+            }
         }
     }
 
@@ -805,69 +823,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ArgumentNullException.ThrowIfNull(stagingPaths);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFileBytes);
         var paths = stagingPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var batchId = Guid.NewGuid();
-        var accepted = 0;
-        var rejected = 0;
-        for (var index = 0; index < paths.Length; index++)
-        {
-            var stagingPath = paths[index];
-            PayloadRecord? payload = null;
-            try
-            {
-                var stagedCandidate = await _fileReferences.InspectAsync(stagingPath, cancellationToken);
-                await using var input = new FileStream(
-                    stagingPath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    81_920,
-                    FileOptions.Asynchronous | FileOptions.SequentialScan);
-                payload = await _payloadStore.WriteFileAsync(
-                    "files",
-                    stagedCandidate.Extension,
-                    input,
-                    maximumFileBytes,
-                    cancellationToken);
-                var ownedPath = _payloadStore.ResolvePath(payload.RelativePath);
-                var ownedCandidate = stagedCandidate with
-                {
-                    OriginalPath = ownedPath,
-                    NormalizedPath = Path.GetFullPath(ownedPath),
-                };
-                var metadata = JsonSerializer.Serialize(new DropBatchMetadata(
-                    batchId,
-                    dropSessionId,
-                    index,
-                    paths.Length,
-                    acquisitionKind));
-                await _repository.AddOwnedSpaceFileAsync(ownedCandidate, payload, metadata, cancellationToken);
-                payload = null;
-                accepted++;
-            }
-            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
-            {
-                rejected++;
-                _logger.LogWarning(exception, "An app-owned staged item was rejected without logging its filename or path.");
-            }
-            finally
-            {
-                if (payload is not null)
-                {
-                    await _payloadStore.DeleteAsync(payload.RelativePath, CancellationToken.None);
-                }
-                try
-                {
-                    if (File.Exists(stagingPath))
-                    {
-                        File.Delete(stagingPath);
-                    }
-                }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-                {
-                    _logger.LogWarning(exception, "A consumed staging file could not be removed immediately.");
-                }
-            }
-        }
+        var result = await _stagedFiles.ImportBatchAsync(paths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken);
+        var accepted = result.Accepted;
+        var rejected = result.Rejected;
 
         StatusMessage = rejected == 0
             ? _strings.Format("ItemsAdded", accepted)
@@ -1120,6 +1078,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
     {
+        await _settingsChangeGate.WaitAsync(cancellationToken);
+        try { await SetClipboardPausedCoreAsync(paused, cancellationToken); }
+        finally { _settingsChangeGate.Release(); }
+    }
+
+    private async Task SetClipboardPausedCoreAsync(bool paused, CancellationToken cancellationToken)
+    {
         if (paused)
         {
             await _clipboard.PauseAsync(cancellationToken);
@@ -1133,6 +1098,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     }
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    {
+        await _settingsChangeGate.WaitAsync(cancellationToken);
+        try
+        {
+            // A settings form does not own the runtime pause or update-check fields.
+            settings = settings with { ClipboardPaused = Settings.ClipboardPaused, LastUpdateCheckUtc = Settings.LastUpdateCheckUtc };
+            await UpdateSettingsCoreAsync(settings, cancellationToken);
+        }
+        finally { _settingsChangeGate.Release(); }
+    }
+
+    private async Task UpdateSettingsCoreAsync(AppSettings settings, CancellationToken cancellationToken)
     {
         settings.Validate();
         var previous = Settings;
@@ -1622,16 +1599,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
 
-        var updated = Settings with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() };
-        await _settingsService.SaveAsync(updated, cancellationToken);
-        if (_dispatcher.HasThreadAccess)
+        await _settingsChangeGate.WaitAsync(cancellationToken);
+        try
         {
-            Settings = updated;
+            var updated = await _settingsService.UpdateAsync(current =>
+                current.LastUpdateCheckUtc is { } previous && previous >= checkedAt
+                    ? current
+                    : current with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() }, cancellationToken);
+            Task ApplyAsync()
+            {
+                Settings = Settings with { LastUpdateCheckUtc = updated.LastUpdateCheckUtc };
+                return Task.CompletedTask;
+            }
+            if (_dispatcher.HasThreadAccess) await ApplyAsync();
+            else await _dispatcher.EnqueueAsync(ApplyAsync);
         }
-        else
-        {
-            _dispatcher.TryEnqueue(() => Settings = updated);
-        }
+        finally { _settingsChangeGate.Release(); }
     }
 
     private string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch

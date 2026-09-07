@@ -12,7 +12,6 @@ public sealed class SqliteItemRepository(
     SqliteDatabase database,
     ILogger<SqliteItemRepository> logger) : IItemRepository
 {
-    private readonly SemaphoreSlim _writeGate = new(1, 1);
 
     public Task InitializeAsync(CancellationToken cancellationToken = default) => database.InitializeAsync(cancellationToken);
 
@@ -51,7 +50,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candidate);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -113,7 +112,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -133,7 +132,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candidate);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -193,14 +192,14 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
     public async Task<DropItem> AddImageAsync(ImageCandidate candidate, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(candidate);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -242,7 +241,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -355,7 +354,7 @@ public sealed class SqliteItemRepository(
 
     public async Task MarkUsedAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -367,7 +366,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -377,7 +376,7 @@ public sealed class SqliteItemRepository(
         string? reason,
         CancellationToken cancellationToken = default)
     {
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -409,7 +408,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -419,7 +418,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(replacement);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -472,13 +471,13 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
     public async Task<string?> RemoveAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -487,7 +486,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -503,7 +502,7 @@ public sealed class SqliteItemRepository(
             return 0;
         }
 
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -515,7 +514,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -527,7 +526,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken = default)
     {
         ValidatePendingArguments(null, token, expiresAtUtc);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -556,7 +555,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -565,7 +564,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken = default)
     {
         ValidateToken(token);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -576,7 +575,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -585,7 +584,7 @@ public sealed class SqliteItemRepository(
         CancellationToken cancellationToken = default)
     {
         ValidateToken(token);
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -597,7 +596,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -605,7 +604,7 @@ public sealed class SqliteItemRepository(
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken = default)
     {
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -638,7 +637,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -647,7 +646,7 @@ public sealed class SqliteItemRepository(
         bool includePinned,
         CancellationToken cancellationToken = default)
     {
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -680,7 +679,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -699,7 +698,7 @@ public sealed class SqliteItemRepository(
             return new RetentionResult(0, Array.Empty<string>());
         }
 
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -708,7 +707,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 
@@ -749,7 +748,7 @@ public sealed class SqliteItemRepository(
         object value,
         CancellationToken cancellationToken)
     {
-        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -761,7 +760,7 @@ public sealed class SqliteItemRepository(
         }
         finally
         {
-            _writeGate.Release();
+            database.WriteGate.Release();
         }
     }
 

@@ -73,6 +73,9 @@ public sealed record PreviewDescriptor(
     IReadOnlyDictionary<string, string> Metadata)
 {
     public bool HasBytes => Bytes is { Length: > 0 };
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public long CacheGeneration { get; init; }
 }
 
 public sealed record PreviewRequest(
@@ -95,6 +98,9 @@ public sealed record DropItemSnapshot(
     int Revision,
     PayloadRecord? Payload = null)
 {
+    // External files can change independently of the database item revision.
+    public bool HasExternalSource => Payload is null && !string.IsNullOrWhiteSpace(OriginalPath);
+
     public static DropItemSnapshot FromItem(DropItem item) => new(
         item.Id,
         item.Kind,
@@ -140,6 +146,8 @@ public interface IPreviewProviderRegistry
 
 public interface IPreviewCache
 {
+    long Generation { get; }
+
     Task<PreviewDescriptor?> TryGetAsync(
         Guid itemId,
         int revision,

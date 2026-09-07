@@ -6,8 +6,13 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Updates;
 
-public sealed class UpdateService : IUpdateService
+public sealed class UpdateService : IUpdateService, IAsyncDisposable
 {
+    private readonly object _lifetimeSync = new();
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly List<Task> _operations = [];
+    private Task? _shutdown;
+    private bool _stopping;
     private readonly object _checkSync = new();
     private readonly object _downloadSync = new();
     private readonly object _installSync = new();
@@ -261,8 +266,12 @@ public sealed class UpdateService : IUpdateService
 
     public async Task MarkUpdatedLaunchAsync(ReleaseVersion updatedVersion, CancellationToken cancellationToken = default)
     {
-        await _stateStore.MarkUpdatedLaunchAsync(updatedVersion, cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("DropSpace completed an update launch at version {UpdatedVersion}.", updatedVersion);
+        await RunExclusiveAsync(async token =>
+        {
+            await _stateStore.MarkUpdatedLaunchAsync(updatedVersion, token).ConfigureAwait(false);
+            _logger.LogInformation("DropSpace completed an update launch at version {UpdatedVersion}.", updatedVersion);
+            return Status;
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private Task<UpdateStatusSnapshot> CheckSingleFlightAsync(
@@ -358,10 +367,34 @@ public sealed class UpdateService : IUpdateService
         }
     }
 
-    private async Task<UpdateStatusSnapshot> RunExclusiveAsync(
+    private Task<UpdateStatusSnapshot> RunExclusiveAsync(
         Func<CancellationToken, Task<UpdateStatusSnapshot>> operation,
         CancellationToken cancellationToken)
     {
+        lock (_lifetimeSync)
+        {
+            ObjectDisposedException.ThrowIf(_stopping, this);
+            _operations.RemoveAll(task =>
+            {
+                if (!task.IsCompleted) return false;
+                if (task.Exception is { } exception)
+                    _logger.LogWarning(exception, "An owned update operation failed.");
+                return true;
+            });
+            var task = RunExclusiveCoreAsync(operation, cancellationToken);
+            _operations.Add(task);
+            return task;
+        }
+    }
+
+    private async Task<UpdateStatusSnapshot> RunExclusiveCoreAsync(
+        Func<CancellationToken, Task<UpdateStatusSnapshot>> operation,
+        CancellationToken callerToken)
+    {
+        // Register ownership before invoking dependencies or status subscribers.
+        await Task.Yield();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(callerToken, _lifetime.Token);
+        var cancellationToken = linked.Token;
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -370,6 +403,54 @@ public sealed class UpdateService : IUpdateService
         finally
         {
             _operationGate.Release();
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        lock (_lifetimeSync)
+        {
+            if (_shutdown is not null) return new ValueTask(_shutdown);
+            _stopping = true;
+            _shutdown = StopAsync(_operations.ToArray());
+            return new ValueTask(_shutdown);
+        }
+    }
+
+    private async Task StopAsync(Task[] operations)
+    {
+        // Do not invoke cancellation callbacks while holding the admission lock.
+        await Task.Yield();
+        try
+        {
+            try
+            {
+                await _lifetime.CancelAsync().ConfigureAwait(false);
+            }
+            catch (AggregateException exception)
+            {
+                _logger.LogError(exception, "An update cancellation callback failed during shutdown.");
+            }
+            try
+            {
+                await Task.WhenAll(operations).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+            {
+                // Waiting operations are cancelled as part of owned shutdown.
+            }
+            catch (Exception exception)
+            {
+                // All operations have ended; an earlier operation failure must not
+                // prevent the service provider from releasing its other services.
+                _logger.LogError(exception, "An update operation failed before shutdown completed.");
+            }
+        }
+        finally
+        {
+            _operationGate.Dispose();
+            _lifetime.Dispose();
+            lock (_lifetimeSync) _operations.Clear();
         }
     }
 

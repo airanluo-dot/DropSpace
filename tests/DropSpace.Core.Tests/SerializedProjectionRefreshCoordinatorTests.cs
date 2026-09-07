@@ -76,4 +76,62 @@ public sealed class SerializedProjectionRefreshCoordinatorTests
         Assert.AreEqual(2, coordinator.AppliedRevision);
         Assert.IsTrue(attempts >= 2);
     }
+    [TestMethod]
+    public async Task FailedApplyDoesNotClaimSuccessAndSameRevisionCanRetry()
+    {
+        var attempts = 0;
+        await using var coordinator = new SerializedProjectionRefreshCoordinator<int>(
+            _ => Task.FromResult<IReadOnlyList<int>>([1]),
+            (_, _, _) => Interlocked.Increment(ref attempts) == 1
+                ? Task.FromException(new InvalidOperationException("injected transient failure"))
+                : Task.CompletedTask);
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => coordinator.RequestAsync(7));
+        Assert.AreEqual(-1, coordinator.AppliedRevision);
+        await coordinator.RequestAsync(7);
+        Assert.AreEqual(7, coordinator.AppliedRevision);
+        Assert.AreEqual(2, attempts);
+    }
+
+    [TestMethod]
+    public async Task FailedLoadStopsUntilExplicitRetry()
+    {
+        var attempts = 0;
+        await using var coordinator = new SerializedProjectionRefreshCoordinator<int>(
+            _ => Interlocked.Increment(ref attempts) == 1
+                ? Task.FromException<IReadOnlyList<int>>(new IOException("injected read failure"))
+                : Task.FromResult<IReadOnlyList<int>>([1]),
+            (_, _, _) => Task.CompletedTask);
+
+        await Assert.ThrowsExactlyAsync<IOException>(() => coordinator.RequestAsync(3));
+        Assert.AreEqual(1, attempts);
+        Assert.AreEqual(-1, coordinator.AppliedRevision);
+        await coordinator.RequestAsync(3);
+        Assert.AreEqual(3, coordinator.AppliedRevision);
+    }
+
+    [TestMethod]
+    public async Task ImmediateConcurrentRetryAfterAsyncFailureAlwaysHasAWorker()
+    {
+        var attempts = 0;
+        await using var coordinator = new SerializedProjectionRefreshCoordinator<int>(
+            async _ =>
+            {
+                await Task.Yield();
+                if (Interlocked.Increment(ref attempts) % 2 == 1)
+                {
+                    throw new IOException("injected transient read failure");
+                }
+                return [1];
+            },
+            (_, _, _) => Task.CompletedTask);
+
+        for (var revision = 0; revision < 100; revision++)
+        {
+            await Assert.ThrowsExactlyAsync<IOException>(() => coordinator.RequestAsync(revision));
+            await coordinator.RequestAsync(revision).WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.AreEqual(revision, coordinator.AppliedRevision);
+        }
+    }
+
 }
