@@ -34,14 +34,14 @@ public sealed class LocalFileReferenceService : IFileReferenceService
     {
         ArgumentNullException.ThrowIfNull(reference);
         var key = NormalizeForComparison(reference.OriginalPath);
-        if (_availabilityCache.TryGetValue(key, out var cached) &&
+        var remote = IsRemotePath(reference.OriginalPath);
+        if (remote && _availabilityCache.TryGetValue(key, out var cached) &&
             DateTimeOffset.UtcNow - cached.CreatedAtUtc <= AvailabilityCacheLifetime)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return cached.Result;
         }
 
-        var remote = IsRemotePath(reference.OriginalPath);
         var gate = remote ? _remoteGate : _localGate;
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         var result = await ExecuteMetadataAsync(
@@ -51,7 +51,10 @@ public sealed class LocalFileReferenceService : IFileReferenceService
                 cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        _availabilityCache[key] = new CachedAvailability(DateTimeOffset.UtcNow, result);
+        if (remote)
+        {
+            _availabilityCache[key] = new CachedAvailability(DateTimeOffset.UtcNow, result);
+        }
         return result;
     }
 

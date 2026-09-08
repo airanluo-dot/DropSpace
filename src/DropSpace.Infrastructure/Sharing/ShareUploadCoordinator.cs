@@ -166,29 +166,33 @@ public sealed class InternetShareClient(
                 var temporary = string.Concat(path, ".tmp");
                 try
                 {
-                    await using var input = await source.OpenReadAsync(cancellationToken).ConfigureAwait(false);
-                    await using var output = new FileStream(
-                        temporary,
-                        FileMode.CreateNew,
-                        FileAccess.Write,
-                        FileShare.None,
-                        81_920,
-                        FileOptions.Asynchronous | FileOptions.WriteThrough);
-                    using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    var buffer = new byte[81_920];
                     long length = 0;
-                    while (true)
+                    string hash;
+                    await using (var input = await source.OpenReadAsync(cancellationToken).ConfigureAwait(false))
+                    await using (var output = new FileStream(
+                                     temporary,
+                                     FileMode.CreateNew,
+                                     FileAccess.Write,
+                                     FileShare.None,
+                                     81_920,
+                                     FileOptions.Asynchronous | FileOptions.WriteThrough))
                     {
-                        var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-                        if (read == 0) break;
-                        length += read;
-                        if (length > source.Length) throw new InvalidDataException("A share source grew after metadata was captured.");
-                        hasher.AppendData(buffer, 0, read);
-                        await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                        var buffer = new byte[81_920];
+                        while (true)
+                        {
+                            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                            if (read == 0) break;
+                            length += read;
+                            if (length > source.Length) throw new InvalidDataException("A share source grew after metadata was captured.");
+                            hasher.AppendData(buffer, 0, read);
+                            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                        }
+
+                        await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        hash = Convert.ToHexString(hasher.GetHashAndReset()).ToLowerInvariant();
                     }
 
-                    await output.FlushAsync(cancellationToken).ConfigureAwait(false);
-                    var hash = Convert.ToHexString(hasher.GetHashAndReset()).ToLowerInvariant();
                     if (length != source.Length || !string.Equals(hash, source.Sha256, StringComparison.OrdinalIgnoreCase))
                     {
                         throw new InvalidDataException("A share source changed while it was being staged.");
