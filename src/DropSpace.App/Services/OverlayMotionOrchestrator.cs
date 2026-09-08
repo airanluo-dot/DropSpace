@@ -57,6 +57,14 @@ internal sealed class OverlayMotionOrchestrator : IDisposable
 
     public void SnapTo(OverlayMotionValues values)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_hasTarget &&
+            Controller.Current == values &&
+            Controller.Target == values)
+        {
+            return;
+        }
+
         _hasTarget = true;
         _lastReducedMotion = false;
         Generation++;
