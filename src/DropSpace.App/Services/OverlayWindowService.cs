@@ -198,16 +198,26 @@ public sealed class OverlayWindowService : IDisposable
         var sampleCycles = new[] { 100, 250, 500, 750, 1_000 };
 
         var motionDiagnosticSequence = 0;
+        var synchronousMotionDiagnosticCount = 0;
         foreach (var window in _windows)
         {
             window.SetSmokeDiagnosticSink(label =>
             {
-                if (motionDiagnostics.Count < 64)
+                var asynchronousBoundary =
+                    label.StartsWith("frame-", StringComparison.Ordinal) ||
+                    label.StartsWith("settled-", StringComparison.Ordinal) ||
+                    label.StartsWith("dismiss-", StringComparison.Ordinal);
+                if (motionDiagnostics.Count < 64 &&
+                    (asynchronousBoundary || synchronousMotionDiagnosticCount < 24))
                 {
                     motionDiagnostics.Add(
                         FormatResourceSnapshot(
                             $"{motionDiagnosticSequence++}:{window.MonitorId}:{label}",
                             CaptureResources()));
+                    if (!asynchronousBoundary)
+                    {
+                        synchronousMotionDiagnosticCount++;
+                    }
                 }
             });
         }
