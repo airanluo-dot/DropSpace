@@ -11,9 +11,11 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.17 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.18 is the current Preview**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.17](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.17). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.18](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.18). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+
+The **v0.3.0-preview.18** architecture-hardening release closes the Preview.17 audit with transactional retention/settings ownership, reparse-safe file boundaries, durable payload cleanup, resumable verified updates, bounded Worker admission, and scalable keyset/FTS search. `MainViewModel` delegates projection and settings transactions to dedicated coordinators. See the [Preview.18 release notes](.github/release-notes/v0.3.0-preview.18.md) and [architecture audit](docs/audit/2026-09-07/architecture-audit-zh.md). Hosted publication gates remain separate from real Windows OS/DPI/OLE/accessibility, two-device, and deployed Worker/browser evidence.
 
 The **v0.3.0-preview.17** architecture audit adds recoverable projections, shared database write ownership, atomic settings mutation, awaited shutdown, bounded automatic clipboard propagation, confined staged-file imports and generation-invalidated preview caching. See the [release notes](.github/release-notes/v0.3.0-preview.17.md) and [15-part architecture audit](docs/audit/2026-09-07/architecture-audit-zh.md). Publication requires the final Windows build/release and website/API gates; real Windows OS/DPI/OLE/accessibility, two-device and deployed Worker/browser evidence remains conditional.
 

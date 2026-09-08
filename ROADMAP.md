@@ -2,9 +2,17 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.16 is the current full-hardening Preview: it converges native/OLE ownership, service initialization and rollback, image decode budgets, native callback isolation, local-network authority, DropLink/DNS-SD lifecycle, revoke-store retention, updater cancellation, and x64 release validation. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Commercial signing remains optional and credential-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.18 is the current architecture-hardening Preview: it closes the Preview.17 audit across transactional retention/settings ownership, reparse-safe file boundaries, payload cleanup recovery, updater trust/resume behavior, bounded Worker admission, scalable FTS/keyset projection, and release governance. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
+
+## v0.3.0-preview.18 delivery slice
+
+- Close the full architecture audit without expanding the product boundary: serialize retention selection/commit, report actual affected rows, and durably recover app-owned payload cleanup failures.
+- Enforce reparse-aware DropLink and ZIP file boundaries, preserve partial-finalization evidence, redact crash markers, and bound network/logger failure paths.
+- Move settings runtime transactions and collection projection orchestration out of `MainViewModel`; use 200-item keyset continuation and schema-v4 FTS5 trigram search instead of a fixed visible projection/deep SQL OFFSET.
+- Add resumable HTTP Range update downloads with final full SHA-256 verification, whole-chain Authenticode revocation checking, bounded Worker streaming/admission, immutable Actions SHAs, explicit publication, and Stable signing gates.
+- Re-run Core/Infrastructure/App, WinUI, portable/MSIX/identity/Inno, installer update/upgrade/uninstall, en-US/zh-CN smoke, Worker, and website/browser-route gates before publishing Preview.18.
 
 ## v0.3.0-preview.16 delivery slice
 
