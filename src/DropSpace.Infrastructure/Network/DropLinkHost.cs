@@ -34,7 +34,6 @@ public sealed record IncomingHandoffOffer(
 
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkHost(
-    AppStoragePaths paths,
     DeviceIdentityStore identities,
     DropLinkPairingService pairing,
     TransferRepository transfers,

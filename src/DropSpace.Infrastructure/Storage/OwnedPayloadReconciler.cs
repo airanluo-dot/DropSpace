@@ -98,50 +98,69 @@ public sealed class OwnedPayloadReconciler(
 
     private IEnumerable<string> EnumerateFilesSafely(string root, CancellationToken cancellationToken)
     {
+        var files = new List<string>();
         var pending = new Stack<string>();
         pending.Push(Path.GetFullPath(root));
         while (pending.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var current = pending.Pop();
+
+            FileAttributes currentAttributes;
             try
             {
-                if (File.GetAttributes(current).HasFlag(FileAttributes.ReparsePoint))
-                {
-                    logger.LogWarning("Payload reconciliation skipped a reparse-point directory.");
-                    continue;
-                }
-
-                foreach (var entry in Directory.EnumerateFileSystemEntries(current, "*", SearchOption.TopDirectoryOnly))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    FileAttributes attributes;
-                    try { attributes = File.GetAttributes(entry); }
-                    catch (Exception exception) when (IsFileFailure(exception))
-                    {
-                        logger.LogWarning(exception, "Payload reconciliation could not inspect one entry; leaving it in place.");
-                        continue;
-                    }
-
-                    if (attributes.HasFlag(FileAttributes.ReparsePoint))
-                    {
-                        logger.LogWarning("Payload reconciliation skipped a reparse-point entry.");
-                    }
-                    else if (attributes.HasFlag(FileAttributes.Directory))
-                    {
-                        pending.Push(entry);
-                    }
-                    else
-                    {
-                        yield return entry;
-                    }
-                }
+                currentAttributes = File.GetAttributes(current);
             }
             catch (Exception exception) when (IsFileFailure(exception))
             {
                 logger.LogWarning(exception, "Payload reconciliation could not enumerate one directory; leaving it in place.");
+                continue;
+            }
+
+            if (currentAttributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                logger.LogWarning("Payload reconciliation skipped a reparse-point directory.");
+                continue;
+            }
+
+            IEnumerable<string> entries;
+            try
+            {
+                entries = Directory.EnumerateFileSystemEntries(current, "*", SearchOption.TopDirectoryOnly).ToArray();
+            }
+            catch (Exception exception) when (IsFileFailure(exception))
+            {
+                logger.LogWarning(exception, "Payload reconciliation could not enumerate one directory; leaving it in place.");
+                continue;
+            }
+
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                FileAttributes attributes;
+                try { attributes = File.GetAttributes(entry); }
+                catch (Exception exception) when (IsFileFailure(exception))
+                {
+                    logger.LogWarning(exception, "Payload reconciliation could not inspect one entry; leaving it in place.");
+                    continue;
+                }
+
+                if (attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    logger.LogWarning("Payload reconciliation skipped a reparse-point entry.");
+                }
+                else if (attributes.HasFlag(FileAttributes.Directory))
+                {
+                    pending.Push(entry);
+                }
+                else
+                {
+                    files.Add(entry);
+                }
             }
         }
+
+        return files;
     }
 
     private static string NormalizeRelativePath(string path) =>
