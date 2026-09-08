@@ -61,6 +61,10 @@ public sealed partial class OverlayWindow : Window
     private bool _placementEditActive;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
+    private int _positionedHostWidthPixels = -1;
+    private int _positionedHostHeightPixels = -1;
+    private int _positionedHostLeftPixels = int.MinValue;
+    private int _positionedHostTopPixels = int.MinValue;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -580,13 +584,24 @@ public sealed partial class OverlayWindow : Window
     {
         var width = ToPixels(HostWidth);
         var height = ToPixels(HostHeight);
+        var left = _resolvedPlacement.HostLeftPixels;
+        var top = _resolvedPlacement.HostTopPixels;
+        if (_positionedHostWidthPixels == width &&
+            _positionedHostHeightPixels == height &&
+            _positionedHostLeftPixels == left &&
+            _positionedHostTopPixels == top &&
+            OverlayWindowInterop.TryGetClientSize(_windowHandle, out var cachedWidth, out var cachedHeight) &&
+            cachedWidth == width &&
+            cachedHeight == height)
+        {
+            return true;
+        }
+
         // The animated HRGN is expressed in client coordinates. ResizeClient keeps that
         // coordinate space exact even when Windows reports a presenter-specific outer frame;
         // Move uses independent screen coordinates for the host's origin.
         AppWindow.ResizeClient(new SizeInt32(width, height));
-        AppWindow.Move(new PointInt32(
-            _resolvedPlacement.HostLeftPixels,
-            _resolvedPlacement.HostTopPixels));
+        AppWindow.Move(new PointInt32(left, top));
         var matches = OverlayWindowInterop.TryGetClientSize(_windowHandle, out var actualWidth, out var actualHeight) &&
                       actualWidth == width && actualHeight == height;
         if (!matches)
@@ -600,6 +615,14 @@ public sealed partial class OverlayWindow : Window
                 actualHeight,
                 _monitor.Scale,
                 _operatingSystemBuild);
+        }
+
+        if (matches)
+        {
+            _positionedHostWidthPixels = width;
+            _positionedHostHeightPixels = height;
+            _positionedHostLeftPixels = left;
+            _positionedHostTopPixels = top;
         }
 
         return matches;
