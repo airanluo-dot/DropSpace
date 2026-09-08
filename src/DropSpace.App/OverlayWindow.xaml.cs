@@ -214,6 +214,9 @@ public sealed partial class OverlayWindow : Window
         _smokeDiagnosticFrameCount = 0;
     }
 
+    internal void SetCompositionAnimationsEnabled(bool enabled) =>
+        _motion.SetCompositionAnimationsEnabled(enabled);
+
     internal void VerifyLocalizedResources()
     {
         VerifyResourceValue(Title, "OverlayWindow.Title");
