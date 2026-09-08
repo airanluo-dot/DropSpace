@@ -38,7 +38,7 @@ $patterns = [ordered]@{
     "aws-access-key" = [regex]::new([regex]::Escape($awsPrefix) + "[A-Z0-9]{16}")
     "private-key" = [regex]::new("-----BEGIN [A-Z0-9 ]+ PRIVATE KEY-----")
     "jwt" = [regex]::new("eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}")
-    "credential-assignment" = [regex]::new("(?im)(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password)\s*[:=]\s*[\"']?[A-Za-z0-9/+_=.-]{24,}")
+    "credential-assignment" = [regex]::new("(?im)(?:api[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token|password)\s*[:=]\s*[`"']?[A-Za-z0-9/+_=.-]{24,}")
 }
 function Find-SecretMatches {
     param(
