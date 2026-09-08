@@ -512,6 +512,7 @@ public partial class App : Application
         services.AddSingleton<GlobalQuickPanelHotkeyService>();
         services.AddSingleton<SystemVisualPreferenceService>();
         services.AddSingleton<ItemProjectionService>();
+        services.AddSingleton<SettingsApplicationCoordinator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();

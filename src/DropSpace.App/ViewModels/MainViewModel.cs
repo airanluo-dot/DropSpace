@@ -23,21 +23,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly IItemRepository _repository;
     private readonly ItemProjectionService _projection;
     private readonly StagedFileImportService _stagedFiles;
-    private readonly SemaphoreSlim _settingsChangeGate = new(1, 1);
     private readonly IItemActionRegistry _actions;
     private readonly UndoCoordinator _undo;
-    private readonly ISettingsService _settingsService;
+    private readonly SettingsApplicationCoordinator _settingsCoordinator;
     private readonly IPayloadStore _payloadStore;
     private readonly IFileReferenceService _fileReferences;
     private readonly ILocalStorageMetrics _storageMetrics;
-    private readonly IStartupRegistrationService _startupRegistration;
     private readonly WindowsShareIntegrationService _windowsShareIntegration;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly DragSessionDetector _dragSessionDetector;
-    private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
     private readonly ClipboardCaptureService _clipboard;
-    private readonly DeviceHandoffService _deviceHandoff;
-    private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
     private readonly DragStorageItemService _dragStorageItems;
@@ -80,18 +75,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         StagedFileImportService stagedFiles,
         IItemActionRegistry actions,
         UndoCoordinator undo,
-        ISettingsService settingsService,
+        SettingsApplicationCoordinator settingsCoordinator,
         IPayloadStore payloadStore,
         IFileReferenceService fileReferences,
         ILocalStorageMetrics storageMetrics,
-        IStartupRegistrationService startupRegistration,
         WindowsShareIntegrationService windowsShareIntegration,
         MonitorLayoutService monitorLayout,
         DragSessionDetector dragSessionDetector,
-        GlobalQuickPanelHotkeyService quickPanelHotkey,
         ClipboardCaptureService clipboard,
-        DeviceHandoffService deviceHandoff,
-        CrossDeviceClipboardService crossDeviceClipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
         DragStorageItemService dragStorageItems,
@@ -105,18 +96,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _stagedFiles = stagedFiles;
         _actions = actions;
         _undo = undo;
-        _settingsService = settingsService;
+        _settingsCoordinator = settingsCoordinator;
         _payloadStore = payloadStore;
         _fileReferences = fileReferences;
         _storageMetrics = storageMetrics;
-        _startupRegistration = startupRegistration;
         _windowsShareIntegration = windowsShareIntegration;
         _monitorLayout = monitorLayout;
         _dragSessionDetector = dragSessionDetector;
-        _quickPanelHotkey = quickPanelHotkey;
         _clipboard = clipboard;
-        _deviceHandoff = deviceHandoff;
-        _crossDeviceClipboard = crossDeviceClipboard;
         _shell = shell;
         _thumbnails = thumbnails;
         _dragStorageItems = dragStorageItems;
@@ -598,14 +585,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        Settings = await _settingsService.LoadAsync(cancellationToken);
+        Settings = await _settingsCoordinator.LoadAsync(cancellationToken);
         var migratedSettings = MigrateLegacyOverlayPlacements(Settings);
         if (!ReferenceEquals(migratedSettings, Settings))
         {
-            await _settingsService.SaveAsync(migratedSettings, cancellationToken);
+            await _settingsCoordinator.SaveAsync(migratedSettings, cancellationToken);
             Settings = migratedSettings;
         }
-        await _startupRegistration.SetEnabledAsync(Settings.StartWithWindows, cancellationToken);
+        await _settingsCoordinator.EnsureStartupStateAsync(Settings, cancellationToken);
         await _repository.InitializeAsync(cancellationToken);
         await _undo.RecoverStaleAsync(cancellationToken);
         await RefreshSpaceItemCountAsync(cancellationToken);
@@ -1138,123 +1125,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
     {
-        await _settingsChangeGate.WaitAsync(cancellationToken);
-        try { await SetClipboardPausedCoreAsync(paused, cancellationToken); }
-        finally { _settingsChangeGate.Release(); }
-    }
-
-    private async Task SetClipboardPausedCoreAsync(bool paused, CancellationToken cancellationToken)
-    {
-        if (paused)
-        {
-            await _clipboard.PauseAsync(cancellationToken);
-        }
-        else
-        {
-            await _clipboard.ResumeAsync(cancellationToken);
-        }
-
-        Settings = await _settingsService.LoadAsync(cancellationToken);
+        Settings = await _settingsCoordinator.SetClipboardPausedAsync(paused, cancellationToken);
     }
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
-        await _settingsChangeGate.WaitAsync(cancellationToken);
-        try
-        {
-            // A settings form does not own the runtime pause or update-check fields.
-            settings = settings with { ClipboardPaused = Settings.ClipboardPaused, LastUpdateCheckUtc = Settings.LastUpdateCheckUtc };
-            await UpdateSettingsCoreAsync(settings, cancellationToken);
-        }
-        finally { _settingsChangeGate.Release(); }
-    }
-
-    private async Task UpdateSettingsCoreAsync(AppSettings settings, CancellationToken cancellationToken)
-    {
-        settings.Validate();
+        ArgumentNullException.ThrowIfNull(settings);
         var previous = Settings;
-        var preflight = UiSettingsPreflightAsync;
-        var rollback = new SettingsTransactionRollbackCoordinator();
         var previousStatus = StatusMessage;
         try
         {
-            if (!string.Equals(settings.QuickPanelHotkey, previous.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase) &&
-                !_quickPanelHotkey.CanRegister(settings.QuickPanelHotkey))
-            {
-                throw new InvalidOperationException("The requested Quick Panel hotkey is already registered by another application.");
-            }
-            if (preflight is not null)
-            {
-                rollback.Committed("ui-preflight", () => preflight(previous, CancellationToken.None));
-                await preflight(settings, cancellationToken);
-            }
-
-            rollback.Committed("startup", () => _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
-            await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
-            rollback.Committed("clipboard", () => _clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
-            rollback.Committed("handoff", () => _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _deviceHandoff.UpdateSettingsAsync(settings, cancellationToken);
-            rollback.Committed("cross-device-clipboard", () => _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _crossDeviceClipboard.UpdateSettingsAsync(settings, cancellationToken);
-            rollback.Committed("settings-store", () => _settingsService.SaveAsync(previous, CancellationToken.None));
-            await _settingsService.SaveAsync(settings, cancellationToken);
-            Settings = settings;
-            StatusMessage = settings.Language == previous.Language
+            Settings = await _settingsCoordinator.UpdateAsync(
+                previous,
+                settings,
+                UiSettingsPreflightAsync,
+                cancellationToken);
+            StatusMessage = Settings.Language == previous.Language
                 ? _strings.Get("SettingsSaved")
                 : _strings.Get("LanguageChangeRestartRequired");
         }
-        catch (Exception updateException)
+        catch
         {
-            var rollbackFailures = await rollback.RollbackAsync((category, exception) =>
-                _logger.LogError("Settings rollback failed in {Category}: {FailureType}.", category, exception.GetType().Name));
-            if (rollbackFailures.Count > 0)
-            {
-                var reconciliationFailures = await ReconcileSettingsStateAsync(previous);
-                if (reconciliationFailures.Count > 0)
-                {
-                    _logger.LogCritical(
-                        "Settings update rollback and reconciliation both had failures. Rollback={RollbackFailures}, Reconciliation={ReconciliationFailures}.",
-                        rollbackFailures.Count,
-                        reconciliationFailures.Count);
-                    try { Settings = await _settingsService.LoadAsync(CancellationToken.None); }
-                    catch { Settings = previous; }
-                    StatusMessage = previousStatus;
-                    throw new AggregateException(
-                        "The settings update failed and the previous runtime state could not be fully reconciled. Restart DropSpace before changing settings again.",
-                        new[] { updateException }.Concat(rollbackFailures.Select(failure => failure.Exception)).Concat(reconciliationFailures));
-                }
-            }
-
-            try { Settings = await _settingsService.LoadAsync(CancellationToken.None); }
-            catch { Settings = previous; }
+            Settings = await _settingsCoordinator.RecoverPersistedStateAsync(previous);
             StatusMessage = previousStatus;
             throw;
         }
-    }
-
-    private async Task<IReadOnlyList<Exception>> ReconcileSettingsStateAsync(AppSettings previous)
-    {
-        var failures = new List<Exception>();
-        async Task AttemptAsync(string category, Func<Task> action)
-        {
-            try { await action(); }
-            catch (Exception exception)
-            {
-                failures.Add(exception);
-                _logger.LogError(exception, "Settings reconciliation failed in {Category}.", category);
-            }
-        }
-
-        var preflight = UiSettingsPreflightAsync;
-        if (preflight is not null)
-            await AttemptAsync("ui-preflight", () => preflight(previous, CancellationToken.None));
-        await AttemptAsync("startup", () => _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
-        await AttemptAsync("clipboard", () => _clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-        await AttemptAsync("handoff", () => _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
-        await AttemptAsync("cross-device-clipboard", () => _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-        await AttemptAsync("settings-store", () => _settingsService.SaveAsync(previous, CancellationToken.None));
-        return failures;
     }
 
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)
@@ -1702,22 +1597,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
 
-        await _settingsChangeGate.WaitAsync(cancellationToken);
-        try
+        var updated = await _settingsCoordinator.UpdateLastCheckAsync(Settings, checkedAt, cancellationToken);
+        Task ApplyAsync()
         {
-            var updated = await _settingsService.UpdateAsync(current =>
-                current.LastUpdateCheckUtc is { } previous && previous >= checkedAt
-                    ? current
-                    : current with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() }, cancellationToken);
-            Task ApplyAsync()
-            {
-                Settings = Settings with { LastUpdateCheckUtc = updated.LastUpdateCheckUtc };
-                return Task.CompletedTask;
-            }
-            if (_dispatcher.HasThreadAccess) await ApplyAsync();
-            else await _dispatcher.EnqueueAsync(ApplyAsync);
+            Settings = updated;
+            return Task.CompletedTask;
         }
-        finally { _settingsChangeGate.Release(); }
+
+        if (_dispatcher.HasThreadAccess) await ApplyAsync();
+        else await _dispatcher.EnqueueAsync(ApplyAsync);
     }
 
     private string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch
