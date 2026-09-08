@@ -198,16 +198,19 @@ public sealed class OverlayWindowService : IDisposable
         var sampleCycles = new[] { 100, 250, 500, 750, 1_000 };
 
         var motionDiagnosticSequence = 0;
-        _windows[0].SetSmokeDiagnosticSink(label =>
+        foreach (var window in _windows)
         {
-            if (motionDiagnostics.Count < 64)
+            window.SetSmokeDiagnosticSink(label =>
             {
-                motionDiagnostics.Add(
-                    FormatResourceSnapshot(
-                        $"{motionDiagnosticSequence++}:{label}",
-                        CaptureResources()));
-            }
-        });
+                if (motionDiagnostics.Count < 64)
+                {
+                    motionDiagnostics.Add(
+                        FormatResourceSnapshot(
+                            $"{motionDiagnosticSequence++}:{window.MonitorId}:{label}",
+                            CaptureResources()));
+                }
+            });
+        }
 
         try
         {
@@ -241,7 +244,10 @@ public sealed class OverlayWindowService : IDisposable
         }
         finally
         {
-            _windows[0].SetSmokeDiagnosticSink(null);
+            foreach (var window in _windows)
+            {
+                window.SetSmokeDiagnosticSink(null);
+            }
         }
 
         _stateMachine.Restore(original.TemporaryItemCount);
