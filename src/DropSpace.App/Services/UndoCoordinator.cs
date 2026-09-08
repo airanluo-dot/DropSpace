@@ -120,7 +120,7 @@ public sealed class UndoCoordinator(
         {
             ThrowIfDisposed();
             await FinalizeActiveCoreAsync(cancellationToken).ConfigureAwait(false);
-            var token = Guid.NewGuid().ToString("N");
+            var token = OperationCorrelation.New();
             var expiresAtUtc = DateTimeOffset.UtcNow.Add(UndoWindow);
             var markedCount = await repository.BeginPendingClipboardClearAsync(
                     fromUtc,
@@ -135,6 +135,7 @@ public sealed class UndoCoordinator(
             }
 
             var state = new UndoState(token, UndoOperationKind.ClearClipboard, expiresAtUtc, messageResourceKey, markedCount);
+            logger.LogInformation("Delete operation {OperationId} entered its clipboard-clear undo window for {ItemCount} item(s).", token, markedCount);
             _active = ActiveUndo.ForRemoval(state);
             PublishState(state);
             StartExpiration(_active);

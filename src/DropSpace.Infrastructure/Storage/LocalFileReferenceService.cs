@@ -21,6 +21,8 @@ public sealed class LocalFileReferenceService(
     private readonly Func<string, FileCandidate> _inspectOperation = inspectOverride ?? Inspect;
     private readonly Func<FileReference, FileAvailabilityCheck> _availabilityOperation = availabilityOverride ?? CheckAvailability;
 
+    internal int AvailabilityCacheCount => _availabilityCache.Count;
+
     public async Task<FileCandidate> InspectAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

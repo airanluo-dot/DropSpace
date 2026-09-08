@@ -40,26 +40,6 @@ jobs:
           cache: true
           cache-dependency-path: Directory.Packages.props
 
-      - name: Extract generated Preview.20 brand repair asset
-        if: github.head_ref == 'codex/v0.3.0-preview.20-architecture-remediation' || github.ref == 'refs/heads/codex/v0.3.0-preview.20-architecture-remediation'
-        shell: pwsh
-        run: |
-          ./scripts/Generate-BrandAssets.ps1 `
-            -DestinationRoot artifacts/brand-repair/generated-assets `
-            -DocumentationRoot artifacts/brand-repair/generated-docs `
-            -WebsiteAssetRoot artifacts/brand-repair/generated-website
-          New-Item -ItemType Directory -Force artifacts/brand-repair | Out-Null
-          Copy-Item artifacts/brand-repair/generated-assets/AppIcon.ico artifacts/brand-repair/AppIcon.ico
-
-      - name: Upload generated Preview.20 brand repair asset
-        if: always() && (github.head_ref == 'codex/v0.3.0-preview.20-architecture-remediation' || github.ref == 'refs/heads/codex/v0.3.0-preview.20-architecture-remediation')
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: dropspace-brand-repair-${{ github.run_id }}
-          path: artifacts/brand-repair/AppIcon.ico
-          if-no-files-found: error
-          retention-days: 3
-
       - name: Verify committed brand assets on clean checkout
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify
