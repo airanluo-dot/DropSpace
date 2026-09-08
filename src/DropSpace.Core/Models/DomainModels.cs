@@ -112,6 +112,14 @@ public sealed record PayloadRecord(
     DateTimeOffset CreatedAtUtc,
     int StorageVersion);
 
+public sealed record PayloadDeleteOutboxEntry(
+    string Id,
+    string RelativePath,
+    DateTimeOffset CreatedAtUtc,
+    int AttemptCount,
+    DateTimeOffset? LastAttemptAtUtc,
+    string? LastErrorCategory);
+
 public sealed record FileCandidate(
     string OriginalPath,
     string NormalizedPath,

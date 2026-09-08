@@ -11,7 +11,8 @@ public sealed class UndoCoordinator(
     IItemRepository repository,
     IPayloadStore payloadStore,
     IPreviewCache previews,
-    ILogger<UndoCoordinator> logger) : IAsyncDisposable
+    ILogger<UndoCoordinator> logger,
+    IPayloadCleanupCoordinator? cleanupCoordinator = null) : IAsyncDisposable
 {
     public static readonly TimeSpan UndoWindow = TimeSpan.FromSeconds(8);
 
@@ -199,7 +200,14 @@ public sealed class UndoCoordinator(
                     DateTimeOffset.UtcNow,
                     cancellationToken)
                 .ConfigureAwait(false);
-            await DeletePayloadsAsync(result.PayloadRelativePaths, cancellationToken).ConfigureAwait(false);
+            if (cleanupCoordinator is not null)
+            {
+                await cleanupCoordinator.RecoverAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await DeletePayloadsAsync(result.PayloadRelativePaths, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -309,6 +317,18 @@ public sealed class UndoCoordinator(
         IReadOnlyList<string> relativePaths,
         CancellationToken cancellationToken)
     {
+        if (cleanupCoordinator is not null)
+        {
+            await cleanupCoordinator.DrainAsync(cancellationToken).ConfigureAwait(false);
+            try { await previews.ClearAsync(CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(exception, "Preview cache cleanup will be retried on startup or the next cache write.");
+            }
+
+            return;
+        }
+
         try
         {
             foreach (var relativePath in relativePaths.Distinct(StringComparer.OrdinalIgnoreCase))

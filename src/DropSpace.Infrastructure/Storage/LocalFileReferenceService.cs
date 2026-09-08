@@ -1,23 +1,27 @@
 using System.Collections.Concurrent;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Storage;
 
-public sealed class LocalFileReferenceService : IFileReferenceService
+public sealed class LocalFileReferenceService(ILogger<LocalFileReferenceService>? logger = null) : IFileReferenceService
 {
     private static readonly TimeSpan RemoteMetadataTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan RemoteGateAcquisitionTimeout = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan AvailabilityCacheLifetime = TimeSpan.FromSeconds(2);
+    private const int MaximumAvailabilityCacheEntries = 1_024;
     private readonly SemaphoreSlim _localGate = new(8, 8);
     private readonly SemaphoreSlim _remoteGate = new(2, 2);
     private readonly ConcurrentDictionary<string, CachedAvailability> _availabilityCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ILogger<LocalFileReferenceService>? _logger = logger;
 
     public async Task<FileCandidate> InspectAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var remote = IsRemotePath(path);
         var gate = remote ? _remoteGate : _localGate;
-        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await WaitForGateAsync(gate, remote, cancellationToken).ConfigureAwait(false);
         var result = await ExecuteMetadataAsync(
                 () => Inspect(path),
                 remote,
@@ -35,15 +39,19 @@ public sealed class LocalFileReferenceService : IFileReferenceService
         ArgumentNullException.ThrowIfNull(reference);
         var key = NormalizeForComparison(reference.OriginalPath);
         var remote = IsRemotePath(reference.OriginalPath);
-        if (remote && _availabilityCache.TryGetValue(key, out var cached) &&
-            DateTimeOffset.UtcNow - cached.CreatedAtUtc <= AvailabilityCacheLifetime)
+        if (remote && _availabilityCache.TryGetValue(key, out var cached))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return cached.Result;
+            if (DateTimeOffset.UtcNow - cached.CreatedAtUtc <= AvailabilityCacheLifetime)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return cached.Result;
+            }
+
+            _availabilityCache.TryRemove(key, out _);
         }
 
         var gate = remote ? _remoteGate : _localGate;
-        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await WaitForGateAsync(gate, remote, cancellationToken).ConfigureAwait(false);
         var result = await ExecuteMetadataAsync(
                 () => CheckAvailability(reference),
                 remote,
@@ -53,9 +61,55 @@ public sealed class LocalFileReferenceService : IFileReferenceService
         cancellationToken.ThrowIfCancellationRequested();
         if (remote)
         {
+            PruneAvailabilityCache(key);
             _availabilityCache[key] = new CachedAvailability(DateTimeOffset.UtcNow, result);
         }
         return result;
+    }
+
+    private async Task WaitForGateAsync(
+        SemaphoreSlim gate,
+        bool remote,
+        CancellationToken cancellationToken)
+    {
+        if (!remote)
+        {
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        if (!await gate.WaitAsync(RemoteGateAcquisitionTimeout, cancellationToken).ConfigureAwait(false))
+        {
+            _logger?.LogWarning(
+                "Remote metadata gate acquisition timed out; active remote work remains bounded at two operations.");
+            throw new IOException("Remote file metadata capacity is temporarily unavailable.");
+        }
+    }
+
+    private void PruneAvailabilityCache(string currentKey)
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var pair in _availabilityCache)
+        {
+            if (now - pair.Value.CreatedAtUtc > AvailabilityCacheLifetime)
+            {
+                _availabilityCache.TryRemove(pair.Key, out _);
+            }
+        }
+
+        if (_availabilityCache.Count < MaximumAvailabilityCacheEntries || _availabilityCache.ContainsKey(currentKey))
+        {
+            return;
+        }
+
+        var removeCount = _availabilityCache.Count - MaximumAvailabilityCacheEntries + 1;
+        foreach (var key in _availabilityCache
+                     .OrderBy(pair => pair.Value.CreatedAtUtc)
+                     .Take(removeCount)
+                     .Select(pair => pair.Key))
+        {
+            _availabilityCache.TryRemove(key, out _);
+        }
     }
 
     private static async Task<T> ExecuteMetadataAsync<T>(

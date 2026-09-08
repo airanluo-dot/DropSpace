@@ -14,7 +14,8 @@ public sealed class StagedFileImportService(
     IFileReferenceService references,
     IPayloadStore payloads,
     IItemRepository repository,
-    ILogger<StagedFileImportService> logger)
+    ILogger<StagedFileImportService> logger,
+    StagingLeaseStore? stagingLeases = null)
 {
     public Task<StagedFileImportResult> ImportBatchAsync(
         IReadOnlyList<string> stagingPaths,
@@ -34,6 +35,7 @@ public sealed class StagedFileImportService(
         long maximumFileBytes, CancellationToken cancellationToken)
     {
         var admitted = new List<string>();
+        var leases = new List<StagingLease>();
         var rejected = 0;
         foreach (var path in stagingPaths.Distinct(StringComparer.OrdinalIgnoreCase))
         {
@@ -48,6 +50,30 @@ public sealed class StagedFileImportService(
         var accepted = 0;
         try
         {
+            if (stagingLeases is not null)
+            {
+                foreach (var root in admitted
+                             .Select(path => Path.GetDirectoryName(path) ?? paths.Staging)
+                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    // A file directly below staging has no independently owned
+                    // directory. Keep its existing per-file cleanup semantics;
+                    // normal virtual-file batches use a dedicated subdirectory.
+                    if (string.Equals(root, paths.Staging, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var relativeRoot = Path.GetRelativePath(paths.Staging, root);
+                    leases.Add(await stagingLeases.AcquireAsync(
+                            "staged-import",
+                            relativeRoot,
+                            sensitivePlaintext: false,
+                            cancellationToken: cancellationToken)
+                        .ConfigureAwait(false));
+                }
+            }
+
             for (var index = 0; index < admitted.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -101,6 +127,14 @@ public sealed class StagedFileImportService(
                 catch (Exception exception) when (IsFileFailure(exception))
                 {
                     logger.LogWarning(exception, "Consumed staging cleanup was deferred.");
+                }
+            }
+
+            if (stagingLeases is not null)
+            {
+                foreach (var lease in leases)
+                {
+                    await stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false);
                 }
             }
         }

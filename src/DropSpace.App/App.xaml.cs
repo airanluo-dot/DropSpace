@@ -168,6 +168,16 @@ public partial class App : Application
                 await viewModel.InitializeAsync();
                 try
                 {
+                    await _services.GetRequiredService<StagingLeaseStore>().RecoverAbandonedAsync();
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(
+                        exception,
+                        "Staging lease recovery did not fully complete; retained leases remain retryable.");
+                }
+                try
+                {
                     await _services.GetRequiredService<SecureInternetShareService>().InitializeAsync();
                 }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
@@ -405,8 +415,13 @@ public partial class App : Application
         });
         services.AddSingleton(DispatcherQueue.GetForCurrentThread());
         services.AddSingleton<SqliteDatabase>();
-        services.AddSingleton<IItemRepository, SqliteItemRepository>();
+        services.AddSingleton<SqliteItemRepository>();
+        services.AddSingleton<IItemRepository>(provider => provider.GetRequiredService<SqliteItemRepository>());
+        services.AddSingleton<IPayloadCleanupRepository>(provider => provider.GetRequiredService<SqliteItemRepository>());
         services.AddSingleton<IPayloadStore, FilePayloadStore>();
+        services.AddSingleton<OwnedPayloadReconciler>();
+        services.AddSingleton<IPayloadCleanupCoordinator, PayloadCleanupCoordinator>();
+        services.AddSingleton<StagingLeaseStore>();
         services.AddSingleton<StagedFileImportService>();
         services.AddSingleton<UndoCoordinator>();
         services.AddSingleton<DeviceIdentityStore>();
@@ -514,6 +529,7 @@ public partial class App : Application
         services.AddSingleton<ItemProjectionService>();
         services.AddSingleton<SettingsApplicationCoordinator>();
         services.AddSingleton<PinItemsUseCase>();
+        services.AddSingleton<WorkspaceMutationUseCase>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();

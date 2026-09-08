@@ -26,10 +26,12 @@ public sealed class InternetShareClient(
     ShareCryptoService crypto,
     IShareBackendClient backend,
     TransferLimits? transferLimits = null,
-    AppStoragePaths? storagePaths = null)
+    AppStoragePaths? storagePaths = null,
+    StagingLeaseStore? stagingLeases = null)
 {
     private readonly TransferLimits _limits = (transferLimits ?? new TransferLimits()).Validate();
     private readonly AppStoragePaths? _storagePaths = storagePaths;
+    private readonly StagingLeaseStore? _stagingLeases = stagingLeases;
     private const int ShareChunkBytes = ShareLimits.InternetChunkPlainBytes;
 
     public async Task<ShareDescriptor> CreateAsync(
@@ -65,11 +67,13 @@ public sealed class InternetShareClient(
         var shareId = Guid.NewGuid();
         var masterKey = crypto.CreateMasterKey();
         ShareBackendUploadSession? createdSession = null;
-        string? stagingRoot = null;
+        StagingLease? stagingLease = null;
+        string? stagedSourcesRoot = null;
         try
         {
             var stagedSources = await StageSourcesAsync(sources, shareId, cancellationToken).ConfigureAwait(false);
-            stagingRoot = stagedSources.RootPath;
+            stagingLease = stagedSources.Lease;
+            stagedSourcesRoot = stagedSources.RootPath;
             var expires = DateTimeOffset.UtcNow.Add(lifetime);
             var manifestItems = new List<EncryptedShareManifestItem>(sources.Count);
             var encryptedFiles = new List<(ShareFileSource Source, EncryptedShareManifestItem Item)>();
@@ -124,9 +128,13 @@ public sealed class InternetShareClient(
         }
         finally
         {
-            if (stagingRoot is not null)
+            if (stagingLease is not null && _stagingLeases is not null)
             {
-                TryDeleteDirectory(stagingRoot);
+                await _stagingLeases.CompleteAsync(stagingLease, CancellationToken.None).ConfigureAwait(false);
+            }
+            else if (stagedSourcesRoot is not null)
+            {
+                TryDeleteDirectory(stagedSourcesRoot);
             }
 
             CryptographicOperations.ZeroMemory(masterKey);
@@ -155,7 +163,23 @@ public sealed class InternetShareClient(
             _storagePaths?.Staging ?? Path.Combine(Path.GetTempPath(), "DropSpace", "staging"),
             "shares",
             shareId.ToString("N"));
-        Directory.CreateDirectory(root);
+        StagingLease? lease = null;
+        if (_stagingLeases is not null && _storagePaths is not null)
+        {
+            lease = await _stagingLeases.AcquireAsync(
+                    "internet-share",
+                    Path.GetRelativePath(_storagePaths.Staging, root),
+                    sensitivePlaintext: true,
+                    allowExistingRoot: false,
+                    cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            root = lease.RootPath;
+        }
+        else
+        {
+            Directory.CreateDirectory(root);
+        }
+
         var staged = new List<ShareFileSource>(sources.Count);
         try
         {
@@ -210,11 +234,18 @@ public sealed class InternetShareClient(
                 }
             }
 
-            return new StagedShareSources(root, staged);
+            return new StagedShareSources(root, staged, lease);
         }
         catch
         {
-            TryDeleteDirectory(root);
+            if (lease is not null && _stagingLeases is not null)
+            {
+                await _stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                TryDeleteDirectory(root);
+            }
             throw;
         }
     }
@@ -299,7 +330,8 @@ public sealed record ShareFileSource(
 
 internal sealed record StagedShareSources(
     string RootPath,
-    IReadOnlyList<ShareFileSource> Sources);
+    IReadOnlyList<ShareFileSource> Sources,
+    StagingLease? Lease);
 
 public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri) : IShareBackendClient
 {
