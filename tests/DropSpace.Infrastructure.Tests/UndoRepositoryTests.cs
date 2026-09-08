@@ -112,7 +112,7 @@ public sealed class UndoRepositoryTests
     }
 
     [TestMethod]
-    public async Task SchemaVersionTwoMigratesToVersionThreeWithPendingColumns()
+    public async Task SchemaVersionTwoMigratesToVersionFourWithPendingColumnsAndSearchIndex()
     {
         await CreateSchemaV2Async();
         var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
@@ -120,11 +120,19 @@ public sealed class UndoRepositoryTests
         await using var connection = await database.OpenConnectionAsync();
         await using var versionCommand = connection.CreateCommand();
         versionCommand.CommandText = "PRAGMA user_version;";
-        Assert.AreEqual(3L, (long)(await versionCommand.ExecuteScalarAsync())!);
+        Assert.AreEqual((long)SqliteDatabase.CurrentSchemaVersion, (long)(await versionCommand.ExecuteScalarAsync())!);
 
         await using var columnCommand = connection.CreateCommand();
         columnCommand.CommandText = "SELECT COUNT(*) FROM pragma_table_info('items') WHERE name IN ('pending_delete_token', 'pending_delete_expires_at_utc');";
         Assert.AreEqual(2L, (long)(await columnCommand.ExecuteScalarAsync())!);
+
+        await using var searchTableCommand = connection.CreateCommand();
+        searchTableCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'items_search';";
+        Assert.AreEqual(1L, (long)(await searchTableCommand.ExecuteScalarAsync())!);
+
+        await using var triggerCommand = connection.CreateCommand();
+        triggerCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name IN ('items_search_ai', 'items_search_ad', 'items_search_au');";
+        Assert.AreEqual(3L, (long)(await triggerCommand.ExecuteScalarAsync())!);
         Assert.IsTrue(Directory.EnumerateFiles(_paths.Backups, "pre-migration-2-*.db").Any());
     }
 
