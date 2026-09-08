@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Net.Http.Json;
 using DropSpace.Core.Transfer;
+using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Sharing;
 
@@ -24,9 +25,11 @@ public interface IShareBackendClient
 public sealed class InternetShareClient(
     ShareCryptoService crypto,
     IShareBackendClient backend,
-    TransferLimits? transferLimits = null)
+    TransferLimits? transferLimits = null,
+    AppStoragePaths? storagePaths = null)
 {
     private readonly TransferLimits _limits = (transferLimits ?? new TransferLimits()).Validate();
+    private readonly AppStoragePaths? _storagePaths = storagePaths;
     private const int ShareChunkBytes = ShareLimits.InternetChunkPlainBytes;
 
     public async Task<ShareDescriptor> CreateAsync(
@@ -62,12 +65,15 @@ public sealed class InternetShareClient(
         var shareId = Guid.NewGuid();
         var masterKey = crypto.CreateMasterKey();
         ShareBackendUploadSession? createdSession = null;
+        string? stagingRoot = null;
         try
         {
+            var stagedSources = await StageSourcesAsync(sources, shareId, cancellationToken).ConfigureAwait(false);
+            stagingRoot = stagedSources.RootPath;
             var expires = DateTimeOffset.UtcNow.Add(lifetime);
             var manifestItems = new List<EncryptedShareManifestItem>(sources.Count);
             var encryptedFiles = new List<(ShareFileSource Source, EncryptedShareManifestItem Item)>();
-            foreach (var source in sources)
+            foreach (var source in stagedSources.Sources)
             {
                 var fileId = Guid.NewGuid();
                 var noncePrefix = RandomNumberGenerator.GetBytes(8);
@@ -118,6 +124,11 @@ public sealed class InternetShareClient(
         }
         finally
         {
+            if (stagingRoot is not null)
+            {
+                TryDeleteDirectory(stagingRoot);
+            }
+
             CryptographicOperations.ZeroMemory(masterKey);
         }
     }
@@ -133,6 +144,107 @@ public sealed class InternetShareClient(
             if (read == 0) throw new EndOfStreamException("The source changed during secure share upload.");
             offset += read;
         }
+    }
+
+    private async Task<StagedShareSources> StageSourcesAsync(
+        IReadOnlyList<ShareFileSource> sources,
+        Guid shareId,
+        CancellationToken cancellationToken)
+    {
+        var root = Path.Combine(
+            _storagePaths?.Staging ?? Path.Combine(Path.GetTempPath(), "DropSpace", "staging"),
+            "shares",
+            shareId.ToString("N"));
+        Directory.CreateDirectory(root);
+        var staged = new List<ShareFileSource>(sources.Count);
+        try
+        {
+            for (var index = 0; index < sources.Count; index++)
+            {
+                var source = sources[index];
+                var path = Path.Combine(root, string.Concat(index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture), ".payload"));
+                var temporary = string.Concat(path, ".tmp");
+                try
+                {
+                    await using var input = await source.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+                    await using var output = new FileStream(
+                        temporary,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None,
+                        81_920,
+                        FileOptions.Asynchronous | FileOptions.WriteThrough);
+                    using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    var buffer = new byte[81_920];
+                    long length = 0;
+                    while (true)
+                    {
+                        var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                        if (read == 0) break;
+                        length += read;
+                        if (length > source.Length) throw new InvalidDataException("A share source grew after metadata was captured.");
+                        hasher.AppendData(buffer, 0, read);
+                        await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    }
+
+                    await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    var hash = Convert.ToHexString(hasher.GetHashAndReset()).ToLowerInvariant();
+                    if (length != source.Length || !string.Equals(hash, source.Sha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException("A share source changed while it was being staged.");
+                    }
+
+                    File.Move(temporary, path, overwrite: false);
+                    staged.Add(source with
+                    {
+                        OpenReadAsync = token => OpenStagedFileAsync(path, token),
+                    });
+                }
+                finally
+                {
+                    TryDeleteFile(temporary);
+                }
+            }
+
+            return new StagedShareSources(root, staged);
+        }
+        catch
+        {
+            TryDeleteDirectory(root);
+            throw;
+        }
+    }
+
+    private static Task<Stream> OpenStagedFileAsync(string path, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<Stream>(new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            81_920,
+            FileOptions.Asynchronous | FileOptions.SequentialScan));
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 
     private static void ValidateSource(ShareFileSource source)
@@ -180,6 +292,10 @@ public sealed record ShareFileSource(
     long Length,
     string Sha256,
     Func<CancellationToken, Task<Stream>> OpenReadAsync);
+
+internal sealed record StagedShareSources(
+    string RootPath,
+    IReadOnlyList<ShareFileSource> Sources);
 
 public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri) : IShareBackendClient
 {

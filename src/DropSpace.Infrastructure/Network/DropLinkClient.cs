@@ -325,6 +325,11 @@ public sealed class DropLinkClient(
 
     private async Task<AuthenticatedClient> CreateAuthenticatedClientAsync(PeerDevice peer, Uri endpoint, CancellationToken cancellationToken)
     {
+        if (peer.TrustState != PeerTrustState.Trusted)
+        {
+            throw new UnauthorizedAccessException("The peer is not fully trusted; complete pairing before sending data.");
+        }
+
         var secret = await secrets.GetAsync(peer.Id, cancellationToken).ConfigureAwait(false)
             ?? throw new UnauthorizedAccessException("The peer secret is unavailable; pair the device again.");
         var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -15,6 +15,8 @@ DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.18 is the cu
 
 Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest Preview: [v0.3.0-preview.18](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.18). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
+The **v0.3.0-preview.19** architecture-remediation release adds atomic batch mutation, durable lifecycle retirement, lossless cleanup/revoke recovery, immutable share staging, locked dependencies, and owner-only create-once release publication. See the [Preview.19 test plan](docs/test-plan/v0.3.0-preview.19.md) and [compatibility baseline](compatibility-baseline.md). Hosted publication gates remain separate from real Windows OS/DPI/OLE/accessibility, two-device, and deployed Worker/browser evidence.
+
 The **v0.3.0-preview.18** architecture-hardening release closes the Preview.17 audit with transactional retention/settings ownership, reparse-safe file boundaries, durable payload cleanup, resumable verified updates, bounded Worker admission, and scalable keyset/FTS search. `MainViewModel` delegates projection and settings transactions to dedicated coordinators. See the [Preview.18 release notes](.github/release-notes/v0.3.0-preview.18.md) and [architecture audit](docs/audit/2026-09-07/architecture-audit-zh.md). Hosted publication gates remain separate from real Windows OS/DPI/OLE/accessibility, two-device, and deployed Worker/browser evidence.
 
 The **v0.3.0-preview.17** architecture audit adds recoverable projections, shared database write ownership, atomic settings mutation, awaited shutdown, bounded automatic clipboard propagation, confined staged-file imports and generation-invalidated preview caching. See the [release notes](.github/release-notes/v0.3.0-preview.17.md) and [15-part architecture audit](docs/audit/2026-09-07/architecture-audit-zh.md). Publication requires the final Windows build/release and website/API gates; real Windows OS/DPI/OLE/accessibility, two-device and deployed Worker/browser evidence remains conditional.
@@ -43,7 +45,7 @@ The implemented vertical slice includes:
 - Event-driven, bounded Clipboard history driven by the desktop `WM_CLIPBOARDUPDATE` listener for text, URLs, colors, code-like text, images, and Explorer file/folder references. Image and file batch limits are user-configurable; immediately repeated identical snapshots are collapsed without globally deduplicating later `A → B → A` history.
 - Unified search, Pinned, image copy/export, retention, range-based clear, persistent Pause, display-language selection, theme, and close behavior.
 - SQLite persistence, atomic settings/payload writes, schema validation/recovery, redacted rolling logs, single-instance activation, and a native notification-area menu.
-- Deterministic branded Windows assets and the validated x64 release configuration. The ARM64 project configuration is non-release and is not claimed as a supported target until matching build and package evidence exists.
+- Deterministic branded Windows assets and the validated x64-only release configuration. ARM64 is not a public or build-supported target in this preview.
 - A responsive header that stacks controls before text scaling can collapse the page title, an embedded Win32 taskbar/tray icon chain, and a documented brand-asset map.
 - A truly hidden visual Overlay, formal state machine, and one continuously morphing Dynamic Island with Compact/Drop Ready/Expanded states. Smart Drag Detection v2 combines documented drag events, bounded UI Automation/MSAA evidence, source-agnostic mouse-threshold candidates, and an ephemeral 60 ms hollow local OLE verification probe while leaving the screen edge unowned at idle.
 - An opt-in traditional top-edge OLE activation zone remains as an explicit compatibility fallback. Settings disclose that it participates in top-edge hit testing and may conflict with Windows Drop Tray or title-bar controls; Smart never switches to it implicitly.
@@ -106,6 +108,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Preview.10 P0 recovery test plan](docs/test-plan/v0.3.0-preview.10.md)
 - [Preview.15 unified hardening test plan](docs/test-plan/v0.3.0-preview.15.md)
 - [Preview.16 full hardening plan](docs/plans/DropSpace_v0.3.0-preview.16_FULL_HARDENING_PLAN.md)
+- [Preview.19 architecture-remediation test plan](docs/test-plan/v0.3.0-preview.19.md)
 - [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)

@@ -175,6 +175,27 @@ CREATE TABLE payloads (
 
 Foreign-key reference from `items.payload_id` is enforced in the final migration SQL after ordering/cycle behavior is verified; deletion uses an application transaction plus deferred physical cleanup.
 
+### Preview.19 lifecycle additions
+
+The `paired_devices.trust_state` column is introduced by schema migration 5.
+Legacy rows are mapped from `is_blocked` to `Trusted`/`Blocked`, then startup
+reconciliation downgrades a row to `PairingPending` when its DPAPI secret is
+not usable. `UnpairPending` is durable until both secret deletion and row
+deletion complete. Only a row in `Trusted` state with a readable secret may
+authorize DropLink traffic.
+
+The old global overlay placement fields are a read-only schema-8 migration
+input. The schema-9 per-monitor map is the sole active source of truth. During
+the Preview.19 migration window, `JsonSettingsService` may first persist the
+current settings version while the application still has to resolve legacy
+monitor handles; `MainViewModel.InitializeAsync` then maps those handles to
+stable monitor identities and saves a record with the legacy fields cleared.
+The CLR properties remain deserializable through the current settings schema
+(11) so an interrupted upgrade can recover. They may be removed in the next
+settings-schema bump after the Preview.19 migration window, once supported
+upgrade paths no longer accept pre-schema-9 settings; the last schema-8 input
+and clear-on-startup behavior are covered by migration tests.
+
 ## Indexes
 
 - `items(source, created_at_utc DESC)` for collection paging.

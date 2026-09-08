@@ -66,8 +66,12 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-HardcodingGovernance.ps1
 
-      - name: Restore
-        run: dotnet restore DropSpace.sln -p:Configuration=Release
+      - name: Enforce secret hygiene
+        shell: pwsh
+        run: ./scripts/Test-SecretHygiene.ps1
+
+      - name: Restore locked dependency graph
+        run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
       - name: Test core policies, SemVer, and channel selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"

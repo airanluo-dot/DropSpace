@@ -112,7 +112,7 @@ public sealed class UndoRepositoryTests
     }
 
     [TestMethod]
-    public async Task SchemaVersionTwoMigratesToVersionFourWithPendingColumnsAndSearchIndex()
+    public async Task SchemaVersionTwoMigratesToVersionFiveWithPendingColumnsSearchIndexAndPeerTrustState()
     {
         await CreateSchemaV2Async();
         var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
@@ -125,6 +125,10 @@ public sealed class UndoRepositoryTests
         await using var columnCommand = connection.CreateCommand();
         columnCommand.CommandText = "SELECT COUNT(*) FROM pragma_table_info('items') WHERE name IN ('pending_delete_token', 'pending_delete_expires_at_utc');";
         Assert.AreEqual(2L, (long)(await columnCommand.ExecuteScalarAsync())!);
+
+        await using var peerColumnCommand = connection.CreateCommand();
+        peerColumnCommand.CommandText = "SELECT COUNT(*) FROM pragma_table_info('paired_devices') WHERE name = 'trust_state';";
+        Assert.AreEqual(1L, (long)(await peerColumnCommand.ExecuteScalarAsync())!);
 
         await using var searchTableCommand = connection.CreateCommand();
         searchTableCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'items_search';";

@@ -2,9 +2,19 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.18 is the current architecture-hardening Preview: it closes the Preview.17 audit across transactional retention/settings ownership, reparse-safe file boundaries, payload cleanup recovery, updater trust/resume behavior, bounded Worker admission, scalable FTS/keyset projection, and release governance. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.19 is the current architecture-remediation Preview: it adds atomic batch mutation, explicit peer trust lifecycle state, lossless segmented cleanup/revoke recovery, owned share staging, cancellation-safe resource retirement, locked dependency restore, x64-only declarations, and create-once owner-only release publication. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
+
+## v0.3.0-preview.19 architecture-remediation delivery slice
+
+- Replace ViewModel pin loops with a repository-owned atomic batch transaction and exact undo state.
+- Make clipboard, DropLink, Nearby, DNS-SD, and metadata workers retain ownership through bounded shutdown deadlines; never dispose gates, CTS instances, sockets, finalizers, or staging while work can still use them.
+- Preserve all owned payload-delete obligations in segmented journals; prune expired revoke handles and reject new shares at live capacity before contacting the backend.
+- Reconcile pairing through durable `PairingPending`, `Trusted`, `UnpairPending`, and `Blocked` states, require a usable DPAPI secret for authentication, and migrate the database to schema 5.
+- Stage secure-share source bytes once and verify exact length/hash before upload; enumerate every update-state cache entry before selecting the highest valid version.
+- Pin release restore to lock files and the named `windows-2025` runner image, record build-tool metadata, enforce owner-only create-once publication, and keep x64 as the only public build target.
+- Keep the release conditional for physical Windows/DPI/OLE/accessibility, two-device, deployed Worker/browser, and performance evidence; see `docs/test-plan/v0.3.0-preview.19.md`.
 
 ## v0.3.0-preview.18 delivery slice
 

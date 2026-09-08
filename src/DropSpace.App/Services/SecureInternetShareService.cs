@@ -45,9 +45,10 @@ public sealed class SecureInternetShareService(
         ArgumentNullException.ThrowIfNull(settings);
         if (!settings.EnableInternetSharing) throw new InvalidOperationException("Internet Share is disabled in DropSpace settings.");
         var endpoint = TryGetEndpoint() ?? throw new InvalidOperationException("Internet Share requires DROPSPACE_SHARE_BACKEND_URL to point to an HTTPS Cloudflare Worker.");
+        using var capacityReservation = await _revokeStore.ReserveCapacityAsync(cancellationToken).ConfigureAwait(false);
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
         var backend = new CloudflareWorkerShareBackend(httpClient, endpoint);
-        var client = new InternetShareClient(crypto, backend);
+        var client = new InternetShareClient(crypto, backend, storagePaths: paths);
         logger.LogInformation("Starting encrypted Internet Share upload for {ItemCount} item(s) with expiry {Lifetime}.", sources.Count, lifetime);
         var result = await client.CreateWithSessionAsync(sources, lifetime, cancellationToken).ConfigureAwait(false);
         try
@@ -56,7 +57,8 @@ public sealed class SecureInternetShareService(
                 result.Descriptor.ShareId,
                 result.Session,
                 result.Descriptor.ExpiresAtUtc,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                capacityReservation).ConfigureAwait(false);
             _sessions[result.Descriptor.ShareId] = result.Session;
             return result.Descriptor;
         }

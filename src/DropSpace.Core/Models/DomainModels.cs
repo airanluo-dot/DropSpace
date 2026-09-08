@@ -162,6 +162,18 @@ public sealed record ItemQueryPage(
     ItemQueryCursor? NextCursor,
     bool HasMore);
 
+/// <summary>
+/// Describes the rows whose pin state actually changed in one repository transaction.
+/// The previous state map is intentionally limited to those rows so undo never restores
+/// an item that was missing, pending removal, or already at the requested state.
+/// </summary>
+public sealed record BatchPinResult(
+    IReadOnlyDictionary<Guid, bool> PreviousStates,
+    IReadOnlyList<Guid> AffectedIds)
+{
+    public int AffectedCount => AffectedIds.Count;
+}
+
 public enum ClearRange
 {
     LastHour,

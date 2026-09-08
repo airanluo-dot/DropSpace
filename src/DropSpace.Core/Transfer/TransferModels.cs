@@ -39,9 +39,11 @@ public enum PeerCapability
 public enum PeerTrustState
 {
     Unknown = 0,
-    Pairing = 1,
+    PairingPending = 1,
+    Pairing = PairingPending,
     Trusted = 2,
-    Blocked = 3,
+    UnpairPending = 3,
+    Blocked = 4,
 }
 
 public enum PairingState
@@ -246,12 +248,14 @@ public sealed record ShareLimits
     public const int DefaultNearbyTokenBytes = 24;
     public const int DefaultNearbyTtlMinutes = 10;
     public const int DefaultMaxNearbyReceivers = 2;
+    public const int DefaultMaxNearbyShares = 128;
     public const long DefaultInternetMaxBytes = 2L * 1024 * 1024 * 1024;
     public const int DefaultInternetMaxItems = 100;
 
     public int NearbyTokenBytes { get; init; } = DefaultNearbyTokenBytes;
     public int NearbyTtlMinutes { get; init; } = DefaultNearbyTtlMinutes;
     public int MaxNearbyReceivers { get; init; } = DefaultMaxNearbyReceivers;
+    public int MaxNearbyShares { get; init; } = DefaultMaxNearbyShares;
     public long InternetMaxBytes { get; init; } = DefaultInternetMaxBytes;
     public int InternetMaxItems { get; init; } = DefaultInternetMaxItems;
 
@@ -260,6 +264,7 @@ public sealed record ShareLimits
         if (NearbyTokenBytes is < 24 or > 64 ||
             NearbyTtlMinutes is < 1 or > 60 ||
             MaxNearbyReceivers is < 1 or > 10 ||
+            MaxNearbyShares is < 1 or > 10_000 ||
             InternetMaxBytes is < 1 or > 10L * 1024 * 1024 * 1024 ||
             InternetMaxItems is < 1 or > 1_000)
         {

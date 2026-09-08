@@ -59,21 +59,31 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         socket.JoinMulticastGroup(MulticastAddress);
         var query = BuildQuery();
         await socket.SendAsync(query.AsMemory(), new IPEndPoint(MulticastAddress, MulticastPort), cancellationToken).ConfigureAwait(false);
-        var deadline = DateTimeOffset.UtcNow.Add(timeout);
+        using var timeoutCancellation = new CancellationTokenSource(timeout);
+        using var browseCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            timeoutCancellation.Token);
         var results = new Dictionary<Guid, DeviceDescriptor>();
-        while (DateTimeOffset.UtcNow < deadline)
+        while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var remaining = deadline - DateTimeOffset.UtcNow;
-            var receiveTask = socket.ReceiveAsync(cancellationToken).AsTask();
-            var completed = await Task.WhenAny(receiveTask, Task.Delay(remaining, cancellationToken)).ConfigureAwait(false);
-            if (completed != receiveTask) break;
-            var packet = await receiveTask.ConfigureAwait(false);
-            foreach (var descriptor in ParseAnnouncement(packet.Buffer))
+            try
             {
-                // DeviceId is the stable identity. A device may answer more than once
-                // while a browse is running, but must not create duplicate UI rows.
-                results[descriptor.DeviceId] = descriptor;
+                // The receive task is always awaited before the socket leaves scope. This
+                // prevents a timeout from leaving an unowned ReceiveAsync continuation that
+                // can observe a disposed UdpClient.
+                var packet = await socket.ReceiveAsync(browseCancellation.Token).ConfigureAwait(false);
+                foreach (var descriptor in ParseAnnouncement(packet.Buffer))
+                {
+                    // DeviceId is the stable identity. A device may answer more than once
+                    // while a browse is running, but must not create duplicate UI rows.
+                    results[descriptor.DeviceId] = descriptor;
+                }
+            }
+            catch (OperationCanceledException) when (
+                timeoutCancellation.IsCancellationRequested &&
+                !cancellationToken.IsCancellationRequested)
+            {
+                break;
             }
         }
 

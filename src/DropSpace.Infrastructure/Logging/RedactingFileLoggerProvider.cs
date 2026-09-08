@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text;
 using System.Threading.Channels;
 using DropSpace.Core.Policies;
 using DropSpace.Infrastructure.Storage;
@@ -11,15 +12,13 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     private const long MaximumLogBytes = 2 * 1024 * 1024;
     private const int MaximumWriteAttempts = 4;
     private const int RetryDelayMilliseconds = 50;
+    private const int LogQueueCapacity = 1_024;
+    private const int MaximumEmergencyDiagnosticBytes = 512;
     private readonly ConcurrentDictionary<string, RedactingFileLogger> _loggers = new(StringComparer.Ordinal);
-    private readonly Channel<string> _messages = Channel.CreateBounded<string>(new BoundedChannelOptions(1_024)
-    {
-        SingleReader = true,
-        SingleWriter = false,
-        FullMode = BoundedChannelFullMode.Wait,
-    });
+    private readonly Channel<string> _messages;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _logPath;
+    private readonly string _emergencyDiagnosticPath;
     private readonly Task _writer;
     private readonly object _disposeGate = new();
     private Task? _disposeTask;
@@ -32,7 +31,18 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     {
         paths.EnsureCreated();
         _logPath = Path.Combine(paths.Logs, "dropspace.log");
+        _emergencyDiagnosticPath = Path.Combine(paths.Logs, "dropspace-log-diagnostics.txt");
+        _messages = CreateMessageChannel(LogQueueCapacity);
         _writer = Task.Run(WriteLoopAsync);
+    }
+
+    internal RedactingFileLoggerProvider(AppStoragePaths paths, int queueCapacity, bool startWriter)
+    {
+        paths.EnsureCreated();
+        _logPath = Path.Combine(paths.Logs, "dropspace.log");
+        _emergencyDiagnosticPath = Path.Combine(paths.Logs, "dropspace-log-diagnostics.txt");
+        _messages = CreateMessageChannel(queueCapacity);
+        _writer = startWriter ? Task.Run(WriteLoopAsync) : Task.CompletedTask;
     }
 
     public ILogger CreateLogger(string categoryName) =>
@@ -46,10 +56,26 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
 
     public long DroppedMessageCount => Interlocked.Read(ref _droppedMessageCount);
 
+    internal bool TryEnqueueForTests(string line) => TryEnqueue(line);
+
+    private static Channel<string> CreateMessageChannel(int capacity) => Channel.CreateBounded<string>(new BoundedChannelOptions(capacity)
+    {
+        SingleReader = true,
+        SingleWriter = false,
+        FullMode = BoundedChannelFullMode.Wait,
+    });
+
     private bool TryEnqueue(string line)
     {
         if (_messages.Writer.TryWrite(line)) return true;
-        Interlocked.Increment(ref _droppedMessageCount);
+        var dropped = Interlocked.Increment(ref _droppedMessageCount);
+        // The bounded queue may be full precisely when normal logging is least useful.
+        // Emit a low-volume, path-free power-of-two diagnostic so an operator can detect
+        // degradation even when the final drain summary cannot be written.
+        if (dropped == 1 || (dropped & (dropped - 1)) == 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"DropSpace bounded log queue dropped {dropped} message(s).");
+        }
         return false;
     }
 
@@ -97,6 +123,44 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
             {
                 _cancellation.Dispose();
             }
+
+            WriteEmergencyDiagnostic();
+        }
+    }
+
+    private void WriteEmergencyDiagnostic()
+    {
+        var dropped = DroppedMessageCount;
+        var failures = WriteFailureCount;
+        if (dropped == 0 && failures == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var content = $"{DateTimeOffset.UtcNow:O} event=logger-shutdown droppedMessages={dropped} writeFailures={failures}{Environment.NewLine}";
+            var bytes = Encoding.UTF8.GetBytes(content);
+            if (bytes.Length > MaximumEmergencyDiagnosticBytes)
+            {
+                bytes = bytes[..MaximumEmergencyDiagnosticBytes];
+            }
+
+            using var stream = new FileStream(
+                _emergencyDiagnosticPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.Read,
+                512,
+                FileOptions.WriteThrough);
+            stream.Write(bytes, 0, bytes.Length);
+            stream.Flush(flushToDisk: true);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // Shutdown diagnostics are best-effort and must never become a shutdown failure.
+            System.Diagnostics.Debug.WriteLine(
+                $"DropSpace emergency log diagnostic failed: {exception.GetType().Name}");
         }
     }
 

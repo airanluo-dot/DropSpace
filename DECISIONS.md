@@ -265,7 +265,7 @@ Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted de
 
 - Status: Accepted
 - Context: WinUI packaging and Windows integration behavior require one reproducible target rather than an open-ended SDK range.
-- Decision: Target `net10.0-windows10.0.26100.0` and Windows 11 build 26100 or later; use .NET 10, Windows App SDK 2.3.1, Windows SDK Build Tools 10.0.26100.8249, CommunityToolkit.Mvvm 8.4.2, Microsoft.Data.Sqlite 10.0.10, and SQLitePCLRaw bundle 2.1.12 to replace its vulnerable 2.1.11 native transitive dependency. CI builds x64; the solution also defines ARM64.
+- Decision: Target `net10.0-windows10.0.26100.0` and Windows 11 build 26100 or later; use .NET 10, Windows App SDK 2.3.1, Windows SDK Build Tools 10.0.26100.8249, CommunityToolkit.Mvvm 8.4.2, Microsoft.Data.Sqlite 10.0.10, and SQLitePCLRaw bundle 2.1.12 to replace its vulnerable 2.1.11 native transitive dependency. CI and the public product surface are x64-only until a separately evidenced ARM64 release is designed.
 - Reason: These are stable servicing releases aligned with the supported Windows 11 24H2 SDK baseline and the repository's WinUI 3 requirements.
 - Alternatives: Older .NET/Windows App SDK LTS baseline; unpackaged deployment; floating package versions.
 - Trade-offs: Windows 10 and pre-24H2 Windows 11 builds are unsupported; explicit package pins require deliberate servicing updates.
@@ -483,3 +483,11 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - Decision: Keep the existing three production projects. Assign write serialization to SqliteDatabase, settings mutation to JsonSettingsService, staged-file commit/rollback to StagedFileImportService, and cancellation/drain to each service's shared shutdown task. Use revision-gated UI projections and generation-gated disposable preview caches. Bound automatic clipboard propagation with one consumer and a newest-retained 16-entry queue.
 - Rationale: Failure, stale snapshots and concurrent shutdown exposed ownership defects, not a need for a new framework. These changes make the same user flows recoverable and testable while preserving platform thread affinity and external source safety.
 - Trade-offs: Under overload automatic clipboard propagation may skip older queued entries. External file previews avoid stale cache by reloading. Cache invalidation clears the derived cache broadly for privacy and simplicity. SQLite UI latency and real native/network behavior still require target-environment measurement.
+
+## D-057 — Preview.19 closes legacy placement and trust-state retirement explicitly
+
+- Date: 2026-09-08
+- Status: Accepted for Preview.19
+- Decision: Keep the schema-8 `OverlayPlacementMode` and `CustomOverlayPlacements` fields deserializable only through the current one-time migration window; the application startup migration resolves them into schema-9 `OverlayPlacements`, clears the legacy fields, and never reads them as an active source of truth. The current settings schema is 11, so the CLR properties remain until a post-Preview.19 schema bump retires pre-schema-9 upgrade support. Add a durable peer `trust_state` with `PairingPending`, `Trusted`, `UnpairPending`, and `Blocked` values. Secrets are saved before Trusted is persisted, authentication rejects every non-Trusted state, and unpair marks `UnpairPending` before deleting the secret and row.
+- Rationale: A migration boundary must remain readable long enough to recover old settings, but retaining two active placement stores or treating a half-written peer as trusted creates ambiguous ownership and authorization. Explicit retirement and reconciliation make restart behavior deterministic.
+- Constraints: Existing external files remain untouched; missing secret/physical Windows evidence remains conditional and is never inferred from a hosted build.

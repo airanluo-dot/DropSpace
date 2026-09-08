@@ -101,7 +101,10 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
     {
         if (!Directory.Exists(paths.Updates)) return null;
         var candidates = new List<(DownloadedUpdate Update, string State)>();
-        foreach (var statePath in Directory.EnumerateFiles(paths.Updates, "update-state.json", SearchOption.AllDirectories).Take(20))
+        // Do not truncate enumeration before parsing. Filesystem enumeration order is not
+        // version order, so an invalid/old first twenty entries could hide the highest valid
+        // downloaded update.
+        foreach (var statePath in Directory.EnumerateFiles(paths.Updates, "update-state.json", SearchOption.AllDirectories))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try

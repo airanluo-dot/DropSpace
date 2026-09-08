@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Runtime.Versioning;
+using DropSpace.Core.Transfer;
 using Microsoft.AspNetCore.Http;
 
 namespace DropSpace.Infrastructure.Network;
@@ -18,15 +19,18 @@ internal sealed class DropLinkAuthenticationMiddleware
 
     private readonly RequestDelegate _next;
     private readonly DeviceSecretStore _secrets;
+    private readonly TransferRepository _transfers;
     private readonly DropLinkNonceCache _nonces;
 
     public DropLinkAuthenticationMiddleware(
         RequestDelegate next,
         DeviceSecretStore secrets,
+        TransferRepository transfers,
         DropLinkNonceCache nonces)
     {
         _next = next;
         _secrets = secrets;
+        _transfers = transfers;
         _nonces = nonces;
     }
 
@@ -158,6 +162,14 @@ internal sealed class DropLinkAuthenticationMiddleware
 
                 try
                 {
+                    // A DPAPI secret alone is not an authorization grant. The durable
+                    // peer lifecycle must also say Trusted; pending, unpairing, blocked,
+                    // and unknown rows fail closed during restart reconciliation.
+                    if (await _transfers.GetPeerTrustStateAsync(peerId, cancellationToken).ConfigureAwait(false) != PeerTrustState.Trusted)
+                    {
+                        return false;
+                    }
+
                     if (!_nonces.TryReserve(peerId, nonce, DateTimeOffset.UtcNow))
                     {
                         return false;

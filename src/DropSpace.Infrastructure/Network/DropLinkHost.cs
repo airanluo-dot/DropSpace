@@ -48,9 +48,11 @@ public sealed class DropLinkHost(
     private CancellationTokenSource _sessionLifetimeCancellation = new();
     private Task? _sessionLifetimeTask;
     private readonly ConcurrentDictionary<Guid, Task> _offerNotificationTasks = new();
+    private readonly ConcurrentDictionary<Guid, Task> _sessionRetirementTasks = new();
     private readonly object _offerNotificationGate = new();
     private CancellationTokenSource _offerNotificationCancellation = new();
     private WebApplication? _app;
+    private Task? _lateAppCleanupTask;
     private DeviceIdentity? _identity;
     private Uri? _endpoint;
     private int _disposed;
@@ -102,8 +104,16 @@ public sealed class DropLinkHost(
     private async Task<Uri> StartCoreAsync(int port, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        if (_offerNotificationTasks.Count > 0)
+        {
+            throw new InvalidOperationException("DropLink offer notifications are still completing a previous shutdown.");
+        }
         EnsureOfferNotificationCancellation();
         if (_endpoint is not null) return _endpoint;
+        if (_app is not null)
+        {
+            throw new InvalidOperationException("DropLink host is still completing a previous shutdown.");
+        }
         var identity = _identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
         {
@@ -127,9 +137,7 @@ public sealed class DropLinkHost(
             .Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(serverAddress) || !Uri.TryCreate(serverAddress, UriKind.Absolute, out var uri))
         {
-            await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-            await app.DisposeAsync().ConfigureAwait(false);
-            _app = null;
+            await StopAndDisposeAppAsync(app).ConfigureAwait(false);
             throw new InvalidOperationException("DropLink host did not expose a bound HTTPS endpoint.");
         }
 
@@ -217,6 +225,23 @@ public sealed class DropLinkHost(
                         Confirmed = locallyConfirmed,
                         Decision = locallyConfirmed ? PairingDecision.Confirm : PairingDecision.Reject,
                     };
+                }
+
+                if (request.Decision == PairingDecision.Confirm && request.Confirmed)
+                {
+                    // Persist the lifecycle transition before the secret is committed. If
+                    // either the secret write or the final trusted upsert is interrupted,
+                    // restart reconciliation sees a non-authorizing PairingPending row.
+                    await transfers.EnsurePairingPendingAsync(
+                        new DeviceDescriptor(
+                            DropLinkProtocolVersion.V1,
+                            pending.RemoteHello.DeviceId,
+                            pending.RemoteHello.DisplayName,
+                            pending.RemoteHello.Platform,
+                            pending.RemoteHello.Capabilities,
+                            pending.RemoteHello.IdentityFingerprint,
+                            _endpoint ?? throw new InvalidOperationException("The DropLink host has not started.")),
+                        cancellationToken).ConfigureAwait(false);
                 }
 
                 var result = await pairing.ConfirmAsync(
@@ -392,6 +417,13 @@ public sealed class DropLinkHost(
 
                 lock (_sessionAdmissionGate)
                 {
+                    if (_state != HostLifecycleState.Running || _disposed != 0)
+                    {
+                        receive.Dispose();
+                        TryDeleteDirectory(staging);
+                        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+                    }
+
                     if (_sessions.Count >= DropLinkSessionPolicy.MaximumActiveSessions)
                     {
                         receive.Dispose();
@@ -758,6 +790,12 @@ public sealed class DropLinkHost(
     {
         lock (_offerNotificationGate)
         {
+            if (_state is HostLifecycleState.Stopping or HostLifecycleState.Disposed ||
+                _disposed != 0 || _offerNotificationTasks.Count > 0 && _offerNotificationCancellation.IsCancellationRequested)
+            {
+                return _offerNotificationCancellation.Token;
+            }
+
             if (_offerNotificationCancellation.IsCancellationRequested)
             {
                 _offerNotificationCancellation.Dispose();
@@ -1171,7 +1209,16 @@ public sealed class DropLinkHost(
         {
             _offerNotificationCancellation.Cancel();
         }
-        await AwaitOfferNotificationsAsync().ConfigureAwait(false);
+        try
+        {
+            await AwaitOfferNotificationsAsync().WaitAsync(shutdownBudget).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            // The notification tasks remain in _offerNotificationTasks and retain
+            // ownership until their cancellation-aware handlers reach a terminal state.
+            logger.LogWarning("DropLink offer notifications exceeded {ShutdownBudget}; ownership remains with the notification tasks.", shutdownBudget);
+        }
 
         _sessionLifetimeCancellation.Cancel();
         var lifetimeTask = Interlocked.Exchange(ref _sessionLifetimeTask, null);
@@ -1186,56 +1233,137 @@ public sealed class DropLinkHost(
             }
         }
 
-        if (_app is not null)
+        if (_app is not null || _lateAppCleanupTask is not null)
         {
+            var cleanup = _lateAppCleanupTask;
+            if (cleanup is null)
+            {
+                var app = _app!;
+                cleanup = StopAndDisposeAppAsync(app);
+                _lateAppCleanupTask = cleanup;
+            }
+
             try
             {
-                await _app.StopAsync(CancellationToken.None).WaitAsync(shutdownBudget).ConfigureAwait(false);
+                await cleanup.WaitAsync(shutdownBudget).ConfigureAwait(false);
+                if (ReferenceEquals(_lateAppCleanupTask, cleanup)) _lateAppCleanupTask = null;
             }
             catch (TimeoutException)
             {
-                logger.LogWarning("DropLink host graceful stop exceeded {ShutdownBudget}; disposal will continue.", shutdownBudget);
+                // The task retains the WebApplication until StopAsync and DisposeAsync
+                // have both reached a terminal state. Never dispose it concurrently from
+                // a second shutdown caller.
+                logger.LogWarning("DropLink host shutdown exceeded {ShutdownBudget}; application ownership is retained until the late cleanup completes.", shutdownBudget);
             }
-            await _app.DisposeAsync().AsTask().WaitAsync(shutdownBudget).ConfigureAwait(false);
         }
 
-        _app = null;
         _endpoint = null;
 
         var sessions = _sessions.Values.ToArray();
-        foreach (var session in sessions)
-        {
-            session.CancelLifetime();
-        }
+        foreach (var session in sessions) session.CancelLifetime();
 
-        var finalizers = sessions
-            .Select(session => session.GetFinalizationTask())
-            .Where(task => task is not null)
-            .Cast<Task>()
-            .ToArray();
-        if (finalizers.Length > 0)
+        // A bounded shutdown wait is only a caller deadline. It is not permission to
+        // dispose a session's gates, CTS, or staging directory while a finalizer/request
+        // may still own them. Retirement tasks keep ownership until terminal state and
+        // finalization have both settled; an unfinished task remains observable for a
+        // later StopAsync/DisposeAsync call.
+        var retirements = sessions.Select(QueueSessionRetirement).ToArray();
+        if (retirements.Length > 0)
         {
             try
             {
-                await Task.WhenAll(finalizers).WaitAsync(shutdownBudget).ConfigureAwait(false);
+                await Task.WhenAll(retirements).WaitAsync(shutdownBudget).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                logger.LogWarning("DropLink session retirement exceeded {ShutdownBudget}; ownership remains with the retirement tasks.", shutdownBudget);
             }
             catch (Exception exception)
             {
-                logger.LogWarning(exception, "DropLink transfer finalization did not settle cleanly during shutdown.");
+                logger.LogWarning(exception, "DropLink transfer retirement did not settle cleanly during shutdown.");
             }
         }
 
-        foreach (var session in sessions)
+        _usedNonces.Clear();
+        _usedHandoffSessions.Clear();
+    }
+
+    private async Task StopAndDisposeAppAsync(WebApplication app)
+    {
+        try
         {
+            await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            logger.LogWarning(exception, "DropLink host graceful stop failed; disposal will still be attempted.");
+        }
+
+        try
+        {
+            await app.DisposeAsync().ConfigureAwait(false);
+            if (ReferenceEquals(_app, app))
+            {
+                _app = null;
+            }
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // Keep _app as the ownership record when terminal disposal fails.
+            logger.LogWarning(exception, "DropLink host disposal failed; application ownership remains retained.");
+        }
+    }
+
+    private Task QueueSessionRetirement(ReceiveTransfer session) =>
+        _sessionRetirementTasks.GetOrAdd(session.Session.Id, _ => RetireSessionAfterShutdownAsync(session));
+
+    private async Task RetireSessionAfterShutdownAsync(ReceiveTransfer session)
+    {
+        try
+        {
+            var finalization = session.GetFinalizationTask();
+            if (finalization is not null)
+            {
+                try { await finalization.ConfigureAwait(false); }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    logger.LogWarning(exception, "DropLink finalization ended during shutdown for session {SessionId}.", session.Session.Id);
+                }
+            }
+
+            await session.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                if (!DropLinkSessionPolicy.IsTerminal(session.Session.State))
+                {
+                    session.Session = session.Session with
+                    {
+                        State = TransferSessionState.Failed,
+                        CompletedAtUtc = DateTimeOffset.UtcNow,
+                        ErrorCategory = "shutdown",
+                    };
+                    try { await transfers.UpdateSessionAsync(session.Session, CancellationToken.None).ConfigureAwait(false); }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+                    {
+                        logger.LogWarning(exception, "DropLink shutdown failure state could not be persisted for session {SessionId}.", session.Session.Id);
+                    }
+                }
+            }
+            finally
+            {
+                session.MutationGate.Release();
+            }
+
             if (_sessions.TryRemove(session.Session.Id, out var removed))
             {
                 removed.Dispose();
                 TryDeleteDirectory(removed.StagingRoot);
             }
         }
-
-        _usedNonces.Clear();
-        _usedHandoffSessions.Clear();
+        finally
+        {
+            _sessionRetirementTasks.TryRemove(session.Session.Id, out _);
+        }
     }
 
     private void TryDeleteDirectory(string path)

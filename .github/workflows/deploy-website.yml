@@ -12,7 +12,7 @@ on:
       - "website/**"
       - ".github/workflows/deploy-website.yml"
   release:
-    types: [published, edited, released, prereleased]
+    types: [published, released, prereleased]
   workflow_dispatch:
 
 permissions:
@@ -25,24 +25,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-link:
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      RELEASE_BODY: ${{ github.event.release.body }}
-      RELEASE_ID: ${{ github.event.release.id }}
-      WEBSITE_URL: https://airanluo-dot.github.io/DropSpace/
-    steps:
-      - name: Add the official website to Release notes
-        shell: bash
-        run: |
-          if [[ "$RELEASE_BODY" == *"$WEBSITE_URL"* ]]; then
-            exit 0
-          fi
-          updated_body="${RELEASE_BODY}"$'\n\n'"Official website: ${WEBSITE_URL}"
-          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" -f body="$updated_body"
-
   build:
     runs-on: ubuntu-latest
     outputs:

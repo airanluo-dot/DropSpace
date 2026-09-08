@@ -26,10 +26,14 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly ShareLimits _limits = (limits ?? new ShareLimits()).Validate();
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
+    private readonly object _shareGate = new();
     private readonly SemaphoreSlim _startGate = new(1, 1);
     private WebApplication? _app;
     private Uri? _baseUri;
     private int _disposed;
+    private readonly object _disposeGate = new();
+    private Task? _disposeTask;
+    private Task? _lateAppCleanupTask;
 
     public Uri? BaseUri => _baseUri;
 
@@ -58,7 +62,17 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
         var requestedLifetime = lifetime ?? TimeSpan.FromMinutes(_limits.NearbyTtlMinutes);
         if (requestedLifetime <= TimeSpan.Zero || requestedLifetime > TimeSpan.FromMinutes(_limits.NearbyTtlMinutes)) throw new ArgumentOutOfRangeException(nameof(lifetime));
         var expires = DateTimeOffset.UtcNow.Add(requestedLifetime);
-        _shares[shareId] = new NearbyShare(shareId, token, expires, items.ToArray(), _limits.MaxNearbyReceivers);
+        lock (_shareGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
+            PruneExpiredSharesLocked(DateTimeOffset.UtcNow);
+            if (_shares.Count >= _limits.MaxNearbyShares)
+            {
+                throw new InvalidOperationException("The nearby share capacity is full.");
+            }
+
+            _shares[shareId] = new NearbyShare(shareId, token, expires, items.ToArray(), _limits.MaxNearbyReceivers);
+        }
         var url = new Uri(string.Concat(_baseUri, "s/", shareId.ToString("N"), "/", token));
         return new ShareDescriptor(shareId, url, expires, items.Count, total, false, null);
     }
@@ -67,13 +81,21 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
 
     private async Task EnsureStartedAsync(CancellationToken cancellationToken)
     {
-        if (_app is not null) return;
+        if (_app is not null && _baseUri is not null) return;
+        if (_app is not null)
+        {
+            throw new InvalidOperationException("Nearby share server is still completing a previous startup or shutdown.");
+        }
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
         await _startGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             ObjectDisposedException.ThrowIf(_disposed != 0, this);
-            if (_app is not null) return;
+            if (_app is not null && _baseUri is not null) return;
+            if (_app is not null)
+            {
+                throw new InvalidOperationException("Nearby share server is still completing a previous startup or shutdown.");
+            }
 
             var privateAddress = GetPrivateAddress();
             var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
@@ -85,18 +107,26 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Parse(privateAddress), 0));
             var app = builder.Build();
             MapRoutes(app);
-            await app.StartAsync(cancellationToken).ConfigureAwait(false);
-            var address = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
-                .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var bound))
-            {
-                await app.StopAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
-                await app.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
-                throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
-            }
-
-            _baseUri = new Uri(string.Concat("http://", privateAddress, ":", bound.Port, "/"));
+            // Publish ownership before starting. If startup is canceled or fails after
+            // the web host has allocated resources, disposal can still find the app.
             _app = app;
+            try
+            {
+                await app.StartAsync(cancellationToken).ConfigureAwait(false);
+                var address = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
+                    .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var bound))
+                {
+                    throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
+                }
+
+                _baseUri = new Uri(string.Concat("http://", privateAddress, ":", bound.Port, "/"));
+            }
+            catch
+            {
+                await BeginFailedStartCleanupAsync(app).ConfigureAwait(false);
+                throw;
+            }
         }
         finally
         {
@@ -277,24 +307,141 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        lock (_disposeGate)
+        {
+            _disposeTask ??= DisposeCoreAsync();
+        }
 
-        await _startGate.WaitAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+        await _disposeTask!.ConfigureAwait(false);
+    }
+
+    private async Task DisposeCoreAsync()
+    {
+        Interlocked.Exchange(ref _disposed, 1);
+
+        // Waiting for startup is part of ownership transfer. A caller deadline must
+        // not make the only WebApplication reference unreachable.
+        await _startGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         try
         {
-            _shares.Clear();
+            lock (_shareGate) _shares.Clear();
             var app = _app;
-            _app = null;
-            _baseUri = null;
             if (app is not null)
             {
-                await app.StopAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
-                await app.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                Task stopTask = Task.CompletedTask;
+                try
+                {
+                    stopTask = app.StopAsync(CancellationToken.None);
+                    await stopTask.WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    _lateAppCleanupTask = ObserveLateStopAndDisposeAsync(app, stopTask);
+                    _baseUri = null;
+                    return;
+                }
+                catch (Exception)
+                {
+                    // Stop failure is observed, but disposal still gets a chance to
+                    // release the server resources.
+                    stopTask = Task.CompletedTask;
+                }
+
+                Task disposeTask = Task.CompletedTask;
+                try
+                {
+                    disposeTask = app.DisposeAsync().AsTask();
+                    await disposeTask.WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                    if (ReferenceEquals(_app, app)) _app = null;
+                }
+                catch (TimeoutException)
+                {
+                    _lateAppCleanupTask = ObserveLateDisposalAsync(app, disposeTask);
+                    _baseUri = null;
+                    return;
+                }
+                catch (Exception)
+                {
+                    // Keep _app as the durable ownership record if disposal itself
+                    // fails; a later process-level owner can still inspect/retry it.
+                }
             }
+
+            _baseUri = null;
         }
         finally
         {
             _startGate.Release();
+        }
+    }
+
+    private async Task BeginFailedStartCleanupAsync(WebApplication app)
+    {
+        Task stopTask = Task.CompletedTask;
+        try
+        {
+            stopTask = app.StopAsync(CancellationToken.None);
+            await stopTask.WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            _lateAppCleanupTask = ObserveLateStopAndDisposeAsync(app, stopTask);
+            _baseUri = null;
+            return;
+        }
+        catch (Exception)
+        {
+            stopTask = Task.CompletedTask;
+        }
+
+        Task disposeTask = Task.CompletedTask;
+        try
+        {
+            disposeTask = app.DisposeAsync().AsTask();
+            await disposeTask.WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+            if (ReferenceEquals(_app, app)) _app = null;
+        }
+        catch (TimeoutException)
+        {
+            _lateAppCleanupTask = ObserveLateDisposalAsync(app, disposeTask);
+        }
+        catch (Exception)
+        {
+            // Keep the app reference if failed-start cleanup could not dispose it.
+        }
+
+        _baseUri = null;
+    }
+
+    private async Task ObserveLateStopAndDisposeAsync(WebApplication app, Task stopTask)
+    {
+        try { await stopTask.ConfigureAwait(false); }
+        catch (Exception) { }
+
+        await ObserveLateDisposalAsync(app, app.DisposeAsync().AsTask()).ConfigureAwait(false);
+    }
+
+    private async Task ObserveLateDisposalAsync(WebApplication app, Task disposeTask)
+    {
+        try
+        {
+            await disposeTask.ConfigureAwait(false);
+            if (ReferenceEquals(_app, app)) _app = null;
+        }
+        catch (Exception)
+        {
+            // The field remains the ownership record when terminal disposal fails.
+        }
+    }
+
+    private void PruneExpiredSharesLocked(DateTimeOffset nowUtc)
+    {
+        foreach (var pair in _shares)
+        {
+            if (pair.Value.ExpiresAtUtc <= nowUtc)
+            {
+                _shares.TryRemove(pair.Key, out _);
+            }
         }
     }
 

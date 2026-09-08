@@ -1,7 +1,9 @@
 # DropSpace Windows compatibility baseline
 
-Status: implementation baseline for `v0.3.0-preview.14` (conditional until the
-Windows matrix below has executable evidence).
+Status: implementation baseline for `v0.3.0-preview.19` (conditional until the
+Windows matrix below has executable evidence). The release runner is pinned to
+the named `windows-2025` image; this is build reproducibility evidence, not a
+substitute for the real OS/DPI/OLE/accessibility rows.
 
 ## Supported operating systems
 
@@ -127,3 +129,12 @@ CI/release run must be inspected after publication, and the rows above remain
 conditional until real Windows machines or equivalent dedicated test fixtures
 record them. Hosted Windows CI is useful for build/smoke coverage but does not
 replace the historical OS/DPI/monitor/provider matrix.
+
+## Preview.19 execution record
+
+Preview.19 removes the public ARM64 declaration and ships one x64 build path:
+`win-x64`, `Platform=x64`, and the existing Windows 10 Build 17763 minimum.
+The release workflow records the runner image, .NET SDK, MSBuild, Windows SDK,
+Inno Setup, commit, and signing mode in a retained build-environment artifact.
+The physical matrix above is intentionally marked conditional until a real
+Windows host records each row.

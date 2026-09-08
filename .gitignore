@@ -28,6 +28,10 @@ Package.StoreAssociation.xml
 *.cer
 *.pfx
 *.p12
+*.pem
+*.key
+*.private
+secrets.*
 
 # Local runtime data
 .local/
@@ -59,6 +63,10 @@ Desktop.ini
 *.bak
 *.log
 ~$*
+
+# Local credentials and environment configuration
+.env
+.env.*
 
 # DropSpace website local build and browser-test output
 website/_source/node_modules/
