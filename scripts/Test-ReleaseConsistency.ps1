@@ -30,5 +30,19 @@ if ($readme -match '(?i)Dynamic Island/Notch|Dynamic Island or Notch|灵动岛\s
     throw "README.md still presents the removed Notch mode as an active product option."
 }
 
+$releaseWorkflow = Get-Content (Join-Path $repositoryRoot ".github/workflows/release.yml") -Raw
+foreach ($requiredPattern in @(
+    "github\.actor == github\.repository_owner",
+    "runs-on: windows-2025",
+    "RestoreLockedMode=true",
+    "Reject an existing tag or release"
+))
+{
+    if ($releaseWorkflow -notmatch $requiredPattern)
+    {
+        throw "Release workflow is missing the Preview.19 governance requirement: $requiredPattern"
+    }
+}
+
 Write-Host "Release consistency passed for $($releaseInfo.Tag)."
 Write-Host "Manifest summary: $summary"

@@ -25,6 +25,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly StagedFileImportService _stagedFiles;
     private readonly IItemActionRegistry _actions;
     private readonly UndoCoordinator _undo;
+    private readonly PinItemsUseCase _pinItems;
     private readonly SettingsApplicationCoordinator _settingsCoordinator;
     private readonly IPayloadStore _payloadStore;
     private readonly IFileReferenceService _fileReferences;
@@ -75,6 +76,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         StagedFileImportService stagedFiles,
         IItemActionRegistry actions,
         UndoCoordinator undo,
+        PinItemsUseCase pinItems,
         SettingsApplicationCoordinator settingsCoordinator,
         IPayloadStore payloadStore,
         IFileReferenceService fileReferences,
@@ -96,6 +98,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _stagedFiles = stagedFiles;
         _actions = actions;
         _undo = undo;
+        _pinItems = pinItems;
         _settingsCoordinator = settingsCoordinator;
         _payloadStore = payloadStore;
         _fileReferences = fileReferences;
@@ -914,11 +917,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         await _undo.FinalizeActiveAsync(cancellationToken);
         var previousState = card.IsPinned;
         var nextState = !previousState;
-        await _repository.SetPinnedAsync(card.Id, nextState, cancellationToken);
-        await _undo.RegisterPinChangeAsync(
-            new Dictionary<Guid, bool> { [card.Id] = previousState },
-            nextState ? "UndoPinned" : "UndoUnpinned",
-            cancellationToken);
+        var result = await _pinItems.SetAsync([card.Id], nextState, cancellationToken);
+        if (result.AffectedCount > 0)
+        {
+            await _undo.RegisterPinChangeAsync(
+                result.PreviousStates,
+                nextState ? "UndoPinned" : "UndoUnpinned",
+                cancellationToken);
+        }
         var refreshed = await _repository.GetAsync(card.Id, cancellationToken);
         if (refreshed is not null)
         {
@@ -954,17 +960,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
         var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
-        var pin = members.Any(item => !item.IsPinned);
-        var previousStates = members.ToDictionary(item => item.Id, item => item.IsPinned);
         await _undo.FinalizeActiveAsync(cancellationToken);
-        foreach (var member in members)
+        if (members.Count == 0)
         {
-            await _repository.SetPinnedAsync(member.Id, pin, cancellationToken);
+            return;
         }
-        await _undo.RegisterPinChangeAsync(
-            previousStates,
-            pin ? "UndoPinned" : "UndoUnpinned",
+
+        var pin = members.Any(item => !item.IsPinned);
+        var result = await _pinItems.SetAsync(
+            members.Select(member => member.Id).ToArray(),
+            pin,
             cancellationToken);
+        if (result.AffectedCount > 0)
+        {
+            await _undo.RegisterPinChangeAsync(
+                result.PreviousStates,
+                pin ? "UndoPinned" : "UndoUnpinned",
+                cancellationToken);
+        }
         await ReloadAsync(cancellationToken);
         await PublishSpaceProjectionChangedAsync(cancellationToken);
     }

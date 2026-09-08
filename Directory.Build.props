@@ -7,6 +7,7 @@
     <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <AnalysisLevel>10.0</AnalysisLevel>
     <Deterministic>true</Deterministic>
     <DropSpaceMinimumWindowsBuild>17763</DropSpaceMinimumWindowsBuild>

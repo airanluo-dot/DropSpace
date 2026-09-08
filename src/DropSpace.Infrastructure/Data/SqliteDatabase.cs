@@ -8,7 +8,7 @@ public sealed class SqliteDatabase(
     AppStoragePaths paths,
     ILogger<SqliteDatabase> logger)
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private volatile bool _initialized;
@@ -97,6 +97,7 @@ public sealed class SqliteDatabase(
             new("created_at_utc", "TEXT", true, false),
             new("last_seen_at_utc", "TEXT", false, false),
             new("is_blocked", "INTEGER", true, false),
+            new("trust_state", "INTEGER", true, false),
         ]),
         new("transfer_sessions",
         [
@@ -241,6 +242,11 @@ public sealed class SqliteDatabase(
             if (fromVersion < 4)
             {
                 await ApplyV4Async(connection, transaction, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (fromVersion < 5)
+            {
+                await ApplyV5Async(connection, transaction, cancellationToken).ConfigureAwait(false);
             }
 
             await using var versionCommand = connection.CreateCommand();
@@ -459,6 +465,22 @@ public sealed class SqliteDatabase(
             END;
 
             INSERT INTO items_search(items_search) VALUES ('rebuild');
+            """;
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = (SqliteTransaction)transaction;
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ApplyV5Async(
+        SqliteConnection connection,
+        System.Data.Common.DbTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            ALTER TABLE paired_devices ADD COLUMN trust_state INTEGER NOT NULL DEFAULT 2;
+            UPDATE paired_devices SET trust_state = CASE WHEN is_blocked = 1 THEN 4 ELSE 2 END;
             """;
 
         await using var command = connection.CreateCommand();

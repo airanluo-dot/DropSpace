@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Sharing;
@@ -9,6 +10,7 @@ namespace DropSpace.Infrastructure.Sharing;
 public sealed class InternetShareRevokeStore(AppStoragePaths paths)
 {
     private static readonly SemaphoreSlim StoreGate = new(1, 1);
+    private static readonly ConcurrentDictionary<string, int> PendingReservations = new(StringComparer.OrdinalIgnoreCase);
     private const int MaximumPersistedRecords = 128;
     private const int MaximumAuthorizationLength = 4096;
     private const int MaximumUrlLength = 2048;
@@ -20,13 +22,75 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         Guid shareId,
         ShareBackendUploadSession session,
         DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken = default,
+        ShareCapacityReservation? reservation = null)
+    {
+        await StoreGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var existing = await LoadCoreAsync(cancellationToken).ConfigureAwait(false);
+            var ownsReservation = reservation?.IsActiveFor(ReservationKey) == true;
+            var pendingReservations = PendingReservations.TryGetValue(ReservationKey, out var pending)
+                ? pending
+                : 0;
+            if (!File.Exists(GetPath(GetDirectory(), shareId)) &&
+                existing.Count + pendingReservations - (ownsReservation ? 1 : 0) >= MaximumPersistedRecords)
+            {
+                // A live authenticated handle is never evicted. The caller must revoke the
+                // remote share or wait for an existing handle to expire before retrying.
+                throw new InvalidOperationException("The secure share revoke-handle capacity is full.");
+            }
+
+            await SaveCoreAsync(shareId, session, expiresAtUtc, cancellationToken).ConfigureAwait(false);
+            if (ownsReservation) reservation!.Commit();
+        }
+        finally { StoreGate.Release(); }
+    }
+
+    /// <summary>
+    /// Checks capacity before a backend share is created. Expired and malformed local
+    /// handles are pruned; live handles remain durable and are never evicted to make room.
+    /// </summary>
+    public async Task EnsureCapacityAsync(CancellationToken cancellationToken = default)
+    {
+        await StoreGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var existing = await LoadCoreAsync(cancellationToken).ConfigureAwait(false);
+            var pendingReservations = PendingReservations.TryGetValue(ReservationKey, out var pending)
+                ? pending
+                : 0;
+            if (existing.Count + pendingReservations >= MaximumPersistedRecords)
+            {
+                throw new InvalidOperationException("The secure share revoke-handle capacity is full.");
+            }
+        }
+        finally { StoreGate.Release(); }
+    }
+
+    /// <summary>
+    /// Reserves one durable revoke-handle slot while the remote backend share is being
+    /// created. Without this reservation, concurrent creates could all pass the preflight
+    /// check and the later SaveAsync call would leave an already-created remote share
+    /// without a local capability.
+    /// </summary>
+    public async Task<ShareCapacityReservation> ReserveCapacityAsync(
         CancellationToken cancellationToken = default)
     {
         await StoreGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await SaveCoreAsync(shareId, session, expiresAtUtc, cancellationToken).ConfigureAwait(false);
-            await LoadCoreAsync(CancellationToken.None, shareId).ConfigureAwait(false);
+            var existing = await LoadCoreAsync(cancellationToken).ConfigureAwait(false);
+            var pendingReservations = PendingReservations.TryGetValue(ReservationKey, out var pending)
+                ? pending
+                : 0;
+            if (existing.Count + pendingReservations >= MaximumPersistedRecords)
+            {
+                throw new InvalidOperationException("The secure share revoke-handle capacity is full.");
+            }
+
+            PendingReservations[ReservationKey] = pendingReservations + 1;
+            return new ShareCapacityReservation(ReservationKey, ReleaseReservation);
         }
         finally { StoreGate.Release(); }
     }
@@ -88,7 +152,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
     }
 
     private async Task<IReadOnlyList<RestorableInternetShareSession>> LoadCoreAsync(
-        CancellationToken cancellationToken, Guid? preserveId = null)
+        CancellationToken cancellationToken)
     {
         var directory = GetDirectory();
         if (!Directory.Exists(directory))
@@ -155,14 +219,6 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                         revokeUrl);
                     Validate(shareId, session, handle.ExpiresAtUtc);
                     result.Add(new RestorableInternetShareSession(shareId, session, handle.ExpiresAtUtc));
-                    result = result.OrderByDescending(entry => entry.ShareId == preserveId)
-                        .ThenByDescending(entry => File.GetLastWriteTimeUtc(GetPath(directory, entry.ShareId)))
-                        .ThenBy(entry => entry.ShareId).ToList();
-                    if (result.Count > MaximumPersistedRecords)
-                    {
-                        File.Delete(GetPath(directory, result[^1].ShareId));
-                        result.RemoveAt(result.Count - 1);
-                    }
                 }
                 finally
                 {
@@ -224,6 +280,23 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
 
     private string GetDirectory() => Path.Combine(paths.Data, "share-revokes");
 
+    private string ReservationKey => Path.GetFullPath(GetDirectory());
+
+    private static void ReleaseReservation(string key)
+    {
+        while (PendingReservations.TryGetValue(key, out var current))
+        {
+            if (current <= 1)
+            {
+                if (PendingReservations.TryRemove(new KeyValuePair<string, int>(key, current))) return;
+            }
+            else if (PendingReservations.TryUpdate(key, current - 1, current))
+            {
+                return;
+            }
+        }
+    }
+
     private static string GetPath(string directory, Guid shareId) =>
         Path.Combine(directory, string.Concat(shareId.ToString("N"), ".bin"));
 
@@ -280,6 +353,35 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         string UploadAuthorization,
         string RevokeUrl,
         DateTimeOffset ExpiresAtUtc);
+}
+
+public sealed class ShareCapacityReservation : IDisposable
+{
+    private readonly string _key;
+    private readonly Action<string> _release;
+    private int _completed;
+
+    internal ShareCapacityReservation(string key, Action<string> release)
+    {
+        _key = key;
+        _release = release;
+    }
+
+    internal bool IsActiveFor(string key) =>
+        Volatile.Read(ref _completed) == 0 &&
+        string.Equals(_key, key, StringComparison.OrdinalIgnoreCase);
+
+    internal void Commit() => Complete();
+
+    public void Dispose() => Complete();
+
+    private void Complete()
+    {
+        if (Interlocked.Exchange(ref _completed, 1) == 0)
+        {
+            _release(_key);
+        }
+    }
 }
 
 public sealed record RestorableInternetShareSession(

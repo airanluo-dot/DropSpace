@@ -162,10 +162,7 @@ public sealed class UndoCoordinator(
             }
             else if (active.PreviousPinStates is not null)
             {
-                foreach (var previousState in active.PreviousPinStates)
-                {
-                    await repository.SetPinnedAsync(previousState.Key, previousState.Value, cancellationToken).ConfigureAwait(false);
-                }
+                await repository.RestorePinnedStatesAsync(active.PreviousPinStates, cancellationToken).ConfigureAwait(false);
             }
 
             _active = null;

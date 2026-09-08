@@ -1,4 +1,7 @@
 using DropSpace.Infrastructure.Sharing;
+using DropSpace.Infrastructure.Storage;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DropSpace.Infrastructure.Tests;
 
@@ -84,5 +87,84 @@ public sealed class ShareCryptoTests
         CollectionAssert.AreEqual(Convert.FromHexString("19da70f0d8652efeb3ffa6"), chunk.Ciphertext);
         CollectionAssert.AreEqual(Convert.FromHexString("1b425aa01055361c8deca3bcfb08e0a1"), chunk.Tag);
         CollectionAssert.AreEqual(master, ShareCryptoService.FromUrlFragment("AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA"));
+    }
+
+    [TestMethod]
+    public async Task InternetShareEncryptsFromOneAppOwnedSnapshot()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-share-snapshot", Guid.NewGuid().ToString("N"));
+        var paths = new AppStoragePaths(root);
+        var firstSnapshot = Encoding.UTF8.GetBytes("snapshot A");
+        var laterMutation = Encoding.UTF8.GetBytes("snapshot B");
+        var backend = new CaptureShareBackend();
+        var opens = 0;
+        var source = new ShareFileSource(
+            "snapshot.txt",
+            "text/plain",
+            firstSnapshot.Length,
+            Convert.ToHexString(SHA256.HashData(firstSnapshot)).ToLowerInvariant(),
+            _ =>
+            {
+                opens++;
+                return Task.FromResult<Stream>(new MemoryStream(opens == 1 ? firstSnapshot : laterMutation, writable: false));
+            });
+
+        byte[]? masterKey = null;
+        try
+        {
+            var client = new InternetShareClient(new ShareCryptoService(), backend, storagePaths: paths);
+            var result = await client.CreateWithSessionAsync([source], TimeSpan.FromHours(1));
+
+            Assert.AreEqual(1, opens, "The source must be opened once for staging; upload must use that immutable staged file.");
+            Assert.IsNotNull(result.Descriptor.KeyFragment);
+            masterKey = ShareCryptoService.FromUrlFragment(result.Descriptor.KeyFragment!);
+            var manifestWire = backend.Objects["manifest.bin"];
+            var manifestParts = ShareCryptoService.UnpackManifestWire(manifestWire);
+            var manifest = new ShareCryptoService().DecryptManifest(
+                masterKey,
+                result.Descriptor.ShareId,
+                manifestParts.Nonce,
+                manifestParts.Ciphertext,
+                manifestParts.Tag);
+            var item = manifest.Single();
+            var chunk = backend.Objects.Single(entry => entry.Key.StartsWith(item.FileId.ToString("N"), StringComparison.Ordinal)).Value;
+            var plaintext = new ShareCryptoService().DecryptChunk(
+                masterKey,
+                result.Descriptor.ShareId,
+                item.FileId,
+                0,
+                (int)item.PlainLength,
+                chunk[..^ShareCryptoService.AuthenticationTagBytes],
+                chunk[^ShareCryptoService.AuthenticationTagBytes..],
+                item.NoncePrefix);
+
+            CollectionAssert.AreEqual(firstSnapshot, plaintext);
+            Assert.IsFalse(Directory.EnumerateFiles(paths.Staging, "*", SearchOption.AllDirectories).Any());
+        }
+        finally
+        {
+            if (masterKey is not null) CryptographicOperations.ZeroMemory(masterKey);
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private sealed class CaptureShareBackend : IShareBackendClient
+    {
+        public Dictionary<string, byte[]> Objects { get; } = new(StringComparer.Ordinal);
+
+        public Task<ShareBackendUploadSession> CreateAsync(Guid shareId, DateTimeOffset expiresAtUtc, int itemCount, long totalBytes, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ShareBackendUploadSession(
+                new Uri("https://share.example.invalid/upload/"),
+                new Uri("https://share.example.invalid/download/"),
+                "Bearer test-token",
+                new Uri("https://share.example.invalid/revoke/")));
+
+        public Task UploadAsync(ShareBackendUploadSession session, string objectName, ReadOnlyMemory<byte> ciphertext, string contentType, CancellationToken cancellationToken = default)
+        {
+            Objects[objectName] = ciphertext.ToArray();
+            return Task.CompletedTask;
+        }
+
+        public Task RevokeAsync(ShareBackendUploadSession session, Guid shareId, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

@@ -1,9 +1,12 @@
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
+using DropSpace.Core.Transfer;
+using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Storage;
 using DropSpace.Infrastructure.Network;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DropSpace.Infrastructure.Tests;
 
@@ -22,6 +25,7 @@ public sealed class DropLinkAuthenticationMiddlewareTests
         {
             var secrets = new DeviceSecretStore(paths);
             await secrets.SaveAsync(peerId, secret);
+            var transfers = await CreateTrustedTransfersAsync(paths, peerId);
 
             var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(DropLinkProtocolPolicy.AuthenticationNonceBytes));
             var body = """{"eventId":"auth-test"}""";
@@ -33,7 +37,7 @@ public sealed class DropLinkAuthenticationMiddlewareTests
                 Interlocked.Increment(ref reached);
                 return Task.CompletedTask;
             };
-            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, cache);
+            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, transfers, cache);
 
             var valid = CreateContext(peerId, secret, nonce, body);
             await middleware.InvokeAsync(valid);
@@ -59,6 +63,7 @@ public sealed class DropLinkAuthenticationMiddlewareTests
         {
             var secrets = new DeviceSecretStore(paths);
             await secrets.SaveAsync(peerId, secret);
+            var transfers = await CreateTrustedTransfersAsync(paths, peerId);
 
             var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(DropLinkProtocolPolicy.AuthenticationNonceBytes));
             var body = """{"eventId":"hash-mismatch"}""";
@@ -69,7 +74,7 @@ public sealed class DropLinkAuthenticationMiddlewareTests
                 reached = true;
                 return Task.CompletedTask;
             };
-            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, cache);
+            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, transfers, cache);
             var incorrectHash = new string('0', DropLinkProtocolPolicy.BodyHashHexLength);
             var context = CreateContext(peerId, secret, nonce, body, incorrectHash);
 
@@ -97,6 +102,7 @@ public sealed class DropLinkAuthenticationMiddlewareTests
         {
             var secrets = new DeviceSecretStore(paths);
             await secrets.SaveAsync(peerId, secret);
+            var transfers = await CreateTrustedTransfersAsync(paths, peerId);
 
             var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(DropLinkProtocolPolicy.AuthenticationNonceBytes));
             var body = """{"eventId":"replay"}""";
@@ -107,7 +113,7 @@ public sealed class DropLinkAuthenticationMiddlewareTests
                 Interlocked.Increment(ref reached);
                 return Task.CompletedTask;
             };
-            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, cache);
+            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, transfers, cache);
 
             await middleware.InvokeAsync(CreateContext(peerId, secret, nonce, body));
             var replay = CreateContext(peerId, secret, nonce, body);
@@ -116,6 +122,45 @@ public sealed class DropLinkAuthenticationMiddlewareTests
             Assert.AreEqual(1, reached);
             Assert.AreEqual(StatusCodes.Status401Unauthorized, replay.Response.StatusCode);
             Assert.AreEqual(1, cache.Count);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(secret);
+            TryDelete(root);
+        }
+    }
+
+    [TestMethod]
+    public async Task SecretWithoutTrustedPeerStateIsRejected()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-tests", Guid.NewGuid().ToString("N"));
+        var paths = new AppStoragePaths(root);
+        var peerId = Guid.NewGuid();
+        var secret = RandomNumberGenerator.GetBytes(32);
+        try
+        {
+            var secrets = new DeviceSecretStore(paths);
+            await secrets.SaveAsync(peerId, secret);
+            var transfers = await CreateTrustedTransfersAsync(paths, peerId);
+            await transfers.UpdatePeerTrustStateAsync(peerId, PeerTrustState.PairingPending);
+
+            var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(DropLinkProtocolPolicy.AuthenticationNonceBytes));
+            var body = "{\"eventId\":\"pending-peer\"}";
+            var cache = new DropLinkNonceCache();
+            var reached = false;
+            RequestDelegate next = _ =>
+            {
+                reached = true;
+                return Task.CompletedTask;
+            };
+            var middleware = new DropLinkAuthenticationMiddleware(next, secrets, transfers, cache);
+
+            var context = CreateContext(peerId, secret, nonce, body);
+            await middleware.InvokeAsync(context);
+
+            Assert.IsFalse(reached);
+            Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+            Assert.AreEqual(0, cache.Count);
         }
         finally
         {
@@ -150,6 +195,21 @@ public sealed class DropLinkAuthenticationMiddlewareTests
             signedHash);
         context.Response.Body = new MemoryStream();
         return context;
+    }
+
+    private static async Task<TransferRepository> CreateTrustedTransfersAsync(AppStoragePaths paths, Guid peerId)
+    {
+        var transfers = new TransferRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance));
+        await transfers.UpsertPeerAsync(new PeerDevice(
+            peerId,
+            "Trusted peer",
+            DevicePlatform.Windows,
+            new string('a', 64),
+            PeerCapability.HandoffFiles,
+            PeerTrustState.Trusted,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow), peerId.ToString("N"));
+        return transfers;
     }
 
     private static void TryDelete(string path)

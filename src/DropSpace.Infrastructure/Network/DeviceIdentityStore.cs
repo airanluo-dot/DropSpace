@@ -43,9 +43,23 @@ public sealed class DeviceIdentityStore(AppStoragePaths paths)
                 try
                 {
                     var protectedBytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-                    var bytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
-                    _cached = Deserialize(bytes);
-                    return _cached;
+                    try
+                    {
+                        var bytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
+                        try
+                        {
+                            _cached = Deserialize(bytes);
+                            return _cached;
+                        }
+                        finally
+                        {
+                            CryptographicOperations.ZeroMemory(bytes);
+                        }
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(protectedBytes);
+                    }
                 }
                 catch (Exception exception) when (exception is CryptographicException or IOException or InvalidDataException or UnauthorizedAccessException)
                 {
@@ -55,12 +69,34 @@ public sealed class DeviceIdentityStore(AppStoragePaths paths)
 
             var identity = Create(displayName);
             var serialized = Serialize(identity);
-            var protectedIdentity = ProtectedData.Protect(serialized, null, DataProtectionScope.CurrentUser);
-            var temporary = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
-            await File.WriteAllBytesAsync(temporary, protectedIdentity, cancellationToken).ConfigureAwait(false);
-            File.Move(temporary, path, true);
-            _cached = identity;
-            return identity;
+            try
+            {
+                var protectedIdentity = ProtectedData.Protect(serialized, null, DataProtectionScope.CurrentUser);
+                try
+                {
+                    var temporary = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
+                    try
+                    {
+                        await File.WriteAllBytesAsync(temporary, protectedIdentity, cancellationToken).ConfigureAwait(false);
+                        File.Move(temporary, path, true);
+                    }
+                    finally
+                    {
+                        TryDeleteTemporary(temporary);
+                    }
+
+                    _cached = identity;
+                    return identity;
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(protectedIdentity);
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(serialized);
+            }
         }
         finally
         {
@@ -81,7 +117,16 @@ public sealed class DeviceIdentityStore(AppStoragePaths paths)
             new Oid("1.3.6.1.5.5.7.3.2"),
         ], false));
         using var generated = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddYears(10));
-        var certificate = X509CertificateLoader.LoadPkcs12(generated.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
+        var exportedPfx = generated.Export(X509ContentType.Pfx);
+        X509Certificate2 certificate;
+        try
+        {
+            certificate = X509CertificateLoader.LoadPkcs12(exportedPfx, null, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(exportedPfx);
+        }
         var fingerprint = Convert.ToHexString(SHA256.HashData(certificate.RawData)).ToLowerInvariant();
         var name = string.IsNullOrWhiteSpace(displayName) ? Environment.MachineName : displayName.Trim();
         name = name.Length > 64 ? name[..64] : name;
@@ -96,8 +141,15 @@ public sealed class DeviceIdentityStore(AppStoragePaths paths)
         writer.Write(identity.DisplayName);
         writer.Write((int)identity.Platform);
         var pfx = identity.Certificate.Export(X509ContentType.Pfx);
-        writer.Write(pfx.Length);
-        writer.Write(pfx);
+        try
+        {
+            writer.Write(pfx.Length);
+            writer.Write(pfx);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(pfx);
+        }
         writer.Flush();
         return stream.ToArray();
     }
@@ -119,8 +171,25 @@ public sealed class DeviceIdentityStore(AppStoragePaths paths)
 
         var pfx = reader.ReadBytes(length);
         if (pfx.Length != length) throw new InvalidDataException("The stored device identity certificate is truncated.");
-        var certificate = X509CertificateLoader.LoadPkcs12(pfx, null, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
-        var fingerprint = Convert.ToHexString(SHA256.HashData(certificate.RawData)).ToLowerInvariant();
-        return new DeviceIdentity(id, name, platform, certificate, fingerprint);
+        try
+        {
+            var certificate = X509CertificateLoader.LoadPkcs12(pfx, null, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
+            var fingerprint = Convert.ToHexString(SHA256.HashData(certificate.RawData)).ToLowerInvariant();
+            return new DeviceIdentity(id, name, platform, certificate, fingerprint);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(pfx);
+        }
+    }
+
+    private static void TryDeleteTemporary(string path)
+    {
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 }

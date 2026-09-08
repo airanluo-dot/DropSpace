@@ -69,6 +69,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private DateTimeOffset _lastRetentionUtc = DateTimeOffset.MinValue;
     private uint _lastProcessedClipboardSequence;
     private int _disposeStarted;
+    private readonly object _disposeGate = new();
+    private Task? _disposeTask;
+    private Task? _lateWorkerCleanupTask;
+    private int _managedResourcesDisposed;
 
     public ClipboardCaptureService(
         IItemRepository repository,
@@ -102,6 +106,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         if (_initialized)
         {
             return;
@@ -110,6 +115,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             if (_initialized)
             {
                 return;
@@ -392,10 +398,17 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
+        lock (_disposeGate)
         {
-            return;
+            _disposeTask ??= DisposeCoreAsync();
         }
+
+        await _disposeTask!.ConfigureAwait(false);
+    }
+
+    private async Task DisposeCoreAsync()
+    {
+        Interlocked.Exchange(ref _disposeStarted, 1);
 
         if (_initialized)
         {
@@ -405,20 +418,58 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
         _signals.Writer.TryComplete();
         _shutdown.Cancel();
-        if (_worker is not null)
+        var worker = _worker;
+        if (worker is not null)
         {
             try
             {
-                await _worker.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                await worker.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {
-                _logger.LogInformation("Clipboard worker shutdown exceeded the bounded wait.");
+                // The worker may still be inside a UI/COM call. Its gates and CTS remain
+                // owned until that task actually exits; disposing them here would create a
+                // use-after-dispose race during a stalled shutdown.
+                _logger.LogInformation("Clipboard worker shutdown exceeded the bounded wait; managed resources remain owned by the worker.");
+                _lateWorkerCleanupTask = DisposeResourcesAfterWorkerAsync(worker);
             }
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("Clipboard worker shutdown was cancelled.");
             }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _logger.LogWarning(exception, "Clipboard worker failed while shutting down.");
+            }
+        }
+
+        if (worker is null || worker.IsCompleted)
+        {
+            DisposeManagedResources();
+        }
+    }
+
+    private async Task DisposeResourcesAfterWorkerAsync(Task worker)
+    {
+        try
+        {
+            await worker.ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            _logger.LogDebug(exception, "Clipboard worker completed after the bounded shutdown wait.");
+        }
+        finally
+        {
+            DisposeManagedResources();
+        }
+    }
+
+    private void DisposeManagedResources()
+    {
+        if (Interlocked.Exchange(ref _managedResourcesDisposed, 1) != 0)
+        {
+            return;
         }
 
         _shutdown.Dispose();
@@ -429,6 +480,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private void OnClipboardChanged(object? sender, ClipboardNotification notification)
     {
+        if (Volatile.Read(ref _disposeStarted) != 0)
+        {
+            return;
+        }
+
         var observed = Interlocked.Increment(ref _observedEvents);
         if (_paused)
         {
@@ -1029,6 +1085,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private void PublishStatus(string? message, ClipboardRecordingState? state = null) =>
         StatusChanged?.Invoke(this, CreateStatus(message, state));
+
+    private void ThrowIfDisposing() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeStarted) != 0, this);
 
     [DllImport("user32.dll")]
     private static extern uint GetClipboardSequenceNumber();

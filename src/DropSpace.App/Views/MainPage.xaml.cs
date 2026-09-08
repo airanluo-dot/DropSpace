@@ -55,6 +55,7 @@ public sealed partial class MainPage : Page
     private bool _syncingNavigation;
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
+    private bool _subscriptionsAttached;
 
     public MainPage(
         MainViewModel viewModel,
@@ -94,12 +95,8 @@ public sealed partial class MainPage : Page
 
         DataContext = viewModel;
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
-        _dropLinkHost.TransferOffered += OnTransferOfferedAsync;
-        _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
-        _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
     public async Task ConfirmClearAsync(ClearRange range)
@@ -132,6 +129,15 @@ public sealed partial class MainPage : Page
 
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
+        if (!_subscriptionsAttached)
+        {
+            _dropLinkHost.TransferOffered += OnTransferOfferedAsync;
+            _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
+            _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _subscriptionsAttached = true;
+        }
+
         EnsureQuickActionsSettings();
         SyncNavigationSelection();
         SyncSettingsControls();
@@ -140,10 +146,16 @@ public sealed partial class MainPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
+        if (!_subscriptionsAttached)
+        {
+            return;
+        }
+
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
         _dropLinkHost.PairingOffered -= OnPairingOfferedAsync;
         _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
+        _subscriptionsAttached = false;
     }
 
     private async void OnItemsContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)

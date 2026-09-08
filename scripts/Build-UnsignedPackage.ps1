@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("x64", "ARM64")]
+    [ValidateSet("x64")]
     [string]$Platform = "x64",
 
     [ValidateSet("Debug", "Release")]
@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $projectPath = Join-Path $repositoryRoot "src/DropSpace.App/DropSpace.App.csproj"
 $packageDirectory = Join-Path $repositoryRoot "artifacts/msix"
-$runtimeIdentifier = if ($Platform -eq "ARM64") { "win-arm64" } else { "win-x64" }
+$runtimeIdentifier = "win-x64"
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag

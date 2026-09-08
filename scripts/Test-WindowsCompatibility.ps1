@@ -72,6 +72,10 @@ if ($project -notmatch '<TargetFramework>net10\.0-windows10\.0\.\$\(DropSpaceMin
 {
     Add-CompatibilityError "The app project target framework and platform minimum are not tied to the shared baseline."
 }
+if ($project -match '(?i)ARM64|win-arm64' -or (Read-CompatibilityFile "scripts/Build-UnsignedPackage.ps1") -match '(?i)ARM64|win-arm64')
+{
+    Add-CompatibilityError "The public Preview.19 build surface must remain x64-only until an ARM64 evidence package exists."
+}
 
 foreach ($relativePath in @("src/DropSpace.App/Package.appxmanifest", "identity/AppxManifest.xml.template"))
 {

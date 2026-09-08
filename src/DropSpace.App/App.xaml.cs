@@ -513,6 +513,7 @@ public partial class App : Application
         services.AddSingleton<SystemVisualPreferenceService>();
         services.AddSingleton<ItemProjectionService>();
         services.AddSingleton<SettingsApplicationCoordinator>();
+        services.AddSingleton<PinItemsUseCase>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();

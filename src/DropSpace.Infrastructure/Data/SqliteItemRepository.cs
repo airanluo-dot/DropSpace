@@ -423,6 +423,111 @@ public sealed class SqliteItemRepository(
             .ConfigureAwait(false);
     }
 
+    public async Task<BatchPinResult> SetPinnedManyAsync(
+        IReadOnlyCollection<Guid> ids,
+        bool isPinned,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var distinctIds = ids
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToArray();
+        if (distinctIds.Length == 0)
+        {
+            return new BatchPinResult(
+                new Dictionary<Guid, bool>(),
+                Array.Empty<Guid>());
+        }
+
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            var current = await ReadPinnedStatesAsync(
+                    connection,
+                    (SqliteTransaction)transaction,
+                    distinctIds,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            var previousStates = current
+                .Where(entry => entry.Value != isPinned)
+                .ToDictionary(entry => entry.Key, entry => entry.Value);
+            if (previousStates.Count > 0)
+            {
+                await using var update = connection.CreateCommand();
+                update.Transaction = (SqliteTransaction)transaction;
+                update.CommandText = string.Concat(
+                    "UPDATE items SET is_pinned = @value, revision = revision + 1 ",
+                    "WHERE pending_delete_token IS NULL AND is_pinned <> @value AND id IN (",
+                    string.Join(",", distinctIds.Select((_, index) => string.Concat("@id", index))),
+                    ");");
+                update.Parameters.AddWithValue("@value", isPinned ? 1 : 0);
+                for (var index = 0; index < distinctIds.Length; index++)
+                {
+                    update.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(distinctIds[index]));
+                }
+
+                await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            var affectedIds = previousStates.Keys.ToArray();
+            return new BatchPinResult(previousStates, affectedIds);
+        }
+        finally
+        {
+            database.WriteGate.Release();
+        }
+    }
+
+    public async Task<int> RestorePinnedStatesAsync(
+        IReadOnlyDictionary<Guid, bool> previousStates,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(previousStates);
+        var states = previousStates
+            .Where(entry => entry.Key != Guid.Empty)
+            .GroupBy(entry => entry.Key)
+            .Select(group => group.First())
+            .ToArray();
+        if (states.Length == 0)
+        {
+            return 0;
+        }
+
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            var changed = 0;
+            foreach (var state in states)
+            {
+                await using var command = connection.CreateCommand();
+                command.Transaction = (SqliteTransaction)transaction;
+                command.CommandText = """
+                    UPDATE items
+                    SET is_pinned = @value, revision = revision + 1
+                    WHERE id = @id AND pending_delete_token IS NULL AND is_pinned <> @value;
+                    """;
+                command.Parameters.AddWithValue("@value", state.Value ? 1 : 0);
+                command.Parameters.AddWithValue("@id", ToBytes(state.Key));
+                changed += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return changed;
+        }
+        finally
+        {
+            database.WriteGate.Release();
+        }
+    }
+
     public async Task MarkUsedAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -862,6 +967,33 @@ public sealed class SqliteItemRepository(
         {
             database.WriteGate.Release();
         }
+    }
+
+    private static async Task<Dictionary<Guid, bool>> ReadPinnedStatesAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IReadOnlyList<Guid> ids,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = string.Concat(
+            "SELECT id, is_pinned FROM items WHERE pending_delete_token IS NULL AND id IN (",
+            string.Join(",", ids.Select((_, index) => string.Concat("@id", index))),
+            ");");
+        for (var index = 0; index < ids.Count; index++)
+        {
+            command.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(ids[index]));
+        }
+
+        var result = new Dictionary<Guid, bool>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result[new Guid((byte[])reader[0])] = reader.GetInt32(1) != 0;
+        }
+
+        return result;
     }
 
     private static async Task<Guid?> FindFileDuplicateAsync(

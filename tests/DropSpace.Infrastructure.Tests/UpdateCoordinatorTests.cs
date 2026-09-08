@@ -181,6 +181,31 @@ public sealed class UpdateCoordinatorTests
         Assert.AreEqual(UpdateState.Installing, result.State);
     }
 
+    [TestMethod]
+    public async Task RecoveryScansEveryUpdateStateBeforeSelectingHighestVersion()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+
+        for (var index = 0; index < 21; index++)
+        {
+            var candidate = CreateInstallerUpdate(paths, "0.1.1", string.Concat("state-", index.ToString("D2")));
+            Directory.CreateDirectory(Path.GetDirectoryName(candidate.FilePath)!);
+            await store.SaveAsync(candidate, "ReadyToInstall");
+        }
+
+        var highest = CreateInstallerUpdate(paths, "0.2.0", "zz-highest");
+        Directory.CreateDirectory(Path.GetDirectoryName(highest.FilePath)!);
+        await store.SaveAsync(highest, "ReadyToInstall");
+
+        var recovered = await store.LoadHighestAsync(ReleaseVersion.Parse("0.1.0"), DeploymentMode.Installer);
+
+        Assert.IsNotNull(recovered);
+        Assert.AreEqual(ReleaseVersion.Parse("0.2.0"), recovered.Value.Update.Candidate.Manifest.Version);
+    }
+
     private UpdateService Create(IUpdateSource source)
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
@@ -220,21 +245,24 @@ public sealed class UpdateCoordinatorTests
             throw new AssertFailedException("No manifest should be requested when the fake release list is empty.");
     }
 
-    private static DownloadedUpdate CreateInstallerUpdate(AppStoragePaths paths)
+    private static DownloadedUpdate CreateInstallerUpdate(
+        AppStoragePaths paths,
+        string versionText = "0.1.1",
+        string? directoryName = null)
     {
-        var version = ReleaseVersion.Parse("0.1.1");
+        var version = ReleaseVersion.Parse(versionText);
         var installer = new UpdateManifestAsset("DropSpaceSetup.exe", 1, new string('a', 64));
         var portable = new UpdateManifestAsset("DropSpace.exe", 1, new string('b', 64));
         var asset = new UpdateReleaseAsset(
             installer.AssetName,
             installer.Size,
-            new Uri("https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.1/DropSpaceSetup.exe"));
+            new Uri($"https://github.com/airanluo-dot/DropSpace/releases/download/v{version}/DropSpaceSetup.exe"));
         var release = new UpdateRelease(
-            "v0.1.1",
+            $"v{version}",
             false,
             false,
             DateTimeOffset.Parse("2026-08-11T00:00:00Z"),
-            new Uri("https://github.com/airanluo-dot/DropSpace/releases/tag/v0.1.1"),
+            new Uri($"https://github.com/airanluo-dot/DropSpace/releases/tag/v{version}"),
             [asset]);
         var manifest = new UpdateManifest(
             1,
@@ -247,7 +275,7 @@ public sealed class UpdateCoordinatorTests
             "Test update",
             installer,
             portable);
-        var directory = Path.Combine(paths.Updates, version.ToString());
+        var directory = Path.Combine(paths.Updates, directoryName ?? version.ToString());
         return new DownloadedUpdate(
             new UpdateCandidate(release, manifest, asset, DeploymentMode.Installer),
             Path.Combine(directory, installer.AssetName),

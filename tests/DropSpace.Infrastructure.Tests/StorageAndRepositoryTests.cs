@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Reflection;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
@@ -394,6 +395,78 @@ public sealed class StorageAndRepositoryTests
             ? Directory.EnumerateFiles(_paths.Payloads, "*", SearchOption.AllDirectories).ToArray()
             : [];
         Assert.AreEqual(0, files.Length);
+    }
+
+    [TestMethod]
+    public void PayloadStore_SegmentedJournalRetainsMoreThanTenThousandObligationsAcrossRestart()
+    {
+        var store = new FilePayloadStore(_paths);
+        var obligations = Enumerable.Range(0, 10_001)
+            .Select(index => Path.Combine("images", "aa", string.Concat(index.ToString("D5"), ".bin")))
+            .ToArray();
+        var rewrite = typeof(FilePayloadStore).GetMethod(
+            "RewriteDeferredDeleteJournal",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.IsNotNull(rewrite);
+
+        rewrite!.Invoke(store, [obligations]);
+
+        var segmentPaths = Directory.EnumerateFiles(_paths.Data, "payload-delete.queue.*", SearchOption.TopDirectoryOnly)
+            .Where(path => !path.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        Assert.IsTrue(segmentPaths.Length >= 10);
+        Assert.AreEqual(
+            obligations.Length,
+            segmentPaths.SelectMany(File.ReadLines).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+
+        // Construction is the restart/drain boundary. Missing payloads are already
+        // resolved, so the durable queue can be compacted away without truncation.
+        _ = new FilePayloadStore(_paths);
+        Assert.IsFalse(Directory.EnumerateFiles(_paths.Data, "payload-delete.queue.*", SearchOption.TopDirectoryOnly).Any());
+    }
+
+    [TestMethod]
+    public async Task Repository_BatchPinCapturesMixedStatesAndUndoRestoresOnlyAffectedItems()
+    {
+        var repository = CreateRepository();
+        var alreadyPinned = await repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("already pinned"));
+        var firstUnpinned = await repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("first unpinned"));
+        var secondUnpinned = await repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("second unpinned"));
+        await repository.SetPinnedAsync(alreadyPinned.Id, true);
+
+        var missingId = Guid.NewGuid();
+        var result = await repository.SetPinnedManyAsync(
+            [alreadyPinned.Id, firstUnpinned.Id, missingId, secondUnpinned.Id],
+            true);
+
+        Assert.AreEqual(2, result.AffectedCount);
+        Assert.AreEqual(2, result.PreviousStates.Count);
+        Assert.IsFalse(result.PreviousStates.ContainsKey(alreadyPinned.Id));
+        Assert.IsFalse(result.PreviousStates.ContainsKey(missingId));
+        Assert.IsFalse(result.PreviousStates[firstUnpinned.Id]);
+        Assert.IsFalse(result.PreviousStates[secondUnpinned.Id]);
+        Assert.IsTrue((await repository.GetAsync(alreadyPinned.Id))!.IsPinned);
+        Assert.IsTrue((await repository.GetAsync(firstUnpinned.Id))!.IsPinned);
+        Assert.IsTrue((await repository.GetAsync(secondUnpinned.Id))!.IsPinned);
+
+        Assert.AreEqual(2, await repository.RestorePinnedStatesAsync(result.PreviousStates));
+        Assert.IsTrue((await repository.GetAsync(alreadyPinned.Id))!.IsPinned);
+        Assert.IsFalse((await repository.GetAsync(firstUnpinned.Id))!.IsPinned);
+        Assert.IsFalse((await repository.GetAsync(secondUnpinned.Id))!.IsPinned);
+    }
+
+    [TestMethod]
+    public async Task Repository_BatchPinCancellationBeforeTransactionLeavesRowsUnchanged()
+    {
+        var repository = CreateRepository();
+        var item = await repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("cancelled batch"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            repository.SetPinnedManyAsync([item.Id], true, cancellation.Token));
+
+        Assert.IsFalse((await repository.GetAsync(item.Id))!.IsPinned);
     }
 
     [TestMethod]

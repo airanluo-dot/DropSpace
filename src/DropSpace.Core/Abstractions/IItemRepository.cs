@@ -58,6 +58,15 @@ public interface IItemRepository
 
     Task SetPinnedAsync(Guid id, bool isPinned, CancellationToken cancellationToken = default);
 
+    Task<BatchPinResult> SetPinnedManyAsync(
+        IReadOnlyCollection<Guid> ids,
+        bool isPinned,
+        CancellationToken cancellationToken = default);
+
+    Task<int> RestorePinnedStatesAsync(
+        IReadOnlyDictionary<Guid, bool> previousStates,
+        CancellationToken cancellationToken = default);
+
     Task MarkUsedAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task UpdateFileStatusAsync(
