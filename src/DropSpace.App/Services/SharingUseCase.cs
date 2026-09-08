@@ -1,4 +1,5 @@
 using DropSpace.Core.Models;
+using DropSpace.Core.Transfer;
 using DropSpace.Infrastructure.Sharing;
 
 namespace DropSpace.App.Services;
