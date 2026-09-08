@@ -9,6 +9,7 @@ using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Preview;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -16,6 +17,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Storage;
 using WinRT.Interop;
@@ -58,7 +60,8 @@ public sealed partial class OverlayWindow : Window
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
     private readonly OverlayPlacementEditSession _placementEdit = new();
-    private readonly EventHandler<object> _animationFrameHandler;
+    private readonly DispatcherQueueTimer _animationTimer;
+    private readonly TypedEventHandler<DispatcherQueueTimer, object> _animationTimerHandler;
     private bool _placementEditActive;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
@@ -93,7 +96,11 @@ public sealed partial class OverlayWindow : Window
         _quickActionDialog = quickActionDialog;
         _visualPreferences = visualPreferences;
         _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
-        _animationFrameHandler = OnAnimationFrame;
+        _animationTimerHandler = OnAnimationFrame;
+        _animationTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
+        _animationTimer.IsRepeating = true;
+        _animationTimer.Tick += _animationTimerHandler;
         try
         {
             InitializeComponent();
@@ -443,6 +450,7 @@ public sealed partial class OverlayWindow : Window
         }
         _suppressedForPlacementEdit = false;
         StopAnimationFrames();
+        _animationTimer.Tick -= _animationTimerHandler;
         RevokeNativeDropTarget();
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
         _motion.Dispose();
@@ -653,7 +661,7 @@ public sealed partial class OverlayWindow : Window
         }
 
         _lastFrameTimestamp = Stopwatch.GetTimestamp();
-        CompositionTarget.Rendering += _animationFrameHandler;
+        _animationTimer.Start();
         _hasFrameSubscription = true;
     }
 
@@ -664,7 +672,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        CompositionTarget.Rendering -= _animationFrameHandler;
+        _animationTimer.Stop();
         _hasFrameSubscription = false;
     }
 
