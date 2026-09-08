@@ -242,6 +242,13 @@ public sealed class OverlayWindowService : IDisposable
             resourceSamples,
             longRunPlateauVerified);
 
+        _logger.LogInformation(
+            "Overlay lifecycle resource checkpoints: {ResourceSamples}",
+            string.Join(
+                "; ",
+                resourceSamples.Select(sample =>
+                    $"{sample.Cycle}:handles={sample.HandleCount},GDI={sample.GdiObjects},USER={sample.UserObjects},privateBytes={sample.PrivateBytes}")));
+
         if (metrics.HandleDelta > 96 || metrics.GdiObjectDelta > 48 || metrics.UserObjectDelta > 48 ||
             metrics.PrivateBytesDelta > 192L * 1024 * 1024 || !metrics.NoContinuousFrameSubscription ||
             cycles >= 1_000 && !metrics.LongRunPlateauVerified)
