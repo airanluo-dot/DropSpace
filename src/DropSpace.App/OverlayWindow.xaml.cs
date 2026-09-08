@@ -58,6 +58,7 @@ public sealed partial class OverlayWindow : Window
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
     private readonly OverlayPlacementEditSession _placementEdit = new();
+    private readonly EventHandler<object> _animationFrameHandler;
     private bool _placementEditActive;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
@@ -91,6 +92,7 @@ public sealed partial class OverlayWindow : Window
         _quickActionDialog = quickActionDialog;
         _visualPreferences = visualPreferences;
         _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
+        _animationFrameHandler = OnAnimationFrame;
         try
         {
             InitializeComponent();
@@ -649,7 +651,7 @@ public sealed partial class OverlayWindow : Window
         }
 
         _lastFrameTimestamp = Stopwatch.GetTimestamp();
-        CompositionTarget.Rendering += OnAnimationFrame;
+        CompositionTarget.Rendering += _animationFrameHandler;
         _hasFrameSubscription = true;
     }
 
@@ -660,7 +662,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        CompositionTarget.Rendering -= OnAnimationFrame;
+        CompositionTarget.Rendering -= _animationFrameHandler;
         _hasFrameSubscription = false;
     }
 
