@@ -248,8 +248,49 @@ public sealed class SqliteItemRepository(
     public async Task<IReadOnlyList<DropItem>> QueryAsync(ItemQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        var offset = Math.Max(query.Offset, 0);
+        var effectiveQuery = query with { Offset = 0 };
+        ItemQueryCursor? cursor = null;
+
+        while (offset > 0)
+        {
+            var step = Math.Min(offset, 1_000);
+            var skipped = await QueryPageAsync(
+                    effectiveQuery with { Limit = step },
+                    cursor,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (skipped.Items.Count < step || skipped.NextCursor is null)
+            {
+                return Array.Empty<DropItem>();
+            }
+
+            offset -= skipped.Items.Count;
+            cursor = skipped.NextCursor;
+        }
+
+        var page = await QueryPageAsync(effectiveQuery, cursor, cancellationToken).ConfigureAwait(false);
+        return page.Items;
+    }
+
+    public async Task<ItemQueryPage> QueryPageAsync(
+        ItemQuery query,
+        ItemQueryCursor? cursor = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        var sql = new StringBuilder(SelectSql);
+        var normalizedSearch = string.IsNullOrWhiteSpace(query.Search)
+            ? null
+            : SearchNormalizer.Normalize(query.Search);
+        var useTrigramIndex = normalizedSearch is { Length: >= 3 };
+        var selectSql = useTrigramIndex
+            ? SelectSql.Replace(
+                "FROM items i",
+                "FROM items i\nJOIN items_search ON items_search.rowid = i.rowid",
+                StringComparison.Ordinal)
+            : SelectSql;
+        var sql = new StringBuilder(selectSql);
         var clauses = new List<string> { "i.pending_delete_token IS NULL" };
         await using var command = connection.CreateCommand();
 
@@ -276,44 +317,74 @@ public sealed class SqliteItemRepository(
             command.Parameters.AddWithValue("@status", (int)query.Status.Value);
         }
 
-        var normalizedSearch = string.IsNullOrWhiteSpace(query.Search)
-            ? null
-            : SearchNormalizer.Normalize(query.Search);
+        const string rankExpression =
+            "CASE WHEN i.search_text = @exact THEN 0 WHEN i.search_text LIKE @prefix ESCAPE '\\' THEN 1 ELSE 2 END";
         if (normalizedSearch is not null)
         {
-            clauses.Add("i.search_text LIKE @search ESCAPE '\\'");
-            command.Parameters.AddWithValue("@search", $"%{EscapeLike(normalizedSearch)}%");
+            if (useTrigramIndex)
+            {
+                clauses.Add("items_search MATCH @fts_query");
+                command.Parameters.AddWithValue("@fts_query", EscapeFtsPhrase(normalizedSearch));
+            }
+            else
+            {
+                clauses.Add("i.search_text LIKE @search ESCAPE '\\'");
+                command.Parameters.AddWithValue("@search", $"%{EscapeLike(normalizedSearch)}%");
+            }
             command.Parameters.AddWithValue("@exact", normalizedSearch);
             command.Parameters.AddWithValue("@prefix", $"{EscapeLike(normalizedSearch)}%");
         }
 
-        if (clauses.Count > 0)
+        if (cursor is not null)
         {
-            sql.Append(" WHERE ").AppendJoin(" AND ", clauses);
+            if (normalizedSearch is not null)
+            {
+                clauses.Add(
+                    $"({rankExpression} > @cursor_rank OR ({rankExpression} = @cursor_rank AND " +
+                    "(i.created_at_utc < @cursor_created OR (i.created_at_utc = @cursor_created AND i.id < @cursor_id))))");
+                command.Parameters.AddWithValue("@cursor_rank", cursor.SearchRank);
+            }
+            else
+            {
+                clauses.Add("(i.created_at_utc < @cursor_created OR (i.created_at_utc = @cursor_created AND i.id < @cursor_id))");
+            }
+            command.Parameters.AddWithValue("@cursor_created", ToTimestamp(cursor.CreatedAtUtc));
+            command.Parameters.AddWithValue("@cursor_id", ToBytes(cursor.Id));
         }
 
+        sql.Append(" WHERE ").AppendJoin(" AND ", clauses);
         if (normalizedSearch is not null)
         {
-            sql.Append(" ORDER BY CASE WHEN lower(i.title) = @exact THEN 0 WHEN i.search_text LIKE @prefix ESCAPE '\\' THEN 1 ELSE 2 END, i.created_at_utc DESC");
+            sql.Append($" ORDER BY {rankExpression}, i.created_at_utc DESC, i.id DESC");
         }
         else
         {
-            sql.Append(" ORDER BY i.created_at_utc DESC");
+            sql.Append(" ORDER BY i.created_at_utc DESC, i.id DESC");
         }
 
-        sql.Append(" LIMIT @limit OFFSET @offset;");
-        command.Parameters.AddWithValue("@limit", Math.Clamp(query.Limit, 1, 100_000));
-        command.Parameters.AddWithValue("@offset", Math.Max(query.Offset, 0));
+        var requestedLimit = Math.Clamp(query.Limit, 1, 100_000);
+        sql.Append(" LIMIT @limit;");
+        command.Parameters.AddWithValue("@limit", requestedLimit + 1);
         command.CommandText = sql.ToString();
 
-        var items = new List<DropItem>();
+        var items = new List<DropItem>(Math.Min(requestedLimit + 1, 1_024));
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             items.Add(ReadItem(reader));
         }
 
-        return items;
+        var hasMore = items.Count > requestedLimit;
+        if (hasMore)
+        {
+            items.RemoveAt(items.Count - 1);
+        }
+
+        var last = items.Count == 0 ? null : items[^1];
+        var nextCursor = last is null
+            ? null
+            : new ItemQueryCursor(GetSearchRank(last, normalizedSearch), last.CreatedAtUtc, last.Id);
+        return new ItemQueryPage(items, nextCursor, hasMore);
     }
 
     public async Task<IReadOnlyList<DropItem>> QueryDropBatchAsync(
@@ -1170,6 +1241,16 @@ public sealed class SqliteItemRepository(
 
     private static long? GetNullableInt64(SqliteDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal) ? null : reader.GetInt64(ordinal);
+
+    private static int GetSearchRank(DropItem item, string? normalizedSearch)
+    {
+        if (normalizedSearch is null) return 0;
+        if (string.Equals(item.SearchText, normalizedSearch, StringComparison.Ordinal)) return 0;
+        return item.SearchText.StartsWith(normalizedSearch, StringComparison.Ordinal) ? 1 : 2;
+    }
+
+    private static string EscapeFtsPhrase(string value) =>
+        string.Concat("\"", value.Replace("\"", "\"\"", StringComparison.Ordinal), "\"");
 
     private static string EscapeLike(string value) => value.Replace("\\", "\\\\", StringComparison.Ordinal)
         .Replace("%", "\\%", StringComparison.Ordinal)

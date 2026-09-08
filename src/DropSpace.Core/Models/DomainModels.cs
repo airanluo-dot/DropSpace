@@ -152,6 +152,16 @@ public sealed record ItemQuery(
     int Limit = 250,
     int Offset = 0);
 
+public sealed record ItemQueryCursor(
+    int SearchRank,
+    DateTimeOffset CreatedAtUtc,
+    Guid Id);
+
+public sealed record ItemQueryPage(
+    IReadOnlyList<DropItem> Items,
+    ItemQueryCursor? NextCursor,
+    bool HasMore);
+
 public enum ClearRange
 {
     LastHour,

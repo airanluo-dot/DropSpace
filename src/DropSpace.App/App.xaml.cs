@@ -511,6 +511,7 @@ public partial class App : Application
         services.AddSingleton<DragSessionDetector>();
         services.AddSingleton<GlobalQuickPanelHotkeyService>();
         services.AddSingleton<SystemVisualPreferenceService>();
+        services.AddSingleton<ItemProjectionService>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();

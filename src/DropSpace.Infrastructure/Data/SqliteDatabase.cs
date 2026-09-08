@@ -8,7 +8,7 @@ public sealed class SqliteDatabase(
     AppStoragePaths paths,
     ILogger<SqliteDatabase> logger)
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private volatile bool _initialized;
@@ -238,6 +238,11 @@ public sealed class SqliteDatabase(
                 await ApplyV3Async(connection, transaction, cancellationToken).ConfigureAwait(false);
             }
 
+            if (fromVersion < 4)
+            {
+                await ApplyV4Async(connection, transaction, cancellationToken).ConfigureAwait(false);
+            }
+
             await using var versionCommand = connection.CreateCommand();
             versionCommand.Transaction = (SqliteTransaction)transaction;
             versionCommand.CommandText = $"PRAGMA user_version = {CurrentSchemaVersion};";
@@ -422,6 +427,46 @@ public sealed class SqliteDatabase(
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private static async Task ApplyV4Async(
+        SqliteConnection connection,
+        System.Data.Common.DbTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            CREATE VIRTUAL TABLE items_search USING fts5(
+              title,
+              search_text,
+              content='items',
+              content_rowid='rowid',
+              tokenize='trigram'
+            );
+
+            CREATE TRIGGER items_search_ai AFTER INSERT ON items BEGIN
+              INSERT INTO items_search(rowid, title, search_text)
+              VALUES (new.rowid, new.title, new.search_text);
+            END;
+
+            CREATE TRIGGER items_search_ad AFTER DELETE ON items BEGIN
+              INSERT INTO items_search(items_search, rowid, title, search_text)
+              VALUES ('delete', old.rowid, old.title, old.search_text);
+            END;
+
+            CREATE TRIGGER items_search_au AFTER UPDATE OF title, search_text ON items BEGIN
+              INSERT INTO items_search(items_search, rowid, title, search_text)
+              VALUES ('delete', old.rowid, old.title, old.search_text);
+              INSERT INTO items_search(rowid, title, search_text)
+              VALUES (new.rowid, new.title, new.search_text);
+            END;
+
+            INSERT INTO items_search(items_search) VALUES ('rebuild');
+            """;
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = (SqliteTransaction)transaction;
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task ValidateSchemaAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
@@ -461,6 +506,28 @@ public sealed class SqliteDatabase(
                 {
                     throw new InvalidDataException($"Database column '{table.Name}.{expected.Name}' failed schema validation.");
                 }
+            }
+        }
+
+        if (!tables.Contains("items_search"))
+        {
+            throw new InvalidDataException("Required FTS search index 'items_search' is missing.");
+        }
+
+        await using (var triggerCommand = connection.CreateCommand())
+        {
+            triggerCommand.CommandText = """
+                SELECT COUNT(*)
+                FROM sqlite_master
+                WHERE type = 'trigger'
+                  AND name IN ('items_search_ai', 'items_search_ad', 'items_search_au');
+                """;
+            var triggerCount = Convert.ToInt32(
+                await triggerCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
+                System.Globalization.CultureInfo.InvariantCulture);
+            if (triggerCount != 3)
+            {
+                throw new InvalidDataException("FTS search maintenance triggers are missing.");
             }
         }
 

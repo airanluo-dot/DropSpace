@@ -21,6 +21,7 @@ namespace DropSpace.App.ViewModels;
 public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     private readonly IItemRepository _repository;
+    private readonly ItemProjectionService _projection;
     private readonly StagedFileImportService _stagedFiles;
     private readonly SemaphoreSlim _settingsChangeGate = new(1, 1);
     private readonly IItemActionRegistry _actions;
@@ -45,6 +46,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
+    private readonly SemaphoreSlim _projectionLoadGate = new(1, 1);
+    private ItemQueryCursor? _projectionCursor;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private readonly object _backgroundTaskGate = new();
     private readonly HashSet<Task> _backgroundTasks = [];
@@ -57,6 +60,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private string _clipboardStatusText = string.Empty;
     private bool _isBusy;
     private bool _isEmpty = true;
+    private bool _hasMoreItems;
     private bool _isSettingsVisible;
     private int _itemCount;
     private int _spaceItemCount;
@@ -72,6 +76,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public MainViewModel(
         IItemRepository repository,
+        ItemProjectionService projection,
         StagedFileImportService stagedFiles,
         IItemActionRegistry actions,
         UndoCoordinator undo,
@@ -96,6 +101,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ILogger<MainViewModel> logger)
     {
         _repository = repository;
+        _projection = projection;
         _stagedFiles = stagedFiles;
         _actions = actions;
         _undo = undo;
@@ -215,6 +221,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         get => _isEmpty;
         private set => SetProperty(ref _isEmpty, value);
+    }
+
+    public bool HasMoreItems
+    {
+        get => _hasMoreItems;
+        private set => SetProperty(ref _hasMoreItems, value);
     }
 
     public bool IsSettingsVisible
@@ -706,6 +718,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 PageDescription = _strings.Get("PageDescriptionSettings");
                 IsBusy = false;
                 Items.Clear();
+                _projectionCursor = null;
+                HasMoreItems = false;
                 ItemCount = 0;
                 IsEmpty = true;
                 return;
@@ -723,41 +737,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var revision = Interlocked.Increment(ref _reloadRevision);
+        var request = new ItemProjectionRequest(CurrentSection, SearchText);
         IsBusy = true;
         try
         {
-            var hasGlobalSearch = !string.IsNullOrWhiteSpace(SearchText);
-            var query = hasGlobalSearch
-                ? new ItemQuery(Search: SearchText, Limit: 500)
-                : CurrentSection switch
-                {
-                    "Clipboard" => new ItemQuery(Source: ItemSource.Clipboard, Limit: 500),
-                    "Pinned" => new ItemQuery(PinnedOnly: true, Limit: 500),
-                    _ => new ItemQuery(Source: ItemSource.Space, Limit: 500),
-                };
-
-            var items = await _repository.QueryAsync(query, cancellationToken);
+            var page = await _projection.LoadPageAsync(request, null, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible)
+            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible ||
+                !ProjectionRequestStillCurrent(request))
             {
                 return;
             }
 
             Items.Clear();
-            foreach (var item in items)
-            {
-                var card = new ItemCardViewModel(item, _strings);
-                RefreshPrimaryQuickActions(card);
-                Items.Add(card);
-                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
-            }
+            AppendProjectionItems(page.Items);
             ApplyBatchProjectionState();
-
+            _projectionCursor = page.NextCursor;
+            HasMoreItems = page.HasMore;
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
-            // SpaceItemCount comes from the repository count, never the 500-item page.
 
-            StatusMessage = hasGlobalSearch && Items.Count == 0 ? _strings.Get("SearchNoMatches") : string.Empty;
+            StatusMessage = !string.IsNullOrWhiteSpace(request.SearchText) && Items.Count == 0
+                ? _strings.Get("SearchNoMatches")
+                : string.Empty;
         }
         finally
         {
@@ -765,6 +767,64 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             {
                 IsBusy = false;
             }
+        }
+    }
+
+    public async Task LoadMoreItemsAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!HasMoreItems || IsSettingsVisible || _projectionCursor is null)
+        {
+            return;
+        }
+
+        if (!await _projectionLoadGate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        try
+        {
+            var revision = Volatile.Read(ref _reloadRevision);
+            var request = new ItemProjectionRequest(CurrentSection, SearchText);
+            var cursor = _projectionCursor;
+            if (cursor is null) return;
+
+            var page = await _projection.LoadPageAsync(request, cursor, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible ||
+                !ProjectionRequestStillCurrent(request))
+            {
+                return;
+            }
+
+            AppendProjectionItems(page.Items);
+            ApplyBatchProjectionState();
+            _projectionCursor = page.NextCursor;
+            HasMoreItems = page.HasMore;
+            ItemCount = Items.Count;
+            IsEmpty = Items.Count == 0;
+        }
+        finally
+        {
+            _projectionLoadGate.Release();
+        }
+    }
+
+    private bool ProjectionRequestStillCurrent(ItemProjectionRequest request) =>
+        string.Equals(request.Section, CurrentSection, StringComparison.Ordinal) &&
+        string.Equals(request.SearchText, SearchText, StringComparison.Ordinal);
+
+    private void AppendProjectionItems(IEnumerable<DropItem> items)
+    {
+        var knownIds = Items.Select(card => card.Id).ToHashSet();
+        foreach (var item in items)
+        {
+            if (!knownIds.Add(item.Id)) continue;
+            var card = new ItemCardViewModel(item, _strings);
+            RefreshPrimaryQuickActions(card);
+            Items.Add(card);
+            TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
         }
     }
 
