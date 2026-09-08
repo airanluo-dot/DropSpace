@@ -7,6 +7,7 @@ using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 
@@ -1069,11 +1070,11 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
     {
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, visibleTarget: false);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: false);
         }
         finally
         {
@@ -1143,11 +1144,11 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
     {
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, visibleTarget: true);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: true);
         }
         finally
         {

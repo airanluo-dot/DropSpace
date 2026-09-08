@@ -20,16 +20,20 @@ public sealed class Preview16OleLifetimeTests
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-tests", Guid.NewGuid().ToString("N"));
         try
         {
+            var paths = new AppStoragePaths(root);
             var classifier = new OleFileDataClassifier();
             var source = new VirtualSource(classifier, asyncMode);
-            var materializer = new VirtualFileMaterializer(new AppStoragePaths(root), classifier, NullLogger<VirtualFileMaterializer>.Instance);
+            var stagingLeases = new StagingLeaseStore(paths, NullLogger<StagingLeaseStore>.Instance);
+            var materializer = new VirtualFileMaterializer(paths, classifier, NullLogger<VirtualFileMaterializer>.Instance, stagingLeases);
             var task = materializer.MaterializeAsync(source);
             if (!asyncMode) Assert.IsTrue(task.IsCompletedSuccessfully);
             source.DropReturned = true;
-            var files = await task;
-            Assert.AreEqual(1, files.Count);
-            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(files[0]));
+            var batch = await task;
+            Assert.AreEqual(1, batch.Paths.Count);
+            Assert.AreEqual(1, Directory.GetFiles(paths.StagingLeases, "*.json").Length);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(batch.Paths[0]));
             Assert.AreEqual(asyncMode ? 1 : 0, source.EndCount);
+            Assert.IsTrue(await stagingLeases.CompleteAsync(batch.Lease));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
@@ -42,7 +46,8 @@ public sealed class Preview16OleLifetimeTests
         {
             var paths = new AppStoragePaths(root);
             var classifier = new OleFileDataClassifier();
-            var materializer = new VirtualFileMaterializer(paths, classifier, NullLogger<VirtualFileMaterializer>.Instance);
+            var stagingLeases = new StagingLeaseStore(paths, NullLogger<StagingLeaseStore>.Instance);
+            var materializer = new VirtualFileMaterializer(paths, classifier, NullLogger<VirtualFileMaterializer>.Instance, stagingLeases);
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
             await Assert.ThrowsAsync<OperationCanceledException>(() => materializer.MaterializeAsync(new VirtualSource(classifier, false), cancellation.Token));

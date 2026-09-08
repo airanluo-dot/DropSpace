@@ -12,7 +12,7 @@ public sealed record DragActivationCallbacks(
     Action<string, bool> DragReadyChanged,
     Action<string> DragLeft,
     Func<string, IReadOnlyList<string>, Task> Dropped,
-    Func<string, IReadOnlyList<string>, Task>? DroppedOwned = null);
+    Func<string, IReadOnlyList<string>, StagingLease, Task>? DroppedOwned = null);
 
 /// <summary>
 /// Owns OLE initialization and native drop-target registrations. Both the visually transparent reveal host
@@ -36,7 +36,8 @@ public sealed class OleDragDropService : IDisposable
     public OleDragDropService(
         ILoggerFactory loggerFactory,
         MonitorLayoutService monitorLayout,
-        AppStoragePaths paths)
+        AppStoragePaths paths,
+        StagingLeaseStore stagingLeases)
     {
         _loggerFactory = loggerFactory;
         _monitorLayout = monitorLayout;
@@ -44,7 +45,8 @@ public sealed class OleDragDropService : IDisposable
         _virtualFileMaterializer = new VirtualFileMaterializer(
             paths,
             _fileDataClassifier,
-            loggerFactory.CreateLogger<VirtualFileMaterializer>());
+            loggerFactory.CreateLogger<VirtualFileMaterializer>(),
+            stagingLeases);
     }
 
     public DragActivationHost CreateActivationHost(
@@ -473,11 +475,11 @@ public sealed class DragActivationHost : IDisposable
             },
             callbacks.DroppedOwned is null
                 ? null
-                : async (monitorId, paths) =>
+                : async (monitorId, paths, lease) =>
                 {
                     try
                     {
-                        await callbacks.DroppedOwned(monitorId, paths);
+                        await callbacks.DroppedOwned(monitorId, paths, lease);
                     }
                     finally
                     {
@@ -1058,16 +1060,17 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     private async Task CompleteVirtualDropAsync(IDataObject dataObject, CancellationToken cancellationToken)
     {
+        MaterializedVirtualFileBatch? batch = null;
         try
         {
-            var paths = await _virtualFileMaterializer.MaterializeAsync(dataObject, cancellationToken);
+            batch = await _virtualFileMaterializer.MaterializeAsync(dataObject, cancellationToken);
             if (_callbacks.DroppedOwned is { } droppedOwned)
             {
-                await droppedOwned(_monitorId, paths);
+                await droppedOwned(_monitorId, batch.Paths, batch.Lease);
             }
             else
             {
-                await _callbacks.Dropped(_monitorId, paths);
+                await _callbacks.Dropped(_monitorId, batch.Paths);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -1078,6 +1081,23 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         {
             _logger.LogWarning(exception, "Virtual-file materialization failed after the OLE callback returned.");
             _callbacks.DragLeft(_monitorId);
+        }
+        finally
+        {
+            if (batch is not null)
+            {
+                try
+                {
+                    if (!await _virtualFileMaterializer.CompleteLeaseAsync(batch.Lease, CancellationToken.None).ConfigureAwait(false))
+                    {
+                        _logger.LogWarning("Virtual-file staging cleanup was deferred; its lease remains durable.");
+                    }
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                    _logger.LogWarning(exception, "Virtual-file staging cleanup could not complete; its lease remains durable.");
+                }
+            }
         }
     }
 

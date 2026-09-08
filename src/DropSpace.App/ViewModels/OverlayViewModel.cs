@@ -7,6 +7,7 @@ using DropSpace.Core.Actions;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 
@@ -180,16 +181,19 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public async Task<int> CompleteOwnedDropAsync(
         string monitorId,
         IEnumerable<string> paths,
+        StagingLease lease,
         bool visibleTarget,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(lease);
         ActiveMonitorId = monitorId;
         var accepted = await _mainViewModel.AddOwnedPathsBatchAsync(
             paths,
             null,
             "ole-virtual-file-drop",
             2L * 1024 * 1024 * 1024,
-            cancellationToken);
+            cancellationToken,
+            lease);
         await RefreshRecentItemsAsync(cancellationToken);
         if (visibleTarget)
         {

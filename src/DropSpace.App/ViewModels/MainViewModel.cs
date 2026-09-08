@@ -871,12 +871,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         long? dropSessionId,
         string acquisitionKind,
         long maximumFileBytes,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        StagingLease? ownedLease = null)
     {
         ArgumentNullException.ThrowIfNull(stagingPaths);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFileBytes);
         var paths = stagingPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var result = await _stagedFiles.ImportBatchAsync(paths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken);
+        var result = await _stagedFiles.ImportBatchAsync(paths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken, ownedLease);
         var accepted = result.Accepted;
         var rejected = result.Rejected;
 

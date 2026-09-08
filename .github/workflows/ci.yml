@@ -40,27 +40,6 @@ jobs:
           cache: true
           cache-dependency-path: Directory.Packages.props
 
-      # Temporary Preview.20 maintenance step: capture the Windows/WPF-generated
-      # outputs so the repository can be repaired with the canonical renderer.
-      - name: Temporary capture generated brand outputs
-        if: github.event_name == 'pull_request' && github.head_ref == 'codex/v0.3.0-preview.20-architecture-remediation'
-        shell: pwsh
-        run: |
-          ./scripts/Generate-BrandAssets.ps1
-          New-Item -ItemType Directory -Force artifacts/brand-repair/app, artifacts/brand-repair/docs, artifacts/brand-repair/website | Out-Null
-          Copy-Item src/DropSpace.App/Assets/* artifacts/brand-repair/app/ -Force
-          Copy-Item branding/generated/docs/* artifacts/brand-repair/docs/ -Force
-          Copy-Item website/_source/src/assets/* artifacts/brand-repair/website/ -Force
-
-      - name: Upload temporary generated brand outputs
-        if: github.event_name == 'pull_request' && github.head_ref == 'codex/v0.3.0-preview.20-architecture-remediation'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: dropspace-brand-repair-${{ github.run_id }}-${{ matrix.language }}
-          path: artifacts/brand-repair
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Verify committed brand assets on clean checkout
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify

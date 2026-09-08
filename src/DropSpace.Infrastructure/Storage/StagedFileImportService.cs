@@ -22,24 +22,44 @@ public sealed class StagedFileImportService(
         long? dropSessionId,
         string acquisitionKind,
         long maximumFileBytes,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        StagingLease? ownedLease = null)
     {
         ArgumentNullException.ThrowIfNull(stagingPaths);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFileBytes);
+        if (ownedLease is not null && stagingLeases is null)
+        {
+            throw new InvalidOperationException("An owned staging lease requires a staging lease store.");
+        }
+
         var admittedPaths = stagingPaths.ToArray();
-        return Task.Run(() => ImportCoreAsync(admittedPaths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken), cancellationToken);
+        // An owned lease must reach ImportCoreAsync even when the caller has already
+        // cancelled; its finally block is the handoff's terminal cleanup owner.
+        var schedulingCancellation = ownedLease is null ? cancellationToken : CancellationToken.None;
+        return Task.Run(
+            () => ImportCoreAsync(admittedPaths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken, ownedLease),
+            schedulingCancellation);
     }
 
     private async Task<StagedFileImportResult> ImportCoreAsync(
         IReadOnlyList<string> stagingPaths, long? dropSessionId, string acquisitionKind,
-        long maximumFileBytes, CancellationToken cancellationToken)
+        long maximumFileBytes, CancellationToken cancellationToken, StagingLease? ownedLease)
     {
         var admitted = new List<string>();
         var leases = new List<StagingLease>();
+        if (ownedLease is not null)
+        {
+            leases.Add(ownedLease);
+        }
         var rejected = 0;
         foreach (var path in stagingPaths.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            try { admitted.Add(ResolveStagedPath(path)); }
+            try
+            {
+                admitted.Add(ownedLease is null
+                    ? ResolveStagedPath(path)
+                    : ResolveOwnedStagedPath(ownedLease, path));
+            }
             catch (Exception exception) when (IsFileFailure(exception))
             {
                 rejected++;
@@ -50,7 +70,7 @@ public sealed class StagedFileImportService(
         var accepted = 0;
         try
         {
-            if (stagingLeases is not null)
+            if (stagingLeases is not null && ownedLease is null)
             {
                 foreach (var root in admitted
                              .Select(path => Path.GetDirectoryName(path) ?? paths.Staging)
@@ -141,6 +161,17 @@ public sealed class StagedFileImportService(
 
     private string ResolveStagedPath(string path) =>
         ReparseSafePathPolicy.ResolveExistingContainedPath(paths.Staging, path);
+
+    private string ResolveOwnedStagedPath(StagingLease lease, string path)
+    {
+        if (string.IsNullOrWhiteSpace(lease.RootPath))
+        {
+            throw new InvalidDataException("The owned staging lease has no resolved root.");
+        }
+
+        var withinLease = ReparseSafePathPolicy.ResolveExistingContainedPath(lease.RootPath, path);
+        return ReparseSafePathPolicy.ResolveExistingContainedPath(paths.Staging, withinLease);
+    }
 
     private static bool IsFileFailure(Exception exception) =>
         exception is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or NotSupportedException;
