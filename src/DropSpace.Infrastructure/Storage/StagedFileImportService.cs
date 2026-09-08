@@ -106,17 +106,8 @@ public sealed class StagedFileImportService(
         }
     }
 
-    private string ResolveStagedPath(string path)
-    {
-        var fullPath = PayloadPathPolicy.ResolveContainedPath(paths.Staging, Path.GetRelativePath(paths.Staging, path));
-        for (var current = fullPath; current is not null; current = Path.GetDirectoryName(current))
-        {
-            if (File.GetAttributes(current).HasFlag(FileAttributes.ReparsePoint))
-                throw new InvalidDataException("Staging paths must not traverse reparse points.");
-            if (string.Equals(current, paths.Staging, StringComparison.OrdinalIgnoreCase)) break;
-        }
-        return fullPath;
-    }
+    private string ResolveStagedPath(string path) =>
+        ReparseSafePathPolicy.ResolveExistingContainedPath(paths.Staging, path);
 
     private static bool IsFileFailure(Exception exception) =>
         exception is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or NotSupportedException;

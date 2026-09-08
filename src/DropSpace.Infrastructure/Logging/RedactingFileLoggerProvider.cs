@@ -16,7 +16,7 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     {
         SingleReader = true,
         SingleWriter = false,
-        FullMode = BoundedChannelFullMode.DropWrite,
+        FullMode = BoundedChannelFullMode.Wait,
     });
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _logPath;
@@ -26,6 +26,7 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     private int _disposed;
     private int _consecutiveWriteFailures;
     private long _writeFailureCount;
+    private long _droppedMessageCount;
 
     public RedactingFileLoggerProvider(AppStoragePaths paths)
     {
@@ -35,13 +36,22 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     }
 
     public ILogger CreateLogger(string categoryName) =>
-        _loggers.GetOrAdd(categoryName, name => new RedactingFileLogger(name, _messages.Writer));
+        _loggers.GetOrAdd(categoryName, name => new RedactingFileLogger(name, TryEnqueue));
 
     public bool IsDegraded => Volatile.Read(ref _consecutiveWriteFailures) > 0;
 
     public int ConsecutiveWriteFailures => Volatile.Read(ref _consecutiveWriteFailures);
 
     public long WriteFailureCount => Interlocked.Read(ref _writeFailureCount);
+
+    public long DroppedMessageCount => Interlocked.Read(ref _droppedMessageCount);
+
+    private bool TryEnqueue(string line)
+    {
+        if (_messages.Writer.TryWrite(line)) return true;
+        Interlocked.Increment(ref _droppedMessageCount);
+        return false;
+    }
 
     public void Dispose()
     {
@@ -129,6 +139,14 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
                     RecordWriteFailure(exception);
                 }
             }
+
+            var dropped = DroppedMessageCount;
+            if (dropped > 0)
+            {
+                await TryWriteMessageAsync(
+                    $"{DateTimeOffset.UtcNow:O} level=Warning event=0 category=DropSpace.Infrastructure.Logging message=bounded-log-queue-dropped count={dropped}")
+                    .ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -203,7 +221,7 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
         File.Move(_logPath, previousPath, true);
     }
 
-    private sealed class RedactingFileLogger(string category, ChannelWriter<string> writer) : ILogger
+    private sealed class RedactingFileLogger(string category, Func<string, bool> enqueue) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 
@@ -226,7 +244,7 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
                 ? string.Empty
                 : $" exception={exception.GetType().Name}:{LogRedactor.Redact(exception.Message)}";
             var line = $"{DateTimeOffset.UtcNow:O} level={logLevel} event={eventId.Id} category={category} message={message}{exceptionSummary}";
-            writer.TryWrite(line);
+            _ = enqueue(line);
         }
     }
 

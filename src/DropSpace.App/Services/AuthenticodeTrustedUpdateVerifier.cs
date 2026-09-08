@@ -69,11 +69,14 @@ public sealed class AuthenticodeTrustedUpdateVerifier : ITrustedUpdateVerifier
             {
                 StructSize = (uint)Marshal.SizeOf<WinTrustData>(),
                 UiChoice = 2,
-                RevocationChecks = 0,
+                // WTD_REVOKE_WHOLECHAIN + WTD_REVOCATION_CHECK_CHAIN. Do not use
+                // WTD_CACHE_ONLY_URL_RETRIEVAL for auto-install trust: a revoked publisher
+                // certificate must be able to fail closed when revocation data is online.
+                RevocationChecks = 1,
                 UnionChoice = 1,
                 FileInfo = fileInfoPointer,
                 StateAction = 0,
-                ProviderFlags = 0x00001000,
+                ProviderFlags = 0x00000040,
             };
             trustDataPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf<WinTrustData>());
             Marshal.StructureToPtr(trustData, trustDataPointer, false);

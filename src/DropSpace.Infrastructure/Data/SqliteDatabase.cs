@@ -217,7 +217,7 @@ public sealed class SqliteDatabase(
     {
         if (fromVersion > 0)
         {
-            CreateBackup(connection, fromVersion);
+            await Task.Run(() => CreateBackup(connection, fromVersion), cancellationToken).ConfigureAwait(false);
         }
 
         try

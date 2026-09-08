@@ -913,9 +913,10 @@ public sealed class DropLinkHost(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or OperationCanceledException)
         {
+            RollbackCompletedItems(receive);
             logger.LogWarning(
                 exception,
-                "DropLink transfer finalization failed for session {SessionId}.",
+                "DropLink transfer finalization failed for session {SessionId}; completed outputs were rolled back.",
                 receive.Session.Id);
             return await MarkFinalizationFailedAsync(receive, exception).ConfigureAwait(false);
         }
@@ -1071,10 +1072,7 @@ public sealed class DropLinkHost(
         }
 
         var relative = TransferManifestPolicy.NormalizeRelativePath(item.RelativePath);
-        var destination = Path.GetFullPath(Path.Combine(receive.DestinationRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
-        var root = Path.GetFullPath(receive.DestinationRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        if (!destination.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("The transfer destination escaped its root.");
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        var destination = ReparseSafePathPolicy.PrepareContainedFileDestination(receive.DestinationRoot, relative);
         var temporary = string.Concat(destination, ".", receive.Session.Id.ToString("N"), ".tmp");
         try
         {
@@ -1093,13 +1091,32 @@ public sealed class DropLinkHost(
             {
                 throw new InvalidDataException("The completed transfer hash did not match the manifest.");
             }
+            ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
             File.Move(temporary, destination, overwrite: false);
+            ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
             receive.CompletedPaths.Enqueue(relative);
         }
         catch
         {
             TryDelete(temporary);
             throw;
+        }
+    }
+
+    private static void RollbackCompletedItems(ReceiveTransfer receive)
+    {
+        while (receive.CompletedPaths.TryDequeue(out var relative))
+        {
+            try
+            {
+                var destination = ReparseSafePathPolicy.PrepareContainedFileDestination(receive.DestinationRoot, relative);
+                ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
+                if (File.Exists(destination)) File.Delete(destination);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                System.Diagnostics.Debug.WriteLine($"DropLink rollback deferred: {exception.GetType().Name}");
+            }
         }
     }
 
@@ -1145,6 +1162,7 @@ public sealed class DropLinkHost(
 
     private async Task StopCoreAsync()
     {
+        var shutdownBudget = TimeSpan.FromSeconds(10);
         _endpoint = null;
         lock (_offerNotificationGate)
         {
@@ -1167,8 +1185,15 @@ public sealed class DropLinkHost(
 
         if (_app is not null)
         {
-            await _app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-            await _app.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                await _app.StopAsync(CancellationToken.None).WaitAsync(shutdownBudget).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                logger.LogWarning("DropLink host graceful stop exceeded {ShutdownBudget}; disposal will continue.", shutdownBudget);
+            }
+            await _app.DisposeAsync().AsTask().WaitAsync(shutdownBudget).ConfigureAwait(false);
         }
 
         _app = null;
@@ -1189,7 +1214,7 @@ public sealed class DropLinkHost(
         {
             try
             {
-                await Task.WhenAll(finalizers).ConfigureAwait(false);
+                await Task.WhenAll(finalizers).WaitAsync(shutdownBudget).ConfigureAwait(false);
             }
             catch (Exception exception)
             {

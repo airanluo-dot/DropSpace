@@ -23,6 +23,7 @@ public sealed record NearbyShareItem(
 
 public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDisposable
 {
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly ShareLimits _limits = (limits ?? new ShareLimits()).Validate();
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
     private readonly SemaphoreSlim _startGate = new(1, 1);
@@ -278,7 +279,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
 
-        await _startGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        await _startGate.WaitAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
         try
         {
             _shares.Clear();

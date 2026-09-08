@@ -1144,14 +1144,57 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 ? _strings.Get("SettingsSaved")
                 : _strings.Get("LanguageChangeRestartRequired");
         }
-        catch
+        catch (Exception updateException)
         {
-            await rollback.RollbackAsync((category, exception) =>
+            var rollbackFailures = await rollback.RollbackAsync((category, exception) =>
                 _logger.LogError("Settings rollback failed in {Category}: {FailureType}.", category, exception.GetType().Name));
-            Settings = previous;
+            if (rollbackFailures.Count > 0)
+            {
+                var reconciliationFailures = await ReconcileSettingsStateAsync(previous).ConfigureAwait(false);
+                if (reconciliationFailures.Count > 0)
+                {
+                    _logger.LogCritical(
+                        "Settings update rollback and reconciliation both had failures. Rollback={RollbackFailures}, Reconciliation={ReconciliationFailures}.",
+                        rollbackFailures.Count,
+                        reconciliationFailures.Count);
+                    try { Settings = await _settingsService.LoadAsync(CancellationToken.None).ConfigureAwait(false); }
+                    catch { Settings = previous; }
+                    StatusMessage = previousStatus;
+                    throw new AggregateException(
+                        "The settings update failed and the previous runtime state could not be fully reconciled. Restart DropSpace before changing settings again.",
+                        new[] { updateException }.Concat(rollbackFailures.Select(failure => failure.Exception)).Concat(reconciliationFailures));
+                }
+            }
+
+            try { Settings = await _settingsService.LoadAsync(CancellationToken.None).ConfigureAwait(false); }
+            catch { Settings = previous; }
             StatusMessage = previousStatus;
             throw;
         }
+    }
+
+    private async Task<IReadOnlyList<Exception>> ReconcileSettingsStateAsync(AppSettings previous)
+    {
+        var failures = new List<Exception>();
+        async Task AttemptAsync(string category, Func<Task> action)
+        {
+            try { await action().ConfigureAwait(false); }
+            catch (Exception exception)
+            {
+                failures.Add(exception);
+                _logger.LogError(exception, "Settings reconciliation failed in {Category}.", category);
+            }
+        }
+
+        var preflight = UiSettingsPreflightAsync;
+        if (preflight is not null)
+            await AttemptAsync("ui-preflight", () => preflight(previous, CancellationToken.None));
+        await AttemptAsync("startup", () => _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
+        await AttemptAsync("clipboard", () => _clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
+        await AttemptAsync("handoff", () => _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
+        await AttemptAsync("cross-device-clipboard", () => _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
+        await AttemptAsync("settings-store", () => _settingsService.SaveAsync(previous, CancellationToken.None));
+        return failures;
     }
 
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)

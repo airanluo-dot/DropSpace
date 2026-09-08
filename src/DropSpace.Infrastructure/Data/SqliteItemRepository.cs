@@ -688,22 +688,51 @@ public sealed class SqliteItemRepository(
         int countLimit,
         CancellationToken cancellationToken = default)
     {
-        var items = await QueryAsync(
-                new ItemQuery(Source: ItemSource.Clipboard, Limit: 100_000),
-                cancellationToken)
-            .ConfigureAwait(false);
-        var ids = RetentionPolicy.SelectExpired(items, ageCutoffUtc, countLimit);
-        if (ids.Count == 0)
-        {
-            return new RetentionResult(0, Array.Empty<string>());
-        }
-
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(countLimit);
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-            var removed = await RemoveManyCoreAsync(connection, ids, cancellationToken).ConfigureAwait(false);
-            return new RetentionResult(removed.RemovedCount, removed.PayloadPaths);
+            var ids = new List<Guid>();
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText = """
+                    WITH ranked AS (
+                        SELECT id, created_at_utc,
+                               ROW_NUMBER() OVER (ORDER BY created_at_utc DESC, id DESC) AS retention_rank
+                        FROM items
+                        WHERE source = @source
+                          AND is_pinned = 0
+                          AND pending_delete_token IS NULL
+                    )
+                    SELECT id
+                    FROM ranked
+                    WHERE created_at_utc < @cutoff OR retention_rank > @count_limit;
+                    """;
+                command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
+                command.Parameters.AddWithValue("@cutoff", ToTimestamp(ageCutoffUtc));
+                command.Parameters.AddWithValue("@count_limit", countLimit);
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    ids.Add(ReadGuid(reader, 0));
+                }
+            }
+
+            if (ids.Count == 0)
+            {
+                return new RetentionResult(0, Array.Empty<string>());
+            }
+
+            // Re-check source/pin/pending state in the actual DELETE as a second line of
+            // defense. This keeps the retention invariant correct even if a future writer
+            // accidentally bypasses the shared repository write gate.
+            return await RemoveManyCoreAsync(
+                    connection,
+                    ids,
+                    cancellationToken,
+                    protectPinnedClipboard: true)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -969,7 +998,8 @@ public sealed class SqliteItemRepository(
     private static async Task<RetentionResult> RemoveManyCoreAsync(
         SqliteConnection connection,
         IReadOnlyCollection<Guid> ids,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool protectPinnedClipboard = false)
     {
         if (ids.Count == 0)
         {
@@ -977,6 +1007,8 @@ public sealed class SqliteItemRepository(
         }
 
         var payloads = new List<(Guid Id, string Path)>();
+        var deletedPayloadPaths = new List<string>();
+        var removedCount = 0;
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         foreach (var id in ids)
         {
@@ -999,22 +1031,33 @@ public sealed class SqliteItemRepository(
 
             await using var delete = connection.CreateCommand();
             delete.Transaction = (SqliteTransaction)transaction;
-            delete.CommandText = "DELETE FROM items WHERE id = @id;";
+            delete.CommandText = protectPinnedClipboard
+                ? "DELETE FROM items WHERE id = @id AND source = @source AND is_pinned = 0 AND pending_delete_token IS NULL;"
+                : "DELETE FROM items WHERE id = @id;";
             delete.Parameters.AddWithValue("@id", ToBytes(id));
-            await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            if (protectPinnedClipboard)
+            {
+                delete.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
+            }
+            removedCount += await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        foreach (var payload in payloads)
+        foreach (var payload in payloads.DistinctBy(payload => payload.Id))
         {
             await using var deletePayload = connection.CreateCommand();
             deletePayload.Transaction = (SqliteTransaction)transaction;
-            deletePayload.CommandText = "DELETE FROM payloads WHERE id = @id;";
+            deletePayload.CommandText = "DELETE FROM payloads WHERE id = @id AND NOT EXISTS (SELECT 1 FROM items WHERE payload_id = @id);";
             deletePayload.Parameters.AddWithValue("@id", ToBytes(payload.Id));
-            await deletePayload.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            if (await deletePayload.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0)
+            {
+                deletedPayloadPaths.Add(payload.Path);
+            }
         }
 
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        return new RetentionResult(ids.Count, payloads.Select(payload => payload.Path).ToArray());
+        return new RetentionResult(
+            removedCount,
+            deletedPayloadPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     private static DropItem ReadItem(SqliteDataReader reader)

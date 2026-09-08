@@ -5,8 +5,19 @@ using DropSpace.Core.Policies;
 
 namespace DropSpace.Infrastructure.Storage;
 
-public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
+public sealed class FilePayloadStore : IPayloadStore
 {
+    private const int MaximumDeferredDeletes = 10_000;
+    private readonly AppStoragePaths paths;
+    private readonly object _deferredDeleteGate = new();
+    private readonly string _deferredDeletePath;
+
+    public FilePayloadStore(AppStoragePaths paths)
+    {
+        this.paths = paths;
+        _deferredDeletePath = Path.Combine(paths.Data, "payload-delete.queue");
+        TryDrainDeferredDeletes();
+    }
     public async Task<PayloadRecord> WriteAsync(
         string kind,
         Stream source,
@@ -26,6 +37,7 @@ public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
 
         paths.EnsureCreated();
+        TryDrainDeferredDeletes();
         var id = Guid.NewGuid();
         var storedExtension = string.IsNullOrWhiteSpace(extension)
             ? string.Equals(kind, "images", StringComparison.OrdinalIgnoreCase) ? ".png" : ".txt"
@@ -108,11 +120,20 @@ public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
     {
         cancellationToken.ThrowIfCancellationRequested();
         var path = ResolvePath(relativePath);
-        if (File.Exists(path))
+        try
         {
-            File.Delete(path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            QueueDeferredDelete(relativePath);
+            throw;
         }
 
+        TryDrainDeferredDeletes();
         return Task.CompletedTask;
     }
 
@@ -156,6 +177,86 @@ public sealed class FilePayloadStore(AppStoragePaths paths) : IPayloadStore
     }
 
     public string ResolvePath(string relativePath) => PayloadPathPolicy.ResolveContainedPath(paths.Payloads, relativePath);
+
+    private void QueueDeferredDelete(string relativePath)
+    {
+        lock (_deferredDeleteGate)
+        {
+            try
+            {
+                paths.EnsureCreated();
+                var existing = File.Exists(_deferredDeletePath)
+                    ? File.ReadAllLines(_deferredDeletePath).Where(line => !string.IsNullOrWhiteSpace(line)).ToList()
+                    : [];
+                if (!existing.Contains(relativePath, StringComparer.OrdinalIgnoreCase))
+                {
+                    existing.Add(relativePath);
+                }
+                if (existing.Count > MaximumDeferredDeletes)
+                {
+                    existing = existing.TakeLast(MaximumDeferredDeletes).ToList();
+                }
+                RewriteDeferredDeleteJournal(existing);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                System.Diagnostics.Debug.WriteLine($"Payload delete journal write deferred: {exception.GetType().Name}");
+            }
+        }
+    }
+
+    private void TryDrainDeferredDeletes()
+    {
+        lock (_deferredDeleteGate)
+        {
+            try
+            {
+                if (!File.Exists(_deferredDeletePath)) return;
+                var remaining = new List<string>();
+                foreach (var relativePath in File.ReadLines(_deferredDeletePath)
+                             .Where(line => !string.IsNullOrWhiteSpace(line))
+                             .Distinct(StringComparer.OrdinalIgnoreCase)
+                             .Take(MaximumDeferredDeletes))
+                {
+                    try
+                    {
+                        var path = ResolvePath(relativePath);
+                        if (File.Exists(path)) File.Delete(path);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
+                    {
+                        remaining.Add(relativePath);
+                    }
+                }
+                RewriteDeferredDeleteJournal(remaining);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                System.Diagnostics.Debug.WriteLine($"Payload delete journal drain deferred: {exception.GetType().Name}");
+            }
+        }
+    }
+
+    private void RewriteDeferredDeleteJournal(IReadOnlyCollection<string> entries)
+    {
+        paths.EnsureCreated();
+        if (entries.Count == 0)
+        {
+            if (File.Exists(_deferredDeletePath)) File.Delete(_deferredDeletePath);
+            return;
+        }
+
+        var temporary = string.Concat(_deferredDeletePath, ".", Guid.NewGuid().ToString("N"), ".tmp");
+        try
+        {
+            File.WriteAllLines(temporary, entries);
+            File.Move(temporary, _deferredDeletePath, overwrite: true);
+        }
+        finally
+        {
+            TryDelete(temporary);
+        }
+    }
 
     private static void TryDelete(string path)
     {
