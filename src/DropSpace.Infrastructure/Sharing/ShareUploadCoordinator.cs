@@ -253,13 +253,7 @@ public sealed class InternetShareClient(
     private static Task<Stream> OpenStagedFileAsync(string path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult<Stream>(new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            81_920,
-            FileOptions.Asynchronous | FileOptions.SequentialScan));
+        return Task.FromResult<Stream>(ReparseSafeFileOpen.OpenRead(path));
     }
 
     private static void TryDeleteDirectory(string path)

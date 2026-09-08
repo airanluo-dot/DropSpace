@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DropSpace.Core.Diagnostics;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
 using DropSpace.Core.Updates;
@@ -142,6 +143,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
 
     private async Task<UpdateStatusSnapshot> DownloadCoreAsync(CancellationToken cancellationToken = default)
     {
+        var operationId = OperationCorrelation.New();
         var candidate = Status.Candidate ?? throw new InvalidOperationException("No validated update is available.");
         if (_deploymentMode.Current == DeploymentMode.Packaged)
         {
@@ -179,7 +181,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException or InvalidDataException or TaskCanceledException)
         {
-            _logger.LogWarning(exception, "Update download or integrity verification failed.");
+            _logger.LogWarning(exception, "Update operation {OperationId} download or integrity verification failed.", operationId);
             return Publish(Status with
             {
                 State = UpdateState.Failed,
@@ -214,6 +216,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         bool unattended,
         CancellationToken cancellationToken = default)
     {
+        var operationId = OperationCorrelation.New();
         var download = Status.Download ?? throw new InvalidOperationException("No verified update is ready to install.");
         if (_deploymentMode.Current != DeploymentMode.Installer)
         {
@@ -257,7 +260,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            _logger.LogError(exception, "The verified update installer could not be launched.");
+            _logger.LogError(exception, "Update operation {OperationId} installer launch failed.", operationId);
             await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);
             return Publish(Status with { State = UpdateState.ReadyToInstall, Message = _strings.Get("UpdateInstallerLaunchFailed") });
         }
@@ -304,6 +307,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         bool automatic,
         CancellationToken cancellationToken)
     {
+        var operationId = OperationCorrelation.New();
         Publish(new UpdateStatusSnapshot(UpdateState.Checking, _strings.Get("UpdateChecking"), _deploymentMode.Current));
         try
         {
@@ -352,7 +356,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or JsonException or TaskCanceledException)
         {
-            _logger.LogWarning(exception, "{UpdateCheckKind} update check failed.", automatic ? "Automatic" : "Manual");
+            _logger.LogWarning(exception, "Update operation {OperationId} {UpdateCheckKind} check failed.", operationId, automatic ? "Automatic" : "Manual");
             var message = exception switch
             {
                 InvalidDataException or JsonException => _strings.Get("UpdateServiceValidationFailed"),

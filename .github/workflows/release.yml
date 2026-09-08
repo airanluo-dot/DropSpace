@@ -48,22 +48,20 @@ jobs:
     timeout-minutes: 80
     permissions:
       contents: read
-      id-token: write
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
       channel: ${{ steps.version.outputs.channel }}
       prerelease: ${{ steps.version.outputs.prerelease }}
       make_latest: ${{ steps.version.outputs.make_latest }}
-    env:
-      SIGNING_ENABLED: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.ARTIFACT_SIGNING_ENDPOINT != '' && secrets.ARTIFACT_SIGNING_ACCOUNT != '' && secrets.ARTIFACT_SIGNING_PROFILE != '' }}
+      signing_required: ${{ steps.version.outputs.signing_required }}
 
     steps:
       - name: Check out clean source
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install .NET 10 SDK
-        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.100
           cache: true
@@ -83,6 +81,7 @@ jobs:
           "channel=$($info.Channel)" >> $env:GITHUB_OUTPUT
           "prerelease=$($info.GitHubPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "make_latest=$($info.MakeLatest.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "signing_required=$($($info.Channel -eq 'Stable').ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           $info | Format-List | Out-String | Write-Host
 
       - name: Enforce explicit publication policy
@@ -102,9 +101,6 @@ jobs:
           }
           if ($env:RELEASE_ACTOR -ne $env:REPOSITORY_OWNER) {
             throw "Release publication is restricted to the repository owner."
-          }
-          if ($env:RELEASE_CHANNEL -eq "Stable" -and $env:SIGNING_ENABLED -ne "true") {
-            throw "Stable publication requires the complete Artifact Signing configuration."
           }
 
       - name: Validate Stable and Preview release metadata
@@ -133,6 +129,12 @@ jobs:
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify
 
+      - name: Confirm brand verification did not mutate the checkout
+        shell: pwsh
+        run: |
+          $status = git status --short --untracked-files=all
+          if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
+
       - name: Generate brand assets from canonical masters for build
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1
@@ -160,6 +162,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-UnsignedPackage.ps1 -Platform x64 -NoRestore
 
+      - name: Validate MSIX symbol policy
+        shell: pwsh
+        run: ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
+
       - name: Build external-location identity package
         shell: pwsh
         run: ./scripts/Build-IdentityPackage.ps1
@@ -171,74 +177,11 @@ jobs:
           if ($null -eq $package) { throw "MSIX build did not produce an .msix file." }
           Copy-Item $package.FullName artifacts/release/DropSpace-x64.msix -Force
 
-      - name: Sign in to Azure for Artifact Signing
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Stage signable application payloads
-        if: env.SIGNING_ENABLED == 'true'
-        shell: pwsh
-        run: |
-          New-Item artifacts/signing -ItemType Directory -Force | Out-Null
-          Copy-Item artifacts/release/DropSpace.exe artifacts/signing/DropSpace.exe -Force
-          Copy-Item artifacts/release/DropSpace-x64.msix artifacts/signing/DropSpace-x64.msix -Force
-          Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/signing/DropSpace.Identity.msix -Force
-
-      - name: Sign application and identity payloads
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
-        with:
-          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
-          files-folder: ${{ github.workspace }}\artifacts\signing
-          files-folder-filter: exe,msix
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
-      - name: Restore signed payloads
-        if: env.SIGNING_ENABLED == 'true'
-        shell: pwsh
-        run: |
-          Copy-Item artifacts/signing/DropSpace.exe artifacts/release/DropSpace.exe -Force
-          Copy-Item artifacts/signing/DropSpace-x64.msix artifacts/release/DropSpace-x64.msix -Force
-          Copy-Item artifacts/signing/DropSpace.Identity.msix artifacts/identity/DropSpace.Identity.msix -Force
-          if ((Get-AuthenticodeSignature artifacts/identity/DropSpace.Identity.msix).Status -ne 'Valid') {
-            throw "The signed identity package is not trusted."
-          }
-
       - name: Build pinned Inno Setup installer from final app payload
         shell: pwsh
         run: |
-          if ($env:SIGNING_ENABLED -eq 'true') {
-            ./scripts/Build-Installer.ps1 -IdentityPackage artifacts/identity/DropSpace.Identity.msix
-          } else {
-            ./scripts/Build-Installer.ps1
-          }
+          ./scripts/Build-Installer.ps1
           Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
-
-      - name: Sign final installer
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
-        with:
-          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
-          files-folder: ${{ github.workspace }}\artifacts\installer
-          files-folder-filter: exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
-      - name: Restore signed installer
-        if: env.SIGNING_ENABLED == 'true'
-        shell: pwsh
-        run: Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
       - name: Validate generated icon and brand chain
         shell: pwsh
@@ -256,7 +199,7 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
 
-      - name: Freeze bytes, verify signatures, and generate release metadata
+      - name: Freeze unsigned bytes and generate release metadata
         shell: pwsh
         run: |
           $files = @(
@@ -266,10 +209,6 @@ jobs:
           )
           foreach ($file in $files) {
             if (-not (Test-Path $file -PathType Leaf)) { throw "Missing release file: $file" }
-            $signature = Get-AuthenticodeSignature $file
-            if ($env:SIGNING_ENABLED -eq "true" -and $signature.Status -ne "Valid") {
-              throw "Artifact Signing was enabled but $file is not validly signed: $($signature.Status)"
-            }
           }
           $lines = foreach ($file in $files) {
             $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -294,15 +233,16 @@ jobs:
             msbuild = ((& dotnet msbuild -version) -join "`n")
             windowsSdkBuild = "10.0.26100.0"
             innoSetup = "7.0.2"
-            signingEnabled = ($env:SIGNING_ENABLED -eq "true")
+            signingEnabled = $false
+            signingJob = '${{ steps.version.outputs.signing_required }}'
           }
           $metadata | ConvertTo-Json -Depth 4 | Set-Content artifacts/release/build-environment.json -Encoding utf8
           Get-Content artifacts/release/build-environment.json
 
-      - name: Upload validated release bundle
+      - name: Upload unsigned validated release bundle
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: DropSpace-release-${{ steps.version.outputs.tag }}
+          name: DropSpace-release-unsigned-${{ steps.version.outputs.tag }}
           path: |
             artifacts/release/DropSpaceSetup.exe
             artifacts/release/DropSpace.exe
@@ -312,14 +252,13 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
-      - name: Upload identity registration artifact
+      - name: Upload unsigned identity package for the isolated signing job
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: DropSpace-identity-${{ steps.version.outputs.tag }}
+          name: DropSpace-identity-unsigned-${{ steps.version.outputs.tag }}
           path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
           retention-days: 3
-
       - name: Upload release test results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -337,10 +276,173 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  sign-release:
+    name: Sign stable release bundle
+    if: >-
+      needs.validate-release.result == 'success' &&
+      needs.validate-release.outputs.signing_required == 'true' &&
+      github.event_name != 'pull_request'
+    needs: validate-release
+    runs-on: windows-2025
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SIGNING_CONFIGURED: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.ARTIFACT_SIGNING_ENDPOINT != '' && secrets.ARTIFACT_SIGNING_ACCOUNT != '' && secrets.ARTIFACT_SIGNING_PROFILE != '' }}
+
+    steps:
+      - name: Check out clean source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Download unsigned validated bundle
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: DropSpace-release-unsigned-${{ needs.validate-release.outputs.tag }}
+          path: artifacts/release
+
+      - name: Download unsigned identity package
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: DropSpace-identity-unsigned-${{ needs.validate-release.outputs.tag }}
+          path: artifacts/identity
+
+      - name: Enforce stable signing configuration
+        shell: pwsh
+        run: |
+          if ($env:SIGNING_CONFIGURED -ne "true") {
+            throw "Stable signing requires Azure workload identity and the complete Artifact Signing configuration."
+          }
+          foreach ($path in @(
+            "artifacts/release/DropSpace.exe",
+            "artifacts/release/DropSpace-x64.msix",
+            "artifacts/identity/DropSpace.Identity.msix"
+          )) {
+            if (-not (Test-Path $path -PathType Leaf)) { throw "Missing signable payload: $path" }
+          }
+
+      - name: Sign in to Azure for Artifact Signing
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Stage signable application payloads
+        shell: pwsh
+        run: |
+          New-Item artifacts/signing -ItemType Directory -Force | Out-Null
+          Copy-Item artifacts/release/DropSpace.exe artifacts/signing/DropSpace.exe -Force
+          Copy-Item artifacts/release/DropSpace-x64.msix artifacts/signing/DropSpace-x64.msix -Force
+          Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/signing/DropSpace.Identity.msix -Force
+
+      - name: Sign application and identity payloads
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\artifacts\signing
+          files-folder-filter: exe,msix
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Restore and validate signed application payloads
+        shell: pwsh
+        run: |
+          Copy-Item artifacts/signing/DropSpace.exe artifacts/release/DropSpace.exe -Force
+          Copy-Item artifacts/signing/DropSpace-x64.msix artifacts/release/DropSpace-x64.msix -Force
+          Copy-Item artifacts/signing/DropSpace.Identity.msix artifacts/identity/DropSpace.Identity.msix -Force
+          foreach ($path in @(
+            "artifacts/release/DropSpace.exe",
+            "artifacts/release/DropSpace-x64.msix",
+            "artifacts/identity/DropSpace.Identity.msix"
+          )) {
+            if ((Get-AuthenticodeSignature $path).Status -ne "Valid") {
+              throw "Artifact Signing did not produce a trusted signature for $path."
+            }
+          }
+
+      - name: Build installer embedding only the trusted identity package
+        shell: pwsh
+        run: |
+          ./scripts/Build-Installer.ps1 -IdentityPackage artifacts/identity/DropSpace.Identity.msix
+          Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
+
+      - name: Sign final installer
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\artifacts\installer
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Restore and validate signed installer
+        shell: pwsh
+        run: |
+          Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
+          if ((Get-AuthenticodeSignature artifacts/release/DropSpaceSetup.exe).Status -ne "Valid") {
+            throw "Artifact Signing did not produce a trusted installer signature."
+          }
+
+      - name: Re-run final signed installer and portable smoke gates
+        shell: pwsh
+        run: |
+          ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+          ./scripts/Test-PortableSmoke.ps1 -Language en-US
+          ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+
+      - name: Freeze signed bytes and generate release metadata
+        shell: pwsh
+        run: |
+          $files = @(
+            "artifacts/release/DropSpaceSetup.exe",
+            "artifacts/release/DropSpace.exe",
+            "artifacts/release/DropSpace-x64.msix"
+          )
+          foreach ($file in $files) {
+            if (-not (Test-Path $file -PathType Leaf)) { throw "Missing signed release file: $file" }
+            if ((Get-AuthenticodeSignature $file).Status -ne "Valid") {
+              throw "Signed release file is not trusted: $file"
+            }
+          }
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([System.IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content artifacts/release/SHA256SUMS.txt -Encoding ascii
+          ./scripts/New-UpdateManifest.ps1
+          ./scripts/Test-UpdateManifest.ps1
+
+      - name: Upload signed release bundle
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: DropSpace-release-signed-${{ needs.validate-release.outputs.tag }}
+          path: |
+            artifacts/release/DropSpaceSetup.exe
+            artifacts/release/DropSpace.exe
+            artifacts/release/DropSpace-x64.msix
+            artifacts/release/SHA256SUMS.txt
+            artifacts/release/update-manifest.json
+          if-no-files-found: error
+          retention-days: 2
+
   publish-release:
     name: Publish GitHub Release
-    if: github.event_name == 'workflow_dispatch' && inputs.publish == true && github.ref == 'refs/heads/main' && github.actor == github.repository_owner
-    needs: validate-release
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.publish == true &&
+      github.ref == 'refs/heads/main' &&
+      github.actor == github.repository_owner &&
+      needs.validate-release.result == 'success' &&
+      (needs.validate-release.outputs.signing_required != 'true' || needs.sign-release.result == 'success')
+    needs: [validate-release, sign-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -348,12 +450,12 @@ jobs:
 
     steps:
       - name: Check out release metadata
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Download validated release bundle
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
-          name: DropSpace-release-${{ needs.validate-release.outputs.tag }}
+          name: ${{ needs.validate-release.outputs.signing_required == 'true' && format('DropSpace-release-signed-{0}', needs.validate-release.outputs.tag) || format('DropSpace-release-unsigned-{0}', needs.validate-release.outputs.tag) }}
           path: artifacts/release
 
       - name: Reject an existing tag or release

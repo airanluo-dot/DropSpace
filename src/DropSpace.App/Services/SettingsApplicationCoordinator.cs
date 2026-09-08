@@ -1,4 +1,5 @@
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Diagnostics;
 using DropSpace.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -78,6 +79,8 @@ public sealed class SettingsApplicationCoordinator(
         await _gate.WaitAsync(cancellationToken);
         try
         {
+            var operationId = OperationCorrelation.New();
+            logger.LogInformation("Settings operation {OperationId} started.", operationId);
             // A settings form does not own process-driven pause or update-check state.
             var next = requested with
             {
@@ -120,13 +123,16 @@ public sealed class SettingsApplicationCoordinator(
 
                 rollback.Committed("settings-store", () => settingsService.SaveAsync(current, CancellationToken.None));
                 await settingsService.SaveAsync(next, cancellationToken);
+                logger.LogInformation("Settings operation {OperationId} committed.", operationId);
                 return next;
             }
             catch (Exception updateException)
             {
+                logger.LogWarning(updateException, "Settings operation {OperationId} failed; rollback started.", operationId);
                 var rollbackFailures = await rollback.RollbackAsync((category, exception) =>
                     logger.LogError(
-                        "Settings rollback failed in {Category}: {FailureType}.",
+                        "Settings operation {OperationId} rollback failed in {Category}: {FailureType}.",
+                        operationId,
                         category,
                         exception.GetType().Name));
                 if (rollbackFailures.Count > 0)

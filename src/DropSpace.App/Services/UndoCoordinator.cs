@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Diagnostics;
 using DropSpace.Core.Models;
 using DropSpace.Core.Undo;
 using DropSpace.Core.Preview;
@@ -46,7 +47,7 @@ public sealed class UndoCoordinator(
         {
             ThrowIfDisposed();
             await FinalizeActiveCoreAsync(cancellationToken).ConfigureAwait(false);
-            var token = Guid.NewGuid().ToString("N");
+            var token = OperationCorrelation.New();
             var expiresAtUtc = DateTimeOffset.UtcNow.Add(UndoWindow);
             var markedCount = await repository.BeginPendingRemovalAsync(
                     ids,
@@ -60,6 +61,7 @@ public sealed class UndoCoordinator(
             }
 
             var state = new UndoState(token, kind, expiresAtUtc, messageResourceKey, markedCount);
+            logger.LogInformation("Delete operation {OperationId} entered its undo window for {ItemCount} item(s).", token, markedCount);
             _active = ActiveUndo.ForRemoval(state);
             PublishState(state);
             StartExpiration(_active);
@@ -89,7 +91,7 @@ public sealed class UndoCoordinator(
             ThrowIfDisposed();
             await FinalizeActiveCoreAsync(cancellationToken).ConfigureAwait(false);
             var state = new UndoState(
-                Guid.NewGuid().ToString("N"),
+                OperationCorrelation.New(),
                 UndoOperationKind.PinChange,
                 DateTimeOffset.UtcNow.Add(UndoWindow),
                 messageResourceKey,
@@ -160,6 +162,7 @@ public sealed class UndoCoordinator(
             if (active.Removal is not null)
             {
                 await repository.UndoPendingRemovalAsync(active.State.Token, cancellationToken).ConfigureAwait(false);
+                logger.LogInformation("Delete operation {OperationId} was undone.", active.State.Token);
             }
             else if (active.PreviousPinStates is not null)
             {
@@ -306,6 +309,7 @@ public sealed class UndoCoordinator(
         if (active.Removal is not null)
         {
             var result = await repository.FinalizePendingRemovalAsync(active.State.Token, cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Delete operation {OperationId} committed {RemovedCount} item(s); payload cleanup is now retryable.", active.State.Token, result.RemovedCount);
             await DeletePayloadsAsync(result.PayloadRelativePaths, cancellationToken).ConfigureAwait(false);
         }
 
@@ -319,6 +323,7 @@ public sealed class UndoCoordinator(
     {
         if (cleanupCoordinator is not null)
         {
+            logger.LogDebug("Delete operation payload cleanup is draining through the durable outbox.");
             await cleanupCoordinator.DrainAsync(cancellationToken).ConfigureAwait(false);
             try { await previews.ClearAsync(CancellationToken.None).ConfigureAwait(false); }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

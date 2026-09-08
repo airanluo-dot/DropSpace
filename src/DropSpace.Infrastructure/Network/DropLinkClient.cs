@@ -444,6 +444,11 @@ public sealed class DropLinkClient(
                 throw new InvalidDataException("Transfer source directories must not be reparse points.");
             }
 
+            if (result.Count >= limits.MaxItems || totalBytes >= limits.MaxTotalBytes)
+            {
+                throw new InvalidDataException("The transfer enumeration limit was exceeded.");
+            }
+
             var rootName = TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
             var entries = ReparseSafeDirectoryEnumerator.Enumerate(
                 full,
@@ -471,7 +476,6 @@ public sealed class DropLinkClient(
         {
             throw new InvalidDataException("A transfer source changed while it was hashed.");
         }
-
         return new FileSnapshot(hash, length);
     }
 

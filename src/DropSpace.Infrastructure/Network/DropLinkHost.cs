@@ -1125,7 +1125,7 @@ public sealed class DropLinkHost(
                 for (var index = 0; index < item.ChunkCount.Value; index++)
                 {
                     var part = Path.Combine(receive.StagingRoot, string.Concat(item.Id.ToString("N"), ".", index, ".part"));
-                    await using var input = new FileStream(part, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    await using var input = ReparseSafeFileOpen.OpenRead(part);
                     await input.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
                 }
                 await output.FlushAsync(cancellationToken).ConfigureAwait(false);

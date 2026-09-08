@@ -5,7 +5,10 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Storage;
 
-public sealed class LocalFileReferenceService(ILogger<LocalFileReferenceService>? logger = null) : IFileReferenceService
+public sealed class LocalFileReferenceService(
+    ILogger<LocalFileReferenceService>? logger = null,
+    Func<string, FileCandidate>? inspectOverride = null,
+    Func<FileReference, FileAvailabilityCheck>? availabilityOverride = null) : IFileReferenceService
 {
     private static readonly TimeSpan RemoteMetadataTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RemoteGateAcquisitionTimeout = TimeSpan.FromSeconds(2);
@@ -15,6 +18,8 @@ public sealed class LocalFileReferenceService(ILogger<LocalFileReferenceService>
     private readonly SemaphoreSlim _remoteGate = new(2, 2);
     private readonly ConcurrentDictionary<string, CachedAvailability> _availabilityCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ILogger<LocalFileReferenceService>? _logger = logger;
+    private readonly Func<string, FileCandidate> _inspectOperation = inspectOverride ?? Inspect;
+    private readonly Func<FileReference, FileAvailabilityCheck> _availabilityOperation = availabilityOverride ?? CheckAvailability;
 
     public async Task<FileCandidate> InspectAsync(string path, CancellationToken cancellationToken = default)
     {
@@ -23,7 +28,7 @@ public sealed class LocalFileReferenceService(ILogger<LocalFileReferenceService>
         var gate = remote ? _remoteGate : _localGate;
         await WaitForGateAsync(gate, remote, cancellationToken).ConfigureAwait(false);
         var result = await ExecuteMetadataAsync(
-                () => Inspect(path),
+                () => _inspectOperation(path),
                 remote,
                 gate,
                 cancellationToken)
@@ -53,7 +58,7 @@ public sealed class LocalFileReferenceService(ILogger<LocalFileReferenceService>
         var gate = remote ? _remoteGate : _localGate;
         await WaitForGateAsync(gate, remote, cancellationToken).ConfigureAwait(false);
         var result = await ExecuteMetadataAsync(
-                () => CheckAvailability(reference),
+                () => _availabilityOperation(reference),
                 remote,
                 gate,
                 cancellationToken)

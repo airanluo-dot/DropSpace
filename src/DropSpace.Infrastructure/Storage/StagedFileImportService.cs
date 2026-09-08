@@ -82,8 +82,7 @@ public sealed class StagedFileImportService(
                 {
                     var path = ResolveStagedPath(admitted[index]);
                     var candidate = await references.InspectAsync(path, cancellationToken).ConfigureAwait(false);
-                    await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-                        81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    await using var input = ReparseSafeFileOpen.OpenRead(path);
                     payload = await payloads.WriteFileAsync("files", candidate.Extension, input, maximumFileBytes, cancellationToken).ConfigureAwait(false);
                     var ownedPath = payloads.ResolvePath(payload.RelativePath);
                     var owned = candidate with { OriginalPath = ownedPath, NormalizedPath = Path.GetFullPath(ownedPath) };

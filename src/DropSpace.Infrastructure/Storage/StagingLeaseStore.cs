@@ -135,6 +135,11 @@ public sealed class StagingLeaseStore(
     {
         ArgumentNullException.ThrowIfNull(lease);
         ValidateLease(lease);
+        if (!string.Equals(lease.OwnerId, _ownerId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Only the active staging owner may complete a lease.");
+        }
+
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -189,7 +194,6 @@ public sealed class StagingLeaseStore(
                     QuarantineMalformedLease(leasePath, exception);
                     continue;
                 }
-
                 if (lease is null ||
                     string.Equals(lease.OwnerId, _ownerId, StringComparison.Ordinal) && lease.ExpiresAtUtc > now)
                 {
@@ -234,6 +238,11 @@ public sealed class StagingLeaseStore(
         var lease = JsonSerializer.Deserialize<StagingLease>(stream, JsonOptions)
             ?? throw new InvalidDataException("The staging lease is empty.");
         ValidateLease(lease);
+        if (!string.Equals(Path.GetFileName(path), string.Concat(lease.LeaseId, ".json"), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("The staging lease filename does not match its lease ID.");
+        }
+
         var root = ResolveAndValidateRelativeRoot(lease.RelativeRoot);
         return lease with { RootPath = root };
     }

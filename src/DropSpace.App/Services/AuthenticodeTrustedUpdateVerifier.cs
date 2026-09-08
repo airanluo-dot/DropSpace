@@ -8,12 +8,12 @@ namespace DropSpace.App.Services;
 
 public sealed class AuthenticodeTrustedUpdateVerifier : ITrustedUpdateVerifier
 {
-    // This is deliberately an exact, compiled trust policy. Artifact Signing must issue the
-    // production certificate with this subject (or this allow-list must be reviewed explicitly).
-    private static readonly HashSet<string> TrustedSubjects = new(StringComparer.OrdinalIgnoreCase)
+    private readonly TrustedPublisherIdentityPolicy _publisherPolicy;
+
+    public AuthenticodeTrustedUpdateVerifier(TrustedPublisherIdentityPolicy? publisherPolicy = null)
     {
-        "CN=airanluo-dot",
-    };
+        _publisherPolicy = publisherPolicy ?? TrustedPublisherIdentityPolicy.CreateDefault();
+    }
 
     public Task<TrustedUpdateVerification> VerifyPublisherAsync(
         string filePath,
@@ -40,9 +40,9 @@ public sealed class AuthenticodeTrustedUpdateVerifier : ITrustedUpdateVerifier
             using var signedCertificate = X509Certificate.CreateFromSignedFile(filePath);
 #pragma warning restore SYSLIB0057
             using var certificate = X509CertificateLoader.LoadCertificate(signedCertificate.GetRawCertData());
-            return Task.FromResult(TrustedSubjects.Contains(certificate.Subject)
+            return Task.FromResult(_publisherPolicy.IsApproved(certificate)
                 ? new TrustedUpdateVerification(true, "Authenticode signature and DropSpace publisher identity are valid.")
-                : new TrustedUpdateVerification(false, "The signature is valid but the publisher is not trusted by DropSpace."));
+                : new TrustedUpdateVerification(false, "The signature is valid but its certificate identity is not trusted by DropSpace."));
         }
         catch (CryptographicException)
         {
@@ -64,7 +64,6 @@ public sealed class AuthenticodeTrustedUpdateVerifier : ITrustedUpdateVerifier
             };
             fileInfoPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf<WinTrustFileInfo>());
             Marshal.StructureToPtr(fileInfo, fileInfoPointer, false);
-
             var trustData = new WinTrustData
             {
                 StructSize = (uint)Marshal.SizeOf<WinTrustData>(),
