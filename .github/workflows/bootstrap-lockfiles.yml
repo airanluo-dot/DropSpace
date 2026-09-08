@@ -1,0 +1,53 @@
+name: Bootstrap NuGet lock files
+
+on:
+  push:
+    branches:
+      - "agent/v0.3.0-preview.19-architecture-remediation"
+    paths:
+      - ".github/workflows/bootstrap-lockfiles.yml"
+      - "Directory.Build.props"
+      - "Directory.Packages.props"
+      - "global.json"
+      - "**/*.csproj"
+
+permissions:
+  contents: write
+
+jobs:
+  lockfiles:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.100
+
+      - name: Restore and write lock files
+        run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=false
+
+      - name: Commit generated lock files
+        shell: pwsh
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          $lockFiles = Get-ChildItem -Path . -Filter packages.lock.json -Recurse -File
+          if ($lockFiles.Count -eq 0) {
+            throw "No NuGet lock files were generated."
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all -- '*packages.lock.json'
+          if (git diff --cached --quiet) {
+            Write-Host "All NuGet lock files are already committed."
+            exit 0
+          }
+          git commit -m "chore: record Preview.19 NuGet lock files"
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
