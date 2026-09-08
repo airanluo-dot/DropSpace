@@ -517,7 +517,9 @@ public sealed partial class OverlayWindow : Window
             LogNativeFailure(hideFailure);
             _nativeWindowSafeToShow = false;
         }
-        RevokeNativeDropTarget();
+        // Keep the OLE registration attached to the HWND lifetime. A hidden HWND is not
+        // discoverable by WindowFromPoint, so retaining the registration avoids repeatedly
+        // allocating/revoking COM drop targets during normal overlay lifecycles.
         _motion.SnapTo(OverlayMotionValues.Hidden);
         CompleteMotionWaiters();
         _isVisible = false;
@@ -697,7 +699,8 @@ public sealed partial class OverlayWindow : Window
                 LogNativeFailure(hideFailure);
                 _nativeWindowSafeToShow = false;
             }
-            RevokeNativeDropTarget();
+            // The HWND is hidden and therefore cannot receive a drop. Keep its single OLE
+            // registration for reuse when the overlay is shown again.
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
             CompleteMotionWaiters();
