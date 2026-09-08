@@ -26,11 +26,17 @@ on:
       - src/**
       - tests/**
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the validated release from main
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: dropspace-release-${{ github.ref }}
-  # A new PR revision invalidates its older validation bundle. Published main
-  # releases remain non-cancellable so an asset upload cannot be interrupted.
+  # A new PR revision invalidates its older validation bundle. Main and explicit
+  # publication runs remain non-cancellable so artifact creation cannot be interrupted.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -52,10 +58,10 @@ jobs:
 
     steps:
       - name: Check out clean source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 10.0.100
           cache: true
@@ -76,6 +82,23 @@ jobs:
           "prerelease=$($info.GitHubPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "make_latest=$($info.MakeLatest.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           $info | Format-List | Out-String | Write-Host
+
+      - name: Enforce explicit publication policy
+        shell: pwsh
+        env:
+          PUBLISH_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
+        run: |
+          if ($env:PUBLISH_REQUESTED -ne "true") {
+            exit 0
+          }
+          if ($env:RELEASE_REF -ne "refs/heads/main") {
+            throw "Release publication is only permitted from refs/heads/main."
+          }
+          if ($env:RELEASE_CHANNEL -eq "Stable" -and $env:SIGNING_ENABLED -ne "true") {
+            throw "Stable publication requires the complete Artifact Signing configuration."
+          }
 
       - name: Validate Stable and Preview release metadata
         shell: pwsh
@@ -139,7 +162,7 @@ jobs:
 
       - name: Sign in to Azure for Artifact Signing
         if: env.SIGNING_ENABLED == 'true'
-        uses: azure/login@v3
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -156,7 +179,7 @@ jobs:
 
       - name: Sign application and identity payloads
         if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@v2
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
           endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
           signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
@@ -190,7 +213,7 @@ jobs:
 
       - name: Sign final installer
         if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@v2
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
           endpoint: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
           signing-account-name: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
@@ -247,7 +270,7 @@ jobs:
           Get-ChildItem artifacts/release | Select-Object Name,Length
 
       - name: Upload validated release bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: DropSpace-release-${{ steps.version.outputs.tag }}
           path: |
@@ -260,7 +283,7 @@ jobs:
           retention-days: 2
 
       - name: Upload identity registration artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: DropSpace-identity-${{ steps.version.outputs.tag }}
           path: artifacts/identity/DropSpace.Identity.msix
@@ -269,7 +292,7 @@ jobs:
 
       - name: Upload release test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-test-results-${{ steps.version.outputs.tag }}
           path: "**/TestResults/*.trx"
@@ -278,7 +301,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish == true && github.ref == 'refs/heads/main'
     needs: validate-release
     runs-on: ubuntu-latest
     permissions:
@@ -287,16 +310,16 @@ jobs:
 
     steps:
       - name: Check out release metadata
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Download validated release bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: DropSpace-release-${{ needs.validate-release.outputs.tag }}
           path: artifacts/release
 
       - name: Publish immutable Stable or Preview release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           target_commitish: ${{ github.sha }}
