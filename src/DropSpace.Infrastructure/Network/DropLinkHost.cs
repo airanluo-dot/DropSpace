@@ -1105,6 +1105,7 @@ public sealed class DropLinkHost(
 
     private static void RollbackCompletedItems(ReceiveTransfer receive)
     {
+        var residual = new List<string>();
         while (receive.CompletedPaths.TryDequeue(out var relative))
         {
             try
@@ -1115,9 +1116,11 @@ public sealed class DropLinkHost(
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
             {
+                residual.Add(relative);
                 System.Diagnostics.Debug.WriteLine($"DropLink rollback deferred: {exception.GetType().Name}");
             }
         }
+        foreach (var relative in residual) receive.CompletedPaths.Enqueue(relative);
     }
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)

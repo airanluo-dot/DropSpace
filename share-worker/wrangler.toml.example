@@ -17,6 +17,14 @@ PUBLIC_ORIGIN = "https://share.example.invalid"
 name = "SHARE_COORDINATOR"
 class_name = "ShareUsageCoordinator"
 
+[[durable_objects.bindings]]
+name = "SHARE_CREATION_LIMITER"
+class_name = "ShareCreationLimiter"
+
 [[migrations]]
 tag = "v1"
 new_classes = ["ShareUsageCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["ShareCreationLimiter"]

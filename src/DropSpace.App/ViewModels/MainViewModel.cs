@@ -1150,14 +1150,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 _logger.LogError("Settings rollback failed in {Category}: {FailureType}.", category, exception.GetType().Name));
             if (rollbackFailures.Count > 0)
             {
-                var reconciliationFailures = await ReconcileSettingsStateAsync(previous).ConfigureAwait(false);
+                var reconciliationFailures = await ReconcileSettingsStateAsync(previous);
                 if (reconciliationFailures.Count > 0)
                 {
                     _logger.LogCritical(
                         "Settings update rollback and reconciliation both had failures. Rollback={RollbackFailures}, Reconciliation={ReconciliationFailures}.",
                         rollbackFailures.Count,
                         reconciliationFailures.Count);
-                    try { Settings = await _settingsService.LoadAsync(CancellationToken.None).ConfigureAwait(false); }
+                    try { Settings = await _settingsService.LoadAsync(CancellationToken.None); }
                     catch { Settings = previous; }
                     StatusMessage = previousStatus;
                     throw new AggregateException(
@@ -1166,7 +1166,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 }
             }
 
-            try { Settings = await _settingsService.LoadAsync(CancellationToken.None).ConfigureAwait(false); }
+            try { Settings = await _settingsService.LoadAsync(CancellationToken.None); }
             catch { Settings = previous; }
             StatusMessage = previousStatus;
             throw;
@@ -1178,7 +1178,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var failures = new List<Exception>();
         async Task AttemptAsync(string category, Func<Task> action)
         {
-            try { await action().ConfigureAwait(false); }
+            try { await action(); }
             catch (Exception exception)
             {
                 failures.Add(exception);

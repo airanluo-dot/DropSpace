@@ -90,8 +90,8 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                 .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var bound))
             {
-                await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                await app.DisposeAsync().ConfigureAwait(false);
+                await app.StopAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                await app.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
                 throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
             }
 
@@ -288,8 +288,8 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             _baseUri = null;
             if (app is not null)
             {
-                await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                await app.DisposeAsync().ConfigureAwait(false);
+                await app.StopAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                await app.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
             }
         }
         finally
