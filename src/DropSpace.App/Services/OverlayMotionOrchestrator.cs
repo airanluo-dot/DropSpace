@@ -12,7 +12,6 @@ internal sealed class OverlayMotionOrchestrator : IDisposable
     private bool _disposed;
     private bool _hasTarget;
     private bool _lastReducedMotion;
-    private bool _compositionAnimationsEnabled = true;
 
     public OverlayMotionOrchestrator(
         OverlayMotionValues initial,
@@ -33,9 +32,6 @@ internal sealed class OverlayMotionOrchestrator : IDisposable
 
     public long Generation { get; private set; }
 
-    internal void SetCompositionAnimationsEnabled(bool enabled) =>
-        _compositionAnimationsEnabled = enabled;
-
     public void SetTarget(OverlayMotionValues target, bool reducedMotion)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -49,18 +45,11 @@ internal sealed class OverlayMotionOrchestrator : IDisposable
         _hasTarget = true;
         _lastReducedMotion = reducedMotion;
         Generation++;
-        if (_compositionAnimationsEnabled)
-        {
-            _composition.AnimateTo(
-                Controller.Current,
-                target,
-                Controller.Profiles.ContentTransition,
-                reducedMotion);
-        }
-        else
-        {
-            _composition.SnapTo(target);
-        }
+        _composition.AnimateTo(
+            Controller.Current,
+            target,
+            Controller.Profiles.ContentTransition,
+            reducedMotion);
         Controller.SetTarget(target, reducedMotion);
     }
 

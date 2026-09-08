@@ -201,7 +201,6 @@ public sealed class OverlayWindowService : IDisposable
         var synchronousMotionDiagnosticCount = 0;
         foreach (var window in _windows)
         {
-            window.SetCompositionAnimationsEnabled(false);
             window.SetSmokeDiagnosticSink(label =>
             {
                 var asynchronousBoundary =
@@ -257,7 +256,6 @@ public sealed class OverlayWindowService : IDisposable
         {
             foreach (var window in _windows)
             {
-                window.SetCompositionAnimationsEnabled(true);
                 window.SetSmokeDiagnosticSink(null);
             }
         }
