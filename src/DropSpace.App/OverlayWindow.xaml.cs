@@ -27,6 +27,8 @@ namespace DropSpace.App;
 public sealed partial class OverlayWindow : Window
 {
     private const double HostWidth = 600;
+    private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
+    private static readonly TimeSpan IdleAnimationTimerInterval = TimeSpan.FromHours(1);
     private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
@@ -450,6 +452,7 @@ public sealed partial class OverlayWindow : Window
         }
         _suppressedForPlacementEdit = false;
         StopAnimationFrames();
+        _animationTimer.Stop();
         _animationTimer.Tick -= _animationTimerHandler;
         RevokeNativeDropTarget();
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
@@ -661,7 +664,11 @@ public sealed partial class OverlayWindow : Window
         }
 
         _lastFrameTimestamp = Stopwatch.GetTimestamp();
-        _animationTimer.Start();
+        _animationTimer.Interval = AnimationTimerInterval;
+        if (!_animationTimer.IsRunning)
+        {
+            _animationTimer.Start();
+        }
         _hasFrameSubscription = true;
     }
 
@@ -672,7 +679,11 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        _animationTimer.Stop();
+        // Keep one dispatcher timer registration for the window lifetime. Repeated native timer
+        // registration/unregistration during ordinary overlay cycles can retain one process
+        // handle per cycle on Windows. An hourly idle interval is not a frame loop; shutdown is
+        // the only path that stops and detaches the timer.
+        _animationTimer.Interval = IdleAnimationTimerInterval;
         _hasFrameSubscription = false;
     }
 
