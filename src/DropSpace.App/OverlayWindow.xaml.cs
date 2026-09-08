@@ -65,6 +65,7 @@ public sealed partial class OverlayWindow : Window
     private int _positionedHostHeightPixels = -1;
     private int _positionedHostLeftPixels = int.MinValue;
     private int _positionedHostTopPixels = int.MinValue;
+    private bool? _noActivateApplied;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -468,19 +469,17 @@ public sealed partial class OverlayWindow : Window
         }
 
         EnsureNativeDropTargetRegistered();
-        if (!OverlayWindowInterop.SetNoActivate(_windowHandle, !allowActivation, out var noActivateFailure))
+        var noActivate = !allowActivation;
+        if (_noActivateApplied != noActivate &&
+            !OverlayWindowInterop.SetNoActivate(_windowHandle, noActivate, out var noActivateFailure))
         {
             LogNativeFailure(noActivateFailure);
             HideForNativeFailure();
             return;
         }
+        _noActivateApplied = noActivate;
         if (_isVisible)
         {
-            if (!OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
-            {
-                LogNativeFailure(showFailure);
-                HideForNativeFailure();
-            }
             return;
         }
 
@@ -516,7 +515,7 @@ public sealed partial class OverlayWindow : Window
             LogNativeFailure(emptyRegionFailure);
             _nativeWindowSafeToShow = false;
         }
-        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+        if (_isVisible && !OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
         {
             LogNativeFailure(hideFailure);
             _nativeWindowSafeToShow = false;
@@ -1033,6 +1032,7 @@ public sealed partial class OverlayWindow : Window
             HideForNativeFailure();
             return;
         }
+        _noActivateApplied = true;
         if (!_isVisible)
         {
             if (!ApplyMotionFrame(_motion.Current))
