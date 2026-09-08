@@ -67,6 +67,7 @@ public sealed partial class OverlayWindow : Window
     private int _positionedHostLeftPixels = int.MinValue;
     private int _positionedHostTopPixels = int.MinValue;
     private bool? _noActivateApplied;
+    private bool _nativeWindowShown;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -495,9 +496,14 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var firstShowFailure))
+        if (_nativeWindowShown)
         {
             _isVisible = true;
+        }
+        else if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var firstShowFailure))
+        {
+            _isVisible = true;
+            _nativeWindowShown = true;
         }
         else
         {
@@ -517,14 +523,9 @@ public sealed partial class OverlayWindow : Window
             LogNativeFailure(emptyRegionFailure);
             _nativeWindowSafeToShow = false;
         }
-        if (_isVisible && !OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
-        {
-            LogNativeFailure(hideFailure);
-            _nativeWindowSafeToShow = false;
-        }
-        // Keep the OLE registration attached to the HWND lifetime. A hidden HWND is not
-        // discoverable by WindowFromPoint, so retaining the registration avoids repeatedly
-        // allocating/revoking COM drop targets during normal overlay lifecycles.
+        // Keep the HWND alive with an empty region during normal Hidden transitions. The empty
+        // region is zero-pixel and not discoverable by WindowFromPoint, while avoiding repeated
+        // native show/hide allocations. A real native failure still uses HideForNativeFailure.
         _motion.SnapTo(OverlayMotionValues.Hidden);
         CompleteMotionWaiters();
         _isVisible = false;
@@ -552,6 +553,7 @@ public sealed partial class OverlayWindow : Window
         }
 
         RevokeNativeDropTarget();
+        _nativeWindowShown = false;
         _isVisible = false;
         _visualPhase = OverlayVisualPhase.Invisible;
     }
@@ -718,13 +720,8 @@ public sealed partial class OverlayWindow : Window
                 LogNativeFailure(emptyRegionFailure);
                 _nativeWindowSafeToShow = false;
             }
-            if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
-            {
-                LogNativeFailure(hideFailure);
-                _nativeWindowSafeToShow = false;
-            }
-            // The HWND is hidden and therefore cannot receive a drop. Keep its single OLE
-            // registration for reuse when the overlay is shown again.
+            // The empty HRGN keeps this zero-pixel state out of WindowFromPoint while the HWND
+            // remains allocated for reuse.
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
             CompleteMotionWaiters();
@@ -803,6 +800,19 @@ public sealed partial class OverlayWindow : Window
                 hostHeight,
                 _monitor.Id);
             return false;
+        }
+
+        if (values.Opacity <= 0.001)
+        {
+            if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
+            {
+                Interlocked.Increment(ref _regionFailureCount);
+                LogNativeFailure(emptyRegionFailure);
+                HideForNativeFailure();
+                return false;
+            }
+
+            return true;
         }
 
         if (!_nativeRegionController.Apply(
@@ -1041,21 +1051,19 @@ public sealed partial class OverlayWindow : Window
             {
                 return;
             }
-            if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            if (_nativeWindowShown)
             {
                 _isVisible = true;
+            }
+            else if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            {
+                _isVisible = true;
+                _nativeWindowShown = true;
             }
             else
             {
                 LogNativeFailure(showFailure);
                 HideForNativeFailure();
-            }
-        }
-        else
-        {
-            if (!OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
-            {
-                LogNativeFailure(showFailure);
             }
         }
 
