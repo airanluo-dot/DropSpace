@@ -21,6 +21,14 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     private readonly Visual _content;
     private readonly Visual _interactionTint;
     private readonly Vector3 _contentBaseOffset;
+    private CompositionAnimation? _surfaceOpacityAnimation;
+    private CompositionAnimation? _shadowOpacityAnimation;
+    private CompositionAnimation? _compactOpacityAnimation;
+    private CompositionAnimation? _dragOpacityAnimation;
+    private CompositionAnimation? _expandedOpacityAnimation;
+    private CompositionAnimation? _contentOffsetAnimation;
+    private CompositionAnimation? _contentScaleAnimation;
+    private CompositionAnimation? _interactionTintAnimation;
     private bool _disposed;
 
     public OverlayCompositionAnimator(
@@ -53,16 +61,41 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         var surfaceDuration = reducedMotion
             ? OverlayMotionTokens.FasterMilliseconds
             : OverlayMotionTokens.FastMilliseconds;
-        AnimateScalar(_surface, "Opacity", current.Opacity, target.Opacity, surfaceDuration);
         AnimateScalar(
+            ref _surfaceOpacityAnimation,
+            _surface,
+            "Opacity",
+            current.Opacity,
+            target.Opacity,
+            surfaceDuration);
+        AnimateScalar(
+            ref _shadowOpacityAnimation,
             _shadow,
             "Opacity",
             current.Opacity * current.ShadowOpacity * 0.35,
             target.Opacity * target.ShadowOpacity * 0.35,
             surfaceDuration);
-        AnimateContent(_compact, current.CompactContent, target.CompactContent, profile, reducedMotion);
-        AnimateContent(_drag, current.DragContent, target.DragContent, profile, reducedMotion);
-        AnimateContent(_expanded, current.ExpandedContent, target.ExpandedContent, profile, reducedMotion);
+        AnimateContent(
+            ref _compactOpacityAnimation,
+            _compact,
+            current.CompactContent,
+            target.CompactContent,
+            profile,
+            reducedMotion);
+        AnimateContent(
+            ref _dragOpacityAnimation,
+            _drag,
+            current.DragContent,
+            target.DragContent,
+            profile,
+            reducedMotion);
+        AnimateContent(
+            ref _expandedOpacityAnimation,
+            _expanded,
+            current.ExpandedContent,
+            target.ExpandedContent,
+            profile,
+            reducedMotion);
         AnimateContentOffset(
             target.CompactContent > current.CompactContent ||
             target.DragContent > current.DragContent ||
@@ -88,6 +121,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     public void ApplyHover(bool entered, bool reducedMotion)
     {
         AnimateScalar(
+            ref _interactionTintAnimation,
             _interactionTint,
             "Opacity",
             _interactionTint.Opacity,
@@ -99,27 +133,38 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     {
         var from = _content.Scale.X;
         var to = pressed && !reducedMotion ? OverlayMotionTokens.PressScale : 1;
+        StopAnimation(_content, nameof(Visual.Scale), ref _contentScaleAnimation);
         var animation = _compositor.CreateVector3KeyFrameAnimation();
-        animation.InsertKeyFrame(0f, new Vector3(from, from, 1));
-        animation.InsertKeyFrame(1f, new Vector3((float)to, (float)to, 1));
-        animation.Duration = TimeSpan.FromMilliseconds(
-            reducedMotion ? OverlayMotionTokens.FasterMilliseconds : OverlayMotionTokens.FasterMilliseconds);
-        _content.StartAnimation(nameof(Visual.Scale), animation);
+        try
+        {
+            animation.InsertKeyFrame(0f, new Vector3(from, from, 1));
+            animation.InsertKeyFrame(1f, new Vector3((float)to, (float)to, 1));
+            animation.Duration = TimeSpan.FromMilliseconds(
+                reducedMotion ? OverlayMotionTokens.FasterMilliseconds : OverlayMotionTokens.FasterMilliseconds);
+            _content.StartAnimation(nameof(Visual.Scale), animation);
+            _contentScaleAnimation = animation;
+        }
+        catch
+        {
+            DisposeAnimation(animation);
+            throw;
+        }
     }
 
     public void StopAll()
     {
-        _surface.StopAnimation(nameof(Visual.Opacity));
-        _shadow.StopAnimation(nameof(Visual.Opacity));
-        _compact.StopAnimation(nameof(Visual.Opacity));
-        _drag.StopAnimation(nameof(Visual.Opacity));
-        _expanded.StopAnimation(nameof(Visual.Opacity));
-        _content.StopAnimation(nameof(Visual.Offset));
-        _content.StopAnimation(nameof(Visual.Scale));
-        _interactionTint.StopAnimation(nameof(Visual.Opacity));
+        StopAnimation(_surface, nameof(Visual.Opacity), ref _surfaceOpacityAnimation);
+        StopAnimation(_shadow, nameof(Visual.Opacity), ref _shadowOpacityAnimation);
+        StopAnimation(_compact, nameof(Visual.Opacity), ref _compactOpacityAnimation);
+        StopAnimation(_drag, nameof(Visual.Opacity), ref _dragOpacityAnimation);
+        StopAnimation(_expanded, nameof(Visual.Opacity), ref _expandedOpacityAnimation);
+        StopAnimation(_content, nameof(Visual.Offset), ref _contentOffsetAnimation);
+        StopAnimation(_content, nameof(Visual.Scale), ref _contentScaleAnimation);
+        StopAnimation(_interactionTint, nameof(Visual.Opacity), ref _interactionTintAnimation);
     }
 
     private void AnimateContent(
+        ref CompositionAnimation? animationSlot,
         Visual visual,
         double current,
         double target,
@@ -129,6 +174,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         if (target > current)
         {
             AnimateScalar(
+                ref animationSlot,
                 visual,
                 "Opacity",
                 current,
@@ -139,6 +185,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         else
         {
             AnimateScalar(
+                ref animationSlot,
                 visual,
                 "Opacity",
                 current,
@@ -152,7 +199,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         ContentTransitionProfile profile,
         bool reducedMotion)
     {
-        _content.StopAnimation(nameof(Visual.Offset));
+        StopAnimation(_content, nameof(Visual.Offset), ref _contentOffsetAnimation);
         var duration = reducedMotion
             ? OverlayMotionTokens.FasterMilliseconds
             : incoming ? profile.IncomingDurationMilliseconds : profile.OutgoingDurationMilliseconds;
@@ -162,14 +209,24 @@ internal sealed class OverlayCompositionAnimator : IDisposable
             : _contentBaseOffset;
         _content.Offset = from;
         var animation = _compositor.CreateVector3KeyFrameAnimation();
-        animation.InsertKeyFrame(0f, from);
-        animation.InsertKeyFrame(1f, _contentBaseOffset);
-        animation.Duration = TimeSpan.FromMilliseconds(Math.Max(1, duration));
-        animation.DelayTime = TimeSpan.FromMilliseconds(Math.Max(0, delay));
-        _content.StartAnimation(nameof(Visual.Offset), animation);
+        try
+        {
+            animation.InsertKeyFrame(0f, from);
+            animation.InsertKeyFrame(1f, _contentBaseOffset);
+            animation.Duration = TimeSpan.FromMilliseconds(Math.Max(1, duration));
+            animation.DelayTime = TimeSpan.FromMilliseconds(Math.Max(0, delay));
+            _content.StartAnimation(nameof(Visual.Offset), animation);
+            _contentOffsetAnimation = animation;
+        }
+        catch
+        {
+            DisposeAnimation(animation);
+            throw;
+        }
     }
 
     private void AnimateScalar(
+        ref CompositionAnimation? animationSlot,
         Visual visual,
         string property,
         double current,
@@ -177,13 +234,41 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         double durationMilliseconds,
         double delayMilliseconds = 0)
     {
+        StopAnimation(visual, property, ref animationSlot);
         visual.Opacity = (float)Math.Clamp(current, 0, 1);
         var animation = _compositor.CreateScalarKeyFrameAnimation();
-        animation.InsertKeyFrame(0f, (float)Math.Clamp(current, 0, 1));
-        animation.InsertKeyFrame(1f, (float)Math.Clamp(target, 0, 1));
-        animation.Duration = TimeSpan.FromMilliseconds(Math.Max(1, durationMilliseconds));
-        animation.DelayTime = TimeSpan.FromMilliseconds(Math.Max(0, delayMilliseconds));
-        visual.StartAnimation(property, animation);
+        try
+        {
+            animation.InsertKeyFrame(0f, (float)Math.Clamp(current, 0, 1));
+            animation.InsertKeyFrame(1f, (float)Math.Clamp(target, 0, 1));
+            animation.Duration = TimeSpan.FromMilliseconds(Math.Max(1, durationMilliseconds));
+            animation.DelayTime = TimeSpan.FromMilliseconds(Math.Max(0, delayMilliseconds));
+            visual.StartAnimation(property, animation);
+            animationSlot = animation;
+        }
+        catch
+        {
+            DisposeAnimation(animation);
+            throw;
+        }
+    }
+
+    private static void StopAnimation(
+        Visual visual,
+        string property,
+        ref CompositionAnimation? animationSlot)
+    {
+        visual.StopAnimation(property);
+        DisposeAnimation(animationSlot);
+        animationSlot = null;
+    }
+
+    private static void DisposeAnimation(CompositionAnimation? animation)
+    {
+        if (animation is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 
     public void Dispose()
