@@ -778,7 +778,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
 
-        if (!await _projectionLoadGate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        if (!await _projectionLoadGate.WaitAsync(0, cancellationToken))
         {
             return;
         }
