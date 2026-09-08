@@ -30,6 +30,10 @@ jobs:
       - name: Apply asserted repository patches
         run: python scripts/apply-audit-fixes-batch2.py
 
+      - name: Keep release governance update for connector-owned commit
+        shell: bash
+        run: git checkout HEAD -- .github/workflows/release.yml
+
       - name: Commit generated hardening changes
         shell: bash
         run: |
