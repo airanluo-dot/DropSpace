@@ -367,6 +367,7 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
+        EmitSmokeDiagnostic($"snapshot-before:{snapshot.State}");
         if (_suppressedForPlacementEdit)
         {
             HideImmediately();
@@ -447,7 +448,9 @@ public sealed partial class OverlayWindow : Window
             _motion.PulseDropTarget(OverlayMotionTokens.DropConfirmationScale);
         }
 
+        EmitSmokeDiagnostic($"set-target-before:{snapshot.State}");
         _motion.SetTarget(target, IsReducedMotion());
+        EmitSmokeDiagnostic($"set-target-after:{snapshot.State}");
         StartAnimationFrames();
         _previousState = snapshot.State;
     }
@@ -533,6 +536,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        EmitSmokeDiagnostic("hide-before");
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
@@ -550,6 +554,7 @@ public sealed partial class OverlayWindow : Window
         _isVisible = false;
         _hideWhenSettled = false;
         _visualPhase = OverlayVisualPhase.Invisible;
+        EmitSmokeDiagnostic("hide-after");
     }
 
     private void HideForNativeFailure()
