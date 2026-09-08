@@ -1287,7 +1287,6 @@ public sealed class OverlayWindowService : IDisposable
 
     private static string FormatResourceSnapshot(string name, ResourceSnapshot snapshot) =>
         $"{name}:handles={snapshot.HandleCount},GDI={snapshot.GdiObjects},USER={snapshot.UserObjects},privateBytes={snapshot.PrivateBytes}";
-    }
 
     private VisibleWindowProbe ProbeActiveVisualCenter()
     {
