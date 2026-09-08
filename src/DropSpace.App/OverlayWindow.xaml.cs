@@ -28,7 +28,6 @@ public sealed partial class OverlayWindow : Window
 {
     private const double HostWidth = 600;
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
-    private static readonly TimeSpan IdleAnimationTimerInterval = TimeSpan.FromHours(1);
     private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
@@ -692,11 +691,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        // Keep one dispatcher timer registration for the window lifetime. Repeated native timer
-        // registration/unregistration during ordinary overlay cycles can retain one process
-        // handle per cycle on Windows. An hourly idle interval is not a frame loop; shutdown is
-        // the only path that stops and detaches the timer.
-        _animationTimer.Interval = IdleAnimationTimerInterval;
+        _animationTimer.Stop();
         _hasFrameSubscription = false;
     }
 
