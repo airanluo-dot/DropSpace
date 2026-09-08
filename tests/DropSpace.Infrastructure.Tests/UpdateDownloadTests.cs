@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Updates;
@@ -34,7 +35,7 @@ public sealed class UpdateDownloadTests
     }
 
     [TestMethod]
-    public async Task WrongHash_WrongSize_AndInterruptedStream_AreNeverPromoted()
+    public async Task WrongHashAndWrongSize_AreNeverPromotedOrRetained()
     {
         var bytes = Enumerable.Repeat((byte)7, 8192).ToArray();
         var wrongHash = new string('a', 64);
@@ -45,21 +46,95 @@ public sealed class UpdateDownloadTests
         var (sizeDownloader, sizeCandidate, sizePaths) = Create(bytes, bytes.Length + 1, Hash(bytes));
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => sizeDownloader.DownloadAsync(sizeCandidate));
         AssertNoExecutable(sizePaths);
-
-        var (interruptedDownloader, interruptedCandidate, interruptedPaths) = Create(
-            bytes,
-            bytes.Length,
-            Hash(bytes),
-            _ => new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StreamContent(new ThrowingReadStream(bytes, bytes.Length / 2)),
-            });
-        await Assert.ThrowsExactlyAsync<IOException>(() => interruptedDownloader.DownloadAsync(interruptedCandidate));
-        AssertNoExecutable(interruptedPaths);
     }
 
     [TestMethod]
-    public async Task CancellationAndTransportFailure_CleanPartialPayload()
+    public async Task InterruptedStream_IsRetainedAndResumedWithValidatedRange()
+    {
+        var bytes = Enumerable.Range(0, 128_000).Select(index => (byte)(index % 239)).ToArray();
+        var attempt = 0;
+        long requestedOffset = -1;
+        var (downloader, candidate, paths) = Create(
+            bytes,
+            bytes.Length,
+            Hash(bytes),
+            request =>
+            {
+                attempt++;
+                if (attempt == 1)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StreamContent(new ThrowingReadStream(bytes, bytes.Length / 2)),
+                    };
+                }
+
+                var range = request.Headers.Range?.Ranges.SingleOrDefault();
+                Assert.IsNotNull(range);
+                Assert.IsNotNull(range.From);
+                requestedOffset = range.From.Value;
+                var remaining = bytes[(int)requestedOffset..];
+                var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+                {
+                    Content = new ByteArrayContent(remaining),
+                };
+                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(
+                    requestedOffset,
+                    bytes.Length - 1,
+                    bytes.Length);
+                return response;
+            });
+
+        await Assert.ThrowsExactlyAsync<IOException>(() => downloader.DownloadAsync(candidate));
+        var partial = Directory.GetFiles(paths.Updates, "*.download", SearchOption.AllDirectories).Single();
+        var retainedLength = new FileInfo(partial).Length;
+        Assert.IsGreaterThan(0, retainedLength);
+        Assert.IsLessThan(bytes.Length, retainedLength);
+
+        var result = await downloader.DownloadAsync(candidate);
+        Assert.AreEqual(retainedLength, requestedOffset);
+        Assert.AreEqual(2, attempt);
+        CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(result.FilePath));
+        Assert.IsFalse(File.Exists(partial));
+    }
+
+    [TestMethod]
+    public async Task ServerIgnoringRange_RestartsStagingWithoutDuplicatingBytes()
+    {
+        var bytes = Enumerable.Range(0, 32_000).Select(index => (byte)(index % 251)).ToArray();
+        var requests = 0;
+        var (downloader, candidate, paths) = Create(
+            bytes,
+            bytes.Length,
+            Hash(bytes),
+            request =>
+            {
+                requests++;
+                if (requests == 1)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StreamContent(new ThrowingReadStream(bytes, bytes.Length / 3)),
+                    };
+                }
+
+                Assert.IsNotNull(request.Headers.Range);
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(bytes),
+                };
+            });
+
+        await Assert.ThrowsExactlyAsync<IOException>(() => downloader.DownloadAsync(candidate));
+        Assert.IsNotEmpty(Directory.GetFiles(paths.Updates, "*.download", SearchOption.AllDirectories));
+
+        var result = await downloader.DownloadAsync(candidate);
+        Assert.AreEqual(2, requests);
+        CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(result.FilePath));
+    }
+
+    [TestMethod]
+    public async Task CancellationAndTransportFailure_DoNotPromotePayload()
     {
         var bytes = Enumerable.Repeat((byte)9, 1024).ToArray();
         var (cancelDownloader, cancelCandidate, cancelPaths) = Create(

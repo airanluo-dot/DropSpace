@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import worker, { ShareUsageCoordinator } from "../src/index.js";
+import worker, { ShareCreationLimiter, ShareUsageCoordinator } from "../src/index.js";
 
 const shareId = "00112233445566778899aabbccddeeff";
 const fileOne = "11112222333344445555666677778888";
@@ -32,6 +32,27 @@ async function invoke(coordinator, operation, payload = {}) {
   }));
   return { status: response.status, body: await response.json() };
 }
+
+test("share creation limiter enforces a bounded window", async () => {
+  const values = new Map();
+  const limiter = new ShareCreationLimiter({
+    storage: {
+      async get(key) { return values.get(key); },
+      async put(key, value) { values.set(key, value); },
+    },
+    async blockConcurrencyWhile(callback) { return callback(); },
+  });
+  const request = () => new Request("https://limiter/admit", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ limit: 2, windowMs: 60_000 }),
+  });
+  assert.equal((await limiter.fetch(request())).status, 200);
+  assert.equal((await limiter.fetch(request())).status, 200);
+  const limited = await limiter.fetch(request());
+  assert.equal(limited.status, 429);
+  assert.equal((await limited.json()).error, "creation-rate-limited");
+});
 
 test("the coordinator reserves concurrent plaintext byte usage atomically", async () => {
   const coordinator = createCoordinator();

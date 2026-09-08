@@ -1,0 +1,50 @@
+name: Explicit Release Dispatch Bridge
+
+on:
+  create:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    name: Dispatch validated release publication
+    if: >-
+      github.ref_type == 'branch' &&
+      startsWith(github.ref_name, 'publish/') &&
+      github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Validate immutable publication request
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(tr -d '\r\n' < RELEASE_VERSION)"
+          expected_ref="publish/${tag}"
+          main_sha="$(git rev-parse HEAD)"
+
+          if [[ "${GITHUB_REF_NAME}" != "${expected_ref}" ]]; then
+            echo "Expected publication branch ${expected_ref}, got ${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_SHA}" != "${main_sha}" ]]; then
+            echo "Publication branch must point exactly at current main (${main_sha}); got ${GITHUB_SHA}." >&2
+            exit 1
+          fi
+
+          echo "Validated explicit publication request for ${tag} at ${main_sha}."
+
+      - name: Dispatch canonical release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --repo "${GITHUB_REPOSITORY}" --ref main -f publish=true

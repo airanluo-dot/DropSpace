@@ -146,6 +146,28 @@ public sealed partial class MainPage : Page
         _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
     }
 
+    private async void OnItemsContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.InRecycleQueue || !_viewModel.HasMoreItems ||
+            args.ItemIndex + 40 < sender.Items.Count)
+        {
+            return;
+        }
+
+        try
+        {
+            await _viewModel.LoadMoreItemsAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer navigation/search projection superseded this incremental request.
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Incremental item projection failed; the current page remains usable.");
+        }
+    }
+
     private async void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (_syncingNavigation || args.SelectedItemContainer?.Tag is not string section)

@@ -18,7 +18,7 @@ Set the resulting Worker URL as the desktop backend URL. The backend endpoint mu
 The browser receiver uses WebCrypto, validates the manifest and each chunk hash, supports multiple files, and never renders a directory listing. The desktop/Worker wire contract is `12-byte manifest nonce | manifest ciphertext | 16-byte tag` and `chunk ciphertext | 16-byte tag`; object names and upload metadata are bounded and authenticated. Logs must not include `#k=` fragments or request bodies.
 
 
-The Worker requires the `SHARE_COORDINATOR` Durable Object binding shown in `wrangler.toml.example`. It is the authoritative concurrency-safe ledger for the token's aggregate item and plaintext-byte limits; requests fail closed when the binding is absent. The revoke path marks the coordinator first and paginates R2 deletion, so a large share cannot leave undeleted objects after the first listing page.
+The Worker requires the `SHARE_COORDINATOR` Durable Object binding shown in `wrangler.toml.example`. It is the authoritative concurrency-safe ledger for the token's aggregate item and plaintext-byte limits; requests fail closed when the binding is absent. The revoke path marks the coordinator first and paginates R2 deletion, so a large share cannot leave undeleted objects after the first listing page. `SHARE_CREATION_LIMITER` is also mandatory: creation is admitted through a per-source hashed bucket and a global one-minute budget before the request body is read. Keep Cloudflare WAF/rate-limiting enabled as an additional edge layer rather than relying on application admission alone.
 
 ## Receiver download memory boundary
 

@@ -36,6 +36,20 @@ public interface IItemRepository
 
     Task<IReadOnlyList<DropItem>> QueryAsync(ItemQuery query, CancellationToken cancellationToken = default);
 
+    async Task<ItemQueryPage> QueryPageAsync(
+        ItemQuery query,
+        ItemQueryCursor? cursor = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (cursor is not null)
+        {
+            throw new NotSupportedException("This repository does not implement keyset continuation.");
+        }
+
+        var items = await QueryAsync(query with { Offset = 0 }, cancellationToken).ConfigureAwait(false);
+        return new ItemQueryPage(items, null, false);
+    }
+
     Task<IReadOnlyList<DropItem>> QueryDropBatchAsync(
         Guid dropBatchId,
         CancellationToken cancellationToken = default);

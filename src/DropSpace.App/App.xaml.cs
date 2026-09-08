@@ -511,6 +511,8 @@ public partial class App : Application
         services.AddSingleton<DragSessionDetector>();
         services.AddSingleton<GlobalQuickPanelHotkeyService>();
         services.AddSingleton<SystemVisualPreferenceService>();
+        services.AddSingleton<ItemProjectionService>();
+        services.AddSingleton<SettingsApplicationCoordinator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();
@@ -580,10 +582,10 @@ public partial class App : Application
         {
             var paths = AppStoragePaths.CreateForCurrentUser();
             Directory.CreateDirectory(paths.Logs);
-            var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={SummarizeExceptionChain(exception)}";
+            var marker = $"{DateTimeOffset.UtcNow:O} stage={stage} exception={LogRedactor.Redact(SummarizeExceptionChain(exception))}";
             if (!string.IsNullOrWhiteSpace(exception.StackTrace))
             {
-                marker += $"{Environment.NewLine}stack={exception.StackTrace.ReplaceLineEndings(" | ")}";
+                marker += $"{Environment.NewLine}stack={LogRedactor.Redact(exception.StackTrace.ReplaceLineEndings(" | "))}";
             }
             File.WriteAllText(Path.Combine(paths.Logs, "crash.marker"), marker);
         }

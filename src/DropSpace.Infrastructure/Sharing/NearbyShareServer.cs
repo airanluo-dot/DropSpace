@@ -23,6 +23,7 @@ public sealed record NearbyShareItem(
 
 public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDisposable
 {
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly ShareLimits _limits = (limits ?? new ShareLimits()).Validate();
     private readonly ConcurrentDictionary<Guid, NearbyShare> _shares = new();
     private readonly SemaphoreSlim _startGate = new(1, 1);
@@ -89,8 +90,8 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
                 .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(address) || !Uri.TryCreate(address, UriKind.Absolute, out var bound))
             {
-                await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                await app.DisposeAsync().ConfigureAwait(false);
+                await app.StopAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                await app.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
                 throw new InvalidOperationException("Nearby share server did not expose a bound endpoint.");
             }
 
@@ -278,7 +279,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
 
-        await _startGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        await _startGate.WaitAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
         try
         {
             _shares.Clear();
@@ -287,8 +288,8 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             _baseUri = null;
             if (app is not null)
             {
-                await app.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                await app.DisposeAsync().ConfigureAwait(false);
+                await app.StopAsync(CancellationToken.None).WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                await app.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
             }
         }
         finally

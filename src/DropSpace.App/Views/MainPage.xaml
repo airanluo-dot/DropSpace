@@ -167,6 +167,7 @@
             x:Name="ItemsList"
  services:XamlResourceOverride.Uid="ItemsList"
             CanDragItems="True"
+            ContainerContentChanging="OnItemsContainerContentChanging"
             DoubleTapped="OnItemDoubleTapped"
             DragItemsStarting="OnDragItemsStarting"
             IsItemClickEnabled="False"

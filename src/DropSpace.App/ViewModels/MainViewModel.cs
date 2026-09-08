@@ -21,22 +21,18 @@ namespace DropSpace.App.ViewModels;
 public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
     private readonly IItemRepository _repository;
+    private readonly ItemProjectionService _projection;
     private readonly StagedFileImportService _stagedFiles;
-    private readonly SemaphoreSlim _settingsChangeGate = new(1, 1);
     private readonly IItemActionRegistry _actions;
     private readonly UndoCoordinator _undo;
-    private readonly ISettingsService _settingsService;
+    private readonly SettingsApplicationCoordinator _settingsCoordinator;
     private readonly IPayloadStore _payloadStore;
     private readonly IFileReferenceService _fileReferences;
     private readonly ILocalStorageMetrics _storageMetrics;
-    private readonly IStartupRegistrationService _startupRegistration;
     private readonly WindowsShareIntegrationService _windowsShareIntegration;
     private readonly MonitorLayoutService _monitorLayout;
     private readonly DragSessionDetector _dragSessionDetector;
-    private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
     private readonly ClipboardCaptureService _clipboard;
-    private readonly DeviceHandoffService _deviceHandoff;
-    private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly ShellActionService _shell;
     private readonly ThumbnailService _thumbnails;
     private readonly DragStorageItemService _dragStorageItems;
@@ -45,6 +41,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
+    private readonly SemaphoreSlim _projectionLoadGate = new(1, 1);
+    private ItemQueryCursor? _projectionCursor;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private readonly object _backgroundTaskGate = new();
     private readonly HashSet<Task> _backgroundTasks = [];
@@ -57,6 +55,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private string _clipboardStatusText = string.Empty;
     private bool _isBusy;
     private bool _isEmpty = true;
+    private bool _hasMoreItems;
     private bool _isSettingsVisible;
     private int _itemCount;
     private int _spaceItemCount;
@@ -72,21 +71,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public MainViewModel(
         IItemRepository repository,
+        ItemProjectionService projection,
         StagedFileImportService stagedFiles,
         IItemActionRegistry actions,
         UndoCoordinator undo,
-        ISettingsService settingsService,
+        SettingsApplicationCoordinator settingsCoordinator,
         IPayloadStore payloadStore,
         IFileReferenceService fileReferences,
         ILocalStorageMetrics storageMetrics,
-        IStartupRegistrationService startupRegistration,
         WindowsShareIntegrationService windowsShareIntegration,
         MonitorLayoutService monitorLayout,
         DragSessionDetector dragSessionDetector,
-        GlobalQuickPanelHotkeyService quickPanelHotkey,
         ClipboardCaptureService clipboard,
-        DeviceHandoffService deviceHandoff,
-        CrossDeviceClipboardService crossDeviceClipboard,
         ShellActionService shell,
         ThumbnailService thumbnails,
         DragStorageItemService dragStorageItems,
@@ -96,21 +92,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         ILogger<MainViewModel> logger)
     {
         _repository = repository;
+        _projection = projection;
         _stagedFiles = stagedFiles;
         _actions = actions;
         _undo = undo;
-        _settingsService = settingsService;
+        _settingsCoordinator = settingsCoordinator;
         _payloadStore = payloadStore;
         _fileReferences = fileReferences;
         _storageMetrics = storageMetrics;
-        _startupRegistration = startupRegistration;
         _windowsShareIntegration = windowsShareIntegration;
         _monitorLayout = monitorLayout;
         _dragSessionDetector = dragSessionDetector;
-        _quickPanelHotkey = quickPanelHotkey;
         _clipboard = clipboard;
-        _deviceHandoff = deviceHandoff;
-        _crossDeviceClipboard = crossDeviceClipboard;
         _shell = shell;
         _thumbnails = thumbnails;
         _dragStorageItems = dragStorageItems;
@@ -215,6 +208,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         get => _isEmpty;
         private set => SetProperty(ref _isEmpty, value);
+    }
+
+    public bool HasMoreItems
+    {
+        get => _hasMoreItems;
+        private set => SetProperty(ref _hasMoreItems, value);
     }
 
     public bool IsSettingsVisible
@@ -586,14 +585,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        Settings = await _settingsService.LoadAsync(cancellationToken);
+        Settings = await _settingsCoordinator.LoadAsync(cancellationToken);
         var migratedSettings = MigrateLegacyOverlayPlacements(Settings);
         if (!ReferenceEquals(migratedSettings, Settings))
         {
-            await _settingsService.SaveAsync(migratedSettings, cancellationToken);
+            await _settingsCoordinator.SaveAsync(migratedSettings, cancellationToken);
             Settings = migratedSettings;
         }
-        await _startupRegistration.SetEnabledAsync(Settings.StartWithWindows, cancellationToken);
+        await _settingsCoordinator.EnsureStartupStateAsync(Settings, cancellationToken);
         await _repository.InitializeAsync(cancellationToken);
         await _undo.RecoverStaleAsync(cancellationToken);
         await RefreshSpaceItemCountAsync(cancellationToken);
@@ -706,6 +705,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 PageDescription = _strings.Get("PageDescriptionSettings");
                 IsBusy = false;
                 Items.Clear();
+                _projectionCursor = null;
+                HasMoreItems = false;
                 ItemCount = 0;
                 IsEmpty = true;
                 return;
@@ -723,41 +724,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var revision = Interlocked.Increment(ref _reloadRevision);
+        var request = new ItemProjectionRequest(CurrentSection, SearchText);
         IsBusy = true;
         try
         {
-            var hasGlobalSearch = !string.IsNullOrWhiteSpace(SearchText);
-            var query = hasGlobalSearch
-                ? new ItemQuery(Search: SearchText, Limit: 500)
-                : CurrentSection switch
-                {
-                    "Clipboard" => new ItemQuery(Source: ItemSource.Clipboard, Limit: 500),
-                    "Pinned" => new ItemQuery(PinnedOnly: true, Limit: 500),
-                    _ => new ItemQuery(Source: ItemSource.Space, Limit: 500),
-                };
-
-            var items = await _repository.QueryAsync(query, cancellationToken);
+            var page = await _projection.LoadPageAsync(request, null, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible)
+            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible ||
+                !ProjectionRequestStillCurrent(request))
             {
                 return;
             }
 
             Items.Clear();
-            foreach (var item in items)
-            {
-                var card = new ItemCardViewModel(item, _strings);
-                RefreshPrimaryQuickActions(card);
-                Items.Add(card);
-                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
-            }
+            AppendProjectionItems(page.Items);
             ApplyBatchProjectionState();
-
+            _projectionCursor = page.NextCursor;
+            HasMoreItems = page.HasMore;
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
-            // SpaceItemCount comes from the repository count, never the 500-item page.
 
-            StatusMessage = hasGlobalSearch && Items.Count == 0 ? _strings.Get("SearchNoMatches") : string.Empty;
+            StatusMessage = !string.IsNullOrWhiteSpace(request.SearchText) && Items.Count == 0
+                ? _strings.Get("SearchNoMatches")
+                : string.Empty;
         }
         finally
         {
@@ -765,6 +754,64 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             {
                 IsBusy = false;
             }
+        }
+    }
+
+    public async Task LoadMoreItemsAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!HasMoreItems || IsSettingsVisible || _projectionCursor is null)
+        {
+            return;
+        }
+
+        if (!await _projectionLoadGate.WaitAsync(0, cancellationToken))
+        {
+            return;
+        }
+
+        try
+        {
+            var revision = Volatile.Read(ref _reloadRevision);
+            var request = new ItemProjectionRequest(CurrentSection, SearchText);
+            var cursor = _projectionCursor;
+            if (cursor is null) return;
+
+            var page = await _projection.LoadPageAsync(request, cursor, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed || revision != Volatile.Read(ref _reloadRevision) || IsSettingsVisible ||
+                !ProjectionRequestStillCurrent(request))
+            {
+                return;
+            }
+
+            AppendProjectionItems(page.Items);
+            ApplyBatchProjectionState();
+            _projectionCursor = page.NextCursor;
+            HasMoreItems = page.HasMore;
+            ItemCount = Items.Count;
+            IsEmpty = Items.Count == 0;
+        }
+        finally
+        {
+            _projectionLoadGate.Release();
+        }
+    }
+
+    private bool ProjectionRequestStillCurrent(ItemProjectionRequest request) =>
+        string.Equals(request.Section, CurrentSection, StringComparison.Ordinal) &&
+        string.Equals(request.SearchText, SearchText, StringComparison.Ordinal);
+
+    private void AppendProjectionItems(IEnumerable<DropItem> items)
+    {
+        var knownIds = Items.Select(card => card.Id).ToHashSet();
+        foreach (var item in items)
+        {
+            if (!knownIds.Add(item.Id)) continue;
+            var card = new ItemCardViewModel(item, _strings);
+            RefreshPrimaryQuickActions(card);
+            Items.Add(card);
+            TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
         }
     }
 
@@ -1078,77 +1125,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task SetClipboardPausedAsync(bool paused, CancellationToken cancellationToken = default)
     {
-        await _settingsChangeGate.WaitAsync(cancellationToken);
-        try { await SetClipboardPausedCoreAsync(paused, cancellationToken); }
-        finally { _settingsChangeGate.Release(); }
-    }
-
-    private async Task SetClipboardPausedCoreAsync(bool paused, CancellationToken cancellationToken)
-    {
-        if (paused)
-        {
-            await _clipboard.PauseAsync(cancellationToken);
-        }
-        else
-        {
-            await _clipboard.ResumeAsync(cancellationToken);
-        }
-
-        Settings = await _settingsService.LoadAsync(cancellationToken);
+        Settings = await _settingsCoordinator.SetClipboardPausedAsync(paused, cancellationToken);
     }
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
-        await _settingsChangeGate.WaitAsync(cancellationToken);
-        try
-        {
-            // A settings form does not own the runtime pause or update-check fields.
-            settings = settings with { ClipboardPaused = Settings.ClipboardPaused, LastUpdateCheckUtc = Settings.LastUpdateCheckUtc };
-            await UpdateSettingsCoreAsync(settings, cancellationToken);
-        }
-        finally { _settingsChangeGate.Release(); }
-    }
-
-    private async Task UpdateSettingsCoreAsync(AppSettings settings, CancellationToken cancellationToken)
-    {
-        settings.Validate();
+        ArgumentNullException.ThrowIfNull(settings);
         var previous = Settings;
-        var preflight = UiSettingsPreflightAsync;
-        var rollback = new SettingsTransactionRollbackCoordinator();
         var previousStatus = StatusMessage;
         try
         {
-            if (!string.Equals(settings.QuickPanelHotkey, previous.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase) &&
-                !_quickPanelHotkey.CanRegister(settings.QuickPanelHotkey))
-            {
-                throw new InvalidOperationException("The requested Quick Panel hotkey is already registered by another application.");
-            }
-            if (preflight is not null)
-            {
-                rollback.Committed("ui-preflight", () => preflight(previous, CancellationToken.None));
-                await preflight(settings, cancellationToken);
-            }
-
-            rollback.Committed("startup", () => _startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
-            await _startupRegistration.SetEnabledAsync(settings.StartWithWindows, cancellationToken);
-            rollback.Committed("clipboard", () => _clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _clipboard.UpdateSettingsAsync(settings, cancellationToken);
-            rollback.Committed("handoff", () => _deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _deviceHandoff.UpdateSettingsAsync(settings, cancellationToken);
-            rollback.Committed("cross-device-clipboard", () => _crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-            await _crossDeviceClipboard.UpdateSettingsAsync(settings, cancellationToken);
-            rollback.Committed("settings-store", () => _settingsService.SaveAsync(previous, CancellationToken.None));
-            await _settingsService.SaveAsync(settings, cancellationToken);
-            Settings = settings;
-            StatusMessage = settings.Language == previous.Language
+            Settings = await _settingsCoordinator.UpdateAsync(
+                previous,
+                settings,
+                UiSettingsPreflightAsync,
+                cancellationToken);
+            StatusMessage = Settings.Language == previous.Language
                 ? _strings.Get("SettingsSaved")
                 : _strings.Get("LanguageChangeRestartRequired");
         }
         catch
         {
-            await rollback.RollbackAsync((category, exception) =>
-                _logger.LogError("Settings rollback failed in {Category}: {FailureType}.", category, exception.GetType().Name));
-            Settings = previous;
+            Settings = await _settingsCoordinator.RecoverPersistedStateAsync(previous);
             StatusMessage = previousStatus;
             throw;
         }
@@ -1599,22 +1597,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
 
-        await _settingsChangeGate.WaitAsync(cancellationToken);
-        try
+        var updated = await _settingsCoordinator.UpdateLastCheckAsync(Settings, checkedAt, cancellationToken);
+        Task ApplyAsync()
         {
-            var updated = await _settingsService.UpdateAsync(current =>
-                current.LastUpdateCheckUtc is { } previous && previous >= checkedAt
-                    ? current
-                    : current with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() }, cancellationToken);
-            Task ApplyAsync()
-            {
-                Settings = Settings with { LastUpdateCheckUtc = updated.LastUpdateCheckUtc };
-                return Task.CompletedTask;
-            }
-            if (_dispatcher.HasThreadAccess) await ApplyAsync();
-            else await _dispatcher.EnqueueAsync(ApplyAsync);
+            Settings = updated;
+            return Task.CompletedTask;
         }
-        finally { _settingsChangeGate.Release(); }
+
+        if (_dispatcher.HasThreadAccess) await ApplyAsync();
+        else await _dispatcher.EnqueueAsync(ApplyAsync);
     }
 
     private string FormatClipboardStatus(ClipboardCaptureStatus status) => status.State switch

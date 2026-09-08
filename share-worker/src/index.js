@@ -44,8 +44,39 @@ export default {
   },
 };
 
+const CREATE_WINDOW_MS = 60_000;
+const CREATE_SOURCE_LIMIT = 30;
+const CREATE_GLOBAL_LIMIT = 600;
+
+async function requireCreateAdmission(request, env) {
+  const binding = env.SHARE_CREATION_LIMITER;
+  if (!binding || typeof binding.idFromName !== "function" || typeof binding.get !== "function") {
+    throw new HttpError("creation-limiter-unavailable", 503);
+  }
+  const address = request.headers.get("cf-connecting-ip") || "unknown";
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(address)));
+  const sourceKey = [...digest.subarray(0, 16)].map(value => value.toString(16).padStart(2, "0")).join("");
+  await admitCreation(binding, "global", CREATE_GLOBAL_LIMIT);
+  await admitCreation(binding, "source-" + sourceKey, CREATE_SOURCE_LIMIT);
+}
+
+async function admitCreation(binding, key, limit) {
+  const stub = binding.get(binding.idFromName(key));
+  const response = await stub.fetch("https://dropspace-creation-limiter/admit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ limit, windowMs: CREATE_WINDOW_MS }),
+  });
+  if (!response.ok) {
+    let result = {};
+    try { result = await response.json(); } catch { result = {}; }
+    throw new HttpError(result.error || "creation-rate-limited", response.status === 429 ? 429 : 503);
+  }
+}
+
 async function createShare(request, env) {
   requireHttps(request);
+  await requireCreateAdmission(request, env);
   const body = await readJson(request, MAX_CREATE_REQUEST_BYTES);
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new HttpError("request-invalid", 400);
   const shareId = String(body.shareId || "").replaceAll("-", "").toLowerCase();
@@ -374,7 +405,39 @@ function publicOrigin(env, request) {
   if (origin.protocol !== "https:" || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/") throw new HttpError("origin-invalid", 500);
   return origin.origin;
 }
-async function readJson(request, maximum) { const text = await request.text(); if (text.length > maximum) throw new HttpError("body-too-large", 413); try { return JSON.parse(text); } catch { throw new HttpError("json-invalid", 400); } }
+async function readJson(request, maximum) {
+  const declared = request.headers.get("content-length");
+  if (declared !== null) {
+    const length = Number(declared);
+    if (!Number.isSafeInteger(length) || length < 0) throw new HttpError("body-length-invalid", 400);
+    if (length > maximum) throw new HttpError("body-too-large", 413);
+  }
+  if (!request.body) throw new HttpError("body-missing", 400);
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maximum) {
+        await reader.cancel("body-too-large").catch(() => {});
+        throw new HttpError("body-too-large", 413);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  let text;
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+  catch { throw new HttpError("json-invalid", 400); }
+  try { return JSON.parse(text); } catch { throw new HttpError("json-invalid", 400); }
+}
 function json(value, status = 200) { return cors(new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } })); }
 function cors(response) { response.headers.set("Access-Control-Allow-Origin", "*"); response.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS"); response.headers.set("Access-Control-Allow-Headers", "Authorization,Content-Type"); return response; }
 function sameShareClaims(claims, meta) {
@@ -421,6 +484,40 @@ function cleanupCoordinatorState(state) {
     if (!reservation || reservation.expiresAt <= now) delete state.pending[reservationId];
   }
   return state;
+}
+
+export class ShareCreationLimiter {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    try {
+      const body = await request.json();
+      return await this.state.blockConcurrencyWhile(async () => {
+        const limit = Number(body?.limit);
+        const windowMs = Number(body?.windowMs);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 10_000 ||
+            !Number.isInteger(windowMs) || windowMs < 1_000 || windowMs > 60 * 60 * 1000) {
+          throw new HttpError("creation-limiter-request-invalid", 400);
+        }
+        const now = Date.now();
+        let current = await this.state.storage.get("state");
+        if (!current || !Number.isSafeInteger(current.windowStartedAt) ||
+            now - current.windowStartedAt >= windowMs || now < current.windowStartedAt) {
+          current = { windowStartedAt: now, count: 0 };
+        }
+        if (!Number.isInteger(current.count) || current.count < 0) current.count = 0;
+        if (current.count >= limit) return coordinatorJson({ error: "creation-rate-limited" }, 429);
+        current.count += 1;
+        await this.state.storage.put("state", current);
+        return coordinatorJson({ ok: true, remaining: Math.max(0, limit - current.count) });
+      });
+    } catch (error) {
+      const status = error instanceof HttpError ? error.status : 500;
+      return coordinatorJson({ error: error instanceof HttpError ? error.code : "creation-limiter-failed" }, status);
+    }
+  }
 }
 
 export class ShareUsageCoordinator {

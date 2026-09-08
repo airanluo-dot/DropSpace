@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Updates;
@@ -50,36 +52,59 @@ public sealed class HttpUpdateDownloader(
             File.Delete(finalPath);
         }
 
-        if (File.Exists(partialPath))
-        {
-            File.Delete(partialPath);
-        }
-
+        var resumeOffset = GetResumeOffset(partialPath, descriptor.Size);
+        HttpResponseMessage? response = null;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, candidate.SelectedAsset.DownloadUri);
-            request.Headers.UserAgent.ParseAdd($"DropSpace/{candidate.Manifest.Version}");
-            using var response = await client.SendAsync(
-                request,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            if (response.Content.Headers.ContentLength is long contentLength && contentLength != descriptor.Size)
+            response = await SendDownloadRequestAsync(candidate, resumeOffset, cancellationToken).ConfigureAwait(false);
+            var append = resumeOffset > 0 && response.StatusCode == HttpStatusCode.PartialContent;
+            if (resumeOffset > 0 && response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
             {
-                throw new InvalidDataException("The update Content-Length does not match the signed-off manifest size.");
+                response.Dispose();
+                response = null;
+                TryDeletePartial(partialPath);
+                resumeOffset = 0;
+                response = await SendDownloadRequestAsync(candidate, 0, cancellationToken).ConfigureAwait(false);
+                append = false;
+            }
+
+            response.EnsureSuccessStatusCode();
+            if (append)
+            {
+                ValidateResumeResponse(response, resumeOffset, descriptor.Size);
+            }
+            else
+            {
+                if (resumeOffset > 0)
+                {
+                    // The server ignored Range and returned the complete object. Restart the
+                    // local staging file rather than appending duplicate bytes.
+                    TryDeletePartial(partialPath);
+                    resumeOffset = 0;
+                }
+                if (response.Content.Headers.ContentLength is long contentLength && contentLength != descriptor.Size)
+                {
+                    throw new InvalidDataException("The update Content-Length does not match the signed-off manifest size.");
+                }
+            }
+
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            if (append)
+            {
+                await HashExistingPartialAsync(partialPath, hash, cancellationToken).ConfigureAwait(false);
             }
 
             await using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             await using var output = new FileStream(
                 partialPath,
-                FileMode.CreateNew,
+                append ? FileMode.Append : FileMode.CreateNew,
                 FileAccess.Write,
                 FileShare.None,
                 64 * 1024,
                 FileOptions.Asynchronous | FileOptions.WriteThrough);
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var buffer = new byte[64 * 1024];
-            long total = 0;
+            var total = resumeOffset;
+            if (total > 0) progress?.Report(new UpdateDownloadProgress(total, descriptor.Size));
             while (true)
             {
                 var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
@@ -98,7 +123,7 @@ public sealed class HttpUpdateDownloader(
             await output.FlushAsync(cancellationToken).ConfigureAwait(false);
             if (total != descriptor.Size)
             {
-                throw new InvalidDataException("The update stream ended before the manifest size was reached.");
+                throw new EndOfStreamException("The update stream ended before the manifest size was reached.");
             }
 
             var actualHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
@@ -115,10 +140,109 @@ public sealed class HttpUpdateDownloader(
             await stateStore.SaveAsync(downloaded, "ReadyToInstall", cancellationToken).ConfigureAwait(false);
             return downloaded;
         }
+        catch (InvalidDataException)
+        {
+            TryDeletePartial(partialPath);
+            throw;
+        }
+        catch (EndOfStreamException)
+        {
+            // A cleanly truncated or disconnected response is resumable. The next request
+            // hashes the staged prefix again before appending and the final manifest hash
+            // remains authoritative.
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (IOException)
+        {
+            // Preserve a bounded, version-scoped prefix for a later retry. Any corrupt or
+            // externally modified prefix can only reach ReadyToInstall after the full SHA-256
+            // matches the signed-off manifest.
+            throw;
+        }
         catch
         {
             TryDeletePartial(partialPath);
             throw;
+        }
+        finally
+        {
+            response?.Dispose();
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendDownloadRequestAsync(
+        UpdateCandidate candidate,
+        long offset,
+        CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, candidate.SelectedAsset.DownloadUri);
+        request.Headers.UserAgent.ParseAdd($"DropSpace/{candidate.Manifest.Version}");
+        if (offset > 0)
+        {
+            request.Headers.Range = new RangeHeaderValue(offset, null);
+        }
+        return await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static long GetResumeOffset(string partialPath, long expectedSize)
+    {
+        if (!File.Exists(partialPath)) return 0;
+        var length = new FileInfo(partialPath).Length;
+        if (length <= 0 || length >= expectedSize)
+        {
+            TryDeletePartial(partialPath);
+            return 0;
+        }
+        return length;
+    }
+
+    private static void ValidateResumeResponse(HttpResponseMessage response, long offset, long expectedSize)
+    {
+        var range = response.Content.Headers.ContentRange;
+        if (range is null ||
+            !string.Equals(range.Unit, "bytes", StringComparison.OrdinalIgnoreCase) ||
+            range.From != offset ||
+            range.To != expectedSize - 1 ||
+            range.Length != expectedSize)
+        {
+            throw new InvalidDataException("The update server returned an invalid Content-Range for resume.");
+        }
+        var expectedRemaining = expectedSize - offset;
+        if (response.Content.Headers.ContentLength is long contentLength && contentLength != expectedRemaining)
+        {
+            throw new InvalidDataException("The resumed update Content-Length does not match the manifest remainder.");
+        }
+    }
+
+    private static async Task HashExistingPartialAsync(
+        string partialPath,
+        IncrementalHash hash,
+        CancellationToken cancellationToken)
+    {
+        await using var input = new FileStream(
+            partialPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            64 * 1024,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        var buffer = new byte[64 * 1024];
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (read == 0) break;
+            hash.AppendData(buffer, 0, read);
         }
     }
 
