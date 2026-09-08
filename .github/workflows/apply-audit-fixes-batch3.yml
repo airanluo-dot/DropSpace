@@ -1,0 +1,46 @@
+name: Apply architecture audit fixes batch 3
+
+on:
+  push:
+    branches: ["audit-fix/full-architecture-hardening"]
+    paths:
+      - scripts/apply-audit-fixes-batch3.py
+      - .github/workflows/apply-audit-fixes-batch3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[audit-batch3-applied]') }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repair branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: audit-fix/full-architecture-hardening
+          fetch-depth: 0
+
+      - name: Apply asserted architecture patch
+        shell: pwsh
+        run: python scripts/apply-audit-fixes-batch3.py
+
+      - name: Validate patch shape
+        shell: pwsh
+        run: |
+          git diff --check
+          git status --short
+
+      - name: Commit patched sources
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src tests
+          if (git diff --cached --quiet) {
+            Write-Host "No source changes to commit."
+            exit 0
+          }
+          git commit -m "Complete scalable projection architecture [audit-batch3-applied]"
+          git push origin HEAD:audit-fix/full-architecture-hardening
