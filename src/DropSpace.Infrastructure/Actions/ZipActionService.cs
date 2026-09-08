@@ -103,12 +103,11 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
     private static async Task AddFileAsync(ZipArchive archive, string path, string name, ArchiveBudget budget, CancellationToken cancellationToken)
     {
         if (++budget.Entries > MaximumEntries) throw new InvalidDataException("The ZIP item limit was exceeded.");
-        var info = new FileInfo(path);
-        checked { budget.Bytes += info.Length; }
+        await using var input = ReparseSafeFileOpen.OpenRead(path);
+        checked { budget.Bytes += input.Length; }
         if (budget.Bytes > MaximumBytes) throw new InvalidDataException("The ZIP byte limit was exceeded.");
         var uniqueName = GetUniqueEntryName(name, budget);
         var entry = archive.CreateEntry(uniqueName, CompressionLevel.Fastest);
-        await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         await using var output = entry.Open();
         await input.CopyToAsync(output, 81_920, cancellationToken).ConfigureAwait(false);
     }
