@@ -253,7 +253,12 @@ public sealed class OverlayWindowService : IDisposable
             metrics.PrivateBytesDelta > 192L * 1024 * 1024 || !metrics.NoContinuousFrameSubscription ||
             cycles >= 1_000 && !metrics.LongRunPlateauVerified)
         {
-            throw new InvalidOperationException($"Overlay lifecycle smoke exceeded its resource bounds: {metrics}.");
+            var checkpoints = string.Join(
+                "; ",
+                resourceSamples.Select(sample =>
+                    $"{sample.Cycle}:handles={sample.HandleCount},GDI={sample.GdiObjects},USER={sample.UserObjects},privateBytes={sample.PrivateBytes}"));
+            throw new InvalidOperationException(
+                $"Overlay lifecycle smoke exceeded its resource bounds: {metrics}. Checkpoints: {checkpoints}");
         }
 
         _logger.LogInformation(
