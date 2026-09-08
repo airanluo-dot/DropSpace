@@ -2,9 +2,20 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.19 is the current architecture-remediation Preview: it adds atomic batch mutation, explicit peer trust lifecycle state, lossless segmented cleanup/revoke recovery, owned share staging, cancellation-safe resource retirement, locked dependency restore, x64-only declarations, and create-once owner-only release publication. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.20 is the current architecture-remediation development Preview following the published Preview.19 baseline. Preview.20 carries the durable payload/staging recovery, reparse-safe sending, bounded remote metadata, application-boundary, and release-pipeline hardening described in its test plan. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
+
+## v0.3.0-preview.20 architecture-remediation delivery slice
+
+- Continue from the published Preview.19 baseline without rewriting its tag or assets.
+- Add durable payload-delete outbox records in the same SQLite transaction as destructive row removal, with restart-safe janitor recovery and orphan-payload reconciliation.
+- Add crash-persistent, reparse-confined staging leases for Share, DropLink receive, and staged import ownership.
+- Replace DropLink sender `SearchOption.AllDirectories` traversal with bounded reparse-safe asynchronous enumeration and source revalidation.
+- Bound remote metadata gate acquisition and availability-cache growth without releasing stuck synchronous work early.
+- Consolidate destructive operations behind application use cases and continue shrinking direct infrastructure orchestration in the UI layer.
+- Harden brand verification order, workflow permissions, locked restore/no-restore build flow, secret-content scanning, signer identity checks, symbol policy, and action runtime versions.
+- Keep Preview.20 conditional for physical OS/DPI/OLE/provider/accessibility, two-device, deployed Worker/browser, and long-run evidence; see `docs/test-plan/v0.3.0-preview.20.md`.
 
 ## v0.3.0-preview.19 architecture-remediation delivery slice
 
