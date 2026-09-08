@@ -74,7 +74,7 @@ public sealed class TrustedPublisherIdentityPolicy
     public static string ComputeSpkiSha256(X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(certificate);
-        return Convert.ToHexString(SHA256.HashData(certificate.ExportSubjectPublicKeyInfo()));
+        return Convert.ToHexString(SHA256.HashData(certificate.PublicKey.ExportSubjectPublicKeyInfo()));
     }
 
     public static string NormalizeHex(string value)
