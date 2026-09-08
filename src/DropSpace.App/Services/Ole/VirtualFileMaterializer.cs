@@ -57,6 +57,9 @@ internal sealed class VirtualFileMaterializer
         StagingLease? lease = null;
         try
         {
+            // Preserve the materializer's storage initialization contract even when
+            // cancellation arrives before the lease gate can be acquired.
+            _paths.EnsureCreated();
             // The durable lease is created before the first payload byte is written. If the
             // process dies during OLE materialization, startup recovery still owns the tree.
             var leaseTask = _stagingLeases.AcquireAsync(
