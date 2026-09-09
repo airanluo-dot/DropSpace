@@ -92,6 +92,7 @@ jobs:
           RELEASE_CHANNEL: ${{ steps.version.outputs.channel }}
           RELEASE_ACTOR: ${{ github.actor }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
+          AUTOMATION_ACTOR: github-actions[bot]
         run: |
           if ($env:PUBLISH_REQUESTED -ne "true") {
             exit 0
@@ -99,8 +100,11 @@ jobs:
           if ($env:RELEASE_REF -ne "refs/heads/main") {
             throw "Release publication is only permitted from refs/heads/main."
           }
-          if ($env:RELEASE_ACTOR -ne $env:REPOSITORY_OWNER) {
-            throw "Release publication is restricted to the repository owner."
+          if (
+            $env:RELEASE_ACTOR -ne $env:REPOSITORY_OWNER -and
+            $env:RELEASE_ACTOR -ne $env:AUTOMATION_ACTOR
+          ) {
+            throw "Release publication is restricted to the repository owner or the trusted publication bridge."
           }
 
       - name: Validate Stable and Preview release metadata
@@ -439,7 +443,7 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       inputs.publish == true &&
       github.ref == 'refs/heads/main' &&
-      github.actor == github.repository_owner &&
+      (github.actor == github.repository_owner || github.actor == 'github-actions[bot]') &&
       needs.validate-release.result == 'success' &&
       (needs.validate-release.outputs.signing_required != 'true' || needs.sign-release.result == 'success')
     needs: [validate-release, sign-release]
