@@ -85,3 +85,26 @@ test("requires complete current Stable and Preview assets", () => {
   assert.throws(() => createWebsiteReleaseData([preview]));
   assert.throws(() => createWebsiteReleaseData([{ ...preview, html_url: "http://github.com/insecure" }, stable]));
 });
+
+test("keeps the current Stable release when the latest Preview window is full", () => {
+  const assetNames = ["DropSpaceSetup.exe", "DropSpace.exe", "DropSpace-x64.msix", "SHA256SUMS.txt", "update-manifest.json"];
+  const complete = (tag, prerelease) => ({
+    ...valid,
+    tag_name: tag,
+    name: `DropSpace ${tag}`,
+    prerelease,
+    html_url: `https://github.com/airanluo-dot/DropSpace/releases/tag/${tag}`,
+    assets: assetNames.map((name) => ({
+      name,
+      size: 42,
+      browser_download_url: `https://github.com/airanluo-dot/DropSpace/releases/download/${tag}/${name}`
+    }))
+  });
+  const previews = Array.from({ length: 21 }, (_, index) => complete("v0.3.0-preview." + (21 - index), true));
+  const stable = complete("v0.2.1", false);
+  const data = createWebsiteReleaseData([...previews, stable], "2026-09-09T00:00:00Z");
+  assert.equal(data.stable.tag, "v0.2.1");
+  assert.equal(data.api.releases.length, 20);
+  assert.equal(data.previews[0].tag, "v0.3.0-preview.21");
+  assert.equal(data.previews.length, 5);
+});
