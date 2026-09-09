@@ -8,8 +8,8 @@ on:
       - ".github/workflows/deploy-website.yml"
   pull_request:
     branches: [main]
+    # Website PRs must still produce the required Windows matrix checks.
     paths-ignore:
-      - "website/**"
       - ".github/workflows/deploy-website.yml"
 
 permissions:
