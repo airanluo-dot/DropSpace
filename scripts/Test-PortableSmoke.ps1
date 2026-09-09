@@ -294,7 +294,7 @@ try
     Write-Host "Localized resource context: $($marker.resourceLanguage); XAML resource resolution=passed"
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
     Write-Host "Overlay 1000-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta), plateau=$($marker.overlayLongRunPlateauVerified)"
-    Write-Host "Overlay resource checkpoints: $((@($marker.overlayResourceSamples) | ForEach-Object { \"$($_.cycle):handles=$($_.handleCount),GDI=$($_.gdiObjects),USER=$($_.userObjects),privateBytes=$($_.privateBytes)\" }) -join '; ')"
+    Write-Host "Overlay resource checkpoints: $((@($marker.overlayResourceSamples) | ForEach-Object { "$($_.cycle):handles=$($_.handleCount),GDI=$($_.gdiObjects),USER=$($_.userObjects),privateBytes=$($_.privateBytes)" }) -join '; ')"
     Write-Host "Overlay geometry stress: transitions=$($marker.overlayGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"
     Write-Host "Visible Overlay targets: compact=$($marker.compactVisualTargetDiscoverable), expanded=$($marker.expandedVisualTargetDiscoverable)"
     Write-Host "Visible Overlay CF_HDROP pipeline: compact=$($marker.compactSyntheticCfHDropAccepted), expanded=$($marker.expandedSyntheticCfHDropAccepted), expandedStayedOpen=$($marker.expandedDropStayedOpen)"

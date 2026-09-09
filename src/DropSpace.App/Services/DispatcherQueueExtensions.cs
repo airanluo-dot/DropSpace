@@ -14,7 +14,7 @@ public static class DispatcherQueueExtensions
             {
                 try
                 {
-                    await action();
+                    await action().ConfigureAwait(false);
                     completion.TrySetResult();
                 }
                 catch (Exception exception)
@@ -39,7 +39,7 @@ public static class DispatcherQueueExtensions
             {
                 try
                 {
-                    completion.TrySetResult(await action());
+                    completion.TrySetResult(await action().ConfigureAwait(false));
                 }
                 catch (Exception exception)
                 {
