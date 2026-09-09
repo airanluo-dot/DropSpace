@@ -10,7 +10,7 @@ namespace DropSpace.Infrastructure.Data;
 
 public sealed class SqliteItemRepository(
     SqliteDatabase database,
-    ILogger<SqliteItemRepository> logger) : IItemRepository
+    ILogger<SqliteItemRepository> logger) : IItemRepository, IPayloadCleanupRepository
 {
 
     public Task InitializeAsync(CancellationToken cancellationToken = default) => database.InitializeAsync(cancellationToken);
@@ -916,6 +916,111 @@ public sealed class SqliteItemRepository(
         }
     }
 
+    public async Task<IReadOnlyList<PayloadDeleteOutboxEntry>> GetPendingPayloadDeletesAsync(
+        int maximumEntries = 256,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumEntries);
+        maximumEntries = Math.Min(maximumEntries, 1_024);
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT id, relative_path, created_at_utc, attempt_count, last_attempt_at_utc, last_error_category
+            FROM payload_delete_outbox
+            ORDER BY created_at_utc, id
+            LIMIT @limit;
+            """;
+        command.Parameters.AddWithValue("@limit", maximumEntries);
+        var entries = new List<PayloadDeleteOutboxEntry>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            entries.Add(new PayloadDeleteOutboxEntry(
+                reader.GetString(0),
+                reader.GetString(1),
+                ParseTimestamp(reader.GetString(2)),
+                reader.GetInt32(3),
+                GetNullableTimestamp(reader, 4),
+                GetNullableString(reader, 5)));
+        }
+
+        return entries;
+    }
+
+    public async Task<IReadOnlySet<string>> GetOwnedPayloadPathsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT relative_path FROM payloads
+            UNION
+            SELECT relative_path FROM payload_delete_outbox;
+            """;
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            paths.Add(reader.GetString(0));
+        }
+
+        return paths;
+    }
+
+    public async Task CompletePayloadDeleteAsync(
+        string entryId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateOutboxId(entryId);
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM payload_delete_outbox WHERE id = @id;";
+            command.Parameters.AddWithValue("@id", entryId);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            database.WriteGate.Release();
+        }
+    }
+
+    public async Task RecordPayloadDeleteFailureAsync(
+        string entryId,
+        string errorCategory,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateOutboxId(entryId);
+        if (string.IsNullOrWhiteSpace(errorCategory) || errorCategory.Length > 128)
+        {
+            throw new ArgumentException("The payload cleanup error category is invalid.", nameof(errorCategory));
+        }
+
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE payload_delete_outbox
+                SET attempt_count = attempt_count + 1,
+                    last_attempt_at_utc = @now,
+                    last_error_category = @category
+                WHERE id = @id;
+                """;
+            command.Parameters.AddWithValue("@now", ToTimestamp(DateTimeOffset.UtcNow));
+            command.Parameters.AddWithValue("@category", errorCategory);
+            command.Parameters.AddWithValue("@id", entryId);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            database.WriteGate.Release();
+        }
+    }
+
     public async Task<int> CountAsync(
         ItemSource? source = null,
         bool pinnedOnly = false,
@@ -1173,27 +1278,23 @@ public sealed class SqliteItemRepository(
             removedCount = await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
+        var deletedPayloadPaths = new List<string>();
         foreach (var payload in payloads)
         {
+            await QueuePayloadDeleteAsync(connection, transaction, payload, cancellationToken).ConfigureAwait(false);
             await using var deletePayload = connection.CreateCommand();
             deletePayload.Transaction = transaction;
             deletePayload.CommandText = "DELETE FROM payloads WHERE id = @id AND NOT EXISTS (SELECT 1 FROM items WHERE payload_id = @id);";
             deletePayload.Parameters.AddWithValue("@id", ToBytes(payload.Id));
-            await deletePayload.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            if (await deletePayload.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0)
+            {
+                deletedPayloadPaths.Add(payload.Path);
+            }
         }
 
         return new FinalizedRemovalResult(
             removedCount,
-            payloads
-                .Where(payload =>
-                {
-                    using var referenced = connection.CreateCommand();
-                    referenced.Transaction = transaction;
-                    referenced.CommandText = "SELECT EXISTS (SELECT 1 FROM payloads WHERE id = @id);";
-                    referenced.Parameters.AddWithValue("@id", ToBytes(payload.Id));
-                    return Convert.ToInt32(referenced.ExecuteScalar(), CultureInfo.InvariantCulture) == 0;
-                })
-                .Select(payload => payload.Path)
+            deletedPayloadPaths
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray());
     }
@@ -1247,6 +1348,7 @@ public sealed class SqliteItemRepository(
 
         foreach (var payload in payloads.DistinctBy(payload => payload.Id))
         {
+            await QueuePayloadDeleteAsync(connection, (SqliteTransaction)transaction, payload, cancellationToken).ConfigureAwait(false);
             await using var deletePayload = connection.CreateCommand();
             deletePayload.Transaction = (SqliteTransaction)transaction;
             deletePayload.CommandText = "DELETE FROM payloads WHERE id = @id AND NOT EXISTS (SELECT 1 FROM items WHERE payload_id = @id);";
@@ -1261,6 +1363,36 @@ public sealed class SqliteItemRepository(
         return new RetentionResult(
             removedCount,
             deletedPayloadPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+    }
+
+    private static async Task QueuePayloadDeleteAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        (Guid Id, string Path) payload,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT OR IGNORE INTO payload_delete_outbox (
+                id, relative_path, created_at_utc, attempt_count, last_attempt_at_utc, last_error_category)
+            SELECT @id, relative_path, @created, 0, NULL, NULL
+            FROM payloads
+            WHERE id = @payload_id
+              AND NOT EXISTS (SELECT 1 FROM items WHERE payload_id = @payload_id);
+            """;
+        command.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
+        command.Parameters.AddWithValue("@payload_id", ToBytes(payload.Id));
+        command.Parameters.AddWithValue("@created", ToTimestamp(DateTimeOffset.UtcNow));
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void ValidateOutboxId(string entryId)
+    {
+        if (string.IsNullOrWhiteSpace(entryId) || entryId.Length > 128)
+        {
+            throw new ArgumentException("The payload cleanup outbox ID is invalid.", nameof(entryId));
+        }
     }
 
     private static DropItem ReadItem(SqliteDataReader reader)

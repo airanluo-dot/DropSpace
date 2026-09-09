@@ -32,7 +32,6 @@ public sealed class MaintenanceShutdownService(
 
         _requestEvent = new EventWaitHandle(false, EventResetMode.AutoReset, RequestEventName);
         _stoppedEvent = new EventWaitHandle(false, EventResetMode.ManualReset, StoppedEventName);
-        _runningMutex = new Mutex(initiallyOwned: true, "Local\\DropSpace.Running.v1", out _);
         _stoppedEvent.Reset();
         _registration = ThreadPool.RegisterWaitForSingleObject(
             _requestEvent,
@@ -66,6 +65,12 @@ public sealed class MaintenanceShutdownService(
             null,
             Timeout.InfiniteTimeSpan,
             executeOnlyOnce: false);
+        // Publish the process endpoint only after both named events have been
+        // reset and the request callback is registered. Setup/test clients use
+        // the mutex as the readiness probe; exposing it last prevents a freshly
+        // restarted instance from being mistaken for the previous instance
+        // while the manual-reset stopped event is still signaled.
+        _runningMutex = new Mutex(initiallyOwned: true, "Local\\DropSpace.Running.v1", out _);
     }
 
     public void MarkReady() => _startupReady.TrySetResult();

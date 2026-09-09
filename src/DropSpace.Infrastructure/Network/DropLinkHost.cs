@@ -34,12 +34,12 @@ public sealed record IncomingHandoffOffer(
 
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkHost(
-    AppStoragePaths paths,
     DeviceIdentityStore identities,
     DropLinkPairingService pairing,
     TransferRepository transfers,
     ILogger<DropLinkHost> logger,
-    DropLinkNonceCache usedNonces) : IAsyncDisposable
+    DropLinkNonceCache usedNonces,
+    StagingLeaseStore stagingLeases) : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, ReceiveTransfer> _sessions = new();
     private readonly DropLinkNonceCache _usedNonces = usedNonces;
@@ -407,36 +407,42 @@ public sealed class DropLinkHost(
                     request.Manifest.TotalBytes,
                     0,
                     null);
-                var staging = Path.Combine(paths.Staging, "transfers", request.Manifest.SessionId.ToString("N"));
-                Directory.CreateDirectory(staging);
+                var stagingLease = await stagingLeases.AcquireAsync(
+                        "droplink-receive",
+                        Path.Combine("transfers", request.Manifest.SessionId.ToString("N")),
+                        sensitivePlaintext: false,
+                        allowExistingRoot: false,
+                        cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
                 var receive = new ReceiveTransfer(
                     session,
                     request.Manifest,
-                    staging,
-                    GetReceiveRoot());
+                    stagingLease.RootPath,
+                    GetReceiveRoot(),
+                    stagingLease);
 
+                var admissionStatus = 0;
                 lock (_sessionAdmissionGate)
                 {
                     if (_state != HostLifecycleState.Running || _disposed != 0)
                     {
-                        receive.Dispose();
-                        TryDeleteDirectory(staging);
-                        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+                        admissionStatus = StatusCodes.Status503ServiceUnavailable;
                     }
-
-                    if (_sessions.Count >= DropLinkSessionPolicy.MaximumActiveSessions)
+                    else if (_sessions.Count >= DropLinkSessionPolicy.MaximumActiveSessions)
                     {
-                        receive.Dispose();
-                        TryDeleteDirectory(staging);
-                        return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+                        admissionStatus = StatusCodes.Status429TooManyRequests;
                     }
-
-                    if (!_sessions.TryAdd(session.Id, receive))
+                    else if (!_sessions.TryAdd(session.Id, receive))
                     {
-                        receive.Dispose();
-                        TryDeleteDirectory(staging);
-                        return Results.Conflict(new { error = "session-exists" });
+                        admissionStatus = StatusCodes.Status409Conflict;
                     }
+                }
+
+                if (admissionStatus != 0)
+                {
+                    receive.Dispose();
+                    await stagingLeases.CompleteAsync(stagingLease, CancellationToken.None).ConfigureAwait(false);
+                    return Results.StatusCode(admissionStatus);
                 }
 
                 try
@@ -450,7 +456,7 @@ public sealed class DropLinkHost(
                         removed.Dispose();
                     }
 
-                    TryDeleteDirectory(staging);
+                    await stagingLeases.CompleteAsync(stagingLease, CancellationToken.None).ConfigureAwait(false);
                     throw;
                 }
 
@@ -1087,7 +1093,7 @@ public sealed class DropLinkHost(
             if (retire && _sessions.TryRemove(receive.Session.Id, out var removed))
             {
                 removed.Dispose();
-                TryDeleteDirectory(removed.StagingRoot);
+                await stagingLeases.CompleteAsync(removed.Lease, CancellationToken.None).ConfigureAwait(false);
             }
         }
     }
@@ -1119,7 +1125,7 @@ public sealed class DropLinkHost(
                 for (var index = 0; index < item.ChunkCount.Value; index++)
                 {
                     var part = Path.Combine(receive.StagingRoot, string.Concat(item.Id.ToString("N"), ".", index, ".part"));
-                    await using var input = new FileStream(part, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    await using var input = ReparseSafeFileOpen.OpenRead(part);
                     await input.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
                 }
                 await output.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -1357,27 +1363,12 @@ public sealed class DropLinkHost(
             if (_sessions.TryRemove(session.Session.Id, out var removed))
             {
                 removed.Dispose();
-                TryDeleteDirectory(removed.StagingRoot);
+                await stagingLeases.CompleteAsync(removed.Lease, CancellationToken.None).ConfigureAwait(false);
             }
         }
         finally
         {
             _sessionRetirementTasks.TryRemove(session.Session.Id, out _);
-        }
-    }
-
-    private void TryDeleteDirectory(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, recursive: true);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            logger.LogWarning(exception, "DropLink staging cleanup failed for {StagingPath}.", path);
         }
     }
 
@@ -1391,13 +1382,15 @@ public sealed class DropLinkHost(
             TransferSession session,
             TransferManifest manifest,
             string stagingRoot,
-            string destinationRoot)
+            string destinationRoot,
+            StagingLease lease)
         {
             _peerId = session.PeerId ?? throw new InvalidDataException("A receive transfer peer is required.");
             Session = session;
             Manifest = manifest;
             StagingRoot = stagingRoot;
             DestinationRoot = destinationRoot;
+            Lease = lease;
             LastActivityUtc = session.CreatedAtUtc;
         }
 
@@ -1408,6 +1401,8 @@ public sealed class DropLinkHost(
         public TransferManifest Manifest { get; }
 
         public string StagingRoot { get; }
+
+        public StagingLease Lease { get; }
 
         public string DestinationRoot { get; }
 

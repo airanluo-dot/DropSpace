@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Transfer;
+using DropSpace.Infrastructure.Storage;
 using System.Runtime.Versioning;
 using System.Net.Http.Json;
 
@@ -179,12 +180,18 @@ public sealed class DropLinkClient(
         var files = await EnumerateFilesAsync(sourcePaths, limits, cancellationToken).ConfigureAwait(false);
         var sessionId = Guid.NewGuid();
         var items = new List<TransferItemManifest>(files.Count);
+        var totalBytes = 0L;
         foreach (var file in files)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var hash = await HashFileAsync(file.Path, cancellationToken).ConfigureAwait(false);
-            var size = new FileInfo(file.Path).Length;
-            items.Add(new TransferItemManifest(Guid.NewGuid(), TransferItemKind.File, TransferManifestPolicy.SafeDisplayName(Path.GetFileName(file.Path)), file.RelativePath, size, hash, file.MimeType, size == 0 ? 0 : (int)Math.Ceiling(size / (double)limits.ChunkBytes)));
+            var snapshot = await HashFileAsync(file.Path, cancellationToken).ConfigureAwait(false);
+            if (snapshot.Length > limits.MaxTotalBytes - totalBytes)
+            {
+                throw new InvalidDataException("The transfer byte limit was exceeded after source revalidation.");
+            }
+
+            totalBytes += snapshot.Length;
+            items.Add(new TransferItemManifest(Guid.NewGuid(), TransferItemKind.File, TransferManifestPolicy.SafeDisplayName(Path.GetFileName(file.Path)), file.RelativePath, snapshot.Length, snapshot.Hash, file.MimeType, snapshot.Length == 0 ? 0 : (int)Math.Ceiling(snapshot.Length / (double)limits.ChunkBytes)));
         }
 
         var manifest = TransferManifestPolicy.Create(sessionId, items, limits);
@@ -294,7 +301,11 @@ public sealed class DropLinkClient(
         long totalBytes,
         CancellationToken cancellationToken)
     {
-        await using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await using var source = ReparseSafeFileOpen.OpenRead(path);
+        if (source.Length != item.Size)
+        {
+            throw new InvalidDataException("A transfer source changed after manifest creation.");
+        }
         for (var index = 0; index < item.ChunkCount; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -320,6 +331,11 @@ public sealed class DropLinkClient(
             var pathValue = DropLinkProtocolRoutes.TransferChunk(sessionId, item.Id, index);
             await SendAuthenticatedBytesAsync(authenticated, pathValue, bytes, hash, cancellationToken).ConfigureAwait(false);
             progress?.Report(new TransferProgress(sessionId, item.Id, alreadyTransferred + offset + length, totalBytes));
+        }
+
+        if (source.Length != item.Size)
+        {
+            throw new InvalidDataException("A transfer source changed during transfer.");
         }
     }
 
@@ -393,37 +409,74 @@ public sealed class DropLinkClient(
         return new HttpClient(handler) { BaseAddress = new Uri(endpoint.ToString().TrimEnd('/') + "/"), Timeout = TimeSpan.FromMinutes(10) };
     }
 
-    private static Task<List<SourceFile>> EnumerateFilesAsync(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken)
+    private static Task<List<SourceFile>> EnumerateFilesAsync(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken) =>
+        Task.Run(() => EnumerateFilesCore(sourcePaths, limits, cancellationToken), cancellationToken);
+
+    private static List<SourceFile> EnumerateFilesCore(IReadOnlyList<string> sourcePaths, TransferLimits limits, CancellationToken cancellationToken)
     {
         var result = new List<SourceFile>();
+        long totalBytes = 0;
         foreach (var source in sourcePaths)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var full = Path.GetFullPath(source);
             if (File.Exists(full))
             {
-                result.Add(new SourceFile(full, TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full)), GuessMime(full)));
+                var attributes = File.GetAttributes(full);
+                if (attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    throw new InvalidDataException("Transfer source files must not be reparse points.");
+                }
+
+                var length = new FileInfo(full).Length;
+                if (result.Count >= limits.MaxItems || length > limits.MaxTotalBytes - totalBytes)
+                {
+                    throw new InvalidDataException("The transfer enumeration limit was exceeded.");
+                }
+
+                result.Add(new SourceFile(full, TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full)), GuessMime(full), length));
+                totalBytes += length;
                 continue;
             }
             if (!Directory.Exists(full)) throw new FileNotFoundException("Transfer source is unavailable.");
+            if (File.GetAttributes(full).HasFlag(FileAttributes.ReparsePoint))
+            {
+                throw new InvalidDataException("Transfer source directories must not be reparse points.");
+            }
+
+            if (result.Count >= limits.MaxItems || totalBytes >= limits.MaxTotalBytes)
+            {
+                throw new InvalidDataException("The transfer enumeration limit was exceeded.");
+            }
+
             var rootName = TransferManifestPolicy.SafeDisplayName(Path.GetFileName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
-            foreach (var file in Directory.EnumerateFiles(full, "*", SearchOption.AllDirectories))
+            var entries = ReparseSafeDirectoryEnumerator.Enumerate(
+                full,
+                rootName,
+                limits.MaxItems - result.Count,
+                limits.MaxTotalBytes - totalBytes,
+                cancellationToken);
+            foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var attributes = File.GetAttributes(file);
-                if (attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
-                var relative = Path.GetRelativePath(full, file).Replace(Path.DirectorySeparatorChar, '/');
-                result.Add(new SourceFile(file, TransferManifestPolicy.NormalizeRelativePath(string.Concat(rootName, "/", relative)), GuessMime(file)));
-                if (result.Count > limits.MaxItems) throw new InvalidDataException("The transfer item limit was exceeded.");
+                result.Add(new SourceFile(entry.FullPath, entry.RelativePath, GuessMime(entry.FullPath), entry.Length));
+                totalBytes += entry.Length;
             }
         }
         if (result.Count == 0) throw new InvalidDataException("The transfer contains no regular files.");
-        return Task.FromResult(result);
+        return result;
     }
 
-    private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)
+    private static async Task<FileSnapshot> HashFileAsync(string path, CancellationToken cancellationToken)
     {
-        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-        return Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false)).ToLowerInvariant();
+        await using var stream = ReparseSafeFileOpen.OpenRead(path);
+        var length = stream.Length;
+        var hash = Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false)).ToLowerInvariant();
+        if (stream.Length != length)
+        {
+            throw new InvalidDataException("A transfer source changed while it was hashed.");
+        }
+        return new FileSnapshot(hash, length);
     }
 
     private static string GuessMime(string path) => Path.GetExtension(path).ToLowerInvariant() switch
@@ -436,7 +489,9 @@ public sealed class DropLinkClient(
         _ => "application/octet-stream",
     };
 
-    private sealed record SourceFile(string Path, string RelativePath, string MimeType);
+    private sealed record SourceFile(string Path, string RelativePath, string MimeType, long Length);
+
+    private sealed record FileSnapshot(string Hash, long Length);
 
     private sealed class AuthenticatedClient(HttpClient client, Guid remoteDeviceId, Guid localDeviceId, byte[] secret) : IDisposable
     {

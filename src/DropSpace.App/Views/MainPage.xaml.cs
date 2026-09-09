@@ -44,10 +44,10 @@ public sealed partial class MainPage : Page
     private readonly IItemActionRegistry _actions;
     private readonly QuickActionDialogService _quickActionDialog;
     private readonly ILogger<MainPage> _logger;
-    private readonly DeviceHandoffService _deviceHandoff;
+    private readonly DeviceHandoffUseCase _deviceHandoff;
     private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly DropLinkHost _dropLinkHost;
-    private readonly ItemSharingService _sharing;
+    private readonly SharingUseCase _sharing;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
@@ -66,10 +66,10 @@ public sealed partial class MainPage : Page
         IItemActionRegistry actions,
         QuickActionDialogService quickActionDialog,
         ILogger<MainPage> logger,
-        DeviceHandoffService deviceHandoff,
+        DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        ItemSharingService sharing)
+        SharingUseCase sharing)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;

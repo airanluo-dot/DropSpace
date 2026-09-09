@@ -8,7 +8,7 @@ public sealed class SqliteDatabase(
     AppStoragePaths paths,
     ILogger<SqliteDatabase> logger)
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private volatile bool _initialized;
@@ -113,6 +113,15 @@ public sealed class SqliteDatabase(
             new("transferred_bytes", "INTEGER", true, false),
             new("error_category", "TEXT", false, false),
         ]),
+        new("payload_delete_outbox",
+        [
+            new("id", "TEXT", false, true),
+            new("relative_path", "TEXT", true, false),
+            new("created_at_utc", "TEXT", true, false),
+            new("attempt_count", "INTEGER", true, false),
+            new("last_attempt_at_utc", "TEXT", false, false),
+            new("last_error_category", "TEXT", false, false),
+        ]),
     ];
 
     private static readonly IndexDescriptor[] RequiredIndexes =
@@ -127,6 +136,8 @@ public sealed class SqliteDatabase(
         new("transfer_sessions", "ix_transfer_sessions_peer_created", false, ["peer_id", "created_at_utc"]),
         new("paired_devices", "ix_paired_devices_last_seen", false, ["last_seen_at_utc"]),
         new("payloads", null, true, ["relative_path"]),
+        new("payload_delete_outbox", "ux_payload_delete_outbox_relative_path", true, ["relative_path"]),
+        new("payload_delete_outbox", "ix_payload_delete_outbox_created", false, ["created_at_utc", "id"]),
     ];
 
     private static readonly ForeignKeyDescriptor[] RequiredForeignKeys =
@@ -247,6 +258,11 @@ public sealed class SqliteDatabase(
             if (fromVersion < 5)
             {
                 await ApplyV5Async(connection, transaction, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (fromVersion < 6)
+            {
+                await ApplyV6Async(connection, transaction, cancellationToken).ConfigureAwait(false);
             }
 
             await using var versionCommand = connection.CreateCommand();
@@ -481,6 +497,34 @@ public sealed class SqliteDatabase(
         const string sql = """
             ALTER TABLE paired_devices ADD COLUMN trust_state INTEGER NOT NULL DEFAULT 2;
             UPDATE paired_devices SET trust_state = CASE WHEN is_blocked = 1 THEN 4 ELSE 2 END;
+            """;
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = (SqliteTransaction)transaction;
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ApplyV6Async(
+        SqliteConnection connection,
+        System.Data.Common.DbTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            CREATE TABLE payload_delete_outbox (
+              id TEXT PRIMARY KEY,
+              relative_path TEXT NOT NULL,
+              created_at_utc TEXT NOT NULL,
+              attempt_count INTEGER NOT NULL DEFAULT 0 CHECK(attempt_count >= 0),
+              last_attempt_at_utc TEXT NULL,
+              last_error_category TEXT NULL
+            );
+
+            CREATE UNIQUE INDEX ux_payload_delete_outbox_relative_path
+              ON payload_delete_outbox(relative_path);
+
+            CREATE INDEX ix_payload_delete_outbox_created
+              ON payload_delete_outbox(created_at_utc, id);
             """;
 
         await using var command = connection.CreateCommand();

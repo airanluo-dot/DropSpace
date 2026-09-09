@@ -65,9 +65,38 @@ public sealed class StagedFileImportTests
         Assert.AreEqual(0, Directory.GetFiles(_paths.Payloads, "*", SearchOption.AllDirectories).Length);
     }
 
+    [TestMethod]
+    public async Task ImportUsesTheExistingVirtualLeaseAndCompletesIt()
+    {
+        _paths.EnsureCreated();
+        var store = new StagingLeaseStore(_paths, NullLogger<StagingLeaseStore>.Instance);
+        var lease = await store.AcquireAsync(
+            "virtual-file",
+            "virtual-batch",
+            sensitivePlaintext: true,
+            allowExistingRoot: false);
+        var source = Path.Combine(lease.RootPath, "payload.txt");
+        await File.WriteAllTextAsync(source, "owned");
+        var repository = Repository();
+        var service = Service(repository, new LocalFileReferenceService(), store);
+
+        var result = await service.ImportBatchAsync(
+            [source],
+            null,
+            "ole-virtual-file-drop",
+            1024,
+            CancellationToken.None,
+            lease);
+
+        Assert.AreEqual(1, result.Accepted);
+        Assert.AreEqual(0, result.Rejected);
+        Assert.IsFalse(Directory.Exists(lease.RootPath));
+        Assert.AreEqual(0, Directory.GetFiles(_paths.StagingLeases, "*.json").Length);
+    }
+
     private SqliteItemRepository Repository() => new(new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
-    private StagedFileImportService Service(IItemRepository repository, IFileReferenceService references) =>
-        new(_paths, references, new FilePayloadStore(_paths), repository, NullLogger<StagedFileImportService>.Instance);
+    private StagedFileImportService Service(IItemRepository repository, IFileReferenceService references, StagingLeaseStore? store = null) =>
+        new(_paths, references, new FilePayloadStore(_paths), repository, NullLogger<StagedFileImportService>.Instance, store);
 
     private sealed class CancellingReferences(CancellationTokenSource cancellation) : IFileReferenceService
     {

@@ -31,29 +31,34 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install .NET 10 SDK
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.100
           cache: true
           cache-dependency-path: Directory.Packages.props
 
-      - name: Generate brand assets from canonical masters
-        shell: pwsh
-        run: ./scripts/Generate-BrandAssets.ps1
-
-      - name: Verify deterministic brand generation
+      - name: Verify committed brand assets on clean checkout
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify
+
+      - name: Confirm brand verification did not mutate the checkout
+        shell: pwsh
+        run: |
+          $status = git status --short --untracked-files=all
+          if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
+
+      - name: Generate brand assets from canonical masters for build
+        shell: pwsh
+        run: ./scripts/Generate-BrandAssets.ps1
 
       - name: Validate Stable and Preview release metadata
         shell: pwsh
         run: |
           ./scripts/Test-ReleaseVersion.ps1
           ./scripts/Test-ReleaseConsistency.ps1
-
       - name: Enforce localization resource policy
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
@@ -90,7 +95,7 @@ jobs:
         run: ./scripts/Build-PortableExe.ps1
 
       - name: Upload portable EXE
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-portable-win-x64-${{ matrix.language }}
           path: artifacts/release/DropSpace.exe
@@ -114,7 +119,7 @@ jobs:
         run: ./scripts/Test-PortableSmoke.ps1 -Language ${{ matrix.language }}
 
       - name: Upload Windows installer
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-setup-win-x64-${{ matrix.language }}
           path: artifacts/installer/DropSpaceSetup.exe
@@ -125,12 +130,16 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-UnsignedPackage.ps1 -NoRestore
 
+      - name: Validate MSIX symbol policy
+        shell: pwsh
+        run: ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
+
       - name: Build and validate external-location identity package
         shell: pwsh
         run: ./scripts/Build-IdentityPackage.ps1
 
       - name: Upload unsigned MSIX package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-msix-unsigned-x64-${{ matrix.language }}
           path: artifacts/msix/**
@@ -138,7 +147,7 @@ jobs:
           retention-days: 3
 
       - name: Upload unsigned identity package for signing pipeline
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-identity-unsigned-x64-${{ matrix.language }}
           path: artifacts/identity/DropSpace.Identity.msix
@@ -147,7 +156,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: test-results-${{ matrix.language }}
           path: "**/TestResults/*.trx"
@@ -161,10 +170,10 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.x
 

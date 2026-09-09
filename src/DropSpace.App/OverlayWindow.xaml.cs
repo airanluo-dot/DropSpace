@@ -9,6 +9,7 @@ using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Preview;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -16,6 +17,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Storage;
 using WinRT.Interop;
@@ -25,6 +27,7 @@ namespace DropSpace.App;
 public sealed partial class OverlayWindow : Window
 {
     private const double HostWidth = 600;
+    private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
     private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
@@ -58,9 +61,17 @@ public sealed partial class OverlayWindow : Window
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
     private readonly OverlayPlacementEditSession _placementEdit = new();
+    private readonly DispatcherQueueTimer _animationTimer;
+    private readonly TypedEventHandler<DispatcherQueueTimer, object> _animationTimerHandler;
     private bool _placementEditActive;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
+    private int _positionedHostWidthPixels = -1;
+    private int _positionedHostHeightPixels = -1;
+    private int _positionedHostLeftPixels = int.MinValue;
+    private int _positionedHostTopPixels = int.MinValue;
+    private bool? _noActivateApplied;
+    private bool _nativeWindowShown;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -86,6 +97,11 @@ public sealed partial class OverlayWindow : Window
         _quickActionDialog = quickActionDialog;
         _visualPreferences = visualPreferences;
         _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
+        _animationTimerHandler = OnAnimationFrame;
+        _animationTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
+        _animationTimer.IsRepeating = true;
+        _animationTimer.Tick += _animationTimerHandler;
         try
         {
             InitializeComponent();
@@ -435,6 +451,8 @@ public sealed partial class OverlayWindow : Window
         }
         _suppressedForPlacementEdit = false;
         StopAnimationFrames();
+        _animationTimer.Stop();
+        _animationTimer.Tick -= _animationTimerHandler;
         RevokeNativeDropTarget();
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
         _motion.Dispose();
@@ -464,19 +482,17 @@ public sealed partial class OverlayWindow : Window
         }
 
         EnsureNativeDropTargetRegistered();
-        if (!OverlayWindowInterop.SetNoActivate(_windowHandle, !allowActivation, out var noActivateFailure))
+        var noActivate = !allowActivation;
+        if (_noActivateApplied != noActivate &&
+            !OverlayWindowInterop.SetNoActivate(_windowHandle, noActivate, out var noActivateFailure))
         {
             LogNativeFailure(noActivateFailure);
             HideForNativeFailure();
             return;
         }
+        _noActivateApplied = noActivate;
         if (_isVisible)
         {
-            if (!OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
-            {
-                LogNativeFailure(showFailure);
-                HideForNativeFailure();
-            }
             return;
         }
 
@@ -490,9 +506,14 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var firstShowFailure))
+        if (_nativeWindowShown)
         {
             _isVisible = true;
+        }
+        else if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var firstShowFailure))
+        {
+            _isVisible = true;
+            _nativeWindowShown = true;
         }
         else
         {
@@ -512,12 +533,9 @@ public sealed partial class OverlayWindow : Window
             LogNativeFailure(emptyRegionFailure);
             _nativeWindowSafeToShow = false;
         }
-        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
-        {
-            LogNativeFailure(hideFailure);
-            _nativeWindowSafeToShow = false;
-        }
-        RevokeNativeDropTarget();
+        // Keep the HWND alive with an empty region during normal Hidden transitions. The empty
+        // region is zero-pixel and not discoverable by WindowFromPoint, while avoiding repeated
+        // native show/hide allocations. A real native failure still uses HideForNativeFailure.
         _motion.SnapTo(OverlayMotionValues.Hidden);
         CompleteMotionWaiters();
         _isVisible = false;
@@ -545,6 +563,7 @@ public sealed partial class OverlayWindow : Window
         }
 
         RevokeNativeDropTarget();
+        _nativeWindowShown = false;
         _isVisible = false;
         _visualPhase = OverlayVisualPhase.Invisible;
     }
@@ -578,13 +597,24 @@ public sealed partial class OverlayWindow : Window
     {
         var width = ToPixels(HostWidth);
         var height = ToPixels(HostHeight);
+        var left = _resolvedPlacement.HostLeftPixels;
+        var top = _resolvedPlacement.HostTopPixels;
+        if (_positionedHostWidthPixels == width &&
+            _positionedHostHeightPixels == height &&
+            _positionedHostLeftPixels == left &&
+            _positionedHostTopPixels == top &&
+            OverlayWindowInterop.TryGetClientSize(_windowHandle, out var cachedWidth, out var cachedHeight) &&
+            cachedWidth == width &&
+            cachedHeight == height)
+        {
+            return true;
+        }
+
         // The animated HRGN is expressed in client coordinates. ResizeClient keeps that
         // coordinate space exact even when Windows reports a presenter-specific outer frame;
         // Move uses independent screen coordinates for the host's origin.
         AppWindow.ResizeClient(new SizeInt32(width, height));
-        AppWindow.Move(new PointInt32(
-            _resolvedPlacement.HostLeftPixels,
-            _resolvedPlacement.HostTopPixels));
+        AppWindow.Move(new PointInt32(left, top));
         var matches = OverlayWindowInterop.TryGetClientSize(_windowHandle, out var actualWidth, out var actualHeight) &&
                       actualWidth == width && actualHeight == height;
         if (!matches)
@@ -598,6 +628,14 @@ public sealed partial class OverlayWindow : Window
                 actualHeight,
                 _monitor.Scale,
                 _operatingSystemBuild);
+        }
+
+        if (matches)
+        {
+            _positionedHostWidthPixels = width;
+            _positionedHostHeightPixels = height;
+            _positionedHostLeftPixels = left;
+            _positionedHostTopPixels = top;
         }
 
         return matches;
@@ -625,7 +663,11 @@ public sealed partial class OverlayWindow : Window
         }
 
         _lastFrameTimestamp = Stopwatch.GetTimestamp();
-        CompositionTarget.Rendering += OnAnimationFrame;
+        _animationTimer.Interval = AnimationTimerInterval;
+        if (!_animationTimer.IsRunning)
+        {
+            _animationTimer.Start();
+        }
         _hasFrameSubscription = true;
     }
 
@@ -636,7 +678,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        CompositionTarget.Rendering -= OnAnimationFrame;
+        _animationTimer.Stop();
         _hasFrameSubscription = false;
     }
 
@@ -663,10 +705,12 @@ public sealed partial class OverlayWindow : Window
         var elapsed = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now);
         _lastFrameTimestamp = now;
         _motion.Step(elapsed);
+
         if (!ApplyMotionFrame(_motion.Current))
         {
             return;
         }
+
         if (_motion.IsAnimating)
         {
             return;
@@ -692,12 +736,8 @@ public sealed partial class OverlayWindow : Window
                 LogNativeFailure(emptyRegionFailure);
                 _nativeWindowSafeToShow = false;
             }
-            if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
-            {
-                LogNativeFailure(hideFailure);
-                _nativeWindowSafeToShow = false;
-            }
-            RevokeNativeDropTarget();
+            // The empty HRGN keeps this zero-pixel state out of WindowFromPoint while the HWND
+            // remains allocated for reuse.
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
             CompleteMotionWaiters();
@@ -736,6 +776,7 @@ public sealed partial class OverlayWindow : Window
     private bool ApplyMotionFrame(OverlayMotionValues values)
     {
         values = ProjectMotionToHostSurface(values.ProjectToSafeRange());
+        _compositionAnimator.ApplyMotion(values);
         Surface.Width = values.Width;
         Surface.Height = values.Height;
         Surface.CornerRadius = new CornerRadius(
@@ -776,6 +817,19 @@ public sealed partial class OverlayWindow : Window
                 hostHeight,
                 _monitor.Id);
             return false;
+        }
+
+        if (values.Opacity <= 0.001)
+        {
+            if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
+            {
+                Interlocked.Increment(ref _regionFailureCount);
+                LogNativeFailure(emptyRegionFailure);
+                HideForNativeFailure();
+                return false;
+            }
+
+            return true;
         }
 
         if (!_nativeRegionController.Apply(
@@ -1007,27 +1061,26 @@ public sealed partial class OverlayWindow : Window
             HideForNativeFailure();
             return;
         }
+        _noActivateApplied = true;
         if (!_isVisible)
         {
             if (!ApplyMotionFrame(_motion.Current))
             {
                 return;
             }
-            if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            if (_nativeWindowShown)
             {
                 _isVisible = true;
+            }
+            else if (OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
+            {
+                _isVisible = true;
+                _nativeWindowShown = true;
             }
             else
             {
                 LogNativeFailure(showFailure);
                 HideForNativeFailure();
-            }
-        }
-        else
-        {
-            if (!OverlayWindowInterop.ShowNoActivateAndTopmost(_windowHandle, out var showFailure))
-            {
-                LogNativeFailure(showFailure);
             }
         }
 

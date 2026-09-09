@@ -144,7 +144,7 @@ try
         [int]$marker.minimumWindowsBuild -ne $windowsCompatibility.MinimumBuild -or
         [string]$marker.windowsRuntimeStatus -ne "Available" -or
         [int]$marker.schemaVersion -lt 1 -or
-        [int]$marker.overlayCycles -ne 100 -or
+        [int]$marker.overlayCycles -ne 1000 -or
         [int]$marker.overlayWindowCount -lt 1 -or
         [int]$marker.dragActivationHostCount -ne 0 -or
         $marker.clipboardListenerRegistered -ne $true -or
@@ -163,6 +163,10 @@ try
         $marker.noContinuousFrameLoop -ne $true -or
         [int]$marker.overlayGeometryStressCycles -ne 1000 -or
         [long]$marker.overlayRegionFailureCount -ne 0 -or
+        $marker.overlayLongRunPlateauVerified -ne $true -or
+        $null -eq $marker.overlayResourceSamples -or
+        @($marker.overlayResourceSamples).Count -ne 5 -or
+        ((@($marker.overlayResourceSamples) | ForEach-Object { [int]$_.cycle }) -join ',') -cne '100,250,500,750,1000' -or
         $marker.idleTopEdgePassThrough -ne $true -or
         $marker.wakeModeSwitchVerified -ne $true -or
         $marker.compactVisualTargetDiscoverable -ne $true -or
@@ -289,7 +293,8 @@ try
     Write-Host "Windows compatibility probe: build=$($marker.windowsBuild), minimum=$($marker.minimumWindowsBuild), runtime=$($marker.windowsRuntimeStatus), Windows11 visuals: Mica=$($marker.modernWindowAppearanceAvailable), modernDwm=$($marker.modernDwmAttributesAvailable)"
     Write-Host "Localized resource context: $($marker.resourceLanguage); XAML resource resolution=passed"
     Write-Host "Clipboard integration: observed=$($marker.clipboardObservedUpdateDelta), captured=$($marker.clipboardSuccessfulCaptureDelta), consecutiveSuppressed=$($marker.clipboardSuppressedConsecutiveDuplicateDelta), failedReads=$($marker.clipboardFailedReadDelta), pause/resume/self-write=passed"
-    Write-Host "Overlay 100-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta)"
+    Write-Host "Overlay 1000-cycle resource deltas: handles=$($marker.overlayHandleDelta), GDI=$($marker.overlayGdiObjectDelta), USER=$($marker.overlayUserObjectDelta), privateBytes=$($marker.overlayPrivateBytesDelta), plateau=$($marker.overlayLongRunPlateauVerified)"
+    Write-Host "Overlay resource checkpoints: $((@($marker.overlayResourceSamples) | ForEach-Object { "$($_.cycle):handles=$($_.handleCount),GDI=$($_.gdiObjects),USER=$($_.userObjects),privateBytes=$($_.privateBytes)" }) -join '; ')"
     Write-Host "Overlay geometry stress: transitions=$($marker.overlayGeometryStressCycles), regionFailures=$($marker.overlayRegionFailureCount), idleTopEdgePassThrough=$($marker.idleTopEdgePassThrough), wakeModeSwitch=$($marker.wakeModeSwitchVerified)"
     Write-Host "Visible Overlay targets: compact=$($marker.compactVisualTargetDiscoverable), expanded=$($marker.expandedVisualTargetDiscoverable)"
     Write-Host "Visible Overlay CF_HDROP pipeline: compact=$($marker.compactSyntheticCfHDropAccepted), expanded=$($marker.expandedSyntheticCfHDropAccepted), expandedStayedOpen=$($marker.expandedDropStayedOpen)"

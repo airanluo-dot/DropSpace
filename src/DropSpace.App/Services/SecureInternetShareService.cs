@@ -10,7 +10,8 @@ namespace DropSpace.App.Services;
 public sealed class SecureInternetShareService(
     ShareCryptoService crypto,
     AppStoragePaths paths,
-    ILogger<SecureInternetShareService> logger)
+    ILogger<SecureInternetShareService> logger,
+    StagingLeaseStore stagingLeases)
 {
     private readonly ConcurrentDictionary<Guid, ShareBackendUploadSession> _sessions = new();
     private readonly InternetShareRevokeStore _revokeStore = new(paths);
@@ -48,7 +49,7 @@ public sealed class SecureInternetShareService(
         using var capacityReservation = await _revokeStore.ReserveCapacityAsync(cancellationToken).ConfigureAwait(false);
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
         var backend = new CloudflareWorkerShareBackend(httpClient, endpoint);
-        var client = new InternetShareClient(crypto, backend, storagePaths: paths);
+        var client = new InternetShareClient(crypto, backend, storagePaths: paths, stagingLeases: stagingLeases);
         logger.LogInformation("Starting encrypted Internet Share upload for {ItemCount} item(s) with expiry {Lifetime}.", sources.Count, lifetime);
         var result = await client.CreateWithSessionAsync(sources, lifetime, cancellationToken).ConfigureAwait(false);
         try

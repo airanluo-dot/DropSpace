@@ -90,8 +90,20 @@ public sealed class UndoRepositoryTests
         Assert.IsNull(await repository.GetAsync(fileItem.Id));
         Assert.IsNull(await repository.GetAsync(imageItem.Id));
         Assert.IsTrue(File.Exists(sourcePath));
-        await payloadStore.DeleteAsync(payload.RelativePath);
+        var outbox = await repository.GetPendingPayloadDeletesAsync();
+        Assert.AreEqual(1, outbox.Count);
+        var cleanup = new PayloadCleanupCoordinator(
+            _paths,
+            repository,
+            payloadStore,
+            new OwnedPayloadReconciler(
+                _paths,
+                repository,
+                NullLogger<OwnedPayloadReconciler>.Instance),
+            NullLogger<PayloadCleanupCoordinator>.Instance);
+        await cleanup.DrainAsync();
         Assert.IsFalse(File.Exists(payloadStore.ResolvePath(payload.RelativePath)));
+        Assert.AreEqual(0, (await repository.GetPendingPayloadDeletesAsync()).Count);
     }
 
     [TestMethod]
@@ -112,7 +124,7 @@ public sealed class UndoRepositoryTests
     }
 
     [TestMethod]
-    public async Task SchemaVersionTwoMigratesToVersionFiveWithPendingColumnsSearchIndexAndPeerTrustState()
+    public async Task SchemaVersionTwoMigratesToVersionSixWithPendingColumnsSearchIndexPeerTrustStateAndPayloadOutbox()
     {
         await CreateSchemaV2Async();
         var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
@@ -137,6 +149,12 @@ public sealed class UndoRepositoryTests
         await using var triggerCommand = connection.CreateCommand();
         triggerCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name IN ('items_search_ai', 'items_search_ad', 'items_search_au');";
         Assert.AreEqual(3L, (long)(await triggerCommand.ExecuteScalarAsync())!);
+        await using var outboxTableCommand = connection.CreateCommand();
+        outboxTableCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'payload_delete_outbox';";
+        Assert.AreEqual(1L, (long)(await outboxTableCommand.ExecuteScalarAsync())!);
+        await using var outboxIndexCommand = connection.CreateCommand();
+        outboxIndexCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'ux_payload_delete_outbox_relative_path';";
+        Assert.AreEqual(1L, (long)(await outboxIndexCommand.ExecuteScalarAsync())!);
         Assert.IsTrue(Directory.EnumerateFiles(_paths.Backups, "pre-migration-2-*.db").Any());
     }
 

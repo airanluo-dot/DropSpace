@@ -19,6 +19,7 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     private readonly CancellationTokenSource _cancellation = new();
     private readonly string _logPath;
     private readonly string _emergencyDiagnosticPath;
+    private FileStream? _logStream;
     private readonly Task _writer;
     private readonly object _disposeGate = new();
     private Task? _disposeTask;
@@ -216,6 +217,10 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
         {
             return;
         }
+        finally
+        {
+            DisposeLogStream();
+        }
     }
 
     private async Task<bool> TryWriteMessageAsync(string message)
@@ -226,11 +231,16 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
             try
             {
                 RotateIfNeeded();
-                await File.AppendAllTextAsync(
-                        _logPath,
-                        string.Concat(message, Environment.NewLine),
-                        _cancellation.Token)
-                    .ConfigureAwait(false);
+                var stream = _logStream ??= new FileStream(
+                    _logPath,
+                    FileMode.Append,
+                    FileAccess.Write,
+                    FileShare.Read,
+                    4_096,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                var bytes = Encoding.UTF8.GetBytes(string.Concat(message, Environment.NewLine));
+                await stream.WriteAsync(bytes, _cancellation.Token).ConfigureAwait(false);
+                await stream.FlushAsync(_cancellation.Token).ConfigureAwait(false);
                 return true;
             }
             catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
@@ -245,6 +255,8 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
             {
                 lastException = exception;
             }
+
+            DisposeLogStream();
 
             if (attempt + 1 < MaximumWriteAttempts)
             {
@@ -276,13 +288,21 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
 
     private void RotateIfNeeded()
     {
-        if (!File.Exists(_logPath) || new FileInfo(_logPath).Length < MaximumLogBytes)
+        var length = _logStream?.Length ??
+                     (File.Exists(_logPath) ? new FileInfo(_logPath).Length : 0);
+        if (length < MaximumLogBytes)
         {
             return;
         }
 
+        DisposeLogStream();
         var previousPath = string.Concat(_logPath, ".1");
         File.Move(_logPath, previousPath, true);
+    }
+
+    private void DisposeLogStream()
+    {
+        Interlocked.Exchange(ref _logStream, null)?.Dispose();
     }
 
     private sealed class RedactingFileLogger(string category, Func<string, bool> enqueue) : ILogger

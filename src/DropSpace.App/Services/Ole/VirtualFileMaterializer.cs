@@ -5,6 +5,10 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
 
+internal sealed record MaterializedVirtualFileBatch(
+    IReadOnlyList<string> Paths,
+    StagingLease Lease);
+
 /// <summary>
 /// Materializes FILEDESCRIPTORW/FILECONTENTS payloads on the OLE apartment that supplied them.
 /// Content is copied in bounded chunks into an isolated staging batch and the whole batch is
@@ -20,18 +24,21 @@ internal sealed class VirtualFileMaterializer
     private readonly AppStoragePaths _paths;
     private readonly OleFileDataClassifier _classifier;
     private readonly ILogger<VirtualFileMaterializer> _logger;
+    private readonly StagingLeaseStore _stagingLeases;
 
     public VirtualFileMaterializer(
         AppStoragePaths paths,
         OleFileDataClassifier classifier,
-        ILogger<VirtualFileMaterializer> logger)
+        ILogger<VirtualFileMaterializer> logger,
+        StagingLeaseStore stagingLeases)
     {
         _paths = paths;
         _classifier = classifier;
         _logger = logger;
+        _stagingLeases = stagingLeases;
     }
 
-    public async Task<IReadOnlyList<string>> MaterializeAsync(
+    public async Task<MaterializedVirtualFileBatch> MaterializeAsync(
         IDataObject dataObject,
         CancellationToken cancellationToken = default)
     {
@@ -45,11 +52,28 @@ internal sealed class VirtualFileMaterializer
                 asyncCapability.StartOperation(nint.Zero) >= 0) asyncOperationStarted = true;
         }
         catch (COMException) { /* No async lifetime was acquired: copy synchronously before Drop returns. */ }
-        var batchRoot = Path.Combine(_paths.Staging, $"virtual-{Guid.NewGuid():N}");
+        var relativeRoot = $"virtual-{Guid.NewGuid():N}";
+        var batchRoot = Path.Combine(_paths.Staging, relativeRoot);
+        StagingLease? lease = null;
         try
         {
+            // Preserve the materializer's storage initialization contract even when
+            // cancellation arrives before the lease gate can be acquired.
             _paths.EnsureCreated();
-            Directory.CreateDirectory(batchRoot);
+            // The durable lease is created before the first payload byte is written. If the
+            // process dies during OLE materialization, startup recovery still owns the tree.
+            var leaseTask = _stagingLeases.AcquireAsync(
+                "virtual-file",
+                relativeRoot,
+                sensitivePlaintext: true,
+                allowExistingRoot: false,
+                cancellationToken: cancellationToken);
+            // A synchronous OLE provider does not retain IDataObject lifetime after Drop
+            // returns, so its path must not yield before the first source read.
+            lease = asyncOperationStarted
+                ? await leaseTask.ConfigureAwait(true)
+                : leaseTask.GetAwaiter().GetResult();
+            batchRoot = lease.RootPath;
             // StartOperation and the first yield occur while Drop still owns the supplying STA.
             // Returning the incomplete task lets the OLE callback finish promptly; continuation
             // resumes on that same UI apartment and yields between bounded stream chunks.
@@ -75,18 +99,35 @@ internal sealed class VirtualFileMaterializer
                 "Virtual-file batch materialized into confined staging: itemCount={ItemCount}, byteCount={ByteCount}. User filenames and paths were omitted.",
                 paths.Count,
                 totalBytes);
-            return paths;
+            return new MaterializedVirtualFileBatch(paths, lease);
         }
         catch
         {
             operationResult = unchecked((int)0x80004005);
-            try
+            if (lease is not null)
             {
-                Directory.Delete(batchRoot, recursive: true);
+                try
+                {
+                    if (!await _stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false))
+                    {
+                        _logger.LogWarning("Virtual-file staging rollback was deferred; its lease remains durable.");
+                    }
+                }
+                catch (Exception cleanupException) when (cleanupException is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                    _logger.LogWarning(cleanupException, "Virtual-file staging rollback could not complete; its lease remains durable.");
+                }
             }
-            catch (Exception cleanupException) when (cleanupException is IOException or UnauthorizedAccessException)
+            else
             {
-                _logger.LogWarning(cleanupException, "Virtual-file staging rollback could not remove the incomplete batch immediately.");
+                try
+                {
+                    if (Directory.Exists(batchRoot)) Directory.Delete(batchRoot, recursive: true);
+                }
+                catch (Exception cleanupException) when (cleanupException is IOException or UnauthorizedAccessException)
+                {
+                    _logger.LogWarning(cleanupException, "Virtual-file staging rollback could not remove the incomplete batch immediately.");
+                }
             }
             throw;
         }
@@ -102,6 +143,11 @@ internal sealed class VirtualFileMaterializer
             }
         }
     }
+
+    internal Task<bool> CompleteLeaseAsync(
+        StagingLease lease,
+        CancellationToken cancellationToken = default) =>
+        _stagingLeases.CompleteAsync(lease, cancellationToken);
 
     private IReadOnlyList<VirtualFileDescriptor> ReadDescriptors(IDataObject dataObject)
     {

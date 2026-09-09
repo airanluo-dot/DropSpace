@@ -25,6 +25,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly StagedFileImportService _stagedFiles;
     private readonly IItemActionRegistry _actions;
     private readonly UndoCoordinator _undo;
+    private readonly WorkspaceMutationUseCase _workspaceMutations;
     private readonly PinItemsUseCase _pinItems;
     private readonly SettingsApplicationCoordinator _settingsCoordinator;
     private readonly IPayloadStore _payloadStore;
@@ -76,6 +77,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         StagedFileImportService stagedFiles,
         IItemActionRegistry actions,
         UndoCoordinator undo,
+        WorkspaceMutationUseCase workspaceMutations,
         PinItemsUseCase pinItems,
         SettingsApplicationCoordinator settingsCoordinator,
         IPayloadStore payloadStore,
@@ -98,6 +100,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _stagedFiles = stagedFiles;
         _actions = actions;
         _undo = undo;
+        _workspaceMutations = workspaceMutations;
         _pinItems = pinItems;
         _settingsCoordinator = settingsCoordinator;
         _payloadStore = payloadStore;
@@ -868,12 +871,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         long? dropSessionId,
         string acquisitionKind,
         long maximumFileBytes,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        StagingLease? ownedLease = null)
     {
         ArgumentNullException.ThrowIfNull(stagingPaths);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFileBytes);
         var paths = stagingPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var result = await _stagedFiles.ImportBatchAsync(paths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken);
+        var result = await _stagedFiles.ImportBatchAsync(paths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken, ownedLease);
         var accepted = result.Accepted;
         var rejected = result.Rejected;
 
@@ -960,7 +964,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             return;
         }
         var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
-        await _undo.FinalizeActiveAsync(cancellationToken);
+        await _workspaceMutations.FinalizeActiveAsync(cancellationToken);
         if (members.Count == 0)
         {
             return;
@@ -994,7 +998,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         {
             return;
         }
-        await _undo.BeginRemovalAsync(
+        await _workspaceMutations.BeginRemovalAsync(
             members.Select(member => member.Id).ToArray(),
             UndoOperationKind.RemoveBatch,
             "UndoRemovedItems",
@@ -1036,7 +1040,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task RemoveAsync(ItemCardViewModel card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        await _undo.BeginRemovalAsync(
+        await _workspaceMutations.BeginRemovalAsync(
             [card.Id],
             UndoOperationKind.RemoveItem,
             "UndoRemovedItem",
@@ -1168,7 +1172,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task<ClearResult> ClearClipboardAsync(ClearRange range, CancellationToken cancellationToken = default)
     {
         var fromUtc = GetClearFromUtc(range);
-        var state = await _undo.BeginClipboardClearAsync(
+        var state = await _workspaceMutations.BeginClipboardClearAsync(
             fromUtc,
             includePinned: false,
             "UndoClearedItems",

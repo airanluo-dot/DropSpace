@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Diagnostics;
 using DropSpace.Core.Models;
 using DropSpace.Core.Transfer;
 using DropSpace.Infrastructure.Sharing;
@@ -29,6 +30,7 @@ public sealed class ItemSharingService(
     {
         ArgumentNullException.ThrowIfNull(settings);
         if (!settings.EnableNearbySharing) throw new InvalidOperationException("Nearby Browser Share is disabled in DropSpace settings.");
+        var operationId = OperationCorrelation.New();
         var sources = await BuildSourcesAsync(items, cancellationToken).ConfigureAwait(false);
         var shareItems = sources.Select(source => new NearbyShareItem(
             Guid.NewGuid(),
@@ -36,8 +38,10 @@ public sealed class ItemSharingService(
             source.MimeType,
             source.Length,
             source.OpenReadAsync)).ToArray();
-        logger.LogInformation("Creating a Nearby Share for {ItemCount} item(s) and {ByteCount} bytes.", shareItems.Length, shareItems.Sum(item => item.Length));
-        return await nearby.CreateShareAsync(shareItems, cancellationToken: cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Share operation {OperationId} is creating a Nearby Share for {ItemCount} item(s) and {ByteCount} bytes.", operationId, shareItems.Length, shareItems.Sum(item => item.Length));
+        var descriptor = await nearby.CreateShareAsync(shareItems, cancellationToken: cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Share operation {OperationId} created share {ShareId}.", operationId, descriptor.ShareId);
+        return descriptor;
     }
 
     public async Task<ShareDescriptor> CreateInternetAsync(
@@ -46,13 +50,16 @@ public sealed class ItemSharingService(
         TimeSpan? lifetime = null,
         CancellationToken cancellationToken = default)
     {
+        var operationId = OperationCorrelation.New();
         var sources = await BuildSourcesAsync(items, cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Creating an encrypted Internet Share for {ItemCount} item(s) and {ByteCount} bytes.", sources.Count, sources.Sum(item => item.Length));
-        return await internet.CreateAsync(
+        logger.LogInformation("Share operation {OperationId} is creating an encrypted Internet Share for {ItemCount} item(s) and {ByteCount} bytes.", operationId, sources.Count, sources.Sum(item => item.Length));
+        var descriptor = await internet.CreateAsync(
             sources.Select(source => new ShareFileSource(source.DisplayName, source.MimeType, source.Length, source.Sha256, source.OpenReadAsync)).ToArray(),
             lifetime ?? TimeSpan.FromDays(1),
             settings,
             cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Share operation {OperationId} created share {ShareId}.", operationId, descriptor.ShareId);
+        return descriptor;
     }
 
     public Task<bool> RevokeInternetAsync(Guid shareId, CancellationToken cancellationToken = default) =>

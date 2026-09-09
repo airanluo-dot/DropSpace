@@ -171,6 +171,21 @@ CREATE TABLE payloads (
   created_at_utc TEXT NOT NULL,
   storage_version INTEGER NOT NULL
 );
+
+-- Schema v6: logical deletion records the physical cleanup obligation in the
+-- same transaction. A row is removed only after the file is gone or confirmed
+-- missing; failures remain retryable.
+CREATE TABLE payload_delete_outbox (
+  id TEXT PRIMARY KEY,
+  relative_path TEXT NOT NULL UNIQUE,
+  created_at_utc TEXT NOT NULL,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  last_attempt_at_utc TEXT NULL,
+  last_error_category TEXT NULL
+);
+
+CREATE INDEX ix_payload_delete_outbox_created
+  ON payload_delete_outbox(created_at_utc, id);
 ```
 
 Foreign-key reference from `items.payload_id` is enforced in the final migration SQL after ordering/cycle behavior is verified; deletion uses an application transaction plus deferred physical cleanup.
@@ -238,6 +253,14 @@ Migrations are forward-only in production. Downgrade means restoring a compatibl
 - Database commit happens after durable payload write.
 - Deletion commits logical removal first and queues physical cleanup.
 - Startup orphan scan is bounded and moves unknown payloads to quarantine before deletion.
+- Schema v6 stores every app-owned physical-delete obligation in
+  `payload_delete_outbox` in the same transaction as logical removal. The
+  cleanup coordinator validates the relative path, treats a missing file as
+  idempotent success, and retains failed rows for retry. The startup
+  `OwnedPayloadReconciler` only walks the app-owned payload root, skips reparse
+  points, honors a grace period, deletes stale `.tmp` files, and quarantines
+  unknown final payloads; external source references are never entered into the
+  outbox.
 - Thumbnail files contain no authority; missing/corrupt files regenerate.
 - Cache keys include item revision, requested logical size, rasterization scale, and decoder version.
 

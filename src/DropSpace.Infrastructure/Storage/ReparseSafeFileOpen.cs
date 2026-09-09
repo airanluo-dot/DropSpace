@@ -21,7 +21,7 @@ internal static class ReparseSafeFileOpen
         {
             if (File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint))
             {
-                throw new InvalidDataException("ZIP inputs must not be reparse points.");
+                throw new InvalidDataException("Transfer source files must not be reparse points.");
             }
             return new FileStream(
                 path,
@@ -42,7 +42,7 @@ internal static class ReparseSafeFileOpen
             IntPtr.Zero);
         if (handle.IsInvalid)
         {
-            throw new IOException("The ZIP input could not be opened.", new Win32Exception(Marshal.GetLastWin32Error()));
+            throw new IOException("The transfer source could not be opened.", new Win32Exception(Marshal.GetLastWin32Error()));
         }
 
         try
@@ -53,11 +53,11 @@ internal static class ReparseSafeFileOpen
                     out var tagInfo,
                     (uint)Marshal.SizeOf<FileAttributeTagInfo>()))
             {
-                throw new IOException("The ZIP input attributes could not be verified.", new Win32Exception(Marshal.GetLastWin32Error()));
+                throw new IOException("The transfer source attributes could not be verified.", new Win32Exception(Marshal.GetLastWin32Error()));
             }
             if (tagInfo.FileAttributes.HasFlag(FileAttributes.ReparsePoint))
             {
-                throw new InvalidDataException("ZIP inputs must not be reparse points.");
+                throw new InvalidDataException("Transfer source files must not be reparse points.");
             }
 
             return new FileStream(handle, FileAccess.Read, 81_920, isAsync: true);

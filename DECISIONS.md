@@ -491,3 +491,36 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - Decision: Keep the schema-8 `OverlayPlacementMode` and `CustomOverlayPlacements` fields deserializable only through the current one-time migration window; the application startup migration resolves them into schema-9 `OverlayPlacements`, clears the legacy fields, and never reads them as an active source of truth. The current settings schema is 11, so the CLR properties remain until a post-Preview.19 schema bump retires pre-schema-9 upgrade support. Add a durable peer `trust_state` with `PairingPending`, `Trusted`, `UnpairPending`, and `Blocked` values. Secrets are saved before Trusted is persisted, authentication rejects every non-Trusted state, and unpair marks `UnpairPending` before deleting the secret and row.
 - Rationale: A migration boundary must remain readable long enough to recover old settings, but retaining two active placement stores or treating a half-written peer as trusted creates ambiguous ownership and authorization. Explicit retirement and reconciliation make restart behavior deterministic.
 - Constraints: Existing external files remain untouched; missing secret/physical Windows evidence remains conditional and is never inferred from a hosted build.
+
+## D-058 — Preview.20 makes app-owned payload deletion transactional
+
+- Date: 2026-09-08
+- Status: Accepted for Preview.20
+- Decision: Every destructive repository transaction inserts an app-owned
+  `payload_delete_outbox` obligation before deleting an unreferenced payload
+  row. `PayloadCleanupCoordinator` owns path validation, idempotent physical
+  deletion, retry state, and startup orphan reconciliation; the existing
+  segmented file journal remains a compatibility fallback rather than the
+  source of truth.
+- Rationale: A process crash between SQLite commit and physical deletion must
+  not erase the only cleanup obligation, while source-file references must
+  remain outside the deletion contract.
+- Constraints: The reconciler only walks the app-owned payload root, never
+  follows reparse points, honors a grace period, and quarantines unknown final
+  payloads. Ordinary deletion is not secure erase and no vault guarantee is
+  implied.
+
+## D-059 — Preview.20 routes destructive workspace intent through an app use case
+
+- Date: 2026-09-08
+- Status: Accepted for Preview.20
+- Decision: `WorkspaceMutationUseCase` is the application boundary for
+  remove, clear, and mutation sequencing. `MainViewModel` retains UI state and
+  commands, while `UndoCoordinator` owns undoable lifecycle and the payload
+  cleanup coordinator owns physical deletion. The legacy direct clipboard
+  clear method is removed after a repository-wide reference check.
+- Rationale: Keeping one destructive path makes the transactional outbox
+  semantics difficult to bypass and gives future surfaces one tested entry
+  point without rewriting the existing UI.
+- Constraints: The repository remains the persistence implementation and
+  external source references remain non-destructive.

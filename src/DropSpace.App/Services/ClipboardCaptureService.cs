@@ -219,26 +219,6 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    public async Task<ClearResult> ClearHistoryAsync(
-        DateTimeOffset? fromUtc,
-        bool includePinned,
-        CancellationToken cancellationToken = default)
-    {
-        await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var result = await _repository.ClearClipboardAsync(fromUtc, includePinned, cancellationToken)
-                .ConfigureAwait(false);
-            await _previews.ClearAsync(CancellationToken.None).ConfigureAwait(false);
-            await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
-            return result;
-        }
-        finally
-        {
-            _commitGate.Release();
-        }
-    }
-
     public Task ResetCaptureSequenceAsync(CancellationToken cancellationToken = default) =>
         _consecutiveCaptures.ResetAsync(cancellationToken);
 

@@ -36,10 +36,10 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         IItemActionRegistry actions,
         QuickActionDialogService quickActionDialog,
         ILogger<Views.MainPage> pageLogger,
-        DeviceHandoffService deviceHandoff,
+        DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        ItemSharingService sharing)
+        SharingUseCase sharing)
     {
         _viewModel = viewModel;
         _strings = strings;

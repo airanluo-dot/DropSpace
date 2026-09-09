@@ -7,6 +7,7 @@ using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
+using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 
@@ -191,6 +192,8 @@ public sealed class OverlayWindowService : IDisposable
         await WaitForOverlayMotionSettledAsync(cancellationToken);
         CollectReleasedResources();
         var before = CaptureResources();
+        var resourceSamples = new List<OverlayResourceSample>();
+        var sampleCycles = new[] { 100, 250, 500, 750, 1_000 };
 
         for (var index = 0; index < cycles; index++)
         {
@@ -200,12 +203,26 @@ public sealed class OverlayWindowService : IDisposable
             {
                 await WaitForOverlayMotionSettledAsync(cancellationToken);
             }
+
+            var completedCycles = index + 1;
+            if (sampleCycles.Contains(completedCycles))
+            {
+                CollectReleasedResources();
+                var sample = CaptureResources();
+                resourceSamples.Add(new OverlayResourceSample(
+                    completedCycles,
+                    sample.HandleCount,
+                    sample.GdiObjects,
+                    sample.UserObjects,
+                    sample.PrivateBytes));
+            }
         }
 
         _stateMachine.Restore(original.TemporaryItemCount);
         await WaitForOverlayMotionSettledAsync(cancellationToken);
         CollectReleasedResources();
         var after = CaptureResources();
+        var longRunPlateauVerified = cycles < 1_000 || VerifyLongRunPlateau(resourceSamples);
         var metrics = new OverlayLifecycleMetrics(
             cycles,
             _windows.Count,
@@ -221,12 +238,28 @@ public sealed class OverlayWindowService : IDisposable
             wakeModeSwitchVerified,
             smartObserverRegistered,
             compactVisualTargetDiscoverable,
-            expandedVisualTargetDiscoverable);
+            expandedVisualTargetDiscoverable,
+            resourceSamples,
+            longRunPlateauVerified);
+
+        _logger.LogInformation(
+            "Overlay lifecycle resource checkpoints: {ResourceSamples}",
+            string.Join(
+                "; ",
+                resourceSamples.Select(sample =>
+                    $"{sample.Cycle}:handles={sample.HandleCount},GDI={sample.GdiObjects},USER={sample.UserObjects},privateBytes={sample.PrivateBytes}")));
 
         if (metrics.HandleDelta > 96 || metrics.GdiObjectDelta > 48 || metrics.UserObjectDelta > 48 ||
-            metrics.PrivateBytesDelta > 192L * 1024 * 1024 || !metrics.NoContinuousFrameSubscription)
+            metrics.PrivateBytesDelta > 192L * 1024 * 1024 || !metrics.NoContinuousFrameSubscription ||
+            cycles >= 1_000 && !metrics.LongRunPlateauVerified)
         {
-            throw new InvalidOperationException($"Overlay lifecycle smoke exceeded its resource bounds: {metrics}.");
+            var checkpoints = string.Join(
+                "; ",
+                resourceSamples.Select(sample =>
+                    $"{sample.Cycle}:handles={sample.HandleCount},GDI={sample.GdiObjects},USER={sample.UserObjects},privateBytes={sample.PrivateBytes}"));
+            throw new InvalidOperationException(
+                $"Overlay lifecycle smoke exceeded its resource bounds: {metrics}. " +
+                $"Checkpoints: {checkpoints}");
         }
 
         _logger.LogInformation(
@@ -374,7 +407,6 @@ public sealed class OverlayWindowService : IDisposable
         {
             throw new ArgumentOutOfRangeException(nameof(cycles));
         }
-
         ObjectDisposedException.ThrowIf(_disposed, this);
         var unhandledBefore = _crashDiagnostics.UnhandledCount;
         var unobservedBefore = _crashDiagnostics.UnobservedTaskCount;
@@ -1051,11 +1083,11 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
     {
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, visibleTarget: false);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: false);
         }
         finally
         {
@@ -1125,11 +1157,11 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
     {
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, visibleTarget: true);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: true);
         }
         finally
         {
@@ -1312,6 +1344,21 @@ public sealed class OverlayWindowService : IDisposable
 
     private sealed record ResourceSnapshot(int HandleCount, uint GdiObjects, uint UserObjects, long PrivateBytes);
 
+    private static bool VerifyLongRunPlateau(IReadOnlyList<OverlayResourceSample> samples)
+    {
+        if (samples.Count != 5 || !samples.Select(sample => sample.Cycle).SequenceEqual([100, 250, 500, 750, 1_000]))
+        {
+            return false;
+        }
+
+        var plateauStart = samples[2];
+        var plateauEnd = samples[^1];
+        return plateauEnd.HandleCount - plateauStart.HandleCount <= 64 &&
+               (long)plateauEnd.GdiObjects - plateauStart.GdiObjects <= 16 &&
+               (long)plateauEnd.UserObjects - plateauStart.UserObjects <= 16 &&
+               plateauEnd.PrivateBytes - plateauStart.PrivateBytes <= 64L * 1024 * 1024;
+    }
+
     private enum DragTargetOwner
     {
         None,
@@ -1339,7 +1386,16 @@ public sealed record OverlayLifecycleMetrics(
     bool WakeModeSwitchVerified,
     bool SmartObserverRegistered,
     bool CompactVisualTargetDiscoverable,
-    bool ExpandedVisualTargetDiscoverable);
+    bool ExpandedVisualTargetDiscoverable,
+    IReadOnlyList<OverlayResourceSample> ResourceSamples,
+    bool LongRunPlateauVerified);
+
+public sealed record OverlayResourceSample(
+    int Cycle,
+    int HandleCount,
+    uint GdiObjects,
+    uint UserObjects,
+    long PrivateBytes);
 
 public sealed record ProjectionDeletionStressMetrics(
     int Cycles,

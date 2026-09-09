@@ -31,6 +31,11 @@ $arguments = @(
     "-p:UapAppxPackageBuildMode=SideloadOnly",
     "-p:AppxBundle=Never",
     "-p:AppxPackageSigningEnabled=false",
+    # Preview.20 publishes the package without app-local symbol artifacts. The
+    # hosted toolchain does not provide mspdbcmf.exe, so this policy is explicit
+    # and is checked after every package build.
+    "-p:AppxPackageIncludePrivateSymbols=false",
+    "-p:AppxPackageIncludePublicSymbols=false",
     "-p:PackageCertificateThumbprint=",
     "-p:AppxPackageVersion=$($releaseInfo.PackageVersion)",
     "-p:AppxPackageDir=$packageDirectory\"
