@@ -193,70 +193,28 @@ public sealed class OverlayWindowService : IDisposable
         CollectReleasedResources();
         var before = CaptureResources();
         var resourceSamples = new List<OverlayResourceSample>();
-        var lifecyclePhaseDiagnostics = new List<string>();
-        var motionDiagnostics = new List<string>();
         var sampleCycles = new[] { 100, 250, 500, 750, 1_000 };
 
-        var motionDiagnosticSequence = 0;
-        var synchronousMotionDiagnosticCount = 0;
-        foreach (var window in _windows)
+        for (var index = 0; index < cycles; index++)
         {
-            window.SetSmokeDiagnosticSink(label =>
+            cancellationToken.ThrowIfCancellationRequested();
+            ExerciseLifecycle();
+            if (index % 10 == 9)
             {
-                var asynchronousBoundary =
-                    label.StartsWith("frame-", StringComparison.Ordinal) ||
-                    label.StartsWith("settled-", StringComparison.Ordinal) ||
-                    label.StartsWith("dismiss-", StringComparison.Ordinal);
-                if (motionDiagnostics.Count < 64 &&
-                    (asynchronousBoundary || synchronousMotionDiagnosticCount < 24))
-                {
-                    motionDiagnostics.Add(
-                        FormatResourceSnapshot(
-                            $"{motionDiagnosticSequence++}:{window.MonitorId}:{label}",
-                            CaptureResources()));
-                    if (!asynchronousBoundary)
-                    {
-                        synchronousMotionDiagnosticCount++;
-                    }
-                }
-            });
-        }
-
-        try
-        {
-            for (var index = 0; index < cycles; index++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (index == 0)
-                {
-                    lifecyclePhaseDiagnostics.Add(FormatResourceSnapshot("before", CaptureResources()));
-                }
-
-                ExerciseLifecycle(index == 0 ? lifecyclePhaseDiagnostics : null);
-                if (index % 10 == 9)
-                {
-                    await WaitForOverlayMotionSettledAsync(cancellationToken);
-                }
-
-                var completedCycles = index + 1;
-                if (sampleCycles.Contains(completedCycles))
-                {
-                    CollectReleasedResources();
-                    var sample = CaptureResources();
-                    resourceSamples.Add(new OverlayResourceSample(
-                        completedCycles,
-                        sample.HandleCount,
-                        sample.GdiObjects,
-                        sample.UserObjects,
-                        sample.PrivateBytes));
-                }
+                await WaitForOverlayMotionSettledAsync(cancellationToken);
             }
-        }
-        finally
-        {
-            foreach (var window in _windows)
+
+            var completedCycles = index + 1;
+            if (sampleCycles.Contains(completedCycles))
             {
-                window.SetSmokeDiagnosticSink(null);
+                CollectReleasedResources();
+                var sample = CaptureResources();
+                resourceSamples.Add(new OverlayResourceSample(
+                    completedCycles,
+                    sample.HandleCount,
+                    sample.GdiObjects,
+                    sample.UserObjects,
+                    sample.PrivateBytes));
             }
         }
 
@@ -301,8 +259,7 @@ public sealed class OverlayWindowService : IDisposable
                     $"{sample.Cycle}:handles={sample.HandleCount},GDI={sample.GdiObjects},USER={sample.UserObjects},privateBytes={sample.PrivateBytes}"));
             throw new InvalidOperationException(
                 $"Overlay lifecycle smoke exceeded its resource bounds: {metrics}. " +
-                $"Checkpoints: {checkpoints}. Motion: {string.Join("; ", motionDiagnostics)}. " +
-                $"Lifecycle: {string.Join("; ", lifecyclePhaseDiagnostics)}");
+                $"Checkpoints: {checkpoints}");
         }
 
         _logger.LogInformation(
@@ -1298,32 +1255,17 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private void ExerciseLifecycle(ICollection<string>? diagnostics = null)
+    private void ExerciseLifecycle()
     {
-        RunLifecyclePhase("restore", () => _stateMachine.Restore(0), diagnostics);
-        RunLifecyclePhase("drag-approach", _stateMachine.BeginDragApproach, diagnostics);
-        RunLifecyclePhase("drag-ready", () => _stateMachine.SetDragReady(true), diagnostics);
-        RunLifecyclePhase("drop", () => _stateMachine.CompleteDrop(1), diagnostics);
-        RunLifecyclePhase("expand", _stateMachine.Expand, diagnostics);
-        RunLifecyclePhase("collapse", _stateMachine.Collapse, diagnostics);
-        RunLifecyclePhase("item-count-zero", () => _stateMachine.SetTemporaryItemCount(0), diagnostics);
-        RunLifecyclePhase("dismiss", _stateMachine.CompleteDismissal, diagnostics);
+        _stateMachine.Restore(0);
+        _stateMachine.BeginDragApproach();
+        _stateMachine.SetDragReady(true);
+        _stateMachine.CompleteDrop(1);
+        _stateMachine.Expand();
+        _stateMachine.Collapse();
+        _stateMachine.SetTemporaryItemCount(0);
+        _stateMachine.CompleteDismissal();
     }
-
-    private static void RunLifecyclePhase(
-        string name,
-        Action action,
-        ICollection<string>? diagnostics)
-    {
-        action();
-        if (diagnostics is not null)
-        {
-            diagnostics.Add(FormatResourceSnapshot(name, CaptureResources()));
-        }
-    }
-
-    private static string FormatResourceSnapshot(string name, ResourceSnapshot snapshot) =>
-        $"{name}:handles={snapshot.HandleCount},GDI={snapshot.GdiObjects},USER={snapshot.UserObjects},privateBytes={snapshot.PrivateBytes}";
 
     private VisibleWindowProbe ProbeActiveVisualCenter()
     {

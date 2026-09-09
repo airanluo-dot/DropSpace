@@ -7,8 +7,9 @@ using Microsoft.UI.Xaml.Hosting;
 namespace DropSpace.App.Services;
 
 /// <summary>
-/// Keeps opacity, content choreography, hover tint, and press feedback on the compositor. Native
-/// geometry remains owned by OverlayWindow so the OLE hit region stays exact and fail-closed.
+/// Keeps opacity, content choreography, hover tint, and press feedback on compositor visuals
+/// without allocating transient animations. Native geometry remains owned by OverlayWindow so the
+/// OLE hit region stays exact and fail-closed.
 /// </summary>
 internal sealed class OverlayCompositionAnimator : IDisposable
 {

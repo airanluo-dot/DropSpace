@@ -72,8 +72,6 @@ public sealed partial class OverlayWindow : Window
     private int _positionedHostTopPixels = int.MinValue;
     private bool? _noActivateApplied;
     private bool _nativeWindowShown;
-    private Action<string>? _smokeDiagnosticSink;
-    private int _smokeDiagnosticFrameCount;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -206,12 +204,6 @@ public sealed partial class OverlayWindow : Window
     internal bool HasActiveFrameSubscription => _hasFrameSubscription;
 
     internal long RegionFailureCount => Interlocked.Read(ref _regionFailureCount);
-
-    internal void SetSmokeDiagnosticSink(Action<string>? sink)
-    {
-        _smokeDiagnosticSink = sink;
-        _smokeDiagnosticFrameCount = 0;
-    }
 
     internal void VerifyLocalizedResources()
     {
@@ -366,7 +358,6 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
-        EmitSmokeDiagnostic($"snapshot-before:{snapshot.State}");
         if (_suppressedForPlacementEdit)
         {
             HideImmediately();
@@ -447,9 +438,7 @@ public sealed partial class OverlayWindow : Window
             _motion.PulseDropTarget(OverlayMotionTokens.DropConfirmationScale);
         }
 
-        EmitSmokeDiagnostic($"set-target-before:{snapshot.State}");
         _motion.SetTarget(target, IsReducedMotion());
-        EmitSmokeDiagnostic($"set-target-after:{snapshot.State}");
         StartAnimationFrames();
         _previousState = snapshot.State;
     }
@@ -535,7 +524,6 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
-        EmitSmokeDiagnostic("hide-before");
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
@@ -553,7 +541,6 @@ public sealed partial class OverlayWindow : Window
         _isVisible = false;
         _hideWhenSettled = false;
         _visualPhase = OverlayVisualPhase.Invisible;
-        EmitSmokeDiagnostic("hide-after");
     }
 
     private void HideForNativeFailure()
@@ -714,31 +701,14 @@ public sealed partial class OverlayWindow : Window
 
     private void OnAnimationFrame(object? sender, object args)
     {
-        var captureFrameDiagnostics = _smokeDiagnosticSink is not null &&
-                                      _smokeDiagnosticFrameCount < 3;
-        if (captureFrameDiagnostics)
-        {
-            _smokeDiagnosticFrameCount++;
-            EmitSmokeDiagnostic("frame-before-step");
-        }
-
         var now = Stopwatch.GetTimestamp();
         var elapsed = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now);
         _lastFrameTimestamp = now;
         _motion.Step(elapsed);
-        if (captureFrameDiagnostics)
-        {
-            EmitSmokeDiagnostic("frame-after-step");
-        }
 
         if (!ApplyMotionFrame(_motion.Current))
         {
-            EmitSmokeDiagnostic("frame-apply-failed");
             return;
-        }
-        if (captureFrameDiagnostics)
-        {
-            EmitSmokeDiagnostic("frame-after-apply");
         }
 
         if (_motion.IsAnimating)
@@ -746,9 +716,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        EmitSmokeDiagnostic("settled-before-stop");
         StopAnimationFrames();
-        EmitSmokeDiagnostic("settled-after-stop");
         if (_hideWhenSettled)
         {
             var current = _motion.Current.ProjectToSafeRange();
@@ -773,7 +741,6 @@ public sealed partial class OverlayWindow : Window
             _isVisible = false;
             _visualPhase = OverlayVisualPhase.Invisible;
             CompleteMotionWaiters();
-            EmitSmokeDiagnostic("settled-after-hide");
             return;
         }
 
@@ -787,15 +754,10 @@ public sealed partial class OverlayWindow : Window
 
         if (state == OverlayState.Dismissing)
         {
-            EmitSmokeDiagnostic("dismiss-before-complete");
             _viewModel.CompleteDismissal();
-            EmitSmokeDiagnostic("dismiss-after-complete");
         }
         CompleteMotionWaiters();
-        EmitSmokeDiagnostic("settled-after-waiters");
     }
-
-    private void EmitSmokeDiagnostic(string label) => _smokeDiagnosticSink?.Invoke(label);
 
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
     {
