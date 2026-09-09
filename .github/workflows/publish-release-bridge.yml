@@ -2,6 +2,11 @@ name: Explicit Release Dispatch Bridge
 
 on:
   create:
+  # Allow a failed publication dispatch to be retried by advancing the
+  # exact-name publication branch to the new main commit.
+  push:
+    branches:
+      - 'publish/**'
 
 permissions: {}
 
