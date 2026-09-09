@@ -1,4 +1,4 @@
-export const OFFICIAL_RELEASES_API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=20&page=1";
+export const OFFICIAL_RELEASES_API = "https://api.github.com/repos/airanluo-dot/DropSpace/releases?per_page=100&page=1";
 export const RELEASE_API_SCHEMA_VERSION = 1;
 export const RELEASE_API_MAX_ITEMS = 20;
 export const LATEST_CHANGE_API_SCHEMA_VERSION = 1;
@@ -133,9 +133,14 @@ export function validateLatestChangeApi(payload) {
 
 export function createWebsiteReleaseData(githubPayload, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(githubPayload)) throw new TypeError("GitHub release payload must be an array.");
-  const releases = githubPayload.filter((release) => !release.draft).slice(0, RELEASE_API_MAX_ITEMS);
-  const stable = releases.find((release) => !release.prerelease);
-  if (!stable) throw new TypeError("GitHub Releases did not contain a Stable release in the first 20 items.");
+  const published = githubPayload.filter((release) => !release.draft);
+  const stable = published.find((release) => !release.prerelease);
+  if (!stable) throw new TypeError("GitHub Releases did not contain a Stable release in the fetched release window.");
+
+  const recent = published.slice(0, RELEASE_API_MAX_ITEMS);
+  const releases = recent.some((release) => release.tag_name === stable.tag_name)
+    ? recent
+    : [...recent.slice(0, RELEASE_API_MAX_ITEMS - 1), stable];
 
   const data = {
     syncedAt: generatedAt,
