@@ -124,6 +124,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public async Task InitializeAsync(string initialMonitorId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(initialMonitorId);
+        _appliedSettings = _mainViewModel.Settings;
         ActiveMonitorId = initialMonitorId;
         _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
         _mainViewModel.SpaceProjectionChanged += OnSpaceProjectionChanged;
@@ -227,6 +228,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public void CompleteDismissal() => _stateMachine.CompleteDismissal();
 
+    private AppSettings? _appliedSettings;
+
     private Task ApplyUiSettingsAsync(AppSettings candidate, CancellationToken cancellationToken)
     {
         candidate.Validate();
@@ -240,13 +243,10 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var previous = _pendingSettings ?? _appliedSettings ?? _mainViewModel.Settings;
         _pendingSettings = candidate;
-        OnPropertyChanged(nameof(MonitorPreference));
-        OnPropertyChanged(nameof(MotionPreference));
-        OnPropertyChanged(nameof(FileDragWakeMode));
-        OnPropertyChanged(nameof(PlacementMode));
-        OnPropertyChanged(nameof(QuickPanelHotkey));
-        OnPropertyChanged(nameof(SmartDragExcludedProcesses));
+        _appliedSettings = candidate;
+        NotifySettingsChanges(previous, candidate);
         return Task.CompletedTask;
     }
 
@@ -434,14 +434,26 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         }
         else if (args.PropertyName == nameof(MainViewModel.Settings))
         {
+            var previous = _pendingSettings ?? _appliedSettings;
             _pendingSettings = null;
-            OnPropertyChanged(nameof(MonitorPreference));
-            OnPropertyChanged(nameof(MotionPreference));
-            OnPropertyChanged(nameof(FileDragWakeMode));
-            OnPropertyChanged(nameof(PlacementMode));
-            OnPropertyChanged(nameof(QuickPanelHotkey));
-            OnPropertyChanged(nameof(SmartDragExcludedProcesses));
+            _appliedSettings = _mainViewModel.Settings;
+            // The preflight already applied this snapshot. Do not repeat native work
+            // for every settings notification (including update-check timestamps).
+            if (previous is not null) NotifySettingsChanges(previous, _mainViewModel.Settings);
         }
+    }
+
+    private void NotifySettingsChanges(AppSettings previous, AppSettings next)
+    {
+        if (previous.OverlayMonitor != next.OverlayMonitor) OnPropertyChanged(nameof(MonitorPreference));
+        if (previous.OverlayMotion != next.OverlayMotion) OnPropertyChanged(nameof(MotionPreference));
+        if (previous.FileDragWakeMode != next.FileDragWakeMode) OnPropertyChanged(nameof(FileDragWakeMode));
+        if (previous.OverlayPlacementMode != next.OverlayPlacementMode ||
+            !previous.OverlayPlacements.OrderBy(pair => pair.Key).SequenceEqual(next.OverlayPlacements.OrderBy(pair => pair.Key)))
+            OnPropertyChanged(nameof(PlacementMode));
+        if (previous.QuickPanelHotkey != next.QuickPanelHotkey) OnPropertyChanged(nameof(QuickPanelHotkey));
+        if (!previous.SmartDragExcludedProcesses.SequenceEqual(next.SmartDragExcludedProcesses))
+            OnPropertyChanged(nameof(SmartDragExcludedProcesses));
     }
 
     private void OnStateChanged(object? sender, OverlaySnapshot snapshot)

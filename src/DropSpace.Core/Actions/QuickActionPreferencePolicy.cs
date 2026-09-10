@@ -130,9 +130,19 @@ public static class QuickActionPreferencePolicy
 
         if (preference.IsAutomatic)
         {
+            // Keep the registry as the capability source. Prefer common image work
+            // over a technical hash operation; custom profiles retain their exact slots.
+            ItemActionId[] preferred = profile == QuickActionProfile.Image
+                ? [ItemActionId.ResizeImage, ItemActionId.ConvertImage, ItemActionId.StripMetadata]
+                : [];
+            var ordered = distinctAvailable.OrderBy(capability =>
+            {
+                var index = Array.IndexOf(preferred, capability.Descriptor.Id);
+                return index < 0 ? preferred.Length : index;
+            }).ToArray();
             return new QuickActionPartition(
-                distinctAvailable.Take(MaximumPrimaryActions).ToArray(),
-                distinctAvailable.Skip(MaximumPrimaryActions).ToArray());
+                ordered.Take(MaximumPrimaryActions).ToArray(),
+                ordered.Skip(MaximumPrimaryActions).ToArray());
         }
 
         var byId = distinctAvailable.ToDictionary(capability => capability.Descriptor.Id);

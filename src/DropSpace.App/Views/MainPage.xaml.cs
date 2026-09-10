@@ -443,7 +443,11 @@ public sealed partial class MainPage : Page
         if (!_syncingSettings)
         {
             await ApplySettingChangeAsync(
-                settings => settings with { EnableDeviceHandoff = DeviceHandoffToggle.IsOn });
+                settings => settings with
+                {
+                    EnableDeviceHandoff = DeviceHandoffToggle.IsOn,
+                    EnableCrossDeviceClipboard = DeviceHandoffToggle.IsOn && settings.EnableCrossDeviceClipboard,
+                });
             UpdateDeviceStatus();
         }
     }
@@ -453,7 +457,11 @@ public sealed partial class MainPage : Page
         if (!_syncingSettings)
         {
             await ApplySettingChangeAsync(
-                settings => settings with { EnableCrossDeviceClipboard = CrossDeviceClipboardToggle.IsOn });
+                settings => settings with
+                {
+                    EnableCrossDeviceClipboard = CrossDeviceClipboardToggle.IsOn,
+                    EnableDeviceHandoff = CrossDeviceClipboardToggle.IsOn || settings.EnableDeviceHandoff,
+                });
         }
     }
 
@@ -1029,7 +1037,11 @@ public sealed partial class MainPage : Page
                 _ => _viewModel.EvaluateQuickActions(card, ResolveActionSelection(card)).More.Any(
                     capability => capability.Descriptor.Id == action),
             };
-            menu.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+            var networkAction = action is ItemActionId.SendToDevice or ItemActionId.CreateNearbyLink or ItemActionId.CreateSecureInternetLink;
+            menu.Visibility = available || networkAction ? Visibility.Visible : Visibility.Collapsed;
+            menu.IsEnabled = available;
+            if (networkAction)
+                ToolTipService.SetToolTip(menu, available ? null : _strings.Get("NetworkActionSetupRequired"));
         }
     }
 
@@ -1704,6 +1716,11 @@ public sealed partial class MainPage : Page
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(() => OnViewModelPropertyChanged(sender, args));
+            return;
+        }
         if (args.PropertyName == nameof(MainViewModel.Settings))
         {
             SyncSettingsControls();
@@ -2172,15 +2189,8 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private Task ShowActionResultAsync(ItemActionResult result)
-    {
-        var messageKey = result.MessageResourceKey ?? "ActionUnavailable";
-        var title = _strings.Get(messageKey);
-        var content = result.OutputPaths.Count == 0
-            ? _strings.Get(messageKey)
-            : _strings.Format("ActionOutputSaved", string.Join(Environment.NewLine, result.OutputPaths));
-        return ShowMessageAsync(title, content);
-    }
+    private Task ShowActionResultAsync(ItemActionResult result) =>
+        _quickActionDialog.ShowResultAsync(result, XamlRoot);
 
     private async Task ApplySettingChangeAsync(
         Func<AppSettings, AppSettings> update,
@@ -2194,6 +2204,7 @@ public sealed partial class MainPage : Page
             }
             catch
             {
+                SyncSettingsControls();
                 rollback?.Invoke();
                 throw;
             }
@@ -2213,6 +2224,14 @@ public sealed partial class MainPage : Page
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "A main-page operation failed.");
+            if (exception is SettingsUpdateException settingsFailure)
+            {
+                SyncSettingsControls();
+                await ShowMessageAsync(_strings.Get("OperationIncompleteTitle"),
+                    _strings.Format(settingsFailure.StageResourceKey == "SettingsStageRecovery" ? "SettingsRecoveryFailed" : "SettingsUpdateFailed",
+                        _strings.Get(settingsFailure.StageResourceKey), settingsFailure.OperationId));
+                return;
+            }
             await ShowMessageAsync(
                 _strings.Get("OperationIncompleteTitle"),
                 _strings.Get("OperationIncompleteContent"));

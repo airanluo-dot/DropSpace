@@ -1,6 +1,8 @@
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Preview;
+using DropSpace.Core.Content;
+using Windows.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,6 +17,8 @@ namespace DropSpace.App.Services;
 /// </summary>
 public sealed class QuickActionDialogService(
     IAppStringLocalizer strings,
+    IItemContentResolver contentResolver,
+    ClipboardCaptureService clipboard,
     ILogger<QuickActionDialogService> logger) : IDisposable
 {
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
@@ -61,14 +65,34 @@ public sealed class QuickActionDialogService(
             var content = result.OutputPaths.Count == 0
                 ? strings.Get(messageKey)
                 : strings.Format("ActionOutputSaved", string.Join(Environment.NewLine, result.OutputPaths));
+            var panel = new StackPanel { Spacing = 12, MaxWidth = 480 };
+            panel.Children.Add(new TextBlock { Text = content, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+            if (result.ResultText is { } resultText)
+            {
+                panel.Children.Insert(0, new TextBlock
+                {
+                    Text = strings.Get("HashResultDescription"), TextWrapping = TextWrapping.Wrap,
+                });
+                panel.Children.Insert(1, new TextBox
+                {
+                    Text = resultText, IsReadOnly = true, TextWrapping = TextWrapping.Wrap,
+                });
+            }
             var dialog = new ContentDialog
             {
                 XamlRoot = xamlRoot,
                 Title = strings.Get(messageKey),
-                Content = content,
+                Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+                PrimaryButtonText = result.ResultText is null ? string.Empty : strings.Get("CopyHashResult"),
+                SecondaryButtonText = result.OutputPaths.Count == 0 ? string.Empty : strings.Get("OpenOutputFolder"),
                 CloseButtonText = strings.Get("CommonAcknowledge"),
             };
-            await dialog.ShowAsync();
+            var response = await dialog.ShowAsync();
+            if (response == ContentDialogResult.Primary && result.ResultText is { } text)
+                await clipboard.CopyTextAsync(text, cancellationToken);
+            else if (response == ContentDialogResult.Secondary && result.OutputPaths.Count > 0)
+                await Windows.System.Launcher.LaunchFolderPathAsync(Path.GetDirectoryName(result.OutputPaths[0])!);
+
         }
         finally
         {
@@ -97,12 +121,14 @@ public sealed class QuickActionDialogService(
             Content = strings.Get("QuickActionChooseFolder"),
             Margin = new Thickness(8, 0, 0, 0),
         };
-        var destinationRow = new StackPanel
+        var destinationRow = new Grid
         {
-            Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Stretch,
+            ColumnSpacing = 8,
         };
-        destination.Width = 360;
+        destinationRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        destinationRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(chooseFolder, 1);
         destinationRow.Children.Add(destination);
         destinationRow.Children.Add(chooseFolder);
 
@@ -111,16 +137,18 @@ public sealed class QuickActionDialogService(
         {
             Header = strings.Get("QuickActionWidth"),
             PlaceholderText = strings.Get("QuickActionRequiredValue"),
+            Width = 150,
             Minimum = 1,
-            Maximum = 16_384,
+            Maximum = ImageSizePresetPolicy.MaximumDimension,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
         };
         var height = new NumberBox
         {
             Header = strings.Get("QuickActionHeight"),
             PlaceholderText = strings.Get("QuickActionRequiredValue"),
+            Width = 150,
             Minimum = 1,
-            Maximum = 16_384,
+            Maximum = ImageSizePresetPolicy.MaximumDimension,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
         };
         var sizeRow = new StackPanel
@@ -142,6 +170,39 @@ public sealed class QuickActionDialogService(
             TextWrapping = TextWrapping.Wrap,
             Visibility = actionId == ItemActionId.ConvertImage ? Visibility.Visible : Visibility.Collapsed,
         };
+        var presets = new ComboBox
+        {
+            Header = strings.Get("ImageSizePreset"), HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        (int Width, int Height)? originalSize = null;
+        if (actionId is ItemActionId.ResizeImage or ItemActionId.ConvertImage)
+        {
+            originalSize = await ReadImageSizeAsync(selection.Single, cancellationToken);
+            foreach (var percent in new[] { 100, 75, 50, 25 })
+                presets.Items.Add(new ComboBoxItem
+                {
+                    Content = percent == 100 ? strings.Get("ImageSizeOriginal") : $"{percent}%",
+                    Tag = percent,
+                });
+            presets.Items.Add(new ComboBoxItem { Content = strings.Get("ImageSizeCustom"), Tag = 0 });
+            presets.SelectionChanged += (_, _) =>
+            {
+                if (presets.SelectedItem is not ComboBoxItem { Tag: int percent }) return;
+                var custom = percent == 0;
+                sizeRow.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+                keepAspect.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+                if (!custom && originalSize is { } source)
+                {
+                    var scaled = ImageSizePresetPolicy.Scale(source.Width, source.Height, percent);
+                    width.Value = scaled.Width;
+                    height.Value = scaled.Height;
+                    keepAspect.IsChecked = true;
+                    resizeHint.Text = strings.Format("ImageSizeOutput", scaled.Width, scaled.Height);
+                }
+            };
+            presets.SelectedIndex = 0;
+            resizeHint.Visibility = Visibility.Visible;
+        }
         var error = new TextBlock
         {
             Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red),
@@ -176,7 +237,7 @@ public sealed class QuickActionDialogService(
         var content = new StackPanel
         {
             Spacing = 12,
-            MinWidth = 520,
+            MaxWidth = 480,
         };
         content.Children.Add(new TextBlock
         {
@@ -191,6 +252,7 @@ public sealed class QuickActionDialogService(
 
         if (actionId is ItemActionId.ResizeImage or ItemActionId.ConvertImage)
         {
+            content.Children.Add(presets);
             content.Children.Add(resizeHint);
             content.Children.Add(sizeRow);
             content.Children.Add(keepAspect);
@@ -200,8 +262,8 @@ public sealed class QuickActionDialogService(
         var dialog = new ContentDialog
         {
             XamlRoot = xamlRoot,
-            Title = strings.Get("QuickActionParametersTitle"),
-            Content = content,
+            Title = strings.Get(actionId == ItemActionId.ResizeImage ? "ActionResizeImageMenuItem.Text" : "ActionConvertImage.Text"),
+            Content = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
             PrimaryButtonText = strings.Get("QuickActionApply"),
             CloseButtonText = strings.Get("QuickActionCancel"),
             DefaultButton = ContentDialogButton.Primary,
@@ -245,6 +307,17 @@ public sealed class QuickActionDialogService(
                 keepAspect.IsChecked is not false,
                 cancellationToken);
         }
+    }
+
+    private async Task<(int Width, int Height)> ReadImageSizeAsync(DropItemSnapshot item, CancellationToken cancellationToken)
+    {
+        var resolved = contentResolver.Resolve(item);
+        if (!resolved.HasReadablePath) throw new FileNotFoundException("The image source is unavailable.");
+        var file = await StorageFile.GetFileFromPathAsync(resolved.ReadablePath!);
+        using var stream = await file.OpenReadAsync();
+        var decoder = await ImageDecoderPreflight.ValidateAsync(stream, 256L * 1024 * 1024,
+            ImageSizePresetPolicy.MaximumPixels, cancellationToken);
+        return ImageSizePresetPolicy.Scale(checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight), 100);
     }
 
     private ComboBox? CreateFormatSelector(DropItemSnapshot item, ItemActionId actionId)
@@ -320,10 +393,6 @@ public sealed class QuickActionDialogService(
     }
 
     private static bool RequiresParameters(ItemActionId actionId) => actionId is
-        ItemActionId.HashSha256 or
-        ItemActionId.CompressZip or
-        ItemActionId.GenerateQr or
         ItemActionId.ResizeImage or
-        ItemActionId.ConvertImage or
-        ItemActionId.StripMetadata;
+        ItemActionId.ConvertImage;
 }

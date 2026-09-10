@@ -2,9 +2,17 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.20 is the current architecture-remediation development Preview following the published Preview.19 baseline. Preview.20 carries the durable payload/staging recovery, reparse-safe sending, bounded remote metadata, application-boundary, and release-pipeline hardening described in its test plan. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.21 is the current settings and action usability Preview following Preview.20. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
+
+## v0.3.0-preview.21 settings and action usability delivery slice
+
+- Make settings changes transactional by merging only fields edited by the current form into the latest persisted snapshot, isolating startup and device-service initialization from unrelated local edits, and preserving pause/update-check state.
+- Return stage-specific settings failures with correlation IDs, restore visible controls on the UI dispatcher, and retry only failed rollback compensations so a failed network feature does not block local preferences.
+- Make item actions readable and discoverable with labeled icon buttons, an explicit More actions entry, setup guidance for unavailable network actions, and a direct checksum result with copy/open-folder controls.
+- Simplify image exports with original/75%/50%/25% presets plus custom pixels, bounded dimensions, output-size feedback, and source-safe collision-resistant exports.
+- Keep Preview.21 conditional for physical OS/DPI/OLE/provider/accessibility, two-device, deployed Worker/browser, and long-run evidence; see `docs/test-plan/v0.3.0-preview.21.md`.
 
 ## v0.3.0-preview.20 architecture-remediation delivery slice
 

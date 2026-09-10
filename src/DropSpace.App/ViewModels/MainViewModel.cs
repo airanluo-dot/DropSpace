@@ -1152,19 +1152,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var previousStatus = StatusMessage;
         try
         {
-            Settings = await _settingsCoordinator.UpdateAsync(
+            var updated = await _settingsCoordinator.UpdateAsync(
                 previous,
                 settings,
                 UiSettingsPreflightAsync,
                 cancellationToken);
-            StatusMessage = Settings.Language == previous.Language
-                ? _strings.Get("SettingsSaved")
-                : _strings.Get("LanguageChangeRestartRequired");
+            await _dispatcher.EnqueueAsync(() =>
+            {
+                Settings = updated;
+                StatusMessage = Settings.Language == previous.Language
+                    ? _strings.Get("SettingsSaved")
+                    : _strings.Get("LanguageChangeRestartRequired");
+                return Task.CompletedTask;
+            });
         }
         catch
         {
-            Settings = await _settingsCoordinator.RecoverPersistedStateAsync(previous);
-            StatusMessage = previousStatus;
+            var recovered = await _settingsCoordinator.RecoverPersistedStateAsync(previous);
+            await _dispatcher.EnqueueAsync(() =>
+            {
+                Settings = recovered;
+                StatusMessage = previousStatus;
+                return Task.CompletedTask;
+            });
             throw;
         }
     }
