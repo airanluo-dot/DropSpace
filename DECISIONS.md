@@ -524,3 +524,12 @@ The Settings placement editor is a transient no-activate state machine. It captu
   point without rewriting the existing UI.
 - Constraints: The repository remains the persistence implementation and
   external source references remain non-destructive.
+
+
+## D-060 — Preview.21 makes settings and actions progressive and recoverable
+
+- Date: 2026-09-10
+- Status: Accepted for Preview.21
+- Decision: Apply settings through one serialized transaction that merges only fields changed by the active form into the latest persisted snapshot. Keep local settings independent from optional device/network initialization, identify failures by stage and correlation ID, and compensate only steps that actually committed. Project setting notifications differentially on the UI dispatcher. Expose Quick Actions as labeled icon-plus-text controls; run safe exports with the default destination; show checksum text with copy support; and offer bounded image-size presets before custom pixels.
+- Rationale: A failed optional service previously made unrelated settings appear unwritable, while dense unlabeled actions and mandatory pixel entry hid available capabilities. Field-level merging avoids stale-form overwrites, scoped rollback preserves recoverability, and progressive defaults reduce steps without changing source-safe export boundaries.
+- Constraints: Windows startup registration, WinUI thread affinity, image codecs, DPI/accessibility, and two-device/network behavior still require hosted Windows and manual target evidence. Outputs remain DropSpace-owned and never mutate referenced source files.

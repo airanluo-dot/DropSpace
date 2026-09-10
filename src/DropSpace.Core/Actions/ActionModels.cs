@@ -70,6 +70,8 @@ public sealed record ItemActionResult(
     IReadOnlyList<Guid> OutputItemIds,
     string? ErrorCategory = null)
 {
+    public string? ResultText { get; init; }
+
     public static ItemActionResult Success(
         IReadOnlyList<string>? outputPaths = null,
         IReadOnlyList<Guid>? outputItemIds = null,

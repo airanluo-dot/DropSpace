@@ -54,7 +54,8 @@ public sealed class HashActionService(AppStoragePaths paths, IItemContentResolve
             throw;
         }
 
-        return ItemActionResult.Success([outputPath], messageResourceKey: "ActionCompleted");
+        return ItemActionResult.Success([outputPath], messageResourceKey: "ActionCompleted") with
+        { ResultText = Convert.ToHexString(hash).ToLowerInvariant() };
     }
 
 }

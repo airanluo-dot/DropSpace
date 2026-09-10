@@ -1,6 +1,6 @@
 namespace DropSpace.App.Services;
 
-internal sealed record SettingsRollbackFailure(string Category, Exception Exception);
+internal sealed record SettingsRollbackFailure(string Category, Exception Exception, Func<Task> Retry);
 
 internal sealed class SettingsTransactionRollbackCoordinator
 {
@@ -16,7 +16,7 @@ internal sealed class SettingsTransactionRollbackCoordinator
             try { await step.Undo(); }
             catch (Exception exception)
             {
-                failures.Add(new SettingsRollbackFailure(step.Category, exception));
+                failures.Add(new SettingsRollbackFailure(step.Category, exception, step.Undo));
                 try { report(step.Category, exception); }
                 catch { }
             }

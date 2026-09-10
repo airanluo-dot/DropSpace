@@ -81,13 +81,12 @@ public sealed class SettingsApplicationCoordinator(
         {
             var operationId = OperationCorrelation.New();
             logger.LogInformation("Settings operation {OperationId} started.", operationId);
-            // A settings form does not own process-driven pause or update-check state.
-            var next = requested with
-            {
-                ClipboardPaused = current.ClipboardPaused,
-                LastUpdateCheckUtc = current.LastUpdateCheckUtc,
-            };
-            next.Validate();
+            // The form may have been captured while another edit was still saving.
+            // Merge its changed fields only, under the transaction gate.
+            var persisted = await settingsService.LoadAsync(cancellationToken);
+            var next = SettingsChangePolicy.Merge(current, requested, persisted);
+            current = persisted;
+            next = next.Validate();
 
             if (!string.Equals(next.QuickPanelHotkey, current.QuickPanelHotkey, StringComparison.OrdinalIgnoreCase) &&
                 !quickPanelHotkey.CanRegister(next.QuickPanelHotkey))
@@ -97,6 +96,7 @@ public sealed class SettingsApplicationCoordinator(
             }
 
             var rollback = new SettingsTransactionRollbackCoordinator();
+            var stage = "SettingsStageAppearance";
             try
             {
                 if (uiPreflight is not null)
@@ -105,24 +105,45 @@ public sealed class SettingsApplicationCoordinator(
                     await uiPreflight(next, cancellationToken);
                 }
 
-                rollback.Committed(
-                    "startup",
-                    () => startupRegistration.SetEnabledAsync(current.StartWithWindows, CancellationToken.None));
-                await startupRegistration.SetEnabledAsync(next.StartWithWindows, cancellationToken);
+                if (next.StartWithWindows != current.StartWithWindows)
+                {
+                    stage = "SettingsStageStartup";
+                    rollback.Committed("startup", () => startupRegistration.SetEnabledAsync(current.StartWithWindows, CancellationToken.None));
+                    await startupRegistration.SetEnabledAsync(next.StartWithWindows, cancellationToken);
+                }
 
+                stage = "SettingsStageClipboard";
                 rollback.Committed("clipboard", () => clipboard.UpdateSettingsAsync(current, CancellationToken.None));
                 await clipboard.UpdateSettingsAsync(next, cancellationToken);
 
-                rollback.Committed("handoff", () => deviceHandoff.UpdateSettingsAsync(current, CancellationToken.None));
-                await deviceHandoff.UpdateSettingsAsync(next, cancellationToken);
+                if (next.EnableDeviceHandoff != current.EnableDeviceHandoff)
+                {
+                    stage = "SettingsStageHandoff";
+                    rollback.Committed("handoff", () => deviceHandoff.UpdateSettingsAsync(current, CancellationToken.None));
+                    await deviceHandoff.UpdateSettingsAsync(next, cancellationToken);
+                }
 
-                rollback.Committed(
-                    "cross-device-clipboard",
-                    () => crossDeviceClipboard.UpdateSettingsAsync(current, CancellationToken.None));
-                await crossDeviceClipboard.UpdateSettingsAsync(next, cancellationToken);
+                // Capture limits and Pause are live inputs to automatic propagation. Keep
+                // its snapshot current, but do not initialize a failed network feature
+                // again as a side effect of changing an unrelated local preference.
+                if (next.EnableCrossDeviceClipboard != current.EnableCrossDeviceClipboard || crossDeviceClipboard.IsEnabled)
+                {
+                    stage = "SettingsStageCrossClipboard";
+                    rollback.Committed("cross-device-clipboard", () => crossDeviceClipboard.UpdateSettingsAsync(current, CancellationToken.None));
+                    await crossDeviceClipboard.UpdateSettingsAsync(next, cancellationToken);
+                }
 
-                rollback.Committed("settings-store", () => settingsService.SaveAsync(current, CancellationToken.None));
-                await settingsService.SaveAsync(next, cancellationToken);
+                stage = "SettingsStageStore";
+                rollback.Committed("settings-store", () => settingsService.UpdateAsync(latest => current with
+                {
+                    ClipboardPaused = latest.ClipboardPaused,
+                    LastUpdateCheckUtc = latest.LastUpdateCheckUtc,
+                }, CancellationToken.None));
+                next = await settingsService.UpdateAsync(latest => next with
+                {
+                    ClipboardPaused = latest.ClipboardPaused,
+                    LastUpdateCheckUtc = latest.LastUpdateCheckUtc,
+                }, cancellationToken);
                 logger.LogInformation("Settings operation {OperationId} committed.", operationId);
                 return next;
             }
@@ -137,22 +158,23 @@ public sealed class SettingsApplicationCoordinator(
                         exception.GetType().Name));
                 if (rollbackFailures.Count > 0)
                 {
-                    var reconciliationFailures = await ReconcileAsync(current, uiPreflight);
+                    var reconciliationFailures = await ReconcileAsync(rollbackFailures);
                     if (reconciliationFailures.Count > 0)
                     {
                         logger.LogCritical(
                             "Settings update rollback and reconciliation both had failures. Rollback={RollbackFailures}, Reconciliation={ReconciliationFailures}.",
                             rollbackFailures.Count,
                             reconciliationFailures.Count);
-                        throw new AggregateException(
+                        throw new SettingsUpdateException("SettingsStageRecovery", operationId, new AggregateException(
                             "The settings update failed and the previous runtime state could not be fully reconciled. Restart DropSpace before changing settings again.",
                             new[] { updateException }
                                 .Concat(rollbackFailures.Select(failure => failure.Exception))
-                                .Concat(reconciliationFailures));
+                                .Concat(reconciliationFailures)));
                     }
                 }
 
-                throw;
+                if (updateException is OperationCanceledException) throw;
+                throw new SettingsUpdateException(stage, operationId, updateException);
             }
         }
         finally
@@ -196,39 +218,20 @@ public sealed class SettingsApplicationCoordinator(
         }
     }
 
-    private async Task<IReadOnlyList<Exception>> ReconcileAsync(
-        AppSettings previous,
-        Func<AppSettings, CancellationToken, Task>? uiPreflight)
+    private async Task<IReadOnlyList<Exception>> ReconcileAsync(IReadOnlyList<SettingsRollbackFailure> rollbackFailures)
     {
         var failures = new List<Exception>();
-
-        async Task AttemptAsync(string category, Func<Task> action)
+        // Retry only failed compensation steps, in their original reverse order.
+        // Recovery must not start an unrelated network service or write its state.
+        foreach (var failure in rollbackFailures)
         {
-            try
-            {
-                await action();
-            }
+            try { await failure.Retry(); }
             catch (Exception exception)
             {
                 failures.Add(exception);
-                logger.LogError(exception, "Settings reconciliation failed in {Category}.", category);
+                logger.LogError(exception, "Settings reconciliation failed in {Category}.", failure.Category);
             }
         }
-
-        if (uiPreflight is not null)
-        {
-            await AttemptAsync("ui-preflight", () => uiPreflight(previous, CancellationToken.None));
-        }
-
-        await AttemptAsync(
-            "startup",
-            () => startupRegistration.SetEnabledAsync(previous.StartWithWindows, CancellationToken.None));
-        await AttemptAsync("clipboard", () => clipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-        await AttemptAsync("handoff", () => deviceHandoff.UpdateSettingsAsync(previous, CancellationToken.None));
-        await AttemptAsync(
-            "cross-device-clipboard",
-            () => crossDeviceClipboard.UpdateSettingsAsync(previous, CancellationToken.None));
-        await AttemptAsync("settings-store", () => settingsService.SaveAsync(previous, CancellationToken.None));
         return failures;
     }
 

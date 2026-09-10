@@ -329,7 +329,7 @@
   <data name="ActionFailed" xml:space="preserve"><value>操作无法完成。请查看日志获取诊断信息。</value></data>
   <data name="ActionOutputSaved" xml:space="preserve"><value>输出已保存到：{0}</value></data>
   <data name="QuickActionParametersTitle" xml:space="preserve"><value>操作参数</value></data>
-  <data name="QuickActionParametersDescription" xml:space="preserve"><value>选择导出文件夹，或留空以使用私有的 DropSpace 导出文件夹。图像操作需要明确的输出设置。</value></data>
+  <data name="QuickActionParametersDescription" xml:space="preserve"><value>选择尺寸与格式后即可导出新图片，原文件不会被覆盖。</value></data>
   <data name="QuickActionDestination" xml:space="preserve"><value>导出文件夹</value></data>
   <data name="QuickActionDefaultDestination" xml:space="preserve"><value>DropSpace 导出文件夹（默认）</value></data>
   <data name="QuickActionChooseFolder" xml:space="preserve"><value>选择…</value></data>
@@ -346,19 +346,19 @@
   <data name="QuickActionApply" xml:space="preserve"><value>导出</value></data>
   <data name="QuickActionCancel" xml:space="preserve"><value>取消</value></data>
   <data name="QuickActionFolderPickerFailed" xml:space="preserve"><value>无法打开导出文件夹选择器。</value></data>
-  <data name="ActionHashSha256.Text" xml:space="preserve"><value>计算 SHA-256 哈希</value></data>
+  <data name="ActionHashSha256.Text" xml:space="preserve"><value>查看文件校验值（SHA-256）</value></data>
   <data name="ActionCompressZip.Text" xml:space="preserve"><value>压缩为 ZIP</value></data>
   <data name="ActionGenerateQr.Text" xml:space="preserve"><value>生成二维码</value></data>
-  <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整大小或转换图像</value></data>
-  <data name="ActionConvertImage.Text" xml:space="preserve"><value>转换图像格式</value></data>
-  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>清除图像元数据</value></data>
+  <data name="ActionResizeImageMenuItem.Text" xml:space="preserve"><value>调整图片大小</value></data>
+  <data name="ActionConvertImage.Text" xml:space="preserve"><value>转换图片格式</value></data>
+  <data name="ActionStripMetadata.Text" xml:space="preserve"><value>移除图片隐私信息</value></data>
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>设备交接</value></data>
   <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>配对可信 Windows 设备后，可在审批和完整性校验下发送文件、文件夹、文本和网址。</value></data>
   <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用 Windows 设备交接</value></data>
   <data name="CrossDeviceClipboardTitle.Text" xml:space="preserve"><value>跨设备剪贴板</value></data>
-  <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>复用现有事件驱动剪贴板监听器。远程内容需要用户主动开启，并受有界循环保护。</value></data>
+  <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>仅与已配对的 Windows 设备同步。开启时同时启用设备连接；关闭设备连接也会停止同步。</value></data>
   <data name="CrossDeviceClipboardToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用跨设备剪贴板</value></data>
   <data name="DefaultClipboardSyncModeTitle.Text" xml:space="preserve"><value>新设备默认剪贴板模式</value></data>
   <data name="DefaultClipboardSyncModeDescription.Text" xml:space="preserve"><value>新配对设备使用所选模式；配对本身不会开启自动同步。</value></data>
@@ -441,4 +441,22 @@
   <data name="UndoCompleted" xml:space="preserve"><value>撤销已完成。</value></data>
   <data name="ShellIntakeAdded" xml:space="preserve"><value>已添加到 DropSpace</value></data>
   <data name="ShellIntakeAddedCount" xml:space="preserve"><value>已将 {0} 项添加到 DropSpace</value></data>
+  <data name="SettingsStageAppearance" xml:space="preserve"><value>窗口与外观</value></data>
+  <data name="SettingsStageStartup" xml:space="preserve"><value>开机自启动</value></data>
+  <data name="SettingsStageClipboard" xml:space="preserve"><value>本地剪贴板</value></data>
+  <data name="SettingsStageHandoff" xml:space="preserve"><value>设备连接</value></data>
+  <data name="SettingsStageCrossClipboard" xml:space="preserve"><value>跨设备剪贴板</value></data>
+  <data name="SettingsStageStore" xml:space="preserve"><value>保存设置</value></data>
+  <data name="SettingsUpdateFailed" xml:space="preserve"><value>未能更新“{0}”，已尝试恢复原设置。请检查该功能的系统权限或连接状态后重试。诊断编号：{1}。</value></data>
+  <data name="ImageSizePreset" xml:space="preserve"><value>图片尺寸</value></data>
+  <data name="ImageSizeOriginal" xml:space="preserve"><value>原图尺寸（100%）</value></data>
+  <data name="ImageSizeCustom" xml:space="preserve"><value>自定义像素</value></data>
+  <data name="ImageSizeOutput" xml:space="preserve"><value>导出尺寸：{0} × {1} 像素</value></data>
+  <data name="HashResultDescription" xml:space="preserve"><value>SHA-256 校验值用于核对文件内容是否一致。复制后可与其他文件的校验值比较。</value></data>
+  <data name="CopyHashResult" xml:space="preserve"><value>复制校验值</value></data>
+  <data name="OpenOutputFolder" xml:space="preserve"><value>打开导出文件夹</value></data>
+  <data name="MoreItemButton.Content" xml:space="preserve"><value>更多功能</value></data>
+  <data name="NetworkActionSetupRequired" xml:space="preserve"><value>请先在设置中开启此功能并完成设备配对或服务配置。</value></data>
+  <data name="SettingsRecoveryFailed" xml:space="preserve"><value>未能完整恢复原设置。请重启 DropSpace 后再修改设置。诊断编号：{1}。</value></data>
+  <data name="SettingsStageRecovery" xml:space="preserve"><value>恢复设置</value></data>
 </root>
