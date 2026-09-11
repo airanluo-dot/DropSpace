@@ -30,7 +30,6 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Data.Pdf;
 using Windows.Graphics.Imaging;
 using Windows.Media.Core;
-using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;

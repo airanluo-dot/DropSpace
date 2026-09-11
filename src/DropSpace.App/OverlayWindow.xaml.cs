@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.WindowsRuntime;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
@@ -8,6 +9,7 @@ using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Island;
+using DropSpace.Core.Media;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Preview;
