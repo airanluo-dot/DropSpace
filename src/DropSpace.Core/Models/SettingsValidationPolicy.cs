@@ -29,6 +29,7 @@ public static class SettingsValidationPolicy
     public const int MaximumSmartDragExcludedProcesses = 128;
     public const int MaximumSmartDragProcessLength = 260;
     public const int MinimumIslandDimension = 160;
+    public const int MinimumCompactIslandHeight = 48;
     public const int MaximumIslandDimension = 1_200;
     public const double MinimumIslandScale = 0.5;
     public const double MaximumIslandScale = 2.0;

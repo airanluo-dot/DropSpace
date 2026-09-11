@@ -266,7 +266,7 @@ public sealed record AppSettings
             !double.IsFinite(IslandAppearance.ExpandedScale) || IslandAppearance.ExpandedScale is < SettingsValidationPolicy.MinimumIslandScale or > SettingsValidationPolicy.MaximumIslandScale ||
             !double.IsFinite(IslandAppearance.HorizontalOffset) || !double.IsFinite(IslandAppearance.VerticalOffset) ||
             IslandAppearance.CompactBaseWidth is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumIslandDimension ||
-            IslandAppearance.CompactBaseHeight is < SettingsValidationPolicy.MinimumIslandDimension / 2 or > SettingsValidationPolicy.MaximumIslandDimension ||
+            IslandAppearance.CompactBaseHeight is < SettingsValidationPolicy.MinimumCompactIslandHeight or > SettingsValidationPolicy.MaximumIslandDimension ||
             IslandAppearance.ExpandedWidth is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumIslandDimension ||
             IslandAppearance.ExpandedHeight is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumIslandDimension ||
             IslandAppearance.HideDelayMilliseconds is < 0 or > SettingsValidationPolicy.MaximumIslandHideDelayMilliseconds ||
