@@ -37,6 +37,15 @@ public sealed record LyricsLine(
     public IReadOnlyList<LyricsWord> WordTimings { get; init; } = Words ?? [];
 }
 
+public sealed record LyricsFrame(
+    string PrimaryText,
+    string? SecondaryText,
+    double? Progress,
+    long Revision)
+{
+    public static LyricsFrame Empty { get; } = new(string.Empty, null, null, 0);
+}
+
 public sealed record LyricsDocument(
     IReadOnlyList<LyricsLine> Lines,
     string Provider,

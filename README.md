@@ -11,11 +11,13 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.22 is the current Preview development line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.23 is the current Preview development line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest published Preview: [v0.3.0-preview.22](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.22). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest published Preview: [v0.3.0-preview.23](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.23). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
 
-The **v0.3.0-preview.22** native-island integration Preview adds the priority-routed media, timed-lyrics, bounded spectrum, Windows notification, volume-observation, and native-widget activities to the existing Dynamic Island. It keeps Smart Drag/OLE ownership and the Windows volume flyout intact, and raises the minimum Windows build to 20348; see the [Preview.22 test plan](docs/test-plan/v0.3.0-preview.22.md).
+The **v0.3.0-preview.23** Native Island refactor Preview completes the single-island compact/expanded experience with media-aware compact layout, bounded lyrics/spectrum presentation, Files → Music → Widgets paging, DWM-owned outer appearance, split settings surfaces, and schema-13 persistence. It keeps Smart Drag/OLE ownership and the Windows volume flyout intact; see the [Preview.23 test plan](docs/test-plan/v0.3.0-preview.23.md).
+
+The **v0.3.0-preview.22** native-island integration Preview added the priority-routed media, timed-lyrics, bounded spectrum, Windows notification, volume-observation, and native-widget activity contracts. Its implementation remains the immediate compatibility baseline for Preview.23.
 
 The **v0.3.0-preview.21** settings and action usability line follows Preview.20. Its release notes and [Preview.21 test plan](docs/test-plan/v0.3.0-preview.21.md) record the settings transaction, readable Quick Actions, simpler image presets, and verification evidence; physical Windows, multi-device, deployed Worker/browser, and long-run evidence remain explicitly conditional when unavailable.
 
@@ -115,6 +117,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Preview.19 architecture-remediation test plan](docs/test-plan/v0.3.0-preview.19.md)
 - [Preview.20 architecture-remediation test plan](docs/test-plan/v0.3.0-preview.20.md)
 - [Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md)
+- [Preview.23 Native Island UI refactor test plan](docs/test-plan/v0.3.0-preview.23.md)
 - [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)

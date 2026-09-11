@@ -2,7 +2,16 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.22 is the current Native Island integration Preview following Preview.21. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, media/notification/audio, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.23 is the current Native Island UI refactor Preview following Preview.22. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, media/notification/audio, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+
+## v0.3.0-preview.23 Native Island UI refactor delivery slice
+
+- Make the Dynamic Island one native HWND with a stable DWM-owned outer frame and XAML-owned inner clip, while keeping Smart Drag/OLE ownership and no-focus behavior intact.
+- Deliver media-aware Compact layout with artwork, lyric fallback, real-audio spectrum bars, dynamic-width clamping, paused/idle policy, and a bounded 0.5–30 second hide delay.
+- Deliver a non-wrapping Files → Music → Widgets Expanded pager with geometry-aware transitions, three-to-five recent staged items, music controls/seek preview, and the actual 6×3 widget grid plus compact slots.
+- Split the Main window into first-class Music and Settings surfaces, expose only the planned General/Island/Widgets/System Activities/Devices & Sharing/Updates/About categories, and keep banned native-flyout replacement, plugin, custom-font, and Liquid Glass controls absent.
+- Migrate schema 12 to schema 13 without dropping nested settings, add regression coverage for compact width/pager/idle-hide/widget persistence, and publish the standard five Preview assets.
+- Keep physical Windows 11 media, notification, audio, DPI, accessibility, OLE/provider, and long-run evidence **CONDITIONAL** until recorded on target hosts; hosted CI remains the build/package gate.
 
 ## v0.3.0-preview.22 Native Island integration delivery slice
 

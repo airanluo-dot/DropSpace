@@ -4,7 +4,7 @@ Status labels: **Supported**, **Supported with Win32 interop**, **Complex/valida
 
 ## Platform baseline
 
-WinUI 3 is the native UI layer shipped with the Windows App SDK. Preview.22 supports 64-bit Windows build 20348 or later, including Windows 11. The app compiles against the pinned 26100 SDK but probes runtime OS/API availability before using newer capabilities. It supports the recommended per-user Inno Setup installer, the same unpackaged self-contained single-file x64 EXE as a portable option, and an MSIX package as an alternative. No deployment path stores runtime data beside the executable.
+WinUI 3 is the native UI layer shipped with the Windows App SDK. Preview.23 supports 64-bit Windows build 20348 or later, including Windows 11. The app compiles against the pinned 26100 SDK but probes runtime OS/API availability before using newer capabilities. It supports the recommended per-user Inno Setup installer, the same unpackaged self-contained single-file x64 EXE as a portable option, and an MSIX package as an alternative. No deployment path stores runtime data beside the executable.
 
 The compatibility boundary is implemented in `DropSpace.Core.Compatibility` and
 the App-layer Windows adapters. Build 20348 is declared in the target

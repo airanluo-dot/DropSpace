@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.WindowsRuntime;
 using DropSpace.App.Services;
 using DropSpace.App.Services.Island;
 using DropSpace.App.ViewModels;
@@ -8,6 +9,8 @@ using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
+using DropSpace.Core.Media;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Preview;
 using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
@@ -58,6 +61,9 @@ public sealed partial class MainPage : Page
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
     private bool _subscriptionsAttached;
+    private bool _musicProgressPressed;
+    private bool _updatingMusicProgress;
+    private long _musicArtworkRevision;
 
     public MainPage(
         MainViewModel viewModel,
@@ -139,6 +145,8 @@ public sealed partial class MainPage : Page
             _dropLinkHost.PairingOffered += OnPairingOfferedAsync;
             _dropLinkHost.HandoffOffered += OnHandoffOfferedAsync;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _nativeIsland.Media.Changed += OnMusicMediaChanged;
+            _nativeIsland.LyricsChanged += OnMusicLyricsChanged;
             _subscriptionsAttached = true;
         }
 
@@ -156,6 +164,8 @@ public sealed partial class MainPage : Page
         }
 
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _nativeIsland.Media.Changed -= OnMusicMediaChanged;
+        _nativeIsland.LyricsChanged -= OnMusicLyricsChanged;
         _dropLinkHost.TransferOffered -= OnTransferOfferedAsync;
         _dropLinkHost.PairingOffered -= OnPairingOfferedAsync;
         _dropLinkHost.HandoffOffered -= OnHandoffOfferedAsync;
@@ -1477,6 +1487,194 @@ public sealed partial class MainPage : Page
             }));
     }
 
+    private async void OnWidgetEditorEnabledToggled(object sender, RoutedEventArgs args) =>
+        await UpdateWidgetSettingsAsync(settings => settings with { Enabled = WidgetEditorEnabledToggle.IsOn });
+
+    private async void OnWidgetEditorClockToggled(object sender, RoutedEventArgs args) =>
+        await UpdateWidgetSettingsAsync(settings => settings with { ClockEnabled = WidgetEditorClockToggle.IsOn });
+
+    private async void OnWidgetEditorCalendarToggled(object sender, RoutedEventArgs args) =>
+        await UpdateWidgetSettingsAsync(settings => settings with { CalendarEnabled = WidgetEditorCalendarToggle.IsOn });
+
+    private async void OnWidgetEditorResourceToggled(object sender, RoutedEventArgs args) =>
+        await UpdateWidgetSettingsAsync(settings => settings with { ResourceUsageEnabled = WidgetEditorResourceToggle.IsOn });
+
+    private async void OnWidgetEditorCompactTimeToggled(object sender, RoutedEventArgs args) =>
+        await UpdateWidgetSettingsAsync(settings => settings with { CompactTimeEnabled = WidgetEditorCompactTimeToggle.IsOn });
+
+    private async void OnWidgetEditorCompactResourceToggled(object sender, RoutedEventArgs args) =>
+        await UpdateWidgetSettingsAsync(settings => settings with { CompactResourceUsageEnabled = WidgetEditorCompactResourceToggle.IsOn });
+
+    private void OnSettingsCategoryClicked(object sender, RoutedEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: string category })
+        {
+            return;
+        }
+
+        var target = category switch
+        {
+            "Widgets" => (FrameworkElement)WidgetSettingsEditor,
+            "System" => SystemActivitiesSettingsSection,
+            "Devices" => DevicesSharingSettingsSection,
+            "Updates" => UpdatesSettingsSection,
+            "About" => AboutSettingsSection,
+            "Island" => IslandSettingsSection,
+            _ => GeneralSettingsSection,
+        };
+        target.StartBringIntoView();
+    }
+
+    private async void OnSystemNotificationsToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                SystemActivities = _viewModel.Settings.SystemActivities with { ShowWindowsNotifications = SystemNotificationsToggle.IsOn },
+            }));
+    }
+
+    private async void OnSystemVolumeToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                SystemActivities = _viewModel.Settings.SystemActivities with { ShowVolumeChanges = SystemVolumeToggle.IsOn },
+            }));
+    }
+
+    private Task UpdateWidgetSettingsAsync(Func<WidgetSettings, WidgetSettings> update)
+    {
+        if (_syncingSettings)
+            return Task.CompletedTask;
+
+        return RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        {
+            Widgets = update(_viewModel.Settings.Widgets),
+        }));
+    }
+
+    private async void OnMusicActivityToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandActivity = _viewModel.Settings.IslandActivity with { EnableMediaActivity = MusicActivityToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicLyricsToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Lyrics = _viewModel.Settings.Lyrics with { Enabled = MusicLyricsToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicSecondaryLyricsToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Lyrics = _viewModel.Settings.Lyrics with { SecondaryLyrics = MusicSecondaryLyricsToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicArtworkToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandActivity = _viewModel.Settings.IslandActivity with { ShowArtwork = MusicArtworkToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicSpectrumToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandActivity = _viewModel.Settings.IslandActivity with { ShowSpectrum = MusicSpectrumToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicDynamicWidthToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandActivity = _viewModel.Settings.IslandActivity with { CompactDynamicWidth = MusicDynamicWidthToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicAutoHideToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandAppearance = _viewModel.Settings.IslandAppearance with { AutoHide = MusicAutoHideToggle.IsOn },
+            }));
+    }
+
+    private async void OnMusicHideDelayChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (_syncingSettings || double.IsNaN(sender.Value))
+            return;
+
+        var value = Math.Clamp((int)Math.Round(sender.Value), 500, 30_000);
+        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        {
+            IslandAppearance = _viewModel.Settings.IslandAppearance with { HideDelayMilliseconds = value },
+        }));
+    }
+
+    private async void OnMusicAllowlistLostFocus(object sender, RoutedEventArgs args)
+    {
+        if (_syncingSettings)
+            return;
+
+        var values = MusicAllowlistTextBox.Text
+            .Split(['\r', '\n', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(128)
+            .ToArray();
+        await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        {
+            IslandActivity = _viewModel.Settings.IslandActivity with { AllowedMediaSourceAppIds = values },
+        }));
+    }
+
+    private async void OnMusicOpenIslandClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => SelectSectionAsync("Space"));
+
+    private async void OnMusicPlayPauseClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _nativeIsland.Media.PlayPauseAsync());
+
+    private async void OnMusicPreviousClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _nativeIsland.Media.SkipPreviousAsync());
+
+    private async void OnMusicNextClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => _nativeIsland.Media.SkipNextAsync());
+
+    private void OnMainMusicProgressPressed(object sender, PointerRoutedEventArgs args) => _musicProgressPressed = true;
+
+    private void OnMainMusicProgressReleased(object sender, PointerRoutedEventArgs args)
+    {
+        _musicProgressPressed = false;
+        if (_updatingMusicProgress || _nativeIsland.Media.Current.Timeline.Duration <= TimeSpan.Zero)
+            return;
+
+        var duration = _nativeIsland.Media.Current.Timeline.Duration;
+        var position = TimeSpan.FromMilliseconds(duration.TotalMilliseconds * Math.Clamp(MusicProgressSlider.Value, 0, 1));
+        _ = RunAsync(() => _nativeIsland.Media.SeekAsync(position));
+    }
+
+    private void OnMainMusicProgressChanged(object sender, RangeBaseValueChangedEventArgs args)
+    {
+        // The thumb is a local preview while pressed; the provider is updated once on release.
+    }
+
     private async void OnStartWithWindowsToggled(object sender, RoutedEventArgs args)
     {
         if (!_syncingSettings)
@@ -1783,6 +1981,12 @@ public sealed partial class MainPage : Page
         await RunAsync(() => SelectSectionAsync("Pinned"));
     }
 
+    private async void OnMusicAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await RunAsync(() => SelectSectionAsync("Music"));
+    }
+
     private async void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
@@ -1816,12 +2020,120 @@ public sealed partial class MainPage : Page
         if (args.PropertyName == nameof(MainViewModel.Settings))
         {
             SyncSettingsControls();
+            UpdateMusicSurface();
         }
         else if (args.PropertyName == nameof(MainViewModel.CurrentSection))
         {
             SyncNavigationSelection();
             UpdateSectionChrome();
         }
+    }
+
+    private void OnMusicMediaChanged(object? sender, MediaSessionSnapshot snapshot)
+    {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(UpdateMusicSurface);
+            return;
+        }
+
+        UpdateMusicSurface();
+    }
+
+    private void OnMusicLyricsChanged(object? sender, LyricsFrame frame)
+    {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(UpdateMusicSurface);
+            return;
+        }
+
+        UpdateMusicSurface();
+    }
+
+    private void UpdateMusicSurface()
+    {
+        var media = _nativeIsland.Media.Current;
+        var hasMedia = media.IsActive;
+        MusicNowPlayingTitle.Text = hasMedia ? media.TrackTitle : _strings.Get("MusicNoMedia");
+        MusicNowPlayingArtist.Text = hasMedia ? media.Artist : string.Empty;
+        MusicNowPlayingAlbum.Text = hasMedia ? media.AlbumTitle : string.Empty;
+        MusicNowPlayingState.Text = media.PlaybackState switch
+        {
+            MediaPlaybackState.Playing => _strings.Get("MusicStatePlaying"),
+            MediaPlaybackState.Paused => _strings.Get("MusicStatePaused"),
+            MediaPlaybackState.Stopped => _strings.Get("MusicStateStopped"),
+            _ => _strings.Get("MusicStateUnavailable"),
+        };
+        MusicCaptureDiagnosticsText.Text = string.Join(
+            Environment.NewLine,
+            _nativeIsland.Media.AvailabilityReason,
+            $"Spectrum: {_nativeIsland.Spectrum.Current.CaptureMode}");
+        MusicLyricsDiagnosticsText.Text = string.IsNullOrWhiteSpace(_nativeIsland.CurrentLyricsFrame.PrimaryText)
+            ? _strings.Get("MusicLyricsNotLoaded")
+            : _nativeIsland.CurrentLyricsFrame.PrimaryText;
+        MusicPreviousButton.IsEnabled = hasMedia && media.CanSkipPrevious;
+        MusicNextButton.IsEnabled = hasMedia && media.CanSkipNext;
+        MusicPlayPauseButton.IsEnabled = hasMedia && (media.CanPlay || media.CanPause);
+        if (MusicPlayPauseButton.Content is FontIcon playPauseIcon)
+        {
+            playPauseIcon.Glyph = media.PlaybackState == MediaPlaybackState.Playing ? "\uE769" : "\uE768";
+        }
+
+        if (!_musicProgressPressed && media.Timeline.Duration > TimeSpan.Zero)
+        {
+            _updatingMusicProgress = true;
+            MusicProgressSlider.Value = Math.Clamp(
+                media.Timeline.Position.TotalMilliseconds / media.Timeline.Duration.TotalMilliseconds,
+                0,
+                1);
+            _updatingMusicProgress = false;
+        }
+
+        MusicElapsedText.Text = FormatMusicTime(media.Timeline.Position);
+        MusicRemainingText.Text = FormatMusicTime(media.Timeline.Duration - media.Timeline.Position);
+        var revision = Interlocked.Increment(ref _musicArtworkRevision);
+        _ = LoadMusicArtworkAsync(media.Artwork, revision);
+    }
+
+    private async Task LoadMusicArtworkAsync(byte[]? artwork, long revision)
+    {
+        if (artwork is not { Length: > 0 })
+        {
+            MusicNowPlayingArtwork.Source = null;
+            MusicNowPlayingArtwork.Visibility = Visibility.Collapsed;
+            MusicNowPlayingArtworkPlaceholder.Visibility = Visibility.Visible;
+            return;
+        }
+
+        try
+        {
+            using var stream = new InMemoryRandomAccessStream();
+            await stream.WriteAsync(artwork.AsBuffer());
+            stream.Seek(0);
+            var image = new BitmapImage();
+            await image.SetSourceAsync(stream);
+            if (revision != Interlocked.Read(ref _musicArtworkRevision))
+                return;
+
+            MusicNowPlayingArtwork.Source = image;
+            MusicNowPlayingArtwork.Visibility = Visibility.Visible;
+            MusicNowPlayingArtworkPlaceholder.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception exception) when (exception is ArgumentException or COMException or InvalidOperationException)
+        {
+            _logger.LogDebug(exception, "Main music artwork could not be decoded.");
+            MusicNowPlayingArtwork.Source = null;
+            MusicNowPlayingArtwork.Visibility = Visibility.Collapsed;
+            MusicNowPlayingArtworkPlaceholder.Visibility = Visibility.Visible;
+        }
+    }
+
+    private static string FormatMusicTime(TimeSpan value)
+    {
+        if (value < TimeSpan.Zero || value == TimeSpan.MaxValue)
+            value = TimeSpan.Zero;
+        return $"{(int)value.TotalMinutes}:{value.Seconds:00}";
     }
 
     private void SyncNavigationSelection()
@@ -2067,6 +2379,7 @@ public sealed partial class MainPage : Page
     {
         "Clipboard" => ClipboardNavigationItem,
         "Pinned" => PinnedNavigationItem,
+        "Music" => MusicNavigationItem,
         "Settings" => SettingsNavigationItem,
         _ => SpaceNavigationItem,
     };
@@ -2085,10 +2398,27 @@ public sealed partial class MainPage : Page
             SpectrumToggle.IsOn = _viewModel.ShowSpectrum;
             WindowsNotificationsToggle.IsOn = _viewModel.ShowWindowsNotifications;
             VolumeActivityToggle.IsOn = _viewModel.ShowVolumeChanges;
+            SystemNotificationsToggle.IsOn = _viewModel.ShowWindowsNotifications;
+            SystemVolumeToggle.IsOn = _viewModel.ShowVolumeChanges;
             NativeWidgetsToggle.IsOn = _viewModel.EnableNativeWidgets;
             ClockWidgetToggle.IsOn = _viewModel.ClockWidgetEnabled;
             CalendarWidgetToggle.IsOn = _viewModel.CalendarWidgetEnabled;
             ResourceUsageWidgetToggle.IsOn = _viewModel.ResourceUsageWidgetEnabled;
+            WidgetEditorEnabledToggle.IsOn = _viewModel.Settings.Widgets.Enabled;
+            WidgetEditorClockToggle.IsOn = _viewModel.Settings.Widgets.ClockEnabled;
+            WidgetEditorCalendarToggle.IsOn = _viewModel.Settings.Widgets.CalendarEnabled;
+            WidgetEditorResourceToggle.IsOn = _viewModel.Settings.Widgets.ResourceUsageEnabled;
+            WidgetEditorCompactTimeToggle.IsOn = _viewModel.Settings.Widgets.CompactTimeEnabled;
+            WidgetEditorCompactResourceToggle.IsOn = _viewModel.Settings.Widgets.CompactResourceUsageEnabled;
+            MusicActivityToggle.IsOn = _viewModel.Settings.IslandActivity.EnableMediaActivity;
+            MusicLyricsToggle.IsOn = _viewModel.Settings.Lyrics.Enabled;
+            MusicSecondaryLyricsToggle.IsOn = _viewModel.Settings.Lyrics.SecondaryLyrics;
+            MusicArtworkToggle.IsOn = _viewModel.Settings.IslandActivity.ShowArtwork;
+            MusicSpectrumToggle.IsOn = _viewModel.Settings.IslandActivity.ShowSpectrum;
+            MusicDynamicWidthToggle.IsOn = _viewModel.Settings.IslandActivity.CompactDynamicWidth;
+            MusicAutoHideToggle.IsOn = _viewModel.Settings.IslandAppearance.AutoHide;
+            MusicHideDelayNumber.Value = _viewModel.Settings.IslandAppearance.HideDelayMilliseconds;
+            MusicAllowlistTextBox.Text = string.Join(Environment.NewLine, _viewModel.Settings.IslandActivity.AllowedMediaSourceAppIds);
             DeviceHandoffToggle.IsOn = _viewModel.EnableDeviceHandoff;
             CrossDeviceClipboardToggle.IsOn = _viewModel.EnableCrossDeviceClipboard;
             NearbySharingToggle.IsOn = _viewModel.EnableNearbySharing;
@@ -2165,7 +2495,7 @@ public sealed partial class MainPage : Page
     {
         var section = _viewModel.CurrentSection;
         AddButton.Visibility = section == "Space" ? Visibility.Visible : Visibility.Collapsed;
-        SearchBox.Visibility = section == "Settings" ? Visibility.Collapsed : Visibility.Visible;
+        SearchBox.Visibility = section is "Settings" or "Music" ? Visibility.Collapsed : Visibility.Visible;
         ClipboardStatusText.Visibility = section == "Clipboard" ? Visibility.Visible : Visibility.Collapsed;
         switch (section)
         {
@@ -2344,6 +2674,7 @@ public sealed partial class MainPage : Page
         VerifyResourceValue(SpaceNavigationItem.Content, "NavSpace.Content");
         VerifyResourceValue(ClipboardNavigationItem.Content, "NavClipboard.Content");
         VerifyResourceValue(PinnedNavigationItem.Content, "NavPinned.Content");
+        VerifyResourceValue(MusicNavigationItem.Content, "NavMusic.Content");
         VerifyResourceValue(SettingsNavigationItem.Content, "NavSettings.Content");
         VerifyResourceValue(SearchBox.PlaceholderText, "SearchBox.PlaceholderText");
         VerifyResourceValue(AddButton.Content, "AddButton.Content");

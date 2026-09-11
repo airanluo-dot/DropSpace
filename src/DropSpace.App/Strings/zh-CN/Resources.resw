@@ -490,4 +490,82 @@
   <data name="CalendarWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用日历小组件</value></data>
   <data name="ResourceUsageWidgetTitle.Text" xml:space="preserve"><value>资源使用率小组件</value></data>
   <data name="ResourceUsageWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用资源使用率小组件</value></data>
+  <data name="NavMusic.Content" xml:space="preserve"><value>音乐</value></data>
+  <data name="NavMusic.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>音乐</value></data>
+  <data name="PageTitleMusic" xml:space="preserve"><value>音乐</value></data>
+  <data name="PageDescriptionMusic" xml:space="preserve"><value>当前播放、播放控制、歌词和媒体界面配置。</value></data>
+  <data name="MusicCenterTitle.Text" xml:space="preserve"><value>音乐中心</value></data>
+  <data name="MusicCenterDescription.Text" xml:space="preserve"><value>在独立的音乐配置中心管理 Dynamic Island 媒体界面，文件设置保持清晰。</value></data>
+  <data name="MusicCenterNowPlaying.Text" xml:space="preserve"><value>捕获来源</value></data>
+  <data name="MusicOpenIslandButton.Content" xml:space="preserve"><value>打开临时空间</value></data>
+  <data name="MusicPlaybackCardTitle.Text" xml:space="preserve"><value>播放</value></data>
+  <data name="MusicLyricsCardTitle.Text" xml:space="preserve"><value>歌词</value></data>
+  <data name="MusicLyricsCardDescription.Text" xml:space="preserve"><value>在紧凑界面显示时间轴歌词，并在此查看提供方诊断。</value></data>
+  <data name="MusicSecondaryLyricsTitle.Text" xml:space="preserve"><value>显示第二语言歌词</value></data>
+  <data name="MusicIslandCardTitle.Text" xml:space="preserve"><value>Island 界面</value></data>
+  <data name="MusicActivityTitle.Text" xml:space="preserve"><value>启用媒体活动</value></data>
+  <data name="MusicArtworkTitle.Text" xml:space="preserve"><value>显示封面</value></data>
+  <data name="MusicSpectrumTitle.Text" xml:space="preserve"><value>显示实时频谱</value></data>
+  <data name="MusicDynamicWidthTitle.Text" xml:space="preserve"><value>紧凑界面动态宽度</value></data>
+  <data name="MusicHideDelayTitle.Text" xml:space="preserve"><value>暂停媒体隐藏延迟（毫秒）</value></data>
+  <data name="MusicAutoHideTitle.Text" xml:space="preserve"><value>自动隐藏暂停媒体</value></data>
+  <data name="MusicAllowlistTitle.Text" xml:space="preserve"><value>媒体应用允许列表</value></data>
+  <data name="MusicAllowlistDescription.Text" xml:space="preserve"><value>可选的来源应用 ID，每行一个。留空则接受当前 Windows 媒体会话。</value></data>
+  <data name="MusicAllowlistTextBox.PlaceholderText" xml:space="preserve"><value>应用用户模型 ID（可选）</value></data>
+  <data name="MusicNoMedia" xml:space="preserve"><value>没有活动的媒体会话</value></data>
+  <data name="MusicStatePlaying" xml:space="preserve"><value>播放中</value></data>
+  <data name="MusicStatePaused" xml:space="preserve"><value>已暂停</value></data>
+  <data name="MusicStateStopped" xml:space="preserve"><value>已停止</value></data>
+  <data name="MusicStateUnavailable" xml:space="preserve"><value>媒体会话不可用</value></data>
+  <data name="MusicLyricsNotLoaded" xml:space="preserve"><value>没有已加载的歌词帧</value></data>
+  <data name="SettingsCategoriesTitle.Text" xml:space="preserve"><value>设置</value></data>
+  <data name="SettingsCategoriesDescription.Text" xml:space="preserve"><value>按职责组织设置，让媒体、小组件、系统活动和存储选项更容易找到。</value></data>
+  <data name="SettingsCategoryGeneral.Content" xml:space="preserve"><value>常规</value></data>
+  <data name="SettingsCategoryIsland.Content" xml:space="preserve"><value>Island</value></data>
+  <data name="SettingsCategoryWidgets.Content" xml:space="preserve"><value>小组件</value></data>
+  <data name="SettingsCategorySystem.Content" xml:space="preserve"><value>系统活动</value></data>
+  <data name="SettingsCategoryDevices.Content" xml:space="preserve"><value>设备与分享</value></data>
+  <data name="SettingsCategoryUpdates.Content" xml:space="preserve"><value>更新</value></data>
+  <data name="SettingsCategoryAbout.Content" xml:space="preserve"><value>关于</value></data>
+  <data name="SystemActivitiesSection.Text" xml:space="preserve"><value>系统活动</value></data>
+  <data name="SystemActivitiesDescription.Text" xml:space="preserve"><value>观察 Windows 通知和音量变化，不替换 Windows 自己的界面。</value></data>
+  <data name="AboutSection.Text" xml:space="preserve"><value>关于</value></data>
+  <data name="AboutDescription.Text" xml:space="preserve"><value>DropSpace 是本地优先的临时工作区。版本和更新来源会显示在这里。</value></data>
+  <data name="WidgetEditorTitle.Text" xml:space="preserve"><value>小组件</value></data>
+  <data name="WidgetEditorDescription.Text" xml:space="preserve"><value>在一个专用编辑器中保存 6 × 3 展开布局和紧凑小组件槽位。</value></data>
+  <data name="WidgetExpandedModeButton.Content" xml:space="preserve"><value>展开 6 × 3</value></data>
+  <data name="WidgetCompactModeButton.Content" xml:space="preserve"><value>紧凑槽位</value></data>
+  <data name="WidgetEditorClockCard.Text" xml:space="preserve"><value>时钟</value></data>
+  <data name="WidgetEditorCalendarCard.Text" xml:space="preserve"><value>日历</value></data>
+  <data name="WidgetEditorResourceCard.Text" xml:space="preserve"><value>资源</value></data>
+  <data name="WidgetEditorSettingsCard.Text" xml:space="preserve"><value>设置</value></data>
+  <data name="WidgetEditorLibraryCard.Text" xml:space="preserve"><value>小组件库</value></data>
+  <data name="WidgetEditorLayoutCard.Text" xml:space="preserve"><value>网格布局</value></data>
+  <data name="WidgetEditorEnabledTitle.Text" xml:space="preserve"><value>启用小组件</value></data>
+  <data name="WidgetEditorEnabledDescription.Text" xml:space="preserve"><value>允许小组件活动显示在 Island 中。</value></data>
+  <data name="WidgetEditorClockTitle.Text" xml:space="preserve"><value>时钟小组件</value></data>
+  <data name="WidgetEditorCalendarTitle.Text" xml:space="preserve"><value>日历小组件</value></data>
+  <data name="WidgetEditorResourceTitle.Text" xml:space="preserve"><value>资源小组件</value></data>
+  <data name="WidgetEditorCompactTimeTitle.Text" xml:space="preserve"><value>紧凑时间</value></data>
+  <data name="WidgetEditorCompactResourceTitle.Text" xml:space="preserve"><value>紧凑资源使用率</value></data>
+  <data name="OverlayExpandedFilesTitle" xml:space="preserve"><value>临时空间</value></data>
+  <data name="OverlayExpandedFilesSubtitle" xml:space="preserve"><value>最近暂存项目</value></data>
+  <data name="OverlayExpandedMusicTitle" xml:space="preserve"><value>音乐</value></data>
+  <data name="OverlayExpandedMusicSubtitle" xml:space="preserve"><value>当前播放</value></data>
+  <data name="OverlayExpandedWidgetsTitle" xml:space="preserve"><value>小组件</value></data>
+  <data name="OverlayExpandedWidgetsSubtitle" xml:space="preserve"><value>时钟、日历、资源和设置</value></data>
+  <data name="OverlayFilesRecent.Text" xml:space="preserve"><value>最近项目</value></data>
+  <data name="OverlayFilesEmpty.Text" xml:space="preserve"><value>将内容放入临时空间后，会在这里显示。</value></data>
+  <data name="OverlayWidgetClock.Text" xml:space="preserve"><value>时钟</value></data>
+  <data name="OverlayWidgetCalendar.Text" xml:space="preserve"><value>日历</value></data>
+  <data name="OverlayWidgetToday.Text" xml:space="preserve"><value>今天</value></data>
+  <data name="OverlayWidgetResourceValue.Text" xml:space="preserve"><value>CPU 18%</value></data>
+  <data name="OverlayWidgetResource.Text" xml:space="preserve"><value>资源</value></data>
+  <data name="OverlayWidgetProduct.Text" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="OverlayWidgetSettings.Text" xml:space="preserve"><value>设置</value></data>
+  <data name="OverlayWidgetGridValue.Text" xml:space="preserve"><value>6 × 3</value></data>
+  <data name="OverlayWidgetLayout.Text" xml:space="preserve"><value>网格布局</value></data>
+  <data name="OverlayWidgetReadyValue.Text" xml:space="preserve"><value>就绪</value></data>
+  <data name="OverlayWidgetStatus.Text" xml:space="preserve"><value>状态</value></data>
+  <data name="ExpandedOpenMainButton.Content" xml:space="preserve"><value>打开 DropSpace</value></data>
 </root>

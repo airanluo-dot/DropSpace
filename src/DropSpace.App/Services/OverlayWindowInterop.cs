@@ -15,6 +15,7 @@ internal static class OverlayWindowInterop
     private const long ExtendedStyleToolWindow = 0x00000080L;
     private const long StyleBorder = 0x00800000L;
     private const long StyleCaption = 0x00C00000L;
+    private const long StylePopup = unchecked((long)0x80000000);
     private const long StyleDialogFrame = 0x00400000L;
     private const long StyleThickFrame = 0x00040000L;
     private const uint SetWindowPositionNoSize = 0x0001;
@@ -27,14 +28,18 @@ internal static class OverlayWindowInterop
     private const int DwmWindowAttributeNonClientRenderingPolicy = 2;
     private const int DwmWindowAttributeCornerPreference = 33;
     private const int DwmWindowAttributeBorderColor = 34;
+    private const int DwmWindowAttributeUseImmersiveDarkMode = 20;
+    private const int DwmWindowAttributeSystemBackdropType = 38;
     private const int DwmNonClientRenderingDisabled = 1;
-    private const int DwmCornerDoNotRound = 1;
+    private const int DwmCornerRound = 2;
+    private const int DwmSystemBackdropTransient = 3;
     private const uint DwmColorNone = 0xFFFFFFFE;
     private static readonly nint Topmost = new(-1);
 
     public static OverlayNativeConfigurationResult ConfigureVisualWindow(
         nint window,
-        bool modernDwmAttributes)
+        bool modernDwmAttributes,
+        bool darkMode = true)
     {
         var failures = new List<OverlayNativeFailure>();
         var criticalFailure = false;
@@ -88,13 +93,12 @@ internal static class OverlayWindowInterop
         }
         else
         {
-            // AppWindow presenters can leave an overlapped/non-client style behind even after
-            // SetBorderAndTitleBar(false, false). Remove every frame-bearing bit while retaining
-            // the window class's managed top-level style; converting a WinUI-managed HWND to a
-            // different top-level style after presenter creation can break its hit-test bridge.
-            var configuredStyle = style.ToInt64();
+            // Use the popup/caption combination used by mature transient Windows surfaces. DWM
+            // owns the outer corner and backdrop; the XAML surface owns only its inner clip.
+            var configuredStyle = style.ToInt64() |
+                                   StylePopup |
+                                   StyleCaption;
             configuredStyle &= ~(StyleBorder |
-                                 StyleCaption |
                                  StyleDialogFrame |
                                  StyleThickFrame);
             if (!TrySetWindowLongPointer(
@@ -127,7 +131,7 @@ internal static class OverlayWindowInterop
         }
         if (modernDwmAttributes)
         {
-            var cornerPreference = DwmCornerDoNotRound;
+            var cornerPreference = DwmCornerRound;
             if (!TrySetDwmAttribute(
                     window,
                     DwmWindowAttributeCornerPreference,
@@ -154,6 +158,46 @@ internal static class OverlayWindowInterop
                     Critical: false,
                     HResult: borderHResult));
             }
+
+            var systemBackdropType = DwmSystemBackdropTransient;
+            if (!TrySetDwmAttribute(
+                    window,
+                    DwmWindowAttributeSystemBackdropType,
+                    ref systemBackdropType,
+                    sizeof(int),
+                    out var backdropHResult))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "DwmSetWindowAttribute(system-backdrop-type)",
+                    Critical: false,
+                    HResult: backdropHResult));
+            }
+
+            var darkModeValue = darkMode ? 1 : 0;
+            if (!TrySetDwmAttribute(
+                    window,
+                    DwmWindowAttributeUseImmersiveDarkMode,
+                    ref darkModeValue,
+                    sizeof(int),
+                    out var darkModeHResult))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "DwmSetWindowAttribute(immersive-dark-mode)",
+                    Critical: false,
+                    HResult: darkModeHResult));
+            }
+
+            if (!TryExtendDwmFrame(window, out var frameHResult))
+            {
+                failures.Add(new OverlayNativeFailure(
+                    "DwmExtendFrameIntoClientArea",
+                    Critical: false,
+                    HResult: frameHResult));
+            }
+
+            // Keep a passive topmost surface visually active without activating it or stealing
+            // keyboard focus from the foreground application.
+            _ = SendMessage(window, WindowMessageNcActivate, new nint(1), nint.Zero);
         }
 
         if (!TrySetWindowPos(
@@ -173,6 +217,41 @@ internal static class OverlayWindowInterop
         }
 
         return new OverlayNativeConfigurationResult(!criticalFailure, failures);
+    }
+
+    public static OverlayNativeConfigurationResult RefreshDwmFrame(nint window, bool darkMode)
+    {
+        var failures = new List<OverlayNativeFailure>();
+        if (!IsValidWindow(window, out var invalidWindowFailure))
+        {
+            return new OverlayNativeConfigurationResult(false, [invalidWindowFailure!]);
+        }
+
+        var dark = darkMode ? 1 : 0;
+        if (!TrySetDwmAttribute(window, DwmWindowAttributeUseImmersiveDarkMode, ref dark, sizeof(int), out var darkHResult))
+        {
+            failures.Add(new OverlayNativeFailure("DwmSetWindowAttribute(immersive-dark-mode-refresh)", false, HResult: darkHResult));
+        }
+
+        if (!TryExtendDwmFrame(window, out var frameHResult))
+        {
+            failures.Add(new OverlayNativeFailure("DwmExtendFrameIntoClientArea(refresh)", false, HResult: frameHResult));
+        }
+
+        _ = SendMessage(window, WindowMessageNcActivate, new nint(1), nint.Zero);
+        if (!TrySetWindowPos(
+                window,
+                Topmost,
+                SetWindowPositionNoMove |
+                SetWindowPositionNoSize |
+                SetWindowPositionNoActivate |
+                SetWindowPositionFrameChanged,
+                out var positionError))
+        {
+            failures.Add(new OverlayNativeFailure("SetWindowPos(dwm-refresh)", false, Win32Error: positionError));
+        }
+
+        return new OverlayNativeConfigurationResult(true, failures);
     }
 
     public static bool ShowNoActivateAndTopmost(
@@ -549,6 +628,26 @@ internal static class OverlayWindowInterop
         }
     }
 
+    private static bool TryExtendDwmFrame(nint window, out int hResult)
+    {
+        try
+        {
+            var margins = new DwmMargins(-1, -1, -1, -1);
+            hResult = DwmExtendFrameIntoClientArea(window, ref margins);
+            return hResult >= 0;
+        }
+        catch (DllNotFoundException exception)
+        {
+            hResult = exception.HResult;
+            return false;
+        }
+        catch (EntryPointNotFoundException exception)
+        {
+            hResult = exception.HResult;
+            return false;
+        }
+    }
+
     private static bool TrySetDwmAttribute(
         nint window,
         int attribute,
@@ -657,11 +756,25 @@ internal static class OverlayWindowInterop
         int valueSize);
 
     [DllImport("dwmapi.dll")]
+    private static extern int DwmExtendFrameIntoClientArea(
+        nint window,
+        ref DwmMargins margins);
+
+    [DllImport("user32.dll")]
+    private static extern nint SendMessage(
+        nint window,
+        uint message,
+        nint wParam,
+        nint lParam);
+
+    [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(
         nint window,
         int attribute,
         ref uint value,
         int valueSize);
+
+    private const uint WindowMessageNcActivate = 0x0086;
 
     [DllImport("user32.dll")]
     private static extern nint WindowFromPoint(NativePoint point);
@@ -691,6 +804,23 @@ internal static class OverlayWindowInterop
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct DwmMargins
+    {
+        public DwmMargins(int left, int right, int top, int bottom)
+        {
+            Left = left;
+            Right = right;
+            Top = top;
+            Bottom = bottom;
+        }
+
+        public readonly int Left;
+        public readonly int Right;
+        public readonly int Top;
+        public readonly int Bottom;
     }
 }
 

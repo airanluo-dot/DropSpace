@@ -2,6 +2,7 @@ using DropSpace.Core.Actions;
 using DropSpace.Core.Updates;
 using DropSpace.Core.Transfer;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Island;
 using DropSpace.Core.Widgets;
 
 namespace DropSpace.Core.Models;
@@ -256,12 +257,20 @@ public sealed record AppSettings
             throw new ArgumentNullException(nameof(IslandActivity));
         }
 
+        if (IslandActivity.AllowedMediaSourceAppIds is null ||
+            IslandActivity.AllowedMediaSourceAppIds.Length > SettingsValidationPolicy.MaximumMediaSourceAllowList ||
+            IslandActivity.AllowedMediaSourceAppIds.Any(value =>
+                string.IsNullOrWhiteSpace(value) || value.Length > SettingsValidationPolicy.MaximumMediaSourceAppIdLength))
+        {
+            throw new ArgumentOutOfRangeException(nameof(IslandActivity));
+        }
+
         if (!Enum.IsDefined(Lyrics.Mode) || !Enum.IsDefined(Lyrics.Provider) || Lyrics.DelayMilliseconds is < -SettingsValidationPolicy.MaximumLyricsDelayMilliseconds or > SettingsValidationPolicy.MaximumLyricsDelayMilliseconds || Lyrics.ScrollingMaxWidth is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumLyricsScrollWidth)
         {
             throw new ArgumentOutOfRangeException(nameof(Lyrics));
         }
 
-        if (!Enum.IsDefined(IslandAppearance.Style) || !Enum.IsDefined(IslandAppearance.CompactCoverShape) || !Enum.IsDefined(IslandAppearance.ExpandedCoverShape) || !Enum.IsDefined(IslandAppearance.DockPreset) ||
+        if (!Enum.IsDefined(IslandAppearance.Style) || !Enum.IsDefined(IslandAppearance.CompactCoverShape) || !Enum.IsDefined(IslandAppearance.ExpandedCoverShape) || !Enum.IsDefined(IslandAppearance.DockPreset) || !Enum.IsDefined(IslandAppearance.LastExpandedPage) ||
             !double.IsFinite(IslandAppearance.CompactScale) || IslandAppearance.CompactScale is < SettingsValidationPolicy.MinimumIslandScale or > SettingsValidationPolicy.MaximumIslandScale ||
             !double.IsFinite(IslandAppearance.ExpandedScale) || IslandAppearance.ExpandedScale is < SettingsValidationPolicy.MinimumIslandScale or > SettingsValidationPolicy.MaximumIslandScale ||
             !double.IsFinite(IslandAppearance.HorizontalOffset) || !double.IsFinite(IslandAppearance.VerticalOffset) ||

@@ -12,6 +12,7 @@
     <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="OnSpaceAccelerator" />
     <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="OnClipboardAccelerator" />
     <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="OnPinnedAccelerator" />
+    <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="OnMusicAccelerator" />
     <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="OnSearchAccelerator" />
     <KeyboardAccelerator Key="S" Modifiers="Control,Shift" Invoked="OnSettingsAccelerator" />
     <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="OnUndoAccelerator" />
@@ -27,6 +28,7 @@
       <NavigationViewItem x:Name="SpaceNavigationItem" services:XamlResourceOverride.Uid="NavSpace" Icon="Folder" Tag="Space" />
       <NavigationViewItem x:Name="ClipboardNavigationItem" services:XamlResourceOverride.Uid="NavClipboard" Icon="Paste" Tag="Clipboard" />
       <NavigationViewItem x:Name="PinnedNavigationItem" services:XamlResourceOverride.Uid="NavPinned" Icon="Pin" Tag="Pinned" />
+      <NavigationViewItem x:Name="MusicNavigationItem" services:XamlResourceOverride.Uid="NavMusic" Icon="MusicInfo" Tag="Music" />
     </NavigationView.MenuItems>
     <NavigationView.FooterMenuItems>
       <NavigationViewItem x:Name="SettingsNavigationItem" services:XamlResourceOverride.Uid="NavSettings" Icon="Setting" Tag="Settings" />
@@ -368,12 +370,223 @@
         </Grid>
       </Grid>
 
+      <Grid
+        x:Name="MusicPageSurface"
+        Grid.Row="2"
+        Visibility="{Binding IsMusicVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+        <ScrollViewer Padding="{StaticResource DropSpacePagePadding}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <Grid MaxWidth="980" HorizontalAlignment="Left" ColumnSpacing="20" RowSpacing="16">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="220" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Spacing="12">
+              <TextBlock services:XamlResourceOverride.Uid="MusicCenterTitle" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+              <TextBlock services:XamlResourceOverride.Uid="MusicCenterDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              <Border Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
+                <StackPanel Spacing="8">
+                  <TextBlock services:XamlResourceOverride.Uid="MusicCenterNowPlaying" FontWeight="SemiBold" />
+                  <TextBlock x:Name="MusicNowPlayingState" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                  <TextBlock x:Name="MusicCaptureDiagnosticsText" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+              <Button x:Name="MusicOpenIslandButton" services:XamlResourceOverride.Uid="MusicOpenIslandButton" Click="OnMusicOpenIslandClicked" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="16">
+              <Border Padding="18" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceSurfaceRadius}">
+                <Grid ColumnSpacing="18">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Border Width="112" Height="112" CornerRadius="14" Background="{ThemeResource LayerFillColorAltBrush}">
+                    <Grid>
+                      <Image x:Name="MusicNowPlayingArtwork" Width="112" Height="112" Stretch="UniformToFill" Visibility="Collapsed" />
+                      <FontIcon x:Name="MusicNowPlayingArtworkPlaceholder" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="34" Glyph="&#xE8B9;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                  </Border>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                    <TextBlock x:Name="MusicNowPlayingTitle" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="MusicNowPlayingArtist" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="MusicNowPlayingAlbum" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button x:Name="MusicPreviousButton" Width="34" Height="30" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMusicPreviousClicked"><FontIcon Glyph="&#xE892;" /></Button>
+                      <Button x:Name="MusicPlayPauseButton" Width="34" Height="30" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMusicPlayPauseClicked"><FontIcon Glyph="&#xE768;" /></Button>
+                      <Button x:Name="MusicNextButton" Width="34" Height="30" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMusicNextClicked"><FontIcon Glyph="&#xE893;" /></Button>
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
+                <StackPanel Spacing="10">
+                  <TextBlock services:XamlResourceOverride.Uid="MusicPlaybackCardTitle" FontWeight="SemiBold" />
+                  <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock x:Name="MusicElapsedText" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    <Slider x:Name="MusicProgressSlider" Grid.Column="1" Minimum="0" Maximum="1" ValueChanged="OnMainMusicProgressChanged" PointerPressed="OnMainMusicProgressPressed" PointerReleased="OnMainMusicProgressReleased" />
+                    <TextBlock x:Name="MusicRemainingText" Grid.Column="2" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
+                <StackPanel Spacing="10">
+                  <TextBlock services:XamlResourceOverride.Uid="MusicLyricsCardTitle" FontWeight="SemiBold" />
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel><TextBlock services:XamlResourceOverride.Uid="MusicLyricsCardDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /><TextBlock x:Name="MusicLyricsDiagnosticsText" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                    <ToggleSwitch x:Name="MusicLyricsToggle" Grid.Column="1" Toggled="OnMusicLyricsToggled" />
+                  </Grid>
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicSecondaryLyricsTitle" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="MusicSecondaryLyricsToggle" Grid.Column="1" Toggled="OnMusicSecondaryLyricsToggled" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
+                <StackPanel Spacing="10">
+                  <TextBlock services:XamlResourceOverride.Uid="MusicIslandCardTitle" FontWeight="SemiBold" />
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicActivityTitle" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="MusicActivityToggle" Grid.Column="1" Toggled="OnMusicActivityToggled" />
+                  </Grid>
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicArtworkTitle" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="MusicArtworkToggle" Grid.Column="1" Toggled="OnMusicArtworkToggled" />
+                  </Grid>
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicSpectrumTitle" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="MusicSpectrumToggle" Grid.Column="1" Toggled="OnMusicSpectrumToggled" />
+                  </Grid>
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicDynamicWidthTitle" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="MusicDynamicWidthToggle" Grid.Column="1" Toggled="OnMusicDynamicWidthToggled" />
+                  </Grid>
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="180" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicHideDelayTitle" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <NumberBox x:Name="MusicHideDelayNumber" Grid.Column="1" Minimum="500" Maximum="30000" SmallChange="500" SpinButtonPlacementMode="Compact" ValueChanged="OnMusicHideDelayChanged" />
+                  </Grid>
+                  <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock services:XamlResourceOverride.Uid="MusicAutoHideTitle" VerticalAlignment="Center" />
+                    <ToggleSwitch x:Name="MusicAutoHideToggle" Grid.Column="1" Toggled="OnMusicAutoHideToggled" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
+                <StackPanel Spacing="8">
+                  <TextBlock services:XamlResourceOverride.Uid="MusicAllowlistTitle" FontWeight="SemiBold" />
+                  <TextBlock services:XamlResourceOverride.Uid="MusicAllowlistDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                  <TextBox x:Name="MusicAllowlistTextBox" services:XamlResourceOverride.Uid="MusicAllowlistTextBox" LostFocus="OnMusicAllowlistLostFocus" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
+        </ScrollViewer>
+      </Grid>
+
       <ScrollViewer
+        x:Name="SettingsScrollViewer"
         Grid.Row="2"
         Padding="{StaticResource DropSpaceSettingsPadding}"
         Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
         <StackPanel MaxWidth="780" HorizontalAlignment="Left" Spacing="28">
-          <StackPanel Spacing="12">
+          <StackPanel x:Name="SettingsCategoryRail" Spacing="8">
+            <TextBlock services:XamlResourceOverride.Uid="SettingsCategoriesTitle" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="SettingsCategoriesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalContentAlignment="Left" VerticalScrollBarVisibility="Disabled">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Width="116" Tag="General" services:XamlResourceOverride.Uid="SettingsCategoryGeneral" Click="OnSettingsCategoryClicked" />
+                <Button Width="116" Tag="Island" services:XamlResourceOverride.Uid="SettingsCategoryIsland" Click="OnSettingsCategoryClicked" />
+                <Button Width="116" Tag="Widgets" services:XamlResourceOverride.Uid="SettingsCategoryWidgets" Click="OnSettingsCategoryClicked" />
+                <Button Width="140" Tag="System" services:XamlResourceOverride.Uid="SettingsCategorySystem" Click="OnSettingsCategoryClicked" />
+                <Button Width="140" Tag="Devices" services:XamlResourceOverride.Uid="SettingsCategoryDevices" Click="OnSettingsCategoryClicked" />
+                <Button Width="116" Tag="Updates" services:XamlResourceOverride.Uid="SettingsCategoryUpdates" Click="OnSettingsCategoryClicked" />
+                <Button Width="116" Tag="About" services:XamlResourceOverride.Uid="SettingsCategoryAbout" Click="OnSettingsCategoryClicked" />
+              </StackPanel>
+            </ScrollViewer>
+          </StackPanel>
+
+          <StackPanel x:Name="WidgetSettingsEditor" Spacing="12">
+            <TextBlock services:XamlResourceOverride.Uid="WidgetEditorTitle" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="WidgetEditorDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button x:Name="WidgetExpandedModeButton" services:XamlResourceOverride.Uid="WidgetExpandedModeButton" IsEnabled="False" />
+              <Button x:Name="WidgetCompactModeButton" services:XamlResourceOverride.Uid="WidgetCompactModeButton" IsEnabled="False" />
+            </StackPanel>
+            <Border Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
+              <Grid RowSpacing="4" ColumnSpacing="4">
+                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="6" Padding="6"><TextBlock services:XamlResourceOverride.Uid="WidgetEditorClockCard" /></Border>
+                <Border Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="6" Padding="6"><TextBlock services:XamlResourceOverride.Uid="WidgetEditorCalendarCard" /></Border>
+                <Border Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="2" Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="6" Padding="6"><TextBlock services:XamlResourceOverride.Uid="WidgetEditorResourceCard" /></Border>
+                <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="6" Padding="6"><TextBlock services:XamlResourceOverride.Uid="WidgetEditorSettingsCard" /></Border>
+                <Border Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Grid.ColumnSpan="3" Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="6" Padding="6"><TextBlock services:XamlResourceOverride.Uid="WidgetEditorLibraryCard" /></Border>
+                <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="6" Padding="6"><TextBlock services:XamlResourceOverride.Uid="WidgetEditorLayoutCard" /></Border>
+              </Grid>
+            </Border>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock services:XamlResourceOverride.Uid="WidgetEditorEnabledTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="WidgetEditorEnabledDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+              <ToggleSwitch x:Name="WidgetEditorEnabledToggle" Grid.Column="1" Toggled="OnWidgetEditorEnabledToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock services:XamlResourceOverride.Uid="WidgetEditorClockTitle" VerticalAlignment="Center" />
+              <ToggleSwitch x:Name="WidgetEditorClockToggle" Grid.Column="1" Toggled="OnWidgetEditorClockToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock services:XamlResourceOverride.Uid="WidgetEditorCalendarTitle" VerticalAlignment="Center" />
+              <ToggleSwitch x:Name="WidgetEditorCalendarToggle" Grid.Column="1" Toggled="OnWidgetEditorCalendarToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock services:XamlResourceOverride.Uid="WidgetEditorResourceTitle" VerticalAlignment="Center" />
+              <ToggleSwitch x:Name="WidgetEditorResourceToggle" Grid.Column="1" Toggled="OnWidgetEditorResourceToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock services:XamlResourceOverride.Uid="WidgetEditorCompactTimeTitle" VerticalAlignment="Center" />
+              <ToggleSwitch x:Name="WidgetEditorCompactTimeToggle" Grid.Column="1" Toggled="OnWidgetEditorCompactTimeToggled" />
+            </Grid>
+            <Grid ColumnSpacing="20">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <TextBlock services:XamlResourceOverride.Uid="WidgetEditorCompactResourceTitle" VerticalAlignment="Center" />
+              <ToggleSwitch x:Name="WidgetEditorCompactResourceToggle" Grid.Column="1" Toggled="OnWidgetEditorCompactResourceToggled" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel x:Name="SystemActivitiesSettingsSection" Spacing="12">
+            <TextBlock services:XamlResourceOverride.Uid="SystemActivitiesSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="SystemActivitiesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock services:XamlResourceOverride.Uid="WindowsNotificationsTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="WindowsNotificationsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+              <ToggleSwitch x:Name="SystemNotificationsToggle" services:XamlResourceOverride.Uid="WindowsNotificationsToggle" Grid.Column="1" Toggled="OnSystemNotificationsToggled" />
+            </Grid>
+            <Grid ColumnSpacing="24">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock services:XamlResourceOverride.Uid="VolumeActivityTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="VolumeActivityDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+              <ToggleSwitch x:Name="SystemVolumeToggle" services:XamlResourceOverride.Uid="VolumeActivityToggle" Grid.Column="1" Toggled="OnSystemVolumeToggled" />
+            </Grid>
+            <InfoBar services:XamlResourceOverride.Uid="NativeVolumeHudNotice" IsOpen="True" IsClosable="False" Severity="Informational" />
+          </StackPanel>
+
+          <StackPanel x:Name="GeneralSettingsSection" Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="ClipboardPrivacySection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -469,8 +682,8 @@
               Severity="Warning" />
           </StackPanel>
 
-          <StackPanel Spacing="12">
-            <TextBlock services:XamlResourceOverride.Uid="DevicesSharingSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+          <StackPanel x:Name="DevicesSharingSettingsSection" Spacing="12">
+            <TextBlock x:Name="DevicesSharingSection" services:XamlResourceOverride.Uid="DevicesSharingSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <TextBlock services:XamlResourceOverride.Uid="DevicesSharingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -550,7 +763,7 @@
             </ListView>
           </StackPanel>
 
-          <StackPanel Spacing="12">
+          <StackPanel x:Name="RetentionSettingsSection" Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="RetentionSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
@@ -570,10 +783,10 @@
             </Grid>
           </StackPanel>
 
-          <StackPanel Spacing="12">
+          <StackPanel x:Name="IslandSettingsSection" Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="AppearanceSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <StackPanel x:Name="QuickActionsSettingsPanel" Spacing="10" />
-            <StackPanel Spacing="12">
+            <StackPanel x:Name="LegacyNativeIslandSettings" Spacing="12" Visibility="Collapsed">
               <TextBlock services:XamlResourceOverride.Uid="NativeIslandSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
               <TextBlock services:XamlResourceOverride.Uid="NativeIslandDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               <Grid ColumnSpacing="24">
@@ -802,7 +1015,7 @@
             </Grid>
           </StackPanel>
 
-          <StackPanel Spacing="12">
+          <StackPanel x:Name="UpdatesSettingsSection" Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="UpdatesSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
@@ -876,6 +1089,12 @@
                 </StackPanel>
               </StackPanel>
             </Border>
+          </StackPanel>
+
+          <StackPanel x:Name="AboutSettingsSection" Spacing="12">
+            <TextBlock services:XamlResourceOverride.Uid="AboutSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+            <TextBlock services:XamlResourceOverride.Uid="AboutDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+            <TextBlock FontWeight="SemiBold" Text="{Binding CurrentVersionDisplayText}" />
           </StackPanel>
 
           <StackPanel Spacing="12">

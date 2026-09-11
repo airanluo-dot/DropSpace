@@ -1,5 +1,6 @@
 using DropSpace.Core.Island;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Media;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Widgets;
@@ -75,6 +76,77 @@ public sealed class Preview22NativeIslandTests
         Assert.AreEqual(NativeWidgetId.Clock, layout.Compact.Left);
         Assert.IsNull(layout.Compact.Center);
         Assert.AreEqual(NativeWidgetId.ResourceUsage, layout.Compact.Right);
+    }
+
+    [TestMethod]
+    public void CompactMediaLayoutClampsLongLyricsAndKeepsShortLyricsCompact()
+    {
+        var shortLayout = CompactMediaLayoutCalculator.Calculate(new CompactMediaLayoutInput
+        {
+            MeasuredPrimaryTextWidth = 90,
+            MeasuredSecondaryTextWidth = 80,
+        });
+        var longLayout = CompactMediaLayoutCalculator.Calculate(new CompactMediaLayoutInput
+        {
+            MeasuredPrimaryTextWidth = 1_500,
+            MeasuredSecondaryTextWidth = 1_200,
+        });
+
+        Assert.AreEqual(340, shortLayout.Width);
+        Assert.AreEqual(560, longLayout.Width);
+        Assert.IsTrue(longLayout.Lyrics.Width > shortLayout.Lyrics.Width);
+        Assert.IsTrue(longLayout.Artwork.Right <= longLayout.Lyrics.X);
+        Assert.IsTrue(longLayout.Lyrics.Right <= longLayout.Spectrum.X);
+    }
+
+    [TestMethod]
+    public void ExpandedPagerDefaultsToMusicOnlyForPlayingMediaAndNeverWraps()
+    {
+        var pager = new ExpandedIslandPager();
+
+        pager.SetDefault(MediaPlaybackState.Playing);
+        Assert.AreEqual(ExpandedIslandPage.Music, pager.CurrentPage);
+        Assert.IsTrue(pager.CanGoLeft);
+        Assert.IsTrue(pager.CanGoRight);
+
+        pager.SetDefault(MediaPlaybackState.Paused);
+        Assert.AreEqual(ExpandedIslandPage.Files, pager.CurrentPage);
+        Assert.IsFalse(pager.CanGoLeft);
+        Assert.IsFalse(pager.NavigateLeft());
+        Assert.IsTrue(pager.NavigateRight());
+        Assert.AreEqual(ExpandedIslandPage.Music, pager.CurrentPage);
+        Assert.IsTrue(pager.NavigateRight());
+        Assert.AreEqual(ExpandedIslandPage.Widgets, pager.CurrentPage);
+        Assert.IsFalse(pager.NavigateRight());
+    }
+
+    [TestMethod]
+    public void IdleHidePolicyUsesThreeSecondsByDefaultAndHonorsOverrides()
+    {
+        var defaultPolicy = new IdleHidePolicy();
+        var overridePolicy = new IdleHidePolicy(delayMilliseconds: 1_000);
+
+        Assert.IsFalse(defaultPolicy.ShouldHide(MediaPlaybackState.Paused, TimeSpan.FromMilliseconds(2_999), false));
+        Assert.IsTrue(defaultPolicy.ShouldHide(MediaPlaybackState.Paused, TimeSpan.FromSeconds(3), false));
+        Assert.IsTrue(overridePolicy.ShouldHide(MediaPlaybackState.Unknown, TimeSpan.FromSeconds(1), false));
+        Assert.IsFalse(defaultPolicy.ShouldHide(MediaPlaybackState.Playing, TimeSpan.FromMinutes(1), false));
+        Assert.IsFalse(defaultPolicy.ShouldHide(MediaPlaybackState.Paused, TimeSpan.FromMinutes(1), true));
+    }
+
+    [TestMethod]
+    public void Preview23IslandDefaultsMatchCompactMediaProductDecision()
+    {
+        var settings = new AppSettings();
+
+        Assert.AreEqual(13, AppSettings.CurrentVersion);
+        Assert.IsTrue(settings.IslandActivity.EnableMediaActivity);
+        Assert.IsTrue(settings.IslandActivity.ShowArtwork);
+        Assert.IsTrue(settings.IslandActivity.ShowSpectrum);
+        Assert.IsTrue(settings.IslandActivity.CompactDynamicWidth);
+        Assert.IsFalse(settings.Lyrics.SecondaryLyrics);
+        Assert.IsTrue(settings.IslandAppearance.AutoHide);
+        Assert.AreEqual(3_000, settings.IslandAppearance.HideDelayMilliseconds);
+        Assert.IsFalse(settings.IslandAppearance.RotateCover);
     }
 
     private static IslandActivity Activity(IslandActivityKind kind, IslandActivityPriority priority, string source, Guid? id = null) =>

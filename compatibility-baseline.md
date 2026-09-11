@@ -1,6 +1,6 @@
 # DropSpace Windows compatibility baseline
 
-Status: implementation baseline for `v0.3.0-preview.22` (conditional until the
+Status: implementation baseline for `v0.3.0-preview.23` (conditional until the
 Windows matrix below has executable evidence). The release runner is pinned to
 the named `windows-2025` image; this is build reproducibility evidence, not a
 substitute for the real OS/DPI/OLE/accessibility rows.
@@ -8,7 +8,7 @@ substitute for the real OS/DPI/OLE/accessibility rows.
 ## Supported operating systems
 
 DropSpace supports 64-bit Windows build 20348 or later, including Windows 11.
-This minimum is the Preview.22 native media/notification integration boundary.
+This minimum is the Preview.23 Native Island UI refactor boundary, carried forward from Preview.22's native media/notification integration.
 Windows App SDK's
 support table and versioning guidance are the authority for the framework
 relationship:
@@ -130,9 +130,9 @@ conditional until real Windows machines or equivalent dedicated test fixtures
 record them. Hosted Windows CI is useful for build/smoke coverage but does not
 replace the historical OS/DPI/monitor/provider matrix.
 
-## Preview.19 execution record
+## Preview.23 execution record
 
-Preview.22 removes the public ARM64 declaration and ships one x64 build path:
+Preview.23 keeps the public ARM64 declaration removed and ships one x64 build path:
 `win-x64`, `Platform=x64`, and the Windows build 20348 minimum. Native Island
 activities are capability-gated and fail closed when their Windows API access is
 unavailable.
