@@ -30,6 +30,7 @@ public enum OverlayTransitionCause
     VisualPreferenceChanged,
     FullscreenSuppressed,
     MonitorChanged,
+    NativeActivityChanged,
 }
 
 public sealed record OverlayTransitionDescriptor(
@@ -50,6 +51,7 @@ public sealed class OverlayStateMachine
     private OverlayState _state = OverlayState.Hidden;
     private int _temporaryItemCount;
     private bool _expandedDropActive;
+    private bool _nativeActivityVisible;
     private long _revision;
     private OverlayMotionPreference _motionPreference = OverlayMotionPreference.System;
     private OverlayTransitionDescriptor? _transition;
@@ -85,7 +87,9 @@ public sealed class OverlayStateMachine
         ArgumentOutOfRangeException.ThrowIfNegative(temporaryItemCount);
         _temporaryItemCount = temporaryItemCount;
         _expandedDropActive = false;
-        _state = temporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
+        _state = temporaryItemCount == 0
+            ? _nativeActivityVisible ? OverlayState.Compact : OverlayState.Hidden
+            : OverlayState.Compact;
         Publish(OverlayTransitionCause.Restore);
     }
 
@@ -97,7 +101,7 @@ public sealed class OverlayStateMachine
         if (temporaryItemCount == 0)
         {
             _expandedDropActive = false;
-            if (_state is OverlayState.Compact or OverlayState.Expanded)
+            if (!_nativeActivityVisible && _state is (OverlayState.Compact or OverlayState.Expanded))
             {
                 _state = OverlayState.Dismissing;
             }
@@ -108,6 +112,29 @@ public sealed class OverlayStateMachine
         }
 
         Publish(OverlayTransitionCause.ItemCountChanged);
+    }
+
+    public void SetNativeActivityVisible(bool visible)
+    {
+        if (_nativeActivityVisible == visible)
+        {
+            return;
+        }
+
+        _nativeActivityVisible = visible;
+        if (visible)
+        {
+            if (_state is OverlayState.Hidden or OverlayState.Dismissing)
+            {
+                _state = OverlayState.Compact;
+            }
+        }
+        else if (_temporaryItemCount == 0 && _state == OverlayState.Compact)
+        {
+            _state = OverlayState.Dismissing;
+        }
+
+        Publish(OverlayTransitionCause.NativeActivityChanged);
     }
 
     public void BeginDragApproach()
@@ -160,7 +187,7 @@ public sealed class OverlayStateMachine
             return;
         }
 
-        _state = _temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
+        _state = _temporaryItemCount == 0 && !_nativeActivityVisible ? OverlayState.Dismissing : OverlayState.Compact;
         Publish(OverlayTransitionCause.DragCancelled);
     }
 
@@ -169,7 +196,7 @@ public sealed class OverlayStateMachine
         ArgumentOutOfRangeException.ThrowIfNegative(temporaryItemCount);
         _temporaryItemCount = temporaryItemCount;
         _expandedDropActive = false;
-        _state = temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
+        _state = temporaryItemCount == 0 && !_nativeActivityVisible ? OverlayState.Dismissing : OverlayState.Compact;
         Publish(OverlayTransitionCause.DropCompleted);
     }
 
@@ -179,7 +206,7 @@ public sealed class OverlayStateMachine
         _temporaryItemCount = temporaryItemCount;
         var remainExpanded = _expandedDropActive;
         _expandedDropActive = false;
-        _state = temporaryItemCount == 0
+        _state = temporaryItemCount == 0 && !_nativeActivityVisible
             ? OverlayState.Dismissing
             : remainExpanded ? OverlayState.Expanded : OverlayState.Compact;
         Publish(OverlayTransitionCause.VisibleDropCompleted);
@@ -187,7 +214,7 @@ public sealed class OverlayStateMachine
 
     public void Expand()
     {
-        if (_temporaryItemCount > 0 && _state == OverlayState.Compact)
+        if ((_temporaryItemCount > 0 || _nativeActivityVisible) && _state == OverlayState.Compact)
         {
             _state = OverlayState.Expanded;
             Publish(OverlayTransitionCause.Expanded);
@@ -208,7 +235,7 @@ public sealed class OverlayStateMachine
             return;
         }
 
-        _state = _temporaryItemCount == 0 ? OverlayState.Dismissing : OverlayState.Compact;
+        _state = _temporaryItemCount == 0 && !_nativeActivityVisible ? OverlayState.Dismissing : OverlayState.Compact;
         _expandedDropActive = false;
         Publish(OverlayTransitionCause.Collapsed);
     }
@@ -220,7 +247,7 @@ public sealed class OverlayStateMachine
             return;
         }
 
-        _state = _temporaryItemCount == 0 ? OverlayState.Hidden : OverlayState.Compact;
+        _state = _temporaryItemCount == 0 && !_nativeActivityVisible ? OverlayState.Hidden : OverlayState.Compact;
         _expandedDropActive = false;
         Publish(OverlayTransitionCause.Dismissed);
     }

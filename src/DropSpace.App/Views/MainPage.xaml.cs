@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using DropSpace.App.Services;
+using DropSpace.App.Services.Island;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
@@ -48,6 +49,7 @@ public sealed partial class MainPage : Page
     private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly DropLinkHost _dropLinkHost;
     private readonly SharingUseCase _sharing;
+    private readonly NativeIslandActivityRuntime _nativeIsland;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
@@ -69,7 +71,8 @@ public sealed partial class MainPage : Page
         DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        SharingUseCase sharing)
+        SharingUseCase sharing,
+        NativeIslandActivityRuntime nativeIsland)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -84,6 +87,7 @@ public sealed partial class MainPage : Page
         _crossDeviceClipboard = crossDeviceClipboard;
         _dropLinkHost = dropLinkHost;
         _sharing = sharing;
+        _nativeIsland = nativeIsland;
         try
         {
             InitializeComponent();
@@ -1414,11 +1418,18 @@ public sealed partial class MainPage : Page
 
     private async void OnWindowsNotificationsToggled(object sender, RoutedEventArgs args)
     {
-        if (!_syncingSettings)
-            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+        if (_syncingSettings) return;
+        await RunAsync(async () =>
+        {
+            await _viewModel.UpdateSettingsAsync(_viewModel.Settings with
             {
                 SystemActivities = _viewModel.Settings.SystemActivities with { ShowWindowsNotifications = WindowsNotificationsToggle.IsOn },
-            }));
+            });
+            if (WindowsNotificationsToggle.IsOn)
+            {
+                await _nativeIsland.RequestNotificationAccessAsync();
+            }
+        });
     }
 
     private async void OnVolumeActivityToggled(object sender, RoutedEventArgs args)

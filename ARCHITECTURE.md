@@ -20,8 +20,8 @@ Exact versions are selected and recorded in Phase 0; do not write “latest” i
 
 ## Windows compatibility boundary
 
-The supported runtime baseline is 64-bit Windows 10 version 1809 (Build
-17763) or later, including Windows 11. The app continues to compile against
+The supported Preview.22 runtime baseline is 64-bit Windows build 20348 or
+later, including Windows 11. The app continues to compile against
 the pinned Windows SDK Build Tools 10.0.26100.8249; compile-time API availability
 is not treated as proof that an API exists on the current OS.
 
@@ -40,7 +40,7 @@ On Windows 10, the main window uses its solid theme visual, modern DWM corner
 and border attributes are skipped, and optional APIs report an unavailable
 capability while normal Clipboard, Dynamic Island, visible OLE drop, and
 Classic/Smart Drag paths remain available. A direct Portable launch below
-Build 17763 exits with a diagnostic marker; MSIX and Inno Setup also declare
+Build 20348 exits with a diagnostic marker; MSIX and Inno Setup also declare
 the minimum so ordinary installation is blocked before launch. See
 [compatibility-baseline.md](compatibility-baseline.md) for the required OS,
 DPI, monitor, deployment, and evidence matrix.

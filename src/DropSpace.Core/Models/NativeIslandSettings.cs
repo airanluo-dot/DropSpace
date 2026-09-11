@@ -42,7 +42,7 @@ public sealed record IslandActivitySettings
 
 public sealed record LyricsSettings
 {
-    public bool Enabled { get; init; } = true;
+    public bool Enabled { get; init; }
     public LyricsMode Mode { get; init; } = LyricsMode.Online;
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.Lrclib;
     public bool SecondaryLyrics { get; init; } = true;

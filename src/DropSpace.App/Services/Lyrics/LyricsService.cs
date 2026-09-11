@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,7 @@ namespace DropSpace.App.Services.Lyrics;
 
 public sealed class LyricsService
 {
+    private const long MaximumLocalLrcBytes = 4L * 1024 * 1024;
     private readonly HttpClient _httpClient;
     private readonly ILogger<LyricsService> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -27,7 +29,7 @@ public sealed class LyricsService
     {
         if (mode == LyricsMode.LocalLrc)
         {
-            return QueryLocal(query, localDirectory);
+            return await QueryLocalAsync(query, localDirectory, cancellationToken);
         }
 
         await _gate.WaitAsync(cancellationToken);
@@ -66,25 +68,50 @@ public sealed class LyricsService
         finally { _gate.Release(); }
     }
 
-    private static LyricsResult QueryLocal(LyricsQuery query, string? localDirectory)
+    private static async Task<LyricsResult> QueryLocalAsync(
+        LyricsQuery query,
+        string? localDirectory,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(localDirectory) || !Directory.Exists(localDirectory)) return LyricsResult.NotFound("Local LRC directory is unavailable.");
         var title = LyricsParser.NormalizeQueryPart(query.Title);
-        var candidates = Directory.EnumerateFiles(localDirectory, "*.lrc", SearchOption.TopDirectoryOnly)
-            .Take(2048)
-            .OrderBy(path => Path.GetFileNameWithoutExtension(path).Contains(title, StringComparison.OrdinalIgnoreCase) ? 0 : 1);
-        foreach (var path in candidates)
+        try
         {
-            try
+            var candidates = Directory.EnumerateFiles(localDirectory, "*.lrc", SearchOption.TopDirectoryOnly)
+                .Take(2048)
+                .OrderBy(path => Path.GetFileNameWithoutExtension(path).Contains(title, StringComparison.OrdinalIgnoreCase) ? 0 : 1);
+            foreach (var path in candidates)
             {
-                var lines = LyricsParser.Parse(File.ReadAllText(path));
+                cancellationToken.ThrowIfCancellationRequested();
+                var contents = await ReadLocalLrcAsync(path, cancellationToken);
+                if (contents is null) continue;
+                var lines = LyricsParser.Parse(contents);
                 if (lines.Count > 0) return new LyricsResult(true, new LyricsDocument(lines, LyricsProviderKind.LocalLrc.ToString(), DateTimeOffset.UtcNow));
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
         }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
 
         return LyricsResult.NotFound();
+    }
+
+    private static async Task<string?> ReadLocalLrcAsync(string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                64 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            if (stream.Length > MaximumLocalLrcBytes) return null;
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, 64 * 1024);
+            return await reader.ReadToEndAsync(cancellationToken);
+        }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     private static string? ExtractProperty(string json, string property)

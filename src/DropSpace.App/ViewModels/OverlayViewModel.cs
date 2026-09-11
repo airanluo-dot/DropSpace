@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Audio;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Island;
@@ -24,6 +25,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private readonly ILogger<OverlayViewModel> _logger;
     private readonly IIslandActivityRouter _activityRouter;
     private readonly IMediaSessionService _media;
+    private readonly IAudioSpectrumService _spectrum;
     private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
@@ -32,6 +34,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private CancellationTokenSource? _shellAcknowledgementCancellation;
     private bool _disposed;
     private IslandActivitySnapshot _activitySnapshot = IslandActivitySnapshot.Empty;
+    private IReadOnlyList<float> _spectrumBars = SpectrumFrame.Empty.Bars;
     private Guid _dropActivityId;
     private Guid _manualActivityId;
 
@@ -42,7 +45,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         IAppStringLocalizer strings,
         ILogger<OverlayViewModel> logger,
         IIslandActivityRouter activityRouter,
-        IMediaSessionService media)
+        IMediaSessionService media,
+        IAudioSpectrumService spectrum)
     {
         _mainViewModel = mainViewModel;
         _stateMachine = stateMachine;
@@ -51,6 +55,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _logger = logger;
         _activityRouter = activityRouter;
         _media = media;
+        _spectrum = spectrum;
         _snapshot = stateMachine.Snapshot;
         _projectionRefresh = new SerializedProjectionRefreshCoordinator<ItemCardViewModel>(
             cancellationToken => _mainViewModel.GetRecentSpaceItemsAsync(5, cancellationToken),
@@ -58,6 +63,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _mainViewModel.UiSettingsPreflightAsync = ApplyUiSettingsAsync;
         _activitySnapshot = _activityRouter.Snapshot;
         _activityRouter.Changed += OnActivityChanged;
+        _spectrum.FrameChanged += OnSpectrumChanged;
     }
 
     public event EventHandler<OverlaySnapshot>? SnapshotChanged;
@@ -78,6 +84,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                 OnPropertyChanged(nameof(DragTitle));
                 OnPropertyChanged(nameof(DragSubtitle));
                 OnPropertyChanged(nameof(IsExpandedDropTargetActive));
+                OnPropertyChanged(nameof(IsNativeActivityVisible));
             }
         }
     }
@@ -130,6 +137,16 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public string ActivityExpandedTitle => _activitySnapshot.Current?.ExpandedTitle ?? string.Empty;
 
     public string ActivityExpandedSubtitle => _activitySnapshot.Current?.ExpandedSubtitle ?? string.Empty;
+
+    public bool IsMediaActivity => _activitySnapshot.Current?.Kind == IslandActivityKind.Media;
+
+    public bool IsMediaControlsVisible => IsMediaActivity &&
+        (_pendingSettings ?? _mainViewModel.Settings).IslandActivity.ShowCompactControls;
+
+    public IReadOnlyList<float> SpectrumBars => _spectrumBars;
+
+    public bool IsSpectrumVisible => IsMediaActivity &&
+        _spectrum.Current.CaptureMode != SpectrumCaptureMode.Unavailable;
 
     public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {
@@ -419,6 +436,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _mainViewModel.SpaceProjectionChanged -= OnSpaceProjectionChanged;
         _stateMachine.Changed -= OnStateChanged;
         _activityRouter.Changed -= OnActivityChanged;
+        _spectrum.FrameChanged -= OnSpectrumChanged;
         RemoveDropActivity();
         if (_manualActivityId != Guid.Empty) _activityRouter.Remove(_manualActivityId);
         if (_mainViewModel.UiSettingsPreflightAsync == ApplyUiSettingsAsync)
@@ -520,6 +538,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
             !previous.OverlayPlacements.OrderBy(pair => pair.Key).SequenceEqual(next.OverlayPlacements.OrderBy(pair => pair.Key)))
             OnPropertyChanged(nameof(PlacementMode));
         if (previous.QuickPanelHotkey != next.QuickPanelHotkey) OnPropertyChanged(nameof(QuickPanelHotkey));
+        if (previous.IslandActivity.ShowCompactControls != next.IslandActivity.ShowCompactControls)
+            OnPropertyChanged(nameof(IsMediaControlsVisible));
         if (!previous.SmartDragExcludedProcesses.SequenceEqual(next.SmartDragExcludedProcesses))
             OnPropertyChanged(nameof(SmartDragExcludedProcesses));
     }
@@ -545,12 +565,29 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         }
 
         _activitySnapshot = snapshot;
+        _stateMachine.SetNativeActivityVisible(snapshot.Current is not null);
         OnPropertyChanged(nameof(ActivitySnapshot));
         OnPropertyChanged(nameof(IsNativeActivityVisible));
+        OnPropertyChanged(nameof(IsMediaActivity));
+        OnPropertyChanged(nameof(IsMediaControlsVisible));
+        OnPropertyChanged(nameof(IsSpectrumVisible));
         OnPropertyChanged(nameof(ActivityTitle));
         OnPropertyChanged(nameof(ActivitySubtitle));
         OnPropertyChanged(nameof(ActivityExpandedTitle));
         OnPropertyChanged(nameof(ActivityExpandedSubtitle));
+    }
+
+    private void OnSpectrumChanged(object? sender, SpectrumFrame frame)
+    {
+        if (!_dispatcher.HasThreadAccess)
+        {
+            _dispatcher.TryEnqueue(() => OnSpectrumChanged(sender, frame));
+            return;
+        }
+
+        _spectrumBars = frame.Bars;
+        OnPropertyChanged(nameof(SpectrumBars));
+        OnPropertyChanged(nameof(IsSpectrumVisible));
     }
 
     private void PublishDropActivity(string title, string subtitle)

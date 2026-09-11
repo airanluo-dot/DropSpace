@@ -14,6 +14,7 @@ using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Content;
+using DropSpace.Core.Audio;
 using DropSpace.Core.Island;
 using DropSpace.Core.Media;
 using DropSpace.Core.Models;
@@ -163,7 +164,8 @@ public partial class App : Application
                 _services.GetRequiredService<DeviceHandoffUseCase>(),
                 _services.GetRequiredService<CrossDeviceClipboardService>(),
                 _services.GetRequiredService<DropLinkHost>(),
-                _services.GetRequiredService<SharingUseCase>());
+                _services.GetRequiredService<SharingUseCase>(),
+                _services.GetRequiredService<NativeIslandActivityRuntime>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             if (!isStartupLaunch && !isShareActivation && !isShellActivation)
@@ -502,6 +504,7 @@ public partial class App : Application
         services.AddSingleton<WindowsMediaSessionService>();
         services.AddSingleton<IMediaSessionService>(provider => provider.GetRequiredService<WindowsMediaSessionService>());
         services.AddSingleton<WindowsSpectrumService>();
+        services.AddSingleton<IAudioSpectrumService>(provider => provider.GetRequiredService<WindowsSpectrumService>());
         services.AddSingleton<WindowsNotificationActivityService>();
         services.AddSingleton<WindowsVolumeActivityService>();
         services.AddSingleton<NativeWidgetActivityService>();

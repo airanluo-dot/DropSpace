@@ -1,5 +1,6 @@
 using DropSpace.Core.Island;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Overlay;
 using DropSpace.Core.Widgets;
 
 namespace DropSpace.Core.Tests;
@@ -20,6 +21,26 @@ public sealed class Preview22NativeIslandTests
         Assert.AreEqual(notificationId, router.Snapshot.Current!.Id);
         Assert.AreEqual(1, router.RemoveSource("toast"));
         Assert.AreEqual(mediaId, router.Snapshot.Current!.Id);
+    }
+
+    [TestMethod]
+    public void NativeActivityWakesAnEmptyIslandAndAllowsExpandedMediaView()
+    {
+        var stateMachine = new OverlayStateMachine();
+        stateMachine.Restore(0);
+
+        stateMachine.SetNativeActivityVisible(true);
+        Assert.AreEqual(OverlayState.Compact, stateMachine.Snapshot.State);
+
+        stateMachine.Expand();
+        Assert.AreEqual(OverlayState.Expanded, stateMachine.Snapshot.State);
+    }
+
+    [TestMethod]
+    public void LyricsAreOptInByDefault()
+    {
+        Assert.IsFalse(new LyricsSettings().Enabled);
+        Assert.AreEqual(LyricsMode.Online, new LyricsSettings().Mode);
     }
 
     [TestMethod]
