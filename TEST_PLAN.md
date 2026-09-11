@@ -10,6 +10,8 @@ The release-specific Preview.14 motion and Acrylic matrix is in the
 [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md).
 The release-specific Preview.21 settings and action usability matrix is in the
 [Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md).
+The release-specific Preview.23 Native Island UI refactor matrix is in the
+[Preview.23 Native Island UI refactor test plan](docs/test-plan/v0.3.0-preview.23.md).
 
 ## Quality gates
 
@@ -129,7 +131,7 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 ### Windows compatibility baseline (Preview.8)
 
-- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Preview.22 Build 20348 minimum, capability fallbacks, distribution consistency, and evidence boundary.
+- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Preview.23 Build 20348 minimum, capability fallbacks, distribution consistency, and evidence boundary.
 - Exercise Windows build 20348 and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100).
 - At each available OS, cover 100%, 125%, 150%, 175%, and 200% scaling, one-to-three monitors, primary/non-primary placement, topology refresh, normal launch, `--startup`, clipboard, Smart/Classic drag, visible direct drops, preview fallback, updater, and the relevant packaging path.
 - Treat Mica, modern DWM attributes, Windows Share identity, and optional PDF/media APIs as capability outcomes. Windows 10 must retain the base visual and local drop/clipboard paths without probing failures or stale overlay hit regions.

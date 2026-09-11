@@ -2,12 +2,14 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
+using DropSpace.App.Services.Island;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Audio;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Island;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using DropSpace.Core.Overlay;
 using DropSpace.Infrastructure.Storage;
@@ -26,6 +28,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private readonly IIslandActivityRouter _activityRouter;
     private readonly IMediaSessionService _media;
     private readonly IAudioSpectrumService _spectrum;
+    private readonly NativeIslandActivityRuntime _nativeIsland;
     private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
@@ -37,6 +40,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private IReadOnlyList<double> _spectrumBars = Array.Empty<double>();
     private Guid _dropActivityId;
     private Guid _manualActivityId;
+    private readonly ExpandedIslandPager _expandedPager = new();
+    private MediaSessionSnapshot _currentMedia = MediaSessionSnapshot.Empty;
 
     public OverlayViewModel(
         MainViewModel mainViewModel,
@@ -46,7 +51,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         ILogger<OverlayViewModel> logger,
         IIslandActivityRouter activityRouter,
         IMediaSessionService media,
-        IAudioSpectrumService spectrum)
+        IAudioSpectrumService spectrum,
+        NativeIslandActivityRuntime nativeIsland)
     {
         _mainViewModel = mainViewModel;
         _stateMachine = stateMachine;
@@ -56,6 +62,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _activityRouter = activityRouter;
         _media = media;
         _spectrum = spectrum;
+        _nativeIsland = nativeIsland;
+        _currentMedia = media.Current;
         _snapshot = stateMachine.Snapshot;
         _projectionRefresh = new SerializedProjectionRefreshCoordinator<ItemCardViewModel>(
             cancellationToken => _mainViewModel.GetRecentSpaceItemsAsync(5, cancellationToken),
@@ -63,7 +71,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _mainViewModel.UiSettingsPreflightAsync = ApplyUiSettingsAsync;
         _activitySnapshot = _activityRouter.Snapshot;
         _activityRouter.Changed += OnActivityChanged;
+        _media.Changed += OnMediaChanged;
         _spectrum.FrameChanged += OnSpectrumChanged;
+        _nativeIsland.LyricsChanged += OnLyricsChanged;
     }
 
     public event EventHandler<OverlaySnapshot>? SnapshotChanged;
@@ -85,6 +95,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                 OnPropertyChanged(nameof(DragSubtitle));
                 OnPropertyChanged(nameof(IsExpandedDropTargetActive));
                 OnPropertyChanged(nameof(IsNativeActivityVisible));
+                OnPropertyChanged(nameof(CompactMediaLayout));
+                OnPropertyChanged(nameof(CompactMediaWidth));
             }
         }
     }
@@ -126,6 +138,61 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public IslandActivitySnapshot ActivitySnapshot => _activitySnapshot;
 
+    public MediaSessionSnapshot CurrentMedia => _currentMedia;
+
+    public LyricsFrame CurrentLyricsFrame => _nativeIsland.CurrentLyricsFrame;
+
+    public ExpandedIslandPage ExpandedPage => _expandedPager.CurrentPage;
+
+    public IslandPageSize ExpandedPageSize => _expandedPager.PreferredSize;
+
+    public bool CanGoToPreviousExpandedPage => _expandedPager.CanGoLeft;
+
+    public bool CanGoToNextExpandedPage => _expandedPager.CanGoRight;
+
+    public CompactMediaLayout CompactMediaLayout
+    {
+        get
+        {
+            var settings = (_pendingSettings ?? _mainViewModel.Settings);
+            var primary = CurrentLyricsFrame.PrimaryText;
+            if (string.IsNullOrWhiteSpace(primary))
+            {
+                primary = _currentMedia.TrackTitle;
+            }
+
+            return CompactMediaLayoutCalculator.Calculate(new CompactMediaLayoutInput
+            {
+                Scale = settings.IslandAppearance.CompactScale,
+                BaseWidth = settings.IslandAppearance.CompactBaseWidth,
+                BaseHeight = settings.IslandAppearance.CompactBaseHeight,
+                ShowArtwork = settings.IslandActivity.ShowArtwork,
+                ShowLyrics = settings.IslandActivity.ShowLyricsInCompact,
+                ShowSecondaryLyrics = settings.Lyrics.SecondaryLyrics,
+                ShowSpectrum = settings.IslandActivity.ShowSpectrum,
+                DynamicWidth = settings.IslandActivity.CompactDynamicWidth,
+                MeasuredPrimaryTextWidth = primary.Length * 8,
+                MeasuredSecondaryTextWidth = CurrentLyricsFrame.SecondaryText?.Length * 8 ?? 0,
+            });
+        }
+    }
+
+    public double CompactMediaWidth => CompactMediaLayout.Width;
+
+    public string CompactMediaPrimaryText =>
+        !string.IsNullOrWhiteSpace(CurrentLyricsFrame.PrimaryText)
+            ? CurrentLyricsFrame.PrimaryText
+            : !string.IsNullOrWhiteSpace(_currentMedia.TrackTitle)
+                ? _currentMedia.TrackTitle
+                : _currentMedia.SourceDisplayName;
+
+    public string CompactMediaSecondaryText =>
+        !string.IsNullOrWhiteSpace(CurrentLyricsFrame.SecondaryText)
+            ? CurrentLyricsFrame.SecondaryText!
+            : !string.IsNullOrWhiteSpace(_currentMedia.Artist)
+                ? _currentMedia.Artist
+                : _currentMedia.SourceDisplayName;
+
     public bool IsNativeActivityVisible => _activitySnapshot.Current is not null &&
         (Snapshot.State is OverlayState.Compact or OverlayState.Expanded) &&
         Snapshot.State is not OverlayState.DragApproaching and not OverlayState.DragReady;
@@ -146,6 +213,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public IReadOnlyList<double> SpectrumBars => _spectrumBars;
 
     public bool IsSpectrumVisible => IsMediaActivity &&
+        (_pendingSettings ?? _mainViewModel.Settings).IslandActivity.ShowSpectrum &&
         _spectrum.Current.CaptureMode != SpectrumCaptureMode.Unavailable;
 
     public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
@@ -275,6 +343,14 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public async Task ExpandAsync(CancellationToken cancellationToken = default)
     {
         await RefreshRecentItemsAsync(cancellationToken);
+        if (Snapshot.State != OverlayState.Expanded)
+        {
+            _expandedPager.SetDefault(_media.Current.PlaybackState);
+            OnPropertyChanged(nameof(ExpandedPage));
+            OnPropertyChanged(nameof(ExpandedPageSize));
+            OnPropertyChanged(nameof(CanGoToPreviousExpandedPage));
+            OnPropertyChanged(nameof(CanGoToNextExpandedPage));
+        }
         if (_manualActivityId == Guid.Empty)
         {
             _manualActivityId = _activityRouter.Publish(new IslandActivity(
@@ -307,6 +383,29 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public Task SkipNextMediaAsync(CancellationToken cancellationToken = default) => _media.SkipNextAsync(cancellationToken);
 
     public Task SkipPreviousMediaAsync(CancellationToken cancellationToken = default) => _media.SkipPreviousAsync(cancellationToken);
+
+    public Task SeekMediaAsync(TimeSpan position, CancellationToken cancellationToken = default) => _media.SeekAsync(position, cancellationToken);
+
+    public bool NavigateExpandedPageLeft() => NavigateExpandedPage(_expandedPager.NavigateLeft());
+
+    public bool NavigateExpandedPageRight() => NavigateExpandedPage(_expandedPager.NavigateRight());
+
+    public bool NavigateExpandedPage(ExpandedIslandPage page) => NavigateExpandedPage(_expandedPager.NavigateTo(page));
+
+    private bool NavigateExpandedPage(bool changed)
+    {
+        if (!changed)
+        {
+            return false;
+        }
+
+        OnPropertyChanged(nameof(ExpandedPage));
+        OnPropertyChanged(nameof(ExpandedPageSize));
+        OnPropertyChanged(nameof(CanGoToPreviousExpandedPage));
+        OnPropertyChanged(nameof(CanGoToNextExpandedPage));
+        OnPropertyChanged(nameof(CompactMediaLayout));
+        return true;
+    }
 
     public void CompleteDismissal() => _stateMachine.CompleteDismissal();
 
@@ -436,7 +535,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _mainViewModel.SpaceProjectionChanged -= OnSpaceProjectionChanged;
         _stateMachine.Changed -= OnStateChanged;
         _activityRouter.Changed -= OnActivityChanged;
+        _media.Changed -= OnMediaChanged;
         _spectrum.FrameChanged -= OnSpectrumChanged;
+        _nativeIsland.LyricsChanged -= OnLyricsChanged;
         RemoveDropActivity();
         if (_manualActivityId != Guid.Empty) _activityRouter.Remove(_manualActivityId);
         if (_mainViewModel.UiSettingsPreflightAsync == ApplyUiSettingsAsync)
@@ -540,6 +641,17 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         if (previous.QuickPanelHotkey != next.QuickPanelHotkey) OnPropertyChanged(nameof(QuickPanelHotkey));
         if (previous.IslandActivity.ShowCompactControls != next.IslandActivity.ShowCompactControls)
             OnPropertyChanged(nameof(IsMediaControlsVisible));
+        if (previous.IslandActivity != next.IslandActivity ||
+            previous.Lyrics != next.Lyrics ||
+            previous.IslandAppearance != next.IslandAppearance)
+        {
+            OnPropertyChanged(nameof(IsMediaActivity));
+            OnPropertyChanged(nameof(IsSpectrumVisible));
+            OnPropertyChanged(nameof(CompactMediaLayout));
+            OnPropertyChanged(nameof(CompactMediaWidth));
+            OnPropertyChanged(nameof(CompactMediaPrimaryText));
+            OnPropertyChanged(nameof(CompactMediaSecondaryText));
+        }
         if (!previous.SmartDragExcludedProcesses.SequenceEqual(next.SmartDragExcludedProcesses))
             OnPropertyChanged(nameof(SmartDragExcludedProcesses));
     }
@@ -575,6 +687,39 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         OnPropertyChanged(nameof(ActivitySubtitle));
         OnPropertyChanged(nameof(ActivityExpandedTitle));
         OnPropertyChanged(nameof(ActivityExpandedSubtitle));
+        OnPropertyChanged(nameof(CompactMediaLayout));
+        OnPropertyChanged(nameof(CompactMediaWidth));
+    }
+
+    private void OnMediaChanged(object? sender, MediaSessionSnapshot snapshot)
+    {
+        if (!_dispatcher.HasThreadAccess)
+        {
+            _dispatcher.TryEnqueue(() => OnMediaChanged(sender, snapshot));
+            return;
+        }
+
+        _currentMedia = snapshot;
+        OnPropertyChanged(nameof(CurrentMedia));
+        OnPropertyChanged(nameof(CompactMediaPrimaryText));
+        OnPropertyChanged(nameof(CompactMediaSecondaryText));
+        OnPropertyChanged(nameof(CompactMediaLayout));
+        OnPropertyChanged(nameof(CompactMediaWidth));
+    }
+
+    private void OnLyricsChanged(object? sender, LyricsFrame frame)
+    {
+        if (!_dispatcher.HasThreadAccess)
+        {
+            _dispatcher.TryEnqueue(() => OnLyricsChanged(sender, frame));
+            return;
+        }
+
+        OnPropertyChanged(nameof(CurrentLyricsFrame));
+        OnPropertyChanged(nameof(CompactMediaPrimaryText));
+        OnPropertyChanged(nameof(CompactMediaSecondaryText));
+        OnPropertyChanged(nameof(CompactMediaLayout));
+        OnPropertyChanged(nameof(CompactMediaWidth));
     }
 
     private void OnSpectrumChanged(object? sender, SpectrumFrame frame)

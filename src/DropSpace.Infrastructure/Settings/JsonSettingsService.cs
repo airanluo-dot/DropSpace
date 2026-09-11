@@ -73,13 +73,7 @@ public sealed class JsonSettingsService : ISettingsService
                 var migratedVersion = false;
                 if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
                 {
-                    settings = settings with
-                    {
-                        Version = AppSettings.CurrentVersion,
-                        // A legacy settings file without an update channel belongs to the Preview-era
-                        // installed population. Fresh builds use the channel selected by their release kind.
-                        UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
-                    };
+                    settings = MigrateSchema(settings, hadUpdateChannel);
                     migratedVersion = true;
                 }
 
@@ -268,6 +262,21 @@ public sealed class JsonSettingsService : ISettingsService
     }
 
     private AppSettings CreateDefaults() => new() { UpdateChannel = _freshUpdateChannel };
+
+    private static AppSettings MigrateSchema(AppSettings settings, bool hadUpdateChannel)
+    {
+        // Preview.23 adds properties to nested records rather than replacing them. System.Text.Json
+        // has already applied the new record initializers to properties absent from a Preview.22
+        // file, so this migration only advances the schema and deliberately carries every existing
+        // placement, clipboard, sharing, update, media, lyrics, and widget value forward.
+        var migrated = settings with { Version = AppSettings.CurrentVersion };
+
+        // A legacy settings file without an update channel belongs to the Preview-era installed
+        // population. Fresh builds use the channel selected by their release kind.
+        return hadUpdateChannel
+            ? migrated
+            : migrated with { UpdateChannel = UpdateChannel.Preview };
+    }
 
     private string QuarantineSettingsFile()
     {

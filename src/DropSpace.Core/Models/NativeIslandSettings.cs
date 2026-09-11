@@ -1,4 +1,5 @@
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Island;
 using DropSpace.Core.Widgets;
 
 namespace DropSpace.Core.Models;
@@ -38,6 +39,8 @@ public sealed record IslandActivitySettings
     public bool ShowCompactControls { get; init; } = true;
     public bool ShowSpectrum { get; init; } = true;
     public bool ShowLyricsInCompact { get; init; } = true;
+    public bool CompactDynamicWidth { get; init; } = true;
+    public string[] AllowedMediaSourceAppIds { get; init; } = [];
 }
 
 public sealed record LyricsSettings
@@ -45,7 +48,7 @@ public sealed record LyricsSettings
     public bool Enabled { get; init; }
     public LyricsMode Mode { get; init; } = LyricsMode.Online;
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.Lrclib;
-    public bool SecondaryLyrics { get; init; } = true;
+    public bool SecondaryLyrics { get; init; }
     public bool WordSyncedHighlighting { get; init; } = true;
     public int DelayMilliseconds { get; init; }
     public bool Scrolling { get; init; } = true;
@@ -71,15 +74,16 @@ public sealed record IslandAppearanceSettings
     public double ExpandedHeight { get; init; } = 340;
     public CoverShape CompactCoverShape { get; init; } = CoverShape.Circle;
     public CoverShape ExpandedCoverShape { get; init; } = CoverShape.Square;
-    public bool RotateCover { get; init; } = true;
+    public bool RotateCover { get; init; }
     public bool MotionBlur { get; init; }
     public IslandDockPreset DockPreset { get; init; } = IslandDockPreset.TopCenter;
     public double HorizontalOffset { get; init; }
     public double VerticalOffset { get; init; }
     public bool RightClickHoldToMove { get; init; } = true;
-    public bool AutoHide { get; init; }
-    public int HideDelayMilliseconds { get; init; } = 1800;
+    public bool AutoHide { get; init; } = true;
+    public int HideDelayMilliseconds { get; init; } = IdleHidePolicy.DefaultDelayMilliseconds;
     public int HiddenWidth { get; init; } = 0;
+    public ExpandedIslandPage LastExpandedPage { get; init; } = ExpandedIslandPage.Files;
 }
 
 public sealed record WidgetSettings

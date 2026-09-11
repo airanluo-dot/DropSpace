@@ -20,7 +20,7 @@ Exact versions are selected and recorded in Phase 0; do not write “latest” i
 
 ## Windows compatibility boundary
 
-The supported Preview.22 runtime baseline is 64-bit Windows build 20348 or
+The supported Preview.23 runtime baseline is 64-bit Windows build 20348 or
 later, including Windows 11. The app continues to compile against
 the pinned Windows SDK Build Tools 10.0.26100.8249; compile-time API availability
 is not treated as proof that an API exists on the current OS.

@@ -490,4 +490,82 @@ Nothing will be opened automatically.</value></data>
   <data name="CalendarWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable calendar widget</value></data>
   <data name="ResourceUsageWidgetTitle.Text" xml:space="preserve"><value>Resource usage widget</value></data>
   <data name="ResourceUsageWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable resource usage widget</value></data>
+  <data name="NavMusic.Content" xml:space="preserve"><value>Music</value></data>
+  <data name="NavMusic.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Music</value></data>
+  <data name="PageTitleMusic" xml:space="preserve"><value>Music</value></data>
+  <data name="PageDescriptionMusic" xml:space="preserve"><value>Now Playing, playback controls, lyrics, and the media surface configuration.</value></data>
+  <data name="MusicCenterTitle.Text" xml:space="preserve"><value>Music center</value></data>
+  <data name="MusicCenterDescription.Text" xml:space="preserve"><value>Configure the Dynamic Island media surface without mixing playback controls into file settings.</value></data>
+  <data name="MusicCenterNowPlaying.Text" xml:space="preserve"><value>Capture source</value></data>
+  <data name="MusicOpenIslandButton.Content" xml:space="preserve"><value>Open Temporary Space</value></data>
+  <data name="MusicPlaybackCardTitle.Text" xml:space="preserve"><value>Playback</value></data>
+  <data name="MusicLyricsCardTitle.Text" xml:space="preserve"><value>Lyrics</value></data>
+  <data name="MusicLyricsCardDescription.Text" xml:space="preserve"><value>Show timed lyrics in the compact surface and keep the provider diagnostics here.</value></data>
+  <data name="MusicSecondaryLyricsTitle.Text" xml:space="preserve"><value>Show secondary lyrics</value></data>
+  <data name="MusicIslandCardTitle.Text" xml:space="preserve"><value>Island surface</value></data>
+  <data name="MusicActivityTitle.Text" xml:space="preserve"><value>Enable media activity</value></data>
+  <data name="MusicArtworkTitle.Text" xml:space="preserve"><value>Show artwork</value></data>
+  <data name="MusicSpectrumTitle.Text" xml:space="preserve"><value>Show live spectrum</value></data>
+  <data name="MusicDynamicWidthTitle.Text" xml:space="preserve"><value>Dynamic compact width</value></data>
+  <data name="MusicHideDelayTitle.Text" xml:space="preserve"><value>Paused-media hide delay (ms)</value></data>
+  <data name="MusicAutoHideTitle.Text" xml:space="preserve"><value>Hide paused media automatically</value></data>
+  <data name="MusicAllowlistTitle.Text" xml:space="preserve"><value>Media app allowlist</value></data>
+  <data name="MusicAllowlistDescription.Text" xml:space="preserve"><value>Optional source app IDs, one per line. Leave empty to accept the current Windows media session.</value></data>
+  <data name="MusicAllowlistTextBox.PlaceholderText" xml:space="preserve"><value>Application user model IDs (optional)</value></data>
+  <data name="MusicNoMedia" xml:space="preserve"><value>No active media session</value></data>
+  <data name="MusicStatePlaying" xml:space="preserve"><value>Playing</value></data>
+  <data name="MusicStatePaused" xml:space="preserve"><value>Paused</value></data>
+  <data name="MusicStateStopped" xml:space="preserve"><value>Stopped</value></data>
+  <data name="MusicStateUnavailable" xml:space="preserve"><value>Media session unavailable</value></data>
+  <data name="MusicLyricsNotLoaded" xml:space="preserve"><value>No lyric frame loaded</value></data>
+  <data name="SettingsCategoriesTitle.Text" xml:space="preserve"><value>Settings</value></data>
+  <data name="SettingsCategoriesDescription.Text" xml:space="preserve"><value>Preferences are grouped by responsibility so media, widgets, system activity, and storage stay discoverable.</value></data>
+  <data name="SettingsCategoryGeneral.Content" xml:space="preserve"><value>General</value></data>
+  <data name="SettingsCategoryIsland.Content" xml:space="preserve"><value>Island</value></data>
+  <data name="SettingsCategoryWidgets.Content" xml:space="preserve"><value>Widgets</value></data>
+  <data name="SettingsCategorySystem.Content" xml:space="preserve"><value>System activities</value></data>
+  <data name="SettingsCategoryDevices.Content" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
+  <data name="SettingsCategoryUpdates.Content" xml:space="preserve"><value>Updates</value></data>
+  <data name="SettingsCategoryAbout.Content" xml:space="preserve"><value>About</value></data>
+  <data name="SystemActivitiesSection.Text" xml:space="preserve"><value>System Activities</value></data>
+  <data name="SystemActivitiesDescription.Text" xml:space="preserve"><value>Observe Windows notifications and volume changes without replacing Windows-owned surfaces.</value></data>
+  <data name="AboutSection.Text" xml:space="preserve"><value>About</value></data>
+  <data name="AboutDescription.Text" xml:space="preserve"><value>DropSpace is a local-first temporary workspace. Version and update provenance are shown here.</value></data>
+  <data name="WidgetEditorTitle.Text" xml:space="preserve"><value>Widgets</value></data>
+  <data name="WidgetEditorDescription.Text" xml:space="preserve"><value>Persist the 6 × 3 expanded layout and the compact widget slots from one focused editor.</value></data>
+  <data name="WidgetExpandedModeButton.Content" xml:space="preserve"><value>Expanded 6 × 3</value></data>
+  <data name="WidgetCompactModeButton.Content" xml:space="preserve"><value>Compact slots</value></data>
+  <data name="WidgetEditorClockCard.Text" xml:space="preserve"><value>Clock</value></data>
+  <data name="WidgetEditorCalendarCard.Text" xml:space="preserve"><value>Calendar</value></data>
+  <data name="WidgetEditorResourceCard.Text" xml:space="preserve"><value>Resource</value></data>
+  <data name="WidgetEditorSettingsCard.Text" xml:space="preserve"><value>Settings</value></data>
+  <data name="WidgetEditorLibraryCard.Text" xml:space="preserve"><value>Widget library</value></data>
+  <data name="WidgetEditorLayoutCard.Text" xml:space="preserve"><value>Grid layout</value></data>
+  <data name="WidgetEditorEnabledTitle.Text" xml:space="preserve"><value>Enable widgets</value></data>
+  <data name="WidgetEditorEnabledDescription.Text" xml:space="preserve"><value>Allow widget activities to appear in the island.</value></data>
+  <data name="WidgetEditorClockTitle.Text" xml:space="preserve"><value>Clock widget</value></data>
+  <data name="WidgetEditorCalendarTitle.Text" xml:space="preserve"><value>Calendar widget</value></data>
+  <data name="WidgetEditorResourceTitle.Text" xml:space="preserve"><value>Resource widget</value></data>
+  <data name="WidgetEditorCompactTimeTitle.Text" xml:space="preserve"><value>Compact time</value></data>
+  <data name="WidgetEditorCompactResourceTitle.Text" xml:space="preserve"><value>Compact resource usage</value></data>
+  <data name="OverlayExpandedFilesTitle" xml:space="preserve"><value>Temporary Space</value></data>
+  <data name="OverlayExpandedFilesSubtitle" xml:space="preserve"><value>Recent staged items</value></data>
+  <data name="OverlayExpandedMusicTitle" xml:space="preserve"><value>Music</value></data>
+  <data name="OverlayExpandedMusicSubtitle" xml:space="preserve"><value>Now Playing</value></data>
+  <data name="OverlayExpandedWidgetsTitle" xml:space="preserve"><value>Widgets</value></data>
+  <data name="OverlayExpandedWidgetsSubtitle" xml:space="preserve"><value>Clock, Calendar, Resource, and Settings</value></data>
+  <data name="OverlayFilesRecent.Text" xml:space="preserve"><value>Recent items</value></data>
+  <data name="OverlayFilesEmpty.Text" xml:space="preserve"><value>Drop something into Temporary Space to see it here.</value></data>
+  <data name="OverlayWidgetClock.Text" xml:space="preserve"><value>Clock</value></data>
+  <data name="OverlayWidgetCalendar.Text" xml:space="preserve"><value>Calendar</value></data>
+  <data name="OverlayWidgetToday.Text" xml:space="preserve"><value>Today</value></data>
+  <data name="OverlayWidgetResourceValue.Text" xml:space="preserve"><value>CPU 18%</value></data>
+  <data name="OverlayWidgetResource.Text" xml:space="preserve"><value>Resource</value></data>
+  <data name="OverlayWidgetProduct.Text" xml:space="preserve"><value>DropSpace</value></data>
+  <data name="OverlayWidgetSettings.Text" xml:space="preserve"><value>Settings</value></data>
+  <data name="OverlayWidgetGridValue.Text" xml:space="preserve"><value>6 × 3</value></data>
+  <data name="OverlayWidgetLayout.Text" xml:space="preserve"><value>Grid layout</value></data>
+  <data name="OverlayWidgetReadyValue.Text" xml:space="preserve"><value>Ready</value></data>
+  <data name="OverlayWidgetStatus.Text" xml:space="preserve"><value>Status</value></data>
+  <data name="ExpandedOpenMainButton.Content" xml:space="preserve"><value>Open DropSpace</value></data>
 </root>

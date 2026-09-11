@@ -58,9 +58,8 @@
           IsHitTestVisible="False"
           Opacity="0" />
         <Border
-          x:Name="SurfaceStroke"
-          BorderBrush="{StaticResource DropSpaceOverlayStrokeBrush}"
-          BorderThickness="1"
+          x:Name="SurfaceShadow"
+          Background="Transparent"
           CornerRadius="{StaticResource DropSpaceOverlayRadius}"
           IsHitTestVisible="False" />
         <Grid x:Name="SurfaceContent">
@@ -122,6 +121,77 @@
           </Grid>
         </Button>
 
+        <Button
+          x:Name="CompactMediaPanel"
+          Padding="10,0,14,0"
+          HorizontalContentAlignment="Stretch"
+          VerticalContentAlignment="Stretch"
+          Background="Transparent"
+          BorderThickness="0"
+          Click="OnCompactClicked"
+          Visibility="Collapsed">
+          <Grid ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="34" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border
+              x:Name="CompactArtworkContainer"
+              Width="34"
+              Height="34"
+              CornerRadius="7"
+              Background="{StaticResource DropSpaceOverlayInteractionBrush}">
+              <Grid>
+                <Image
+                  x:Name="CompactArtworkImage"
+                  Width="34"
+                  Height="34"
+                  Stretch="UniformToFill"
+                  Visibility="Collapsed" />
+                <FontIcon
+                  x:Name="CompactArtworkPlaceholder"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}"
+                  Glyph="&#xE8B9;" />
+              </Grid>
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+              <TextBlock
+                x:Name="CompactMediaPrimaryText"
+                FontWeight="SemiBold"
+                Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}"
+                Text="{Binding CompactMediaPrimaryText}"
+                TextTrimming="CharacterEllipsis" />
+              <TextBlock
+                x:Name="CompactMediaSecondaryText"
+                FontSize="11"
+                Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}"
+                Text="{Binding CompactMediaSecondaryText}"
+                TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <ItemsControl
+              x:Name="CompactSpectrumItems"
+              Grid.Column="2"
+              Width="30"
+              Height="28"
+              VerticalAlignment="Center"
+              ItemsSource="{Binding SpectrumBars}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Bottom" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Width="3" Height="{Binding}" VerticalAlignment="Bottom" Background="{StaticResource DropSpaceOverlayAccentBrush}" CornerRadius="2" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </Button>
+
         <StackPanel
           x:Name="DragPanel"
           HorizontalAlignment="Center"
@@ -148,6 +218,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
+          <Grid x:Name="LegacyExpandedContent" Visibility="Collapsed">
           <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
@@ -314,6 +385,179 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="RemoveHintText" services:XamlResourceOverride.Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" />
             <Button x:Name="OpenMainButton" services:XamlResourceOverride.Uid="OverlayOpenMainButton" Grid.Column="1" Click="OnOpenMainWindowClicked" />
+          </Grid>
+          </Grid>
+
+          <Grid
+            x:Name="ExpandedPageShell"
+            Grid.RowSpan="3"
+            Canvas.ZIndex="20"
+            Background="Transparent">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0" ColumnSpacing="12">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock x:Name="ExpandedPageNameText" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+                <TextBlock x:Name="ExpandedPageDescriptionText" FontSize="12" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
+              </StackPanel>
+              <Button
+                x:Name="ExpandedPageCollapseButton"
+                Grid.Column="1"
+                Width="34"
+                Height="34"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnCollapseClicked">
+                <FontIcon Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="&#xE70E;" />
+              </Button>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="0,8,0,8" ColumnSpacing="6">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Button
+                x:Name="ExpandedPagePreviousButton"
+                Grid.Column="0"
+                Width="28"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnExpandedPreviousPageClicked">
+                <FontIcon Glyph="&#xE76B;" />
+              </Button>
+              <Grid x:Name="ExpandedPageHost" Grid.Column="1">
+                <Grid x:Name="ExpandedFilesPage">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                  </Grid.RowDefinitions>
+                  <TextBlock services:XamlResourceOverride.Uid="OverlayFilesRecent" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
+                  <Grid Grid.Row="1">
+                    <ListView
+                      x:Name="ExpandedFilesItemsList"
+                      Margin="0,8,0,0"
+                      CanDragItems="True"
+                      DragItemsStarting="OnDragItemsStarting"
+                      IsItemClickEnabled="False"
+                      ItemsSource="{Binding RecentItems}"
+                      SelectionMode="None">
+                      <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                          <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                          <Setter Property="Padding" Value="0" />
+                          <Setter Property="Margin" Value="0,0,0,4" />
+                        </Style>
+                      </ListView.ItemContainerStyle>
+                      <ListView.ItemTemplate>
+                        <DataTemplate>
+                          <Grid MinHeight="42" Padding="6,4" ColumnSpacing="9">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="32" />
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="30" Height="30" CornerRadius="7" Background="{StaticResource DropSpaceOverlayInteractionBrush}">
+                              <Grid>
+                                <Image Width="28" Height="28" Source="{Binding Thumbnail}" Stretch="UniformToFill" Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityConverter}}" />
+                                <FontIcon Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="{Binding Glyph}" Visibility="{Binding Thumbnail, Converter={StaticResource InverseNullToVisibilityConverter}}" />
+                              </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                              <TextBlock FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Padding="8,2" Background="Transparent" BorderThickness="0" Click="OnOpenItemClicked" Tag="{Binding}">
+                              <FontIcon FontSize="13" Glyph="&#xE8A7;" />
+                            </Button>
+                          </Grid>
+                        </DataTemplate>
+                      </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel x:Name="ExpandedFilesEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" Visibility="Collapsed">
+                      <FontIcon HorizontalAlignment="Center" FontSize="24" Glyph="&#xE8B7;" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
+                      <TextBlock services:XamlResourceOverride.Uid="OverlayFilesEmpty" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
+                    </StackPanel>
+                  </Grid>
+                </Grid>
+
+                <Grid x:Name="ExpandedMusicPage" Visibility="Collapsed">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="76" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Border Width="64" Height="64" CornerRadius="10" Background="{StaticResource DropSpaceOverlayInteractionBrush}">
+                    <Grid>
+                      <Image x:Name="ExpandedArtworkImage" Width="64" Height="64" Stretch="UniformToFill" Visibility="Collapsed" />
+                      <FontIcon x:Name="ExpandedArtworkPlaceholder" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="22" Glyph="&#xE8B9;" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
+                    </Grid>
+                  </Border>
+                  <Grid Grid.Column="1" RowSpacing="4">
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="*" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="ExpandedMusicTitleText" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="ExpandedMusicArtistText" Grid.Row="1" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="ExpandedMusicAlbumText" Grid.Row="2" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" TextTrimming="CharacterEllipsis" />
+                    <ItemsControl x:Name="ExpandedSpectrumItems" Grid.Row="3" Height="34" HorizontalAlignment="Right" ItemsSource="{Binding SpectrumBars}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Bottom" /></ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate><Border Width="3" Height="{Binding}" VerticalAlignment="Bottom" Background="{StaticResource DropSpaceOverlayAccentBrush}" CornerRadius="2" /></DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Grid Grid.Row="4" ColumnSpacing="5">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                      <TextBlock x:Name="ExpandedMusicElapsedText" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" VerticalAlignment="Center" />
+                      <Slider x:Name="ExpandedMusicProgressSlider" Grid.Column="1" Minimum="0" Maximum="1" ValueChanged="OnMusicProgressChanged" PointerPressed="OnMusicProgressPressed" PointerReleased="OnMusicProgressReleased" />
+                      <TextBlock x:Name="ExpandedMusicRemainingText" Grid.Column="2" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel Grid.Row="5" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="10">
+                      <Button x:Name="ExpandedMediaPreviousButton" Width="32" Height="28" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMediaPreviousClicked"><FontIcon Glyph="&#xE892;" /></Button>
+                      <Button x:Name="ExpandedMediaPlayPauseButton" Width="32" Height="28" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMediaPlayPauseClicked"><FontIcon Glyph="&#xE768;" /></Button>
+                      <Button x:Name="ExpandedMediaNextButton" Width="32" Height="28" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMediaNextClicked"><FontIcon Glyph="&#xE893;" /></Button>
+                    </StackPanel>
+                  </Grid>
+                </Grid>
+
+                <Grid x:Name="ExpandedWidgetsPage" Visibility="Collapsed">
+                  <Grid RowSpacing="5" ColumnSpacing="5">
+                    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Padding="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}" CornerRadius="9"><StackPanel><TextBlock Text="12:45" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" /><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetClock" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" /></StackPanel></Border>
+                    <Border Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Padding="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}" CornerRadius="9"><StackPanel><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetCalendar" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" /><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetToday" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" /></StackPanel></Border>
+                    <Border Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="2" Padding="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}" CornerRadius="9"><StackPanel><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetResourceValue" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" /><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetResource" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" /></StackPanel></Border>
+                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Padding="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}" CornerRadius="9"><StackPanel><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetProduct" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" /><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetSettings" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" /></StackPanel></Border>
+                    <Border Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Grid.ColumnSpan="3" Padding="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}" CornerRadius="9"><StackPanel><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetGridValue" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" /><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetLayout" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" /></StackPanel></Border>
+                    <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Padding="8" Background="{StaticResource DropSpaceOverlayInteractionBrush}" CornerRadius="9"><StackPanel><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetReadyValue" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" /><TextBlock services:XamlResourceOverride.Uid="OverlayWidgetStatus" FontSize="10" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" /></StackPanel></Border>
+                  </Grid>
+                </Grid>
+              </Grid>
+              <Button
+                x:Name="ExpandedPageNextButton"
+                Grid.Column="2"
+                Width="28"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnExpandedNextPageClicked">
+                <FontIcon Glyph="&#xE76C;" />
+              </Button>
+            </Grid>
+            <Button x:Name="ExpandedOpenMainButton" services:XamlResourceOverride.Uid="ExpandedOpenMainButton" Grid.Row="2" HorizontalAlignment="Right" Click="OnOpenMainWindowClicked" />
           </Grid>
         </Grid>
 

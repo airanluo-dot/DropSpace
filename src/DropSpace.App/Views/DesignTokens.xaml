@@ -21,7 +21,6 @@
   <SolidColorBrush x:Key="DropSpaceOverlayForegroundSecondaryBrush" Color="{ThemeResource SystemBaseMediumHighColor}" />
   <SolidColorBrush x:Key="DropSpaceOverlayForegroundDisabledBrush" Color="{ThemeResource SystemBaseMediumColor}" />
   <SolidColorBrush x:Key="DropSpaceOverlaySurfaceFallbackBrush" Color="{ThemeResource SystemAltLowColor}" />
-  <SolidColorBrush x:Key="DropSpaceOverlayStrokeBrush" Color="{ThemeResource SystemBaseHighColor}" Opacity="0.26" />
   <SolidColorBrush x:Key="DropSpaceOverlayAccentBrush" Color="{ThemeResource SystemAccentColor}" />
   <SolidColorBrush x:Key="DropSpaceOverlayInteractionBrush" Color="{ThemeResource SystemBaseHighColor}" Opacity="0.10" />
   <SolidColorBrush x:Key="DropSpaceOverlayDropTargetBrush" Color="{ThemeResource SystemAccentColor}" Opacity="0.20" />

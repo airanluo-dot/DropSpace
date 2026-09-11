@@ -4,6 +4,7 @@ using System.Reflection;
 using DropSpace.Core.Models;
 using DropSpace.Core.Policies;
 using DropSpace.Core.Updates;
+using DropSpace.Core.Widgets;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
@@ -85,12 +86,17 @@ public sealed class StorageAndRepositoryTests
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
+            IslandActivity = expected.IslandActivity with
+            {
+                AllowedMediaSourceAppIds = actual.IslandActivity.AllowedMediaSourceAppIds,
+            },
         }, actual);
         Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
         Assert.AreEqual(
             new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 640, 24),
             actual.OverlayPlacements["display:MONITOR-1"]);
         CollectionAssert.AreEqual(expected.SmartDragExcludedProcesses, actual.SmartDragExcludedProcesses);
+        CollectionAssert.AreEqual(expected.IslandActivity.AllowedMediaSourceAppIds, actual.IslandActivity.AllowedMediaSourceAppIds);
         Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
     }
 
@@ -265,6 +271,93 @@ public sealed class StorageAndRepositoryTests
         Assert.IsTrue(fresh.AutoCheckForUpdates);
         Assert.IsTrue(fresh.AutoDownloadUpdates);
         Assert.IsFalse(fresh.AutoInstallUpdates);
+    }
+
+    [TestMethod]
+    public async Task Settings_Preview22SchemaMigratesToPreview23WithoutDroppingNestedPreferences()
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(
+            _paths.Settings,
+            """
+            {
+              "Version": 12,
+              "ClipboardPaused": true,
+              "StartWithWindows": false,
+              "OverlayPlacements": {
+                "display:MONITOR-1": { "Mode": 1, "X": 640, "Y": 24 }
+              },
+              "EnableDeviceHandoff": true,
+              "EnableNearbySharing": true,
+              "UpdateChannel": 1,
+              "IslandActivity": {
+                "EnableMediaActivity": true,
+                "ShowArtwork": false,
+                "ShowSpectrum": true,
+                "ShowLyricsInCompact": true
+              },
+              "Lyrics": {
+                "Enabled": true,
+                "Provider": 3,
+                "SecondaryLyrics": true,
+                "DelayMilliseconds": 120
+              },
+              "Widgets": {
+                "Enabled": true,
+                "CompactTimeEnabled": false,
+                "CompactResourceUsageEnabled": true
+              },
+              "IslandAppearance": {
+                "AutoHide": false,
+                "HideDelayMilliseconds": 1800,
+                "HorizontalOffset": 18
+              }
+            }
+            """);
+
+        var migrated = await new JsonSettingsService(_paths).LoadAsync();
+
+        Assert.AreEqual(13, migrated.Version);
+        Assert.IsTrue(migrated.ClipboardPaused);
+        Assert.IsFalse(migrated.StartWithWindows);
+        Assert.AreEqual(new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 640, 24), migrated.OverlayPlacements["display:MONITOR-1"]);
+        Assert.IsTrue(migrated.EnableDeviceHandoff);
+        Assert.IsTrue(migrated.EnableNearbySharing);
+        Assert.AreEqual(UpdateChannel.Preview, migrated.UpdateChannel);
+        Assert.IsFalse(migrated.IslandActivity.ShowArtwork);
+        Assert.IsTrue(migrated.Lyrics.Enabled);
+        Assert.IsTrue(migrated.Lyrics.SecondaryLyrics);
+        Assert.IsFalse(migrated.Widgets.CompactTimeEnabled);
+        Assert.IsFalse(migrated.IslandAppearance.AutoHide);
+        Assert.AreEqual(1_800, migrated.IslandAppearance.HideDelayMilliseconds);
+        Assert.AreEqual(18, migrated.IslandAppearance.HorizontalOffset);
+        using var persisted = JsonDocument.Parse(await File.ReadAllTextAsync(_paths.Settings));
+        Assert.AreEqual(13, persisted.RootElement.GetProperty("Version").GetInt32());
+    }
+
+    [TestMethod]
+    public async Task Settings_WidgetLayoutRoundTripsExpandedGridAndCompactSlots()
+    {
+        var expectedLayout = new WidgetLayout(
+            [
+                new(NativeWidgetId.Calendar, 0, 0, 3, 2),
+                new(NativeWidgetId.ResourceUsage, 3, 0, 3, 1),
+                new(NativeWidgetId.Settings, 3, 1, 3, 2),
+            ],
+            new(NativeWidgetId.Calendar, NativeWidgetId.Clock, NativeWidgetId.ResourceUsage));
+        var service = new JsonSettingsService(_paths);
+
+        await service.SaveAsync(new AppSettings
+        {
+            Widgets = new WidgetSettings { Layout = expectedLayout },
+        });
+
+        var actual = await service.LoadAsync();
+
+        Assert.AreEqual(expectedLayout, actual.Widgets.Layout);
+        Assert.AreEqual(NativeWidgetId.Calendar, actual.Widgets.Layout.Compact.Left);
+        Assert.AreEqual(3, actual.Widgets.Layout.Expanded.Count);
+        Assert.AreEqual(3, actual.Widgets.Layout.Expanded[1].Column);
     }
 
     [TestMethod]

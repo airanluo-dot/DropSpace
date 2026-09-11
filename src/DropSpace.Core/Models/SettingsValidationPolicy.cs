@@ -2,8 +2,8 @@ namespace DropSpace.Core.Models;
 
 public static class SettingsValidationPolicy
 {
-    // Preview.21 already occupies schema 11. Preview.22 is the next unused schema.
-    public const int CurrentVersion = 12;
+    // Preview.22 occupies schema 12. Preview.23 adds the compact-media and pager preferences.
+    public const int CurrentVersion = 13;
     public const int MinimumVersion = 1;
 
     public const int MinimumRetentionDays = 1;
@@ -36,6 +36,8 @@ public static class SettingsValidationPolicy
     public const int MaximumLyricsDelayMilliseconds = 60_000;
     public const int MaximumLyricsScrollWidth = 1_200;
     public const int MaximumIslandHideDelayMilliseconds = 30_000;
+    public const int MaximumMediaSourceAllowList = 128;
+    public const int MaximumMediaSourceAppIdLength = 260;
 
     private static readonly string[] CanonicalModifierOrder = ["Win", "Ctrl", "Alt", "Shift"];
 

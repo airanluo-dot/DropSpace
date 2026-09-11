@@ -101,6 +101,39 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         _content.Scale = new Vector3(_pressScale, _pressScale, 1);
     }
 
+    public void AnimatePage(FrameworkElement page, int direction, bool reducedMotion)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var visual = ElementCompositionPreview.GetElementVisual(page);
+        visual.StopAnimation(nameof(Visual.Offset));
+        visual.StopAnimation(nameof(Visual.Opacity));
+
+        if (reducedMotion)
+        {
+            visual.Offset = Vector3.Zero;
+            visual.Opacity = 1;
+            return;
+        }
+
+        var compositor = visual.Compositor;
+        visual.Offset = new Vector3(Math.Clamp(direction, -1, 1) * 18, 0, 0);
+        visual.Opacity = 0;
+
+        var offsetAnimation = compositor.CreateVector3KeyFrameAnimation();
+        var easing = compositor.CreateCubicBezierEasingFunction(
+            new Vector2(0.2f, 0.8f),
+            new Vector2(0.2f, 1f));
+        offsetAnimation.InsertKeyFrame(1, Vector3.Zero, easing);
+        offsetAnimation.Duration = TimeSpan.FromMilliseconds(OverlayMotionTokens.FastMilliseconds);
+
+        var opacityAnimation = compositor.CreateScalarKeyFrameAnimation();
+        opacityAnimation.InsertKeyFrame(1, 1, easing);
+        opacityAnimation.Duration = TimeSpan.FromMilliseconds(OverlayMotionTokens.FastMilliseconds);
+
+        visual.StartAnimation(nameof(Visual.Offset), offsetAnimation);
+        visual.StartAnimation(nameof(Visual.Opacity), opacityAnimation);
+    }
+
     public void Dispose()
     {
         if (_disposed)

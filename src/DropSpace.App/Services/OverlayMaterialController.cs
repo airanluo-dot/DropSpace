@@ -14,24 +14,19 @@ internal sealed class OverlayMaterialController : IDisposable
 {
     private readonly SystemBackdropElement _backdrop;
     private readonly Border _fallback;
-    private readonly Border _stroke;
     private readonly IWindowsCapabilityService _capabilities;
     private readonly Brush? _normalFallbackBrush;
-    private readonly Brush? _normalStrokeBrush;
     private bool _disposed;
 
     public OverlayMaterialController(
         SystemBackdropElement backdrop,
         Border fallback,
-        Border stroke,
         IWindowsCapabilityService capabilities)
     {
         _backdrop = backdrop;
         _fallback = fallback;
-        _stroke = stroke;
         _capabilities = capabilities;
         _normalFallbackBrush = fallback.Background;
-        _normalStrokeBrush = stroke.BorderBrush;
     }
 
     public bool IsUsingDesktopAcrylic { get; private set; }
@@ -60,14 +55,10 @@ internal sealed class OverlayMaterialController : IDisposable
                 _fallback.Background = GetSystemBrush(
                     "SystemControlBackgroundBaseLowBrush",
                     _normalFallbackBrush);
-                _stroke.BorderBrush = GetSystemBrush(
-                    "SystemControlForegroundBaseHighBrush",
-                    _normalStrokeBrush);
             }
             else
             {
                 _fallback.Background = _normalFallbackBrush;
-                _stroke.BorderBrush = _normalStrokeBrush;
             }
             IsUsingDesktopAcrylic = canUseAcrylic;
             MaterialTier = canUseAcrylic
@@ -84,7 +75,6 @@ internal sealed class OverlayMaterialController : IDisposable
             _backdrop.Visibility = Visibility.Collapsed;
             _fallback.Visibility = Visibility.Visible;
             _fallback.Background = _normalFallbackBrush;
-            _stroke.BorderBrush = _normalStrokeBrush;
             IsUsingDesktopAcrylic = false;
             MaterialTier = preferences.HighContrast
                 ? OverlayMaterialTier.HighContrastSystemSurface
@@ -98,7 +88,6 @@ internal sealed class OverlayMaterialController : IDisposable
     {
         _backdrop.CornerRadius = radius;
         _fallback.CornerRadius = radius;
-        _stroke.CornerRadius = radius;
     }
 
     public void Dispose()

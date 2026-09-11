@@ -144,7 +144,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public string CurrentSection
     {
         get => _currentSection;
-        private set => SetProperty(ref _currentSection, value);
+        private set
+        {
+            if (SetProperty(ref _currentSection, value))
+            {
+                OnPropertyChanged(nameof(IsMusicVisible));
+                OnPropertyChanged(nameof(IsCollectionVisible));
+            }
+        }
     }
 
     public string SearchText
@@ -234,7 +241,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
     }
 
-    public bool IsCollectionVisible => !IsSettingsVisible;
+    public bool IsMusicVisible => string.Equals(CurrentSection, "Music", StringComparison.Ordinal);
+
+    public bool IsCollectionVisible => !IsSettingsVisible && !IsMusicVisible;
 
     public int ItemCount
     {
@@ -736,6 +745,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             case "Settings":
                 PageTitle = _strings.Get("PageTitleSettings");
                 PageDescription = _strings.Get("PageDescriptionSettings");
+                IsBusy = false;
+                Items.Clear();
+                _projectionCursor = null;
+                HasMoreItems = false;
+                ItemCount = 0;
+                IsEmpty = true;
+                return;
+            case "Music":
+                PageTitle = _strings.Get("PageTitleMusic");
+                PageDescription = _strings.Get("PageDescriptionMusic");
                 IsBusy = false;
                 Items.Clear();
                 _projectionCursor = null;

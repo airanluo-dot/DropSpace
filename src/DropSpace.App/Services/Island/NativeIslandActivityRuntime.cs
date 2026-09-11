@@ -27,12 +27,16 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IslandActivitySettings _mediaSettings = new();
     private LyricsSettings _lyricsSettings = new();
+    private IslandAppearanceSettings _appearanceSettings = new();
     private LyricsDocument? _lyricsDocument;
     private string? _lyricsTrackKey;
     private CancellationTokenSource? _lyricsCancellation;
     private Timer? _timelineTimer;
+    private Timer? _idleHideTimer;
     private bool _disposed;
     private Guid _mediaActivityId;
+    private long _lyricsRevision;
+    private LyricsFrame _currentLyricsFrame = LyricsFrame.Empty;
 
     public NativeIslandActivityRuntime(
         IIslandActivityRouter router,
@@ -57,6 +61,14 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
         _volume.Changed += OnVolumeChanged;
     }
 
+    public WindowsMediaSessionService Media => _media;
+
+    public WindowsSpectrumService Spectrum => _spectrum;
+
+    public LyricsFrame CurrentLyricsFrame => _currentLyricsFrame;
+
+    public event EventHandler<LyricsFrame>? LyricsChanged;
+
     public async Task ApplySettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -65,6 +77,7 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
         {
             _mediaSettings = settings.IslandActivity;
             _lyricsSettings = settings.Lyrics;
+            _appearanceSettings = settings.IslandAppearance;
             if (!_lyricsSettings.Enabled)
             {
                 CancelLyricsLookup();
@@ -77,6 +90,11 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
             await _volume.SetEnabledAsync(settings.SystemActivities.ShowVolumeChanges, cancellationToken);
             await _widgets.ApplySettingsAsync(settings.Widgets, cancellationToken);
             RefreshTimelineTimer(_media.Current);
+            RefreshIdleHideTimer(_media.Current);
+            if (_media.Current.IsActive)
+            {
+                OnMediaChanged(_media, _media.Current);
+            }
         }
         finally { _gate.Release(); }
     }
@@ -93,6 +111,7 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
         _volume.Changed -= OnVolumeChanged;
         CancelLyricsLookup();
         StopTimelineTimer();
+        StopIdleHideTimer();
         await _widgets.DisposeAsync();
         await _spectrum.DisposeAsync();
         await _media.DisposeAsync();
@@ -104,9 +123,11 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
     private void OnMediaChanged(object? sender, MediaSessionSnapshot snapshot)
     {
         RefreshTimelineTimer(snapshot);
+        RefreshIdleHideTimer(snapshot);
         _router.RemoveSource(MediaSourceId);
         _mediaActivityId = Guid.Empty;
-        if (!_mediaSettings.EnableMediaActivity || !snapshot.IsActive) return;
+        PublishLyricsFrame(snapshot, null);
+        if (!_mediaSettings.EnableMediaActivity || !snapshot.IsActive || !IsAllowedMediaSource(snapshot)) return;
         var trackKey = string.Join("|", snapshot.SessionId, snapshot.TrackTitle, snapshot.Artist, snapshot.AlbumTitle);
         if (_lyricsSettings.Enabled && !string.IsNullOrWhiteSpace(snapshot.TrackTitle) && !string.Equals(_lyricsTrackKey, trackKey, StringComparison.Ordinal))
         {
@@ -125,6 +146,7 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
         var currentLine = _lyricsSettings.Enabled
             ? _lyricsDocument?.FindCurrent(snapshot.Timeline.Position, TimeSpan.FromMilliseconds(_lyricsSettings.DelayMilliseconds))
             : null;
+        PublishLyricsFrame(snapshot, currentLine);
         var subtitle = _mediaSettings.ShowLyricsInCompact && currentLine is not null
             ? currentLine.PrimaryText
             : _mediaSettings.ShowArtist ? snapshot.Artist : string.Empty;
@@ -152,6 +174,24 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
             new(DateTimeOffset.UtcNow),
             true));
     }
+
+    private void PublishLyricsFrame(MediaSessionSnapshot snapshot, LyricsLine? currentLine)
+    {
+        double? progress = currentLine is { End: var end, Start: var start } && end > start
+            ? Math.Clamp((snapshot.Timeline.Position - start).TotalMilliseconds / (end - start).TotalMilliseconds, 0, 1)
+            : null;
+        var frame = new LyricsFrame(
+            currentLine?.PrimaryText ?? string.Empty,
+            _lyricsSettings.SecondaryLyrics ? currentLine?.SecondaryText : null,
+            progress,
+            ++_lyricsRevision);
+        _currentLyricsFrame = frame;
+        LyricsChanged?.Invoke(this, frame);
+    }
+
+    private bool IsAllowedMediaSource(MediaSessionSnapshot snapshot) =>
+        _mediaSettings.AllowedMediaSourceAppIds.Length == 0 ||
+        _mediaSettings.AllowedMediaSourceAppIds.Contains(snapshot.SourceAppUserModelId, StringComparer.OrdinalIgnoreCase);
 
     private void RefreshTimelineTimer(MediaSessionSnapshot snapshot)
     {
@@ -195,6 +235,27 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
     {
         _timelineTimer?.Dispose();
         _timelineTimer = null;
+    }
+
+    private void RefreshIdleHideTimer(MediaSessionSnapshot snapshot)
+    {
+        StopIdleHideTimer();
+        if (!_appearanceSettings.AutoHide || !snapshot.IsActive || snapshot.PlaybackState == MediaPlaybackState.Playing)
+        {
+            return;
+        }
+
+        _idleHideTimer = new Timer(
+            _ => _router.RemoveSource(MediaSourceId),
+            null,
+            IdleHidePolicy.NormalizeDelay(_appearanceSettings.HideDelayMilliseconds),
+            Timeout.Infinite);
+    }
+
+    private void StopIdleHideTimer()
+    {
+        _idleHideTimer?.Dispose();
+        _idleHideTimer = null;
     }
 
     private async Task LoadLyricsAsync(MediaSessionSnapshot snapshot, string trackKey, CancellationToken cancellationToken)
