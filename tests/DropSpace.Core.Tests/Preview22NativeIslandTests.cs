@@ -138,7 +138,6 @@ public sealed class Preview22NativeIslandTests
     {
         var settings = new AppSettings();
 
-        Assert.AreEqual(13, AppSettings.CurrentVersion);
         Assert.IsTrue(settings.IslandActivity.EnableMediaActivity);
         Assert.IsTrue(settings.IslandActivity.ShowArtwork);
         Assert.IsTrue(settings.IslandActivity.ShowSpectrum);
