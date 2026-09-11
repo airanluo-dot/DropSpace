@@ -290,12 +290,12 @@
               <ItemsControl Height="32" ItemsSource="{Binding SpectrumBars}" Visibility="{Binding IsSpectrumVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
-                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="2" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="2" />
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <ProgressBar Width="5" Height="28" Minimum="0" Maximum="1" Orientation="Vertical" Value="{Binding}" />
+                    <Border Width="5" Height="{Binding Converter={StaticResource SpectrumBarHeightConverter}} VerticalAlignment="Bottom" Background="{StaticResource DropSpaceOverlayAccentBrush}" CornerRadius="2" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
