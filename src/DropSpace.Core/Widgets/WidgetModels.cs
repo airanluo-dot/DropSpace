@@ -15,10 +15,18 @@ public sealed record CompactWidgetLayout(
     NativeWidgetId? Center,
     NativeWidgetId? Right);
 
-public sealed record WidgetLayout(
-    IReadOnlyList<WidgetPlacement> Expanded,
-    CompactWidgetLayout Compact)
+public sealed class WidgetLayout : IEquatable<WidgetLayout>
 {
+    public WidgetLayout(IReadOnlyList<WidgetPlacement> expanded, CompactWidgetLayout compact)
+    {
+        Expanded = expanded?.ToArray() ?? [];
+        Compact = compact;
+    }
+
+    public IReadOnlyList<WidgetPlacement> Expanded { get; }
+
+    public CompactWidgetLayout Compact { get; }
+
     public static WidgetLayout Default { get; } = new(
         [
             new(NativeWidgetId.Clock, 0, 0, 2, 1),
@@ -27,6 +35,23 @@ public sealed record WidgetLayout(
             new(NativeWidgetId.Settings, 0, 1, 1, 1),
         ],
         new(NativeWidgetId.Clock, null, NativeWidgetId.ResourceUsage));
+
+    public bool Equals(WidgetLayout? other)
+    {
+        return other is not null
+            && Expanded.SequenceEqual(other.Expanded)
+            && EqualityComparer<CompactWidgetLayout>.Default.Equals(Compact, other.Compact);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as WidgetLayout);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var placement in Expanded) hash.Add(placement);
+        hash.Add(Compact);
+        return hash.ToHashCode();
+    }
 }
 
 public static class WidgetLayoutPolicy
