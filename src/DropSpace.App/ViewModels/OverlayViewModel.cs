@@ -9,6 +9,7 @@ using DropSpace.Core.Audio;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
 using DropSpace.Core.Island;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using DropSpace.Core.Overlay;
 using DropSpace.Infrastructure.Storage;
