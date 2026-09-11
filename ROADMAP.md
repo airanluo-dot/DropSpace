@@ -2,7 +2,13 @@
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.21 is the current settings and action usability Preview following Preview.20. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.22 is the current Native Island integration Preview following Preview.21. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, media/notification/audio, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
+
+## v0.3.0-preview.22 Native Island integration delivery slice
+
+- Deliver priority-routed media, timed lyrics, bounded spectrum, notification, volume-observation, and native-widget activities through the existing Dynamic Island surface.
+- Keep Smart Drag/OLE ownership, startup invariants, updater trust, Windows volume UI ownership, and the five-asset Preview release contract unchanged.
+- Use Windows build 20348 as the minimum target and keep physical media/audio/notification/DPI/accessibility evidence conditional until recorded on target hosts.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 

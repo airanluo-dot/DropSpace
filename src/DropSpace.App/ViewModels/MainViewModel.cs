@@ -280,6 +280,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 OnPropertyChanged(nameof(EnableNearbySharing));
                 OnPropertyChanged(nameof(EnableInternetSharing));
                 OnPropertyChanged(nameof(DefaultClipboardSyncMode));
+                OnPropertyChanged(nameof(EnableMediaActivity));
+                OnPropertyChanged(nameof(ShowSpectrum));
+                OnPropertyChanged(nameof(EnableLyrics));
+                OnPropertyChanged(nameof(ShowWindowsNotifications));
+                OnPropertyChanged(nameof(ShowVolumeChanges));
+                OnPropertyChanged(nameof(EnableNativeWidgets));
+                OnPropertyChanged(nameof(ClockWidgetEnabled));
+                OnPropertyChanged(nameof(CalendarWidgetEnabled));
+                OnPropertyChanged(nameof(ResourceUsageWidgetEnabled));
                 OnPropertyChanged(nameof(StartWithWindows));
                 OnPropertyChanged(nameof(MaxImageMegabytes));
                 OnPropertyChanged(nameof(MaxImageMegapixels));
@@ -328,6 +337,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public bool EnableInternetSharing => Settings.EnableInternetSharing;
 
     public ClipboardSyncMode DefaultClipboardSyncMode => Settings.DefaultClipboardSyncMode;
+
+    public bool EnableMediaActivity => Settings.IslandActivity.EnableMediaActivity;
+
+    public bool ShowSpectrum => Settings.IslandActivity.ShowSpectrum;
+
+    public bool EnableLyrics => Settings.Lyrics.Enabled;
+
+    public bool ShowWindowsNotifications => Settings.SystemActivities.ShowWindowsNotifications;
+
+    public bool ShowVolumeChanges => Settings.SystemActivities.ShowVolumeChanges;
+
+    public bool EnableNativeWidgets => Settings.Widgets.Enabled;
+
+    public bool ClockWidgetEnabled => Settings.Widgets.ClockEnabled;
+
+    public bool CalendarWidgetEnabled => Settings.Widgets.CalendarEnabled;
+
+    public bool ResourceUsageWidgetEnabled => Settings.Widgets.ResourceUsageEnabled;
 
     public bool StartWithWindows => Settings.StartWithWindows;
 

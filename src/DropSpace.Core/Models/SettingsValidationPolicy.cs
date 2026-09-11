@@ -2,7 +2,8 @@ namespace DropSpace.Core.Models;
 
 public static class SettingsValidationPolicy
 {
-    public const int CurrentVersion = 11;
+    // Preview.21 already occupies schema 11. Preview.22 is the next unused schema.
+    public const int CurrentVersion = 12;
     public const int MinimumVersion = 1;
 
     public const int MinimumRetentionDays = 1;
@@ -27,6 +28,13 @@ public static class SettingsValidationPolicy
     public const int MaximumQuickPanelHotkeyLength = 128;
     public const int MaximumSmartDragExcludedProcesses = 128;
     public const int MaximumSmartDragProcessLength = 260;
+    public const int MinimumIslandDimension = 160;
+    public const int MaximumIslandDimension = 1_200;
+    public const double MinimumIslandScale = 0.5;
+    public const double MaximumIslandScale = 2.0;
+    public const int MaximumLyricsDelayMilliseconds = 60_000;
+    public const int MaximumLyricsScrollWidth = 1_200;
+    public const int MaximumIslandHideDelayMilliseconds = 30_000;
 
     private static readonly string[] CanonicalModifierOrder = ["Win", "Ctrl", "Alt", "Shift"];
 

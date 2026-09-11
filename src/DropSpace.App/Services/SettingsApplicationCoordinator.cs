@@ -1,6 +1,7 @@
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Diagnostics;
 using DropSpace.Core.Models;
+using DropSpace.App.Services.Island;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services;
@@ -17,6 +18,7 @@ public sealed class SettingsApplicationCoordinator(
     ClipboardCaptureService clipboard,
     DeviceHandoffService deviceHandoff,
     CrossDeviceClipboardService crossDeviceClipboard,
+    NativeIslandActivityRuntime nativeIslandActivity,
     ILogger<SettingsApplicationCoordinator> logger) : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -132,6 +134,10 @@ public sealed class SettingsApplicationCoordinator(
                     rollback.Committed("cross-device-clipboard", () => crossDeviceClipboard.UpdateSettingsAsync(current, CancellationToken.None));
                     await crossDeviceClipboard.UpdateSettingsAsync(next, cancellationToken);
                 }
+
+                stage = "SettingsStageIslandActivities";
+                rollback.Committed("native-island-activities", () => nativeIslandActivity.ApplySettingsAsync(current, CancellationToken.None));
+                await nativeIslandActivity.ApplySettingsAsync(next, cancellationToken);
 
                 stage = "SettingsStageStore";
                 rollback.Committed("settings-store", () => settingsService.UpdateAsync(latest => current with

@@ -459,4 +459,35 @@
   <data name="NetworkActionSetupRequired" xml:space="preserve"><value>请先在设置中开启此功能并完成设备配对或服务配置。</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>未能完整恢复原设置。请重启 DropSpace 后再修改设置。诊断编号：{1}。</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>恢复设置</value></data>
+  <data name="SettingsStageIslandActivities" xml:space="preserve"><value>原生 Island 活动</value></data>
+  <data name="NativeIslandSection.Text" xml:space="preserve"><value>原生 Island</value></data>
+  <data name="NativeIslandDescription.Text" xml:space="preserve"><value>在现有 Dynamic Island 表面显示媒体、歌词、系统活动和原生小组件。</value></data>
+  <data name="MediaActivityTitle.Text" xml:space="preserve"><value>媒体活动</value></data>
+  <data name="MediaActivityDescription.Text" xml:space="preserve"><value>连接当前 Windows 媒体会话，显示播放进度和封面。</value></data>
+  <data name="MediaActivityToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用媒体活动</value></data>
+  <data name="LyricsTitle.Text" xml:space="preserve"><value>歌词</value></data>
+  <data name="LyricsDescription.Text" xml:space="preserve"><value>从配置的服务或本地 LRC 文件夹加载时间轴歌词。</value></data>
+  <data name="LyricsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用歌词</value></data>
+  <data name="SpectrumTitle.Text" xml:space="preserve"><value>频谱</value></data>
+  <data name="SpectrumDescription.Text" xml:space="preserve"><value>播放媒体时显示有界的活动可视化效果。</value></data>
+  <data name="SpectrumToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示频谱</value></data>
+  <data name="WindowsNotificationsTitle.Text" xml:space="preserve"><value>Windows 通知</value></data>
+  <data name="WindowsNotificationsDescription.Text" xml:space="preserve"><value>仅在 Windows 授予通知监听权限后显示通知活动。</value></data>
+  <data name="WindowsNotificationsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示 Windows 通知</value></data>
+  <data name="VolumeActivityTitle.Text" xml:space="preserve"><value>音量活动</value></data>
+  <data name="VolumeActivityDescription.Text" xml:space="preserve"><value>显示 Windows 音频终端的音量变化，不替换系统音量界面。</value></data>
+  <data name="VolumeActivityToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示音量活动</value></data>
+  <data name="NativeWidgetsTitle.Text" xml:space="preserve"><value>原生小组件</value></data>
+  <data name="NativeWidgetsDescription.Text" xml:space="preserve"><value>启用时钟、日历、资源使用率和设置小组件活动。</value></data>
+  <data name="NativeWidgetsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用原生小组件</value></data>
+  <data name="NativeVolumeHudNotice.Text" xml:space="preserve"><value>DropSpace 只观察音量变化，不替换 Windows 音量浮窗或键盘处理。</value></data>
+  <data name="MediaPreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一首</value></data>
+  <data name="MediaPlayPauseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>播放或暂停</value></data>
+  <data name="MediaNextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一首</value></data>
+  <data name="ClockWidgetTitle.Text" xml:space="preserve"><value>时钟小组件</value></data>
+  <data name="ClockWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用时钟小组件</value></data>
+  <data name="CalendarWidgetTitle.Text" xml:space="preserve"><value>日历小组件</value></data>
+  <data name="CalendarWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用日历小组件</value></data>
+  <data name="ResourceUsageWidgetTitle.Text" xml:space="preserve"><value>资源使用率小组件</value></data>
+  <data name="ResourceUsageWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用资源使用率小组件</value></data>
 </root>

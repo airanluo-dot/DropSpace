@@ -610,6 +610,10 @@ public sealed class OverlayWindowService : IDisposable
         {
             _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
         }
+        else if (args.PropertyName is nameof(OverlayViewModel.IsNativeActivityVisible) or nameof(OverlayViewModel.ActivityTitle) or nameof(OverlayViewModel.ActivitySubtitle))
+        {
+            ApplySnapshot(_viewModel.Snapshot);
+        }
     }
 
     private void OnOverlayPlacementEditRequested(object? sender, string monitorId)

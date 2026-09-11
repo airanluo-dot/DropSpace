@@ -573,6 +573,56 @@
           <StackPanel Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="AppearanceSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <StackPanel x:Name="QuickActionsSettingsPanel" Spacing="10" />
+            <StackPanel Spacing="12">
+              <TextBlock services:XamlResourceOverride.Uid="NativeIslandSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
+              <TextBlock services:XamlResourceOverride.Uid="NativeIslandDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock services:XamlResourceOverride.Uid="MediaActivityTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="MediaActivityDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ToggleSwitch x:Name="MediaActivityToggle" services:XamlResourceOverride.Uid="MediaActivityToggle" Grid.Column="1" Toggled="OnMediaActivityToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock services:XamlResourceOverride.Uid="LyricsTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="LyricsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ToggleSwitch x:Name="LyricsToggle" services:XamlResourceOverride.Uid="LyricsToggle" Grid.Column="1" Toggled="OnLyricsToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock services:XamlResourceOverride.Uid="SpectrumTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="SpectrumDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ToggleSwitch x:Name="SpectrumToggle" services:XamlResourceOverride.Uid="SpectrumToggle" Grid.Column="1" Toggled="OnSpectrumToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock services:XamlResourceOverride.Uid="WindowsNotificationsTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="WindowsNotificationsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ToggleSwitch x:Name="WindowsNotificationsToggle" services:XamlResourceOverride.Uid="WindowsNotificationsToggle" Grid.Column="1" Toggled="OnWindowsNotificationsToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock services:XamlResourceOverride.Uid="VolumeActivityTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="VolumeActivityDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ToggleSwitch x:Name="VolumeActivityToggle" services:XamlResourceOverride.Uid="VolumeActivityToggle" Grid.Column="1" Toggled="OnVolumeActivityToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock services:XamlResourceOverride.Uid="NativeWidgetsTitle" FontWeight="SemiBold" /><TextBlock services:XamlResourceOverride.Uid="NativeWidgetsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                <ToggleSwitch x:Name="NativeWidgetsToggle" services:XamlResourceOverride.Uid="NativeWidgetsToggle" Grid.Column="1" Toggled="OnNativeWidgetsToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock services:XamlResourceOverride.Uid="ClockWidgetTitle" VerticalAlignment="Center" />
+                <ToggleSwitch x:Name="ClockWidgetToggle" services:XamlResourceOverride.Uid="ClockWidgetToggle" Grid.Column="1" Toggled="OnClockWidgetToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock services:XamlResourceOverride.Uid="CalendarWidgetTitle" VerticalAlignment="Center" />
+                <ToggleSwitch x:Name="CalendarWidgetToggle" services:XamlResourceOverride.Uid="CalendarWidgetToggle" Grid.Column="1" Toggled="OnCalendarWidgetToggled" />
+              </Grid>
+              <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock services:XamlResourceOverride.Uid="ResourceUsageWidgetTitle" VerticalAlignment="Center" />
+                <ToggleSwitch x:Name="ResourceUsageWidgetToggle" services:XamlResourceOverride.Uid="ResourceUsageWidgetToggle" Grid.Column="1" Toggled="OnResourceUsageWidgetToggled" />
+              </Grid>
+              <InfoBar services:XamlResourceOverride.Uid="NativeVolumeHudNotice" IsOpen="True" IsClosable="False" Severity="Informational" />
+            </StackPanel>
             <Border
               Padding="16"
               Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

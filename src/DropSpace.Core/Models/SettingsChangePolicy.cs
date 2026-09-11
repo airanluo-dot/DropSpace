@@ -42,6 +42,11 @@ public static class SettingsChangePolicy
         EnableNearbySharing = Pick(baseline.EnableNearbySharing, requested.EnableNearbySharing, latest.EnableNearbySharing),
         EnableInternetSharing = Pick(baseline.EnableInternetSharing, requested.EnableInternetSharing, latest.EnableInternetSharing),
         DefaultClipboardSyncMode = Pick(baseline.DefaultClipboardSyncMode, requested.DefaultClipboardSyncMode, latest.DefaultClipboardSyncMode),
+        IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
+        Lyrics = Pick(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
+        SystemActivities = Pick(baseline.SystemActivities, requested.SystemActivities, latest.SystemActivities),
+        IslandAppearance = Pick(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
+        Widgets = Pick(baseline.Widgets, requested.Widgets, latest.Widgets),
     };
 
     private static T Pick<T>(T baseline, T requested, T latest) =>

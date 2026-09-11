@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>DropSpace</AssemblyName>
     <Product>DropSpace</Product>
-    <Description>DropSpace temporary file and clipboard workspace for Windows 10 version 1809 and later.</Description>
+    <Description>DropSpace temporary file and clipboard workspace for Windows Server 2022 build 20348 and later.</Description>
     <AssemblyTitle>DropSpace</AssemblyTitle>
     <Version>$(DropSpaceReleaseVersion)</Version>
     <AssemblyVersion>$(DropSpaceVersionPrefix).0</AssemblyVersion>

@@ -1,11 +1,21 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
+using DropSpace.App.Services.Audio;
+using DropSpace.App.Services.Island;
+using DropSpace.App.Services.Lyrics;
+using DropSpace.App.Services.Media;
+using DropSpace.App.Services.Notifications;
+using DropSpace.App.Services.Volume;
+using DropSpace.App.Services.Widgets;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Content;
+using DropSpace.Core.Island;
+using DropSpace.Core.Media;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Policies;
@@ -202,6 +212,14 @@ public partial class App : Application
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
                 {
                     _services.GetRequiredService<ILogger<App>>().LogWarning(exception, "Cross-device clipboard initialization failed; local clipboard capture remains available.");
+                }
+                try
+                {
+                    await _services.GetRequiredService<NativeIslandActivityRuntime>().ApplySettingsAsync(viewModel.Settings);
+                }
+                catch (Exception exception) when (exception is COMException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    _services.GetRequiredService<ILogger<App>>().LogWarning(exception, "Native Island activity initialization failed safely; the file workspace remains available.");
                 }
                 if (settingsService.LastLoadRecovery is { Recovered: true } recovery)
                 {
@@ -480,6 +498,15 @@ public partial class App : Application
         services.AddSingleton<ILocalStorageMetrics, LocalStorageMetrics>();
         services.AddSingleton<IStartupRegistrationService, StartupRegistrationService>();
         services.AddSingleton<WindowsShareIntegrationService>();
+        services.AddSingleton<IIslandActivityRouter, IslandActivityRouter>();
+        services.AddSingleton<WindowsMediaSessionService>();
+        services.AddSingleton<IMediaSessionService>(provider => provider.GetRequiredService<WindowsMediaSessionService>());
+        services.AddSingleton<WindowsSpectrumService>();
+        services.AddSingleton<WindowsNotificationActivityService>();
+        services.AddSingleton<WindowsVolumeActivityService>();
+        services.AddSingleton<NativeWidgetActivityService>();
+        services.AddSingleton<LyricsService>();
+        services.AddSingleton<NativeIslandActivityRuntime>();
         services.AddSingleton<ShareTargetActivationService>();
         services.AddSingleton<IDeploymentModeService, DeploymentModeService>();
         services.AddSingleton<UpdateManifestParser>();

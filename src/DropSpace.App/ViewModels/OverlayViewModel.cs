@@ -6,6 +6,8 @@ using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
+using DropSpace.Core.Island;
+using DropSpace.Core.Media;
 using DropSpace.Core.Overlay;
 using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
@@ -20,6 +22,8 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<OverlayViewModel> _logger;
+    private readonly IIslandActivityRouter _activityRouter;
+    private readonly IMediaSessionService _media;
     private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
@@ -27,24 +31,33 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private string? _shellAcknowledgement;
     private CancellationTokenSource? _shellAcknowledgementCancellation;
     private bool _disposed;
+    private IslandActivitySnapshot _activitySnapshot = IslandActivitySnapshot.Empty;
+    private Guid _dropActivityId;
+    private Guid _manualActivityId;
 
     public OverlayViewModel(
         MainViewModel mainViewModel,
         OverlayStateMachine stateMachine,
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
-        ILogger<OverlayViewModel> logger)
+        ILogger<OverlayViewModel> logger,
+        IIslandActivityRouter activityRouter,
+        IMediaSessionService media)
     {
         _mainViewModel = mainViewModel;
         _stateMachine = stateMachine;
         _dispatcher = dispatcher;
         _strings = strings;
         _logger = logger;
+        _activityRouter = activityRouter;
+        _media = media;
         _snapshot = stateMachine.Snapshot;
         _projectionRefresh = new SerializedProjectionRefreshCoordinator<ItemCardViewModel>(
             cancellationToken => _mainViewModel.GetRecentSpaceItemsAsync(5, cancellationToken),
             ApplyRecentItemsAsync);
         _mainViewModel.UiSettingsPreflightAsync = ApplyUiSettingsAsync;
+        _activitySnapshot = _activityRouter.Snapshot;
+        _activityRouter.Changed += OnActivityChanged;
     }
 
     public event EventHandler<OverlaySnapshot>? SnapshotChanged;
@@ -104,6 +117,20 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public bool IsExpandedDropTargetActive => Snapshot.ExpandedDropActive;
 
+    public IslandActivitySnapshot ActivitySnapshot => _activitySnapshot;
+
+    public bool IsNativeActivityVisible => _activitySnapshot.Current is not null &&
+        (Snapshot.State is OverlayState.Compact or OverlayState.Expanded) &&
+        Snapshot.State is not OverlayState.DragApproaching and not OverlayState.DragReady;
+
+    public string ActivityTitle => _activitySnapshot.Current?.CompactTitle ?? string.Empty;
+
+    public string ActivitySubtitle => _activitySnapshot.Current?.CompactSubtitle ?? string.Empty;
+
+    public string ActivityExpandedTitle => _activitySnapshot.Current?.ExpandedTitle ?? string.Empty;
+
+    public string ActivityExpandedSubtitle => _activitySnapshot.Current?.ExpandedSubtitle ?? string.Empty;
+
     public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {
         0 => _strings.Get("OverlayTitle"),
@@ -136,12 +163,14 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public void BeginDragApproach(string monitorId)
     {
         ActiveMonitorId = monitorId;
+        PublishDropActivity("Drop ready", "Release to add to DropSpace");
         _stateMachine.BeginDragApproach();
     }
 
     public void BeginVisibleDragApproach(string monitorId)
     {
         ActiveMonitorId = monitorId;
+        PublishDropActivity("Drop ready", "Release to add to DropSpace");
         _stateMachine.BeginVisibleDrag();
     }
 
@@ -153,7 +182,11 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public void SetDragReady(bool ready) => _stateMachine.SetDragReady(ready);
 
-    public void CancelDrag() => _stateMachine.CancelDrag();
+    public void CancelDrag()
+    {
+        _stateMachine.CancelDrag();
+        RemoveDropActivity();
+    }
 
     public async Task<int> CompleteDropAsync(
         string monitorId,
@@ -164,6 +197,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
+        RemoveDropActivity();
         return accepted;
     }
 
@@ -176,6 +210,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+        RemoveDropActivity();
         return accepted;
     }
 
@@ -204,6 +239,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         {
             _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
         }
+        RemoveDropActivity();
         return accepted;
     }
 
@@ -216,15 +252,44 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         await _mainViewModel.AddTextToSpaceAsync(text, "overlay-text-url-drop", cancellationToken: cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+        RemoveDropActivity();
     }
 
     public async Task ExpandAsync(CancellationToken cancellationToken = default)
     {
         await RefreshRecentItemsAsync(cancellationToken);
+        if (_manualActivityId == Guid.Empty)
+        {
+            _manualActivityId = _activityRouter.Publish(new IslandActivity(
+                Guid.Empty,
+                IslandActivityKind.ManualExpanded,
+                IslandActivityPriority.ManualExpanded,
+                IslandActivityPresentation.Expanded,
+                "manual-expanded",
+                "DropSpace",
+                "Temporary Space",
+                "DropSpace",
+                "Temporary Space",
+                new(DateTimeOffset.UtcNow)));
+        }
         _stateMachine.Expand();
     }
 
-    public void Collapse() => _stateMachine.Collapse();
+    public void Collapse()
+    {
+        _stateMachine.Collapse();
+        if (_manualActivityId != Guid.Empty)
+        {
+            _activityRouter.Remove(_manualActivityId);
+            _manualActivityId = Guid.Empty;
+        }
+    }
+
+    public Task PlayPauseMediaAsync(CancellationToken cancellationToken = default) => _media.PlayPauseAsync(cancellationToken);
+
+    public Task SkipNextMediaAsync(CancellationToken cancellationToken = default) => _media.SkipNextAsync(cancellationToken);
+
+    public Task SkipPreviousMediaAsync(CancellationToken cancellationToken = default) => _media.SkipPreviousAsync(cancellationToken);
 
     public void CompleteDismissal() => _stateMachine.CompleteDismissal();
 
@@ -353,6 +418,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
         _mainViewModel.SpaceProjectionChanged -= OnSpaceProjectionChanged;
         _stateMachine.Changed -= OnStateChanged;
+        _activityRouter.Changed -= OnActivityChanged;
+        RemoveDropActivity();
+        if (_manualActivityId != Guid.Empty) _activityRouter.Remove(_manualActivityId);
         if (_mainViewModel.UiSettingsPreflightAsync == ApplyUiSettingsAsync)
         {
             _mainViewModel.UiSettingsPreflightAsync = null;
@@ -466,5 +534,49 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
         Snapshot = snapshot;
         SnapshotChanged?.Invoke(this, snapshot);
+    }
+
+    private void OnActivityChanged(object? sender, IslandActivitySnapshot snapshot)
+    {
+        if (!_dispatcher.HasThreadAccess)
+        {
+            _dispatcher.TryEnqueue(() => OnActivityChanged(sender, snapshot));
+            return;
+        }
+
+        _activitySnapshot = snapshot;
+        OnPropertyChanged(nameof(ActivitySnapshot));
+        OnPropertyChanged(nameof(IsNativeActivityVisible));
+        OnPropertyChanged(nameof(ActivityTitle));
+        OnPropertyChanged(nameof(ActivitySubtitle));
+        OnPropertyChanged(nameof(ActivityExpandedTitle));
+        OnPropertyChanged(nameof(ActivityExpandedSubtitle));
+    }
+
+    private void PublishDropActivity(string title, string subtitle)
+    {
+        RemoveDropActivity();
+        _dropActivityId = _activityRouter.Publish(new IslandActivity(
+            Guid.Empty,
+            IslandActivityKind.Drop,
+            IslandActivityPriority.Drop,
+            IslandActivityPresentation.Both,
+            "drop",
+            title,
+            subtitle,
+            "DropSpace",
+            subtitle,
+            new(DateTimeOffset.UtcNow),
+            false));
+    }
+
+    private void RemoveDropActivity()
+    {
+        if (_dropActivityId != Guid.Empty)
+        {
+            _activityRouter.Remove(_dropActivityId);
+            _dropActivityId = Guid.Empty;
+        }
+        _activityRouter.RemoveSource("drop");
     }
 }

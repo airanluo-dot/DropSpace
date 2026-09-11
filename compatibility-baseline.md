@@ -1,15 +1,15 @@
 # DropSpace Windows compatibility baseline
 
-Status: implementation baseline for `v0.3.0-preview.19` (conditional until the
+Status: implementation baseline for `v0.3.0-preview.22` (conditional until the
 Windows matrix below has executable evidence). The release runner is pinned to
 the named `windows-2025` image; this is build reproducibility evidence, not a
 substitute for the real OS/DPI/OLE/accessibility rows.
 
 ## Supported operating systems
 
-DropSpace supports 64-bit Windows 10 version 1809 (Build 17763) or later,
-including Windows 11. Windows 10 is no longer supported by Microsoft, but it
-remains the minimum runtime baseline for this application. Windows App SDK's
+DropSpace supports 64-bit Windows build 20348 or later, including Windows 11.
+This minimum is the Preview.22 native media/notification integration boundary.
+Windows App SDK's
 support table and versioning guidance are the authority for the framework
 relationship:
 
@@ -18,7 +18,7 @@ relationship:
 - [Windows App SDK self-contained deployment](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/self-contained-deploy/deploy-self-contained-apps)
 
 The app is compiled with the Windows 10 SDK Build Tools 10.0.26100.8249 and
-targets `net10.0-windows10.0.17763.0`. `SupportedOSPlatformVersion` and
+targets `net10.0-windows10.0.20348.0`. `SupportedOSPlatformVersion` and
 `TargetPlatformMinVersion` are both tied to the shared MSBuild baseline. The
 minimum is also repeated in the MSIX manifests, Inno Setup, and the signed
 update manifest contract so a distribution path cannot silently advertise a
@@ -33,7 +33,7 @@ The existing three-layer architecture remains intact:
 - `DropSpace.Infrastructure` consumes the minimum-build policy when validating
   `update-manifest.json`.
 - `DropSpace.App` probes the OS, Windows App SDK runtime, and optional Windows
-  API types. It blocks direct portable launches below Build 17763 with a
+  API types. It blocks direct portable launches below Build 20348 with a
   diagnostic marker, and the installer/package paths block them before launch.
 
 Win11-only presentation is optional. Mica is applied only after the runtime
@@ -61,11 +61,11 @@ The following product contracts are unchanged:
 
 | Surface | Required value | Enforcement |
 | --- | --- | --- |
-| App target | `net10.0-windows10.0.17763.0` | `DropSpace.App.csproj` |
-| Supported platform | `10.0.17763.0` | `SupportedOSPlatformVersion`, `TargetPlatformMinVersion` |
-| MSIX and identity | `MinVersion=10.0.17763.0` | `Package.appxmanifest`, identity template |
-| Inno Setup | `MinVersion=10.0.17763` | `installer/DropSpace.iss` |
-| Update manifest | `minimumWindowsBuild=17763` | generator, parser, tests |
+| App target | `net10.0-windows10.0.20348.0` | `DropSpace.App.csproj` |
+| Supported platform | `10.0.20348.0` | `SupportedOSPlatformVersion`, `TargetPlatformMinVersion` |
+| MSIX and identity | `MinVersion=10.0.20348.0` | `Package.appxmanifest`, identity template |
+| Inno Setup | `MinVersion=10.0.20348` | `installer/DropSpace.iss` |
+| Update manifest | `minimumWindowsBuild=20348` | generator, parser, tests |
 | Modern visual gate | Build `22000` | runtime capability service |
 | Compile-time SDK | Build `26100` | pinned Windows SDK Build Tools |
 
@@ -83,7 +83,7 @@ real Windows environment.
 
 | OS baseline | Build | Required focus |
 | --- | ---: | --- |
-| Windows 10 1809 | 17763 | minimum launch, portable guard, installer/MSIX minimum, classic/base visuals |
+| Windows build 20348 | 20348 | minimum launch, portable guard, installer/MSIX minimum, classic/base visuals |
 | Windows 10 1909 | 18363 | normal launch, clipboard, drag/drop, updater, DPI |
 | Windows 10 20H2 | 19042 | normal launch, clipboard, drag/drop, updater, DPI |
 | Windows 10 22H2 | 19045 | full Windows 10 regression and multi-monitor matrix |
@@ -132,8 +132,10 @@ replace the historical OS/DPI/monitor/provider matrix.
 
 ## Preview.19 execution record
 
-Preview.19 removes the public ARM64 declaration and ships one x64 build path:
-`win-x64`, `Platform=x64`, and the existing Windows 10 Build 17763 minimum.
+Preview.22 removes the public ARM64 declaration and ships one x64 build path:
+`win-x64`, `Platform=x64`, and the Windows build 20348 minimum. Native Island
+activities are capability-gated and fail closed when their Windows API access is
+unavailable.
 The release workflow records the runner image, .NET SDK, MSBuild, Windows SDK,
 Inno Setup, commit, and signing mode in a retained build-environment artifact.
 The physical matrix above is intentionally marked conditional until a real
