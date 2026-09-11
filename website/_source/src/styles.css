@@ -18,3 +18,5 @@
 html[lang="zh-CN"] .desktop-demo[data-state="ready"] .island-label:after{content:"可以放下"}
 @media(max-width:980px){.release-readiness{grid-template-columns:1fr}.release-readiness article{border-right:0;border-bottom:1px solid var(--line);min-height:0}.media-grid{grid-template-columns:1fr}}
 @media(max-width:680px){.nav{gap:10px}.brand{font-size:16px}.language-switch{min-width:44px;padding-inline:8px}.nav .button{margin-left:0}.release-entry{grid-template-columns:1fr;gap:25px}}
+.release-highlights>span{min-width:0;overflow-wrap:anywhere}
+.release-body{min-width:0}
