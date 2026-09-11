@@ -86,12 +86,17 @@ public sealed class StorageAndRepositoryTests
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
+            IslandActivity = expected.IslandActivity with
+            {
+                AllowedMediaSourceAppIds = actual.IslandActivity.AllowedMediaSourceAppIds,
+            },
         }, actual);
         Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
         Assert.AreEqual(
             new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 640, 24),
             actual.OverlayPlacements["display:MONITOR-1"]);
         CollectionAssert.AreEqual(expected.SmartDragExcludedProcesses, actual.SmartDragExcludedProcesses);
+        CollectionAssert.AreEqual(expected.IslandActivity.AllowedMediaSourceAppIds, actual.IslandActivity.AllowedMediaSourceAppIds);
         Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
     }
 
