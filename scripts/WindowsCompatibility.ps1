@@ -3,8 +3,8 @@ Set-StrictMode -Version Latest
 # Keep deployment scripts on the same minimum as the app's target framework and
 # package manifests. This file intentionally uses Windows PowerShell-compatible
 # syntax because release scripts run through powershell.exe on hosted Windows.
-$script:DropSpaceMinimumWindowsBuild = 17763
-$script:DropSpaceMinimumWindowsVersion = "10.0.17763.0"
+$script:DropSpaceMinimumWindowsBuild = 20348
+$script:DropSpaceMinimumWindowsVersion = "10.0.20348.0"
 $script:DropSpaceWindows11Build = 22000
 
 function Get-DropSpaceWindowsCompatibility

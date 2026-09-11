@@ -1,7 +1,7 @@
 # DropSpace Product Specification
 
 Status: v0.3 Preview product contract
-Target: 64-bit Windows 10 version 1809 (Build 17763) and later desktop, including Windows 11; local-first
+Target: 64-bit Windows build 20348 or later desktop, including Windows 11; local-first
 Last reviewed: 2026-08-27
 
 ## One-sentence definition
@@ -80,8 +80,8 @@ Compared with Explorer, DropSpace avoids premature organization. Compared with a
 - Honest degradation: show missing, unavailable, unsupported, or too-large states.
 - Privacy is a control surface, not a settings footnote.
 - Keyboard and pointer are first-class peers.
-- Windows 10 is the minimum runtime baseline; Windows 11-only visuals and
-  contracts are optional capabilities with explicit fallbacks.
+- Windows build 20348 is the Preview.22 runtime baseline; Windows 11-only
+  visuals and contracts remain optional capabilities with explicit fallbacks.
 
 ## Final MVP scope
 
@@ -150,7 +150,7 @@ The first shippable MVP is deliberately smaller than the original list.
 
 ## Open product assumptions
 
-- 64-bit Windows 10 version 1809 (Build 17763) or later is the minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
+- 64-bit Windows build 20348 or later is the minimum supported OS for Preview.22; Windows 11-only visuals and contracts are optional capabilities.
 - The app remains running in the tray only when the user selected that close behavior.
 - Clipboard capture stops when the process exits.
 - Default clipboard retention: 30 days or 1,000 items, whichever limit is reached first; pinned items are exempt.

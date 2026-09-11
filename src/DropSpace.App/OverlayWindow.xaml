@@ -96,6 +96,32 @@
           </Grid>
         </Button>
 
+        <Button
+          x:Name="NativeActivityCompactPanel"
+          Padding="18,0"
+          HorizontalContentAlignment="Stretch"
+          VerticalContentAlignment="Stretch"
+          Background="Transparent"
+          BorderThickness="0"
+          Click="OnCompactClicked"
+          Visibility="Collapsed">
+          <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="36" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource DropSpaceOverlayAccentBrush}">
+              <FontIcon FontSize="17" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Glyph="&#xE767;" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+              <TextBlock MaxWidth="230" FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Text="{Binding ActivityTitle}" TextTrimming="CharacterEllipsis" />
+              <TextBlock FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Text="{Binding ActivitySubtitle}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Glyph="&#xE70D;" />
+          </Grid>
+        </Button>
+
         <StackPanel
           x:Name="DragPanel"
           HorizontalAlignment="Center"
@@ -249,6 +275,37 @@
               </DataTemplate>
             </ListView.ItemTemplate>
           </ListView>
+
+          <Border
+            Grid.Row="1"
+            Margin="0,4,0,8"
+            Padding="10,8"
+            Background="{StaticResource DropSpaceOverlayInteractionBrush}"
+            CornerRadius="12"
+            IsHitTestVisible="True"
+            Visibility="{Binding IsNativeActivityVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Spacing="6">
+              <TextBlock FontWeight="SemiBold" Foreground="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" Text="{Binding ActivityExpandedTitle}" TextTrimming="CharacterEllipsis" />
+              <TextBlock FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Text="{Binding ActivityExpandedSubtitle}" TextWrapping="Wrap" />
+              <ItemsControl Height="32" ItemsSource="{Binding SpectrumBars}" Visibility="{Binding IsSpectrumVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="2" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Width="5" Height="{Binding}" VerticalAlignment="Bottom" Background="{StaticResource DropSpaceOverlayAccentBrush}" CornerRadius="2" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <StackPanel Orientation="Horizontal" Spacing="4" Visibility="{Binding IsMediaControlsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Button services:XamlResourceOverride.Uid="MediaPreviousButton" Width="32" Height="28" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMediaPreviousClicked"><FontIcon Glyph="&#xE892;" /></Button>
+                <Button services:XamlResourceOverride.Uid="MediaPlayPauseButton" Width="32" Height="28" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMediaPlayPauseClicked"><FontIcon Glyph="&#xE768;" /></Button>
+                <Button services:XamlResourceOverride.Uid="MediaNextButton" Width="32" Height="28" Padding="0" Background="Transparent" BorderThickness="0" Click="OnMediaNextClicked"><FontIcon Glyph="&#xE893;" /></Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
 
           <Grid Grid.Row="2" ColumnSpacing="8">
             <Grid.ColumnDefinitions>

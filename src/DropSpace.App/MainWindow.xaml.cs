@@ -1,4 +1,5 @@
 using DropSpace.App.Services;
+using DropSpace.App.Services.Island;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
@@ -39,7 +40,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        SharingUseCase sharing)
+        SharingUseCase sharing,
+        NativeIslandActivityRuntime nativeIsland)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -89,7 +91,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             deviceHandoff,
             crossDeviceClipboard,
             dropLinkHost,
-            sharing);
+            sharing,
+            nativeIsland);
         RootContent.Content = _mainPage;
     }
 

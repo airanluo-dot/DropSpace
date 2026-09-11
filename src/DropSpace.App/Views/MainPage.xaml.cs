@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using DropSpace.App.Services;
+using DropSpace.App.Services.Island;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
@@ -48,6 +49,7 @@ public sealed partial class MainPage : Page
     private readonly CrossDeviceClipboardService _crossDeviceClipboard;
     private readonly DropLinkHost _dropLinkHost;
     private readonly SharingUseCase _sharing;
+    private readonly NativeIslandActivityRuntime _nativeIsland;
     private readonly ObservableCollection<DeviceDescriptor> _discoveredDevices = [];
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
@@ -69,7 +71,8 @@ public sealed partial class MainPage : Page
         DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        SharingUseCase sharing)
+        SharingUseCase sharing,
+        NativeIslandActivityRuntime nativeIsland)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -84,6 +87,7 @@ public sealed partial class MainPage : Page
         _crossDeviceClipboard = crossDeviceClipboard;
         _dropLinkHost = dropLinkHost;
         _sharing = sharing;
+        _nativeIsland = nativeIsland;
         try
         {
             InitializeComponent();
@@ -1385,6 +1389,94 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private async void OnMediaActivityToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandActivity = _viewModel.Settings.IslandActivity with { EnableMediaActivity = MediaActivityToggle.IsOn },
+            }));
+    }
+
+    private async void OnLyricsToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Lyrics = _viewModel.Settings.Lyrics with { Enabled = LyricsToggle.IsOn },
+            }));
+    }
+
+    private async void OnSpectrumToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                IslandActivity = _viewModel.Settings.IslandActivity with { ShowSpectrum = SpectrumToggle.IsOn },
+            }));
+    }
+
+    private async void OnWindowsNotificationsToggled(object sender, RoutedEventArgs args)
+    {
+        if (_syncingSettings) return;
+        await RunAsync(async () =>
+        {
+            await _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                SystemActivities = _viewModel.Settings.SystemActivities with { ShowWindowsNotifications = WindowsNotificationsToggle.IsOn },
+            });
+            if (WindowsNotificationsToggle.IsOn)
+            {
+                await _nativeIsland.RequestNotificationAccessAsync();
+            }
+        });
+    }
+
+    private async void OnVolumeActivityToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                SystemActivities = _viewModel.Settings.SystemActivities with { ShowVolumeChanges = VolumeActivityToggle.IsOn },
+            }));
+    }
+
+    private async void OnNativeWidgetsToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Widgets = _viewModel.Settings.Widgets with { Enabled = NativeWidgetsToggle.IsOn },
+            }));
+    }
+
+    private async void OnClockWidgetToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Widgets = _viewModel.Settings.Widgets with { ClockEnabled = ClockWidgetToggle.IsOn },
+            }));
+    }
+
+    private async void OnCalendarWidgetToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Widgets = _viewModel.Settings.Widgets with { CalendarEnabled = CalendarWidgetToggle.IsOn },
+            }));
+    }
+
+    private async void OnResourceUsageWidgetToggled(object sender, RoutedEventArgs args)
+    {
+        if (!_syncingSettings)
+            await RunAsync(() => _viewModel.UpdateSettingsAsync(_viewModel.Settings with
+            {
+                Widgets = _viewModel.Settings.Widgets with { ResourceUsageEnabled = ResourceUsageWidgetToggle.IsOn },
+            }));
+    }
+
     private async void OnStartWithWindowsToggled(object sender, RoutedEventArgs args)
     {
         if (!_syncingSettings)
@@ -1988,6 +2080,15 @@ public sealed partial class MainPage : Page
             CaptureImagesToggle.IsOn = _viewModel.CaptureImages;
             CaptureFilesToggle.IsOn = _viewModel.CaptureFiles;
             CaptureFoldersToggle.IsOn = _viewModel.CaptureFolders;
+            MediaActivityToggle.IsOn = _viewModel.EnableMediaActivity;
+            LyricsToggle.IsOn = _viewModel.EnableLyrics;
+            SpectrumToggle.IsOn = _viewModel.ShowSpectrum;
+            WindowsNotificationsToggle.IsOn = _viewModel.ShowWindowsNotifications;
+            VolumeActivityToggle.IsOn = _viewModel.ShowVolumeChanges;
+            NativeWidgetsToggle.IsOn = _viewModel.EnableNativeWidgets;
+            ClockWidgetToggle.IsOn = _viewModel.ClockWidgetEnabled;
+            CalendarWidgetToggle.IsOn = _viewModel.CalendarWidgetEnabled;
+            ResourceUsageWidgetToggle.IsOn = _viewModel.ResourceUsageWidgetEnabled;
             DeviceHandoffToggle.IsOn = _viewModel.EnableDeviceHandoff;
             CrossDeviceClipboardToggle.IsOn = _viewModel.EnableCrossDeviceClipboard;
             NearbySharingToggle.IsOn = _viewModel.EnableNearbySharing;

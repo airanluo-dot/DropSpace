@@ -526,6 +526,7 @@ public sealed partial class OverlayWindow : Window
     {
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
+        NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
         if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
@@ -548,6 +549,7 @@ public sealed partial class OverlayWindow : Window
         _nativeWindowSafeToShow = false;
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
+        NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
         _motion.SnapTo(OverlayMotionValues.Hidden);
@@ -886,11 +888,15 @@ public sealed partial class OverlayWindow : Window
     {
         if (target.CompactContent > 0)
         {
-            CompactPanel.Visibility = Visibility.Visible;
-            CompactPanel.IsHitTestVisible = true;
+            var showActivity = _viewModel.IsNativeActivityVisible;
+            CompactPanel.Visibility = showActivity ? Visibility.Collapsed : Visibility.Visible;
+            CompactPanel.IsHitTestVisible = !showActivity;
+            NativeActivityCompactPanel.Visibility = showActivity ? Visibility.Visible : Visibility.Collapsed;
+            NativeActivityCompactPanel.IsHitTestVisible = showActivity;
         }
         else
         {
+            NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
             CompactPanel.IsHitTestVisible = false;
         }
 
@@ -920,6 +926,7 @@ public sealed partial class OverlayWindow : Window
         if (values.CompactContent <= 0.001 && _motion.Target.CompactContent == 0)
         {
             CompactPanel.Visibility = Visibility.Collapsed;
+            NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
         }
 
         if (values.DragContent <= 0.001 && _motion.Target.DragContent == 0)
@@ -1190,6 +1197,24 @@ public sealed partial class OverlayWindow : Window
     }
 
     private void OnCollapseClicked(object sender, RoutedEventArgs args) => _viewModel.Collapse();
+
+    private async void OnMediaPreviousClicked(object sender, RoutedEventArgs args) => await RunMediaCommandAsync(_viewModel.SkipPreviousMediaAsync, "previous");
+
+    private async void OnMediaPlayPauseClicked(object sender, RoutedEventArgs args) => await RunMediaCommandAsync(_viewModel.PlayPauseMediaAsync, "play/pause");
+
+    private async void OnMediaNextClicked(object sender, RoutedEventArgs args) => await RunMediaCommandAsync(_viewModel.SkipNextMediaAsync, "next");
+
+    private async Task RunMediaCommandAsync(Func<CancellationToken, Task> command, string commandName)
+    {
+        try
+        {
+            await command(CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogInformation(exception, "Overlay media {Command} action failed.", commandName);
+        }
+    }
 
     private void OnOpenMainWindowClicked(object sender, RoutedEventArgs args)
     {

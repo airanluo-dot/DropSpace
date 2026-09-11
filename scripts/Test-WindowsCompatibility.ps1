@@ -59,10 +59,10 @@ function Assert-CompatibilityText
 }
 
 $props = Read-CompatibilityFile "Directory.Build.props"
-if ($props -notmatch '<DropSpaceMinimumWindowsBuild>17763</DropSpaceMinimumWindowsBuild>' -or
-    $props -notmatch '<DropSpaceMinimumWindowsVersion>10\.0\.17763\.0</DropSpaceMinimumWindowsVersion>')
+if ($props -notmatch '<DropSpaceMinimumWindowsBuild>20348</DropSpaceMinimumWindowsBuild>' -or
+    $props -notmatch '<DropSpaceMinimumWindowsVersion>10\.0\.20348\.0</DropSpaceMinimumWindowsVersion>')
 {
-    Add-CompatibilityError "Directory.Build.props does not declare the 17763 compatibility baseline."
+    Add-CompatibilityError "Directory.Build.props does not declare the 20348 compatibility baseline."
 }
 
 $project = Read-CompatibilityFile "src/DropSpace.App/DropSpace.App.csproj"
@@ -80,16 +80,16 @@ if ($project -match '(?i)ARM64|win-arm64' -or (Read-CompatibilityFile "scripts/B
 foreach ($relativePath in @("src/DropSpace.App/Package.appxmanifest", "identity/AppxManifest.xml.template"))
 {
     $manifestText = Read-CompatibilityFile $relativePath
-    if ($manifestText -notmatch 'MinVersion="10\.0\.17763\.0"')
+    if ($manifestText -notmatch 'MinVersion="10\.0\.20348\.0"')
     {
-        Add-CompatibilityError "$relativePath does not target Windows build 17763."
+        Add-CompatibilityError "$relativePath does not target Windows build 20348."
     }
 }
 
 $installer = Read-CompatibilityFile "installer/DropSpace.iss"
-if ($installer -notmatch '(?m)^MinVersion=10\.0\.17763\s*$')
+if ($installer -notmatch '(?m)^MinVersion=10\.0\.20348\s*$')
 {
-    Add-CompatibilityError "The installer minimum is not Windows 10 build 17763."
+    Add-CompatibilityError "The installer minimum is not Windows build 20348."
 }
 
 Assert-CompatibilityText "scripts/New-UpdateManifest.ps1" 'WindowsCompatibility\.ps1' "The update manifest generator does not import the shared compatibility baseline."
@@ -120,9 +120,9 @@ if ((Read-CompatibilityFile "src/DropSpace.App/App.xaml.cs") -match 'Application
     Add-CompatibilityError "The unpackaged app must not use ApplicationLanguages.PrimaryLanguageOverride."
 }
 
-Assert-CompatibilityText "compatibility-baseline.md" '17763' "The compatibility baseline report is missing the Windows 10 1809 minimum."
+Assert-CompatibilityText "compatibility-baseline.md" '20348' "The compatibility baseline report is missing the Windows build 20348 minimum."
 Assert-CompatibilityText "docs/test-plan/v0.3.0-preview.10.md" 'Windows 10 (version )?1809' "The current Preview test plan is missing the required Windows 10 1809 matrix."
-Assert-CompatibilityText "website/_source/src/index.html" 'Windows 10 version 1809' "The website does not state the current Windows 10 minimum."
+Assert-CompatibilityText "website/_source/src/index.html" 'Windows build 20348' "The website does not state the current Windows build 20348 minimum."
 
 if ($errors.Count -ne 0)
 {

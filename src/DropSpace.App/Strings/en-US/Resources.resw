@@ -459,4 +459,35 @@ Nothing will be opened automatically.</value></data>
   <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Enable this feature in Settings and complete pairing or service setup first.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>Previous settings could not be fully restored. Restart DropSpace before changing settings again. Diagnostic ID: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Restore settings</value></data>
+  <data name="SettingsStageIslandActivities" xml:space="preserve"><value>Native Island activities</value></data>
+  <data name="NativeIslandSection.Text" xml:space="preserve"><value>Native Island</value></data>
+  <data name="NativeIslandDescription.Text" xml:space="preserve"><value>Show media, lyrics, system activity, and native widgets in the existing Dynamic Island surface.</value></data>
+  <data name="MediaActivityTitle.Text" xml:space="preserve"><value>Media activity</value></data>
+  <data name="MediaActivityDescription.Text" xml:space="preserve"><value>Connect to the current Windows media session and show playback progress and artwork.</value></data>
+  <data name="MediaActivityToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable media activity</value></data>
+  <data name="LyricsTitle.Text" xml:space="preserve"><value>Lyrics</value></data>
+  <data name="LyricsDescription.Text" xml:space="preserve"><value>Load timed lyrics from configured providers or a local LRC folder.</value></data>
+  <data name="LyricsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable lyrics</value></data>
+  <data name="SpectrumTitle.Text" xml:space="preserve"><value>Spectrum</value></data>
+  <data name="SpectrumDescription.Text" xml:space="preserve"><value>Show a bounded activity visualizer while media is playing.</value></data>
+  <data name="SpectrumToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show spectrum</value></data>
+  <data name="WindowsNotificationsTitle.Text" xml:space="preserve"><value>Windows notifications</value></data>
+  <data name="WindowsNotificationsDescription.Text" xml:space="preserve"><value>Surface notification activity only after Windows grants listener access.</value></data>
+  <data name="WindowsNotificationsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show Windows notifications</value></data>
+  <data name="VolumeActivityTitle.Text" xml:space="preserve"><value>Volume activity</value></data>
+  <data name="VolumeActivityDescription.Text" xml:space="preserve"><value>Show volume changes from the Windows audio endpoint without replacing the system volume UI.</value></data>
+  <data name="VolumeActivityToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show volume activity</value></data>
+  <data name="NativeWidgetsTitle.Text" xml:space="preserve"><value>Native widgets</value></data>
+  <data name="NativeWidgetsDescription.Text" xml:space="preserve"><value>Enable Clock, Calendar, Resource Usage, and Settings widget activities.</value></data>
+  <data name="NativeWidgetsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable native widgets</value></data>
+  <data name="NativeVolumeHudNotice.Text" xml:space="preserve"><value>DropSpace observes volume changes; it does not replace the Windows volume flyout or keyboard handling.</value></data>
+  <data name="MediaPreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous track</value></data>
+  <data name="MediaPlayPauseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Play or pause</value></data>
+  <data name="MediaNextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next track</value></data>
+  <data name="ClockWidgetTitle.Text" xml:space="preserve"><value>Clock widget</value></data>
+  <data name="ClockWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable clock widget</value></data>
+  <data name="CalendarWidgetTitle.Text" xml:space="preserve"><value>Calendar widget</value></data>
+  <data name="CalendarWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable calendar widget</value></data>
+  <data name="ResourceUsageWidgetTitle.Text" xml:space="preserve"><value>Resource usage widget</value></data>
+  <data name="ResourceUsageWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable resource usage widget</value></data>
 </root>
