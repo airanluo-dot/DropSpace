@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using DropSpace.Core.Media;
 using Microsoft.Extensions.Logging;

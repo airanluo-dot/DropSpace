@@ -107,7 +107,7 @@ public sealed class NativeIslandActivityRuntime : IAsyncDisposable
         _router.RemoveSource(MediaSourceId);
         _mediaActivityId = Guid.Empty;
         if (!_mediaSettings.EnableMediaActivity || !snapshot.IsActive) return;
-        var trackKey = string.Join("|", snapshot.TrackId, snapshot.TrackTitle, snapshot.Artist, snapshot.AlbumTitle);
+        var trackKey = string.Join("|", snapshot.SessionId, snapshot.TrackTitle, snapshot.Artist, snapshot.AlbumTitle);
         if (_lyricsSettings.Enabled && !string.IsNullOrWhiteSpace(snapshot.TrackTitle) && !string.Equals(_lyricsTrackKey, trackKey, StringComparison.Ordinal))
         {
             CancelLyricsLookup();

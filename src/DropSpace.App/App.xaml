@@ -14,7 +14,6 @@
       <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" Invert="True" />
       <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
       <converters:NullToVisibilityConverter x:Key="InverseNullToVisibilityConverter" Invert="True" />
-      <converters:SpectrumBarHeightConverter x:Key="SpectrumBarHeightConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

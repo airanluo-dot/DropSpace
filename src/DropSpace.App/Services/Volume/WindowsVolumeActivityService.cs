@@ -103,7 +103,7 @@ public sealed class WindowsVolumeActivityService : IVolumeActivityService
     private enum ClsCtx : uint { All = 0x17 }
 
     [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"), ClassInterface(ClassInterfaceType.None)]
-    private sealed class MMDeviceEnumerator { }
+    private sealed class MMDeviceEnumerator : IMMDeviceEnumerator { }
 
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator
