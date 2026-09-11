@@ -16,6 +16,7 @@ using DropSpace.Core.Transfer;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Actions;
 using DropSpace.Infrastructure.Network;
+using CoreMediaPlaybackState = DropSpace.Core.Media.MediaPlaybackState;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -30,6 +31,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Data.Pdf;
 using Windows.Graphics.Imaging;
 using Windows.Media.Core;
+using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
@@ -2060,9 +2062,9 @@ public sealed partial class MainPage : Page
         MusicNowPlayingAlbum.Text = hasMedia ? media.AlbumTitle : string.Empty;
         MusicNowPlayingState.Text = media.PlaybackState switch
         {
-            MediaPlaybackState.Playing => _strings.Get("MusicStatePlaying"),
-            MediaPlaybackState.Paused => _strings.Get("MusicStatePaused"),
-            MediaPlaybackState.Stopped => _strings.Get("MusicStateStopped"),
+            CoreMediaPlaybackState.Playing => _strings.Get("MusicStatePlaying"),
+            CoreMediaPlaybackState.Paused => _strings.Get("MusicStatePaused"),
+            CoreMediaPlaybackState.Stopped => _strings.Get("MusicStateStopped"),
             _ => _strings.Get("MusicStateUnavailable"),
         };
         MusicCaptureDiagnosticsText.Text = string.Join(
@@ -2077,7 +2079,7 @@ public sealed partial class MainPage : Page
         MusicPlayPauseButton.IsEnabled = hasMedia && (media.CanPlay || media.CanPause);
         if (MusicPlayPauseButton.Content is FontIcon playPauseIcon)
         {
-            playPauseIcon.Glyph = media.PlaybackState == MediaPlaybackState.Playing ? "\uE769" : "\uE768";
+            playPauseIcon.Glyph = media.PlaybackState == CoreMediaPlaybackState.Playing ? "\uE769" : "\uE768";
         }
 
         if (!_musicProgressPressed && media.Timeline.Duration > TimeSpan.Zero)
