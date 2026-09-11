@@ -1278,8 +1278,18 @@ public sealed class OverlayWindowService : IDisposable
 
     private bool VerifyWakeModeSwitchOwnership(FileDragWakeMode originalMode)
     {
+        var nativeActivityWasVisible = _viewModel.ActivitySnapshot.Current is not null;
+        var originalTemporaryItemCount = _viewModel.Snapshot.TemporaryItemCount;
         try
         {
+            // Native widgets are allowed to keep the island Compact with zero temporary items.
+            // The activation-host contract is specifically a hidden-surface contract, so make
+            // that precondition explicit instead of accidentally testing ownership against a
+            // visible native activity surface.
+            _stateMachine.SetNativeActivityVisible(false);
+            _stateMachine.Restore(0);
+            ApplySnapshot(_viewModel.Snapshot);
+
             ConfigureWakeMode(FileDragWakeMode.ClassicTopEdge, force: true);
             ApplySnapshot(_viewModel.Snapshot);
             var classicTargetOwned = _activationHosts.Count == _windows.Count &&
@@ -1294,6 +1304,8 @@ public sealed class OverlayWindowService : IDisposable
         finally
         {
             ConfigureWakeMode(originalMode, force: true);
+            _stateMachine.SetNativeActivityVisible(nativeActivityWasVisible);
+            _stateMachine.Restore(originalTemporaryItemCount);
             ApplySnapshot(_viewModel.Snapshot);
         }
     }
