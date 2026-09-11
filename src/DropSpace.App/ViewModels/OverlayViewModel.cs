@@ -34,7 +34,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private CancellationTokenSource? _shellAcknowledgementCancellation;
     private bool _disposed;
     private IslandActivitySnapshot _activitySnapshot = IslandActivitySnapshot.Empty;
-    private IReadOnlyList<float> _spectrumBars = SpectrumFrame.Empty.Bars;
+    private IReadOnlyList<double> _spectrumBars = Array.Empty<double>();
     private Guid _dropActivityId;
     private Guid _manualActivityId;
 
@@ -143,7 +143,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public bool IsMediaControlsVisible => IsMediaActivity &&
         (_pendingSettings ?? _mainViewModel.Settings).IslandActivity.ShowCompactControls;
 
-    public IReadOnlyList<float> SpectrumBars => _spectrumBars;
+    public IReadOnlyList<double> SpectrumBars => _spectrumBars;
 
     public bool IsSpectrumVisible => IsMediaActivity &&
         _spectrum.Current.CaptureMode != SpectrumCaptureMode.Unavailable;
@@ -585,7 +585,9 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
             return;
         }
 
-        _spectrumBars = frame.Bars;
+        _spectrumBars = frame.Bars
+            .Select(level => 4d + Math.Clamp(level, 0f, 1f) * 24d)
+            .ToArray();
         OnPropertyChanged(nameof(SpectrumBars));
         OnPropertyChanged(nameof(IsSpectrumVisible));
     }

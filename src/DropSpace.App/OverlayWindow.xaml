@@ -295,7 +295,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <Border Width="5" Height="{Binding Converter={StaticResource SpectrumBarHeightConverter}} VerticalAlignment="Bottom" Background="{StaticResource DropSpaceOverlayAccentBrush}" CornerRadius="2" />
+                    <Border Width="5" Height="{Binding}" VerticalAlignment="Bottom" Background="{StaticResource DropSpaceOverlayAccentBrush}" CornerRadius="2" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
