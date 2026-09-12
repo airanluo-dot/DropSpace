@@ -49,6 +49,20 @@ an external player, which remains a required end-to-end gate.
 
 ## Build notes
 
+## System observer and widget checkpoints
+
+- Notification listener: Release build zero warnings/errors; native lifecycle test
+  passed. Actual access in the unpackaged test host was Unavailable. This is only
+  graceful-unavailability evidence; packaged permission and incoming-toast tests
+  remain open. No history replay and no automatic permission request.
+- Volume observer: real default render endpoint callback test passed (389 ms).
+  The test changed one percentage point and restored the exact previous scalar in
+  finally. Disable/re-enable passed. Actual output-device switching remains open.
+- Widget data: real system time, CPU delta and memory sampling passed (1 s).
+  Hiding cancels and drains sampling. This service has no island presence API.
+
+## Build notes
+
 Use the checked-in CI commands. A build with an explicit global `RuntimeIdentifier=win-x64`
 can regenerate Core/Infrastructure lock files with RID sections; rerun ordinary solution
 restore before locked solution restore. Do not commit that incidental lockfile churn.
