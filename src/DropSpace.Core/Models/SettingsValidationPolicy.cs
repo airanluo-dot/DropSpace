@@ -2,7 +2,7 @@ namespace DropSpace.Core.Models;
 
 public static class SettingsValidationPolicy
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 14;
     public const int MinimumVersion = 1;
 
     public const int MinimumRetentionDays = 1;

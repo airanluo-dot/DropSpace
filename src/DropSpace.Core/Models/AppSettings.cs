@@ -66,6 +66,12 @@ public sealed record AppSettings
 
     public int Version { get; init; } = CurrentVersion;
 
+    public IslandActivitySettings IslandActivity { get; init; } = new();
+    public LyricsSettings Lyrics { get; init; } = new();
+    public IslandAppearanceSettings IslandAppearance { get; init; } = new();
+    public SystemActivitySettings SystemActivities { get; init; } = new();
+    public WidgetSettings Widgets { get; init; } = new();
+
     public bool ClipboardPaused { get; init; }
 
     public bool CaptureImages { get; init; } = true;
@@ -297,9 +303,7 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
-        return string.Equals(QuickPanelHotkey, normalizedHotkey, StringComparison.Ordinal)
-            ? this
-            : this with { QuickPanelHotkey = normalizedHotkey };
+        return NativeIslandSettingsPolicy.Normalize(this with { QuickPanelHotkey = normalizedHotkey });
     }
 
 }

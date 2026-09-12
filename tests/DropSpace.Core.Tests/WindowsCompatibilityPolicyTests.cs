@@ -8,10 +8,12 @@ public sealed class WindowsCompatibilityPolicyTests
 {
     [TestMethod]
     [DataRow(17_762, false)]
-    [DataRow(17_763, true)]
-    [DataRow(19_045, true)]
+    [DataRow(17_763, false)]
+    [DataRow(19_045, false)]
+    [DataRow(20_347, false)]
+    [DataRow(20_348, true)]
     [DataRow(26_100, true)]
-    public void SupportedBuild_IsInclusiveAtWindows10Version1809(int build, bool expected)
+    public void SupportedBuild_IsInclusiveAtBuild20348(int build, bool expected)
     {
         Assert.AreEqual(expected, WindowsCompatibilityPolicy.IsSupportedBuild(build));
     }

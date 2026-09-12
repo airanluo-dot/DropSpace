@@ -2,7 +2,7 @@ namespace DropSpace.Core.Compatibility;
 
 public static class WindowsCompatibilityPolicy
 {
-    public const int MinimumSupportedWindowsBuild = 17_763;
+    public const int MinimumSupportedWindowsBuild = 20_348;
     public const int Windows11Build = 22_000;
     public const int CompileTimeWindowsSdkBuild = 26_100;
 

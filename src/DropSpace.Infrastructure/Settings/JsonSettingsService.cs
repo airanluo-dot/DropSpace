@@ -73,6 +73,7 @@ public sealed class JsonSettingsService : ISettingsService
                 var migratedVersion = false;
                 if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
                 {
+                    settings = SettingsMigration14.Apply(settings);
                     settings = settings with
                     {
                         Version = AppSettings.CurrentVersion,

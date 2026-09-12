@@ -1,5 +1,15 @@
 # DropSpace Architecture and Product Decisions
 
+## D-061 — Preview.24 rebuild and compatibility foundation
+
+- Status: Accepted for the user-authorized Preview.24 rebuild; implementation in progress.
+- Start from Preview.21 commit 820daa9. Preview.22/23 are per-file audit references, never bulk merge or UI sources.
+- Align local, CI and release SDKs on .NET 10.0.401. Raise the x64 runtime minimum to Windows build 20348 for process loopback; retain runtime capability gating for Windows 11 visuals.
+- Settings schema 14 preserves schemas 11/12/13, existing local data and user preferences. Native fields normalize independently; obsolete whole-host backdrop, page state and widget keepalive are not persisted contracts. SQLite schema is unchanged.
+- Fresh lyrics are enabled with NetEase selected. Network use is confined to bounded music metadata lookup required by the approved plan; clipboard/file content is never sent. Provider implementation and privacy documentation remain release gates.
+- Native widgets provide data only for explicit contexts and can never authorize Island presence. Keep Preview.21 file/drop lifecycle intact beneath a separate presence coordinator.
+- WinIsland remains behavior/API research only; no GPL implementation or binaries are incorporated.
+
 Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted decision requires a new entry that links back to it.
 
 ## D-001 — Product identity and source separation

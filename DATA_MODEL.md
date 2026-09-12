@@ -1,5 +1,17 @@
 # DropSpace Data Model
 
+## Preview.24 settings schema 14
+
+Settings JSON advances from 11/12/13 to 14; SQLite remains unchanged. Preserve
+existing item, clipboard, placement, sharing, action and update preferences.
+Native sections are IslandActivity, Lyrics, IslandAppearance, SystemActivities
+and Widgets. Valid provider, delay, app allowlist and custom layout survive migration.
+Invalid native fields normalize independently instead of quarantining the whole file.
+Whole-host material, widget idle keepalive and saved expanded-page state are not fields.
+Fresh defaults enable media/artwork/lyrics/FFT with NetEase lyrics and a 3-second
+pause delay; notifications and volume observation are off. The widget layout is
+6 by 3 with explicit compact slots; it carries no automatic visibility authority.
+
 ## Modeling decision
 
 Use one aggregate plus composed payload records. `ClipboardItem`, `FileItem`, `ImageItem`, `TextItem`, and `UrlItem` are conceptual projections, not persistence subclasses.

@@ -1,5 +1,14 @@
 # DropSpace Roadmap
 
+## Active authorized slice: v0.3.0-preview.24
+
+Rebuild Native Island from Preview.21 in the mandatory order recorded in
+`docs/dev/preview24-progress.md`. This task explicitly includes all phases through
+Windows verification, required CI, merge, Preview publication and website/API synchronization.
+Runtime baseline is x64 Windows build 20348; settings migrate 11/12/13 to 14.
+No functional phase is complete until its targeted tests, native smoke where required,
+and local Git checkpoint are recorded. Release blockers in the supplied plan are binding.
+
 ## Current implementation snapshot
 
 The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.21 is the current settings and action usability Preview following Preview.20. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
