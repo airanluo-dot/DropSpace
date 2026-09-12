@@ -14,7 +14,6 @@ namespace DropSpace.App.Services;
 internal sealed class OverlayCompositionAnimator : IDisposable
 {
     private readonly Visual _surface;
-    private readonly Visual _shadow;
     private readonly Visual _compact;
     private readonly Visual _drag;
     private readonly Visual _expanded;
@@ -28,7 +27,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
 
     public OverlayCompositionAnimator(
         FrameworkElement surface,
-        FrameworkElement shadow,
         FrameworkElement compact,
         FrameworkElement drag,
         FrameworkElement expanded,
@@ -36,7 +34,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         FrameworkElement interactionTint)
     {
         _surface = ElementCompositionPreview.GetElementVisual(surface);
-        _shadow = ElementCompositionPreview.GetElementVisual(shadow);
         _compact = ElementCompositionPreview.GetElementVisual(compact);
         _drag = ElementCompositionPreview.GetElementVisual(drag);
         _expanded = ElementCompositionPreview.GetElementVisual(expanded);
@@ -64,7 +61,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _surface.Opacity = (float)Math.Clamp(values.Opacity, 0, 1);
-        _shadow.Opacity = (float)Math.Clamp(values.Opacity * values.ShadowOpacity * 0.35, 0, 1);
         _compact.Opacity = (float)Math.Clamp(values.CompactContent, 0, 1);
         _drag.Opacity = (float)Math.Clamp(values.DragContent, 0, 1);
         _expanded.Opacity = (float)Math.Clamp(values.ExpandedContent, 0, 1);

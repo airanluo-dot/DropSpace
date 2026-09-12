@@ -93,7 +93,16 @@ DropSpace separates two lifecycles per enabled display:
 
 The accepting OLE targets advertise `DROPEFFECT_COPY`, extract bounded paths only on Drop, and report only monitor/DPI/bounds/classification/item-count diagnostics. Compact/Expanded and a Smart-revealed target use the same visual registration, classifier and `AddPathsAsync` business path. The Smart reveal event is emitted only after the probe has classified `CF_HDROP`, Shell Item array, or the virtual-file descriptor pair as file-like; pointer movement, threshold crossing, Explorer/Desktop attribution, accessibility drag events, and `DROPEFFECT_NONE` never reveal it. The low-level hooks observe only session boundaries; there is no injection, input suppression, permanent hot zone, full-screen transparent window, mouse-button scan or cursor polling loop.
 
-The visual Overlay HWND is configured through one checked Win32 boundary. It is forced to `WS_POPUP` with `WS_EX_TOOLWINDOW|WS_EX_NOACTIVATE`, has non-client styles removed, disables DWM non-client rendering, and applies Windows 11 corner/border attributes only when the capability probe allows them. `SetWindowLongPtr`, `SetWindowPos`, `SetWindowRgn`, `ShowWindow`, region construction/combination, client-size alignment, and DWM HRESULTs are checked. A critical failure leaves that Overlay hidden and logs only monitor, scale, OS build, operation, and numeric error values. The same physical-pixel client geometry is verified after every placement update on Windows 10 and Windows 11.
+The visual Overlay HWND is configured through one checked Win32 boundary. Its WinUI top-level style is preserved, with `WS_EX_TOOLWINDOW|WS_EX_NOACTIVATE`, frame-bearing styles removed and DWM non-client rendering disabled. Windows 11 corner/border attributes are capability-gated. `SetWindowLongPtr`, `SetWindowPos`, `SetWindowRgn`, `ShowWindow`, region construction/combination, client-size alignment, and DWM HRESULTs are checked. A critical failure leaves that Overlay hidden and logs only monitor, scale, OS build, operation, and numeric error values. The physical-pixel client geometry is verified after every placement update.
+
+Preview.24 maps client Surface coordinates to window-relative HRGN coordinates
+using the actual client origin. Regions use exclusive right/bottom bounds. A real
+WinUI run at 125% DPI exposed the old inset/extra-pixel dark rim; native regression
+and light/dark screenshots verify the correction. Surface material and native
+radius derive from IslandGeometry's animated values. A bounded SystemBackdropElement
+owns the acrylic controller; the fixed host never receives a DWM backdrop. Its
+input-active material configuration preserves blur when another window has focus,
+while high contrast/disabled effects retain the solid fallback.
 
 ### Fullscreen classification
 

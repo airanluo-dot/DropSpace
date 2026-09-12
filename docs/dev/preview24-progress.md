@@ -47,8 +47,6 @@ CCW returned E_ILLEGAL_METHOD_CALL and was fixed, not bypassed.
 This checkpoint does not yet establish identity resolution or music capture for
 an external player, which remains a required end-to-end gate.
 
-## Build notes
-
 ## System observer and widget checkpoints
 
 - Notification listener: Release build zero warnings/errors; native lifecycle test
@@ -60,6 +58,24 @@ an external player, which remains a required end-to-end gate.
   finally. Disable/re-enable passed. Actual output-device switching remains open.
 - Widget data: real system time, CPU delta and memory sampling passed (1 s).
   Hiding cancels and drains sampling. This service has no island presence API.
+
+## Material checkpoint evidence
+
+Actual Windows 26200 screenshots inspected at 125% scale in light/dark themes,
+with island keyboard focus and with focus returned to the main window. Bounded
+blur remains; no host-sized backdrop, outer stroke or shadow. Screenshots retained
+in ignored `artifacts/preview24/material-{light,dark}-{focused,unfocused}.png`.
+An initial black rim revealed that Preview.21 passed client coordinates to the
+window-relative HRGN and added an extra right/bottom pixel. Both causes were fixed.
+A native regression test uses an actual window with a non-client inset.
+
+Full existing native smoke passed: 1,000 lifecycle cycles, 1,000 geometry stress
+cycles with zero region failures, compact/expanded CF_HDROP, 200 deletion cycles,
+source sentinel preserved, clipboard pause/resume and loop suppression, no idle
+frame loop, stable resource plateau. Evidence: `material-native-smoke.json`.
+
+Test data override is only honored alongside `--test-mode` via
+`DROPSPACE_TEST_DATA_ROOT`; normal launches retain the current-user data root.
 
 ## Build notes
 

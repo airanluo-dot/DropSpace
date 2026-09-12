@@ -396,7 +396,9 @@ public partial class App : Application
 
     private ServiceProvider BuildServices()
     {
-        var paths = AppStoragePaths.CreateForCurrentUser();
+        var testRoot = Environment.GetCommandLineArgs().Contains("--test-mode", StringComparer.OrdinalIgnoreCase)
+            ? Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT") : null;
+        var paths = string.IsNullOrWhiteSpace(testRoot) ? AppStoragePaths.CreateForCurrentUser() : new AppStoragePaths(testRoot);
         var fileLogger = new RedactingFileLoggerProvider(paths);
         _fileLogger = fileLogger;
         var services = new ServiceCollection();

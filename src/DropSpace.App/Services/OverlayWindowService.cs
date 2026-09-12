@@ -97,6 +97,7 @@ public sealed class OverlayWindowService : IDisposable
         _viewModel.SnapshotChanged += OnSnapshotChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
+        _mainViewModel.PropertyChanged += OnMainSettingsChanged;
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
@@ -518,6 +519,7 @@ public sealed class OverlayWindowService : IDisposable
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
+        _mainViewModel.PropertyChanged -= OnMainSettingsChanged;
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
         _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
         _dragSessionDetector.VerifiedFileDragStarted -= OnSmartVerifiedFileDragStarted;
@@ -570,6 +572,16 @@ public sealed class OverlayWindowService : IDisposable
     }
 
     private void OnForegroundChanged(object? sender, EventArgs args) => ApplySnapshot(_viewModel.Snapshot);
+
+    private void OnMainSettingsChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(MainViewModel.Theme)) return;
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_disposed) return;
+            foreach (var window in _windows) window.ApplyTheme(_mainViewModel.Theme);
+        });
+    }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -851,6 +863,7 @@ public sealed class OverlayWindowService : IDisposable
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
                 _loggerFactory.CreateLogger<OverlayWindow>(),
                 _visualPreferences);
+            window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementCancelled += OnPlacementCancelled;
             _windows.Add(window);

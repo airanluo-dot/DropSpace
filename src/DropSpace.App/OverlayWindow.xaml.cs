@@ -116,11 +116,9 @@ public sealed partial class OverlayWindow : Window
         _materialController = new OverlayMaterialController(
             AcrylicBackdrop,
             FallbackSurface,
-            SurfaceStroke,
             capabilities);
         _compositionAnimator = new OverlayCompositionAnimator(
             Surface,
-            SurfaceStroke,
             CompactPanel,
             DragPanel,
             ExpandedPanel,
@@ -188,6 +186,13 @@ public sealed partial class OverlayWindow : Window
     }
 
     public string MonitorId => _monitor.Id;
+
+    internal void ApplyTheme(ThemePreference preference) => Root.RequestedTheme = preference switch
+    {
+        ThemePreference.Light => ElementTheme.Light,
+        ThemePreference.Dark => ElementTheme.Dark,
+        _ => ElementTheme.Default,
+    };
 
     public bool IsPlacementEditing => _placementEditActive;
 
@@ -939,18 +944,18 @@ public sealed partial class OverlayWindow : Window
 
     private static OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
     {
+        var geometry = DropSpace.Core.Island.IslandGeometry.ForFiles(state);
         return state switch
         {
-            OverlayState.DragApproaching => Create(300, 54, topOffset, 27, 0, 1, 0),
-            OverlayState.DragReady => Create(430, 92, topOffset, 30, 0, 1, 0),
-            OverlayState.Compact => Create(340, 64, topOffset, 32, 1, 0, 0),
-            OverlayState.Expanded => Create(560, 340, topOffset, 28, 0, 0, 1),
+            OverlayState.DragApproaching or OverlayState.DragReady => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 0, 1, 0),
+            OverlayState.Compact => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0),
+            OverlayState.Expanded => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 0, 0, 1),
             OverlayState.Dismissing or OverlayState.Hidden => new OverlayMotionValues(
-                120,
-                12,
+                geometry.Width,
+                geometry.Height,
                 topOffset,
-                6,
-                6,
+                geometry.Radius,
+                geometry.Radius,
                 0,
                 0,
                 0,

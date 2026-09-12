@@ -324,9 +324,18 @@ internal static class OverlayWindowInterop
         nint region;
         try
         {
+            // SetWindowRgn uses whole-window coordinates, while Surface geometry is
+            // in client coordinates. Borderless WinUI presenters can retain a small
+            // non-client inset; omitting it exposes a dark edge and clips content.
+            var clientOrigin = new NativePoint();
+            if (!ClientToScreen(window, ref clientOrigin) || !GetWindowRect(window, out var windowBounds))
+            {
+                failure = new OverlayNativeFailure("Map client surface to window HRGN", true, Marshal.GetLastWin32Error());
+                return false;
+            }
             region = CreateAsymmetricRoundRectRegion(
-                left,
-                top,
+                checked(left + clientOrigin.X - windowBounds.Left),
+                checked(top + clientOrigin.Y - windowBounds.Top),
                 width,
                 height,
                 Math.Max(topRadius, 1),
@@ -404,24 +413,24 @@ internal static class OverlayWindowInterop
         var destination = CreateRectRgn(
             left,
             top + topRadius,
-            left + width + 1,
+            left + width,
             Math.Max(top + topRadius + 1, top + height - bottomRadius));
         var topPart = topRadius == 0
-            ? CreateRectRgn(left, top, left + width + 1, top + 1)
+            ? CreateRectRgn(left, top, left + width, top + 1)
             : CreateRoundRectRgn(
                 left,
                 top,
-                left + width + 1,
-                top + topRadius * 2 + 1,
+                left + width,
+                top + topRadius * 2,
                 topRadius * 2,
                 topRadius * 2);
         var bottomPart = bottomRadius == 0
-            ? CreateRectRgn(left, top + height - 1, left + width + 1, top + height + 1)
+            ? CreateRectRgn(left, top + height - 1, left + width, top + height)
             : CreateRoundRectRgn(
             left,
                 Math.Max(top, top + height - bottomRadius * 2),
-            left + width + 1,
-                top + height + 1,
+            left + width,
+                top + height,
                 bottomRadius * 2,
                 bottomRadius * 2);
         if (destination == nint.Zero || topPart == nint.Zero || bottomPart == nint.Zero)
@@ -626,6 +635,10 @@ internal static class OverlayWindowInterop
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(nint window, out NativeRectangle rectangle);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ClientToScreen(nint window, ref NativePoint point);
 
     [DllImport("gdi32.dll")]
     private static extern nint CreateRectRgn(int left, int top, int right, int bottom);

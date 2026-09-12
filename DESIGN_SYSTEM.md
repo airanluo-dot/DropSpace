@@ -6,7 +6,18 @@ Status: Fluent design specification v1. No visual prototype was generated in thi
 
 Use Windows 11 Fluent design as a native utility, drawing structural cues from Windows Settings and PowerToys: calm Mica foundation, restrained cards, compact rows, clear status, and native menus. Avoid dashboard metrics, oversized marketing headings, floating glass panels, and excessive gradients.
 
-## Preview.14 transient motion and material
+## Preview.24 island surface
+
+The fixed host remains transparent. Only the bounded SystemBackdropElement owns
+Desktop Acrylic, using an island-specific input-active configuration so unfocusing
+the no-activate window does not replace its material. Surface has no outer stroke
+or shadow. App light/dark/system theme applies to both main and island windows.
+High contrast and reduced-effects policies retain a readable solid fallback.
+IslandGeometry supplies the visible shape; animated values feed both XAML material
+corners and the native region. SetWindowRgn coordinates include the actual client
+inset and use exclusive right/bottom bounds, avoiding a one-pixel dark rim.
+
+## Preview.14 transient motion and material (historical)
 
 The Dynamic Island is a bounded transient surface, not a general glass layer. On capable Windows 11 systems it may use `SystemBackdropElement` with `DesktopAcrylicBackdrop`; the main window remains on its existing Mica/base policy. Windows 10, high contrast, disabled advanced effects, and unavailable backdrop APIs use the opaque solid surface.
 

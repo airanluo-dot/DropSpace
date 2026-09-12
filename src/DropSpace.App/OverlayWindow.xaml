@@ -32,9 +32,6 @@
       PointerExited="OnSurfacePointerExited"
       PointerPressed="OnSurfacePointerPressed"
       PointerReleased="OnSurfacePointerReleased">
-      <Border.Shadow>
-        <ThemeShadow />
-      </Border.Shadow>
       <Border.RenderTransform>
         <CompositeTransform x:Name="SurfaceTransform" />
       </Border.RenderTransform>
@@ -57,12 +54,6 @@
           CornerRadius="{StaticResource DropSpaceOverlayRadius}"
           IsHitTestVisible="False"
           Opacity="0" />
-        <Border
-          x:Name="SurfaceStroke"
-          BorderBrush="{StaticResource DropSpaceOverlayStrokeBrush}"
-          BorderThickness="1"
-          CornerRadius="{StaticResource DropSpaceOverlayRadius}"
-          IsHitTestVisible="False" />
         <Grid x:Name="SurfaceContent">
         <Grid>
         <Button
