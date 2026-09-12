@@ -459,4 +459,5 @@ Nothing will be opened automatically.</value></data>
   <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Enable this feature in Settings and complete pairing or service setup first.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>Previous settings could not be fully restored. Restart DropSpace before changing settings again. Diagnostic ID: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Restore settings</value></data>
+  <data name="MediaControlFailed" xml:space="preserve"><value>The player could not complete this action. Try again.</value></data>
 </root>

@@ -72,6 +72,10 @@ public sealed partial class OverlayWindow : Window
     private int _positionedHostTopPixels = int.MinValue;
     private bool? _noActivateApplied;
     private bool _nativeWindowShown;
+    private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
+    private readonly MediaViewModel _mediaViewModel;
+    private OverlaySnapshot? _presentationSnapshot;
+    private bool _mediaGeometryRefreshPending;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -84,7 +88,9 @@ public sealed partial class OverlayWindow : Window
         DragActivationCallbacks dragCallbacks,
         Action openMainWindow,
         ILogger<OverlayWindow> logger,
-        SystemVisualPreferenceService visualPreferences)
+        SystemVisualPreferenceService visualPreferences,
+        DropSpace.Core.Island.IslandExperienceCoordinator experience,
+        MediaViewModel mediaViewModel)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -96,6 +102,7 @@ public sealed partial class OverlayWindow : Window
         _dragDropService = dragDropService;
         _quickActionDialog = quickActionDialog;
         _visualPreferences = visualPreferences;
+        _experience = experience; _mediaViewModel = mediaViewModel;
         _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
         _animationTimerHandler = OnAnimationFrame;
         _animationTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
@@ -113,6 +120,8 @@ public sealed partial class OverlayWindow : Window
 
         XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
+        MusicCompact.ViewModel = mediaViewModel;
+        MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
         _materialController = new OverlayMaterialController(
             AcrylicBackdrop,
             FallbackSurface,
@@ -363,6 +372,17 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
+        _presentationSnapshot = snapshot;
+        var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
+        MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
+        FileCompactContent.Visibility = mediaCompact ? Visibility.Collapsed : Visibility.Visible;
+        var mediaScale = _mediaViewModel.Settings.IslandAppearance.CompactScale;
+        CompactPanel.Padding = new Thickness(mediaCompact ? 14 * mediaScale : 18, 0, mediaCompact ? 14 * mediaScale : 18, 0);
+        MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
+        MusicCompact.Height = MusicCompact.IdealIslandHeight;
+        MusicCompact.HorizontalAlignment = HorizontalAlignment.Center;
+        MusicCompact.RenderTransformOrigin = new Point(0.5, 0.5);
+        MusicCompact.RenderTransform = new ScaleTransform { ScaleX = mediaScale, ScaleY = mediaScale };
         if (_suppressedForPlacementEdit)
         {
             HideImmediately();
@@ -435,6 +455,11 @@ public sealed partial class OverlayWindow : Window
 
         var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
+        if (mediaCompact && snapshot.State == OverlayState.Compact)
+        {
+            var geometry = DropSpace.Core.Island.IslandGeometry.ForMusicCompact(MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight, mediaScale);
+            target = Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0);
+        }
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
         PrepareContentForTarget(target);
@@ -462,7 +487,21 @@ public sealed partial class OverlayWindow : Window
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
         _motion.Dispose();
         _materialController.Dispose();
+        MusicCompact.IdealWidthChanged -= OnMediaGeometryChanged;
+        _presentationSnapshot = null;
         Close();
+    }
+
+    private void OnMediaGeometryChanged(object? sender, EventArgs args)
+    {
+        if (_mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+        _mediaGeometryRefreshPending = true;
+        DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+        {
+            _mediaGeometryRefreshPending = false;
+            if (_presentationSnapshot is not { } snapshot) return;
+            ApplySnapshot(snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
+        });
     }
 
     private void EnsureVisualHostShown(bool allowActivation)
@@ -767,10 +806,10 @@ public sealed partial class OverlayWindow : Window
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
     {
         _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
-        if (_viewModel.Snapshot.State != OverlayState.Hidden)
+        if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
         {
             ApplySnapshot(
-                _viewModel.Snapshot,
+                snapshot,
                 _isActiveWindow,
                 _isActiveWindow,
                 _viewModel.FileDragWakeMode,
@@ -1180,7 +1219,8 @@ public sealed partial class OverlayWindow : Window
     {
         try
         {
-            await _viewModel.ExpandAsync();
+            if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music) _experience.Open(DropSpace.Core.Island.IslandPage.Music);
+            else await _viewModel.ExpandAsync();
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
             {
                 LogNativeFailure(noActivateFailure);
@@ -1194,11 +1234,12 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
-    private void OnCollapseClicked(object sender, RoutedEventArgs args) => _viewModel.Collapse();
+    private void OnCollapseClicked(object sender, RoutedEventArgs args) { _experience.Collapse(); _viewModel.Collapse(); }
 
     private void OnOpenMainWindowClicked(object sender, RoutedEventArgs args)
     {
         _openMainWindow();
+        _experience.Collapse();
         _viewModel.Collapse();
     }
 

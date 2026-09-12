@@ -79,6 +79,22 @@ Test data override is only honored alongside `--test-mode` via
 
 ## Build notes
 
+## Phase 5 — Compact media
+
+Owned SMTC/lyrics/artwork/process-audio presentation now drives a measured compact
+surface. Presence policy separates media, file, manual and transient state; widgets
+cannot keep the island alive. Monotonic playback interpolation handles players that
+return the Windows epoch and zero timeline without jumping to the final lyric.
+Core regression cases cover unavailable/native timelines, track changes, pause,
+resume, grace expiry, page retention and widget-only hidden state.
+
+Native same-track comparison with installed WinIsland 1.3.3 and NetEase passed:
+both showed the same current lyric, with real process audio bars. Pause returned
+both islands to hidden. Evidence: `artifacts/preview24/compact-clock-fixed.png` and
+`compact-paused-hidden.png`. NetEase exposes no valid SMTC position on this host;
+position is estimated from observed track start, so mid-track attachment and seeks
+cannot be claimed precise. Expanded pages and remaining acceptance gates are open.
+
 Use the checked-in CI commands. A build with an explicit global `RuntimeIdentifier=win-x64`
 can regenerate Core/Infrastructure lock files with RID sections; rerun ordinary solution
 restore before locked solution restore. Do not commit that incidental lockfile churn.

@@ -35,6 +35,7 @@ public partial class App : Application
     private ServiceProvider? _services;
     private MainWindow? _window;
     private OverlayWindowService? _overlayWindows;
+    private Services.Media.MediaExperienceService? _mediaExperience;
     private AppInstance? _mainInstance;
     private readonly object _shutdownSync = new();
     private Task? _shutdownTask;
@@ -228,6 +229,8 @@ public partial class App : Application
                 _window.InitializeTray(_services.GetRequiredService<ILogger<NativeTrayService>>());
                 _overlayWindows = _services.GetRequiredService<OverlayWindowService>();
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
+                _mediaExperience = _services.GetRequiredService<Services.Media.MediaExperienceService>();
+                await _mediaExperience.InitializeAsync(viewModel.Settings);
                 _services.GetRequiredService<MaintenanceShutdownService>().MarkReady();
                 if (isShellActivation)
                 {
@@ -346,6 +349,9 @@ public partial class App : Application
             await CleanupAsync("startup update", () => _startupUpdateTask);
 
         var overlay = _overlayWindows;
+        if (_mediaExperience is { } mediaExperience)
+            await CleanupAsync("media presentation", () => mediaExperience.DisposeAsync().AsTask());
+        _mediaExperience = null;
         _overlayWindows = null;
         await CleanupAsync("overlay windows", () =>
         {
@@ -523,6 +529,14 @@ public partial class App : Application
             provider.GetRequiredService<IAppStringLocalizer>(),
             provider.GetRequiredService<ILogger<UpdateService>>()));
         services.AddSingleton<OverlayStateMachine>();
+        services.AddSingleton<DropSpace.Core.Island.IslandExperienceCoordinator>();
+        services.AddSingleton<Services.Media.WindowsMediaSessionService>();
+        services.AddSingleton<DropSpace.Core.Media.IMediaSessionService>(provider => provider.GetRequiredService<Services.Media.WindowsMediaSessionService>());
+        services.AddSingleton<Services.Audio.WindowsProcessLoopbackService>();
+        services.AddSingleton<Services.Media.MediaProcessResolver>();
+        services.AddSingleton<Services.Media.MediaArtworkService>();
+        services.AddSingleton<MediaViewModel>();
+        services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();
         services.AddSingleton<ForegroundWindowMonitor>();

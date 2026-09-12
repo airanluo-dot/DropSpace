@@ -23,6 +23,8 @@ public sealed class OverlayWindowService : IDisposable
     private readonly IWindowsCapabilityService _capabilities;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly OverlayStateMachine _stateMachine;
+    private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
+    private readonly MediaViewModel _mediaViewModel;
     private readonly OleDragDropService _dragDropService;
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
@@ -60,7 +62,9 @@ public sealed class OverlayWindowService : IDisposable
         DispatcherQueue dispatcher,
         ILoggerFactory loggerFactory,
         CrashDiagnosticsService crashDiagnostics,
-        SystemVisualPreferenceService visualPreferences)
+        SystemVisualPreferenceService visualPreferences,
+        DropSpace.Core.Island.IslandExperienceCoordinator experience,
+        MediaViewModel mediaViewModel)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -78,6 +82,7 @@ public sealed class OverlayWindowService : IDisposable
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
         _crashDiagnostics = crashDiagnostics;
         _visualPreferences = visualPreferences;
+        _experience = experience; _mediaViewModel = mediaViewModel;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -95,6 +100,7 @@ public sealed class OverlayWindowService : IDisposable
             ?? throw new InvalidOperationException("No primary monitor was available after creating overlay surfaces.");
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
+        _experience.Changed += OnExperienceChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
         _mainViewModel.PropertyChanged += OnMainSettingsChanged;
@@ -517,6 +523,7 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
+        _experience.Changed -= OnExperienceChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
         _mainViewModel.PropertyChanged -= OnMainSettingsChanged;
@@ -560,6 +567,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot)
     {
+        _experience.UpdateFiles(snapshot);
         _logger.LogInformation(
             "Overlay state transition: {State}, temporary item count {TemporaryItemCount}, monitor {MonitorId}, revision {Revision}, cause {Cause}, motion {MotionPreference}.",
             snapshot.State,
@@ -572,6 +580,8 @@ public sealed class OverlayWindowService : IDisposable
     }
 
     private void OnForegroundChanged(object? sender, EventArgs args) => ApplySnapshot(_viewModel.Snapshot);
+
+    private void OnExperienceChanged(object? sender, DropSpace.Core.Island.IslandExperienceSnapshot snapshot) => ApplySnapshot(_viewModel.Snapshot);
 
     private void OnMainSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -799,12 +809,14 @@ public sealed class OverlayWindowService : IDisposable
             _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
             _activeSmartSessionId = 0;
             _stateMachine.OpenQuickPanel();
+            _experience.Open();
             _logger.LogInformation("Quick Panel opened from the registered global hotkey.");
         });
     }
 
     private void ApplySnapshot(OverlaySnapshot snapshot)
     {
+        snapshot = snapshot with { State = _experience.Current.State };
         if (_primaryMonitor is null)
         {
             return;
@@ -862,7 +874,9 @@ public sealed class OverlayWindowService : IDisposable
                 visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
                 _loggerFactory.CreateLogger<OverlayWindow>(),
-                _visualPreferences);
+                _visualPreferences,
+                _experience,
+                _mediaViewModel);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementCancelled += OnPlacementCancelled;

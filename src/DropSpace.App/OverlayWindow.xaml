@@ -7,6 +7,7 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:controls="using:Microsoft.UI.Xaml.Controls"
   xmlns:services="using:DropSpace.App.Services"
+  xmlns:island="using:DropSpace.App.Views.Island"
 
   mc:Ignorable="d">
   <Grid
@@ -65,7 +66,9 @@
           Background="Transparent"
           BorderThickness="0"
           Click="OnCompactClicked">
-          <Grid ColumnSpacing="12">
+          <Grid>
+          <island:MediaCompactView x:Name="MusicCompact" Visibility="Collapsed" />
+          <Grid x:Name="FileCompactContent" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="36" />
               <ColumnDefinition Width="*" />
@@ -84,6 +87,7 @@
               <TextBlock x:Name="CompactSubtitleText" services:XamlResourceOverride.Uid="OverlayCompactSubtitle" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" />
             </StackPanel>
             <FontIcon Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Glyph="&#xE70D;" />
+          </Grid>
           </Grid>
         </Button>
 
