@@ -29,6 +29,24 @@ resource without an `en-US` satellite. These are test-host localization warnings
 not shipped App resource failures; the native test executed successfully and App
 localization parity passed. Retain this distinction in final validation.
 
+## Process loopback checkpoint
+
+The new dedicated MTA adapter activates Windows process loopback for a resolved
+SMTC process, consumes real stereo PCM and computes six Hann-windowed FFT bands.
+Capture stops and drains on pause/source removal. Process identity resolution is
+bounded and refuses ambiguous matches. Activation parameters survive cancellation
+until the asynchronous Windows callback completes.
+
+Real Windows native tests passed (2/2, 629 ms): SMTC enable/disable/re-enable and
+WinMM-rendered quiet test tone captured through WASAPI, nonuniform FFT bands,
+pause, restart and stop. Test evidence: `preview24-media-native.trx` under the App
+test project's ignored TestResults directory. COM completion interfaces must be
+public and COM-visible so Windows can query their agility; the original private
+CCW returned E_ILLEGAL_METHOD_CALL and was fixed, not bypassed.
+
+This checkpoint does not yet establish identity resolution or music capture for
+an external player, which remains a required end-to-end gate.
+
 ## Build notes
 
 Use the checked-in CI commands. A build with an explicit global `RuntimeIdentifier=win-x64`
