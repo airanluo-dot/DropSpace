@@ -460,4 +460,18 @@
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>未能完整恢复原设置。请重启 DropSpace 后再修改设置。诊断编号：{1}。</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>恢复设置</value></data>
   <data name="MediaControlFailed" xml:space="preserve"><value>播放器未能完成此操作，请重试。</value></data>
+  <data name="MediaNoSession.Text" xml:space="preserve"><value>在支持的播放器中播放音乐，即可在这里查看。</value></data>
+  <data name="WidgetClock.Text" xml:space="preserve"><value>时钟</value></data>
+  <data name="WidgetCalendar.Text" xml:space="preserve"><value>日历</value></data>
+  <data name="MediaPlayLabel" xml:space="preserve"><value>播放</value></data>
+  <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一个灵动岛页面</value></data>
+  <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一首</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>估算进度。此播放器未提供可靠时间轴，暂不支持拖动进度。</value></data>
+  <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一个灵动岛页面</value></data>
+  <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一首</value></data>
+  <data name="MediaPauseLabel" xml:space="preserve"><value>暂停</value></data>
+  <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开设置</value></data>
+  <data name="WidgetsEmpty.Text" xml:space="preserve"><value>在设置中选择小组件，组成这个页面。</value></data>
+  <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>播放进度</value></data>
+  <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>资源使用</value></data>
 </root>

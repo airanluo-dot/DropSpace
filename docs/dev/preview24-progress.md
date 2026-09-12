@@ -103,6 +103,24 @@ allowed fetch/clone without changing repository or global proxy configuration.
 
 ## Required remaining order
 
+## Phase 6 — Independent expanded pages
+
+The existing Files panel is preserved inside a three-page shell with non-wrapping
+side rails. Music renders real artwork, metadata, controls, spectrum and timeline
+capabilities. Widgets renders the saved 6 by 3 layout with visible-only native
+clock/calendar/CPU/memory sampling. Playback changes preserve the selected page;
+drag temporarily exposes Files. Paused Quick Panel defaults to Files.
+
+Native UI Automation and screenshots verified Files -> Music -> Widgets, live
+resource values, and Widgets remaining selected after pause. Same-track artwork
+now refreshes on subsequent metadata events instead of caching an early thumbnail.
+Evidence: `expanded-music.png`, `expanded-widgets.png`, `compact-artwork-fixed.png`.
+The full existing Windows smoke passed again (`expanded-native-smoke.json`):
+1,000 lifecycle and geometry cycles, zero region failures, drag/drop, 200 record
+removals with source preservation, clipboard pause/resume, stable resource plateau
+and no idle frame loop. Five presence/page regression tests pass. Final scale,
+accessibility and release gates remain open.
+
 Lyrics backend: separate NetEase/QQ/Kugou/LRCLIB/AMLL/local adapters, bounded HTTP,
 LRC/YRC/TTML parsing, matching, word timeline and memory cache are implemented.
 Live adapter smoke on this host returned 50/14/14/49/54 timed lines respectively;

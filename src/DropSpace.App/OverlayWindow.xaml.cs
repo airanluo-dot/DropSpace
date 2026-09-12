@@ -74,6 +74,7 @@ public sealed partial class OverlayWindow : Window
     private bool _nativeWindowShown;
     private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
     private readonly MediaViewModel _mediaViewModel;
+    private readonly WidgetViewModel _widgetViewModel;
     private OverlaySnapshot? _presentationSnapshot;
     private bool _mediaGeometryRefreshPending;
 
@@ -90,9 +91,11 @@ public sealed partial class OverlayWindow : Window
         ILogger<OverlayWindow> logger,
         SystemVisualPreferenceService visualPreferences,
         DropSpace.Core.Island.IslandExperienceCoordinator experience,
-        MediaViewModel mediaViewModel)
+        MediaViewModel mediaViewModel,
+        WidgetViewModel widgetViewModel)
     {
         _viewModel = viewModel;
+        _widgetViewModel = widgetViewModel;
         _strings = strings;
         _monitor = monitor;
         _monitorLayout = monitorLayout;
@@ -121,6 +124,8 @@ public sealed partial class OverlayWindow : Window
         XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
         MusicCompact.ViewModel = mediaViewModel;
+        MusicExpanded.ViewModel = mediaViewModel;
+        WidgetsExpanded.ViewModel = widgetViewModel;
         MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
         _materialController = new OverlayMaterialController(
             AcrylicBackdrop,
@@ -373,6 +378,13 @@ public sealed partial class OverlayWindow : Window
         OverlayMonitorPlacement placement)
     {
         _presentationSnapshot = snapshot;
+        var page = _experience.Current.Page;
+        FilesExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Visible : Visibility.Collapsed;
+        MusicExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Music ? Visibility.Visible : Visibility.Collapsed;
+        WidgetsExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Visible : Visibility.Collapsed;
+        PreviousPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
+        NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Collapsed : Visibility.Visible;
+        OtherPageCollapse.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
         var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
         FileCompactContent.Visibility = mediaCompact ? Visibility.Collapsed : Visibility.Visible;
@@ -462,6 +474,7 @@ public sealed partial class OverlayWindow : Window
         }
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
+        WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
         PrepareContentForTarget(target);
         if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
         {
@@ -489,6 +502,7 @@ public sealed partial class OverlayWindow : Window
         _materialController.Dispose();
         MusicCompact.IdealWidthChanged -= OnMediaGeometryChanged;
         _presentationSnapshot = null;
+        WidgetsExpanded.SetActive(false);
         Close();
     }
 
@@ -568,6 +582,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        WidgetsExpanded.SetActive(false);
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
@@ -589,6 +604,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        WidgetsExpanded.SetActive(false);
         _nativeWindowSafeToShow = false;
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
@@ -614,6 +630,7 @@ public sealed partial class OverlayWindow : Window
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
+        WidgetsExpanded.SetActive(false);
         if (!_suppressedForFullscreen)
         {
             _logger.LogInformation(
@@ -1235,6 +1252,22 @@ public sealed partial class OverlayWindow : Window
     }
 
     private void OnCollapseClicked(object sender, RoutedEventArgs args) { _experience.Collapse(); _viewModel.Collapse(); }
+
+    private void OnPreviousPageClicked(object sender, RoutedEventArgs args)
+    {
+        if (_experience.Current.Page > DropSpace.Core.Island.IslandPage.Files)
+            _experience.SelectPage(_experience.Current.Page - 1);
+    }
+    private void OnNextPageClicked(object sender, RoutedEventArgs args)
+    {
+        if (_experience.Current.Page < DropSpace.Core.Island.IslandPage.Widgets)
+            _experience.SelectPage(_experience.Current.Page + 1);
+    }
+    private async void OnWidgetSettingsRequested(object? sender, EventArgs args)
+    {
+        try { await _widgetViewModel.OpenSettingsAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        catch (Exception exception) { _logger.LogWarning("Widget settings navigation failed ({Category}).", exception.GetType().Name); }
+    }
 
     private void OnOpenMainWindowClicked(object sender, RoutedEventArgs args)
     {

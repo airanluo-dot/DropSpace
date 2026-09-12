@@ -24,6 +24,6 @@ public static class IslandPresencePolicy
             media ? IslandContentKind.Music : files || input.ManualOpen ? IslandContentKind.Files : IslandContentKind.None;
         var state = dragging ? input.Files.State : content == IslandContentKind.None ? OverlayState.Hidden :
             !notification && !volume && (input.Expanded || input.ManualOpen) ? OverlayState.Expanded : OverlayState.Compact;
-        return new(state, content, input.Page, media, next, revision);
+        return new(state, content, dragging ? IslandPage.Files : input.Page, media, next, revision);
     }
 }

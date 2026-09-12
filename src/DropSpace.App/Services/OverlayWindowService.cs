@@ -25,6 +25,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly OverlayStateMachine _stateMachine;
     private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
     private readonly MediaViewModel _mediaViewModel;
+    private readonly WidgetViewModel _widgetViewModel;
     private readonly OleDragDropService _dragDropService;
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
@@ -64,7 +65,8 @@ public sealed class OverlayWindowService : IDisposable
         CrashDiagnosticsService crashDiagnostics,
         SystemVisualPreferenceService visualPreferences,
         DropSpace.Core.Island.IslandExperienceCoordinator experience,
-        MediaViewModel mediaViewModel)
+        MediaViewModel mediaViewModel,
+        WidgetViewModel widgetViewModel)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -83,6 +85,7 @@ public sealed class OverlayWindowService : IDisposable
         _crashDiagnostics = crashDiagnostics;
         _visualPreferences = visualPreferences;
         _experience = experience; _mediaViewModel = mediaViewModel;
+        _widgetViewModel = widgetViewModel;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -876,7 +879,8 @@ public sealed class OverlayWindowService : IDisposable
                 _loggerFactory.CreateLogger<OverlayWindow>(),
                 _visualPreferences,
                 _experience,
-                _mediaViewModel);
+                _mediaViewModel,
+                _widgetViewModel);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementCancelled += OnPlacementCancelled;

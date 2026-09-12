@@ -57,6 +57,36 @@ public sealed class IslandPresencePolicyTests
         Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
     }
 
+    [TestMethod]
+    public void DragTemporarilyShowsFilesAndPlaybackDoesNotStealChosenPage()
+    {
+        var time = new ManualTime();
+        var coordinator = new IslandExperienceCoordinator(time);
+        coordinator.Open(IslandPage.Widgets);
+        coordinator.UpdateMedia(true, true, 3000);
+        Assert.AreEqual(IslandPage.Widgets, coordinator.Current.Page);
+        coordinator.UpdateFiles(new(OverlayState.Expanded, 0, true, 1));
+        Assert.AreEqual(IslandPage.Files, coordinator.Current.Page);
+        coordinator.UpdateFiles(new(OverlayState.Hidden, 0, false, 2));
+        Assert.AreEqual(IslandPage.Widgets, coordinator.Current.Page);
+        coordinator.UpdateMedia(false, true, 3000);
+        time.Now += TimeSpan.FromSeconds(4); coordinator.Reconcile();
+        Assert.AreEqual(IslandPage.Widgets, coordinator.Current.Page);
+        Assert.AreEqual(OverlayState.Expanded, coordinator.Current.State);
+    }
+
+    [TestMethod]
+    public void ManualQuickPanelDefaultsToFilesDuringPausedGrace()
+    {
+        var coordinator = new IslandExperienceCoordinator(new ManualTime());
+        coordinator.UpdateMedia(true, true, 3000);
+        coordinator.Open();
+        Assert.AreEqual(IslandPage.Music, coordinator.Current.Page);
+        coordinator.Collapse(); coordinator.UpdateMedia(false, true, 3000);
+        coordinator.Open();
+        Assert.AreEqual(IslandPage.Files, coordinator.Current.Page);
+    }
+
     private sealed class ManualTime : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = new(2026, 9, 12, 0, 0, 0, TimeSpan.Zero);

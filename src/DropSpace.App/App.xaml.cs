@@ -536,6 +536,8 @@ public partial class App : Application
         services.AddSingleton<Services.Media.MediaProcessResolver>();
         services.AddSingleton<Services.Media.MediaArtworkService>();
         services.AddSingleton<MediaViewModel>();
+        services.AddSingleton<Services.Widgets.NativeWidgetDataService>();
+        services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();

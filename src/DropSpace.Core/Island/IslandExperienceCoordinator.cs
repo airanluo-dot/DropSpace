@@ -38,7 +38,7 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
 
     public void Open(IslandPage? page = null)
     {
-        _page = page ?? (Current.MediaPresent ? IslandPage.Music : IslandPage.Files);
+        _page = page ?? (_playing ? IslandPage.Music : IslandPage.Files);
         _manual = true; _expanded = true; Reconcile();
     }
     public void SelectPage(IslandPage page)

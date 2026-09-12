@@ -111,7 +111,11 @@
             Text="{Binding DragSubtitle}" />
         </StackPanel>
 
-        <Grid x:Name="ExpandedPanel" Padding="18,14,18,16" Opacity="0" Visibility="Collapsed">
+        <Grid x:Name="ExpandedPanel" Opacity="0" Visibility="Collapsed">
+        <island:MediaExpandedView x:Name="MusicExpanded" Margin="18,0" Visibility="Collapsed"/>
+        <island:WidgetsExpandedView x:Name="WidgetsExpanded" Margin="18,0" Visibility="Collapsed" SettingsRequested="OnWidgetSettingsRequested"/>
+        <Button x:Name="OtherPageCollapse" services:XamlResourceOverride.Uid="OverlayCollapseButton" HorizontalAlignment="Right" VerticalAlignment="Top" Width="34" Height="34" Margin="0,4,22,0" Background="Transparent" BorderThickness="0" Click="OnCollapseClicked"><FontIcon Glyph="&#xE70E;"/></Button>
+        <Grid x:Name="FilesExpanded" Padding="18,14,18,16">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -253,6 +257,10 @@
             <TextBlock x:Name="RemoveHintText" services:XamlResourceOverride.Uid="OverlayRemoveHint" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DropSpaceOverlayForegroundDisabledBrush}" />
             <Button x:Name="OpenMainButton" services:XamlResourceOverride.Uid="OverlayOpenMainButton" Grid.Column="1" Click="OnOpenMainWindowClicked" />
           </Grid>
+        </Grid>
+
+        <Button x:Name="PreviousPageRail" services:XamlResourceOverride.Uid="IslandPreviousPage" Width="22" Height="100" HorizontalAlignment="Left" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="8,0" Click="OnPreviousPageClicked"><Border Width="4" Height="38" CornerRadius="2" Background="{ThemeResource TextFillColorSecondaryBrush}"/></Button>
+        <Button x:Name="NextPageRail" services:XamlResourceOverride.Uid="IslandNextPage" Width="22" Height="100" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="8,0" Click="OnNextPageClicked"><Border Width="4" Height="38" CornerRadius="2" Background="{ThemeResource TextFillColorSecondaryBrush}"/></Button>
         </Grid>
 
         <Border

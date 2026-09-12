@@ -20,12 +20,14 @@ public sealed class MediaViewModel : ObservableObject
     private string _controlError = string.Empty;
     private bool _isReducedMotion;
     private bool _positionEstimated = true;
+    private readonly IAppStringLocalizer _strings;
     public MediaViewModel(IMediaSessionService media, IAppStringLocalizer strings, ILogger<MediaViewModel> logger)
     {
+        _strings = strings;
         PlayPauseCommand = new AsyncRelayCommand(token => Execute(() => media.PlayPauseAsync(token)), () => Session.CanPlay || Session.CanPause);
         PreviousCommand = new AsyncRelayCommand(token => Execute(() => media.SkipPreviousAsync(token)), () => Session.CanSkipPrevious);
         NextCommand = new AsyncRelayCommand(token => Execute(() => media.SkipNextAsync(token)), () => Session.CanSkipNext);
-        SeekCommand = new AsyncRelayCommand<double?>(value => Execute(async () => { if (value is { } seconds && double.IsFinite(seconds)) await media.SeekAsync(TimeSpan.FromSeconds(seconds)); }), _ => Session.CanSeek);
+        SeekCommand = new AsyncRelayCommand<double?>(value => Execute(async () => { if (value is { } seconds && double.IsFinite(seconds)) await media.SeekAsync(Session.Timeline.Start + TimeSpan.FromSeconds(seconds)); }), _ => Session.CanSeek && !PositionEstimated);
         async Task Execute(Func<Task> action)
         {
             try { ControlError = string.Empty; await action(); }
@@ -39,7 +41,7 @@ public sealed class MediaViewModel : ObservableObject
     }
     public string ControlError { get => _controlError; private set => SetProperty(ref _controlError, value); }
     public bool IsReducedMotion { get => _isReducedMotion; internal set => SetProperty(ref _isReducedMotion, value); }
-    public bool PositionEstimated { get => _positionEstimated; internal set => SetProperty(ref _positionEstimated, value); }
+    public bool PositionEstimated { get => _positionEstimated; internal set { if (SetProperty(ref _positionEstimated, value)) OnPropertyChanged(nameof(TimelineStatus)); } }
     public MediaSessionSnapshot Session
     {
         get => _session;
@@ -48,6 +50,7 @@ public sealed class MediaViewModel : ObservableObject
             if (!SetProperty(ref _session, value)) return;
             OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
+            OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus));
             PlayPauseCommand.NotifyCanExecuteChanged(); PreviousCommand.NotifyCanExecuteChanged(); NextCommand.NotifyCanExecuteChanged(); SeekCommand.NotifyCanExecuteChanged();
         }
     }
@@ -70,13 +73,16 @@ public sealed class MediaViewModel : ObservableObject
     }
     public string Title => Session.TrackTitle;
     public string Artist => Session.Artist;
+    public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
+    public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
     public string CurrentLyricText => Lyrics.Line?.Text ?? Title;
     public bool IsPlaying => Session.PlaybackState == MediaPlaybackState.Playing;
     public string PlaybackGlyph => IsPlaying ? "\uE769" : "\uE768";
-    public double PositionSeconds => Position.TotalSeconds;
+    public double PositionSeconds => Math.Max(0, (Position - Session.Timeline.Start).TotalSeconds);
     public double DurationSeconds => Math.Max(1, Session.Timeline.Duration.TotalSeconds);
     public string ElapsedText => FormatTime(Position - Session.Timeline.Start);
-    public string RemainingText => "-" + FormatTime(Session.Timeline.End - Position);
+    public string RemainingText => Session.Timeline.Duration > TimeSpan.Zero ? "-" + FormatTime(Session.Timeline.End - Position) : "—";
     public IAsyncRelayCommand PlayPauseCommand { get; }
     public IAsyncRelayCommand PreviousCommand { get; }
     public IAsyncRelayCommand NextCommand { get; }

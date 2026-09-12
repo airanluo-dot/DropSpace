@@ -460,4 +460,18 @@ Nothing will be opened automatically.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>Previous settings could not be fully restored. Restart DropSpace before changing settings again. Diagnostic ID: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Restore settings</value></data>
   <data name="MediaControlFailed" xml:space="preserve"><value>The player could not complete this action. Try again.</value></data>
+  <data name="MediaNoSession.Text" xml:space="preserve"><value>Play music in a supported player to see it here.</value></data>
+  <data name="WidgetClock.Text" xml:space="preserve"><value>Clock</value></data>
+  <data name="WidgetCalendar.Text" xml:space="preserve"><value>Calendar</value></data>
+  <data name="MediaPlayLabel" xml:space="preserve"><value>Play</value></data>
+  <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next island page</value></data>
+  <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous track</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>Estimated position. This player does not provide a reliable timeline; seeking is unavailable.</value></data>
+  <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous island page</value></data>
+  <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next track</value></data>
+  <data name="MediaPauseLabel" xml:space="preserve"><value>Pause</value></data>
+  <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open settings</value></data>
+  <data name="WidgetsEmpty.Text" xml:space="preserve"><value>Choose widgets in Settings to build this page.</value></data>
+  <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Playback position</value></data>
+  <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Resources</value></data>
 </root>

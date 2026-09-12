@@ -23,6 +23,8 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private bool _disposed;
     private MediaSessionSnapshot _current = MediaSessionSnapshot.Empty;
     private string[] _allowedSources = [];
+    private long _metadataRevision;
+    private long _artworkRevision = -1;
 
     public event EventHandler<MediaSessionSnapshot>? Changed;
     public MediaSessionSnapshot Current => Volatile.Read(ref _current);
@@ -76,30 +78,35 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     public Task PlayPauseAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
     {
         if (Current.PlaybackState == MediaPlaybackState.Playing)
-        { if (Current.CanPause) await session.TryPauseAsync().AsTask(token).ConfigureAwait(false); }
-        else if (Current.CanPlay) await session.TryPlayAsync().AsTask(token).ConfigureAwait(false);
+        { EnsureAccepted(Current.CanPause && await session.TryPauseAsync().AsTask(token).ConfigureAwait(false)); }
+        else EnsureAccepted(Current.CanPlay && await session.TryPlayAsync().AsTask(token).ConfigureAwait(false));
     }, cancellationToken);
 
     public Task SkipNextAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    { if (Current.CanSkipNext) await session.TrySkipNextAsync().AsTask(token).ConfigureAwait(false); }, cancellationToken);
+    { EnsureAccepted(Current.CanSkipNext && await session.TrySkipNextAsync().AsTask(token).ConfigureAwait(false)); }, cancellationToken);
 
     public Task SkipPreviousAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    { if (Current.CanSkipPrevious) await session.TrySkipPreviousAsync().AsTask(token).ConfigureAwait(false); }, cancellationToken);
+    { EnsureAccepted(Current.CanSkipPrevious && await session.TrySkipPreviousAsync().AsTask(token).ConfigureAwait(false)); }, cancellationToken);
 
     public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
     {
-        if (!Current.CanSeek) return;
+        EnsureAccepted(Current.CanSeek);
         var timeline = Current.Timeline;
         var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
-        await session.TryChangePlaybackPositionAsync(ticks).AsTask(token).ConfigureAwait(false);
+        EnsureAccepted(await session.TryChangePlaybackPositionAsync(ticks).AsTask(token).ConfigureAwait(false));
     }, cancellationToken);
+
+    private static void EnsureAccepted(bool accepted)
+    {
+        if (!accepted) throw new InvalidOperationException("The media session rejected the requested control.");
+    }
 
     private async Task ControlAsync(Func<GlobalSystemMediaTransportControlsSession, CancellationToken, Task> action, CancellationToken token)
     {
         await _sessionGate.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            if (_session is null || _lifetime is null) return;
+            if (_session is null || _lifetime is null) throw new InvalidOperationException("No media session is available.");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
             timeout.CancelAfter(OperationTimeout);
             await action(_session, timeout.Token).ConfigureAwait(false);
@@ -159,6 +166,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             }
         }
         if (selected is null) return MediaSessionSnapshot.Empty;
+        var metadataRevision = Interlocked.Read(ref _metadataRevision);
         var properties = await selected.TryGetMediaPropertiesAsync().AsTask(token).ConfigureAwait(false);
         var playback = selected.GetPlaybackInfo();
         var timeline = selected.GetTimelineProperties();
@@ -168,7 +176,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         var album = Bound(properties.AlbumTitle);
         var previous = Current;
         var sameTrack = previous.SourceAppUserModelId == source && previous.TrackTitle == title && previous.Artist == artist && previous.AlbumTitle == album;
-        var artwork = sameTrack && previous.Artwork is not null ? previous.Artwork : await ReadArtworkAsync(properties.Thumbnail, token).ConfigureAwait(false);
+        // Players can deliver the new title before its thumbnail. Metadata events
+        // invalidate artwork even when the track key has not changed.
+        var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
+            ? previous.Artwork : await ReadArtworkAsync(properties.Thumbnail, token).ConfigureAwait(false);
+        if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
+        _artworkRevision = metadataRevision;
         return new(source, source, FriendlyName(source), title, artist, album, artwork,
             playback.PlaybackStatus switch
             {
@@ -244,7 +257,8 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private void RequestRefresh() => _refresh?.Writer.TryWrite(true);
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) => RequestRefresh();
     private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args) => RequestRefresh();
-    private void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args) => RequestRefresh();
+    private void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
+    { Interlocked.Increment(ref _metadataRevision); RequestRefresh(); }
     private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args) => RequestRefresh();
     private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args) => RequestRefresh();
     private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or IOException;
