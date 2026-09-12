@@ -13,7 +13,7 @@ Preserve the pre-existing untracked `.codex/environments/` configuration.
 
 - `13491f6`: SDK 10.0.401 in global.json, CI and release workflow. Solution restore passed.
 - Baseline Release WinUI build passed on this Windows host: 0 warnings, 0 errors.
-- Phase 1 in progress: build 20348, settings schema 14 and migration coverage.
+- `67c917a`: build 20348, settings schema 14 and migration coverage. Release/Debug WinUI builds: zero warnings/errors. Migration/concurrency: 7 passed; Core compatibility/settings: 19 passed. Compatibility and localization gates passed.
 - No Preview.24 release has been prepared, pushed or published.
 
 ## Build notes
