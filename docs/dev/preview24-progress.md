@@ -39,6 +39,13 @@ allowed fetch/clone without changing repository or global proxy configuration.
 
 ## Required remaining order
 
+Lyrics backend: separate NetEase/QQ/Kugou/LRCLIB/AMLL/local adapters, bounded HTTP,
+LRC/YRC/TTML parsing, matching, word timeline and memory cache are implemented.
+Live adapter smoke on this host returned 50/14/14/49/54 timed lines respectively;
+AMLL returned 405 word timings. This proves provider retrieval/parsing, not yet
+same-player visual synchronization with WinIsland. Offline LRC/YRC/TTML/timeline,
+local metadata matching and edited-file reread smoke passed. No lyrics are logged.
+
 1. Finish platform/schema validation and checkpoint.
 2. Audit pinned WinIsland and Microsoft/Files/EarTrumpet sources; record parity and license boundaries.
 3. Backend checkpoints: SMTC, lyrics providers/matching, process loopback/FFT, system observers, widget data.
