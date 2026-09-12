@@ -16,6 +16,19 @@ Preserve the pre-existing untracked `.codex/environments/` configuration.
 - `67c917a`: build 20348, settings schema 14 and migration coverage. Release/Debug WinUI builds: zero warnings/errors. Migration/concurrency: 7 passed; Core compatibility/settings: 19 passed. Compatibility and localization gates passed.
 - No Preview.24 release has been prepared, pushed or published.
 
+## Media backend checkpoint
+
+SMTC service rebuilt with a one-slot coalescing event channel, serialized lifecycle,
+cancellable five-second reads, source selection, bounded metadata/artwork and drained
+shutdown. Release build passed with zero warnings/errors. Real Windows SMTC smoke
+passed: enable, observed snapshot, disable/drain, re-enable, disable. This does not
+yet prove playback controls or artwork against a playing app.
+
+The App test packaging emitted PRI257/PRI263 for MSTest's `zh-hans` satellite
+resource without an `en-US` satellite. These are test-host localization warnings,
+not shipped App resource failures; the native test executed successfully and App
+localization parity passed. Retain this distinction in final validation.
+
 ## Build notes
 
 Use the checked-in CI commands. A build with an explicit global `RuntimeIdentifier=win-x64`
