@@ -264,3 +264,12 @@ exception text.
 ## Preview.17 derived data and staging cleanup
 
 Preview cache has a 24-hour age, 64-entry/64 MiB total and 16 MiB serialized-entry limit. External references are not cached. Record finalization, Undo recovery, clipboard clear and retention invalidate derived previews; cache generations reject late writes after clearing. Locked-file cleanup is logged and retried, not represented as forensic secure erasure. Staged import cleans every admitted app-owned staging path after completion or cancellation, never an external source. Automatic cross-device propagation remains opt-in/event-driven and keeps at most 16 queued items plus one active send, with bounded image reads. No telemetry, account, new network endpoint or collection category is added.
+# Preview.24 notification observer
+
+Notification activities are off by default. Enabling the option checks Windows
+access without requesting permission automatically. The explicit permission action
+uses the Windows notification listener consent dialog. Only newly added events are
+read; existing notification history is not replayed. Source names, titles and bodies
+are length-bounded, transient in memory, and never written to logs or sent online.
+Disabling cancels and drains the listener. Unpackaged or permission-denied hosts
+report unavailable/denied instead of fabricating notification activity.

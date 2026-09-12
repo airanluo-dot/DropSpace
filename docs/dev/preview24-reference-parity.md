@@ -41,3 +41,15 @@ Source reading and supplied pictures are not a current executable comparison.
 WinIsland same-track lyric comparison, actual process-loopback capture, focused/unfocused
 material, media controls, interactive widget persistence and all Preview.21 native regression
 smokes remain open. No reference binary is included in DropSpace or its release assets.
+## Observer audit after the audio checkpoint
+
+Preview.23 notification code replayed the latest historical notification and used
+unowned refresh tasks. Preview.24 instead queues only Added IDs (32 pending),
+deduplicates 64 recent IDs, bounds text, and drains cancellation. The Windows API
+permission action remains explicit and is called on the UI thread per Microsoft
+UserNotificationListener documentation. Both identity manifests declare its capability.
+
+Preview.23 volume interop lacked reliable HRESULT declarations and device-change
+subscription; its lifecycle is not suitable for direct transplantation. Its widget
+service published a persistent WidgetIdle activity, so that service is rejected.
+Only reviewed platform field layouts can inform the new data adapters.
