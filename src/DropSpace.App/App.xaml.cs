@@ -154,7 +154,12 @@ public partial class App : Application
                 _services.GetRequiredService<DeviceHandoffUseCase>(),
                 _services.GetRequiredService<CrossDeviceClipboardService>(),
                 _services.GetRequiredService<DropLinkHost>(),
-                _services.GetRequiredService<SharingUseCase>());
+                _services.GetRequiredService<SharingUseCase>(),
+                _services.GetRequiredService<NativeSettingsEditor>(),
+                _services.GetRequiredService<MediaViewModel>(),
+                _services.GetRequiredService<Services.Media.WindowsMediaSessionService>(),
+                _services.GetRequiredService<Services.Media.MediaExperienceService>(),
+                _services.GetRequiredService<Services.Media.MediaApplicationIconService>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             if (!isStartupLaunch && !isShareActivation && !isShellActivation)
@@ -536,8 +541,12 @@ public partial class App : Application
         services.AddSingleton<Services.Media.MediaProcessResolver>();
         services.AddSingleton<Services.Media.MediaArtworkService>();
         services.AddSingleton<MediaViewModel>();
+        services.AddSingleton<NativeFolderPickerService>();
+        services.AddSingleton<NativeSettingsEditor>();
+        services.AddSingleton<Services.Media.MediaApplicationIconService>();
         services.AddSingleton<Services.Widgets.NativeWidgetDataService>();
         services.AddSingleton<WidgetViewModel>();
+        services.AddSingleton<ClipboardIslandViewModel>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();

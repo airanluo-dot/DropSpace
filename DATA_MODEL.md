@@ -10,7 +10,17 @@ Invalid native fields normalize independently instead of quarantining the whole 
 Whole-host material, widget idle keepalive and saved expanded-page state are not fields.
 Fresh defaults enable media/artwork/lyrics/FFT with NetEase lyrics and a 3-second
 pause delay; notifications and volume observation are off. The widget layout is
-6 by 3 with explicit compact slots; it carries no automatic visibility authority.
+8 columns by 4 rows with explicit compact slots; it carries no automatic visibility authority.
+Compact slots remain round-trippable for compatibility. The optional compact-widget
+feature from plan section 36.4 is not exposed; the editor controls the expanded grid.
+The September 12 user amendment supersedes the original 6 by 3 specification.
+Existing widget IDs 0–3 retain their meaning; Battery, Uptime, Stopwatch and
+ClipboardPause append IDs 4–7. Each widget has a bounded catalog of supported
+sizes. The editor rejects changes that cannot retain every existing widget.
+`IslandActivity.UseMediaSourceAllowList=true` with an empty list means no allowed
+players; false with an empty list means all players. This distinction survives restart.
+Clipboard island items remain references to canonical Clipboard source records;
+pinning changes state, and removing a record never deletes a source file.
 
 ## Modeling decision
 

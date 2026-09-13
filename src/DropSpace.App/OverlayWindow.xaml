@@ -114,6 +114,7 @@
         <Grid x:Name="ExpandedPanel" Opacity="0" Visibility="Collapsed">
         <island:MediaExpandedView x:Name="MusicExpanded" Margin="18,0" Visibility="Collapsed"/>
         <island:WidgetsExpandedView x:Name="WidgetsExpanded" Margin="18,0" Visibility="Collapsed" SettingsRequested="OnWidgetSettingsRequested"/>
+        <island:ClipboardIslandView x:Name="ClipboardExpanded" Margin="18,0" Visibility="Collapsed" OpenMainRequested="OnClipboardOpenMainRequested"/>
         <Button x:Name="OtherPageCollapse" services:XamlResourceOverride.Uid="OverlayCollapseButton" HorizontalAlignment="Right" VerticalAlignment="Top" Width="34" Height="34" Margin="0,4,22,0" Background="Transparent" BorderThickness="0" Click="OnCollapseClicked"><FontIcon Glyph="&#xE70E;"/></Button>
         <Grid x:Name="FilesExpanded" Padding="18,14,18,16">
           <Grid.RowDefinitions>

@@ -5,6 +5,43 @@ description: Use for any Codex task involving airanluo-dot/DropSpace, including 
 
 # DropSpace Codex Execution Guide
 
+## Native Island rebuild working contract
+
+The active Preview.24 rebuild starts from Preview.21; do not transplant the
+Preview.22/23 UI or state machine. The authorized task includes the supplied full
+plan through release. Read `docs/dev/preview24-progress.md` for checkpoints and
+open acceptance gates; this section describes source behavior, not a published
+release. The current rebuild uses SDK 10.0.401, x64 Windows build 20348 minimum,
+and settings schema 14 with migration coverage from 11/12/13. These active facts
+supersede older historical build-17763 entries below for this rebuild.
+
+- User amendments set the non-wrapping page order to Widgets, Music, Files,
+  Clipboard. Widget settings use four rows and eight columns, eight local widget
+  types, and catalogued size choices. Adding a widget must find vacant contiguous
+  space and preserve every existing placement; reject insufficient room.
+  Selected widgets need visible emphasis and accessible selection state.
+- Main Music and seven native settings sections share serialized settings
+  transactions. Explicit media allow-list enabled with no entries means none;
+  disabled means all. Preserve runtime-owned pause and update fields.
+- NetEase is the default preferred lyric provider. An empty/failed preferred
+  online result tries the other four providers with bounded concurrency and
+  cancellation; local mode remains offline. Never cache empty results or allow
+  artwork updates to cancel the current track's lyric lookup.
+- Apple Music's repeated timestamps for unchanged whole-second positions must
+  not rewind the interpolated playback clock. Capture its exact package
+  LibraryServer audio identity, with UI identity fallback, rather than assuming
+  that its renderer is a child process. Spectrum bars require actual PCM/FFT.
+- Media display owners control frame/capture visibility. Clipboard remains an
+  event-driven bounded canonical projection, not duplicated widget storage.
+- Required validation is proportional: targeted regression tests and native
+  acceptance for changes, documented build, then final Windows/CI/release gates.
+  Do not repeat unchanged passing full smoke suites without a new concern.
+  Successful probes do not prove untested DPI, accessibility or release rows.
+
+The counterpart personal `dropspace-codex` Skill still must be resolved,
+synchronized and verified through section 56; a repository edit alone does not
+complete that gate.
+
 Startup window invariant: `--startup` must create the main HWND for backend services without an initial `Show`/`Activate`; only normal and redirected activation may show it. Keep this covered by the portable smoke test.
 
 **Mandatory shipping rule:** Every user-visible DropSpace update, including bug fixes, must finish with a new Preview release and the normal website/API synchronization workflow. This is not optional unless the user explicitly requests investigation-only work or explicitly says not to publish.

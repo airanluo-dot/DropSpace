@@ -9,6 +9,12 @@ Runtime baseline is x64 Windows build 20348; settings migrate 11/12/13 to 14.
 No functional phase is complete until its targeted tests, native smoke where required,
 and local Git checkpoint are recorded. Release blockers in the supplied plan are binding.
 
+The September 12 user amendment sets the island page order to Widgets, Music,
+Files, Clipboard, and the widget editor to 4 rows by 8 columns with eight widget
+types and catalogued size choices. Phase 7 remains in progress: native four-page
+navigation and live multi-track lyric checks now have evidence, while remaining
+settings wiring, accessibility/scale gates, final smoke and release work are open.
+
 ## Current implementation snapshot
 
 The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.21 is the current settings and action usability Preview following Preview.20. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.

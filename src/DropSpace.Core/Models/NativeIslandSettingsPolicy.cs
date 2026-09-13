@@ -20,7 +20,7 @@ public static class NativeIslandSettingsPolicy
         var sources = (activity.AllowedMediaSourceAppIds ?? [])
             .Where(id => !string.IsNullOrWhiteSpace(id) && id.Length <= MaximumSourceLength)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(MaximumSources).ToArray();
-        return settings with
+        var normalized = settings with
         {
             IslandActivity = activity with
             {
@@ -44,6 +44,7 @@ public static class NativeIslandSettingsPolicy
             SystemActivities = settings.SystemActivities ?? new(),
             Widgets = widgets with { Layout = WidgetLayoutPolicy.Normalize(widgets.Layout) },
         };
+        return normalized == settings ? settings : normalized;
     }
 
     private static double NormalizeScale(double value) => double.IsFinite(value) ? Math.Clamp(value, 0.5, 2) : 1;

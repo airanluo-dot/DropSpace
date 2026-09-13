@@ -64,6 +64,22 @@ public sealed class Preview24SettingsMigrationTests
     }
 
     [TestMethod]
+    public async Task CustomEightByFourLayoutAndEmptyExplicitPlayerSelectionSurviveRestart()
+    {
+        var store = new JsonSettingsService(_paths);
+        var settings = new AppSettings
+        {
+            IslandActivity = new() { UseMediaSourceAllowList = true, AllowedMediaSourceAppIds = [] },
+            Widgets = new() { Layout = new([new(NativeWidgetId.Battery, 7, 3, 1, 1)], new(null, NativeWidgetId.Clock, null)) },
+        };
+        await store.SaveAsync(settings);
+        var reloaded = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.IsTrue(reloaded.IslandActivity.UseMediaSourceAllowList);
+        Assert.AreEqual(0, reloaded.IslandActivity.AllowedMediaSourceAppIds.Length);
+        Assert.AreEqual(settings.Widgets.Layout, reloaded.Widgets.Layout);
+    }
+
+    [TestMethod]
     public async Task BadLegacyNativeUiFieldsDoNotQuarantineWholeSettings()
     {
         _paths.EnsureCreated();

@@ -303,7 +303,7 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
-        return NativeIslandSettingsPolicy.Normalize(this with { QuickPanelHotkey = normalizedHotkey });
+        return NativeIslandSettingsPolicy.Normalize(QuickPanelHotkey == normalizedHotkey ? this : this with { QuickPanelHotkey = normalizedHotkey });
     }
 
 }

@@ -28,15 +28,26 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
             _session.TrackTitle == session.TrackTitle && _session.Artist == session.Artist;
         var validTimestamp = session.Timeline.LastUpdated.Year >= 2000 && session.Timeline.LastUpdated <= now.AddMinutes(5);
         var native = validTimestamp && (session.Timeline.End > session.Timeline.Start || session.Timeline.Position > TimeSpan.Zero);
-        var nativeChanged = !sameTrack || session.Timeline.Position != _session.Timeline.Position || session.Timeline.LastUpdated != _session.Timeline.LastUpdated;
+        // Apple Music refreshes timestamps several times within the same whole
+        // second. Timestamp-only updates are not new position observations and
+        // must not repeatedly rewind the interpolated word highlight.
+        var nativeChanged = !sameTrack || IsEstimated || session.Timeline.Position != _session.Timeline.Position || session.PlaybackState != _session.PlaybackState;
         var position = sameTrack ? Position.TotalSeconds : Math.Max(0, session.Timeline.Position.TotalSeconds);
+        if (!sameTrack && !native && session.PlaybackState == MediaPlaybackState.Playing)
+            position += Math.Clamp((now - session.LastUpdated).TotalSeconds, 0, 30);
         if (native && nativeChanged)
         {
+            var interpolated = position;
             position = Math.Max(0, session.Timeline.Position.TotalSeconds);
             if (session.PlaybackState == MediaPlaybackState.Playing)
             {
                 var rate = double.IsFinite(session.Timeline.PlaybackRate) && session.Timeline.PlaybackRate is > 0 and <= 8 ? session.Timeline.PlaybackRate : 1;
                 position += Math.Clamp((now - session.Timeline.LastUpdated).TotalSeconds, 0, 86_400) * rate;
+                var advance = (session.Timeline.Position - _session.Timeline.Position).TotalSeconds;
+                if (sameTrack && _session.PlaybackState == MediaPlaybackState.Playing &&
+                    session.Timeline.Position.Ticks % TimeSpan.TicksPerSecond == 0 && advance is >= 0 and <= 1 &&
+                    Math.Abs(position - interpolated) < 1)
+                    position = Math.Max(interpolated, position);
             }
         }
         _position = position; _anchor = _time.GetTimestamp(); _session = session; _hasSnapshot = true;

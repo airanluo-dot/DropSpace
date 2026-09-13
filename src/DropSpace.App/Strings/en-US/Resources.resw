@@ -474,4 +474,95 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetsEmpty.Text" xml:space="preserve"><value>Choose widgets in Settings to build this page.</value></data>
   <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Playback position</value></data>
   <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Resources</value></data>
+  <data name="WidgetsEnabled" xml:space="preserve"><value>Enable widgets</value></data>
+  <data name="MusicSpectrum" xml:space="preserve"><value>Show audio spectrum</value></data>
+  <data name="ActivitiesNotifications" xml:space="preserve"><value>Show Windows notifications</value></data>
+  <data name="IslandAutoHide" xml:space="preserve"><value>Auto-hide after playback stops</value></data>
+  <data name="MusicProgress" xml:space="preserve"><value>Show progress</value></data>
+  <data name="MusicApplications" xml:space="preserve"><value>Media applications</value></data>
+  <data name="WidgetRow" xml:space="preserve"><value>Row</value></data>
+  <data name="LyricsMode" xml:space="preserve"><value>Mode</value></data>
+  <data name="WidgetsCompactHelp" xml:space="preserve"><value>Compact widgets are for an explicitly opened widget view. They never keep an idle island visible.</value></data>
+  <data name="NavMusic.Content" xml:space="preserve"><value>Music</value></data>
+  <data name="MusicLyricsSection" xml:space="preserve"><value>Lyrics</value></data>
+  <data name="LyricsWords" xml:space="preserve"><value>Word-synced highlighting</value></data>
+  <data name="WidgetAdd" xml:space="preserve"><value>Add</value></data>
+  <data name="MusicAllApplications" xml:space="preserve"><value>Allow all media applications</value></data>
+  <data name="LyricsScrolling" xml:space="preserve"><value>Scroll long lyrics</value></data>
+  <data name="MusicEnabled" xml:space="preserve"><value>Enable music island</value></data>
+  <data name="LyricsWidth" xml:space="preserve"><value>Maximum lyric width</value></data>
+  <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Play music to discover media applications.</value></data>
+  <data name="WidgetCenter" xml:space="preserve"><value>Center</value></data>
+  <data name="LyricsProvider" xml:space="preserve"><value>Preferred lyrics provider</value></data>
+  <data name="LyricsFallbackHelp" xml:space="preserve"><value>NetEase is the default. If the preferred online provider has no lyrics, try the other four online providers automatically. Local mode stays offline.</value></data>
+  <data name="WidgetSelected" xml:space="preserve"><value>Selected</value></data>
+  <data name="WidgetNoRoom" xml:space="preserve"><value>There is not enough empty space. Resize or remove another widget first.</value></data>
+  <data name="LyricsDelay" xml:space="preserve"><value>Lyrics offset (ms)</value></data>
+  <data name="SettingsPageAbout" xml:space="preserve"><value>About</value></data>
+  <data name="MusicPlaybackSection" xml:space="preserve"><value>Playback</value></data>
+  <data name="LyricsProviderAmll" xml:space="preserve"><value>AMLL TTML</value></data>
+  <data name="LyricsProviderKugou" xml:space="preserve"><value>Kugou</value></data>
+  <data name="SettingsPageUpdates" xml:space="preserve"><value>Updates</value></data>
+  <data name="SettingsPageSystemActivities" xml:space="preserve"><value>System activities</value></data>
+  <data name="WidgetColumn" xml:space="preserve"><value>Column</value></data>
+  <data name="PageTitleMusic" xml:space="preserve"><value>Music</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="MusicDynamicWidth" xml:space="preserve"><value>Dynamic lyric width</value></data>
+  <data name="ActivitiesVolume" xml:space="preserve"><value>Show volume changes</value></data>
+  <data name="IslandRightHoldMove" xml:space="preserve"><value>Hold right mouse button to move</value></data>
+  <data name="LyricsOnline" xml:space="preserve"><value>Online</value></data>
+  <data name="WidgetHeight" xml:space="preserve"><value>Height</value></data>
+  <data name="MusicArtwork" xml:space="preserve"><value>Show album artwork</value></data>
+  <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>Local LRC</value></data>
+  <data name="IslandHideDelay" xml:space="preserve"><value>Hide delay (ms)</value></data>
+  <data name="WidgetRight" xml:space="preserve"><value>Right</value></data>
+  <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
+  <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
+  <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
+  <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
+  <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
+  <data name="WidgetSelect" xml:space="preserve"><value>Select a widget to edit its position and size.</value></data>
+  <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
+  <data name="SettingsPageGeneral" xml:space="preserve"><value>General</value></data>
+  <data name="WidgetWidth" xml:space="preserve"><value>Width</value></data>
+  <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
+  <data name="LyricsLocal" xml:space="preserve"><value>Local LRC</value></data>
+  <data name="WidgetsEditorMode" xml:space="preserve"><value>Widget editor mode</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Could not save this change. Your previous settings were restored.</value></data>
+  <data name="WidgetApplyPosition" xml:space="preserve"><value>Apply position</value></data>
+  <data name="WidgetsCompactMode" xml:space="preserve"><value>Compact · Left / Center / Right</value></data>
+  <data name="IslandExpandedScale" xml:space="preserve"><value>Expanded scale</value></data>
+  <data name="WidgetsReset" xml:space="preserve"><value>Reset widget layout</value></data>
+  <data name="ActivitiesFullscreen" xml:space="preserve"><value>Suppress activities over fullscreen apps</value></data>
+  <data name="WidgetNone" xml:space="preserve"><value>None</value></data>
+  <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
+  <data name="LyricsFolder" xml:space="preserve"><value>Local lyrics folder</value></data>
+  <data name="LyricsCompact" xml:space="preserve"><value>Show lyrics in compact island</value></data>
+  <data name="PageDescriptionMusic" xml:space="preserve"><value>Now playing, lyrics, and your music island.</value></data>
+  <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
+  <data name="IslandCompactScale" xml:space="preserve"><value>Compact scale</value></data>
+  <data name="WidgetLibrary" xml:space="preserve"><value>Widget library</value></data>
+  <data name="SettingsPageDevices" xml:space="preserve"><value>Devices / Sharing</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>Drag widgets onto the grid, or select one and set its position below.</value></data>
+  <data name="WidgetsExpandedMode" xml:space="preserve"><value>Expanded · 4 rows × 8 columns</value></data>
+  <data name="LyricsSecondary" xml:space="preserve"><value>Show secondary lyrics</value></data>
+  <data name="WidgetSettingsName" xml:space="preserve"><value>Settings shortcut</value></data>
+  <data name="WidgetBattery.Text" xml:space="preserve"><value>Power</value></data>
+  <data name="ClipboardIslandPin.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Toggle pin</value></data>
+  <data name="ClipboardIslandEmpty.Text" xml:space="preserve"><value>Copied content will appear here.</value></data>
+  <data name="ClipboardIslandResume" xml:space="preserve"><value>Resume capture</value></data>
+  <data name="WidgetClipboardPause.Text" xml:space="preserve"><value>Clipboard capture</value></data>
+  <data name="ClipboardIslandOpenMain.Content" xml:space="preserve"><value>Open full history</value></data>
+  <data name="StopwatchReset.Text" xml:space="preserve"><value>Reset stopwatch</value></data>
+  <data name="ClipboardIslandActionFailed" xml:space="preserve"><value>Could not complete this action. Try again.</value></data>
+  <data name="StopwatchPause" xml:space="preserve"><value>Pause</value></data>
+  <data name="StopwatchStart" xml:space="preserve"><value>Start</value></data>
+  <data name="ClipboardIslandTitle.Text" xml:space="preserve"><value>Clipboard</value></data>
+  <data name="WidgetUptime.Text" xml:space="preserve"><value>Uptime</value></data>
+  <data name="WidgetStopwatch.Text" xml:space="preserve"><value>Stopwatch</value></data>
+  <data name="ClipboardIslandCopy.Content" xml:space="preserve"><value>Copy</value></data>
+  <data name="ClipboardIslandPause" xml:space="preserve"><value>Pause capture</value></data>
+  <data name="ClipboardIslandRemove.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Remove from DropSpace</value></data>
+  <data name="WidgetSize" xml:space="preserve"><value>Size</value></data>
 </root>

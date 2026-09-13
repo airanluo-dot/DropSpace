@@ -13,6 +13,8 @@ public sealed partial class MediaCompactView : UserControl
     private bool _subscribed;
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
     private double _textWidth;
+    private double _primaryHeight = 28;
+    private readonly TextBlock _secondaryMeasure = new() { FontSize = 11, TextWrapping = TextWrapping.NoWrap };
     public double IdealIslandWidth { get; private set; } = 280;
     public double IdealIslandHeight { get; private set; } = 40;
     public event EventHandler? IdealWidthChanged;
@@ -54,16 +56,23 @@ public sealed partial class MediaCompactView : UserControl
             BaseLine.Text = text; HighlightLine.Text = text;
             _textWidth = Measure(text);
             LyricCanvas.Width = _textWidth;
-            LyricViewport.Height = Math.Max(28, _measure.DesiredSize.Height);
-            IdealIslandHeight = Math.Max(40, _measure.DesiredSize.Height + 12);
+            _primaryHeight = Math.Max(28, _measure.DesiredSize.Height);
+            LyricViewport.Height = _primaryHeight;
         }
+        var secondary = settings.Lyrics.Enabled && settings.Lyrics.SecondaryLyrics && settings.IslandActivity.ShowLyricsInCompact ? _view.Lyrics.Line?.Secondary : null;
+        SecondaryLine.Text = secondary ?? string.Empty;
+        SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
+        _secondaryMeasure.FontFamily = SecondaryLine.FontFamily; _secondaryMeasure.Text = SecondaryLine.Text;
+        _secondaryMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryMeasure.DesiredSize.Height : 0;
+        IdealIslandHeight = Math.Max(40, _primaryHeight + secondaryHeight + 12);
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
         var spectrum = settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
         var bands = new[] { Band0, Band1, Band2, Band3, Band4, Band5 };
         for (var index = 0; index < bands.Length; index++)
             bands[index].Height = 2 + 20 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
-        var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Clamp(_textWidth, 80, settings.Lyrics.ScrollingMaxWidth) : 180;
+        var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Clamp(Math.Max(_textWidth, _secondaryMeasure.DesiredSize.Width), 80, settings.Lyrics.ScrollingMaxWidth) : 180;
         var width = 28 + textWidth + (settings.IslandActivity.ShowArtwork ? 36 : 12) + (spectrum ? 45 : 12);
         width = Math.Clamp(width, 180, 460);
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)

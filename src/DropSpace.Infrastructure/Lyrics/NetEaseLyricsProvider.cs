@@ -13,7 +13,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
         var best = Array(search.RootElement, "result", "songs").Select(song => new
         {
             Song = song,
-            Score = LyricsMatcher.Score(query, Text(song, "name"), string.Join(' ', Array(song, "artists").Select(artist => Text(artist, "name"))), NestedText(song, "album", "name"), Number(song, "duration") / 1000),
+            Score = LyricsMatcher.Score(query, Text(song, "name"), string.Join("; ", Array(song, "artists").Select(artist => Text(artist, "name"))), NestedText(song, "album", "name"), Number(song, "duration") / 1000),
         }).OrderByDescending(candidate => candidate.Score).FirstOrDefault();
         if (best is null || best.Score < 4) return LyricsDocument.Empty;
         using var lyric = await http.GetAsync($"https://music.163.com/api/song/lyric?id={Escape(Text(best.Song, "id"))}&lv=1&kv=1&tv=-1&yv=1&ytv=1", cancellationToken);

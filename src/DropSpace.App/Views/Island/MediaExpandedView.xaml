@@ -5,8 +5,8 @@
  <Grid Padding="28,24" RowSpacing="12">
   <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid ColumnSpacing="18">
-   <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-   <Border Height="100" CornerRadius="16" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
+   <Grid.ColumnDefinitions><ColumnDefinition x:Name="ArtworkColumn" Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Border x:Name="ArtworkHost" Height="100" CornerRadius="16" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
     <Image Source="{Binding Artwork}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw"/>
    </Border>
    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
@@ -23,13 +23,13 @@
     <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
    </StackPanel>
   </Grid>
-  <Grid Grid.Row="1" ColumnSpacing="12">
+  <Grid x:Name="TimelineRow" Grid.Row="1" ColumnSpacing="12">
    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <TextBlock Text="{Binding ElapsedText}" VerticalAlignment="Center"/>
    <Slider x:Name="Progress" services:XamlResourceOverride.Uid="MediaSeek" Grid.Column="1" Minimum="0" IsThumbToolTipEnabled="False" ValueChanged="OnSeekChanged"/>
    <TextBlock Grid.Column="2" Text="{Binding RemainingText}" VerticalAlignment="Center"/>
   </Grid>
-  <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
+  <StackPanel x:Name="ControlsRow" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
    <Button services:XamlResourceOverride.Uid="MediaPrevious" Command="{Binding PreviousCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE892;"/></Button>
    <Button x:Name="PlayPause" Command="{Binding PlayPauseCommand}" Width="56" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="{Binding PlaybackGlyph}" FontSize="28"/></Button>
    <Button services:XamlResourceOverride.Uid="MediaNext" Command="{Binding NextCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE893;"/></Button>

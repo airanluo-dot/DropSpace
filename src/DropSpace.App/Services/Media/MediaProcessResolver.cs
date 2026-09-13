@@ -8,6 +8,13 @@ namespace DropSpace.App.Services.Media;
 /// <summary>Resolves an SMTC identity on source changes; never samples processes on each audio frame.</summary>
 public sealed class MediaProcessResolver
 {
+    public async Task<uint?> ResolveAudioAsync(string sourceAppUserModelId, CancellationToken cancellationToken)
+    {
+        var audioIdentity = DropSpace.Core.Media.MediaProcessIdentityPolicy.AudioIdentity(sourceAppUserModelId);
+        var renderer = await ResolveAsync(audioIdentity, cancellationToken).ConfigureAwait(false);
+        return renderer ?? (audioIdentity == sourceAppUserModelId ? null : await ResolveAsync(sourceAppUserModelId, cancellationToken).ConfigureAwait(false));
+    }
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern SafeProcessHandle OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]

@@ -32,12 +32,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly DispatcherQueueTimer _frames, _expiry;
     private Task _worker = Task.CompletedTask, _lyricsJob = Task.CompletedTask, _artworkJob = Task.CompletedTask;
-    private CancellationTokenSource? _trackStop;
+    private CancellationTokenSource? _trackStop, _artworkStop;
     private AppSettings _settings = new();
     private MediaSessionSnapshot _latest = MediaSessionSnapshot.Empty;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
     private LyricsDocument _document = LyricsDocument.Empty;
-    private long _generation;
+    private long _generation, _artworkGeneration;
     private long _reloadRequest;
     private bool _initialized, _disposed;
 
@@ -56,6 +56,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _expiry = dispatcher.CreateTimer(); _expiry.IsRepeating = false; _expiry.Tick += OnExpiry;
         _experience.Changed += OnExperienceChanged;
         _visualPreferences.Changed += OnVisualPreferencesChanged;
+        _view.PropertyChanged += OnPresentationChanged;
     }
 
     public Task InitializeAsync(AppSettings settings)
@@ -88,6 +89,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         AppSettings? previousSettings = null;
         MediaSessionSnapshot? previousMedia = null;
         string? audioKey = null;
+        bool? previousObserve = null;
         long previousReloadRequest = -1;
         try
         {
@@ -97,43 +99,56 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 {
                     var settings = Volatile.Read(ref _settings);
                     var reloadRequest = Interlocked.Read(ref _reloadRequest);
-                    if (previousSettings?.IslandActivity != settings.IslandActivity)
+                    var observe = settings.IslandActivity.EnableMediaActivity || _view.IsPresentationVisible;
+                    if (previousSettings?.IslandActivity != settings.IslandActivity || previousObserve != observe)
                     {
-                        _media.SetAllowedSources(settings.IslandActivity.AllowedMediaSourceAppIds);
-                        await _media.SetEnabledAsync(settings.IslandActivity.EnableMediaActivity, token).ConfigureAwait(false);
+                        _media.SetAllowedSources(settings.IslandActivity.AllowedMediaSourceAppIds, settings.IslandActivity.UseMediaSourceAllowList);
+                        await _media.SetEnabledAsync(observe, token).ConfigureAwait(false);
+                        previousObserve = observe;
                     }
                     var session = Volatile.Read(ref _latest);
-                    var playing = settings.IslandActivity.EnableMediaActivity && session.PlaybackState == MediaPlaybackState.Playing && !string.IsNullOrWhiteSpace(session.TrackTitle);
+                    var playing = session.PlaybackState == MediaPlaybackState.Playing && !string.IsNullOrWhiteSpace(session.TrackTitle);
                     var trackChanged = previousMedia?.SourceAppUserModelId != session.SourceAppUserModelId || previousMedia.TrackTitle != session.TrackTitle ||
                         previousMedia.Artist != session.Artist || previousMedia.AlbumTitle != session.AlbumTitle;
                     var reload = trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
-                        !ReferenceEquals(previousMedia?.Artwork, session.Artwork) || previousReloadRequest != reloadRequest;
+                        previousReloadRequest != reloadRequest;
+                    var reloadArtwork = trackChanged || !ReferenceEquals(previousMedia?.Artwork, session.Artwork);
+                    // Invalidate before publishing the new track so a queued old result
+                    // cannot paint over the cleared lyric state.
+                    var generation = reload ? Interlocked.Increment(ref _generation) : Interlocked.Read(ref _generation);
+                    if (reload) _trackStop?.Cancel();
+                    var artworkGeneration = reloadArtwork ? Interlocked.Increment(ref _artworkGeneration) : Interlocked.Read(ref _artworkGeneration);
+                    if (reloadArtwork) _artworkStop?.Cancel();
                     await _dispatcher.EnqueueAsync(() =>
                     {
                         if (_disposed) return Task.CompletedTask;
                         _clock.Update(session);
                         _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
-                        if (trackChanged) { _view.Artwork = null; _document = LyricsDocument.Empty; }
-                        _experience.UpdateMedia(playing, settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds);
+                        if (trackChanged) _view.Artwork = null;
+                        if (trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousReloadRequest != reloadRequest) _document = LyricsDocument.Empty;
+                        _experience.UpdateMedia(playing, settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, settings.IslandAppearance.AutoHide);
                         RenderFrame(); UpdateFrameTimer();
                         return Task.CompletedTask;
                     }).ConfigureAwait(false);
                     if (reload)
                     {
-                        _trackStop?.Cancel();
-                        await Task.WhenAll(_lyricsJob, _artworkJob).ConfigureAwait(false);
+                        await _lyricsJob.ConfigureAwait(false);
                         _trackStop?.Dispose(); _trackStop = CancellationTokenSource.CreateLinkedTokenSource(token);
-                        var generation = Interlocked.Increment(ref _generation);
                         _lyricsJob = LoadLyricsAsync(session, settings, generation, _trackStop.Token);
-                        _artworkJob = LoadArtworkAsync(session, generation, _trackStop.Token);
                     }
-                    var sourceKey = playing && settings.IslandActivity.ShowSpectrum ? session.SourceAppUserModelId : string.Empty;
-                    if (audioKey != sourceKey)
+                    if (reloadArtwork)
+                    {
+                        await _artworkJob.ConfigureAwait(false);
+                        _artworkStop?.Dispose(); _artworkStop = CancellationTokenSource.CreateLinkedTokenSource(token);
+                        _artworkJob = LoadArtworkAsync(session, artworkGeneration, _artworkStop.Token);
+                    }
+                    var sourceKey = playing && settings.IslandActivity.ShowSpectrum && _view.IsPresentationVisible ? session.SourceAppUserModelId : string.Empty;
+                    if (audioKey != sourceKey || trackChanged)
                     {
                         audioKey = sourceKey;
-                        var process = sourceKey.Length == 0 ? null : await _processes.ResolveAsync(sourceKey, token).ConfigureAwait(false);
-                        try { await _audio.SetSourceAsync(process, playing && settings.IslandActivity.ShowSpectrum, token).ConfigureAwait(false); }
+                        var process = sourceKey.Length == 0 ? null : await _processes.ResolveAudioAsync(sourceKey, token).ConfigureAwait(false);
+                        try { await _audio.SetSourceAsync(process, sourceKey.Length > 0, token).ConfigureAwait(false); }
                         catch (Exception exception) when (exception is not OperationCanceledException)
                         { _logger.LogDebug("Player capture unavailable ({Category}).", exception.GetType().Name); }
                     }
@@ -151,7 +166,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     {
         try
         {
-            var document = settings.IslandActivity.EnableMediaActivity
+            var document = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle, session.Timeline.Duration), settings.Lyrics, token).ConfigureAwait(false)
                 : LyricsDocument.Empty;
             await _dispatcher.EnqueueAsync(() =>
@@ -170,7 +185,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             var image = await _artwork.DecodeAsync(session.Artwork, token).ConfigureAwait(false);
             await _dispatcher.EnqueueAsync(() =>
             {
-                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed) _view.Artwork = image;
+                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _artworkGeneration) && !_disposed) _view.Artwork = image;
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
         }
@@ -198,8 +213,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
     }
     private void UpdateFrameTimer()
     {
-        if (_view.IsPlaying && _experience.Current.State != DropSpace.Core.Overlay.OverlayState.Hidden) _frames.Start();
+        if (_view.IsPlaying && _view.IsPresentationVisible) _frames.Start();
         else _frames.Stop();
+    }
+    private void OnPresentationChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(MediaViewModel.IsPresentationVisible)) return;
+        UpdateFrameTimer(); _changes.Writer.TryWrite(true);
     }
     private void OnExpiry(DispatcherQueueTimer sender, object args) => _experience.Reconcile();
 
@@ -209,10 +229,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _disposed = true; _frames.Stop(); _expiry.Stop();
         _frames.Tick -= OnFrame; _expiry.Tick -= OnExpiry; _experience.Changed -= OnExperienceChanged;
         _visualPreferences.Changed -= OnVisualPreferencesChanged;
+        _view.PropertyChanged -= OnPresentationChanged;
         _main.PropertyChanged -= OnSettingsChanged; _media.Changed -= OnMediaChanged; _audio.Changed -= OnSpectrumChanged;
         _stop.Cancel(); _changes.Writer.TryComplete();
         await _worker.ConfigureAwait(false); await Task.WhenAll(_lyricsJob, _artworkJob).ConfigureAwait(false);
         await _media.SetEnabledAsync(false).ConfigureAwait(false); await _audio.SetSourceAsync(null, false).ConfigureAwait(false);
-        _trackStop?.Dispose(); _stop.Dispose(); _http.Dispose(); _lyrics.ClearCache();
+        _trackStop?.Dispose(); _artworkStop?.Dispose(); _stop.Dispose(); _http.Dispose(); _lyrics.ClearCache();
     }
 }

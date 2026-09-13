@@ -1,5 +1,15 @@
 # DropSpace Product Specification
 
+## Preview.24 user amendment (implementation in progress)
+
+The native island has four independent pages, ordered Widgets, Music controls,
+Files staging, Clipboard. Widgets use 4 rows by 8 columns with suitable alternate
+sizes. The eight types are clock, calendar, resource usage, settings shortcut,
+power, uptime, stopwatch and clipboard capture pause/resume. Playback changes
+must not steal the selected page. Clipboard and Space remain visibly distinct.
+The main window adds Music and seven focused settings categories. Release status
+and unresolved acceptance gates are tracked in `docs/dev/preview24-progress.md`.
+
 Status: v0.3 Preview product contract
 Target: 64-bit Windows build 20348 or later desktop, including Windows 11; local-first
 Last reviewed: 2026-08-27

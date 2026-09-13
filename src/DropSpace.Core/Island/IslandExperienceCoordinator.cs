@@ -8,8 +8,8 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
 {
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     private OverlaySnapshot _files = new(OverlayState.Hidden, 0, false, 0);
-    private bool _playing, _manual, _expanded;
-    private IslandPage _page;
+    private bool _playing, _manual, _expanded, _retainedMedia;
+    private IslandPage _page = IslandPage.Files;
     private DateTimeOffset? _grace, _notification, _volume;
     private long _revision;
     public event EventHandler<IslandExperienceSnapshot>? Changed;
@@ -26,10 +26,13 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
         Reconcile();
     }
 
-    public void UpdateMedia(bool playing, bool enabled, int hideDelayMilliseconds)
+    public void UpdateMedia(bool playing, bool enabled, int hideDelayMilliseconds, bool autoHide = true)
     {
         var now = _time.GetUtcNow();
-        if (!enabled) _grace = null;
+        var wasRetained = _retainedMedia;
+        _retainedMedia = enabled && !autoHide && (playing || _playing || _retainedMedia || _grace > now);
+        if (!enabled || _retainedMedia) _grace = null;
+        else if (wasRetained && autoHide && !playing) _grace = now.AddMilliseconds(Math.Clamp(hideDelayMilliseconds, 500, 30_000));
         else if (_playing && !playing) _grace = now.AddMilliseconds(Math.Clamp(hideDelayMilliseconds, 500, 30_000));
         if (playing) _grace = null;
         _playing = enabled && playing;
@@ -54,7 +57,7 @@ public sealed class IslandExperienceCoordinator(TimeProvider? timeProvider = nul
     public void Reconcile()
     {
         var snapshot = IslandPresencePolicy.Resolve(new(_files, _playing, _grace, _manual, _expanded,
-            _page, _notification, _volume), _time.GetUtcNow(), _revision);
+            _page, _notification, _volume, _retainedMedia), _time.GetUtcNow(), _revision);
         if (snapshot == Current) return;
         Current = snapshot with { Revision = ++_revision };
         Changed?.Invoke(this, Current);

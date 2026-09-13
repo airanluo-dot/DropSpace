@@ -1,5 +1,33 @@
 # Preview.24 rebuild execution ledger
 
+## User amendment — 2026-09-12
+
+The user's latest request supersedes the ZIP's exactly-three-page and 6 by 3
+constraints. Final order is Widgets -> Music -> Files -> Clipboard, retaining
+non-wrapping side rails. The grid is interpreted as four rows and eight columns
+for the horizontal island. Add useful local widgets and supported size variants.
+Expand lyrics validation to repeated track changes, playback transitions and
+delay against the actual player. This amendment is part of the current full
+release scope; release and skill synchronization remain required.
+
+## September 13 widget editor verification
+
+The latest amendment requires pointer dragging/repositioning and visible
+selection, with no relocation of existing widgets when adding. Five targeted
+WidgetCatalog tests pass, including occupied-cell placement and insufficient
+contiguous room. Native mouse movement/release moved Clock from row 0 to row 1
+and persisted collision resolution. Native remove/add preserved all seven
+remaining placements exactly (`widget-native-add-result.json`). Selection is
+exposed as UIA ItemStatus and an accent border; `widget-selection-fixed.png`
+records corrected small-cell labels. Synthetic SetCursorPos alone did not
+update WinUI PointerPoint reliably on this host; the successful gesture used
+injected mouse movement. Final source removes temporary gesture diagnostics.
+Build/publish passed; final clean-source native check remains open.
+
+Repository maintainer Skill records the amended source contract. Personal
+`dropspace-codex` destination has not been found or synchronized; Skill gate and
+publication remain incomplete.
+
 ## Scope and source
 
 User-authorized full plan: `E:/Dev/reference/Preview24-plan/DropSpace_Preview24_WindowsLocal_FullRelease_Codex_Package/DropSpace_v0.3.0-preview.24_WINDOWS_LOCAL_FULL_RELEASE_PLAN_for_Codex.md`.
@@ -101,7 +129,68 @@ restore before locked solution restore. Do not commit that incidental lockfile c
 Git HTTPS direct transport was reset; per-command use of the existing Windows user proxy
 allowed fetch/clone without changing repository or global proxy configuration.
 
-## Required remaining order
+## Phase 7 and user amendments — in progress
+
+September 12 amendment: four pages in order Widgets, Music, Files, Clipboard;
+4 rows by 8 columns, eight widget types, and per-widget supported sizes.
+Native UI Automation verified both page endpoints, all four pages, real battery,
+CPU/memory and uptime values, and a running stopwatch. Screenshot:
+`artifacts/preview24/widgets-eight-native.png`. Existing test-root layouts were
+preserved; resetting through the native editor produced all eight widgets.
+The Clipboard page uses existing source-filtered records and actions; list rows
+expose title and pin state. Mouse dragging and final accessibility gates remain open.
+
+September 13 amendment: Apple Music lyric jitter and missing audio meter; NetEase
+default and automatic fallback to the other four online lyrics providers.
+
+- Twelve sequential NetEase track changes plus rapid reverse navigation exercised
+  the live compact surface. Observed display changes were 231–576 ms after the
+  control command (not an absolute lyric-synchronization measurement).
+  Independent diagnostic lookups sometimes returned no result while the app had
+  valid cached lyrics, so those probes cannot alone classify a stale lyric.
+- Artwork updates no longer cancel/restart lyrics requests. Each pipeline owns its
+  own cancellation generation; old generations cannot repaint a changed track.
+- Multi-artist scoring previously preferred a shorter live-version credit list.
+  Preserve provider artist boundaries. `Color Your Night` changed from 0 to 62
+  matched lines; actual same-line parity with WinIsland was inspected in
+  `artifacts/preview24/multi-artist-fixed.png`.
+- Apple Music emits frequent new timestamps for unchanged whole-second positions.
+  Ignore timestamp-only corrections and prevent subsecond backward correction
+  when the native whole-second position advances normally. Actual backward seeks
+  still reset the clock. Thirty steady native samples had zero backward steps:
+  `artifacts/preview24/apple-clock-steady.jsonl`. Initial/cross-track stale timeline
+  observations remain a separate concern, not a steady-playback result.
+- Apple Music audio comes from the separately launched package application
+  `AppleInc.AppleMusicWin_nzyj5cx40ttqa!LibraryServer`, not the UI's `!App` PID.
+  Exact renderer identity resolved successfully. Four-second native capture:
+  UI PID peak 0; renderer peak 0.769 with 87 real PCM-derived spectrum frames.
+  `artifacts/preview24/apple-music-fixed.png` shows the live spectrum and lyrics.
+- Online lookup tries the preferred provider first (fresh default NetEase), then
+  up to four other online providers concurrently. Each has an eight-second budget;
+  the first nonempty timed document cancels/drains the remaining jobs. Empty/error
+  results are not cached. Local mode never invokes online fallback.
+- Core tests: 196 passed. Infrastructure targeted migration/fallback suite:
+  12 passed, including winner cancellation/draining, track cancellation without
+  cache pollution, primary preference, and local-mode isolation.
+- Seven native settings categories and the main Music page are implemented.
+  AutoHide now affects retained media presence. Visible music surfaces own frame
+  updates and process audio capture, including the main Music page when island
+  media activity is disabled. Secondary lyrics now have a compact second line.
+
+The optional compact-widget feature (plan 36.4, "if retained") is omitted; no
+nonfunctional mode selector is exposed. Persisted compact slots are preserved.
+Latest full Windows smoke passed (`phase7-native-smoke.json`, PID 9168): 1,000
+lifecycle/geometry cycles, zero region failures, native drag/drop, 200 removals
+with source preservation, clipboard pause/resume and self-write suppression,
+resource plateau and no continuous frame loop. This does not close scale/UX gates.
+
+Still open before phase/release completion: expanded scaling/host sizing,
+right-button hold movement, notification/volume UI wiring,
+native resize/drag/restart and accessibility checks, final full Windows smoke,
+protected CI/merge/release and website/API verification, and both Skill destinations.
+No Preview.24 publication or Skill synchronization is claimed by this checkpoint.
+
+## Historical phase 6 checkpoint
 
 ## Phase 6 — Independent expanded pages
 

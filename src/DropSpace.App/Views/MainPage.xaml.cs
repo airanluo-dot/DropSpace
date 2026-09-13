@@ -69,7 +69,12 @@ public sealed partial class MainPage : Page
         DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        SharingUseCase sharing)
+        SharingUseCase sharing,
+        NativeSettingsEditor settingsEditor,
+        MediaViewModel media,
+        Services.Media.WindowsMediaSessionService sessions,
+        Services.Media.MediaExperienceService mediaExperience,
+        Services.Media.MediaApplicationIconService mediaIcons)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -94,6 +99,8 @@ public sealed partial class MainPage : Page
         }
 
         DataContext = viewModel;
+        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle);
+        BuildSettingsPages(settingsEditor);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -1976,6 +1983,7 @@ public sealed partial class MainPage : Page
         "Clipboard" => ClipboardNavigationItem,
         "Pinned" => PinnedNavigationItem,
         "Settings" => SettingsNavigationItem,
+        "Music" => MusicNavigationItem,
         _ => SpaceNavigationItem,
     };
 
@@ -2063,8 +2071,9 @@ public sealed partial class MainPage : Page
     private void UpdateSectionChrome()
     {
         var section = _viewModel.CurrentSection;
+        HeaderDescription.HorizontalAlignment = section is "Settings" or "Music" ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
         AddButton.Visibility = section == "Space" ? Visibility.Visible : Visibility.Collapsed;
-        SearchBox.Visibility = section == "Settings" ? Visibility.Collapsed : Visibility.Visible;
+        SearchBox.Visibility = section is "Settings" or "Music" ? Visibility.Collapsed : Visibility.Visible;
         ClipboardStatusText.Visibility = section == "Clipboard" ? Visibility.Visible : Visibility.Collapsed;
         switch (section)
         {

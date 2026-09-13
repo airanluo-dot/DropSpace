@@ -3,9 +3,9 @@ using DropSpace.Core.Overlay;
 namespace DropSpace.Core.Island;
 
 public enum IslandContentKind { None, Files, Music, Notification, Volume }
-public enum IslandPage { Files, Music, Widgets }
+public enum IslandPage { Widgets, Music, Files, Clipboard }
 public sealed record IslandPresenceInput(OverlaySnapshot Files, bool MediaPlaying, DateTimeOffset? MediaGraceUntil,
-    bool ManualOpen, bool Expanded, IslandPage Page, DateTimeOffset? NotificationUntil, DateTimeOffset? VolumeUntil);
+    bool ManualOpen, bool Expanded, IslandPage Page, DateTimeOffset? NotificationUntil, DateTimeOffset? VolumeUntil, bool RetainMedia = false);
 public sealed record IslandExperienceSnapshot(OverlayState State, IslandContentKind CompactContent, IslandPage Page,
     bool MediaPresent, DateTimeOffset? NextDeadline, long Revision);
 
@@ -13,7 +13,7 @@ public static class IslandPresencePolicy
 {
     public static IslandExperienceSnapshot Resolve(IslandPresenceInput input, DateTimeOffset now, long revision)
     {
-        var media = input.MediaPlaying || input.MediaGraceUntil > now;
+        var media = input.MediaPlaying || input.RetainMedia || input.MediaGraceUntil > now;
         var notification = input.NotificationUntil > now;
         var volume = input.VolumeUntil > now;
         var dragging = input.Files.State is OverlayState.DragApproaching or OverlayState.DragReady || input.Files.ExpandedDropActive;

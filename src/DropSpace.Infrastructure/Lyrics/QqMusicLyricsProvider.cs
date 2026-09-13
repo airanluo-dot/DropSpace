@@ -14,7 +14,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : ILyricsProvid
         var best = Array(search.RootElement, "data", "song", "list").Select(song => new
         {
             Song = song,
-            Score = LyricsMatcher.Score(query, Text(song, "songname"), string.Join(' ', Array(song, "singer").Select(artist => Text(artist, "name"))), Text(song, "albumname"), Number(song, "interval")),
+            Score = LyricsMatcher.Score(query, Text(song, "songname"), string.Join("; ", Array(song, "singer").Select(artist => Text(artist, "name"))), Text(song, "albumname"), Number(song, "interval")),
         }).OrderByDescending(candidate => candidate.Score).FirstOrDefault();
         if (best is null || best.Score < 4) return LyricsDocument.Empty;
         using var lyric = await http.GetAsync($"https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid={Escape(Text(best.Song, "songmid"))}&format=json&nobase64=1&g_tk=5381", cancellationToken, "https://y.qq.com/");

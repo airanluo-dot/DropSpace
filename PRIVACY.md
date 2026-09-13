@@ -4,10 +4,15 @@
 
 When enabled in online mode, lyrics lookup sends only the current music title,
 artist, album and duration to the user-selected NetEase, QQ Music, Kugou, LRCLIB
-or AMLL provider. It does not send clipboard text, staged filenames or file bytes.
+or AMLL provider. Per the September 13 user amendment, an empty or unavailable
+primary result automatically queries the other four online providers, with at
+most four concurrent requests and an eight-second per-provider budget. A valid
+result cancels and drains the remaining work. It does not send clipboard text,
+staged filenames or file bytes.
 Lyrics cache is process memory only (32 entries, bounded text size, two-hour age).
 Local LRC mode reads only a selected folder with a bounded, nonrecursive scan.
-Provider failures fall back to track metadata. The integration must cancel
+If every online provider fails, display track metadata. Local mode never invokes
+online fallback. The integration must cancel
 lookup on track/settings/lifecycle changes before release acceptance.
 Process-loopback audio is intended only for the live spectrum; PCM must never be
 saved or uploaded. System notification and volume observation remain opt-in.

@@ -53,7 +53,11 @@ public sealed class NativeWidgetDataService(ILogger<NativeWidgetDataService> log
                 else previous = null;
                 var memory = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
                 double? memoryPercent = GlobalMemoryStatusEx(ref memory) ? memory.Load : null;
-                var snapshot = new WidgetDataSnapshot(DateTimeOffset.Now, cpu, memoryPercent);
+                var hasPower = GetSystemPowerStatus(out var power);
+                var snapshot = new WidgetDataSnapshot(DateTimeOffset.Now, cpu, memoryPercent,
+                    hasPower && power.BatteryPercent <= 100 && (power.BatteryFlag & 128) == 0 ? power.BatteryPercent : null,
+                    hasPower && power.AcLineStatus <= 1 ? power.AcLineStatus == 1 : null,
+                    TimeSpan.FromMilliseconds(Environment.TickCount64));
                 Current = snapshot;
                 if (Changed is { } handlers)
                     foreach (EventHandler<WidgetDataSnapshot> handler in handlers.GetInvocationList())
@@ -76,6 +80,15 @@ public sealed class NativeWidgetDataService(ILogger<NativeWidgetDataService> log
         finally { _lifecycle.Release(); }
     }
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetSystemPowerStatus(out SystemPowerStatus status);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SystemPowerStatus
+    {
+        public byte AcLineStatus, BatteryFlag, BatteryPercent, SystemStatus;
+        public uint BatteryLifetime, BatteryFullLifetime;
+    }
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetSystemTimes(out ulong idle, out ulong kernel, out ulong user);

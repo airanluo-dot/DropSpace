@@ -21,6 +21,16 @@ public sealed class MediaViewModel : ObservableObject
     private bool _isReducedMotion;
     private bool _positionEstimated = true;
     private readonly IAppStringLocalizer _strings;
+    private readonly HashSet<object> _visibleOwners = [];
+    private bool _presentationVisible;
+    public bool IsPresentationVisible => Volatile.Read(ref _presentationVisible);
+    public void SetPresentationVisible(object owner, bool visible)
+    {
+        var wasVisible = IsPresentationVisible;
+        if (visible) _visibleOwners.Add(owner); else _visibleOwners.Remove(owner);
+        Volatile.Write(ref _presentationVisible, _visibleOwners.Count > 0);
+        if (wasVisible != IsPresentationVisible) OnPropertyChanged(nameof(IsPresentationVisible));
+    }
     public MediaViewModel(IMediaSessionService media, IAppStringLocalizer strings, ILogger<MediaViewModel> logger)
     {
         _strings = strings;
@@ -41,7 +51,7 @@ public sealed class MediaViewModel : ObservableObject
     }
     public string ControlError { get => _controlError; private set => SetProperty(ref _controlError, value); }
     public bool IsReducedMotion { get => _isReducedMotion; internal set => SetProperty(ref _isReducedMotion, value); }
-    public bool PositionEstimated { get => _positionEstimated; internal set { if (SetProperty(ref _positionEstimated, value)) OnPropertyChanged(nameof(TimelineStatus)); } }
+    public bool PositionEstimated { get => _positionEstimated; internal set { if (SetProperty(ref _positionEstimated, value)) { OnPropertyChanged(nameof(TimelineStatus)); SeekCommand.NotifyCanExecuteChanged(); } } }
     public MediaSessionSnapshot Session
     {
         get => _session;

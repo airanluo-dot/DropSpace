@@ -87,6 +87,29 @@ public sealed class IslandPresencePolicyTests
         Assert.AreEqual(IslandPage.Files, coordinator.Current.Page);
     }
 
+    [TestMethod]
+    public void AutoHideOffRetainsOnlyMediaAndReenablingStartsOneGracePeriod()
+    {
+        var time = new ManualTime();
+        var coordinator = new IslandExperienceCoordinator(time);
+        coordinator.UpdateMedia(false, true, 3000, autoHide: false);
+        Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
+        coordinator.UpdateMedia(true, true, 3000, autoHide: false);
+        coordinator.UpdateMedia(false, true, 3000, autoHide: false);
+        time.Now += TimeSpan.FromHours(1); coordinator.Reconcile();
+        Assert.IsTrue(coordinator.Current.MediaPresent);
+        Assert.IsNull(coordinator.Current.NextDeadline);
+        coordinator.UpdateMedia(false, true, 3000);
+        var deadline = coordinator.Current.NextDeadline;
+        time.Now += TimeSpan.FromSeconds(2); coordinator.UpdateMedia(false, true, 3000);
+        Assert.AreEqual(deadline, coordinator.Current.NextDeadline);
+        time.Now += TimeSpan.FromSeconds(1); coordinator.Reconcile();
+        Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
+        coordinator.UpdateMedia(true, true, 3000, autoHide: false);
+        coordinator.UpdateMedia(false, false, 3000, autoHide: false);
+        Assert.AreEqual(OverlayState.Hidden, coordinator.Current.State);
+    }
+
     private sealed class ManualTime : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = new(2026, 9, 12, 0, 0, 0, TimeSpan.Zero);

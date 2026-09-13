@@ -1,5 +1,13 @@
 # DropSpace Feature Catalogue
 
+## Preview.24 amended scope (not yet released)
+
+- Four island pages: Widgets → Music → Files → Clipboard, without wrapping at either end.
+- Widget editor: 8 columns × 4 rows, add/remove/move/reset, and supported size choices per widget. Existing saved arrangements are preserved.
+- Real clock, calendar, CPU/memory, battery/AC and uptime data; stopwatch start/pause/reset; settings and clipboard recording controls.
+- Clipboard page: most recent 20 canonical records with copy, pin/unpin, remove from DropSpace, pause/resume, and full-history navigation.
+- Music settings retain provider, translation, timing, artwork, spectrum and explicit player allowlist choices. No valid native timeline means estimated position and unavailable seeking, not a fabricated seek capability.
+
 This document is the behavior contract. MVP and V1.1 boundaries come from `PRODUCT.md`.
 
 ## v0.3.0-preview.3 targeted hardening

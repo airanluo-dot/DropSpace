@@ -25,6 +25,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private string[] _allowedSources = [];
     private long _metadataRevision;
     private long _artworkRevision = -1;
+    private bool _restrictSources;
 
     public event EventHandler<MediaSessionSnapshot>? Changed;
     public MediaSessionSnapshot Current => Volatile.Read(ref _current);
@@ -68,10 +69,11 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         finally { _lifecycle.Release(); }
     }
 
-    public void SetAllowedSources(IEnumerable<string> sourceIds)
+    public void SetAllowedSources(IEnumerable<string> sourceIds, bool restrictToList = false)
     {
         Volatile.Write(ref _allowedSources, sourceIds.Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(128).ToArray());
+        Volatile.Write(ref _restrictSources, restrictToList || _allowedSources.Length > 0);
         RequestRefresh();
     }
 
@@ -144,12 +146,13 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     private async Task<MediaSessionSnapshot> ReadSnapshotAsync(CancellationToken token)
     {
+        var observedAt = DateTimeOffset.UtcNow;
         var manager = _manager;
         if (manager is null) return MediaSessionSnapshot.Empty;
         var sessions = manager.GetSessions().Take(128).ToArray();
         AvailableSources = sessions.Select(session => Bound(session.SourceAppUserModelId)).Distinct().ToArray();
         var allowed = Volatile.Read(ref _allowedSources);
-        bool Accept(GlobalSystemMediaTransportControlsSession value) => allowed.Length == 0 || allowed.Contains(value.SourceAppUserModelId, StringComparer.OrdinalIgnoreCase);
+        bool Accept(GlobalSystemMediaTransportControlsSession value) => !Volatile.Read(ref _restrictSources) || allowed.Contains(value.SourceAppUserModelId, StringComparer.OrdinalIgnoreCase);
         var selected = manager.GetCurrentSession();
         if (selected is null || !Accept(selected))
             selected = sessions.FirstOrDefault(value => Accept(value) && value.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
@@ -191,7 +194,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                 _ => MediaPlaybackState.Unknown,
             }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
             playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
-            new(timeline.Position, timeline.StartTime, timeline.EndTime, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), DateTimeOffset.UtcNow);
+            new(timeline.Position, timeline.StartTime, timeline.EndTime, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt);
     }
 
     private static async Task<byte[]?> ReadArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
@@ -263,8 +266,11 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args) => RequestRefresh();
     private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or IOException;
     private static string Bound(string? text) => text is null ? string.Empty : text[..Math.Min(text.Length, MaximumMetadataCharacters)];
-    private static string FriendlyName(string identity)
+    public static string FriendlyName(string identity)
     {
+        if (identity.Equals("cloudmusic.exe", StringComparison.OrdinalIgnoreCase)) return "网易云音乐";
+        if (identity.Contains("AppleMusic", StringComparison.OrdinalIgnoreCase)) return "Apple Music";
+        if (identity.Contains("QQMusic", StringComparison.OrdinalIgnoreCase)) return "QQ Music";
         var name = identity.Split('!')[0].Split('_')[0];
         if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name = name[..^4];
         return name[(name.LastIndexOf('.') + 1)..];

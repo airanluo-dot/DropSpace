@@ -1,5 +1,16 @@
 # DropSpace Architecture and Product Decisions
 
+## D-062 — Four island pages and compact widget sizes
+
+- Status: Accepted, user amendment dated 2026-09-12; release implementation in progress.
+- Supersedes the original Preview.24 three-page and 6 by 3 widget specification.
+- Page order is Widgets, Music, Files, Clipboard. Keep non-wrapping side rails; media events preserve the selected page and drag temporarily exposes Files.
+- Use 8 columns and 4 rows, retaining widget IDs 0–3 and appending power, uptime, stopwatch and clipboard capture controls. A catalog limits each widget to sizes its content supports; not every widget is resizable.
+- The Clipboard page uses existing local records and actions, showing the most recent 20 with an entry to full history. It neither duplicates storage nor authorizes idle island presence.
+- Lyrics/artwork requests have independent cancellation generations. A cover update must not restart a lyrics lookup. Preserve provider artist boundaries so a single SMTC artist does not bias selection toward a different version with fewer credited performers.
+- Disabling automatic hide retains observed media activity until media is disabled or automatic hide resumes; widgets cannot keep the island alive. Rendering and process audio sampling follow visible music surfaces.
+- September 13 amendment: NetEase remains the fresh default. Empty/unavailable online results trigger a bounded race of the other four online providers; first timed result wins and all other jobs are canceled/drained. Local mode remains offline. Apple Music uses its exact packaged LibraryServer identity for PCM capture; the UI identity remains the icon/control source.
+
 ## D-061 — Preview.24 rebuild and compatibility foundation
 
 - Status: Accepted for the user-authorized Preview.24 rebuild; implementation in progress.

@@ -27,6 +27,7 @@
       <NavigationViewItem x:Name="SpaceNavigationItem" services:XamlResourceOverride.Uid="NavSpace" Icon="Folder" Tag="Space" />
       <NavigationViewItem x:Name="ClipboardNavigationItem" services:XamlResourceOverride.Uid="NavClipboard" Icon="Paste" Tag="Clipboard" />
       <NavigationViewItem x:Name="PinnedNavigationItem" services:XamlResourceOverride.Uid="NavPinned" Icon="Pin" Tag="Pinned" />
+      <NavigationViewItem x:Name="MusicNavigationItem" services:XamlResourceOverride.Uid="NavMusic" Icon="Audio" Tag="Music" />
     </NavigationView.MenuItems>
     <NavigationView.FooterMenuItems>
       <NavigationViewItem x:Name="SettingsNavigationItem" services:XamlResourceOverride.Uid="NavSettings" Icon="Setting" Tag="Settings" />
@@ -85,9 +86,9 @@
         <StackPanel x:Name="HeaderText" MinWidth="0" Spacing="3">
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="{Binding PageTitle}" Style="{StaticResource TitleTextBlockStyle}" />
-            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding ItemCountText}" />
+            <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding ItemCountText}" Visibility="{Binding IsCollectionVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
           </StackPanel>
-          <TextBlock MaxWidth="520" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding PageDescription}" TextWrapping="WrapWholeWords" />
+          <TextBlock x:Name="HeaderDescription" MaxWidth="520" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{Binding PageDescription}" TextWrapping="WrapWholeWords" />
           <TextBlock
             x:Name="ClipboardStatusText"
             Margin="0,5,0,0"
@@ -368,11 +369,13 @@
         </Grid>
       </Grid>
 
+      <ContentControl x:Name="MusicContent" Grid.Row="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="{Binding IsMusicVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
       <ScrollViewer
+        x:Name="LegacySettingsSource"
         Grid.Row="2"
         Padding="{StaticResource DropSpaceSettingsPadding}"
-        Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-        <StackPanel MaxWidth="780" HorizontalAlignment="Left" Spacing="28">
+        Visibility="Collapsed">
+        <StackPanel x:Name="LegacySettingsSections" MaxWidth="780" HorizontalAlignment="Left" Spacing="28">
           <StackPanel Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="ClipboardPrivacySection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <Grid ColumnSpacing="24">
@@ -842,6 +845,7 @@
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
+      <ContentControl x:Name="SettingsPages" Grid.Row="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
     </Grid>
   </NavigationView>
 </Page>

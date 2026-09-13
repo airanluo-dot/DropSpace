@@ -26,8 +26,21 @@ public static class LyricsMatcher
         if (titleScore < 0.45) return 0;
         var durationDelta = Math.Abs(query.Duration.TotalSeconds - durationSeconds);
         if (durationSeconds > 0 && query.Duration.TotalSeconds > 0 && durationDelta > 30) return 0;
-        return titleScore * 6 + Similarity(query.Artist, artist) * 3 + Similarity(query.Album, album)
+        return titleScore * 6 + ArtistSimilarity(query.Artist, artist) * 3 + Similarity(query.Album, album)
             + (durationSeconds > 0 && durationDelta <= 5 ? 2 : 0);
+    }
+
+    private static double ArtistSimilarity(string left, string right)
+    {
+        // SMTC often supplies only the first credited artist. Preserve provider
+        // artist boundaries so additional credits do not penalize the right song.
+        var separators = new[] { ';', ',', '、', '/', '&' };
+        var requested = left[..Math.Min(left.Length, 2_048)].Split(separators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(Normalize).Where(value => value.Length > 0).Distinct().ToArray();
+        var candidates = right[..Math.Min(right.Length, 2_048)].Split(separators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(Normalize).Where(value => value.Length > 0).ToHashSet(StringComparer.Ordinal);
+        var credits = requested.Length == 0 ? 0 : requested.Count(candidates.Contains) / (double)requested.Length;
+        return Math.Max(Similarity(left, right), credits);
     }
 
     private static double Similarity(string left, string right)

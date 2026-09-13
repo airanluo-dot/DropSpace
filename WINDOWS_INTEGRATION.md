@@ -1,5 +1,23 @@
 # Windows Integration Feasibility
 
+## Preview.24 Apple Music findings (2026-09-13)
+
+Native playback on Windows build 26200 showed Apple Music updating SMTC timestamps
+several times per second while Position advances in whole seconds. Timestamp-only
+updates must not reset interpolation; small forward quantization corrections must
+not move the word highlight backward. Real seeks remain authoritative. A steady
+30-sample native replay using the corrected clock produced no backward steps.
+Title and timeline changes can arrive separately; steady-playback evidence does
+not prove atomic cross-track metadata/timeline delivery.
+
+Apple Music's audio renderer is package AUMID
+`AppleInc.AppleMusicWin_nzyj5cx40ttqa!LibraryServer`. Its UI uses `!App`, and the
+renderer is not a child of the UI process. Capturing only the UI tree produced
+zero PCM energy. Resolving the exact LibraryServer identity produced 87 spectrum
+frames and peak 0.769 in four seconds. Keep application icons tied to the UI
+identity; only audio resolution selects the renderer. No whole-device audio
+capture or synthetic frequency bars are substituted.
+
 Status labels: **Supported**, **Supported with Win32 interop**, **Complex/validate**, **Limited**, **Deferred**.
 
 ## Platform baseline

@@ -1,5 +1,23 @@
 # DropSpace UX Specification
 
+## Preview.24 amended island and settings
+
+Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the
+left rail on Widgets and the right rail on Clipboard. Playback updates retain
+the selected expanded page. A drag temporarily presents the Files drop target.
+The widget editor uses 4 rows by 8 columns; size choices list supported shapes
+instead of accepting arbitrary dimensions. Small settings and capture-control
+widgets have 1 by 1 forms; CPU/memory needs at least 2 by 1. Empty slots stay empty.
+Dragging changes widget position; selecting a widget shows an accent border,
+bold label and accessible selected status. Adding from the library scans vacant
+contiguous cells and never moves existing widgets. Insufficient space shows a
+localized error. Position/size controls remain available without dragging.
+Music is a main-window navigation destination. Settings categories are General,
+Island, Widgets, System activities, Devices and sharing, Updates, About. Keep
+native control labels, keyboard alternatives, and visible save/action errors.
+The Clipboard page names pin state and record removal explicitly and links to
+the full history. These changes are under validation, not a released snapshot.
+
 ## Experience goal
 
 DropSpace should feel like a compact system utility, not a content dashboard. The common path is: capture silently, locate quickly, act once, disappear.

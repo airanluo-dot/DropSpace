@@ -26,6 +26,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
     private readonly MediaViewModel _mediaViewModel;
     private readonly WidgetViewModel _widgetViewModel;
+    private readonly ClipboardIslandViewModel _clipboardViewModel;
     private readonly OleDragDropService _dragDropService;
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
@@ -66,7 +67,8 @@ public sealed class OverlayWindowService : IDisposable
         SystemVisualPreferenceService visualPreferences,
         DropSpace.Core.Island.IslandExperienceCoordinator experience,
         MediaViewModel mediaViewModel,
-        WidgetViewModel widgetViewModel)
+        WidgetViewModel widgetViewModel,
+        ClipboardIslandViewModel clipboardViewModel)
     {
         _viewModel = viewModel;
         _strings = strings;
@@ -86,6 +88,7 @@ public sealed class OverlayWindowService : IDisposable
         _visualPreferences = visualPreferences;
         _experience = experience; _mediaViewModel = mediaViewModel;
         _widgetViewModel = widgetViewModel;
+        _clipboardViewModel = clipboardViewModel;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -104,6 +107,7 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
         _experience.Changed += OnExperienceChanged;
+        _mediaViewModel.PropertyChanged += OnMediaSettingsChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
         _mainViewModel.PropertyChanged += OnMainSettingsChanged;
@@ -527,6 +531,7 @@ public sealed class OverlayWindowService : IDisposable
 
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _experience.Changed -= OnExperienceChanged;
+        _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
         _mainViewModel.PropertyChanged -= OnMainSettingsChanged;
@@ -594,6 +599,11 @@ public sealed class OverlayWindowService : IDisposable
             if (_disposed) return;
             foreach (var window in _windows) window.ApplyTheme(_mainViewModel.Theme);
         });
+    }
+
+    private void OnMediaSettingsChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings)) ApplySnapshot(_viewModel.Snapshot);
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
@@ -880,7 +890,8 @@ public sealed class OverlayWindowService : IDisposable
                 _visualPreferences,
                 _experience,
                 _mediaViewModel,
-                _widgetViewModel);
+                _widgetViewModel,
+                _clipboardViewModel);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementCancelled += OnPlacementCancelled;

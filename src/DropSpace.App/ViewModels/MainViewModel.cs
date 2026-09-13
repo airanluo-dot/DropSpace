@@ -144,7 +144,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public string CurrentSection
     {
         get => _currentSection;
-        private set => SetProperty(ref _currentSection, value);
+        private set { if (SetProperty(ref _currentSection, value)) { OnPropertyChanged(nameof(IsMusicVisible)); OnPropertyChanged(nameof(IsCollectionVisible)); } }
     }
 
     public string SearchText
@@ -234,7 +234,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
     }
 
-    public bool IsCollectionVisible => !IsSettingsVisible;
+    public bool IsMusicVisible => CurrentSection == "Music";
+    public bool IsCollectionVisible => !IsSettingsVisible && !IsMusicVisible;
 
     public int ItemCount
     {
@@ -716,6 +717,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 ItemCount = 0;
                 IsEmpty = true;
                 return;
+            case "Music":
+                PageTitle = _strings.Get("PageTitleMusic");
+                PageDescription = _strings.Get("PageDescriptionMusic");
+                IsBusy = false; Items.Clear(); _projectionCursor = null;
+                HasMoreItems = false; ItemCount = 0; IsEmpty = true;
+                return;
             default:
                 CurrentSection = "Space";
                 PageTitle = _strings.Get("PageTitleSpace");
@@ -728,6 +735,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
+        if (!IsCollectionVisible) return;
         ObjectDisposedException.ThrowIf(_disposed, this);
         var revision = Interlocked.Increment(ref _reloadRevision);
         var request = new ItemProjectionRequest(CurrentSection, SearchText);
@@ -1060,6 +1068,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSpaceItemsAsync(
         int limit,
         CancellationToken cancellationToken = default)
+        => await GetRecentSourceItemsAsync(ItemSource.Space, limit, cancellationToken);
+
+    public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSourceItemsAsync(
+        ItemSource source, int limit, CancellationToken cancellationToken = default)
     {
         if (limit is < 1 or > 20)
         {
@@ -1067,7 +1079,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
 
         var items = await _repository.QueryAsync(
-            new ItemQuery(Source: ItemSource.Space, Limit: limit),
+            new ItemQuery(Source: source, Limit: limit),
             cancellationToken);
         var cards = items.Select(item =>
         {

@@ -14,7 +14,7 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : ILyricsProvider
         {
             Item = item,
             Score = Array(item, "musicNames").Where(name => name.ValueKind == System.Text.Json.JsonValueKind.String)
-                .Select(name => LyricsMatcher.Score(query, name.GetString() ?? string.Empty, string.Join(' ', Array(item, "artistNames").Where(name => name.ValueKind == System.Text.Json.JsonValueKind.String).Select(name => name.GetString())), string.Empty, 0)).DefaultIfEmpty(0).Max(),
+                .Select(name => LyricsMatcher.Score(query, name.GetString() ?? string.Empty, string.Join("; ", Array(item, "artistNames").Where(name => name.ValueKind == System.Text.Json.JsonValueKind.String).Select(name => name.GetString())), string.Empty, 0)).DefaultIfEmpty(0).Max(),
         }).OrderByDescending(candidate => candidate.Score).FirstOrDefault();
         if (best is null || best.Score < 4) return LyricsDocument.Empty;
         using var lyric = await http.GetAsync($"https://api.amll.dev/v1/lyrics/get?id={Escape(Text(best.Item, "id"))}", cancellationToken);

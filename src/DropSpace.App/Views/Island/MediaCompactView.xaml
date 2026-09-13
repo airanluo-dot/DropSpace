@@ -11,7 +11,8 @@
     <Border x:Name="ArtworkHost" Width="24" Height="24" CornerRadius="6" Background="{ThemeResource ControlFillColorSecondaryBrush}">
       <Image Source="{Binding Artwork}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
     </Border>
-    <Grid x:Name="LyricViewport" Grid.Column="1" MinHeight="28" VerticalAlignment="Center" SizeChanged="OnViewportSizeChanged">
+    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+    <Grid x:Name="LyricViewport" MinHeight="28" VerticalAlignment="Center" SizeChanged="OnViewportSizeChanged">
       <Grid.Clip><RectangleGeometry x:Name="ViewportClip" /></Grid.Clip>
       <Grid x:Name="LyricCanvas" HorizontalAlignment="Left" VerticalAlignment="Center">
         <Grid.RenderTransform><CompositeTransform x:Name="LyricTranslation" /></Grid.RenderTransform>
@@ -21,6 +22,8 @@
         </TextBlock>
       </Grid>
     </Grid>
+    <TextBlock x:Name="SecondaryLine" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed" />
+    </StackPanel>
     <StackPanel x:Name="SpectrumBars" Grid.Column="2" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Height="22" AutomationProperties.AccessibilityView="Raw">
       <Rectangle x:Name="Band0" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />
       <Rectangle x:Name="Band1" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />

@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainWindow> _logger;
     private readonly Views.MainPage _mainPage;
+    private readonly MediaViewModel _media;
     private NativeTrayService? _tray;
     private bool _allowClose;
     private bool _closeExplanationInProgress;
@@ -39,9 +40,15 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         DeviceHandoffUseCase deviceHandoff,
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
-        SharingUseCase sharing)
+        SharingUseCase sharing,
+        NativeSettingsEditor settingsEditor,
+        MediaViewModel media,
+        Services.Media.WindowsMediaSessionService sessions,
+        Services.Media.MediaExperienceService mediaExperience,
+        Services.Media.MediaApplicationIconService mediaIcons)
     {
         _viewModel = viewModel;
+        _media = media;
         _strings = strings;
         _logger = logger;
         try
@@ -89,11 +96,22 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             deviceHandoff,
             crossDeviceClipboard,
             dropLinkHost,
-            sharing);
+            sharing,
+            settingsEditor, media, sessions, mediaExperience, mediaIcons);
         RootContent.Content = _mainPage;
+        AppWindow.Changed += OnWindowPresentationChanged;
+        _viewModel.PropertyChanged += OnMediaSectionChanged;
     }
 
     public event EventHandler? ExitRequested;
+
+    private void OnWindowPresentationChanged(AppWindow sender, AppWindowChangedEventArgs args) => UpdateMediaVisibility();
+    private void OnMediaSectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MainViewModel.CurrentSection)) UpdateMediaVisibility();
+    }
+    private void UpdateMediaVisibility() => _media.SetPresentationVisible(this, _viewModel.IsMusicVisible && AppWindow.IsVisible &&
+        AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized });
 
     public void InitializeTray(ILogger<NativeTrayService> logger)
     {
@@ -164,6 +182,9 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     public void AllowCloseAndClose()
     {
         _allowClose = true;
+        AppWindow.Changed -= OnWindowPresentationChanged;
+        _viewModel.PropertyChanged -= OnMediaSectionChanged;
+        _media.SetPresentationVisible(this, false);
         _closeExplanationCancellation.Cancel();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();

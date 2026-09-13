@@ -12,6 +12,7 @@ public sealed record IslandActivitySettings
     public bool ShowLyricsInCompact { get; init; } = true;
     public bool CompactDynamicWidth { get; init; } = true;
     public string[] AllowedMediaSourceAppIds { get; init; } = [];
+    public bool UseMediaSourceAllowList { get; init; }
 }
 
 public sealed record LyricsSettings
