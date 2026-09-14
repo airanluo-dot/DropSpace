@@ -17,6 +17,17 @@ export const REQUIRED_RELEASE_ASSETS = Object.freeze(Object.values(RELEASE_ARTIF
 const OFFICIAL_DOWNLOAD = /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/download\/([^/]+)\/([^/?#]+)$/;
 const OFFICIAL_RELEASE = /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/tag\/([^/?#]+)$/;
 
+export function compareReleaseTags(left, right) {
+  const parse = (tag) => {
+    const match = /^v(\d+)\.(\d+)\.(\d+)(?:-(?:preview|beta)\.(\d+))?$/.exec(tag);
+    if (!match) throw new TypeError("Invalid release tag.");
+    return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] ? Number(match[4]) : 9999];
+  };
+  const a = parse(left), b = parse(right);
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return 0;
+}
+
 function releaseArtifactKind(name) {
   return Object.entries(RELEASE_ARTIFACTS).find(([, artifactName]) => artifactName === name)?.[0] ?? null;
 }
@@ -44,7 +55,7 @@ export function validateReleaseApi(payload) {
   }
   if (payload.releases.length > RELEASE_API_MAX_ITEMS) throw new RangeError("Too many releases.");
   for (const release of payload.releases) {
-    if (!/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release.tagName ?? "")) throw new TypeError("Invalid release tag.");
+    if (!/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release.tagName ?? "")) throw new TypeError("Invalid release tag.");
     if (typeof release.name !== "string" || typeof release.body !== "string" || release.isDraft !== false ||
         typeof release.isPrerelease !== "boolean" || !isIsoDate(release.publishedAt)) {
       throw new TypeError("Invalid release metadata.");
@@ -86,10 +97,10 @@ export function createLatestChangeApi(releaseApi) {
     source: "github-releases",
     release: {
       tagName: release.tagName,
-      channel: release.isPrerelease ? "preview" : "stable",
+      channel: release.isPrerelease ? "beta" : "stable",
       headline: {
-        en: release.isPrerelease ? "Latest Preview." : "Current Stable.",
-        "zh-CN": release.isPrerelease ? "最新预览版。" : "当前稳定版。"
+        en: release.isPrerelease ? "Latest Beta." : "Current Stable.",
+        "zh-CN": release.isPrerelease ? "最新 Beta。" : "当前稳定版。"
       },
       title,
       publishedAt: release.publishedAt,
@@ -109,9 +120,9 @@ export function validateLatestChangeApi(payload) {
     throw new TypeError("Unsupported latest-change API payload.");
   }
   const release = payload.release;
-  if (!release || !/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release.tagName ?? "") ||
-      !["stable", "preview"].includes(release.channel) ||
-      release.channel !== (release.tagName.includes("-preview.") ? "preview" : "stable") ||
+  if (!release || !/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release.tagName ?? "") ||
+      !["stable", "beta"].includes(release.channel) ||
+      release.channel !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
       !isIsoDate(release.publishedAt)) {
     throw new TypeError("Invalid latest-change release metadata.");
   }
@@ -133,7 +144,8 @@ export function validateLatestChangeApi(payload) {
 
 export function createWebsiteReleaseData(githubPayload, generatedAt = new Date().toISOString()) {
   if (!Array.isArray(githubPayload)) throw new TypeError("GitHub release payload must be an array.");
-  const published = githubPayload.filter((release) => !release.draft);
+  const published = githubPayload.filter((release) => !release.draft)
+    .sort((a, b) => compareReleaseTags(b.tag_name, a.tag_name));
   const stable = published.find((release) => !release.prerelease);
   if (!stable) throw new TypeError("GitHub Releases did not contain a Stable release in the fetched release window.");
 
@@ -147,7 +159,7 @@ export function createWebsiteReleaseData(githubPayload, generatedAt = new Date()
     source: "github",
     api: normalizeGitHubReleases(releases, generatedAt),
     stable: normalizeWebsiteRelease(stable),
-    previews: releases.filter((release) => release.prerelease).slice(0, 5).map(normalizeWebsiteRelease)
+    prereleases: releases.filter((release) => release.prerelease).slice(0, 5).map(normalizeWebsiteRelease)
   };
   return validateWebsiteReleaseData(data);
 }
@@ -156,15 +168,16 @@ export function validateWebsiteReleaseData(data) {
   if (!data || data.source !== "github" || !isIsoDate(data.syncedAt)) {
     throw new TypeError("Invalid website release data provenance.");
   }
+  data.prereleases ??= data.previews; // Read older cached metadata; newly synced data uses prereleases.
   validateReleaseApi(data.api);
-  if (!data.stable || !Array.isArray(data.previews)) throw new TypeError("Website release data is incomplete.");
+  if (!data.stable || !Array.isArray(data.prereleases)) throw new TypeError("Website release data is incomplete.");
 
   const apiByTag = new Map(data.api.releases.map((release) => [release.tagName, release]));
   validateWebsiteEntry(data.stable, apiByTag, false);
-  for (const preview of data.previews) validateWebsiteEntry(preview, apiByTag, true);
+  for (const preview of data.prereleases) validateWebsiteEntry(preview, apiByTag, true);
 
   requireReleaseAssets(apiByTag.get(data.stable.tag), "Stable");
-  if (data.previews[0]) requireReleaseAssets(apiByTag.get(data.previews[0].tag), "latest Preview");
+  if (data.prereleases[0]) requireReleaseAssets(apiByTag.get(data.prereleases[0].tag), "latest Beta");
   return data;
 }
 

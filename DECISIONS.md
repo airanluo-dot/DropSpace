@@ -554,3 +554,11 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - Decision: Apply settings through one serialized transaction that merges only fields changed by the active form into the latest persisted snapshot. Keep local settings independent from optional device/network initialization, identify failures by stage and correlation ID, and compensate only steps that actually committed. Project setting notifications differentially on the UI dispatcher. Expose Quick Actions as labeled icon-plus-text controls; run safe exports with the default destination; show checksum text with copy support; and offer bounded image-size presets before custom pixels.
 - Rationale: A failed optional service previously made unrelated settings appear unwritable, while dense unlabeled actions and mandatory pixel entry hid available capabilities. Field-level merging avoids stale-form overwrites, scoped rollback preserves recoverability, and progressive defaults reduce steps without changing source-safe export boundaries.
 - Constraints: Windows startup registration, WinUI thread affinity, image codecs, DPI/accessibility, and two-device/network behavior still require hosted Windows and manual target evidence. Outputs remain DropSpace-owned and never mutate referenced source files.
+
+## D-061 — Beta prerelease sequence and legacy channel compatibility
+
+- Date: 2026-09-14
+- Status: Accepted by user, including one-time manual upgrade from Preview.23.
+- New prereleases use beta.N, beginning v0.3.0-beta.24. Historical Preview records remain immutable. Readers preserve original tag spelling; ordering compares numeric release components and prerelease number, with Stable last in the same line.
+- UpdateChannel retains numeric identity 1, reads Preview/preview and Beta strings, and writes Beta. Existing settings are rewritten through normal atomic persistence without resetting unrelated preferences. Downloaded update state also accepts the legacy name.
+- Preview.23's published parser cannot recognize Beta. Its users install Beta 24 once manually while retaining data/settings. New-code tests must not be represented as proof that the old binary can detect Beta.

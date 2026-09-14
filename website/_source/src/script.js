@@ -86,7 +86,7 @@ async function refreshReleaseData() {
 }
 
 function isValidRelease(release) {
-  if (!/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release?.tagName ?? "")) return false;
+  if (!/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release?.tagName ?? "")) return false;
   if (release.htmlUrl !== `https://github.com/airanluo-dot/DropSpace/releases/tag/${release.tagName}`) return false;
   const names = new Set();
   const kinds = new Set();
@@ -125,10 +125,10 @@ function isValidLatestChange(payload) {
   const release = payload?.release;
   if (payload?.schemaVersion !== 1 || payload.source !== "github-releases" ||
       !Number.isFinite(Date.parse(payload.generatedAt)) ||
-      !/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(release?.tagName ?? "") ||
+      !/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release?.tagName ?? "") ||
       release.htmlUrl !== `https://github.com/airanluo-dot/DropSpace/releases/tag/${release.tagName}` ||
       !Number.isFinite(Date.parse(release.publishedAt)) ||
-      release.channel !== (release.tagName.includes("-preview.") ? "preview" : "stable") ||
+      release.channel !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
       !isBoundedText(release.title, 160)) return false;
   return ["en", "zh-CN"].every((locale) =>
     isBoundedText(release.headline?.[locale], 80) &&
@@ -192,7 +192,7 @@ function renderReleaseEntries(container, releases, zh) {
     article.className = "release-entry";
     const meta = document.createElement("div");
     meta.className = "release-meta";
-    for (const value of [release.tagName, release.isPrerelease ? "Preview" : "Stable", new Date(release.publishedAt).toLocaleDateString(zh ? "zh-CN" : "en-US", { dateStyle: "long", timeZone: "UTC" })]) {
+    for (const value of [release.tagName, release.isPrerelease ? "Beta" : "Stable", new Date(release.publishedAt).toLocaleDateString(zh ? "zh-CN" : "en-US", { dateStyle: "long", timeZone: "UTC" })]) {
       const node = document.createElement(meta.childElementCount ? "span" : "strong");
       node.textContent = value;
       meta.append(node);

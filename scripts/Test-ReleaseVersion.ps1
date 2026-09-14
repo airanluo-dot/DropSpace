@@ -28,7 +28,7 @@ Assert-Equal $stable.MakeLatest $true "Stable latest flag"
 
 $preview = Get-DropSpaceReleaseInfo "v0.1.1-preview.10"
 Assert-Equal $preview.SemanticVersion "0.1.1-preview.10" "Preview semantic version"
-Assert-Equal $preview.Channel "preview" "Preview channel"
+Assert-Equal $preview.Channel "beta" "Preview channel"
 Assert-Equal $preview.FileVersion "0.1.1.10" "Preview file version"
 Assert-Equal $preview.PackageVersion "0.1.1.10" "Preview package version"
 Assert-Equal $preview.VersionCode 1010010 "Preview version code"
@@ -37,7 +37,7 @@ Assert-Equal $preview.MakeLatest $false "Preview latest flag"
 
 $smartDragPreview = Get-DropSpaceReleaseInfo "v0.2.0-preview.1"
 Assert-Equal $smartDragPreview.SemanticVersion "0.2.0-preview.1" "Smart-drag Preview semantic version"
-Assert-Equal $smartDragPreview.Channel "preview" "Smart-drag Preview channel"
+Assert-Equal $smartDragPreview.Channel "beta" "Smart-drag Preview channel"
 Assert-Equal $smartDragPreview.FileVersion "0.2.0.1" "Smart-drag Preview file version"
 Assert-Equal $smartDragPreview.PackageVersion "0.2.0.1" "Smart-drag Preview package version"
 Assert-Equal $smartDragPreview.GitHubPrerelease $true "Smart-drag Preview prerelease flag"
@@ -91,3 +91,14 @@ foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1
 }
 
 Write-Host "Stable/Preview release metadata and shared VersionCode rules passed."
+
+$beta = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.24"
+Assert-Equal $beta.Channel "beta" "Beta channel"
+Assert-Equal $beta.PackageVersion "0.3.0.24" "Beta package version"
+Assert-Equal $beta.FileVersion "0.3.0.24" "Beta file version"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $beta) "0.3.0-preview.23" "Legacy upgrade baseline"
+$rejected = $false
+try { Assert-DropSpaceNewReleaseVersion "v0.3.0-preview.24" | Out-Null } catch { $rejected = $true }
+Assert-Equal $rejected $true "Reject new Preview publication"
+$current = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $PSScriptRoot '../RELEASE_VERSION') -Raw).Trim())
+if (-not (Test-Path (Join-Path $PSScriptRoot "../.github/release-notes/$($current.Tag).md"))) { throw "Missing current release notes." }

@@ -42,7 +42,7 @@ public sealed partial class MainPage
         groups["Island"].Children.Insert(0, island);
         groups["Widgets"].Children.Add(new WidgetEditorView(editor, _strings));
         var activities = new SettingsForm(editor, _strings);
-        activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } });
+        activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } }, editor.CheckNotificationAccessAsync);
         activities.AddToggle("ActivitiesVolume", s => s.SystemActivities.ShowVolumeChanges, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowVolumeChanges = v } });
         activities.AddToggle("ActivitiesFullscreen", s => s.SystemActivities.SuppressOverFullscreen, (s,v) => s with { SystemActivities = s.SystemActivities with { SuppressOverFullscreen = v } });
         groups["SystemActivities"].Children.Add(activities);

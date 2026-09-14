@@ -16,7 +16,7 @@ Do not declare a change or release complete until required Skill updates are val
 
 ## Before changing anything
 
-1. Read `PRODUCT.md`, the relevant feature/UX document, `ARCHITECTURE.md`, and current phase in `ROADMAP.md`.
+1. Read task-relevant documentation: `PRODUCT.md`/`UX.md` for behavior, `ARCHITECTURE.md` for service boundaries, and `ROADMAP.md` for scope.
 2. Read `DECISIONS.md` before changing technology, persistence, privacy, lifecycle, or item semantics.
 3. Check the worktree and preserve unrelated user changes.
 4. Confirm the requested work belongs to the active phase; do not implement future phases early.
@@ -105,3 +105,7 @@ For each phase, report:
 - Documentation/decision updates.
 
 Do not begin the next phase unless the user asks or the current task explicitly includes it.
+
+## Prerelease naming
+
+All new DropSpace prereleases use vMAJOR.MINOR.PATCH-beta.N. Do not create new -preview.N releases. Historical Preview releases remain immutable and supported for parsing/update compatibility.

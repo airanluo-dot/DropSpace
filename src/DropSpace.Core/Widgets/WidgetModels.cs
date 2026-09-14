@@ -67,6 +67,33 @@ public static class WidgetLayoutPolicy
     public const int Columns = 8;
     public const int Rows = 4;
 
+    public static bool TryMoveOrResize(WidgetLayout layout, WidgetPlacement desired, out WidgetLayout updated)
+    {
+        updated = layout;
+        var old = layout.Expanded.FirstOrDefault(item => item.Id == desired.Id);
+        if (old is null || desired.Column < 0 || desired.Row < 0 ||
+            (long)desired.Column + desired.ColumnSpan > Columns || (long)desired.Row + desired.RowSpan > Rows ||
+            !WidgetCatalog.Sizes(desired.Id).Contains(new WidgetSize(desired.ColumnSpan, desired.RowSpan))) return false;
+        static bool Overlaps(WidgetPlacement a, WidgetPlacement b) =>
+            a.Column < b.Column + b.ColumnSpan && b.Column < a.Column + a.ColumnSpan &&
+            a.Row < b.Row + b.RowSpan && b.Row < a.Row + a.RowSpan;
+        var collisions = layout.Expanded.Where(item => item.Id != desired.Id && Overlaps(item, desired)).ToArray();
+        WidgetPlacement? swapped = null;
+        if (collisions.Length > 0)
+        {
+            if (collisions.Length != 1) return false;
+            var other = collisions[0];
+            if (old.ColumnSpan != desired.ColumnSpan || old.RowSpan != desired.RowSpan ||
+                other.ColumnSpan != desired.ColumnSpan || other.RowSpan != desired.RowSpan ||
+                other.Column != desired.Column || other.Row != desired.Row) return false;
+            swapped = other with { Column = old.Column, Row = old.Row };
+            if (layout.Expanded.Any(item => item.Id != old.Id && item.Id != other.Id && Overlaps(item, swapped))) return false;
+        }
+        updated = new(layout.Expanded.Select(item => item.Id == desired.Id ? desired :
+            item.Id == swapped?.Id ? swapped! : item).ToArray(), layout.Compact);
+        return true;
+    }
+
     public static bool TryAdd(WidgetLayout layout, NativeWidgetId id, int preferredColumn, int preferredRow, out WidgetLayout updated)
     {
         updated = layout;

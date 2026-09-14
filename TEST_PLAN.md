@@ -261,3 +261,5 @@ Automation does not claim visual quality or real Explorer/UIA/third-party provid
 Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.
 
 The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); the Preview.6 plan remains as historical scope. It is a release gate: CI proves policy, protocol, and crypto contracts; two real Windows devices plus an operator-deployed Worker are still required for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

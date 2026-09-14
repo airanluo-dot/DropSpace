@@ -68,6 +68,15 @@
           Click="OnCompactClicked">
           <Grid>
           <island:MediaCompactView x:Name="MusicCompact" Visibility="Collapsed" />
+          <Grid x:Name="ActivityCompact" Visibility="Collapsed" ColumnSpacing="12" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <FontIcon Glyph="{Binding Glyph}" FontSize="24" VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="1" Spacing="3">
+              <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+              <TextBlock Text="{Binding Detail}" TextTrimming="CharacterEllipsis" MaxLines="1"/>
+              <ProgressBar Value="{Binding Percent}" Maximum="100" Visibility="{Binding IsVolume, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            </StackPanel>
+          </Grid>
           <Grid x:Name="FileCompactContent" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="36" />

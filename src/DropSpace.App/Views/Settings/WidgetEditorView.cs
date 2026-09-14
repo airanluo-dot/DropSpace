@@ -108,6 +108,7 @@ public sealed class WidgetEditorView : UserControl
         button.AddHandler(PointerReleasedEvent, new PointerEventHandler(async (_, args) =>
         {
             var shouldPlace = dragging;
+            var origin = pressedAt;
             pressedAt = null; dragging = false; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0;
             button.ReleasePointerCapture(args.Pointer);
             if (!shouldPlace) return;
@@ -116,6 +117,12 @@ public sealed class WidgetEditorView : UserControl
             if (target.X < 0 || target.Y < 0 || target.X >= _grid.ActualWidth || target.Y >= _grid.ActualHeight) return;
             var column = (int)(target.X / ((_grid.ActualWidth + _grid.ColumnSpacing) / WidgetLayoutPolicy.Columns));
             var row = (int)(target.Y / ((_grid.ActualHeight + _grid.RowSpacing) / WidgetLayoutPolicy.Rows));
+            var existing = _editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == id);
+            if (existing is not null && origin is { } start)
+            {
+                column = existing.Column + (int)Math.Round((target.X - start.X) / ((_grid.ActualWidth + _grid.ColumnSpacing) / WidgetLayoutPolicy.Columns));
+                row = existing.Row + (int)Math.Round((target.Y - start.Y) / ((_grid.ActualHeight + _grid.RowSpacing) / WidgetLayoutPolicy.Rows));
+            }
             try { await PlaceAsync(id, column, row); }
             catch (Exception) { _error.Text = _strings.Get("WidgetDropFailed"); }
         }), true);
@@ -180,9 +187,13 @@ public sealed class WidgetEditorView : UserControl
                 return settings with { Widgets = settings.Widgets with { Layout = added } };
             }
             var moved = old with { Column = column, Row = row, ColumnSpan = width ?? old.ColumnSpan, RowSpan = height ?? old.RowSpan };
-            var normalized = WidgetLayoutPolicy.Normalize(new(new[] { moved }.Concat(layout.Expanded.Where(item => item.Id != id)).ToArray(), layout.Compact));
-            if (normalized.Expanded.Count != layout.Expanded.Count + (layout.Expanded.Any(item => item.Id == id) ? 0 : 1)) throw new InvalidOperationException("The requested widget layout has no room for every existing widget.");
-            return settings with { Widgets = settings.Widgets with { Layout = normalized } };
+            if (!WidgetLayoutPolicy.TryMoveOrResize(layout, moved, out var updated))
+            {
+                _error.Text = _strings.Get("WidgetNoRoom");
+                RefreshSelection();
+                return settings;
+            }
+            return settings with { Widgets = settings.Widgets with { Layout = updated } };
         });
     }
     private async Task ApplyPositionAsync()

@@ -115,7 +115,7 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
                     .ConfigureAwait(false);
                 if (state is null || state.SchemaVersion != 1 ||
                     !ReleaseVersion.TryParse(state.Version, out var version) || version <= currentVersion ||
-                    !Enum.TryParse<UpdateChannel>(state.Channel, true, out var channel) ||
+                    !UpdateChannelJsonConverter.TryParse(state.Channel, out var channel) ||
                     !Enum.TryParse<DeploymentMode>(state.DeploymentMode, out var mode) || mode != currentMode ||
                     state.VersionCode != version.ToVersionCode() ||
                     state.Installer is null || state.Portable is null ||

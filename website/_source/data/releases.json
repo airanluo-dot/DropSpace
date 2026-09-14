@@ -314,7 +314,7 @@
       "checksums": "https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.0/SHA256SUMS.txt"
     }
   },
-  "previews": [
+  "prereleases": [
     {
       "tag": "v0.2.0-preview.2",
       "name": "DropSpace v0.2.0-preview.2",

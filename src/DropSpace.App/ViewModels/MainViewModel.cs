@@ -513,7 +513,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public AppLanguagePreference Language => Settings.Language;
 
-    public string CurrentVersionText => _updates.CurrentVersion.ToString();
+    public string CurrentVersionText => _updates.CurrentVersion.IsPrerelease
+        ? $"{_updates.CurrentVersion.Major}.{_updates.CurrentVersion.Minor}.{_updates.CurrentVersion.Patch} (Beta {_updates.CurrentVersion.PrereleaseNumber})"
+        : _updates.CurrentVersion.ToString();
 
     public string CurrentVersionDisplayText => _strings.Format("CurrentVersion", CurrentVersionText);
 

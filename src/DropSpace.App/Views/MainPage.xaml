@@ -805,7 +805,7 @@
               </StackPanel>
               <ComboBox x:Name="UpdateChannelCombo" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnUpdateChannelChanged">
                 <ComboBoxItem services:XamlResourceOverride.Uid="UpdateChannelStable" Tag="Stable" />
-                <ComboBoxItem services:XamlResourceOverride.Uid="UpdateChannelPreview" Tag="Preview" />
+                <ComboBoxItem services:XamlResourceOverride.Uid="UpdateChannelBeta" Tag="Beta" />
               </ComboBox>
             </Grid>
             <Border

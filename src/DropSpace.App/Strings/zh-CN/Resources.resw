@@ -272,9 +272,9 @@
   <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>无人值守自动安装</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>只有更新通过可信 Authenticode 发布者验证时才可用；当前未签名构建保持关闭。</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>更新通道</value></data>
-  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>稳定版只接收正式版；预览版接收全部版本并严格选择最高 SemVer。</value></data>
+  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable 只接收正式版；Beta 接收正式版和测试版，并按数字版本顺序选择更新。</value></data>
   <data name="UpdateChannelStable.Content" xml:space="preserve"><value>稳定版</value></data>
-  <data name="UpdateChannelPreview.Content" xml:space="preserve"><value>预览版</value></data>
+  <data name="UpdateChannelBeta.Content" xml:space="preserve"><value>Beta</value></data>
   <data name="CheckUpdatesButton.Content" xml:space="preserve"><value>检查更新</value></data>
   <data name="DownloadUpdateButton.Content" xml:space="preserve"><value>立即下载</value></data>
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>立即更新</value></data>
@@ -464,7 +464,7 @@
   <data name="MediaPlayLabel" xml:space="preserve"><value>播放</value></data>
   <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一个灵动岛页面</value></data>
   <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一首</value></data>
-  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>估算进度。此播放器未提供可靠时间轴，暂不支持拖动进度。</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>估算进度。播放器未提供可靠时间轴，歌词可能不同步，暂不支持拖动进度。</value></data>
   <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一个灵动岛页面</value></data>
   <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一首</value></data>
   <data name="MediaPauseLabel" xml:space="preserve"><value>暂停</value></data>
@@ -541,7 +541,7 @@
   <data name="IslandCompactScale" xml:space="preserve"><value>紧凑界面缩放</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>小组件库</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>设备与共享</value></data>
-  <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖动小组件到网格，或选中后在下方设置位置。</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖到空位即可放置；拖到同尺寸组件可交换位置。选中后可调整位置和大小，其他组件不会被挤走。</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>展开 · 4 行 × 8 列</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>显示附加歌词</value></data>
   <data name="WidgetSettingsName" xml:space="preserve"><value>设置快捷方式</value></data>
@@ -562,4 +562,7 @@
   <data name="ClipboardIslandPause" xml:space="preserve"><value>暂停记录</value></data>
   <data name="ClipboardIslandRemove.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>从 DropSpace 移除</value></data>
   <data name="WidgetSize" xml:space="preserve"><value>尺寸</value></data>
+  <data name="ActivityMuted" xml:space="preserve"><value>已静音</value></data>
+  <data name="ActivityVolume" xml:space="preserve"><value>音量</value></data>
+  <data name="NotificationAccessUnavailable" xml:space="preserve"><value>通知访问不可用或未获授权。请在 Windows 设置中为已安装的 DropSpace 开启通知访问权限。</value></data>
 </root>

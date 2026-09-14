@@ -67,12 +67,12 @@ jobs:
           cache: true
           cache-dependency-path: Directory.Packages.props
 
-      - name: Derive Stable or Preview release metadata
+      - name: Derive Stable or Beta release metadata
         id: version
         shell: pwsh
         run: |
           . ./scripts/ReleaseVersion.ps1
-          $info = Get-DropSpaceReleaseInfo ((Get-Content RELEASE_VERSION -Raw).Trim())
+          $info = Assert-DropSpaceNewReleaseVersion ((Get-Content RELEASE_VERSION -Raw).Trim())
           if (-not (Test-Path ".github/release-notes/$($info.Tag).md" -PathType Leaf)) {
             throw "Missing release notes for $($info.Tag)."
           }
@@ -107,7 +107,7 @@ jobs:
             throw "Release publication is restricted to the repository owner or the trusted publication bridge."
           }
 
-      - name: Validate Stable and Preview release metadata
+      - name: Validate Stable and Beta release metadata
         shell: pwsh
         run: |
           ./scripts/Test-ReleaseVersion.ps1
@@ -478,7 +478,7 @@ jobs:
             exit 1
           fi
 
-      - name: Publish immutable Stable or Preview release
+      - name: Publish immutable Stable or Beta release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}

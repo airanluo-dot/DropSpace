@@ -5,7 +5,7 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 
-$releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
+$releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
 $notesPath = Get-DropSpaceReleaseNotesPath -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
 $notes = Get-Content $notesPath -Raw
 $firstLine = ($notes -split '\r?\n', 2)[0].Trim()

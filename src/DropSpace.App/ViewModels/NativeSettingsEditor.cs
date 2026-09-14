@@ -14,13 +14,27 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<NativeSettingsEditor> _logger;
     private readonly NativeFolderPickerService _folders;
+    private readonly Services.Notifications.WindowsNotificationActivityService _notifications;
     private readonly SemaphoreSlim _save = new(1, 1);
     private readonly CancellationTokenSource _stop = new();
     private string _error = string.Empty;
-    public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders)
-    { _main = main; _strings = strings; _logger = logger; _folders = folders; main.PropertyChanged += OnChanged; }
+    public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders, Services.Notifications.WindowsNotificationActivityService notifications)
+    { _main = main; _strings = strings; _logger = logger; _folders = folders; _notifications = notifications; main.PropertyChanged += OnChanged; }
     public AppSettings Settings => _main.Settings;
     public string Error { get => _error; private set => SetProperty(ref _error, value); }
+    public async Task<bool> CheckNotificationAccessAsync(bool enabled)
+    {
+        if (!enabled) return true;
+        try
+        {
+            var access = await _notifications.RequestAccessAsync(_stop.Token);
+            if (access == DropSpace.Core.SystemActivities.NotificationAccessState.Allowed) return true;
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { return false; }
+        catch (Exception exception) { _logger.LogWarning("Notification permission failed ({Category}).", exception.GetType().Name); }
+        Error = _strings.Get("NotificationAccessUnavailable");
+        return false;
+    }
     public async Task<bool> UpdateAsync(Func<AppSettings, AppSettings> change)
     {
         var entered = false;

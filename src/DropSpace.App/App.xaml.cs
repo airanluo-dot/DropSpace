@@ -36,6 +36,7 @@ public partial class App : Application
     private MainWindow? _window;
     private OverlayWindowService? _overlayWindows;
     private Services.Media.MediaExperienceService? _mediaExperience;
+    private SystemActivityExperienceService? _systemActivities;
     private AppInstance? _mainInstance;
     private readonly object _shutdownSync = new();
     private Task? _shutdownTask;
@@ -236,6 +237,8 @@ public partial class App : Application
                 await _overlayWindows.InitializeAsync(_window.ShowAndActivate);
                 _mediaExperience = _services.GetRequiredService<Services.Media.MediaExperienceService>();
                 await _mediaExperience.InitializeAsync(viewModel.Settings);
+                _systemActivities = _services.GetRequiredService<SystemActivityExperienceService>();
+                _systemActivities.Initialize();
                 _services.GetRequiredService<MaintenanceShutdownService>().MarkReady();
                 if (isShellActivation)
                 {
@@ -354,6 +357,9 @@ public partial class App : Application
             await CleanupAsync("startup update", () => _startupUpdateTask);
 
         var overlay = _overlayWindows;
+        if (_systemActivities is { } systemActivities)
+            await CleanupAsync("system activities", () => systemActivities.DisposeAsync().AsTask());
+        _systemActivities = null;
         if (_mediaExperience is { } mediaExperience)
             await CleanupAsync("media presentation", () => mediaExperience.DisposeAsync().AsTask());
         _mediaExperience = null;
@@ -476,8 +482,8 @@ public partial class App : Application
         services.AddSingleton<ISettingsService>(provider => new JsonSettingsService(
             paths,
             provider.GetRequiredService<ILogger<JsonSettingsService>>(),
-            provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion.IsPreview
-                ? UpdateChannel.Preview
+            provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion.IsPrerelease
+                ? UpdateChannel.Beta
                 : UpdateChannel.Stable));
         services.AddSingleton<ClipboardNotificationService>();
         services.AddSingleton<ClipboardCaptureService>();
@@ -560,6 +566,10 @@ public partial class App : Application
         services.AddSingleton<PinItemsUseCase>();
         services.AddSingleton<WorkspaceMutationUseCase>();
         services.AddSingleton<MainViewModel>();
+        services.AddSingleton<SystemActivityViewModel>();
+        services.AddSingleton<SystemActivityExperienceService>();
+        services.AddSingleton<Services.Notifications.WindowsNotificationActivityService>();
+        services.AddSingleton<Services.Volume.WindowsVolumeActivityService>();
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<OverlayWindowService>();
         return services.BuildServiceProvider(new ServiceProviderOptions

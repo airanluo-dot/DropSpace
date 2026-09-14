@@ -27,6 +27,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly MediaViewModel _mediaViewModel;
     private readonly WidgetViewModel _widgetViewModel;
     private readonly ClipboardIslandViewModel _clipboardViewModel;
+    private readonly SystemActivityViewModel _systemActivityViewModel;
     private readonly OleDragDropService _dragDropService;
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
@@ -69,11 +70,13 @@ public sealed class OverlayWindowService : IDisposable
         DropSpace.Core.Island.IslandExperienceCoordinator experience,
         MediaViewModel mediaViewModel,
         WidgetViewModel widgetViewModel,
-        ClipboardIslandViewModel clipboardViewModel)
+        ClipboardIslandViewModel clipboardViewModel,
+        SystemActivityViewModel systemActivityViewModel)
     {
         _viewModel = viewModel;
         _strings = strings;
         _mainViewModel = mainViewModel;
+        _systemActivityViewModel = systemActivityViewModel;
         _displayLanguage = mainViewModel.Language;
         _quickActionDialog = quickActionDialog;
         _monitorLayout = monitorLayout;
@@ -903,7 +906,8 @@ public sealed class OverlayWindowService : IDisposable
                 _experience,
                 _mediaViewModel,
                 _widgetViewModel,
-                _clipboardViewModel);
+                _clipboardViewModel,
+                _systemActivityViewModel);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementCancelled += OnPlacementCancelled;

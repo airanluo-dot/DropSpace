@@ -73,7 +73,7 @@ public sealed class StorageAndRepositoryTests
             SmartDragExcludedProcesses = ["example"],
             AutoCheckForUpdates = false,
             AutoDownloadUpdates = false,
-            UpdateChannel = UpdateChannel.Preview,
+            UpdateChannel = UpdateChannel.Beta,
             LastUpdateCheckUtc = DateTimeOffset.Parse("2026-08-10T00:00:00Z"),
         };
 
@@ -82,6 +82,7 @@ public sealed class StorageAndRepositoryTests
 
         Assert.AreEqual(expected with
         {
+            IslandActivity = expected.IslandActivity with { AllowedMediaSourceAppIds = actual.IslandActivity.AllowedMediaSourceAppIds },
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
@@ -91,7 +92,25 @@ public sealed class StorageAndRepositoryTests
             new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 640, 24),
             actual.OverlayPlacements["display:MONITOR-1"]);
         CollectionAssert.AreEqual(expected.SmartDragExcludedProcesses, actual.SmartDragExcludedProcesses);
+        CollectionAssert.AreEqual(expected.IslandActivity.AllowedMediaSourceAppIds, actual.IslandActivity.AllowedMediaSourceAppIds);
         Assert.IsFalse(File.Exists(string.Concat(_paths.Settings, ".tmp")));
+    }
+
+    [TestMethod]
+    [DataRow("\"Preview\"")]
+    [DataRow("\"preview\"")]
+    [DataRow("1")]
+    public async Task LegacyUpdateChannelIsMigratedOnDiskWithoutReset(string channel)
+    {
+        _paths.EnsureCreated();
+        await File.WriteAllTextAsync(_paths.Settings, $$"""{"Version":14,"UpdateChannel":{{channel}},"ClipboardPaused":true,"RetentionDays":42}""");
+        var service = new JsonSettingsService(_paths);
+        var settings = await service.LoadAsync();
+        Assert.AreEqual(UpdateChannel.Beta, settings.UpdateChannel);
+        Assert.IsTrue(settings.ClipboardPaused);
+        Assert.AreEqual(42, settings.RetentionDays);
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(_paths.Settings));
+        Assert.AreEqual("Beta", document.RootElement.GetProperty("UpdateChannel").GetString());
     }
 
     [TestMethod]
@@ -119,7 +138,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual("Win+Shift+Space", actual.QuickPanelHotkey);
         Assert.AreEqual(AppLanguagePreference.System, actual.Language);
         Assert.IsTrue(actual.ClipboardPaused);
-        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+        Assert.AreEqual(UpdateChannel.Beta, actual.UpdateChannel);
         using var persisted = JsonDocument.Parse(await File.ReadAllTextAsync(_paths.Settings));
         Assert.AreEqual(AppSettings.CurrentVersion, persisted.RootElement.GetProperty("Version").GetInt32());
     }
@@ -145,7 +164,7 @@ public sealed class StorageAndRepositoryTests
         Assert.AreEqual(AppSettings.CurrentVersion, actual.Version);
         Assert.AreEqual(FileDragWakeMode.SmartExperimental, actual.FileDragWakeMode);
         Assert.AreEqual(ThemePreference.Dark, actual.Theme);
-        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+        Assert.AreEqual(UpdateChannel.Beta, actual.UpdateChannel);
         Assert.IsFalse(actual.StartWithWindows);
     }
 
@@ -218,7 +237,7 @@ public sealed class StorageAndRepositoryTests
         Assert.IsTrue(actual.CaptureFiles);
         Assert.IsTrue(actual.CaptureFolders);
         Assert.IsTrue(actual.StartWithWindows);
-        Assert.AreEqual(UpdateChannel.Preview, actual.UpdateChannel);
+        Assert.AreEqual(UpdateChannel.Beta, actual.UpdateChannel);
     }
 
     [TestMethod]
@@ -245,7 +264,7 @@ public sealed class StorageAndRepositoryTests
 
         var migrated = await new JsonSettingsService(_paths).LoadAsync();
         Assert.AreEqual(AppSettings.CurrentVersion, migrated.Version);
-        Assert.AreEqual(UpdateChannel.Preview, migrated.UpdateChannel);
+        Assert.AreEqual(UpdateChannel.Beta, migrated.UpdateChannel);
         Assert.AreEqual(ThemePreference.Dark, migrated.Theme);
         Assert.IsFalse(migrated.StartWithWindows);
         Assert.AreEqual(45, migrated.RetentionDays);
@@ -257,11 +276,11 @@ public sealed class StorageAndRepositoryTests
         var service = new JsonSettingsService(
             _paths,
             NullLogger<JsonSettingsService>.Instance,
-            UpdateChannel.Preview);
+            UpdateChannel.Beta);
 
         var fresh = await service.LoadAsync();
 
-        Assert.AreEqual(UpdateChannel.Preview, fresh.UpdateChannel);
+        Assert.AreEqual(UpdateChannel.Beta, fresh.UpdateChannel);
         Assert.IsTrue(fresh.AutoCheckForUpdates);
         Assert.IsTrue(fresh.AutoDownloadUpdates);
         Assert.IsFalse(fresh.AutoInstallUpdates);

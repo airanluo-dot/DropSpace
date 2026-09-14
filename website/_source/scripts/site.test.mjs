@@ -27,8 +27,8 @@ test("versioned release API is emitted for the app and runtime website", () => {
   assert.equal(releaseApi.schemaVersion, 1);
   assert.ok(releaseApi.generatedAt);
   assert.ok(releaseApi.releases.some((release) => release.tagName === releases.stable.tag && !release.isPrerelease));
-  assert.ok(releases.previews.length > 0);
-  assert.ok(releaseApi.releases.some((release) => release.tagName === releases.previews[0].tag && release.isPrerelease));
+  assert.ok(releases.prereleases.length > 0);
+  assert.ok(releaseApi.releases.some((release) => release.tagName === releases.prereleases[0].tag && release.isPrerelease));
   for (const release of releaseApi.releases) {
     assert.doesNotMatch(release.body, /dropspace\.pages\.dev/);
     assert.match(release.htmlUrl, /^https:\/\/github\.com\/airanluo-dot\/DropSpace\/releases\/tag\//);
@@ -104,7 +104,7 @@ test("live Stable status keeps one green dot and a horizontal API-updated label"
 
 test("release data drives every download and changelog entry", () => {
   for (const url of Object.values(releases.stable.assets)) assert.ok(en.includes(url));
-  for (const release of [releases.stable, ...releases.previews]) {
+  for (const release of [releases.stable, ...releases.prereleases]) {
     assert.ok(enChangelog.includes(release.tag));
     assert.ok(zhChangelog.includes(release.tag));
     assert.ok(enChangelog.includes(release.url));

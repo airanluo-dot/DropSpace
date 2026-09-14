@@ -24,11 +24,11 @@ export const site = {
 export const changelogMeta = {
   en: {
     title: "Changelog — DropSpace",
-    description: "DropSpace Stable and Preview release history."
+    description: "DropSpace Stable and Beta release history."
   },
   "zh-cn": {
     title: "更新日志 — DropSpace",
-    description: "DropSpace 稳定版与预览版发布历史。"
+    description: "DropSpace 稳定版与Beta 版发布历史。"
   }
 };
 
@@ -94,7 +94,7 @@ export const zh = {
   "Folders": "文件夹",
   "Tray access": "托盘访问",
   "Start with Windows": "随 Windows 启动",
-  "Stable & Preview updates": "稳定版与预览版更新",
+  "Stable & Beta updates": "稳定版与Beta 版更新",
   "PRODUCT PREVIEW": "产品预览",
   "See the flow, not just a feature list.": "直接看懂完整流程。",
   "A lightweight product demo based on the shipped v0.1.0 interaction and UI structure. It is a website reconstruction, not a recording from another app.": "基于 v0.1.0 已发布交互与界面结构制作的轻量产品演示。这是官网重构演示，不是其他软件的录屏。",
@@ -131,7 +131,7 @@ export const zh = {
   "Final official branding": "最终正式品牌视觉",
   "Temporary Space with Dynamic Island": "支持灵动岛的临时空间",
   "Clipboard History with consecutive duplicate suppression": "带连续重复抑制的剪贴板历史",
-  "In-app Stable and Preview update channels": "应用内稳定版与预览版更新通道",
+  "In-app Stable and Beta update channels": "应用内稳定版与Beta 版更新通道",
   "Installer, Portable, and MSIX downloads": "安装程序、便携版与 MSIX 下载",
   "View full changelog": "查看完整更新日志",
   "OPEN SOURCE": "开源",
@@ -159,18 +159,18 @@ export const zh = {
   "Does DropSpace upload clipboard content?": "DropSpace 会上传剪贴板内容吗？",
   "No. Ordinary content features use local storage. If update checks are enabled, DropSpace contacts only public GitHub Release metadata and official GitHub asset URLs.": "不会。常规内容功能只使用本地存储。启用更新检查后，DropSpace 只会访问公开的 GitHub Release 元数据和官方 GitHub 资源地址。",
   "How do updates work?": "更新如何工作？",
-  "Stable receives Stable releases. Preview can receive Stable and Preview releases. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.": "稳定通道只接收稳定版本；预览通道可接收稳定版和预览版。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。",
+  "Stable receives Stable releases. Beta can receive Stable and Beta releases. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.": "稳定通道只接收稳定版本；Beta 通道可接收稳定版和Beta 版。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。",
   "Releases": "发布版本",
   "License": "许可证",
   "Privacy": "隐私",
   "All releases": "全部版本",
   "What's new.": "更新内容。",
-  "Stable releases for most users, plus an optional Preview channel for early builds. The main download always follows Stable.": "稳定版适合大多数用户，预览通道用于提前体验新构建；网站主下载始终指向稳定版。",
+  "Stable releases for most users, plus an optional Beta channel for early builds. The main download always follows Stable.": "稳定版适合大多数用户，Beta 通道用于提前体验新构建；网站主下载始终指向稳定版。",
   "Stable": "稳定版",
   "First Stable Release": "首个稳定版本",
   "Full release notes": "完整发布说明",
-  "Preview channel": "预览通道",
-  "Preview releases remain available through GitHub Releases and the optional in-app Preview channel. They are never the default website download.": "预览版本仍可通过 GitHub Releases 和应用内可选预览通道获取，但绝不会成为网站默认下载。",
+  "Beta channel": "Beta 通道",
+  "Beta releases remain available through GitHub Releases and the optional in-app Beta channel. They are never the default website download.": "Beta 版本仍可通过 GitHub Releases 和应用内可选Beta 通道获取，但绝不会成为网站默认下载。",
   "Download release": "下载此版本",
   "Published release notes remain in their original language.": "发布说明正文保留发布时使用的原始语言。"
 };

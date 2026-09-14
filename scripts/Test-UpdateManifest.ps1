@@ -10,7 +10,7 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 . (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
 $windowsCompatibility = Get-DropSpaceWindowsCompatibility
-$releaseInfo = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
+$releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
 $expectedSummary = Get-DropSpaceUpdateSummary -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
 $manifestFile = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ManifestPath))
 $releaseRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDirectory))

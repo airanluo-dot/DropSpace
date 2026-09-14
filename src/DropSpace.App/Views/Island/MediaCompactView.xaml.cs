@@ -59,7 +59,7 @@ public sealed partial class MediaCompactView : UserControl
             _primaryHeight = Math.Max(28, _measure.DesiredSize.Height);
             LyricViewport.Height = _primaryHeight;
         }
-        var secondary = settings.Lyrics.Enabled && settings.Lyrics.SecondaryLyrics && settings.IslandActivity.ShowLyricsInCompact ? _view.Lyrics.Line?.Secondary : null;
+        var secondary = settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null;
         SecondaryLine.Text = secondary ?? string.Empty;
         SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
         _secondaryMeasure.FontFamily = SecondaryLine.FontFamily; _secondaryMeasure.Text = SecondaryLine.Text;

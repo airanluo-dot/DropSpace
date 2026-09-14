@@ -24,15 +24,15 @@ public sealed class UpdateVersionTests
     }
 
     [TestMethod]
-    [DataRow("0.1.0-preview.5", UpdateChannel.Preview, "0.1.0-preview.6|0.1.0", "0.1.0")]
-    [DataRow("0.1.0", UpdateChannel.Preview, "0.1.1-preview.1", "0.1.1-preview.1")]
-    [DataRow("0.1.1-preview.3", UpdateChannel.Preview, "0.1.1-preview.4|0.1.1", "0.1.1")]
-    [DataRow("0.1.2-preview.5", UpdateChannel.Preview, "0.1.2|0.1.3-preview.1", "0.1.3-preview.1")]
+    [DataRow("0.1.0-preview.5", UpdateChannel.Beta, "0.1.0-preview.6|0.1.0", "0.1.0")]
+    [DataRow("0.1.0", UpdateChannel.Beta, "0.1.1-preview.1", "0.1.1-preview.1")]
+    [DataRow("0.1.1-preview.3", UpdateChannel.Beta, "0.1.1-preview.4|0.1.1", "0.1.1")]
+    [DataRow("0.1.2-preview.5", UpdateChannel.Beta, "0.1.2|0.1.3-preview.1", "0.1.3-preview.1")]
     [DataRow("0.1.2", UpdateChannel.Stable, "0.1.3-preview.5", null)]
     [DataRow("0.1.2", UpdateChannel.Stable, "0.1.3-preview.5|0.1.3", "0.1.3")]
     [DataRow("0.2.0-preview.2", UpdateChannel.Stable, "0.1.9|0.2.0-preview.3", null)]
     [DataRow("0.1.0", UpdateChannel.Stable, "0.2.0-preview.1", null)]
-    [DataRow("0.1.0", UpdateChannel.Preview, "0.2.0-preview.1", "0.2.0-preview.1")]
+    [DataRow("0.1.0", UpdateChannel.Beta, "0.2.0-preview.1", "0.2.0-preview.1")]
     public void ChannelSelection_ReturnsHighestEligibleVersionWithoutDowngrade(
         string current,
         UpdateChannel channel,
@@ -71,7 +71,7 @@ public sealed class UpdateVersionTests
         return new UpdateRelease(
             version.ToTagString(),
             false,
-            version.IsPreview,
+            version.IsPrerelease,
             DateTimeOffset.UtcNow,
             new Uri($"https://github.com/airanluo-dot/DropSpace/releases/tag/{version.ToTagString()}"),
             []);

@@ -87,6 +87,7 @@ public sealed class MediaViewModel : ObservableObject
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
     public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
     public string CurrentLyricText => Lyrics.Line?.Text ?? Title;
+    public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(Lyrics.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
     public bool IsPlaying => Session.PlaybackState == MediaPlaybackState.Playing;
     public string PlaybackGlyph => IsPlaying ? "\uE769" : "\uE768";
     public double PositionSeconds => Math.Max(0, (Position - Session.Timeline.Start).TotalSeconds);

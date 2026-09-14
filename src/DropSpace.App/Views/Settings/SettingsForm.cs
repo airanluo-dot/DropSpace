@@ -24,11 +24,17 @@ public sealed class SettingsForm : UserControl
         Unloaded += (_, _) => _editor.PropertyChanged -= OnChanged;
     }
     public void AddHeading(string key) => Rows.Children.Add(new TextBlock { Text = _strings.Get(key), FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
-    public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write)
+    public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write, Func<bool, Task<bool>>? beforeChange = null)
     {
         var toggle = new ToggleSwitch(); AddRow(key, toggle);
         _refresh.Add(() => toggle.IsOn = read(_editor.Settings)); Refresh();
-        toggle.Toggled += async (_, _) => { if (!_syncing) { var value = toggle.IsOn; await _editor.UpdateAsync(settings => write(settings, value)); } };
+        toggle.Toggled += async (_, _) =>
+        {
+            if (_syncing) return;
+            var value = toggle.IsOn;
+            if (beforeChange is not null && !await beforeChange(value)) { Refresh(); return; }
+            await _editor.UpdateAsync(settings => write(settings, value));
+        };
         return toggle;
     }
     public ComboBox AddChoice<T>(string key, IEnumerable<(T Value, string Label)> choices, Func<AppSettings, T> read, Func<AppSettings, T, AppSettings> write)

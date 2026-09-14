@@ -1,6 +1,6 @@
 # DropSpace UX Specification
 
-## Preview.24 amended island and settings
+## Beta 24 amended island and settings
 
 Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the
 left rail on Widgets and the right rail on Clipboard. Playback updates retain
@@ -242,3 +242,5 @@ Settings apply only edited fields to the latest saved snapshot. Unchanged startu
 Image cards prioritize resize, format conversion, and metadata removal when available. Main item actions occupy a separate row from the item title, and More actions uses a visible text label. Network actions remain discoverable when disabled, with a setup explanation. Hash, ZIP, QR, and metadata removal use the default export folder immediately. Hash results display a selectable SHA-256 value and a Copy checksum button; output results offer Open output folder. Images expose original/75%/50%/25% presets, show output dimensions, and retain custom pixel controls. Outputs never overwrite sources.
 
 Windows visual, keyboard, high contrast, DPI, image codec, startup registration, and two-device acceptance are still required before claiming this update verified on Windows.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

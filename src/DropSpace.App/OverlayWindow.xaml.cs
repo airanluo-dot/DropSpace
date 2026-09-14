@@ -97,7 +97,8 @@ public sealed partial class OverlayWindow : Window
         DropSpace.Core.Island.IslandExperienceCoordinator experience,
         MediaViewModel mediaViewModel,
         WidgetViewModel widgetViewModel,
-        ClipboardIslandViewModel clipboardViewModel)
+        ClipboardIslandViewModel clipboardViewModel,
+        SystemActivityViewModel systemActivityViewModel)
     {
         _viewModel = viewModel;
         _widgetViewModel = widgetViewModel;
@@ -132,6 +133,7 @@ public sealed partial class OverlayWindow : Window
         MusicExpanded.ViewModel = mediaViewModel;
         WidgetsExpanded.ViewModel = widgetViewModel;
         ClipboardExpanded.ViewModel = clipboardViewModel;
+        ActivityCompact.DataContext = systemActivityViewModel;
         MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
         _materialController = new OverlayMaterialController(
             AcrylicBackdrop,
@@ -393,8 +395,10 @@ public sealed partial class OverlayWindow : Window
         NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
         OtherPageCollapse.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
         var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
+        var activityCompact = _experience.Current.CompactContent is DropSpace.Core.Island.IslandContentKind.Notification or DropSpace.Core.Island.IslandContentKind.Volume;
+        ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
-        FileCompactContent.Visibility = mediaCompact ? Visibility.Collapsed : Visibility.Visible;
+        FileCompactContent.Visibility = mediaCompact || activityCompact ? Visibility.Collapsed : Visibility.Visible;
         var mediaScale = _mediaViewModel.Settings.IslandAppearance.CompactScale;
         CompactPanel.Padding = new Thickness(mediaCompact ? 14 * mediaScale : 18, 0, mediaCompact ? 14 * mediaScale : 18, 0);
         MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
@@ -474,6 +478,8 @@ public sealed partial class OverlayWindow : Window
 
         var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
+        if (activityCompact && snapshot.State == OverlayState.Compact)
+            target = Create(400, 80, topOffset, 28, 1, 0, 0);
         if (mediaCompact && snapshot.State == OverlayState.Compact)
         {
             var geometry = DropSpace.Core.Island.IslandGeometry.ForMusicCompact(MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight, mediaScale);

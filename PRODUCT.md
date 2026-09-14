@@ -1,6 +1,6 @@
 # DropSpace Product Specification
 
-## Preview.24 user amendment (implementation in progress)
+## Beta 24 user amendment (implementation in progress)
 
 The native island has four independent pages, ordered Widgets, Music controls,
 Files staging, Clipboard. Widgets use 4 rows by 8 columns with suitable alternate
@@ -90,7 +90,7 @@ Compared with Explorer, DropSpace avoids premature organization. Compared with a
 - Honest degradation: show missing, unavailable, unsupported, or too-large states.
 - Privacy is a control surface, not a settings footnote.
 - Keyboard and pointer are first-class peers.
-- Windows build 20348 is the Preview.24 runtime baseline; Windows 11-only visuals and
+- Windows build 20348 is the Beta 24 runtime baseline; Windows 11-only visuals and
   contracts are optional capabilities with explicit fallbacks.
 
 ## Final MVP scope
@@ -160,7 +160,7 @@ The first shippable MVP is deliberately smaller than the original list.
 
 ## Open product assumptions
 
-- 64-bit Windows build 20348 or later is the Preview.24 minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
+- 64-bit Windows build 20348 or later is the Beta 24 minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
 - The app remains running in the tray only when the user selected that close behavior.
 - Clipboard capture stops when the process exits.
 - Default clipboard retention: 30 days or 1,000 items, whichever limit is reached first; pinned items are exempt.
@@ -191,3 +191,12 @@ Windows 10 base visual and local drop/clipboard paths remain the supported
 fallback. The [compatibility baseline](compatibility-baseline.md) is the
 release evidence contract, not a claim that every historical OS/DPI/monitor
 row has already passed.
+
+## Beta release naming
+
+The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
+releases remain immutable. Preview.23 requires one manual installation of
+Beta 24, preserving data/settings, because its shipped parser rejects Beta
+tags. Subsequent Beta updates are automatic according to user settings.
+See [migration contract](docs/dev/beta-migration.md).

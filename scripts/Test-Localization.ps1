@@ -50,7 +50,7 @@ foreach ($name in $englishNames)
 
 $sourceFiles = @(
     Get-ChildItem -Path (Join-Path $repositoryRoot "src") -Recurse -File |
-        Where-Object { $_.Extension -in ".cs", ".xaml" }
+        Where-Object { $_.Extension -in ".cs", ".xaml" -and $_.FullName -notmatch '[\\/](obj|bin)[\\/]' }
 )
 $hardcodedChinese = @(
     foreach ($file in $sourceFiles)

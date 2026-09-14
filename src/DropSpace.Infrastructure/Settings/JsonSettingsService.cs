@@ -70,7 +70,10 @@ public sealed class JsonSettingsService : ISettingsService
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
 
                 settings ??= CreateDefaults();
-                var migratedVersion = false;
+                var migratedVersion = document.RootElement.EnumerateObject().Any(property =>
+                    string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase) &&
+                    (property.Value.ValueKind == JsonValueKind.Number ||
+                     property.Value.ValueKind == JsonValueKind.String && string.Equals(property.Value.GetString(), "preview", StringComparison.OrdinalIgnoreCase)));
                 if (settings.Version is >= 1 and < AppSettings.CurrentVersion)
                 {
                     settings = SettingsMigration14.Apply(settings);
@@ -79,7 +82,7 @@ public sealed class JsonSettingsService : ISettingsService
                         Version = AppSettings.CurrentVersion,
                         // A legacy settings file without an update channel belongs to the Preview-era
                         // installed population. Fresh builds use the channel selected by their release kind.
-                        UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Preview,
+                        UpdateChannel = hadUpdateChannel ? settings.UpdateChannel : UpdateChannel.Beta,
                     };
                     migratedVersion = true;
                 }

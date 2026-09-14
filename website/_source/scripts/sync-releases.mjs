@@ -58,7 +58,7 @@ async function main() {
 
   const testApi = process.env.NODE_ENV === "test" ? process.env.DROPSPACE_TEST_RELEASES_API : undefined;
   data = await syncAuthoritativeReleases({ apiUrl: testApi ?? OFFICIAL_RELEASES_API, output });
-  console.log(`Synced ${data.stable.tag} and ${data.previews.length} Preview releases from GitHub Releases.`);
+  console.log(`Synced ${data.stable.tag} and ${data.prereleases.length} prereleases from GitHub Releases.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -1,6 +1,6 @@
 # DropSpace Roadmap
 
-## Active authorized slice: v0.3.0-preview.24
+## Active authorized slice: v0.3.0-beta.24
 
 Rebuild Native Island from Preview.21 in the mandatory order recorded in
 `docs/dev/preview24-progress.md`. This task explicitly includes all phases through
@@ -672,3 +672,12 @@ until executable evidence is attached.
 ## v0.3.0-preview.17 architecture audit checkpoint
 
 Implementation and regression coverage now include projection recovery, shared database write ownership, stale-query rejection, atomic settings mutations, awaited shutdown, bounded automatic clipboard propagation, staged-file application boundaries and preview invalidation. The complete audit, all-file snapshots and remaining work are recorded in `docs/audit/2026-09-07/`. This does not close the real Windows/DPI/OLE/accessibility, two-device or deployed Worker/browser acceptance rows. Release completion requires the final commit's Windows workflows, public assets and website/API verification.
+
+## Beta release naming
+
+The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
+releases remain immutable. Preview.23 requires one manual installation of
+Beta 24, preserving data/settings, because its shipped parser rejects Beta
+tags. Subsequent Beta updates are automatic according to user settings.
+See [migration contract](docs/dev/beta-migration.md).

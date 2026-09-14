@@ -165,3 +165,12 @@ Third-party dependencies remain under their respective licenses; see [THIRD_PART
 ## v0.3.0-preview.7 feature boundary
 
 The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Actions, Windows-only DropLink handoff, opt-in cross-device clipboard, expiring Nearby browser links, and client-encrypted Internet Share. Preview.7 hardens the protocol boundaries and keeps network features disabled until explicitly enabled: handoff requires trusted peers, Nearby requires a private IPv4 address, and Internet Share requires a configured HTTPS Worker backend. See the [protocol](docs/protocol/droplink-v1.md), [validation plan](docs/test-plan/v0.3.0-preview.7.md), and [network threat model](docs/security/network-threat-model.md). macOS, iOS/iPadOS, Android, Linux, accounts, WebRTC, and native mobile clients remain out of scope.
+
+## Beta release naming
+
+The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
+releases remain immutable. Preview.23 requires one manual installation of
+Beta 24, preserving data/settings, because its shipped parser rejects Beta
+tags. Subsequent Beta updates are automatic according to user settings.
+See [migration contract](docs/dev/beta-migration.md).

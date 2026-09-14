@@ -254,3 +254,26 @@ local metadata matching and edited-file reread smoke passed. No lyrics are logge
 10. Synchronize and verify repository and installed `dropspace-codex` maintenance skills.
 
 Do not mark completion or publish with any plan release blocker unresolved.
+
+## September 14 follow-up — language, widget movement, NetEase timeline
+
+English mode now filters Chinese secondary translations without changing the
+original lyric line. Widget movement preserves the grab offset and placement
+order: empty moves preserve neighbors, exact equal-size drops swap two widgets,
+and blocked resizing/drop attempts leave the layout intact. Grid guidance now
+explains these interactions.
+
+Core suite: 205 passed, including language policy and five movement/resize cases.
+Release app build: zero warnings/errors. Localization: synchronized keys passed.
+Native acceptance for the latest movement behavior remains open.
+
+Live NetEase SMTC observations during playback and after a track change both
+returned position/start/end zero and LastUpdated 1601-01-01. Evidence:
+artifacts/preview24/netease-timeline-before.json and netease-timeline-after.json.
+Exact native synchronization is unavailable on this installed player. The UI
+explicitly warns that estimated progress can leave lyrics out of sync. No claim
+of fixing external player timeline support is made. Playback was paused after
+the probe. Transient activity runtime wiring is in progress, not accepted yet.
+
+Repository Skill text updated. Personal Skill synchronization/publication and
+all remaining phase 8/9 release gates are still open; no release is claimed.
