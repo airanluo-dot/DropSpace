@@ -38,4 +38,3 @@ public sealed class WidgetMovementTests
         Assert.AreSame(layout, result);
     }
 }
-

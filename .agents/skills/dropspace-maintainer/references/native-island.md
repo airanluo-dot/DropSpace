@@ -49,4 +49,3 @@ supersede older historical build-17763 entries below for this rebuild.
   Successful probes do not prove untested DPI, accessibility or release rows.
 
 Startup window invariant: `--startup` must create the main HWND for backend services without an initial `Show`/`Activate`; only normal and redirected activation may show it. Keep this covered by the portable smoke test.
-
