@@ -732,12 +732,12 @@
                 <TextBlock services:XamlResourceOverride.Uid="QuickPanelHotkeyTitle" />
                 <TextBlock services:XamlResourceOverride.Uid="QuickPanelHotkeyDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
-              <TextBox x:Name="QuickPanelHotkeyText" Grid.Column="1" LostFocus="OnQuickPanelHotkeyLostFocus" />
+              <TextBox x:Name="QuickPanelHotkeyText" Grid.Column="1" TextChanged="OnQuickPanelHotkeyTextChanged" />
             </Grid>
             <StackPanel Spacing="4">
               <TextBlock services:XamlResourceOverride.Uid="SmartDragExclusionsTitle" />
               <TextBlock services:XamlResourceOverride.Uid="SmartDragExclusionsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-              <TextBox x:Name="SmartDragExclusionsText" LostFocus="OnSmartDragExclusionsLostFocus" />
+              <TextBox x:Name="SmartDragExclusionsText" TextChanged="OnSmartDragExclusionsTextChanged" />
             </StackPanel>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>

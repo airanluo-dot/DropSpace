@@ -80,6 +80,14 @@ public sealed class XamlResourceOverride : DependencyObject
         }
     }
 
+    public static void ApplyTree(DependencyObject root)
+    {
+        var uid = GetUid(root);
+        if (!string.IsNullOrEmpty(uid)) Apply(root, uid);
+        for (var index = 0; index < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root); index++)
+            ApplyTree(Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, index));
+    }
+
     private static void OnUidChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         if (args.NewValue is not string uid || string.IsNullOrWhiteSpace(uid))

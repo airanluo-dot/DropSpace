@@ -15,6 +15,9 @@ localized error. Position/size controls remain available without dragging.
 Music is a main-window navigation destination. Settings categories are General,
 Island, Widgets, System activities, Devices and sharing, Updates, About. Keep
 native control labels, keyboard alternatives, and visible save/action errors.
+Settings apply immediately without success notices or Save/Apply actions. Only
+island position retains explicit confirmation. Widget position/size changes and
+valid hotkey/exclusion text changes commit directly; language refreshes in place.
 The Clipboard page names pin state and record removal explicitly and links to
 the full history. These changes are under validation, not a released snapshot.
 

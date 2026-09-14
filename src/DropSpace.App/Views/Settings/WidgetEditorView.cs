@@ -21,7 +21,8 @@ public sealed class WidgetEditorView : UserControl
     private readonly StackPanel _expanded = new() { Spacing = 12 };
     private readonly NumberBox _column, _row;
     private readonly ComboBox _size;
-    private readonly Button _apply, _remove;
+    private readonly Button _remove;
+    private bool _syncingSelection;
     private readonly TextBlock _selected = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap };
     private NativeWidgetId? _selectedId;
@@ -46,9 +47,11 @@ public sealed class WidgetEditorView : UserControl
         for (var i = 0; i < controls.Length; i++) { Grid.SetColumn(controls[i], i); numbers.Children.Add(controls[i]); }
         _expanded.Children.Add(numbers);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        _apply = new Button { Content = strings.Get("WidgetApplyPosition") }; _apply.Click += OnApply;
         _remove = new Button { Content = strings.Get("WidgetRemove") }; _remove.Click += OnRemove;
-        actions.Children.Add(_apply); actions.Children.Add(_remove); _expanded.Children.Add(actions);
+        actions.Children.Add(_remove); _expanded.Children.Add(actions);
+        _column.ValueChanged += async (_, _) => await ApplyPositionAsync();
+        _row.ValueChanged += async (_, _) => await ApplyPositionAsync();
+        _size.SelectionChanged += async (_, _) => await ApplyPositionAsync();
         _expanded.Children.Add(new TextBlock { Text = strings.Get("WidgetLibrary"), FontSize = 18 }); _expanded.Children.Add(_library);
         var reset = new Button { Content = strings.Get("WidgetsReset") }; reset.Click += async (_, _) => await editor.UpdateAsync(s => s with { Widgets = s.Widgets with { Layout = WidgetLayout.Default } }); body.Children.Add(reset); body.Children.Add(_error);
         Loaded += (_, _) => { editor.PropertyChanged += OnChanged; Rebuild(); }; Unloaded += (_, _) => editor.PropertyChanged -= OnChanged;
@@ -87,14 +90,15 @@ public sealed class WidgetEditorView : UserControl
         var content = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
         content.Children.Add(new FontIcon { Glyph = id switch { NativeWidgetId.Clock => "\uE823", NativeWidgetId.Calendar => "\uE787", NativeWidgetId.ResourceUsage => "\uE9D9", NativeWidgetId.Battery => "\uE850", NativeWidgetId.Uptime => "\uE7E8", NativeWidgetId.Stopwatch => "\uE916", NativeWidgetId.ClipboardPause => "\uE77F", _ => "\uE713" }, FontSize = 18 });
         content.Children.Add(new TextBlock { Text = label, FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextTrimming = TextTrimming.CharacterEllipsis });
-        var button = new Button { Content = content, Padding = new Thickness(4) };
+        var dragTransform = new TranslateTransform();
+        var button = new Button { Content = content, Padding = new Thickness(4), ManipulationMode = ManipulationModes.None, RenderTransform = dragTransform };
         ToolTipService.SetToolTip(button, label);
         AutomationProperties.SetName(button, label);
         Windows.Foundation.Point? pressedAt = null;
         var dragging = false;
         button.AddHandler(PointerPressedEvent, new PointerEventHandler((_, args) =>
         {
-            var point = args.GetCurrentPoint(button);
+            var point = args.GetCurrentPoint(_grid);
             if (point.Properties.IsLeftButtonPressed)
             {
                 pressedAt = point.Position;
@@ -104,7 +108,7 @@ public sealed class WidgetEditorView : UserControl
         button.AddHandler(PointerReleasedEvent, new PointerEventHandler(async (_, args) =>
         {
             var shouldPlace = dragging;
-            pressedAt = null; dragging = false; button.Opacity = 1;
+            pressedAt = null; dragging = false; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0;
             button.ReleasePointerCapture(args.Pointer);
             if (!shouldPlace) return;
             args.Handled = true;
@@ -115,19 +119,30 @@ public sealed class WidgetEditorView : UserControl
             try { await PlaceAsync(id, column, row); }
             catch (Exception) { _error.Text = _strings.Get("WidgetDropFailed"); }
         }), true);
-        button.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { pressedAt = null; dragging = false; button.Opacity = 1; }), true);
-        button.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => { pressedAt = null; dragging = false; button.Opacity = 1; }), true);
+        button.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { pressedAt = null; dragging = false; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0; }), true);
+        button.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, args) =>
+        {
+            // Button releases capture before the routed PointerReleased handler runs.
+            // Preserve the pending drop for that normal release; only cancel an interrupted drag.
+            if (!args.GetCurrentPoint(_grid).Properties.IsLeftButtonPressed) return;
+            pressedAt = null; dragging = false; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0;
+        }), true);
         button.AddHandler(PointerMovedEvent, new PointerEventHandler((_, args) =>
         {
-            var point = args.GetCurrentPoint(button);
+            var point = args.GetCurrentPoint(_grid);
             if (pressedAt is not { } origin || !point.Properties.IsLeftButtonPressed) return;
             if (Math.Abs(point.Position.X - origin.X) < DragThresholdDips && Math.Abs(point.Position.Y - origin.Y) < DragThresholdDips) return;
             if (!dragging) { dragging = true; _selectedId = id; RefreshSelection(); button.Opacity = 0.65; }
+            dragTransform.X = point.Position.X - origin.X;
+            dragTransform.Y = point.Position.Y - origin.Y;
         }), true);
         return button;
     }
     private void RefreshSelection()
     {
+        _syncingSelection = true;
+        try
+        {
         foreach (var (id, button) in _placedButtons)
         {
             var selected = id == _selectedId;
@@ -138,7 +153,7 @@ public sealed class WidgetEditorView : UserControl
                 label.FontWeight = selected ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
         }
         var placement = _editor.Settings.Widgets.Layout.Expanded.FirstOrDefault(item => item.Id == _selectedId);
-        _apply.IsEnabled = _remove.IsEnabled = placement is not null;
+        _column.IsEnabled = _row.IsEnabled = _size.IsEnabled = _remove.IsEnabled = placement is not null;
         _selected.Text = placement is null ? _strings.Get("WidgetSelect") : WidgetName(placement.Id);
         if (placement is null) return;
         _column.Value = placement.Column + 1; _row.Value = placement.Row + 1;
@@ -146,6 +161,8 @@ public sealed class WidgetEditorView : UserControl
         foreach (var size in WidgetCatalog.Sizes(placement.Id)) _size.Items.Add(new ComboBoxItem { Content = $"{size.Columns} × {size.Rows}", Tag = size });
         _size.SelectedItem = _size.Items.OfType<ComboBoxItem>().First(item => item.Tag is WidgetSize size && size.Columns == placement.ColumnSpan && size.Rows == placement.RowSpan);
         _size.IsEnabled = _size.Items.Count > 1;
+        }
+        finally { _syncingSelection = false; }
     }
     private Task<bool> PlaceAsync(NativeWidgetId id, int column, int row, int? width = null, int? height = null)
     {
@@ -168,9 +185,9 @@ public sealed class WidgetEditorView : UserControl
             return settings with { Widgets = settings.Widgets with { Layout = normalized } };
         });
     }
-    private async void OnApply(object sender, RoutedEventArgs args)
+    private async Task ApplyPositionAsync()
     {
-        if (_selectedId is { } id && double.IsFinite(_column.Value) && double.IsFinite(_row.Value) && _size.SelectedItem is ComboBoxItem { Tag: WidgetSize size })
+        if (!_syncingSelection && _selectedId is { } id && double.IsFinite(_column.Value) && double.IsFinite(_row.Value) && _size.SelectedItem is ComboBoxItem { Tag: WidgetSize size })
             await PlaceAsync(id, (int)_column.Value - 1, (int)_row.Value - 1, size.Columns, size.Rows);
     }
     private async void OnRemove(object sender, RoutedEventArgs args)

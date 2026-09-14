@@ -26,9 +26,13 @@ namespace DropSpace.App;
 
 public sealed partial class OverlayWindow : Window
 {
-    private const double HostWidth = 600;
+    private double ExpandedScale => Math.Min(_mediaViewModel.Settings.IslandAppearance.ExpandedScale,
+        Math.Min(_monitor.EffectiveWorkWidth / _monitor.Scale / OverlayPlacementPolicy.MaximumSurfaceWidthDips,
+            Math.Max(0.5, (_monitor.EffectiveWorkHeight / _monitor.Scale - OverlayPlacementPolicy.GetTopOffsetDips(_viewModel.FileDragWakeMode, _monitor.Scale)) / OverlayPlacementPolicy.MaximumSurfaceHeightDips)));
+    private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
+    private double HostWidth => OverlayPlacementPolicy.HostWidthDips * HostContentScale;
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
-    private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale);
+    private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale, HostContentScale);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly MonitorDescriptor _monitor;
@@ -725,7 +729,8 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkWidth,
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
-                wakeMode),
+                wakeMode,
+                HostContentScale),
             placement);
 
     private void StartAnimationFrames()
@@ -1011,9 +1016,11 @@ public sealed partial class OverlayWindow : Window
 
     private int ToPixels(double dips) => Math.Max(0, (int)Math.Round(dips * _monitor.Scale));
 
-    private static OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
+    private OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
     {
         var geometry = DropSpace.Core.Island.IslandGeometry.ForFiles(state);
+        if (state == OverlayState.Expanded)
+            geometry = geometry with { Width = geometry.Width * ExpandedScale, Height = geometry.Height * ExpandedScale, Radius = geometry.Radius * ExpandedScale };
         return state switch
         {
             OverlayState.DragApproaching or OverlayState.DragReady => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 0, 1, 0),
@@ -1091,7 +1098,8 @@ public sealed partial class OverlayWindow : Window
             resolved,
             _monitor.EffectiveWorkLeft,
             _monitor.EffectiveWorkTop,
-            _monitor.Scale);
+            _monitor.Scale,
+            HostContentScale);
     }
 
     public void SuspendForPlacementEdit()
@@ -1270,6 +1278,12 @@ public sealed partial class OverlayWindow : Window
     {
         if (_experience.Current.Page > DropSpace.Core.Island.IslandPage.Widgets)
             _experience.SelectPage(_experience.Current.Page - 1);
+    }
+
+    public void RefreshLanguage()
+    {
+        XamlResourceOverride.ApplyTree(Root);
+        WidgetsExpanded.ViewModel = _widgetViewModel;
     }
     private void OnNextPageClicked(object sender, RoutedEventArgs args)
     {

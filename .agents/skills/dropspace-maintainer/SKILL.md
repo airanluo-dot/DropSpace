@@ -20,6 +20,13 @@ supersede older historical build-17763 entries below for this rebuild.
   types, and catalogued size choices. Adding a widget must find vacant contiguous
   space and preserve every existing placement; reject insufficient room.
   Selected widgets need visible emphasis and accessible selection state.
+- September 14: all settings apply on change without save-success notices or
+  Save/Apply buttons; only island placement retains explicit confirmation.
+  Widget position and size controls commit directly. Pointer dragging must show
+  movement, preserve capture, and not be consumed by scrolling. Language changes
+  refresh existing surfaces; do not destroy native island HWNDs just to relabel
+  them. Resource contexts for the two supported languages are initialized once
+  and remain immutable during concurrent reads.
 - Main Music and seven native settings sections share serialized settings
   transactions. Explicit media allow-list enabled with no entries means none;
   disabled means all. Preserve runtime-owned pause and update fields.

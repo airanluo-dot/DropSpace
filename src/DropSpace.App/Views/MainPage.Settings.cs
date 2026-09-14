@@ -60,7 +60,16 @@ public sealed partial class MainPage
         body.Children.Add(error); Grid.SetRow(pageHost, 1); body.Children.Add(pageHost); navigation.Content = body;
         var pages = groups.ToDictionary(pair => pair.Key, pair => new ScrollViewer { Content = pair.Value, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         foreach (var (key, page) in pages) page.SizeChanged += (_, _) => groups[key].Width = Math.Clamp(page.ActualWidth - 48, 0, 780);
-        foreach (var key in groups.Keys) navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get("SettingsPage" + key), Tag = key });
+        foreach (var key in groups.Keys)
+        {
+            var resourceKey = key switch
+            {
+                "General" => "SettingsPageGeneral", "Island" => "SettingsPageIsland",
+                "Widgets" => "SettingsPageWidgets", "SystemActivities" => "SettingsPageSystemActivities",
+                "Devices" => "SettingsPageDevices", "Updates" => "SettingsPageUpdates", _ => "SettingsPageAbout",
+            };
+            navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });
+        }
         navigation.SelectionChanged += (_, args) => { if (args.SelectedItem is NavigationViewItem { Tag: string key }) pageHost.Content = pages[key]; };
         navigation.SelectedItem = navigation.MenuItems[0]; pageHost.Content = pages["General"];
         SettingsPages.Content = navigation;

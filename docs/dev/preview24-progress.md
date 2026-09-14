@@ -1,5 +1,30 @@
 # Preview.24 rebuild execution ledger
 
+## September 14 amendment — active
+
+All settings must apply immediately without saved-success notices or Save/Apply
+buttons; only island position retains explicit confirmation. Failures still
+need visible errors. Recheck real widget dragging, including visible movement
+and capture/scroll handling. Continue the original full release plan.
+Checkpoint `ecf732a` contains the phase 7 work and September 13 widget changes;
+it is not a phase/release completion. Current uncommitted work adds scaled host
+geometry (12 placement tests passed), removes settings success messages and
+widget Apply, and adds pointer-following widget visuals. Latest App build passes
+with zero warnings/errors. Native follow-up: language switching to English
+updates all seven settings tabs without restart and remains responsive.
+Destroying/recreating island HWNDs for language caused Microsoft.UI.Input.dll
+fast-fail 0xc0000409; refreshing the same windows fixes it. Widget drag from row
+0 to row 2 persists, and selecting 1x1 saves immediately without Apply. Normal
+Button capture release must not cancel the drop before routed PointerReleased.
+Two-times expanded Files/Widgets fit the enlarged host (`expanded-scale-two.png`,
+`widgets-scale-two.png`). Date formatting now uses the selected app culture.
+Localization gate passes: 555 keys, 226 imperative references, 181 XAML IDs.
+Core full suite: 199 passed. Latest native full smoke passed
+(`instant-settings-native-smoke.json`, PID 5804): 1,000 lifecycle/geometry cycles,
+zero region failures, source-safe removals, native compact/expanded CF_HDROP,
+clipboard pause/resume/self-write handling and resource plateau. Do not repeat
+this unchanged suite until subsequent runtime changes require the final gate.
+
 ## User amendment — 2026-09-12
 
 The user's latest request supersedes the ZIP's exactly-three-page and 6 by 3

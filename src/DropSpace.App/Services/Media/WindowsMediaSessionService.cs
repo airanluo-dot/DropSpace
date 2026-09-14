@@ -8,7 +8,7 @@ using Windows.Storage.Streams;
 namespace DropSpace.App.Services.Media;
 
 /// <summary>Owns SMTC subscriptions, a coalescing event consumer, and bounded metadata reads.</summary>
-public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionService> logger) : IMediaSessionService
+public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionService> logger, DropSpace.Core.Abstractions.IAppStringLocalizer? strings = null) : IMediaSessionService
 {
     private const int MaximumArtworkBytes = 4 * 1024 * 1024;
     private const int MaximumMetadataCharacters = 2_048;
@@ -185,7 +185,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             ? previous.Artwork : await ReadArtworkAsync(properties.Thumbnail, token).ConfigureAwait(false);
         if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
         _artworkRevision = metadataRevision;
-        return new(source, source, FriendlyName(source), title, artist, album, artwork,
+        return new(source, source, FriendlyName(source, strings), title, artist, album, artwork,
             playback.PlaybackStatus switch
             {
                 GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
@@ -266,9 +266,9 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args) => RequestRefresh();
     private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or IOException;
     private static string Bound(string? text) => text is null ? string.Empty : text[..Math.Min(text.Length, MaximumMetadataCharacters)];
-    public static string FriendlyName(string identity)
+    public static string FriendlyName(string identity, DropSpace.Core.Abstractions.IAppStringLocalizer? strings = null)
     {
-        if (identity.Equals("cloudmusic.exe", StringComparison.OrdinalIgnoreCase)) return "网易云音乐";
+        if (identity.Equals("cloudmusic.exe", StringComparison.OrdinalIgnoreCase)) return strings?.Get("LyricsProviderNetEase") ?? "NetEase Cloud Music";
         if (identity.Contains("AppleMusic", StringComparison.OrdinalIgnoreCase)) return "Apple Music";
         if (identity.Contains("QQMusic", StringComparison.OrdinalIgnoreCase)) return "QQ Music";
         var name = identity.Split('!')[0].Split('_')[0];

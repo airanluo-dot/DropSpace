@@ -41,6 +41,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly IUpdateService _updates;
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
+    private readonly AppLanguageService _language;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
     private readonly SemaphoreSlim _projectionLoadGate = new(1, 1);
@@ -93,7 +94,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         IUpdateService updates,
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
-        ILogger<MainViewModel> logger)
+        ILogger<MainViewModel> logger,
+        AppLanguageService language)
     {
         _repository = repository;
         _projection = projection;
@@ -117,6 +119,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _updateStatus = updates.Status;
         _dispatcher = dispatcher;
         _strings = strings;
+        _language = language;
         _logger = logger;
         _pageTitle = _strings.Get("PageTitleSpace");
         _pageDescription = _strings.Get("PageDescriptionSpace");
@@ -270,6 +273,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         get => _settings;
         private set
         {
+            var languageChanged = _settings.Language != value.Language;
+            if (languageChanged) _language.Apply(value.Language);
             if (SetProperty(ref _settings, value))
             {
                 OnPropertyChanged(nameof(IsClipboardPaused));
@@ -302,6 +307,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 OnPropertyChanged(nameof(AutoInstallUpdates));
                 OnPropertyChanged(nameof(UpdateChannel));
                 OnPropertyChanged(nameof(Language));
+                if (languageChanged)
+                {
+                    var keys = CurrentSection switch
+                    {
+                        "Clipboard" => ("PageTitleClipboard", "PageDescriptionClipboard"),
+                        "Pinned" => ("PageTitlePinned", "PageDescriptionPinned"),
+                        "Settings" => ("PageTitleSettings", "PageDescriptionSettings"),
+                        "Music" => ("PageTitleMusic", "PageDescriptionMusic"),
+                        _ => ("PageTitleSpace", "PageDescriptionSpace"),
+                    };
+                    PageTitle = _strings.Get(keys.Item1);
+                    PageDescription = _strings.Get(keys.Item2);
+                    ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
+                }
                 OnPropertyChanged(nameof(LastUpdateCheckText));
                 OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
                 foreach (var card in Items)
@@ -1172,9 +1191,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             await _dispatcher.EnqueueAsync(() =>
             {
                 Settings = updated;
-                StatusMessage = Settings.Language == previous.Language
-                    ? _strings.Get("SettingsSaved")
-                    : _strings.Get("LanguageChangeRestartRequired");
+                StatusMessage = string.Empty;
                 return Task.CompletedTask;
             });
         }

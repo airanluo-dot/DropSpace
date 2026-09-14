@@ -20,7 +20,9 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     private readonly MainViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainWindow> _logger;
-    private readonly Views.MainPage _mainPage;
+    private Views.MainPage _mainPage;
+    private readonly Func<Views.MainPage> _createMainPage;
+    private AppLanguagePreference _displayLanguage;
     private readonly MediaViewModel _media;
     private NativeTrayService? _tray;
     private bool _allowClose;
@@ -84,7 +86,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
         AppWindow.Resize(new SizeInt32(980, 680));
         AppWindow.Closing += OnAppWindowClosing;
-        _mainPage = new Views.MainPage(
+        _displayLanguage = viewModel.Language;
+        _createMainPage = () => new Views.MainPage(
             viewModel,
             WindowNative.GetWindowHandle(this),
             strings,
@@ -98,6 +101,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             dropLinkHost,
             sharing,
             settingsEditor, media, sessions, mediaExperience, mediaIcons);
+        _mainPage = _createMainPage();
         RootContent.Content = _mainPage;
         AppWindow.Changed += OnWindowPresentationChanged;
         _viewModel.PropertyChanged += OnMediaSectionChanged;
@@ -109,6 +113,17 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     private void OnMediaSectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(MainViewModel.CurrentSection)) UpdateMediaVisibility();
+        if (args.PropertyName == nameof(MainViewModel.Language) && _displayLanguage != _viewModel.Language)
+        {
+            _displayLanguage = _viewModel.Language;
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                _mainPage = _createMainPage();
+                RootContent.Content = _mainPage;
+                XamlResourceOverride.Apply(this, "MainWindow");
+                XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
+            });
+        }
     }
     private void UpdateMediaVisibility() => _media.SetPresentationVisible(this, _viewModel.IsMusicVisible && AppWindow.IsVisible &&
         AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized });

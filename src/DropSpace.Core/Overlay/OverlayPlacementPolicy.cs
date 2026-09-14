@@ -19,7 +19,7 @@ public static class OverlayPlacementPolicy
         SmartTopOffsetPhysicalPixels + DynamicIslandTopGapDips +
         MaximumSurfaceHeightDips + HostBottomMarginDips;
 
-    public static double GetMinimumHostHeightDips(double monitorScale)
+    public static double GetMinimumHostHeightDips(double monitorScale, double contentScale = 1)
     {
         if (!double.IsFinite(monitorScale) || monitorScale <= 0)
         {
@@ -31,7 +31,7 @@ public static class OverlayPlacementPolicy
         // DIPs so the native client surface remains large enough at every display scale.
         return SmartTopOffsetPhysicalPixels / monitorScale +
                DynamicIslandTopGapDips +
-               MaximumSurfaceHeightDips +
+               MaximumSurfaceHeightDips * NormalizeContentScale(contentScale) +
                HostBottomMarginDips;
     }
 
@@ -61,10 +61,12 @@ public static class OverlayPlacementPolicy
         }
 
         ArgumentNullException.ThrowIfNull(placement);
+        var contentScale = NormalizeContentScale(request.ContentScale);
+        var hostWidth = HostWidthDips * contentScale;
 
         if (placement.Mode != OverlayPlacementMode.Custom)
         {
-            var width = ToPixels(HostWidthDips, request.Scale);
+            var width = ToPixels(hostWidth, request.Scale);
             return new OverlayResolvedPlacement(
                 request.WorkLeftPixels + (request.WorkWidthPixels - width) / 2,
                 request.WorkTopPixels,
@@ -74,11 +76,11 @@ public static class OverlayPlacementPolicy
 
         var workWidthDips = request.WorkWidthPixels / request.Scale;
         var workHeightDips = request.WorkHeightPixels / request.Scale;
-        var halfSurface = Math.Min(MaximumSurfaceWidthDips, workWidthDips) / 2;
+        var halfSurface = Math.Min(MaximumSurfaceWidthDips * contentScale, workWidthDips) / 2;
         var clampedCenterX = Math.Clamp(placement.X, halfSurface, Math.Max(halfSurface, workWidthDips - halfSurface));
-        var maxTop = Math.Max(0, workHeightDips - MaximumSurfaceHeightDips);
+        var maxTop = Math.Max(0, workHeightDips - MaximumSurfaceHeightDips * contentScale);
         var clampedTop = Math.Clamp(placement.Y, 0, maxTop);
-        var hostLeftDips = clampedCenterX - HostWidthDips / 2;
+        var hostLeftDips = clampedCenterX - hostWidth / 2;
         return new OverlayResolvedPlacement(
             request.WorkLeftPixels + (int)Math.Round(hostLeftDips * request.Scale),
             request.WorkTopPixels + (int)Math.Round(clampedTop * request.Scale),
@@ -101,7 +103,8 @@ public static class OverlayPlacementPolicy
         OverlayResolvedPlacement resolved,
         int workLeftPixels,
         int workTopPixels,
-        double scale)
+        double scale,
+        double contentScale = 1)
     {
         if (!double.IsFinite(scale) || scale <= 0)
         {
@@ -109,12 +112,15 @@ public static class OverlayPlacementPolicy
         }
 
         return new OverlayCustomPlacement(
-            (resolved.HostLeftPixels - workLeftPixels) / scale + HostWidthDips / 2,
+            (resolved.HostLeftPixels - workLeftPixels) / scale + HostWidthDips * NormalizeContentScale(contentScale) / 2,
             (resolved.HostTopPixels - workTopPixels) / scale + resolved.SurfaceTopOffsetDips);
     }
 
     private static int ToPixels(double dips, double scale) =>
         Math.Max(0, (int)Math.Round(dips * scale));
+
+    private static double NormalizeContentScale(double scale) =>
+        double.IsFinite(scale) ? Math.Clamp(scale, 1, 2) : 1;
 }
 
 public readonly record struct OverlayPlacementRequest(
@@ -123,7 +129,8 @@ public readonly record struct OverlayPlacementRequest(
     int WorkWidthPixels,
     int WorkHeightPixels,
     double Scale,
-    FileDragWakeMode WakeMode);
+    FileDragWakeMode WakeMode,
+    double ContentScale = 1);
 
 public readonly record struct OverlayResolvedPlacement(
     int HostLeftPixels,

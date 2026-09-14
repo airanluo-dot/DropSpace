@@ -7,6 +7,24 @@ namespace DropSpace.Core.Tests;
 public sealed class OverlayPlacementPolicyTests
 {
     [TestMethod]
+    public void DoubleSizedContentKeepsCustomCenterAndBoundsAcrossDpi()
+    {
+        foreach (var dpi in new[] { 1d, 1.25d, 2d })
+        {
+            var request = new OverlayPlacementRequest(0, 0, (int)(1920 * dpi), (int)(1080 * dpi), dpi, FileDragWakeMode.Disabled, 2);
+            var resolved = OverlayPlacementPolicy.Resolve(request, new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 960, 200));
+            var projected = OverlayPlacementPolicy.ProjectResolvedPlacement(resolved, 0, 0, dpi, 2);
+            Assert.AreEqual(960, projected.X, 0.001);
+            Assert.AreEqual(200, projected.Y, 0.001);
+            var edge = OverlayPlacementPolicy.Resolve(request, new OverlayMonitorPlacement(OverlayPlacementMode.Custom, 1920, 1080));
+            var bounded = OverlayPlacementPolicy.ProjectResolvedPlacement(edge, 0, 0, dpi, 2);
+            Assert.AreEqual(1360, bounded.X, 0.001);
+            Assert.AreEqual(400, bounded.Y, 0.001);
+            Assert.IsTrue(OverlayPlacementPolicy.GetMinimumHostHeightDips(dpi, 2) > 680);
+        }
+    }
+
+    [TestMethod]
     public void SmartPlacementUsesOnePhysicalOffsetAcrossDpiScales()
     {
         foreach (var scale in new[] { 1d, 1.25d, 1.5d, 1.75d, 2d })

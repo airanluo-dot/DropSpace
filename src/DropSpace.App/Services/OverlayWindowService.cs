@@ -39,6 +39,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly List<DragActivationHost> _activationHosts = [];
     private DisplayTopologyWatcher? _displayTopologyWatcher;
     private MonitorDescriptor? _primaryMonitor;
+    private AppLanguagePreference _displayLanguage;
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
     private long _activeSmartSessionId;
@@ -73,6 +74,7 @@ public sealed class OverlayWindowService : IDisposable
         _viewModel = viewModel;
         _strings = strings;
         _mainViewModel = mainViewModel;
+        _displayLanguage = mainViewModel.Language;
         _quickActionDialog = quickActionDialog;
         _monitorLayout = monitorLayout;
         _capabilities = capabilities;
@@ -593,6 +595,16 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnMainSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(MainViewModel.Language) && _displayLanguage != _mainViewModel.Language)
+        {
+            _displayLanguage = _mainViewModel.Language;
+            _dispatcher.TryEnqueue(() =>
+            {
+                if (_disposed) return;
+                foreach (var window in _windows) window.RefreshLanguage();
+            });
+            return;
+        }
         if (args.PropertyName != nameof(MainViewModel.Theme)) return;
         _dispatcher.TryEnqueue(() =>
         {

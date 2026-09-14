@@ -91,8 +91,8 @@ public sealed partial class WidgetsExpandedView : UserControl
         foreach (var (id, text) in _values)
             text.Text = data is null ? "—" : id switch
             {
-                NativeWidgetId.Clock => data.LocalTime.ToString("t"),
-                NativeWidgetId.Calendar => _placements[id].ColumnSpan == 1 ? data.LocalTime.ToString("dd") : data.LocalTime.ToString("dddd\nd MMMM"),
+                NativeWidgetId.Clock => data.LocalTime.ToString("t", _view.Culture),
+                NativeWidgetId.Calendar => _placements[id].ColumnSpan == 1 ? data.LocalTime.ToString("dd", _view.Culture) : data.LocalTime.ToString("dddd\nd MMMM", _view.Culture),
                 NativeWidgetId.ResourceUsage => $"CPU {Percent(data.CpuPercent)}\nRAM {Percent(data.MemoryPercent)}",
                 NativeWidgetId.Battery => data.BatteryPercent is { } battery ? $"{battery}%" : data.OnAcPower == true ? "AC" : "—",
                 NativeWidgetId.Uptime => $"{(int)data.Uptime.TotalHours}h {data.Uptime.Minutes}m",

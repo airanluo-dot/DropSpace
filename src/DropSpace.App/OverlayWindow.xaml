@@ -111,7 +111,8 @@
             Text="{Binding DragSubtitle}" />
         </StackPanel>
 
-        <Grid x:Name="ExpandedPanel" Opacity="0" Visibility="Collapsed">
+        <Viewbox x:Name="ExpandedPanel" Opacity="0" Visibility="Collapsed" Stretch="Uniform">
+        <Grid Width="560" Height="340">
         <island:MediaExpandedView x:Name="MusicExpanded" Margin="18,0" Visibility="Collapsed"/>
         <island:WidgetsExpandedView x:Name="WidgetsExpanded" Margin="18,0" Visibility="Collapsed" SettingsRequested="OnWidgetSettingsRequested"/>
         <island:ClipboardIslandView x:Name="ClipboardExpanded" Margin="18,0" Visibility="Collapsed" OpenMainRequested="OnClipboardOpenMainRequested"/>
@@ -263,6 +264,7 @@
         <Button x:Name="PreviousPageRail" services:XamlResourceOverride.Uid="IslandPreviousPage" Width="22" Height="100" HorizontalAlignment="Left" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="8,0" Click="OnPreviousPageClicked"><Border Width="4" Height="38" CornerRadius="2" Background="{ThemeResource TextFillColorSecondaryBrush}"/></Button>
         <Button x:Name="NextPageRail" services:XamlResourceOverride.Uid="IslandNextPage" Width="22" Height="100" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="8,0" Click="OnNextPageClicked"><Border Width="4" Height="38" CornerRadius="2" Background="{ThemeResource TextFillColorSecondaryBrush}"/></Button>
         </Grid>
+        </Viewbox>
 
         <Border
           Margin="8"

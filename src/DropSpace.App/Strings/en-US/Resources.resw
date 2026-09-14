@@ -82,7 +82,6 @@
   <data name="ItemsAddedWithRejected" xml:space="preserve"><value>{0} item(s) added; {1} could not be added.</value></data>
   <data name="ItemsCleared" xml:space="preserve"><value>{0} item(s) cleared; pinned items were kept.</value></data>
   <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
-  <data name="LanguageChangeRestartRequired" xml:space="preserve"><value>Language preference saved. Restart DropSpace to apply the new display language.</value></data>
   <data name="LastUpdateCheck" xml:space="preserve"><value>Last checked: {0}</value></data>
   <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy-MM-dd HH:mm</value></data>
   <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
@@ -109,7 +108,6 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>“{0}” and the local copy kept by DropSpace will be removed.</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>No matching items found.</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>Search is temporarily unavailable.</value></data>
-  <data name="SettingsSaved" xml:space="preserve"><value>Settings validated and saved.</value></data>
   <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace accepts only files and folders from Windows Share.</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>The files or folders could not be added to Temporary Space.</value></data>
   <data name="ShareNoAccessibleItems" xml:space="preserve"><value>The shared content contains no files or folders that DropSpace can access.</value></data>
@@ -242,7 +240,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Enabled by default. Uses the current-user startup entry and does not require administrator privileges.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Display language</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default. Restart DropSpace after changing this setting.</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default.</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Display language</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>System default</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -530,7 +528,6 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsLocal" xml:space="preserve"><value>Local LRC</value></data>
   <data name="WidgetsEditorMode" xml:space="preserve"><value>Widget editor mode</value></data>
   <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Could not save this change. Your previous settings were restored.</value></data>
-  <data name="WidgetApplyPosition" xml:space="preserve"><value>Apply position</value></data>
   <data name="WidgetsCompactMode" xml:space="preserve"><value>Compact · Left / Center / Right</value></data>
   <data name="IslandExpandedScale" xml:space="preserve"><value>Expanded scale</value></data>
   <data name="WidgetsReset" xml:space="preserve"><value>Reset widget layout</value></data>

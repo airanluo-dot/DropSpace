@@ -82,7 +82,6 @@
   <data name="ItemsAddedWithRejected" xml:space="preserve"><value>已添加 {0} 项，另有 {1} 项无法加入。</value></data>
   <data name="ItemsCleared" xml:space="preserve"><value>已清除 {0} 项；固定项目已保留。</value></data>
   <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
-  <data name="LanguageChangeRestartRequired" xml:space="preserve"><value>语言设置已保存。重启 DropSpace 后将应用新的显示语言。</value></data>
   <data name="LastUpdateCheck" xml:space="preserve"><value>上次检查：{0}</value></data>
   <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy-MM-dd HH:mm</value></data>
   <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
@@ -109,7 +108,6 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>将移除“{0}”及 DropSpace 保存的本地副本。</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>没有找到匹配项目。</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>搜索暂时不可用。</value></data>
-  <data name="SettingsSaved" xml:space="preserve"><value>设置已验证并保存。</value></data>
   <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace 只接受 Windows 分享中的文件和文件夹。</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>文件或文件夹未能加入临时空间。</value></data>
   <data name="ShareNoAccessibleItems" xml:space="preserve"><value>分享内容中没有 DropSpace 可以访问的文件或文件夹。</value></data>
@@ -242,7 +240,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>默认开启；使用当前用户启动项，不需要管理员权限。</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>开机自启动</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>显示语言</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>选择跟随系统时使用 Windows 显示语言。更改此设置后请重启 DropSpace。</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>选择跟随系统时使用 Windows 显示语言。</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>显示语言</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>跟随系统</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -530,7 +528,6 @@
   <data name="LyricsLocal" xml:space="preserve"><value>本地 LRC</value></data>
   <data name="WidgetsEditorMode" xml:space="preserve"><value>小组件编辑模式</value></data>
   <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>无法保存这项更改，已恢复先前设置。</value></data>
-  <data name="WidgetApplyPosition" xml:space="preserve"><value>应用位置</value></data>
   <data name="WidgetsCompactMode" xml:space="preserve"><value>紧凑 · 左 / 中 / 右</value></data>
   <data name="IslandExpandedScale" xml:space="preserve"><value>展开界面缩放</value></data>
   <data name="WidgetsReset" xml:space="preserve"><value>恢复默认布局</value></data>

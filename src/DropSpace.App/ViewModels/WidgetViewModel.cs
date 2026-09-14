@@ -24,6 +24,7 @@ public sealed class WidgetViewModel : ObservableObject, IAsyncDisposable
     private bool _disposed;
     private readonly System.Diagnostics.Stopwatch _stopwatch = new();
     private readonly IAppStringLocalizer _strings;
+    public System.Globalization.CultureInfo Culture => _strings.Culture;
     public WidgetViewModel(MainViewModel main, NativeWidgetDataService data, DispatcherQueue dispatcher, IAppStringLocalizer strings, ILogger<WidgetViewModel> logger)
     {
         _main = main; _data = data; _dispatcher = dispatcher;

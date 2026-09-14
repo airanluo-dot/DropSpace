@@ -86,9 +86,9 @@ public sealed class MusicPage : UserControl
             var check = new CheckBox { IsChecked = !restricted || settings.AllowedMediaSourceAppIds.Contains(source, StringComparer.OrdinalIgnoreCase) };
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
             var icon = new Image { Width = 28, Height = 28 }; images.Add((source, icon)); row.Children.Add(icon);
-            var labels = new StackPanel(); labels.Children.Add(new TextBlock { Text = WindowsMediaSessionService.FriendlyName(source) });
+            var labels = new StackPanel(); labels.Children.Add(new TextBlock { Text = WindowsMediaSessionService.FriendlyName(source, _strings) });
             labels.Children.Add(new TextBlock { Text = source, FontSize = 11, Opacity = 0.6, TextWrapping = TextWrapping.Wrap }); row.Children.Add(labels); check.Content = row;
-            AutomationProperties.SetName(check, WindowsMediaSessionService.FriendlyName(source));
+            AutomationProperties.SetName(check, WindowsMediaSessionService.FriendlyName(source, _strings));
             check.Click += async (_, _) =>
             {
                 var selected = check.IsChecked == true;

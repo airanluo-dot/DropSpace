@@ -1649,16 +1649,18 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private async void OnQuickPanelHotkeyLostFocus(object sender, RoutedEventArgs args)
+    private async void OnQuickPanelHotkeyTextChanged(object sender, TextChangedEventArgs args)
     {
         if (!_syncingSettings && !string.Equals(QuickPanelHotkeyText.Text, _viewModel.QuickPanelHotkey, StringComparison.Ordinal))
         {
+            try { _ = GlobalQuickPanelHotkeyService.Parse(QuickPanelHotkeyText.Text.Trim()); }
+            catch (ArgumentException) { return; }
             await RunAsync(() => _viewModel.UpdateSettingsAsync(
                 _viewModel.Settings with { QuickPanelHotkey = QuickPanelHotkeyText.Text.Trim() }));
         }
     }
 
-    private async void OnSmartDragExclusionsLostFocus(object sender, RoutedEventArgs args)
+    private async void OnSmartDragExclusionsTextChanged(object sender, TextChangedEventArgs args)
     {
         if (_syncingSettings)
         {
@@ -2034,8 +2036,8 @@ public sealed partial class MainPage : Page
 
             OverlayPlacementMonitorCombo.ItemsSource = availableOverlayMonitors;
             OverlayPlacementMonitorCombo.SelectedIndex = Math.Max(0, OverlayPlacementMonitorCombo.SelectedIndex);
-            QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
-            SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
+            if (QuickPanelHotkeyText.FocusState == FocusState.Unfocused) QuickPanelHotkeyText.Text = _viewModel.QuickPanelHotkey;
+            if (SmartDragExclusionsText.FocusState == FocusState.Unfocused) SmartDragExclusionsText.Text = _viewModel.SmartDragExcludedProcessesText;
             SyncQuickActionsSettings();
             SyncPlacementCoordinates();
             SelectComboItem(UpdateChannelCombo, _viewModel.UpdateChannel.ToString());
