@@ -53,3 +53,10 @@ After publication, verify the remote Release, workflow result and deployed
 website/API all agree on the same tag and assets. Preserve historical published
 release records. Report external deployment or Skill synchronization failures
 precisely; a successful build alone is not a successful release.
+
+Homepage feature stories live in website/_source/src/index.html with shared
+styles.css and bilingual scripts/i18n.mjs. Native Island tabs use local,
+keyboard-accessible interactions; widget/music illustrations must label sample
+content and preserve documented player limitations. Validate the website unit
+and browser suites, including native-showcase.spec.mjs. Website-only changes
+publish via deploy-website.yml after protected merge without an App version bump.

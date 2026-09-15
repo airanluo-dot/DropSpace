@@ -113,6 +113,39 @@
       </div>
     </section>
 
+    <section class="native-story shell" id="native-island" aria-labelledby="native-title">
+      <div class="section-heading split-heading"><div><p class="section-index">BETA 24 / NATIVE ISLAND</p><h2 id="native-title">A little space.<br>A lot closer.</h2></div><div><p>Widgets, music, files and clipboard. Four distinct pages, one familiar place at the top of your screen.</p><a class="button button-ghost" href="https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.0-beta.24/DropSpaceSetup.exe">Get Beta 24 <span aria-hidden="true">↗</span></a></div></div>
+      <div class="native-stage" data-native-showcase>
+        <div class="native-stage-top"><span>YOUR DESKTOP, WITHIN REACH</span><span>Beta 24</span></div>
+        <div class="native-surface">
+          <div class="native-tabs" role="tablist" aria-label="Explore the four Island pages">
+            <button id="native-tab-widgets" role="tab" aria-selected="true" aria-controls="native-panel-widgets" data-native-tab="widgets">Widgets</button>
+            <button id="native-tab-music" role="tab" aria-selected="false" aria-controls="native-panel-music" tabindex="-1" data-native-tab="music">Music</button>
+            <button id="native-tab-files" role="tab" aria-selected="false" aria-controls="native-panel-files" tabindex="-1" data-native-tab="files">Files</button>
+            <button id="native-tab-clipboard" role="tab" aria-selected="false" aria-controls="native-panel-clipboard" tabindex="-1" data-native-tab="clipboard">Clipboard</button>
+          </div>
+          <div class="native-panel" id="native-panel-widgets" role="tabpanel" aria-labelledby="native-tab-widgets" tabindex="0"><div class="native-glance"><div><small>Clock</small><strong>09:41</strong></div><div><small>Calendar</small><strong>15 <em>SEP</em></strong></div><div><small>Battery</small><strong>82<em>%</em></strong></div></div><p>Your everyday essentials, a glance away.</p></div>
+          <div class="native-panel" id="native-panel-music" role="tabpanel" aria-labelledby="native-tab-music" tabindex="0" hidden><div class="native-track"><span class="native-art" aria-hidden="true">♪</span><div><small>NOW PLAYING</small><strong>Stay in your flow.</strong><span>Playback, lyrics and audio levels</span></div><span class="native-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div><p>Keep your music close without leaving your work.</p></div>
+          <div class="native-panel" id="native-panel-files" role="tabpanel" aria-labelledby="native-tab-files" tabindex="0" hidden><div class="native-file"><span class="file-type pdf">PDF</span><div><strong>Project Brief.pdf</strong><small>Reference · source unchanged</small></div></div><p>A place for the files you need next. Originals stay in place.</p></div>
+          <div class="native-panel" id="native-panel-clipboard" role="tabpanel" aria-labelledby="native-tab-clipboard" tabindex="0" hidden><div class="native-file"><span class="clip-icon text">T</span><div><strong>Pick up where you left off.</strong><small>Clipboard History</small></div></div><p>Recent copied content, separate from your staged files.</p></div>
+        </div>
+        <p class="native-caption">Interactive website illustration · sample content, not a live desktop</p>
+      </div>
+      <div class="native-footnotes"><span>Four pages. No wraparound.</span><span>Playback keeps your selected page.</span><span>Drag a file to reveal its drop target.</span></div>
+    </section>
+
+    <section class="widget-story band shell" id="widgets" aria-labelledby="widgets-title">
+      <div class="section-copy"><p class="section-index">BETA 24 / WIDGETS</p><h2 id="widgets-title">Small things.<br>Your arrangement.</h2><p>Eight useful widgets on a 4-row, 8-column grid. Move them where they make sense and choose a smaller size where supported.</p><ul class="native-details"><li>New widgets find an empty space. Your layout stays put.</li><li>Drop onto a same-size widget to swap their positions.</li><li>A clear selection outline keeps editing easy to follow.</li></ul></div>
+      <figure class="widget-preview"><div class="widget-preview-head"><strong>Make room for your day.</strong><span>4 × 8</span></div><div class="widget-board" aria-label="Illustration of eight widgets on a four by eight grid">
+        <div class="widget-tile widget-clock"><span>Clock</span><strong>09:41</strong></div><div class="widget-tile widget-calendar"><span>Calendar</span><strong>15</strong><small>SEP</small></div><div class="widget-tile widget-resource"><span>Resource usage</span><div class="widget-meter"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="widget-tile widget-battery"><span>Battery</span><strong>82%</strong></div><div class="widget-tile widget-settings"><b aria-hidden="true">⚙</b><span>Settings</span></div><div class="widget-tile widget-uptime"><span>Uptime</span><strong>2h 18m</strong></div><div class="widget-tile widget-stopwatch"><span>Stopwatch</span><strong>00:32</strong></div><div class="widget-tile widget-capture"><b aria-hidden="true">Ⅱ</b><span>Capture</span></div>
+      </div><figcaption>Clock, calendar, resource usage, settings, battery, uptime, stopwatch and clipboard capture.</figcaption></figure>
+    </section>
+
+    <section class="music-story band shell" id="music" aria-labelledby="music-title">
+      <figure class="music-preview"><div class="music-preview-header"><span class="native-art" aria-hidden="true">♪</span><div><small>YOUR MUSIC, AT A GLANCE</small><strong>Room for the next note.</strong><span>Music controls · lyrics · spectrum</span></div></div><div class="music-lyrics" aria-hidden="true"><p>A little room to breathe.</p><p>Keep the moment close.</p><p>Let the day unfold.</p></div><div class="music-progress" aria-hidden="true"><i></i></div><div class="music-preview-bottom"><span>01:24</span><span class="music-controls" aria-hidden="true">↶ &nbsp; Ⅱ &nbsp; ↷</span><span>03:42</span></div><figcaption>Website illustration with original sample lyrics. Player support varies.</figcaption></figure>
+      <div class="section-copy"><p class="section-index">BETA 24 / MUSIC</p><h2 id="music-title">Stay with<br>the music.</h2><p>Control playback, follow lyrics and see audio levels in the Island. Open the dedicated Music page when you want more room.</p><ul class="native-details"><li>NetEase lyrics first, with automatic fallback to four other sources when no lyrics are found.</li><li>English mode keeps original lyrics and hides Chinese secondary translations.</li><li>Improved Apple Music timing and process audio capture.</li></ul><p class="native-limitation">Some players, including tested NetEase versions, do not expose a valid playback timeline. Estimated lyrics may be out of sync.</p></div>
+    </section>
+
     <section class="clipboard band shell">
       <div class="section-copy">
         <p class="section-index">03 / CLIPBOARD HISTORY</p>
