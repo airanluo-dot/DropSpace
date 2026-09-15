@@ -19,6 +19,26 @@ for (const route of ['en', 'zh-cn']) {
     await expect(page.locator('#native-panel-widgets')).toBeVisible();
     await expect(story.locator('a')).toHaveAttribute('href', /v0\.3\.0-beta\.24\/DropSpaceSetup\.exe$/);
     await expect(page.locator('.widget-tile')).toHaveCount(8);
+    const design = await page.evaluate(() => {
+      const style = (selector) => getComputedStyle(document.querySelector(selector));
+      return {
+        stage: style('.native-stage').backgroundImage,
+        originalStage: style('.mode-screen').backgroundImage,
+        surface: style('.native-surface').backgroundColor,
+        originalSurface: style('.mode-overlay.expanded').backgroundColor,
+        radius: style('.native-surface').borderRadius,
+        originalRadius: style('.mode-overlay.expanded').borderRadius,
+        duration: style('.native-panel:not([hidden])').animationDuration,
+        originalDuration: style('.space-popover').transitionDuration,
+        easing: style('.native-panel:not([hidden])').animationTimingFunction,
+        originalEasing: style('.space-popover').transitionTimingFunction
+      };
+    });
+    expect(design.stage).toBe(design.originalStage);
+    expect(design.surface).toBe(design.originalSurface);
+    expect(design.radius).toBe(design.originalRadius);
+    expect(design.duration).toBe(design.originalDuration);
+    expect(design.easing).toBe(design.originalEasing);
     if (route === 'zh-cn') {
       await expect(tabs.nth(0)).toHaveText('小组件');
       await expect(page.locator('#music-title')).toContainText('一直在身边');
@@ -31,6 +51,7 @@ for (const route of ['en', 'zh-cn']) {
     await story.scrollIntoViewIfNeeded();
     await tabs.nth(1).click();
     await expect(page.locator('#native-panel-music')).toBeVisible();
+    expect(await page.locator('#native-panel-music').evaluate(el => parseFloat(getComputedStyle(el).animationDuration))).toBeLessThan(0.001);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await story.screenshot({ path: `test-results/native-mobile-${route}.png` });
   });

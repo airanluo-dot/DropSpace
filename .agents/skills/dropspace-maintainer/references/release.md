@@ -60,3 +60,8 @@ keyboard-accessible interactions; widget/music illustrations must label sample
 content and preserve documented player limitations. Validate the website unit
 and browser suites, including native-showcase.spec.mjs. Website-only changes
 publish via deploy-website.yml after protected merge without an App version bump.
+
+Keep homepage additions in the original visual language: reuse the existing
+showcase/island tokens and popover duration/easing, rather than introducing a
+parallel palette or motion system. Browser regression compares new and existing
+computed backgrounds, radius and motion, including reduced-motion handling.

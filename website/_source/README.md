@@ -38,3 +38,9 @@ English/Simplified Chinese copy together in scripts/i18n.mjs. Browser coverage i
 tests/native-showcase.spec.mjs checks tab behavior, locale, the Beta download,
 eight widget tiles and mobile overflow. Website-only publication uses the Pages
 workflow; do not create another App release for presentation changes.
+
+Visual consistency is mandatory: the new feature stage reuses the original
+mode-screen background, native surfaces reuse its expanded-island background,
+border and shadow, and page transitions reuse the original .55s easing and
+popover entrance geometry. Browser tests compare computed appearance/motion
+against those existing elements and verify reduced-motion behavior.
