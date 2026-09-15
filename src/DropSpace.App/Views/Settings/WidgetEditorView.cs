@@ -61,21 +61,36 @@ public sealed class WidgetEditorView : UserControl
     private void OnChanged(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Rebuild(); }
     private void Rebuild()
     {
-        _grid.Children.Clear(); _library.Children.Clear(); _placedButtons.Clear();
-        for (var row = 0; row < WidgetLayoutPolicy.Rows; row++)
-        for (var column = 0; column < WidgetLayoutPolicy.Columns; column++)
+        _library.Children.Clear();
+        if (_grid.Children.Count == 0)
         {
-            var cell = new Border { BorderThickness = new(1), BorderBrush = Brush("CardStrokeColorDefaultBrush"), Background = Brush("ControlFillColorSecondaryBrush"), CornerRadius = new(8) };
-            Grid.SetColumn(cell, column); Grid.SetRow(cell, row); _grid.Children.Add(cell);
+            for (var row = 0; row < WidgetLayoutPolicy.Rows; row++)
+            for (var column = 0; column < WidgetLayoutPolicy.Columns; column++)
+            {
+                var cell = new Border { BorderThickness = new(1), BorderBrush = Brush("CardStrokeColorDefaultBrush"), Background = Brush("ControlFillColorSecondaryBrush"), CornerRadius = new(8) };
+                Grid.SetColumn(cell, column); Grid.SetRow(cell, row); _grid.Children.Add(cell);
+            }
+        }
+        var placements = _editor.Settings.Widgets.Layout.Expanded;
+        foreach (var id in _placedButtons.Keys.Where(id => !placements.Any(item => item.Id == id)).ToArray())
+        {
+            _grid.Children.Remove(_placedButtons[id]);
+            _placedButtons.Remove(id);
         }
         foreach (var placement in _editor.Settings.Widgets.Layout.Expanded)
         {
-            var button = CreateDragButton(placement.Id, WidgetName(placement.Id));
-            button.HorizontalAlignment = HorizontalAlignment.Stretch; button.VerticalAlignment = VerticalAlignment.Stretch;
-            button.Click += (_, _) => { _selectedId = placement.Id; RefreshSelection(); };
-            _placedButtons[placement.Id] = button;
-            button.Background = Brush("ControlFillColorDefaultBrush");
-            Grid.SetColumn(button, placement.Column); Grid.SetRow(button, placement.Row); Grid.SetColumnSpan(button, placement.ColumnSpan); Grid.SetRowSpan(button, placement.RowSpan); _grid.Children.Add(button);
+            // Retain the focused/captured control while moving it. Replacing the
+            // grid transfers focus to the numeric editor and scrolls it into view.
+            if (!_placedButtons.TryGetValue(placement.Id, out var button))
+            {
+                button = CreateDragButton(placement.Id, WidgetName(placement.Id));
+                button.HorizontalAlignment = HorizontalAlignment.Stretch; button.VerticalAlignment = VerticalAlignment.Stretch;
+                button.Click += (_, _) => { _selectedId = placement.Id; RefreshSelection(); };
+                _placedButtons[placement.Id] = button;
+                button.Background = Brush("ControlFillColorDefaultBrush");
+                _grid.Children.Add(button);
+            }
+            Grid.SetColumn(button, placement.Column); Grid.SetRow(button, placement.Row); Grid.SetColumnSpan(button, placement.ColumnSpan); Grid.SetRowSpan(button, placement.RowSpan);
         }
         foreach (var id in Enum.GetValues<NativeWidgetId>().Where(id => !_editor.Settings.Widgets.Layout.Expanded.Any(item => item.Id == id)))
         {

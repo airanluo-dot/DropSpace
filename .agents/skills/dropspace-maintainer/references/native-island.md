@@ -53,3 +53,5 @@ Startup window invariant: `--startup` must create the main HWND for backend serv
 Placement editing supports right-button hold and explicit settings entry. Releasing a drag keeps a preview; only Confirm persists it. Cancel/Escape restores the original placement. Multiple preview drags must accumulate without persisting early.
 
 Audio hardware smoke tests require an actual render endpoint. A host without one reports Inconclusive, never a successful audio validation. Before release, run the same PCM/volume tests on an equipped Windows desktop and record zero skips.
+
+Widget settings retain existing button instances when placements change. Recreating the focused grid on every save transfers focus to the numeric editor and scrolls away from the drop target; verify focus and scroll position in native drag acceptance.
