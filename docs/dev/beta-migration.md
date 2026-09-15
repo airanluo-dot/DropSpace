@@ -35,3 +35,5 @@ hardcoding gates passed. Personal Skill was absent locally; the reconstructed
 counterpart is now installed at C:/Users/Razer/.codex/skills/dropspace-codex,
 with both Skill folders passing quick_validate.py. Remote release and website
 verification remain pending until publication.
+
+September 15 validation: Core 212 passed; website 27 unit and 6 Chromium browser tests passed. Real PCM capture and volume output were retried on this desktop: 2 passed, 0 skipped. Hosted Windows runners without a render endpoint explicitly report these hardware cases Inconclusive; local hardware evidence remains required. Placement release retains a preview until Confirm, with Cancel/Escape restoring the original.

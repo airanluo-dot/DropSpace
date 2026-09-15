@@ -562,6 +562,7 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var window in _windows)
         {
             window.PlacementCommitted -= OnPlacementCommitted;
+            window.PlacementEditRequested -= OnOverlayPlacementEditRequested;
             window.PlacementCancelled -= OnPlacementCancelled;
             window.CloseForShutdown();
         }
@@ -910,6 +911,7 @@ public sealed class OverlayWindowService : IDisposable
                 _systemActivityViewModel);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
+            window.PlacementEditRequested += OnOverlayPlacementEditRequested;
             window.PlacementCancelled += OnPlacementCancelled;
             _windows.Add(window);
         }
@@ -1271,6 +1273,7 @@ public sealed class OverlayWindowService : IDisposable
                 foreach (var window in _windows)
                 {
                     window.PlacementCommitted -= OnPlacementCommitted;
+            window.PlacementEditRequested -= OnOverlayPlacementEditRequested;
                     window.PlacementCancelled -= OnPlacementCancelled;
                     window.CloseForShutdown();
                 }

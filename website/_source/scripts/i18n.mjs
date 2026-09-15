@@ -159,7 +159,7 @@ export const zh = {
   "Does DropSpace upload clipboard content?": "DropSpace 会上传剪贴板内容吗？",
   "No. Ordinary content features use local storage. If update checks are enabled, DropSpace contacts only public GitHub Release metadata and official GitHub asset URLs.": "不会。常规内容功能只使用本地存储。启用更新检查后，DropSpace 只会访问公开的 GitHub Release 元数据和官方 GitHub 资源地址。",
   "How do updates work?": "更新如何工作？",
-  "Stable receives Stable releases. Beta can receive Stable and Beta releases. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.": "稳定通道只接收稳定版本；Beta 通道可接收稳定版和Beta 版。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。",
+  "Stable receives Stable releases. Beta can receive Stable and Beta releases. Preview.23 users must install Beta 24 once from this website; existing data and settings are preserved. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.": "稳定通道只接收稳定版本；Beta 通道可接收稳定版和Beta 版。Preview.23 用户需从官网手动安装一次 Beta 24，原数据和设置会保留。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。",
   "Releases": "发布版本",
   "License": "许可证",
   "Privacy": "隐私",

@@ -16,7 +16,7 @@ public sealed class VolumeNativeSmokeTests
     {
         await using var service = new WindowsVolumeActivityService(NullLogger<WindowsVolumeActivityService>.Instance);
         await service.SetEnabledAsync(true);
-        Assert.IsTrue(service.IsAvailable, "A real render endpoint is required for this smoke.");
+        if (!service.IsAvailable) Assert.Inconclusive("No real render endpoint is available. Run this hardware smoke on a Windows desktop with audio output.");
         var observed = new TaskCompletionSource<VolumeActivitySnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         service.Changed += (_, value) => observed.TrySetResult(value);
         await Task.Run(() =>

@@ -121,8 +121,8 @@ export function validateLatestChangeApi(payload) {
   }
   const release = payload.release;
   if (!release || !/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release.tagName ?? "") ||
-      !["stable", "beta"].includes(release.channel) ||
-      release.channel !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
+      !["stable", "beta", "preview"].includes(release.channel) ||
+      (release.channel === "preview" ? "beta" : release.channel) !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
       !isIsoDate(release.publishedAt)) {
     throw new TypeError("Invalid latest-change release metadata.");
   }

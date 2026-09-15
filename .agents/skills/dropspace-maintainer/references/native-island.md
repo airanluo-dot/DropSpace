@@ -49,3 +49,7 @@ supersede older historical build-17763 entries below for this rebuild.
   Successful probes do not prove untested DPI, accessibility or release rows.
 
 Startup window invariant: `--startup` must create the main HWND for backend services without an initial `Show`/`Activate`; only normal and redirected activation may show it. Keep this covered by the portable smoke test.
+
+Placement editing supports right-button hold and explicit settings entry. Releasing a drag keeps a preview; only Confirm persists it. Cancel/Escape restores the original placement. Multiple preview drags must accumulate without persisting early.
+
+Audio hardware smoke tests require an actual render endpoint. A host without one reports Inconclusive, never a successful audio validation. Before release, run the same PCM/volume tests on an equipped Windows desktop and record zero skips.

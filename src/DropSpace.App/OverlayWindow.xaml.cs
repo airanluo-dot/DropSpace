@@ -68,6 +68,8 @@ public sealed partial class OverlayWindow : Window
     private readonly DispatcherQueueTimer _animationTimer;
     private readonly TypedEventHandler<DispatcherQueueTimer, object> _animationTimerHandler;
     private bool _placementEditActive;
+    private readonly DispatcherQueueTimer _rightHoldTimer;
+    private Microsoft.UI.Xaml.Input.Pointer? _rightHoldPointer;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
     private int _positionedHostWidthPixels = -1;
@@ -129,6 +131,22 @@ public sealed partial class OverlayWindow : Window
 
         XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
+        _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
+        _rightHoldTimer.IsRepeating = false;
+        _rightHoldTimer.Tick += (_, _) =>
+        {
+            if (_rightHoldPointer is not null && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove)
+                PlacementEditRequested?.Invoke(this, MonitorId);
+        };
+        Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
+        Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
+        Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => { _rightHoldTimer.Stop(); _rightHoldPointer = null; }), true);
+        Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
+        {
+            if (_placementEditActive) return;
+            _rightHoldTimer.Stop(); _rightHoldPointer = null;
+        }), true);
         MusicCompact.ViewModel = mediaViewModel;
         MusicExpanded.ViewModel = mediaViewModel;
         WidgetsExpanded.ViewModel = widgetViewModel;
@@ -225,6 +243,7 @@ public sealed partial class OverlayWindow : Window
         $"lastFailure={_lastNativeFailureDiagnostics}";
 
     public event EventHandler<OverlayPlacementEditEventArgs>? PlacementCommitted;
+    public event EventHandler<string>? PlacementEditRequested;
 
     public event EventHandler? PlacementCancelled;
 
@@ -503,6 +522,8 @@ public sealed partial class OverlayWindow : Window
 
     public void CloseForShutdown()
     {
+        _rightHoldTimer.Stop();
+        _rightHoldPointer = null;
         if (_placementEditActive)
         {
             EndPlacementEditVisuals();
@@ -1141,8 +1162,17 @@ public sealed partial class OverlayWindow : Window
         RevokeNativeDropTarget();
         PlacementEditSurface.Visibility = Visibility.Visible;
         PlacementEditSurface.IsHitTestVisible = true;
-        PrepareContentForTarget(CreateMotionTarget(OverlayState.Compact, 0));
-        _motion.SetTarget(CreateMotionTarget(OverlayState.Compact, 0), IsReducedMotion());
+        PlacementConfirmActions.Visibility = Visibility.Collapsed;
+        CancelPlacementButton.Content = _strings.Get("CommonCancel");
+        var editTarget = Create(OverlayPlacementEditSession.EditorWidth, OverlayPlacementEditSession.EditorHeight, 0, 24, 0, 0, 0);
+        PrepareContentForTarget(editTarget);
+        _motion.SetTarget(editTarget, IsReducedMotion());
+        if (_rightHoldPointer is { } held && OverlayWindowInterop.TryGetCursorPosition(out var pointerPosition))
+        {
+            Surface.ReleasePointerCapture(held);
+            PlacementEditSurface.CapturePointer(held);
+            _placementEdit.TryBeginDrag(pointerPosition);
+        }
         if (!OverlayWindowInterop.SetNoActivate(_windowHandle, true, out var noActivateFailure))
         {
             LogNativeFailure(noActivateFailure);
@@ -1189,6 +1219,8 @@ public sealed partial class OverlayWindow : Window
 
     private void OnPlacementEditPointerPressed(object sender, PointerRoutedEventArgs args)
     {
+        for (var element = args.OriginalSource as DependencyObject; element is not null; element = VisualTreeHelper.GetParent(element))
+            if (element is Button) return;
         if (!_placementEditActive || !OverlayWindowInterop.TryGetCursorPosition(out var point) ||
             !_placementEdit.TryBeginDrag(point))
         {
@@ -1235,12 +1267,21 @@ public sealed partial class OverlayWindow : Window
             _placementEdit.Move(point, _monitor.Scale);
         }
 
-        var committed = _placementEdit.Commit();
+        _placementEdit.EndDrag();
         PlacementEditSurface.ReleasePointerCapture(args.Pointer);
-        EndPlacementEditVisuals();
-        PlacementCommitted?.Invoke(this, new OverlayPlacementEditEventArgs(committed));
+        PlacementConfirmActions.Visibility = Visibility.Visible;
         args.Handled = true;
     }
+
+    private void OnConfirmPlacementClicked(object sender, RoutedEventArgs args)
+    {
+        if (!_placementEditActive) return;
+        var committed = _placementEdit.Commit();
+        EndPlacementEditVisuals();
+        PlacementCommitted?.Invoke(this, new OverlayPlacementEditEventArgs(committed));
+    }
+
+    private void OnCancelPlacementClicked(object sender, RoutedEventArgs args) => CancelPlacementEdit();
 
     private void OnPlacementEditPointerCaptureLost(object sender, PointerRoutedEventArgs args)
     {
@@ -1443,6 +1484,14 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerPressed(object sender, PointerRoutedEventArgs args)
     {
+        if (!_placementEditActive && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove && args.GetCurrentPoint(Surface).Properties.IsRightButtonPressed)
+        {
+            _rightHoldPointer = args.Pointer;
+            Surface.CapturePointer(args.Pointer);
+            _rightHoldTimer.Start();
+            args.Handled = true;
+            return;
+        }
         if (_viewModel.Snapshot.State == OverlayState.Compact)
         {
             _motion.ApplyPress(true, IsReducedMotion());
@@ -1451,6 +1500,9 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerReleased(object sender, PointerRoutedEventArgs args)
     {
+        _rightHoldTimer.Stop();
+        if (_rightHoldPointer is { } held) Surface.ReleasePointerCapture(held);
+        _rightHoldPointer = null;
         _motion.ApplyPress(false, IsReducedMotion());
     }
 

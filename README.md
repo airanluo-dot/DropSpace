@@ -11,9 +11,9 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.21 is the current Preview development line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.24 is the current Beta release target**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest published Preview: [v0.3.0-preview.21](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.21). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.24](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.24). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 The **v0.3.0-preview.21** settings and action usability line follows Preview.20. Its release notes and [Preview.21 test plan](docs/test-plan/v0.3.0-preview.21.md) record the settings transaction, readable Quick Actions, simpler image presets, and verification evidence; physical Windows, multi-device, deployed Worker/browser, and long-run evidence remain explicitly conditional when unavailable.
 

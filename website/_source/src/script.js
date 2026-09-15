@@ -128,7 +128,7 @@ function isValidLatestChange(payload) {
       !/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release?.tagName ?? "") ||
       release.htmlUrl !== `https://github.com/airanluo-dot/DropSpace/releases/tag/${release.tagName}` ||
       !Number.isFinite(Date.parse(release.publishedAt)) ||
-      release.channel !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
+      (release.channel === "preview" ? "beta" : release.channel) !== (/-(?:preview|beta)\./.test(release.tagName) ? "beta" : "stable") ||
       !isBoundedText(release.title, 160)) return false;
   return ["en", "zh-CN"].every((locale) =>
     isBoundedText(release.headline?.[locale], 80) &&

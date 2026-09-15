@@ -17,6 +17,9 @@ public sealed class ProcessLoopbackNativeSmokeTests
     [TestCategory("NativeSmoke")]
     public async Task CapturesRealProcessPcmAndStopsOnPause()
     {
+        await using var endpoint = new DropSpace.App.Services.Volume.WindowsVolumeActivityService(NullLogger<DropSpace.App.Services.Volume.WindowsVolumeActivityService>.Instance);
+        await endpoint.SetEnabledAsync(true);
+        if (!endpoint.IsAvailable) Assert.Inconclusive("No real render endpoint is available. PCM validation requires a Windows desktop with audio output.");
         // Deliberately quiet, short PCM rendered through WinMM in this process.
         // The capture must discover it through WASAPI, not through an injected sample source.
         var sound = CreateTone();
