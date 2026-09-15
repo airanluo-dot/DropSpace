@@ -80,7 +80,7 @@ test("authoritative sync writes the latest Stable and Preview contract", async (
   assert.equal(result.code, 0, result.stderr);
   const data = JSON.parse(await readFile(output, "utf8"));
   assert.equal(data.stable.tag, "v0.1.0");
-  assert.equal(data.previews[0].tag, "v0.2.0-preview.5");
+  assert.equal(data.prereleases[0].tag, "v0.2.0-preview.5");
   assert.equal(data.api.schemaVersion, 1);
 });
 

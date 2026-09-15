@@ -48,7 +48,7 @@ test("latest-change contract follows the newest published release with a variabl
   const payload = createLatestChangeApi(normalizeGitHubReleases([valid, preview], "2026-08-20T00:01:00Z"));
   assert.equal(validateLatestChangeApi(payload), payload);
   assert.equal(payload.release.tagName, "v0.2.1-preview.1");
-  assert.equal(payload.release.headline["zh-CN"], "最新预览版。");
+  assert.equal(payload.release.headline["zh-CN"], "最新 Beta。");
   assert.equal(payload.release.title, "Release-driven website");
   assert.deepEqual(payload.release.highlights.en, ["API-driven headline", "Variable summary list", "Build snapshot fallback"]);
   assert.deepEqual(payload.release.highlights["zh-CN"], ["标题由接口更新", "摘要数量可变"]);
@@ -100,11 +100,23 @@ test("keeps the current Stable release when the latest Preview window is full", 
       browser_download_url: `https://github.com/airanluo-dot/DropSpace/releases/download/${tag}/${name}`
     }))
   });
-  const previews = Array.from({ length: 21 }, (_, index) => complete("v0.3.0-preview." + (21 - index), true));
+  const prereleases = Array.from({ length: 21 }, (_, index) => complete("v0.3.0-preview." + (21 - index), true));
   const stable = complete("v0.2.1", false);
-  const data = createWebsiteReleaseData([...previews, stable], "2026-09-09T00:00:00Z");
+  const data = createWebsiteReleaseData([...prereleases, stable], "2026-09-09T00:00:00Z");
   assert.equal(data.stable.tag, "v0.2.1");
   assert.equal(data.api.releases.length, 20);
-  assert.equal(data.previews[0].tag, "v0.3.0-preview.21");
-  assert.equal(data.previews.length, 5);
+  assert.equal(data.prereleases[0].tag, "v0.3.0-preview.21");
+  assert.equal(data.prereleases.length, 5);
+});
+
+test("Beta classification and numeric migration ordering preserve historical identities", async () => {
+  const { compareReleaseTags } = await import("./release-contract.mjs");
+  const tags = ["v0.3.0-preview.22", "v0.3.0-preview.23", "v0.3.0-beta.24", "v0.3.0-beta.25", "v0.3.0"];
+  for (let i = 1; i < tags.length; i++) assert.ok(compareReleaseTags(tags[i - 1], tags[i]) < 0);
+  for (const tag of tags.slice(0, -1)) {
+    const release = { ...valid, tag_name: tag, name: `DropSpace ${tag}`, html_url: `https://github.com/airanluo-dot/DropSpace/releases/tag/${tag}`, assets: valid.assets.map(a => ({ ...a, browser_download_url: `https://github.com/airanluo-dot/DropSpace/releases/download/${tag}/${a.name}` })) };
+    const api = normalizeGitHubReleases([release]);
+    assert.equal(api.releases[0].tagName, tag);
+    assert.equal(createLatestChangeApi(api).release.channel, "beta");
+  }
 });

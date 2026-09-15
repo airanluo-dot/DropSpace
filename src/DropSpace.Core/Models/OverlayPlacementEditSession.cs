@@ -15,6 +15,9 @@ public enum OverlayPlacementEditState
 /// </summary>
 public sealed class OverlayPlacementEditSession
 {
+    public static readonly TimeSpan HoldDuration = TimeSpan.FromMilliseconds(400);
+    public const double EditorWidth = 400;
+    public const double EditorHeight = 96;
     private OverlayCustomPlacement _original = new(0, 0);
     private OverlayCustomPlacement _preview = new(0, 0);
     private OverlayCustomPlacement _dragOrigin = new(0, 0);
@@ -68,6 +71,13 @@ public sealed class OverlayPlacementEditSession
             _dragOrigin.X + (pointer.X - _pointerStart.X) / monitorScale,
             _dragOrigin.Y + (pointer.Y - _pointerStart.Y) / monitorScale);
         return _preview;
+    }
+
+    public void EndDrag()
+    {
+        if (State != OverlayPlacementEditState.Dragging) return;
+        _dragOrigin = _preview;
+        State = OverlayPlacementEditState.Armed;
     }
 
     public OverlayCustomPlacement Commit()

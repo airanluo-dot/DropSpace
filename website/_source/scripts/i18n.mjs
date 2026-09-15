@@ -24,11 +24,11 @@ export const site = {
 export const changelogMeta = {
   en: {
     title: "Changelog — DropSpace",
-    description: "DropSpace Stable and Preview release history."
+    description: "DropSpace Stable and Beta release history."
   },
   "zh-cn": {
     title: "更新日志 — DropSpace",
-    description: "DropSpace 稳定版与预览版发布历史。"
+    description: "DropSpace 稳定版与Beta 版发布历史。"
   }
 };
 
@@ -94,7 +94,7 @@ export const zh = {
   "Folders": "文件夹",
   "Tray access": "托盘访问",
   "Start with Windows": "随 Windows 启动",
-  "Stable & Preview updates": "稳定版与预览版更新",
+  "Stable & Beta updates": "稳定版与Beta 版更新",
   "PRODUCT PREVIEW": "产品预览",
   "See the flow, not just a feature list.": "直接看懂完整流程。",
   "A lightweight product demo based on the shipped v0.1.0 interaction and UI structure. It is a website reconstruction, not a recording from another app.": "基于 v0.1.0 已发布交互与界面结构制作的轻量产品演示。这是官网重构演示，不是其他软件的录屏。",
@@ -103,7 +103,7 @@ export const zh = {
   "DOWNLOAD": "下载",
   "Ready when": "准备就绪，",
   "you are.": "随时可用。",
-  "Windows build 20348 or later, including Windows 11": "需要 Windows build 20348 或更高版本，包括 Windows 11",
+  "Windows 10 version 1809 (Build 17763) or later, including Windows 11": "需要 Windows 10 版本 1809（Build 17763）或更高版本，包括 Windows 11",
   "View all releases": "查看全部版本",
   "SHA-256 checksums": "SHA-256 校验值",
   "Download Installer": "下载安装程序",
@@ -114,11 +114,11 @@ export const zh = {
   "MSIX": "MSIX",
   "Alternative unsigned package": "备用的未签名软件包",
   "SYSTEM REQUIREMENTS": "系统要求",
-  "Windows build 20348 or later": "Windows build 20348 或更高版本",
-  "Requires Windows build 20348 or later, including Windows 11.": "需要 Windows build 20348 或更高版本，包括 Windows 11。",
+  "Windows 10 version 1809 or later": "Windows 10 版本 1809 或更高版本",
+  "Requires Windows 10 version 1809 (Build 17763) or later, including Windows 11. Windows 10 is no longer supported by Microsoft, but remains the minimum supported OS for DropSpace.": "需要 Windows 10 版本 1809（Build 17763）或更高版本，包括 Windows 11。Windows 10 已不再获得 Microsoft 的支持，但仍是 DropSpace 支持的最低系统版本。",
   "Checking this device…": "正在检测此设备……",
-  "Windows detected. Your browser cannot reliably report the exact Windows build—confirm build 20348 or later in Settings → System → About.": "检测到 Windows。浏览器无法可靠读取具体系统版本，请在“设置 → 系统 → 系统信息”中确认 build 20348 或更高版本。",
-  "This device is not reporting Windows. DropSpace downloads are for 64-bit Windows build 20348 or later, including Windows 11.": "当前设备未报告为 Windows。DropSpace 下载适用于 64 位 Windows build 20348 或更高版本，包括 Windows 11。",
+  "Windows detected. Your browser cannot reliably report the exact Windows build—confirm Windows 10 version 1809 (Build 17763) or later in Settings → System → About.": "检测到 Windows。浏览器无法可靠读取具体系统版本，请在“设置 → 系统 → 系统信息”中确认 Windows 10 版本 1809（Build 17763）或更高版本。",
+  "This device is not reporting Windows. DropSpace downloads are for 64-bit Windows 10 version 1809 or later, including Windows 11.": "当前设备未报告为 Windows。DropSpace 下载适用于 64 位 Windows 10 版本 1809 或更高版本，包括 Windows 11。",
   "KNOWN LIMITATIONS": "已知限制",
   "Know before you install.": "安装前需要了解。",
   "The current public build is unsigned, so SmartScreen may show an unknown-app warning. Windows 11 Drop Tray can own the same top-edge gesture, and Share integration requires a future trusted-signed build.": "当前公开版本尚未签名，因此 SmartScreen 可能显示未知应用警告。Windows 11 顶部拖放托盘可能占用同一手势；分享集成需要未来受信任签名版本。",
@@ -131,7 +131,7 @@ export const zh = {
   "Final official branding": "最终正式品牌视觉",
   "Temporary Space with Dynamic Island": "支持灵动岛的临时空间",
   "Clipboard History with consecutive duplicate suppression": "带连续重复抑制的剪贴板历史",
-  "In-app Stable and Preview update channels": "应用内稳定版与预览版更新通道",
+  "In-app Stable and Beta update channels": "应用内稳定版与Beta 版更新通道",
   "Installer, Portable, and MSIX downloads": "安装程序、便携版与 MSIX 下载",
   "View full changelog": "查看完整更新日志",
   "OPEN SOURCE": "开源",
@@ -152,25 +152,25 @@ export const zh = {
   "A local history of captured text, URLs, images, files, and folders. You can search, pin, pause, clear, and apply retention limits.": "保存在本地的文本、网址、图片、文件和文件夹历史。你可以搜索、固定、暂停、清除并设置保留限制。",
   "What's the difference between Installer and Portable?": "安装版和便携版有什么区别？",
   "The recommended per-user Installer adds Start Menu integration, an uninstaller, and in-place update support. Portable runs directly without installation; updates are notify/download-only.": "推荐的个人用户安装版提供开始菜单入口、独立卸载程序和原位更新；便携版无需安装即可运行，更新仅提供通知和下载。",
-  "What Windows versions are supported?": "支持哪些 Windows 版本？",
-  "DropSpace supports 64-bit Windows build 20348 or later, including Windows 11.": "DropSpace 支持 64 位 Windows build 20348 或更高版本，包括 Windows 11。",
+  "Does DropSpace support Windows 10?": "DropSpace 支持 Windows 10 吗？",
+  "Yes. DropSpace supports 64-bit Windows 10 version 1809 (Build 17763) or later, including Windows 11. Windows 10 is no longer supported by Microsoft, but remains supported by this compatibility baseline.": "支持。DropSpace 支持 64 位 Windows 10 版本 1809（Build 17763）或更高版本，包括 Windows 11。Windows 10 已不再获得 Microsoft 的支持，但仍在此兼容性基线内。",
   "What about the Windows 11 Drop Tray?": "Windows 11 顶部拖放托盘怎么办？",
   "Windows may own the same top-edge drag gesture. DropSpace Settings links to the official Multitasking page; direct drops onto visible Compact and Expanded surfaces remain supported.": "Windows 可能会占用相同的顶部拖动手势。DropSpace 设置会链接到官方多任务页面；你仍可直接拖放到可见的紧凑或展开界面。",
   "Does DropSpace upload clipboard content?": "DropSpace 会上传剪贴板内容吗？",
   "No. Ordinary content features use local storage. If update checks are enabled, DropSpace contacts only public GitHub Release metadata and official GitHub asset URLs.": "不会。常规内容功能只使用本地存储。启用更新检查后，DropSpace 只会访问公开的 GitHub Release 元数据和官方 GitHub 资源地址。",
   "How do updates work?": "更新如何工作？",
-  "Stable receives Stable releases. Preview can receive Stable and Preview releases. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.": "稳定通道只接收稳定版本；预览通道可接收稳定版和预览版。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。",
+  "Stable receives Stable releases. Beta can receive Stable and Beta releases. Preview.23 users must install Beta 24 once from this website; existing data and settings are preserved. DropSpace verifies download size and SHA-256; the current unsigned release requires explicit user action to install.": "稳定通道只接收稳定版本；Beta 通道可接收稳定版和Beta 版。Preview.23 用户需从官网手动安装一次 Beta 24，原数据和设置会保留。DropSpace 会验证下载大小和 SHA-256；当前未签名版本需要用户明确操作后才能安装。",
   "Releases": "发布版本",
   "License": "许可证",
   "Privacy": "隐私",
   "All releases": "全部版本",
   "What's new.": "更新内容。",
-  "Stable releases for most users, plus an optional Preview channel for early builds. The main download always follows Stable.": "稳定版适合大多数用户，预览通道用于提前体验新构建；网站主下载始终指向稳定版。",
+  "Stable releases for most users, plus an optional Beta channel for early builds. The main download always follows Stable.": "稳定版适合大多数用户，Beta 通道用于提前体验新构建；网站主下载始终指向稳定版。",
   "Stable": "稳定版",
   "First Stable Release": "首个稳定版本",
   "Full release notes": "完整发布说明",
-  "Preview channel": "预览通道",
-  "Preview releases remain available through GitHub Releases and the optional in-app Preview channel. They are never the default website download.": "预览版本仍可通过 GitHub Releases 和应用内可选预览通道获取，但绝不会成为网站默认下载。",
+  "Beta channel": "Beta 通道",
+  "Beta releases remain available through GitHub Releases and the optional in-app Beta channel. They are never the default website download.": "Beta 版本仍可通过 GitHub Releases 和应用内可选Beta 通道获取，但绝不会成为网站默认下载。",
   "Download release": "下载此版本",
   "Published release notes remain in their original language.": "发布说明正文保留发布时使用的原始语言。"
 };

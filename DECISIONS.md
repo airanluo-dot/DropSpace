@@ -1,5 +1,26 @@
 # DropSpace Architecture and Product Decisions
 
+## D-062 — Four island pages and compact widget sizes
+
+- Status: Accepted, user amendment dated 2026-09-12; release implementation in progress.
+- Supersedes the original Preview.24 three-page and 6 by 3 widget specification.
+- Page order is Widgets, Music, Files, Clipboard. Keep non-wrapping side rails; media events preserve the selected page and drag temporarily exposes Files.
+- Use 8 columns and 4 rows, retaining widget IDs 0–3 and appending power, uptime, stopwatch and clipboard capture controls. A catalog limits each widget to sizes its content supports; not every widget is resizable.
+- The Clipboard page uses existing local records and actions, showing the most recent 20 with an entry to full history. It neither duplicates storage nor authorizes idle island presence.
+- Lyrics/artwork requests have independent cancellation generations. A cover update must not restart a lyrics lookup. Preserve provider artist boundaries so a single SMTC artist does not bias selection toward a different version with fewer credited performers.
+- Disabling automatic hide retains observed media activity until media is disabled or automatic hide resumes; widgets cannot keep the island alive. Rendering and process audio sampling follow visible music surfaces.
+- September 13 amendment: NetEase remains the fresh default. Empty/unavailable online results trigger a bounded race of the other four online providers; first timed result wins and all other jobs are canceled/drained. Local mode remains offline. Apple Music uses its exact packaged LibraryServer identity for PCM capture; the UI identity remains the icon/control source.
+
+## D-061 — Preview.24 rebuild and compatibility foundation
+
+- Status: Accepted for the user-authorized Preview.24 rebuild; implementation in progress.
+- Start from Preview.21 commit 820daa9. Preview.22/23 are per-file audit references, never bulk merge or UI sources.
+- Align local, CI and release SDKs on .NET 10.0.401. Raise the x64 runtime minimum to Windows build 20348 for process loopback; retain runtime capability gating for Windows 11 visuals.
+- Settings schema 14 preserves schemas 11/12/13, existing local data and user preferences. Native fields normalize independently; obsolete whole-host backdrop, page state and widget keepalive are not persisted contracts. SQLite schema is unchanged.
+- Fresh lyrics are enabled with NetEase selected. Network use is confined to bounded music metadata lookup required by the approved plan; clipboard/file content is never sent. Provider implementation and privacy documentation remain release gates.
+- Native widgets provide data only for explicit contexts and can never authorize Island presence. Keep Preview.21 file/drop lifecycle intact beneath a separate presence coordinator.
+- WinIsland remains behavior/API research only; no GPL implementation or binaries are incorporated.
+
 Decisions use: Proposed, Accepted, Superseded, Rejected. Changing an Accepted decision requires a new entry that links back to it.
 
 ## D-001 — Product identity and source separation
@@ -533,3 +554,11 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - Decision: Apply settings through one serialized transaction that merges only fields changed by the active form into the latest persisted snapshot. Keep local settings independent from optional device/network initialization, identify failures by stage and correlation ID, and compensate only steps that actually committed. Project setting notifications differentially on the UI dispatcher. Expose Quick Actions as labeled icon-plus-text controls; run safe exports with the default destination; show checksum text with copy support; and offer bounded image-size presets before custom pixels.
 - Rationale: A failed optional service previously made unrelated settings appear unwritable, while dense unlabeled actions and mandatory pixel entry hid available capabilities. Field-level merging avoids stale-form overwrites, scoped rollback preserves recoverability, and progressive defaults reduce steps without changing source-safe export boundaries.
 - Constraints: Windows startup registration, WinUI thread affinity, image codecs, DPI/accessibility, and two-device/network behavior still require hosted Windows and manual target evidence. Outputs remain DropSpace-owned and never mutate referenced source files.
+
+## D-061 — Beta prerelease sequence and legacy channel compatibility
+
+- Date: 2026-09-14
+- Status: Accepted by user, including one-time manual upgrade from Preview.23.
+- New prereleases use beta.N, beginning v0.3.0-beta.24. Historical Preview records remain immutable. Readers preserve original tag spelling; ordering compares numeric release components and prerelease number, with Stable last in the same line.
+- UpdateChannel retains numeric identity 1, reads Preview/preview and Beta strings, and writes Beta. Existing settings are rewritten through normal atomic persistence without resetting unrelated preferences. Downloaded update state also accepts the legacy name.
+- Preview.23's published parser cannot recognize Beta. Its users install Beta 24 once manually while retaining data/settings. New-code tests must not be represented as proof that the old binary can detect Beta.

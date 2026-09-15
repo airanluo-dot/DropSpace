@@ -1,5 +1,4 @@
 using DropSpace.App.Services;
-using DropSpace.App.Services.Island;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
@@ -21,7 +20,10 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     private readonly MainViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<MainWindow> _logger;
-    private readonly Views.MainPage _mainPage;
+    private Views.MainPage _mainPage;
+    private readonly Func<Views.MainPage> _createMainPage;
+    private AppLanguagePreference _displayLanguage;
+    private readonly MediaViewModel _media;
     private NativeTrayService? _tray;
     private bool _allowClose;
     private bool _closeExplanationInProgress;
@@ -41,9 +43,14 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         CrossDeviceClipboardService crossDeviceClipboard,
         DropLinkHost dropLinkHost,
         SharingUseCase sharing,
-        NativeIslandActivityRuntime nativeIsland)
+        NativeSettingsEditor settingsEditor,
+        MediaViewModel media,
+        Services.Media.WindowsMediaSessionService sessions,
+        Services.Media.MediaExperienceService mediaExperience,
+        Services.Media.MediaApplicationIconService mediaIcons)
     {
         _viewModel = viewModel;
+        _media = media;
         _strings = strings;
         _logger = logger;
         try
@@ -79,7 +86,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         NativeApplicationIcon.ApplyToWindow(WindowNative.GetWindowHandle(this), AppWindow);
         AppWindow.Resize(new SizeInt32(980, 680));
         AppWindow.Closing += OnAppWindowClosing;
-        _mainPage = new Views.MainPage(
+        _displayLanguage = viewModel.Language;
+        _createMainPage = () => new Views.MainPage(
             viewModel,
             WindowNative.GetWindowHandle(this),
             strings,
@@ -92,11 +100,33 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             crossDeviceClipboard,
             dropLinkHost,
             sharing,
-            nativeIsland);
+            settingsEditor, media, sessions, mediaExperience, mediaIcons);
+        _mainPage = _createMainPage();
         RootContent.Content = _mainPage;
+        AppWindow.Changed += OnWindowPresentationChanged;
+        _viewModel.PropertyChanged += OnMediaSectionChanged;
     }
 
     public event EventHandler? ExitRequested;
+
+    private void OnWindowPresentationChanged(AppWindow sender, AppWindowChangedEventArgs args) => UpdateMediaVisibility();
+    private void OnMediaSectionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MainViewModel.CurrentSection)) UpdateMediaVisibility();
+        if (args.PropertyName == nameof(MainViewModel.Language) && _displayLanguage != _viewModel.Language)
+        {
+            _displayLanguage = _viewModel.Language;
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                _mainPage = _createMainPage();
+                RootContent.Content = _mainPage;
+                XamlResourceOverride.Apply(this, "MainWindow");
+                XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
+            });
+        }
+    }
+    private void UpdateMediaVisibility() => _media.SetPresentationVisible(this, _viewModel.IsMusicVisible && AppWindow.IsVisible &&
+        AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized });
 
     public void InitializeTray(ILogger<NativeTrayService> logger)
     {
@@ -166,13 +196,22 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
 
     public void AllowCloseAndClose()
     {
+        PrepareForShutdown();
+        Close();
+    }
+
+    public void PrepareForShutdown()
+    {
+        if (_allowClose) return;
         _allowClose = true;
+        AppWindow.Changed -= OnWindowPresentationChanged;
+        _viewModel.PropertyChanged -= OnMediaSectionChanged;
+        _media.SetPresentationVisible(this, false);
         _closeExplanationCancellation.Cancel();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();
         _tray?.Dispose();
         _tray = null;
-        Close();
     }
 
     public async Task ShowRecoveryAsync()

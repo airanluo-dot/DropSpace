@@ -13,7 +13,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
 {
     private readonly AppLanguageService _language;
     private readonly ResourceManager _resourceManager;
-    private readonly ResourceContext _resourceContext;
+    private readonly IReadOnlyDictionary<string, ResourceContext> _resourceContexts;
     private readonly ResourceMap _resourceMap;
 
     public ResourceStringLocalizer(AppLanguageService language)
@@ -24,8 +24,13 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
         // Unpackaged WinUI apps have no default resource view. The portable build bundles this
         // PRI beside the extracted application and resolves strings through an explicit context.
         _resourceManager = new ResourceManager(resourceIndexPath);
-        _resourceContext = _resourceManager.CreateResourceContext();
-        _resourceContext.QualifierValues["Language"] = _language.EffectiveLanguageTag;
+        _resourceContexts = new[] { AppLanguageService.EnglishLanguageTag, AppLanguageService.SimplifiedChineseLanguageTag }
+            .ToDictionary(tag => tag, tag =>
+            {
+                var context = _resourceManager.CreateResourceContext();
+                context.QualifierValues["Language"] = tag;
+                return context;
+            });
         _resourceMap = _resourceManager.MainResourceMap.GetSubtree("Resources");
     }
 
@@ -48,7 +53,7 @@ public sealed class ResourceStringLocalizer : IAppStringLocalizer
 
         try
         {
-            value = _resourceMap.GetValue(ToResourceMapPath(key), _resourceContext).ValueAsString ?? string.Empty;
+            value = _resourceMap.GetValue(ToResourceMapPath(key), _resourceContexts[_language.EffectiveLanguageTag]).ValueAsString ?? string.Empty;
             return !string.IsNullOrWhiteSpace(value);
         }
         catch (Exception)

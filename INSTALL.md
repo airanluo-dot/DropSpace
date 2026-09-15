@@ -53,3 +53,5 @@ unins000.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /PURGEDATA=1
 - `DropSpace-x64.msix`: unsigned alternative package for environments with an appropriate trust/signing policy.
 
 No channel needs a separate .NET Runtime or Windows App SDK Runtime, PowerShell, a certificate install, or administrator privileges to run the application payload.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

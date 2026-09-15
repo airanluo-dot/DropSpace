@@ -13,6 +13,22 @@ public sealed class UpdateManifestTests
     private static readonly UpdateManifestParser Parser = new();
 
     [TestMethod]
+    [DataRow("v0.3.0-preview.23", "preview")]
+    [DataRow("v0.3.0-beta.24", "beta")]
+    public void LegacyAndBetaManifestsRemainCompatible(string tag, string channel)
+    {
+        var (release, json) = CreateValid();
+        var version = ReleaseVersion.Parse(tag);
+        release = release with { TagName = tag, IsPrerelease = true,
+            HtmlUri = new Uri($"https://github.com/airanluo-dot/DropSpace/releases/tag/{tag}"),
+            Assets = release.Assets.Select(asset => asset with { DownloadUri = Official(tag, asset.Name) }).ToArray() };
+        json["version"] = version.ToString();
+        json["versionCode"] = version.ToVersionCode();
+        json["channel"] = channel;
+        Assert.AreEqual(UpdateChannel.Beta, Parser.ParseAndValidate(Encoding.UTF8.GetBytes(json.ToJsonString()), release).Channel);
+    }
+
+    [TestMethod]
     public void ValidManifest_IsAcceptedWithoutExecutableUrls()
     {
         var (release, json) = CreateValid();

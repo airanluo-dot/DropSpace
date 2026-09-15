@@ -20,8 +20,8 @@ Exact versions are selected and recorded in Phase 0; do not write “latest” i
 
 ## Windows compatibility boundary
 
-The supported Preview.23 runtime baseline is 64-bit Windows build 20348 or
-later, including Windows 11. The app continues to compile against
+The Beta 24 runtime baseline is 64-bit Windows build 20348
+or later, including Windows 11. The app continues to compile against
 the pinned Windows SDK Build Tools 10.0.26100.8249; compile-time API availability
 is not treated as proof that an API exists on the current OS.
 
@@ -363,3 +363,12 @@ boundary; outputs are always new files.
 ## Preview.17 ownership and consistency audit
 
 The three-project graph is unchanged. SqliteDatabase owns the shared repository write gate; JsonSettingsService owns atomic mutations; query/projection revisions distinguish requested from successfully applied state. App, UpdateService and Undo expose shared asynchronous shutdown completion, and Overlay drains projection work. Automatic cross-device clipboard uses a 16-event newest-retained queue with one consumer. StagedFileImportService owns confined staging admission, streaming payload copy, commit and rollback outside the ViewModel. FilePreviewCache is bounded by count/bytes/age and invalidates by generation; external references bypass cache. Deletion and retention invalidate derived previews. See [the full architecture audit](docs/audit/2026-09-07/architecture-audit-zh.md) for state/data/thread/lifecycle models, regression evidence and remaining platform gates.
+
+## Beta release naming
+
+The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
+releases remain immutable. Preview.23 requires one manual installation of
+Beta 24, preserving data/settings, because its shipped parser rejects Beta
+tags. Subsequent Beta updates are automatic according to user settings.
+See [migration contract](docs/dev/beta-migration.md).

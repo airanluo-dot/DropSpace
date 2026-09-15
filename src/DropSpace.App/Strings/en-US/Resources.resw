@@ -82,7 +82,6 @@
   <data name="ItemsAddedWithRejected" xml:space="preserve"><value>{0} item(s) added; {1} could not be added.</value></data>
   <data name="ItemsCleared" xml:space="preserve"><value>{0} item(s) cleared; pinned items were kept.</value></data>
   <data name="Kilobytes" xml:space="preserve"><value>{0:0.0} KB</value></data>
-  <data name="LanguageChangeRestartRequired" xml:space="preserve"><value>Language preference saved. Restart DropSpace to apply the new display language.</value></data>
   <data name="LastUpdateCheck" xml:space="preserve"><value>Last checked: {0}</value></data>
   <data name="LastUpdateCheckDateFormat" xml:space="preserve"><value>yyyy-MM-dd HH:mm</value></data>
   <data name="Megabytes" xml:space="preserve"><value>{0:0.0} MB</value></data>
@@ -109,7 +108,6 @@
   <data name="RemoveStoredItemContent" xml:space="preserve"><value>“{0}” and the local copy kept by DropSpace will be removed.</value></data>
   <data name="SearchNoMatches" xml:space="preserve"><value>No matching items found.</value></data>
   <data name="SearchUnavailable" xml:space="preserve"><value>Search is temporarily unavailable.</value></data>
-  <data name="SettingsSaved" xml:space="preserve"><value>Settings validated and saved.</value></data>
   <data name="ShareFilesFoldersOnly" xml:space="preserve"><value>DropSpace accepts only files and folders from Windows Share.</value></data>
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>The files or folders could not be added to Temporary Space.</value></data>
   <data name="ShareNoAccessibleItems" xml:space="preserve"><value>The shared content contains no files or folders that DropSpace can access.</value></data>
@@ -242,7 +240,7 @@
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Enabled by default. Uses the current-user startup entry and does not require administrator privileges.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Display language</value></data>
-  <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default. Restart DropSpace after changing this setting.</value></data>
+  <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default.</value></data>
   <data name="LanguageCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Display language</value></data>
   <data name="LanguageSystem.Content" xml:space="preserve"><value>System default</value></data>
   <data name="LanguageEnglish.Content" xml:space="preserve"><value>English</value></data>
@@ -274,9 +272,9 @@
   <data name="AutoInstallUpdatesTitle.Text" xml:space="preserve"><value>Unattended automatic installation</value></data>
   <data name="AutoInstallUpdatesDescription.Text" xml:space="preserve"><value>Available only when the update passes trusted Authenticode publisher verification; it remains off for unsigned builds.</value></data>
   <data name="UpdateChannelTitle.Text" xml:space="preserve"><value>Update channel</value></data>
-  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable receives release versions only. Preview receives all versions and strictly selects the highest SemVer version.</value></data>
+  <data name="UpdateChannelDescription.Text" xml:space="preserve"><value>Stable receives release versions only. Beta receives Stable and prerelease versions, ordered by release number.</value></data>
   <data name="UpdateChannelStable.Content" xml:space="preserve"><value>Stable</value></data>
-  <data name="UpdateChannelPreview.Content" xml:space="preserve"><value>Preview</value></data>
+  <data name="UpdateChannelBeta.Content" xml:space="preserve"><value>Beta</value></data>
   <data name="CheckUpdatesButton.Content" xml:space="preserve"><value>Check for updates</value></data>
   <data name="DownloadUpdateButton.Content" xml:space="preserve"><value>Download now</value></data>
   <data name="InstallUpdateButton.Content" xml:space="preserve"><value>Update now</value></data>
@@ -459,113 +457,112 @@ Nothing will be opened automatically.</value></data>
   <data name="NetworkActionSetupRequired" xml:space="preserve"><value>Enable this feature in Settings and complete pairing or service setup first.</value></data>
   <data name="SettingsRecoveryFailed" xml:space="preserve"><value>Previous settings could not be fully restored. Restart DropSpace before changing settings again. Diagnostic ID: {1}.</value></data>
   <data name="SettingsStageRecovery" xml:space="preserve"><value>Restore settings</value></data>
-  <data name="SettingsStageIslandActivities" xml:space="preserve"><value>Native Island activities</value></data>
-  <data name="NativeIslandSection.Text" xml:space="preserve"><value>Native Island</value></data>
-  <data name="NativeIslandDescription.Text" xml:space="preserve"><value>Show media, lyrics, system activity, and native widgets in the existing Dynamic Island surface.</value></data>
-  <data name="MediaActivityTitle.Text" xml:space="preserve"><value>Media activity</value></data>
-  <data name="MediaActivityDescription.Text" xml:space="preserve"><value>Connect to the current Windows media session and show playback progress and artwork.</value></data>
-  <data name="MediaActivityToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable media activity</value></data>
-  <data name="LyricsTitle.Text" xml:space="preserve"><value>Lyrics</value></data>
-  <data name="LyricsDescription.Text" xml:space="preserve"><value>Load timed lyrics from configured providers or a local LRC folder.</value></data>
-  <data name="LyricsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable lyrics</value></data>
-  <data name="SpectrumTitle.Text" xml:space="preserve"><value>Spectrum</value></data>
-  <data name="SpectrumDescription.Text" xml:space="preserve"><value>Show a bounded activity visualizer while media is playing.</value></data>
-  <data name="SpectrumToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show spectrum</value></data>
-  <data name="WindowsNotificationsTitle.Text" xml:space="preserve"><value>Windows notifications</value></data>
-  <data name="WindowsNotificationsDescription.Text" xml:space="preserve"><value>Surface notification activity only after Windows grants listener access.</value></data>
-  <data name="WindowsNotificationsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show Windows notifications</value></data>
-  <data name="VolumeActivityTitle.Text" xml:space="preserve"><value>Volume activity</value></data>
-  <data name="VolumeActivityDescription.Text" xml:space="preserve"><value>Show volume changes from the Windows audio endpoint without replacing the system volume UI.</value></data>
-  <data name="VolumeActivityToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Show volume activity</value></data>
-  <data name="NativeWidgetsTitle.Text" xml:space="preserve"><value>Native widgets</value></data>
-  <data name="NativeWidgetsDescription.Text" xml:space="preserve"><value>Enable Clock, Calendar, Resource Usage, and Settings widget activities.</value></data>
-  <data name="NativeWidgetsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable native widgets</value></data>
-  <data name="NativeVolumeHudNotice.Text" xml:space="preserve"><value>DropSpace observes volume changes; it does not replace the Windows volume flyout or keyboard handling.</value></data>
-  <data name="MediaPreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous track</value></data>
-  <data name="MediaPlayPauseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Play or pause</value></data>
-  <data name="MediaNextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next track</value></data>
-  <data name="ClockWidgetTitle.Text" xml:space="preserve"><value>Clock widget</value></data>
-  <data name="ClockWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable clock widget</value></data>
-  <data name="CalendarWidgetTitle.Text" xml:space="preserve"><value>Calendar widget</value></data>
-  <data name="CalendarWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable calendar widget</value></data>
-  <data name="ResourceUsageWidgetTitle.Text" xml:space="preserve"><value>Resource usage widget</value></data>
-  <data name="ResourceUsageWidgetToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Enable resource usage widget</value></data>
+  <data name="MediaControlFailed" xml:space="preserve"><value>The player could not complete this action. Try again.</value></data>
+  <data name="MediaNoSession.Text" xml:space="preserve"><value>Play music in a supported player to see it here.</value></data>
+  <data name="WidgetClock.Text" xml:space="preserve"><value>Clock</value></data>
+  <data name="WidgetCalendar.Text" xml:space="preserve"><value>Calendar</value></data>
+  <data name="MediaPlayLabel" xml:space="preserve"><value>Play</value></data>
+  <data name="IslandNextPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next island page</value></data>
+  <data name="MediaPrevious.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous track</value></data>
+  <data name="MediaEstimatedTimeline" xml:space="preserve"><value>Estimated position. This player provides no reliable timeline; lyrics may be out of sync and seeking is unavailable.</value></data>
+  <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous island page</value></data>
+  <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next track</value></data>
+  <data name="MediaPauseLabel" xml:space="preserve"><value>Pause</value></data>
+  <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open settings</value></data>
+  <data name="WidgetsEmpty.Text" xml:space="preserve"><value>Choose widgets in Settings to build this page.</value></data>
+  <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Playback position</value></data>
+  <data name="WidgetResourceUsage.Text" xml:space="preserve"><value>Resources</value></data>
+  <data name="WidgetsEnabled" xml:space="preserve"><value>Enable widgets</value></data>
+  <data name="MusicSpectrum" xml:space="preserve"><value>Show audio spectrum</value></data>
+  <data name="ActivitiesNotifications" xml:space="preserve"><value>Show Windows notifications</value></data>
+  <data name="IslandAutoHide" xml:space="preserve"><value>Auto-hide after playback stops</value></data>
+  <data name="MusicProgress" xml:space="preserve"><value>Show progress</value></data>
+  <data name="MusicApplications" xml:space="preserve"><value>Media applications</value></data>
+  <data name="WidgetRow" xml:space="preserve"><value>Row</value></data>
+  <data name="LyricsMode" xml:space="preserve"><value>Mode</value></data>
+  <data name="WidgetsCompactHelp" xml:space="preserve"><value>Compact widgets are for an explicitly opened widget view. They never keep an idle island visible.</value></data>
   <data name="NavMusic.Content" xml:space="preserve"><value>Music</value></data>
-  <data name="NavMusic.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Music</value></data>
+  <data name="MusicLyricsSection" xml:space="preserve"><value>Lyrics</value></data>
+  <data name="LyricsWords" xml:space="preserve"><value>Word-synced highlighting</value></data>
+  <data name="WidgetAdd" xml:space="preserve"><value>Add</value></data>
+  <data name="MusicAllApplications" xml:space="preserve"><value>Allow all media applications</value></data>
+  <data name="LyricsScrolling" xml:space="preserve"><value>Scroll long lyrics</value></data>
+  <data name="MusicEnabled" xml:space="preserve"><value>Enable music island</value></data>
+  <data name="LyricsWidth" xml:space="preserve"><value>Maximum lyric width</value></data>
+  <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Play music to discover media applications.</value></data>
+  <data name="WidgetCenter" xml:space="preserve"><value>Center</value></data>
+  <data name="LyricsProvider" xml:space="preserve"><value>Preferred lyrics provider</value></data>
+  <data name="LyricsFallbackHelp" xml:space="preserve"><value>NetEase is the default. If the preferred online provider has no lyrics, try the other four online providers automatically. Local mode stays offline.</value></data>
+  <data name="WidgetSelected" xml:space="preserve"><value>Selected</value></data>
+  <data name="WidgetNoRoom" xml:space="preserve"><value>There is not enough empty space. Resize or remove another widget first.</value></data>
+  <data name="LyricsDelay" xml:space="preserve"><value>Lyrics offset (ms)</value></data>
+  <data name="SettingsPageAbout" xml:space="preserve"><value>About</value></data>
+  <data name="MusicPlaybackSection" xml:space="preserve"><value>Playback</value></data>
+  <data name="LyricsProviderAmll" xml:space="preserve"><value>AMLL TTML</value></data>
+  <data name="LyricsProviderKugou" xml:space="preserve"><value>Kugou</value></data>
+  <data name="SettingsPageUpdates" xml:space="preserve"><value>Updates</value></data>
+  <data name="SettingsPageSystemActivities" xml:space="preserve"><value>System activities</value></data>
+  <data name="WidgetColumn" xml:space="preserve"><value>Column</value></data>
   <data name="PageTitleMusic" xml:space="preserve"><value>Music</value></data>
-  <data name="PageDescriptionMusic" xml:space="preserve"><value>Now Playing, playback controls, lyrics, and the media surface configuration.</value></data>
-  <data name="MusicCenterTitle.Text" xml:space="preserve"><value>Music center</value></data>
-  <data name="MusicCenterDescription.Text" xml:space="preserve"><value>Configure the Dynamic Island media surface without mixing playback controls into file settings.</value></data>
-  <data name="MusicCenterNowPlaying.Text" xml:space="preserve"><value>Capture source</value></data>
-  <data name="MusicOpenIslandButton.Content" xml:space="preserve"><value>Open Temporary Space</value></data>
-  <data name="MusicPlaybackCardTitle.Text" xml:space="preserve"><value>Playback</value></data>
-  <data name="MusicLyricsCardTitle.Text" xml:space="preserve"><value>Lyrics</value></data>
-  <data name="MusicLyricsCardDescription.Text" xml:space="preserve"><value>Show timed lyrics in the compact surface and keep the provider diagnostics here.</value></data>
-  <data name="MusicSecondaryLyricsTitle.Text" xml:space="preserve"><value>Show secondary lyrics</value></data>
-  <data name="MusicIslandCardTitle.Text" xml:space="preserve"><value>Island surface</value></data>
-  <data name="MusicActivityTitle.Text" xml:space="preserve"><value>Enable media activity</value></data>
-  <data name="MusicArtworkTitle.Text" xml:space="preserve"><value>Show artwork</value></data>
-  <data name="MusicSpectrumTitle.Text" xml:space="preserve"><value>Show live spectrum</value></data>
-  <data name="MusicDynamicWidthTitle.Text" xml:space="preserve"><value>Dynamic compact width</value></data>
-  <data name="MusicHideDelayTitle.Text" xml:space="preserve"><value>Paused-media hide delay (ms)</value></data>
-  <data name="MusicAutoHideTitle.Text" xml:space="preserve"><value>Hide paused media automatically</value></data>
-  <data name="MusicAllowlistTitle.Text" xml:space="preserve"><value>Media app allowlist</value></data>
-  <data name="MusicAllowlistDescription.Text" xml:space="preserve"><value>Optional source app IDs, one per line. Leave empty to accept the current Windows media session.</value></data>
-  <data name="MusicAllowlistTextBox.PlaceholderText" xml:space="preserve"><value>Application user model IDs (optional)</value></data>
-  <data name="MusicNoMedia" xml:space="preserve"><value>No active media session</value></data>
-  <data name="MusicStatePlaying" xml:space="preserve"><value>Playing</value></data>
-  <data name="MusicStatePaused" xml:space="preserve"><value>Paused</value></data>
-  <data name="MusicStateStopped" xml:space="preserve"><value>Stopped</value></data>
-  <data name="MusicStateUnavailable" xml:space="preserve"><value>Media session unavailable</value></data>
-  <data name="MusicLyricsNotLoaded" xml:space="preserve"><value>No lyric frame loaded</value></data>
-  <data name="SettingsCategoriesTitle.Text" xml:space="preserve"><value>Settings</value></data>
-  <data name="SettingsCategoriesDescription.Text" xml:space="preserve"><value>Preferences are grouped by responsibility so media, widgets, system activity, and storage stay discoverable.</value></data>
-  <data name="SettingsCategoryGeneral.Content" xml:space="preserve"><value>General</value></data>
-  <data name="SettingsCategoryIsland.Content" xml:space="preserve"><value>Island</value></data>
-  <data name="SettingsCategoryWidgets.Content" xml:space="preserve"><value>Widgets</value></data>
-  <data name="SettingsCategorySystem.Content" xml:space="preserve"><value>System activities</value></data>
-  <data name="SettingsCategoryDevices.Content" xml:space="preserve"><value>Devices &amp; Sharing</value></data>
-  <data name="SettingsCategoryUpdates.Content" xml:space="preserve"><value>Updates</value></data>
-  <data name="SettingsCategoryAbout.Content" xml:space="preserve"><value>About</value></data>
-  <data name="SystemActivitiesSection.Text" xml:space="preserve"><value>System Activities</value></data>
-  <data name="SystemActivitiesDescription.Text" xml:space="preserve"><value>Observe Windows notifications and volume changes without replacing Windows-owned surfaces.</value></data>
-  <data name="AboutSection.Text" xml:space="preserve"><value>About</value></data>
-  <data name="AboutDescription.Text" xml:space="preserve"><value>DropSpace is a local-first temporary workspace. Version and update provenance are shown here.</value></data>
-  <data name="WidgetEditorTitle.Text" xml:space="preserve"><value>Widgets</value></data>
-  <data name="WidgetEditorDescription.Text" xml:space="preserve"><value>Persist the 6 × 3 expanded layout and the compact widget slots from one focused editor.</value></data>
-  <data name="WidgetExpandedModeButton.Content" xml:space="preserve"><value>Expanded 6 × 3</value></data>
-  <data name="WidgetCompactModeButton.Content" xml:space="preserve"><value>Compact slots</value></data>
-  <data name="WidgetEditorClockCard.Text" xml:space="preserve"><value>Clock</value></data>
-  <data name="WidgetEditorCalendarCard.Text" xml:space="preserve"><value>Calendar</value></data>
-  <data name="WidgetEditorResourceCard.Text" xml:space="preserve"><value>Resource</value></data>
-  <data name="WidgetEditorSettingsCard.Text" xml:space="preserve"><value>Settings</value></data>
-  <data name="WidgetEditorLibraryCard.Text" xml:space="preserve"><value>Widget library</value></data>
-  <data name="WidgetEditorLayoutCard.Text" xml:space="preserve"><value>Grid layout</value></data>
-  <data name="WidgetEditorEnabledTitle.Text" xml:space="preserve"><value>Enable widgets</value></data>
-  <data name="WidgetEditorEnabledDescription.Text" xml:space="preserve"><value>Allow widget activities to appear in the island.</value></data>
-  <data name="WidgetEditorClockTitle.Text" xml:space="preserve"><value>Clock widget</value></data>
-  <data name="WidgetEditorCalendarTitle.Text" xml:space="preserve"><value>Calendar widget</value></data>
-  <data name="WidgetEditorResourceTitle.Text" xml:space="preserve"><value>Resource widget</value></data>
-  <data name="WidgetEditorCompactTimeTitle.Text" xml:space="preserve"><value>Compact time</value></data>
-  <data name="WidgetEditorCompactResourceTitle.Text" xml:space="preserve"><value>Compact resource usage</value></data>
-  <data name="OverlayExpandedFilesTitle" xml:space="preserve"><value>Temporary Space</value></data>
-  <data name="OverlayExpandedFilesSubtitle" xml:space="preserve"><value>Recent staged items</value></data>
-  <data name="OverlayExpandedMusicTitle" xml:space="preserve"><value>Music</value></data>
-  <data name="OverlayExpandedMusicSubtitle" xml:space="preserve"><value>Now Playing</value></data>
-  <data name="OverlayExpandedWidgetsTitle" xml:space="preserve"><value>Widgets</value></data>
-  <data name="OverlayExpandedWidgetsSubtitle" xml:space="preserve"><value>Clock, Calendar, Resource, and Settings</value></data>
-  <data name="OverlayFilesRecent.Text" xml:space="preserve"><value>Recent items</value></data>
-  <data name="OverlayFilesEmpty.Text" xml:space="preserve"><value>Drop something into Temporary Space to see it here.</value></data>
-  <data name="OverlayWidgetClock.Text" xml:space="preserve"><value>Clock</value></data>
-  <data name="OverlayWidgetCalendar.Text" xml:space="preserve"><value>Calendar</value></data>
-  <data name="OverlayWidgetToday.Text" xml:space="preserve"><value>Today</value></data>
-  <data name="OverlayWidgetResourceValue.Text" xml:space="preserve"><value>CPU 18%</value></data>
-  <data name="OverlayWidgetResource.Text" xml:space="preserve"><value>Resource</value></data>
-  <data name="OverlayWidgetProduct.Text" xml:space="preserve"><value>DropSpace</value></data>
-  <data name="OverlayWidgetSettings.Text" xml:space="preserve"><value>Settings</value></data>
-  <data name="OverlayWidgetGridValue.Text" xml:space="preserve"><value>6 × 3</value></data>
-  <data name="OverlayWidgetLayout.Text" xml:space="preserve"><value>Grid layout</value></data>
-  <data name="OverlayWidgetReadyValue.Text" xml:space="preserve"><value>Ready</value></data>
-  <data name="OverlayWidgetStatus.Text" xml:space="preserve"><value>Status</value></data>
-  <data name="ExpandedOpenMainButton.Content" xml:space="preserve"><value>Open DropSpace</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="MusicDynamicWidth" xml:space="preserve"><value>Dynamic lyric width</value></data>
+  <data name="ActivitiesVolume" xml:space="preserve"><value>Show volume changes</value></data>
+  <data name="IslandRightHoldMove" xml:space="preserve"><value>Hold right mouse button to move</value></data>
+  <data name="LyricsOnline" xml:space="preserve"><value>Online</value></data>
+  <data name="WidgetHeight" xml:space="preserve"><value>Height</value></data>
+  <data name="MusicArtwork" xml:space="preserve"><value>Show album artwork</value></data>
+  <data name="LyricsProviderLocalLrc" xml:space="preserve"><value>Local LRC</value></data>
+  <data name="IslandHideDelay" xml:space="preserve"><value>Hide delay (ms)</value></data>
+  <data name="WidgetRight" xml:space="preserve"><value>Right</value></data>
+  <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
+  <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
+  <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
+  <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
+  <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
+  <data name="WidgetSelect" xml:space="preserve"><value>Select a widget to edit its position and size.</value></data>
+  <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
+  <data name="SettingsPageGeneral" xml:space="preserve"><value>General</value></data>
+  <data name="WidgetWidth" xml:space="preserve"><value>Width</value></data>
+  <data name="LyricsProviderNetEase" xml:space="preserve"><value>NetEase Cloud Music</value></data>
+  <data name="LyricsLocal" xml:space="preserve"><value>Local LRC</value></data>
+  <data name="WidgetsEditorMode" xml:space="preserve"><value>Widget editor mode</value></data>
+  <data name="NativeSettingsSaveFailed" xml:space="preserve"><value>Could not save this change. Your previous settings were restored.</value></data>
+  <data name="WidgetsCompactMode" xml:space="preserve"><value>Compact · Left / Center / Right</value></data>
+  <data name="IslandExpandedScale" xml:space="preserve"><value>Expanded scale</value></data>
+  <data name="WidgetsReset" xml:space="preserve"><value>Reset widget layout</value></data>
+  <data name="ActivitiesFullscreen" xml:space="preserve"><value>Suppress activities over fullscreen apps</value></data>
+  <data name="WidgetNone" xml:space="preserve"><value>None</value></data>
+  <data name="LyricsProviderQqMusic" xml:space="preserve"><value>QQ Music</value></data>
+  <data name="LyricsFolder" xml:space="preserve"><value>Local lyrics folder</value></data>
+  <data name="LyricsCompact" xml:space="preserve"><value>Show lyrics in compact island</value></data>
+  <data name="PageDescriptionMusic" xml:space="preserve"><value>Now playing, lyrics, and your music island.</value></data>
+  <data name="SettingsPageWidgets" xml:space="preserve"><value>Widgets</value></data>
+  <data name="IslandCompactScale" xml:space="preserve"><value>Compact scale</value></data>
+  <data name="WidgetLibrary" xml:space="preserve"><value>Widget library</value></data>
+  <data name="SettingsPageDevices" xml:space="preserve"><value>Devices / Sharing</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>Drag to an empty space, or onto a widget of the same size to swap. Select a widget to change its position or size; other widgets stay in place.</value></data>
+  <data name="WidgetsExpandedMode" xml:space="preserve"><value>Expanded · 4 rows × 8 columns</value></data>
+  <data name="LyricsSecondary" xml:space="preserve"><value>Show secondary lyrics</value></data>
+  <data name="WidgetSettingsName" xml:space="preserve"><value>Settings shortcut</value></data>
+  <data name="WidgetBattery.Text" xml:space="preserve"><value>Power</value></data>
+  <data name="ClipboardIslandPin.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Toggle pin</value></data>
+  <data name="ClipboardIslandEmpty.Text" xml:space="preserve"><value>Copied content will appear here.</value></data>
+  <data name="ClipboardIslandResume" xml:space="preserve"><value>Resume capture</value></data>
+  <data name="WidgetClipboardPause.Text" xml:space="preserve"><value>Clipboard capture</value></data>
+  <data name="ClipboardIslandOpenMain.Content" xml:space="preserve"><value>Open full history</value></data>
+  <data name="StopwatchReset.Text" xml:space="preserve"><value>Reset stopwatch</value></data>
+  <data name="ClipboardIslandActionFailed" xml:space="preserve"><value>Could not complete this action. Try again.</value></data>
+  <data name="StopwatchPause" xml:space="preserve"><value>Pause</value></data>
+  <data name="StopwatchStart" xml:space="preserve"><value>Start</value></data>
+  <data name="ClipboardIslandTitle.Text" xml:space="preserve"><value>Clipboard</value></data>
+  <data name="WidgetUptime.Text" xml:space="preserve"><value>Uptime</value></data>
+  <data name="WidgetStopwatch.Text" xml:space="preserve"><value>Stopwatch</value></data>
+  <data name="ClipboardIslandCopy.Content" xml:space="preserve"><value>Copy</value></data>
+  <data name="ClipboardIslandPause" xml:space="preserve"><value>Pause capture</value></data>
+  <data name="ClipboardIslandRemove.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Remove from DropSpace</value></data>
+  <data name="WidgetSize" xml:space="preserve"><value>Size</value></data>
+  <data name="ActivityMuted" xml:space="preserve"><value>Muted</value></data>
+  <data name="ActivityVolume" xml:space="preserve"><value>Volume</value></data>
+  <data name="NotificationAccessUnavailable" xml:space="preserve"><value>Notification access is unavailable or was not granted. Enable notification access for the installed DropSpace app in Windows Settings.</value></data>
 </root>

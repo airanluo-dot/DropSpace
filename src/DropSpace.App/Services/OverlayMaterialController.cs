@@ -45,8 +45,9 @@ internal sealed class OverlayMaterialController : IDisposable
         {
             if (canUseAcrylic)
             {
-                _backdrop.SystemBackdrop ??= new DesktopAcrylicBackdrop();
+                _backdrop.SystemBackdrop ??= new IslandAcrylicBackdrop();
             }
+            else _backdrop.SystemBackdrop = null;
 
             _backdrop.Visibility = canUseAcrylic ? Visibility.Visible : Visibility.Collapsed;
             _fallback.Visibility = canUseAcrylic ? Visibility.Collapsed : Visibility.Visible;

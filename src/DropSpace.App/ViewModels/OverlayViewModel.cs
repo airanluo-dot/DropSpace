@@ -2,15 +2,10 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DropSpace.App.Services;
-using DropSpace.App.Services.Island;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
-using DropSpace.Core.Audio;
 using DropSpace.Core.Collections;
 using DropSpace.Core.Models;
-using DropSpace.Core.Island;
-using DropSpace.Core.Lyrics;
-using DropSpace.Core.Media;
 using DropSpace.Core.Overlay;
 using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
@@ -25,10 +20,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<OverlayViewModel> _logger;
-    private readonly IIslandActivityRouter _activityRouter;
-    private readonly IMediaSessionService _media;
-    private readonly IAudioSpectrumService _spectrum;
-    private readonly NativeIslandActivityRuntime _nativeIsland;
     private readonly SerializedProjectionRefreshCoordinator<ItemCardViewModel> _projectionRefresh;
     private OverlaySnapshot _snapshot;
     private AppSettings? _pendingSettings;
@@ -36,44 +27,24 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     private string? _shellAcknowledgement;
     private CancellationTokenSource? _shellAcknowledgementCancellation;
     private bool _disposed;
-    private IslandActivitySnapshot _activitySnapshot = IslandActivitySnapshot.Empty;
-    private IReadOnlyList<double> _spectrumBars = Array.Empty<double>();
-    private Guid _dropActivityId;
-    private Guid _manualActivityId;
-    private readonly ExpandedIslandPager _expandedPager = new();
-    private MediaSessionSnapshot _currentMedia = MediaSessionSnapshot.Empty;
 
     public OverlayViewModel(
         MainViewModel mainViewModel,
         OverlayStateMachine stateMachine,
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
-        ILogger<OverlayViewModel> logger,
-        IIslandActivityRouter activityRouter,
-        IMediaSessionService media,
-        IAudioSpectrumService spectrum,
-        NativeIslandActivityRuntime nativeIsland)
+        ILogger<OverlayViewModel> logger)
     {
         _mainViewModel = mainViewModel;
         _stateMachine = stateMachine;
         _dispatcher = dispatcher;
         _strings = strings;
         _logger = logger;
-        _activityRouter = activityRouter;
-        _media = media;
-        _spectrum = spectrum;
-        _nativeIsland = nativeIsland;
-        _currentMedia = media.Current;
         _snapshot = stateMachine.Snapshot;
         _projectionRefresh = new SerializedProjectionRefreshCoordinator<ItemCardViewModel>(
             cancellationToken => _mainViewModel.GetRecentSpaceItemsAsync(5, cancellationToken),
             ApplyRecentItemsAsync);
         _mainViewModel.UiSettingsPreflightAsync = ApplyUiSettingsAsync;
-        _activitySnapshot = _activityRouter.Snapshot;
-        _activityRouter.Changed += OnActivityChanged;
-        _media.Changed += OnMediaChanged;
-        _spectrum.FrameChanged += OnSpectrumChanged;
-        _nativeIsland.LyricsChanged += OnLyricsChanged;
     }
 
     public event EventHandler<OverlaySnapshot>? SnapshotChanged;
@@ -94,9 +65,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
                 OnPropertyChanged(nameof(DragTitle));
                 OnPropertyChanged(nameof(DragSubtitle));
                 OnPropertyChanged(nameof(IsExpandedDropTargetActive));
-                OnPropertyChanged(nameof(IsNativeActivityVisible));
-                OnPropertyChanged(nameof(CompactMediaLayout));
-                OnPropertyChanged(nameof(CompactMediaWidth));
             }
         }
     }
@@ -136,86 +104,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public bool IsExpandedDropTargetActive => Snapshot.ExpandedDropActive;
 
-    public IslandActivitySnapshot ActivitySnapshot => _activitySnapshot;
-
-    public MediaSessionSnapshot CurrentMedia => _currentMedia;
-
-    public LyricsFrame CurrentLyricsFrame => _nativeIsland.CurrentLyricsFrame;
-
-    public ExpandedIslandPage ExpandedPage => _expandedPager.CurrentPage;
-
-    public IslandPageSize ExpandedPageSize => _expandedPager.PreferredSize;
-
-    public bool CanGoToPreviousExpandedPage => _expandedPager.CanGoLeft;
-
-    public bool CanGoToNextExpandedPage => _expandedPager.CanGoRight;
-
-    public CompactMediaLayout CompactMediaLayout
-    {
-        get
-        {
-            var settings = (_pendingSettings ?? _mainViewModel.Settings);
-            var primary = CurrentLyricsFrame.PrimaryText;
-            if (string.IsNullOrWhiteSpace(primary))
-            {
-                primary = _currentMedia.TrackTitle;
-            }
-
-            return CompactMediaLayoutCalculator.Calculate(new CompactMediaLayoutInput
-            {
-                Scale = settings.IslandAppearance.CompactScale,
-                BaseWidth = settings.IslandAppearance.CompactBaseWidth,
-                BaseHeight = settings.IslandAppearance.CompactBaseHeight,
-                ShowArtwork = settings.IslandActivity.ShowArtwork,
-                ShowLyrics = settings.IslandActivity.ShowLyricsInCompact,
-                ShowSecondaryLyrics = settings.Lyrics.SecondaryLyrics,
-                ShowSpectrum = settings.IslandActivity.ShowSpectrum,
-                DynamicWidth = settings.IslandActivity.CompactDynamicWidth,
-                MeasuredPrimaryTextWidth = primary.Length * 8,
-                MeasuredSecondaryTextWidth = CurrentLyricsFrame.SecondaryText?.Length * 8 ?? 0,
-            });
-        }
-    }
-
-    public double CompactMediaWidth => CompactMediaLayout.Width;
-
-    public string CompactMediaPrimaryText =>
-        !string.IsNullOrWhiteSpace(CurrentLyricsFrame.PrimaryText)
-            ? CurrentLyricsFrame.PrimaryText
-            : !string.IsNullOrWhiteSpace(_currentMedia.TrackTitle)
-                ? _currentMedia.TrackTitle
-                : _currentMedia.SourceDisplayName;
-
-    public string CompactMediaSecondaryText =>
-        !string.IsNullOrWhiteSpace(CurrentLyricsFrame.SecondaryText)
-            ? CurrentLyricsFrame.SecondaryText!
-            : !string.IsNullOrWhiteSpace(_currentMedia.Artist)
-                ? _currentMedia.Artist
-                : _currentMedia.SourceDisplayName;
-
-    public bool IsNativeActivityVisible => _activitySnapshot.Current is not null &&
-        (Snapshot.State is OverlayState.Compact or OverlayState.Expanded) &&
-        Snapshot.State is not OverlayState.DragApproaching and not OverlayState.DragReady;
-
-    public string ActivityTitle => _activitySnapshot.Current?.CompactTitle ?? string.Empty;
-
-    public string ActivitySubtitle => _activitySnapshot.Current?.CompactSubtitle ?? string.Empty;
-
-    public string ActivityExpandedTitle => _activitySnapshot.Current?.ExpandedTitle ?? string.Empty;
-
-    public string ActivityExpandedSubtitle => _activitySnapshot.Current?.ExpandedSubtitle ?? string.Empty;
-
-    public bool IsMediaActivity => _activitySnapshot.Current?.Kind == IslandActivityKind.Media;
-
-    public bool IsMediaControlsVisible => IsMediaActivity &&
-        (_pendingSettings ?? _mainViewModel.Settings).IslandActivity.ShowCompactControls;
-
-    public IReadOnlyList<double> SpectrumBars => _spectrumBars;
-
-    public bool IsSpectrumVisible => IsMediaActivity &&
-        (_pendingSettings ?? _mainViewModel.Settings).IslandActivity.ShowSpectrum &&
-        _spectrum.Current.CaptureMode != SpectrumCaptureMode.Unavailable;
-
     public string CompactTitle => _shellAcknowledgement ?? (Snapshot.TemporaryItemCount switch
     {
         0 => _strings.Get("OverlayTitle"),
@@ -248,14 +136,12 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public void BeginDragApproach(string monitorId)
     {
         ActiveMonitorId = monitorId;
-        PublishDropActivity("Drop ready", "Release to add to DropSpace");
         _stateMachine.BeginDragApproach();
     }
 
     public void BeginVisibleDragApproach(string monitorId)
     {
         ActiveMonitorId = monitorId;
-        PublishDropActivity("Drop ready", "Release to add to DropSpace");
         _stateMachine.BeginVisibleDrag();
     }
 
@@ -267,11 +153,7 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public void SetDragReady(bool ready) => _stateMachine.SetDragReady(ready);
 
-    public void CancelDrag()
-    {
-        _stateMachine.CancelDrag();
-        RemoveDropActivity();
-    }
+    public void CancelDrag() => _stateMachine.CancelDrag();
 
     public async Task<int> CompleteDropAsync(
         string monitorId,
@@ -282,7 +164,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
-        RemoveDropActivity();
         return accepted;
     }
 
@@ -295,7 +176,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
-        RemoveDropActivity();
         return accepted;
     }
 
@@ -324,7 +204,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         {
             _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
         }
-        RemoveDropActivity();
         return accepted;
     }
 
@@ -337,75 +216,15 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         await _mainViewModel.AddTextToSpaceAsync(text, "overlay-text-url-drop", cancellationToken: cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
         _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
-        RemoveDropActivity();
     }
 
     public async Task ExpandAsync(CancellationToken cancellationToken = default)
     {
         await RefreshRecentItemsAsync(cancellationToken);
-        if (Snapshot.State != OverlayState.Expanded)
-        {
-            _expandedPager.SetDefault(_media.Current.PlaybackState);
-            OnPropertyChanged(nameof(ExpandedPage));
-            OnPropertyChanged(nameof(ExpandedPageSize));
-            OnPropertyChanged(nameof(CanGoToPreviousExpandedPage));
-            OnPropertyChanged(nameof(CanGoToNextExpandedPage));
-        }
-        if (_manualActivityId == Guid.Empty)
-        {
-            _manualActivityId = _activityRouter.Publish(new IslandActivity(
-                Guid.Empty,
-                IslandActivityKind.ManualExpanded,
-                IslandActivityPriority.ManualExpanded,
-                IslandActivityPresentation.Expanded,
-                "manual-expanded",
-                "DropSpace",
-                "Temporary Space",
-                "DropSpace",
-                "Temporary Space",
-                new(DateTimeOffset.UtcNow)));
-        }
         _stateMachine.Expand();
     }
 
-    public void Collapse()
-    {
-        _stateMachine.Collapse();
-        if (_manualActivityId != Guid.Empty)
-        {
-            _activityRouter.Remove(_manualActivityId);
-            _manualActivityId = Guid.Empty;
-        }
-    }
-
-    public Task PlayPauseMediaAsync(CancellationToken cancellationToken = default) => _media.PlayPauseAsync(cancellationToken);
-
-    public Task SkipNextMediaAsync(CancellationToken cancellationToken = default) => _media.SkipNextAsync(cancellationToken);
-
-    public Task SkipPreviousMediaAsync(CancellationToken cancellationToken = default) => _media.SkipPreviousAsync(cancellationToken);
-
-    public Task SeekMediaAsync(TimeSpan position, CancellationToken cancellationToken = default) => _media.SeekAsync(position, cancellationToken);
-
-    public bool NavigateExpandedPageLeft() => NavigateExpandedPage(_expandedPager.NavigateLeft());
-
-    public bool NavigateExpandedPageRight() => NavigateExpandedPage(_expandedPager.NavigateRight());
-
-    public bool NavigateExpandedPage(ExpandedIslandPage page) => NavigateExpandedPage(_expandedPager.NavigateTo(page));
-
-    private bool NavigateExpandedPage(bool changed)
-    {
-        if (!changed)
-        {
-            return false;
-        }
-
-        OnPropertyChanged(nameof(ExpandedPage));
-        OnPropertyChanged(nameof(ExpandedPageSize));
-        OnPropertyChanged(nameof(CanGoToPreviousExpandedPage));
-        OnPropertyChanged(nameof(CanGoToNextExpandedPage));
-        OnPropertyChanged(nameof(CompactMediaLayout));
-        return true;
-    }
+    public void Collapse() => _stateMachine.Collapse();
 
     public void CompleteDismissal() => _stateMachine.CompleteDismissal();
 
@@ -534,12 +353,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
         _mainViewModel.SpaceProjectionChanged -= OnSpaceProjectionChanged;
         _stateMachine.Changed -= OnStateChanged;
-        _activityRouter.Changed -= OnActivityChanged;
-        _media.Changed -= OnMediaChanged;
-        _spectrum.FrameChanged -= OnSpectrumChanged;
-        _nativeIsland.LyricsChanged -= OnLyricsChanged;
-        RemoveDropActivity();
-        if (_manualActivityId != Guid.Empty) _activityRouter.Remove(_manualActivityId);
         if (_mainViewModel.UiSettingsPreflightAsync == ApplyUiSettingsAsync)
         {
             _mainViewModel.UiSettingsPreflightAsync = null;
@@ -639,19 +452,6 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
             !previous.OverlayPlacements.OrderBy(pair => pair.Key).SequenceEqual(next.OverlayPlacements.OrderBy(pair => pair.Key)))
             OnPropertyChanged(nameof(PlacementMode));
         if (previous.QuickPanelHotkey != next.QuickPanelHotkey) OnPropertyChanged(nameof(QuickPanelHotkey));
-        if (previous.IslandActivity.ShowCompactControls != next.IslandActivity.ShowCompactControls)
-            OnPropertyChanged(nameof(IsMediaControlsVisible));
-        if (previous.IslandActivity != next.IslandActivity ||
-            previous.Lyrics != next.Lyrics ||
-            previous.IslandAppearance != next.IslandAppearance)
-        {
-            OnPropertyChanged(nameof(IsMediaActivity));
-            OnPropertyChanged(nameof(IsSpectrumVisible));
-            OnPropertyChanged(nameof(CompactMediaLayout));
-            OnPropertyChanged(nameof(CompactMediaWidth));
-            OnPropertyChanged(nameof(CompactMediaPrimaryText));
-            OnPropertyChanged(nameof(CompactMediaSecondaryText));
-        }
         if (!previous.SmartDragExcludedProcesses.SequenceEqual(next.SmartDragExcludedProcesses))
             OnPropertyChanged(nameof(SmartDragExcludedProcesses));
     }
@@ -666,101 +466,5 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
         Snapshot = snapshot;
         SnapshotChanged?.Invoke(this, snapshot);
-    }
-
-    private void OnActivityChanged(object? sender, IslandActivitySnapshot snapshot)
-    {
-        if (!_dispatcher.HasThreadAccess)
-        {
-            _dispatcher.TryEnqueue(() => OnActivityChanged(sender, snapshot));
-            return;
-        }
-
-        _activitySnapshot = snapshot;
-        _stateMachine.SetNativeActivityVisible(snapshot.Current is not null);
-        OnPropertyChanged(nameof(ActivitySnapshot));
-        OnPropertyChanged(nameof(IsNativeActivityVisible));
-        OnPropertyChanged(nameof(IsMediaActivity));
-        OnPropertyChanged(nameof(IsMediaControlsVisible));
-        OnPropertyChanged(nameof(IsSpectrumVisible));
-        OnPropertyChanged(nameof(ActivityTitle));
-        OnPropertyChanged(nameof(ActivitySubtitle));
-        OnPropertyChanged(nameof(ActivityExpandedTitle));
-        OnPropertyChanged(nameof(ActivityExpandedSubtitle));
-        OnPropertyChanged(nameof(CompactMediaLayout));
-        OnPropertyChanged(nameof(CompactMediaWidth));
-    }
-
-    private void OnMediaChanged(object? sender, MediaSessionSnapshot snapshot)
-    {
-        if (!_dispatcher.HasThreadAccess)
-        {
-            _dispatcher.TryEnqueue(() => OnMediaChanged(sender, snapshot));
-            return;
-        }
-
-        _currentMedia = snapshot;
-        OnPropertyChanged(nameof(CurrentMedia));
-        OnPropertyChanged(nameof(CompactMediaPrimaryText));
-        OnPropertyChanged(nameof(CompactMediaSecondaryText));
-        OnPropertyChanged(nameof(CompactMediaLayout));
-        OnPropertyChanged(nameof(CompactMediaWidth));
-    }
-
-    private void OnLyricsChanged(object? sender, LyricsFrame frame)
-    {
-        if (!_dispatcher.HasThreadAccess)
-        {
-            _dispatcher.TryEnqueue(() => OnLyricsChanged(sender, frame));
-            return;
-        }
-
-        OnPropertyChanged(nameof(CurrentLyricsFrame));
-        OnPropertyChanged(nameof(CompactMediaPrimaryText));
-        OnPropertyChanged(nameof(CompactMediaSecondaryText));
-        OnPropertyChanged(nameof(CompactMediaLayout));
-        OnPropertyChanged(nameof(CompactMediaWidth));
-    }
-
-    private void OnSpectrumChanged(object? sender, SpectrumFrame frame)
-    {
-        if (!_dispatcher.HasThreadAccess)
-        {
-            _dispatcher.TryEnqueue(() => OnSpectrumChanged(sender, frame));
-            return;
-        }
-
-        _spectrumBars = frame.Bars
-            .Select(level => 4d + Math.Clamp(level, 0f, 1f) * 24d)
-            .ToArray();
-        OnPropertyChanged(nameof(SpectrumBars));
-        OnPropertyChanged(nameof(IsSpectrumVisible));
-    }
-
-    private void PublishDropActivity(string title, string subtitle)
-    {
-        RemoveDropActivity();
-        _dropActivityId = _activityRouter.Publish(new IslandActivity(
-            Guid.Empty,
-            IslandActivityKind.Drop,
-            IslandActivityPriority.Drop,
-            IslandActivityPresentation.Both,
-            "drop",
-            title,
-            subtitle,
-            "DropSpace",
-            subtitle,
-            new(DateTimeOffset.UtcNow),
-            false));
-    }
-
-    private void RemoveDropActivity()
-    {
-        if (_dropActivityId != Guid.Empty)
-        {
-            _activityRouter.Remove(_dropActivityId);
-            _dropActivityId = Guid.Empty;
-        }
-        _activityRouter.RemoveSource("drop");
     }
 }

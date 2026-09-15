@@ -1,9 +1,6 @@
 using DropSpace.Core.Actions;
 using DropSpace.Core.Updates;
 using DropSpace.Core.Transfer;
-using DropSpace.Core.Lyrics;
-using DropSpace.Core.Island;
-using DropSpace.Core.Widgets;
 
 namespace DropSpace.Core.Models;
 
@@ -68,6 +65,12 @@ public sealed record AppSettings
     public const int CurrentVersion = SettingsValidationPolicy.CurrentVersion;
 
     public int Version { get; init; } = CurrentVersion;
+
+    public IslandActivitySettings IslandActivity { get; init; } = new();
+    public LyricsSettings Lyrics { get; init; } = new();
+    public IslandAppearanceSettings IslandAppearance { get; init; } = new();
+    public SystemActivitySettings SystemActivities { get; init; } = new();
+    public WidgetSettings Widgets { get; init; } = new();
 
     public bool ClipboardPaused { get; init; }
 
@@ -145,16 +148,6 @@ public sealed record AppSettings
     public bool EnableInternetSharing { get; init; }
 
     public ClipboardSyncMode DefaultClipboardSyncMode { get; init; } = ClipboardSyncMode.Off;
-
-    public IslandActivitySettings IslandActivity { get; init; } = new();
-
-    public LyricsSettings Lyrics { get; init; } = new();
-
-    public SystemActivitySettings SystemActivities { get; init; } = new();
-
-    public IslandAppearanceSettings IslandAppearance { get; init; } = new();
-
-    public WidgetSettings Widgets { get; init; } = new();
 
     public AppSettings WithSafeUiPreferences() => this with
     {
@@ -252,45 +245,6 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(DefaultClipboardSyncMode));
         }
 
-        if (IslandActivity is null || Lyrics is null || SystemActivities is null || IslandAppearance is null || Widgets is null)
-        {
-            throw new ArgumentNullException(nameof(IslandActivity));
-        }
-
-        if (IslandActivity.AllowedMediaSourceAppIds is null ||
-            IslandActivity.AllowedMediaSourceAppIds.Length > SettingsValidationPolicy.MaximumMediaSourceAllowList ||
-            IslandActivity.AllowedMediaSourceAppIds.Any(value =>
-                string.IsNullOrWhiteSpace(value) || value.Length > SettingsValidationPolicy.MaximumMediaSourceAppIdLength))
-        {
-            throw new ArgumentOutOfRangeException(nameof(IslandActivity));
-        }
-
-        if (!Enum.IsDefined(Lyrics.Mode) || !Enum.IsDefined(Lyrics.Provider) || Lyrics.DelayMilliseconds is < -SettingsValidationPolicy.MaximumLyricsDelayMilliseconds or > SettingsValidationPolicy.MaximumLyricsDelayMilliseconds || Lyrics.ScrollingMaxWidth is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumLyricsScrollWidth)
-        {
-            throw new ArgumentOutOfRangeException(nameof(Lyrics));
-        }
-
-        if (!Enum.IsDefined(IslandAppearance.Style) || !Enum.IsDefined(IslandAppearance.CompactCoverShape) || !Enum.IsDefined(IslandAppearance.ExpandedCoverShape) || !Enum.IsDefined(IslandAppearance.DockPreset) || !Enum.IsDefined(IslandAppearance.LastExpandedPage) ||
-            !double.IsFinite(IslandAppearance.CompactScale) || IslandAppearance.CompactScale is < SettingsValidationPolicy.MinimumIslandScale or > SettingsValidationPolicy.MaximumIslandScale ||
-            !double.IsFinite(IslandAppearance.ExpandedScale) || IslandAppearance.ExpandedScale is < SettingsValidationPolicy.MinimumIslandScale or > SettingsValidationPolicy.MaximumIslandScale ||
-            !double.IsFinite(IslandAppearance.HorizontalOffset) || !double.IsFinite(IslandAppearance.VerticalOffset) ||
-            IslandAppearance.CompactBaseWidth is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumIslandDimension ||
-            IslandAppearance.CompactBaseHeight is < SettingsValidationPolicy.MinimumCompactIslandHeight or > SettingsValidationPolicy.MaximumIslandDimension ||
-            IslandAppearance.ExpandedWidth is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumIslandDimension ||
-            IslandAppearance.ExpandedHeight is < SettingsValidationPolicy.MinimumIslandDimension or > SettingsValidationPolicy.MaximumIslandDimension ||
-            IslandAppearance.HideDelayMilliseconds is < 0 or > SettingsValidationPolicy.MaximumIslandHideDelayMilliseconds ||
-            IslandAppearance.HiddenWidth is < 0 or > SettingsValidationPolicy.MaximumIslandDimension)
-        {
-            throw new ArgumentOutOfRangeException(nameof(IslandAppearance));
-        }
-
-        if (Widgets is null || Widgets.Layout is null)
-        {
-            throw new ArgumentNullException(nameof(Widgets));
-        }
-
-        _ = WidgetLayoutPolicy.Normalize(Widgets.Layout);
-
         if (!Enum.IsDefined(OverlayPlacementMode))
         {
             throw new ArgumentOutOfRangeException(nameof(OverlayPlacementMode));
@@ -349,9 +303,7 @@ public sealed record AppSettings
             throw new ArgumentOutOfRangeException(nameof(LastUpdateCheckUtc), "Update timestamps must be stored in UTC.");
         }
 
-        return string.Equals(QuickPanelHotkey, normalizedHotkey, StringComparison.Ordinal)
-            ? this
-            : this with { QuickPanelHotkey = normalizedHotkey };
+        return NativeIslandSettingsPolicy.Normalize(QuickPanelHotkey == normalizedHotkey ? this : this with { QuickPanelHotkey = normalizedHotkey });
     }
 
 }

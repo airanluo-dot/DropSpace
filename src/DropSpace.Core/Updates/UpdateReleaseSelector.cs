@@ -16,7 +16,7 @@ public static class UpdateReleaseSelector
                 Parsed = ReleaseVersion.TryParse(release.TagName, out var version) ? version : (ReleaseVersion?)null,
             })
             .Where(candidate => candidate.Parsed.HasValue)
-            .Where(candidate => channel == UpdateChannel.Preview || !candidate.Parsed!.Value.IsPreview)
+            .Where(candidate => channel == UpdateChannel.Beta || !candidate.Parsed!.Value.IsPrerelease)
             .Where(candidate => candidate.Parsed!.Value > currentVersion)
             .OrderByDescending(candidate => candidate.Parsed!.Value)
             .Select(candidate => candidate.Release)
@@ -26,7 +26,7 @@ public static class UpdateReleaseSelector
     public static ReleaseVersion? HighestStable(IEnumerable<UpdateRelease> releases) => releases
         .Where(release => !release.IsDraft)
         .Select(release => ReleaseVersion.TryParse(release.TagName, out var version) ? version : (ReleaseVersion?)null)
-        .Where(version => version.HasValue && !version.Value.IsPreview)
+        .Where(version => version.HasValue && !version.Value.IsPrerelease)
         .OrderByDescending(version => version!.Value)
         .FirstOrDefault();
 }

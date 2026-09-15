@@ -7,6 +7,23 @@ namespace DropSpace.Core.Tests;
 public sealed class OverlayPlacementEditSessionTests
 {
     [TestMethod]
+    public void ReleaseKeepsPreviewUntilConfirmationAndSupportsAnotherDrag()
+    {
+        var session = new OverlayPlacementEditSession();
+        session.Arm(new(100, 20), new(100, 20));
+        session.TryBeginDrag(new(0, 0));
+        session.Move(new(20, 10), 1);
+        session.EndDrag();
+        Assert.AreEqual(OverlayPlacementEditState.Armed, session.State);
+        Assert.AreEqual(new OverlayCustomPlacement(120, 30), session.Preview);
+        session.TryBeginDrag(new(50, 50));
+        session.Move(new(60, 50), 1);
+        session.EndDrag();
+        Assert.AreEqual(new OverlayCustomPlacement(130, 30), session.Preview);
+        Assert.AreEqual(new OverlayCustomPlacement(100, 20), session.Cancel());
+    }
+
+    [TestMethod]
     public void ArmedSessionUsesPhysicalPointerDeltaConvertedToDips()
     {
         var session = new OverlayPlacementEditSession();

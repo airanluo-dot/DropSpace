@@ -1,23 +1,23 @@
 # DropSpace Roadmap
 
+## Active authorized slice: v0.3.0-beta.24
+
+Rebuild Native Island from Preview.21 in the mandatory order recorded in
+`docs/dev/preview24-progress.md`. This task explicitly includes all phases through
+Windows verification, required CI, merge, Preview publication and website/API synchronization.
+Runtime baseline is x64 Windows build 20348; settings migrate 11/12/13 to 14.
+No functional phase is complete until its targeted tests, native smoke where required,
+and local Git checkpoint are recorded. Release blockers in the supplied plan are binding.
+
+The September 12 user amendment sets the island page order to Widgets, Music,
+Files, Clipboard, and the widget editor to 4 rows by 8 columns with eight widget
+types and catalogued size choices. Phase 7 remains in progress: native four-page
+navigation and live multi-track lyric checks now have evidence, while remaining
+settings wiring, accessibility/scale gates, final smoke and release work are open.
+
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.23 is the current Native Island UI refactor Preview following Preview.22. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, media/notification/audio, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
-
-## v0.3.0-preview.23 Native Island UI refactor delivery slice
-
-- Make the Dynamic Island one native HWND with a stable DWM-owned outer frame and XAML-owned inner clip, while keeping Smart Drag/OLE ownership and no-focus behavior intact.
-- Deliver media-aware Compact layout with artwork, lyric fallback, real-audio spectrum bars, dynamic-width clamping, paused/idle policy, and a bounded 0.5–30 second hide delay.
-- Deliver a non-wrapping Files → Music → Widgets Expanded pager with geometry-aware transitions, three-to-five recent staged items, music controls/seek preview, and the actual 6×3 widget grid plus compact slots.
-- Split the Main window into first-class Music and Settings surfaces, expose only the planned General/Island/Widgets/System Activities/Devices & Sharing/Updates/About categories, and keep banned native-flyout replacement, plugin, custom-font, and Liquid Glass controls absent.
-- Migrate schema 12 to schema 13 without dropping nested settings, add regression coverage for compact width/pager/idle-hide/widget persistence, and publish the standard five Preview assets.
-- Keep physical Windows 11 media, notification, audio, DPI, accessibility, OLE/provider, and long-run evidence **CONDITIONAL** until recorded on target hosts; hosted CI remains the build/package gate.
-
-## v0.3.0-preview.22 Native Island integration delivery slice
-
-- Deliver priority-routed media, timed lyrics, bounded spectrum, notification, volume-observation, and native-widget activities through the existing Dynamic Island surface.
-- Keep Smart Drag/OLE ownership, startup invariants, updater trust, Windows volume UI ownership, and the five-asset Preview release contract unchanged.
-- Use Windows build 20348 as the minimum target and keep physical media/audio/notification/DPI/accessibility evidence conditional until recorded on target hosts.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-preview.21 is the current settings and action usability Preview following Preview.20. Hosted Windows checks are the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer, and Worker/browser evidence remain explicit operational gates. Preview signing remains optional; Stable publication is signing-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 
@@ -672,3 +672,12 @@ until executable evidence is attached.
 ## v0.3.0-preview.17 architecture audit checkpoint
 
 Implementation and regression coverage now include projection recovery, shared database write ownership, stale-query rejection, atomic settings mutations, awaited shutdown, bounded automatic clipboard propagation, staged-file application boundaries and preview invalidation. The complete audit, all-file snapshots and remaining work are recorded in `docs/audit/2026-09-07/`. This does not close the real Windows/DPI/OLE/accessibility, two-device or deployed Worker/browser acceptance rows. Release completion requires the final commit's Windows workflows, public assets and website/API verification.
+
+## Beta release naming
+
+The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
+releases remain immutable. Preview.23 requires one manual installation of
+Beta 24, preserving data/settings, because its shipped parser rejects Beta
+tags. Subsequent Beta updates are automatic according to user settings.
+See [migration contract](docs/dev/beta-migration.md).

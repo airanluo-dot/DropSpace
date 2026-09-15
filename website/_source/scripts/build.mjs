@@ -107,9 +107,9 @@ function translateDocument(document, route) {
 }
 
 function releaseEntries(route) {
-  const entries = [stable, ...(releases.previews ?? [])];
+  const entries = [stable, ...(releases.prereleases ?? [])];
   return entries.map((release) => {
-    const channel = release === stable ? "Stable" : "Preview";
+    const channel = release === stable ? "Stable" : "Beta";
     const title = route === "zh-cn" ? (zh[release.title] ?? release.title) : release.title;
     const notes = (release.summary?.length ? release.summary : [release.title])
       .map((item) => `<li>${escapeHtml(item)}</li>`).join("");

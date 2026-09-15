@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.
 const tag = process.argv[2]?.trim();
 const waitSeconds = Number(process.argv[3] ?? "0");
 const verificationMode = process.argv[4] ?? "release";
-if (!/^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(tag ?? "")) throw new Error("Pass a valid release tag.");
+if (!/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(tag ?? "")) throw new Error("Pass a valid release tag.");
 if (!Number.isInteger(waitSeconds) || waitSeconds < 0 || waitSeconds > 1200) throw new Error("Wait seconds must be between 0 and 1200.");
 if (!["release", "live"].includes(verificationMode)) throw new Error("Verification mode must be release or live.");
 
@@ -40,7 +40,7 @@ do {
 } while (Date.now() <= deadline);
 if (lastError) throw lastError;
 if (release.draft) throw new Error(`${tag} is still a draft.`);
-if (release.prerelease !== tag.includes("-preview.")) throw new Error(`${tag} has the wrong prerelease flag.`);
+if (release.prerelease !== /-(?:preview|beta)\./.test(tag)) throw new Error(`${tag} has the wrong prerelease flag.`);
 const assets = new Map(release.assets.map((asset) => [asset.name, asset]));
 if (assets.size !== expectedAssets.length || expectedAssets.some((name) => !assets.has(name))) {
   throw new Error(`${tag} does not expose the exact public asset contract.`);
@@ -60,7 +60,7 @@ if (verificationMode === "release") {
 }
 const manifest = await (await fetchOk(assets.get("update-manifest.json").browser_download_url)).json();
 const semanticVersion = tag.slice(1);
-if (manifest.version !== semanticVersion || manifest.channel !== (release.prerelease ? "preview" : "stable")) {
+if (manifest.version !== semanticVersion || manifest.channel !== (tag.includes("-preview.") ? "preview" : release.prerelease ? "beta" : "stable")) {
   throw new Error("Published manifest version/channel does not match the GitHub Release.");
 }
 if (verificationMode === "release" && manifest.summary !== expectedSummary) throw new Error("Published manifest summary does not match release notes.");
@@ -93,14 +93,14 @@ do {
     latestChangeApi = validateLatestChangeApi(await (await fetchOk(`${siteOrigin}/api/v1/latest-change.json?verify=${Date.now()}`)).json());
     if (verificationMode === "release" &&
         (latestChangeApi.release.tagName !== tag || latestChangeApi.release.htmlUrl !== release.html_url ||
-         latestChangeApi.release.channel !== (release.prerelease ? "preview" : "stable"))) {
+         latestChangeApi.release.channel !== (release.prerelease ? "beta" : "stable"))) {
       throw new Error("Latest-change API does not present the newly published release.");
     }
 
     if (verificationMode === "live") {
       const latestSiteRelease = api.releases?.find(candidate => candidate.tagName === latestChangeApi.release.tagName);
       if (!latestSiteRelease || latestSiteRelease.htmlUrl !== latestChangeApi.release.htmlUrl ||
-          latestSiteRelease.isPrerelease !== (latestChangeApi.release.channel === "preview")) {
+          latestSiteRelease.isPrerelease !== (latestChangeApi.release.channel === "beta")) {
         throw new Error("Latest-change API does not match the synchronized website release list.");
       }
     }

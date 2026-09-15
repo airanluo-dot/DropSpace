@@ -14,7 +14,6 @@ namespace DropSpace.App.Services;
 internal sealed class OverlayCompositionAnimator : IDisposable
 {
     private readonly Visual _surface;
-    private readonly Visual _shadow;
     private readonly Visual _compact;
     private readonly Visual _drag;
     private readonly Visual _expanded;
@@ -28,7 +27,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
 
     public OverlayCompositionAnimator(
         FrameworkElement surface,
-        FrameworkElement shadow,
         FrameworkElement compact,
         FrameworkElement drag,
         FrameworkElement expanded,
@@ -36,7 +34,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         FrameworkElement interactionTint)
     {
         _surface = ElementCompositionPreview.GetElementVisual(surface);
-        _shadow = ElementCompositionPreview.GetElementVisual(shadow);
         _compact = ElementCompositionPreview.GetElementVisual(compact);
         _drag = ElementCompositionPreview.GetElementVisual(drag);
         _expanded = ElementCompositionPreview.GetElementVisual(expanded);
@@ -64,7 +61,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _surface.Opacity = (float)Math.Clamp(values.Opacity, 0, 1);
-        _shadow.Opacity = (float)Math.Clamp(values.Opacity * values.ShadowOpacity * 0.35, 0, 1);
         _compact.Opacity = (float)Math.Clamp(values.CompactContent, 0, 1);
         _drag.Opacity = (float)Math.Clamp(values.DragContent, 0, 1);
         _expanded.Opacity = (float)Math.Clamp(values.ExpandedContent, 0, 1);
@@ -99,39 +95,6 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     {
         _pressScale = pressed && !reducedMotion ? (float)OverlayMotionTokens.PressScale : 1;
         _content.Scale = new Vector3(_pressScale, _pressScale, 1);
-    }
-
-    public void AnimatePage(FrameworkElement page, int direction, bool reducedMotion)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        var visual = ElementCompositionPreview.GetElementVisual(page);
-        visual.StopAnimation(nameof(Visual.Offset));
-        visual.StopAnimation(nameof(Visual.Opacity));
-
-        if (reducedMotion)
-        {
-            visual.Offset = Vector3.Zero;
-            visual.Opacity = 1;
-            return;
-        }
-
-        var compositor = visual.Compositor;
-        visual.Offset = new Vector3(Math.Clamp(direction, -1, 1) * 18, 0, 0);
-        visual.Opacity = 0;
-
-        var offsetAnimation = compositor.CreateVector3KeyFrameAnimation();
-        var easing = compositor.CreateCubicBezierEasingFunction(
-            new Vector2(0.2f, 0.8f),
-            new Vector2(0.2f, 1f));
-        offsetAnimation.InsertKeyFrame(1, Vector3.Zero, easing);
-        offsetAnimation.Duration = TimeSpan.FromMilliseconds(OverlayMotionTokens.FastMilliseconds);
-
-        var opacityAnimation = compositor.CreateScalarKeyFrameAnimation();
-        opacityAnimation.InsertKeyFrame(1, 1, easing);
-        opacityAnimation.Duration = TimeSpan.FromMilliseconds(OverlayMotionTokens.FastMilliseconds);
-
-        visual.StartAnimation(nameof(Visual.Offset), offsetAnimation);
-        visual.StartAnimation(nameof(Visual.Opacity), opacityAnimation);
     }
 
     public void Dispose()

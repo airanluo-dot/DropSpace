@@ -1,5 +1,13 @@
 # DropSpace Feature Catalogue
 
+## Beta 24 amended scope (not yet released)
+
+- Four island pages: Widgets → Music → Files → Clipboard, without wrapping at either end.
+- Widget editor: 8 columns × 4 rows, add/remove/move/reset, and supported size choices per widget. Existing saved arrangements are preserved.
+- Real clock, calendar, CPU/memory, battery/AC and uptime data; stopwatch start/pause/reset; settings and clipboard recording controls.
+- Clipboard page: most recent 20 canonical records with copy, pin/unpin, remove from DropSpace, pause/resume, and full-history navigation.
+- Music settings retain provider, translation, timing, artwork, spectrum and explicit player allowlist choices. No valid native timeline means estimated position and unavailable seeking, not a fabricated seek capability.
+
 This document is the behavior contract. MVP and V1.1 boundaries come from `PRODUCT.md`.
 
 ## v0.3.0-preview.3 targeted hardening
@@ -229,3 +237,5 @@ Settings save immediately after validation. Failed saves revert the control and 
 - Smart Drag keeps every candidate invisible until the ephemeral OLE probe positively classifies `CF_HDROP`, Shell Item array, or the virtual-file descriptor pair. Pointer threshold, accessibility drag-start, Explorer/Desktop attribution, and rejected/late/duplicate probe callbacks cannot reveal or reopen a session.
 - The Dynamic Island HWND uses checked Win32/DWM/non-client/region operations, verifies client geometry after placement, and remains hidden when a critical native operation fails. Windows 10 retains the base visual; Windows 11 DWM corner/border enhancements are optional and HRESULT-checked.
 - Hash, ZIP, QR, resize, conversion, and metadata exports default to a dedicated DropSpace exports folder, reserve names atomically, surface localized access/source/output/parameter errors, and never overwrite the current source. Image actions collect explicit output format and size choices; conversion preserves source dimensions when optional resize fields are blank.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

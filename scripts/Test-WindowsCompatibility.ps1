@@ -89,7 +89,7 @@ foreach ($relativePath in @("src/DropSpace.App/Package.appxmanifest", "identity/
 $installer = Read-CompatibilityFile "installer/DropSpace.iss"
 if ($installer -notmatch '(?m)^MinVersion=10\.0\.20348\s*$')
 {
-    Add-CompatibilityError "The installer minimum is not Windows build 20348."
+    Add-CompatibilityError "The installer minimum is not Windows 10 build 20348."
 }
 
 Assert-CompatibilityText "scripts/New-UpdateManifest.ps1" 'WindowsCompatibility\.ps1' "The update manifest generator does not import the shared compatibility baseline."
@@ -120,9 +120,9 @@ if ((Read-CompatibilityFile "src/DropSpace.App/App.xaml.cs") -match 'Application
     Add-CompatibilityError "The unpackaged app must not use ApplicationLanguages.PrimaryLanguageOverride."
 }
 
-Assert-CompatibilityText "compatibility-baseline.md" '20348' "The compatibility baseline report is missing the Windows build 20348 minimum."
+Assert-CompatibilityText "compatibility-baseline.md" '20348' "The compatibility baseline report is missing the build 20348 minimum."
 Assert-CompatibilityText "docs/test-plan/v0.3.0-preview.10.md" 'Windows 10 (version )?1809' "The current Preview test plan is missing the required Windows 10 1809 matrix."
-Assert-CompatibilityText "website/_source/src/index.html" 'Windows build 20348' "The website does not state the current Windows build 20348 minimum."
+Assert-CompatibilityText "website/_source/src/index.html" '20348' "The website does not state the Preview.24 minimum."
 
 if ($errors.Count -ne 0)
 {

@@ -1,9 +1,10 @@
 namespace DropSpace.Core.Updates;
 
+[System.Text.Json.Serialization.JsonConverter(typeof(UpdateChannelJsonConverter))]
 public enum UpdateChannel
 {
     Stable,
-    Preview,
+    Beta,
 }
 
 public enum UpdateState

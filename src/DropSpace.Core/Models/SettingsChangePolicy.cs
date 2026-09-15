@@ -7,6 +7,11 @@ public static class SettingsChangePolicy
 {
     public static AppSettings Merge(AppSettings baseline, AppSettings requested, AppSettings latest) => latest with
     {
+        IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
+        Lyrics = Pick(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
+        IslandAppearance = Pick(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
+        SystemActivities = Pick(baseline.SystemActivities, requested.SystemActivities, latest.SystemActivities),
+        Widgets = Pick(baseline.Widgets, requested.Widgets, latest.Widgets),
         CaptureImages = Pick(baseline.CaptureImages, requested.CaptureImages, latest.CaptureImages),
         CaptureFiles = Pick(baseline.CaptureFiles, requested.CaptureFiles, latest.CaptureFiles),
         CaptureFolders = Pick(baseline.CaptureFolders, requested.CaptureFolders, latest.CaptureFolders),
@@ -42,11 +47,6 @@ public static class SettingsChangePolicy
         EnableNearbySharing = Pick(baseline.EnableNearbySharing, requested.EnableNearbySharing, latest.EnableNearbySharing),
         EnableInternetSharing = Pick(baseline.EnableInternetSharing, requested.EnableInternetSharing, latest.EnableInternetSharing),
         DefaultClipboardSyncMode = Pick(baseline.DefaultClipboardSyncMode, requested.DefaultClipboardSyncMode, latest.DefaultClipboardSyncMode),
-        IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
-        Lyrics = Pick(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
-        SystemActivities = Pick(baseline.SystemActivities, requested.SystemActivities, latest.SystemActivities),
-        IslandAppearance = Pick(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
-        Widgets = Pick(baseline.Widgets, requested.Widgets, latest.Widgets),
     };
 
     private static T Pick<T>(T baseline, T requested, T latest) =>

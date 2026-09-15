@@ -45,9 +45,9 @@ public sealed class UpdateManifestParser
             throw new InvalidDataException("The release tag and update manifest version do not match.");
         }
 
-        var expectedChannel = version.IsPreview ? UpdateChannel.Preview : UpdateChannel.Stable;
-        if (!Enum.TryParse<UpdateChannel>(dto.Channel, ignoreCase: true, out var channel) ||
-            channel != expectedChannel || release.IsPrerelease != version.IsPreview)
+        var expectedChannel = version.IsPrerelease ? UpdateChannel.Beta : UpdateChannel.Stable;
+        if (!UpdateChannelJsonConverter.TryParse(dto.Channel, out var channel) ||
+            channel != expectedChannel || release.IsPrerelease != version.IsPrerelease)
         {
             throw new InvalidDataException("The update channel does not match the release version.");
         }

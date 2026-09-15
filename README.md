@@ -11,13 +11,9 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-preview.23 is the current Preview development line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.24 is the current Beta release target**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Latest published Preview: [v0.3.0-preview.23](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-preview.23). The optional Preview update channel receives both Stable and Preview releases and always selects the highest eligible SemVer without downgrading.
-
-The **v0.3.0-preview.23** Native Island refactor Preview completes the single-island compact/expanded experience with media-aware compact layout, bounded lyrics/spectrum presentation, Files → Music → Widgets paging, DWM-owned outer appearance, split settings surfaces, and schema-13 persistence. It keeps Smart Drag/OLE ownership and the Windows volume flyout intact; see the [Preview.23 test plan](docs/test-plan/v0.3.0-preview.23.md).
-
-The **v0.3.0-preview.22** native-island integration Preview added the priority-routed media, timed-lyrics, bounded spectrum, Windows notification, volume-observation, and native-widget activity contracts. Its implementation remains the immediate compatibility baseline for Preview.23.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.24](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.24). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 The **v0.3.0-preview.21** settings and action usability line follows Preview.20. Its release notes and [Preview.21 test plan](docs/test-plan/v0.3.0-preview.21.md) record the settings transaction, readable Quick Actions, simpler image presets, and verification evidence; physical Windows, multi-device, deployed Worker/browser, and long-run evidence remain explicitly conditional when unavailable.
 
@@ -88,7 +84,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 
 ## Product boundaries
 
-- 64-bit Windows build 20348 or later native desktop application, including Windows 11.
+- 64-bit Windows 10 version 1809 (Build 17763) and later native desktop application, including Windows 11.
 - C#, .NET, WinUI 3, Windows App SDK, and MVVM.
 - Local content storage; the updater sends no user content and reads only the public versioned DropSpace website/GitHub Release metadata when enabled.
 - File records are references; removing a record never deletes or moves its source file.
@@ -117,7 +113,6 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - [Preview.19 architecture-remediation test plan](docs/test-plan/v0.3.0-preview.19.md)
 - [Preview.20 architecture-remediation test plan](docs/test-plan/v0.3.0-preview.20.md)
 - [Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md)
-- [Preview.23 Native Island UI refactor test plan](docs/test-plan/v0.3.0-preview.23.md)
 - [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md)
 - [Decisions](DECISIONS.md)
 - [Logo and icon asset map](BRAND_ASSETS.md)
@@ -131,7 +126,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 
 ### Requirements
 
-- 64-bit Windows build 20348 or later, including Windows 11.
+- 64-bit Windows 10 version 1809 (Build 17763) or later, including Windows 11. Windows 10 is no longer supported by Microsoft, but remains the DropSpace minimum runtime baseline.
 - Visual Studio 2026 with the WinUI application development workload, or the .NET 10 SDK for command-line build/test.
 
 ### Build and test
@@ -143,7 +138,7 @@ dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.
 dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 ```
 
-Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows build 20348. The formal release and compatibility evidence are x64-only; Windows 11-only visuals are selected at runtime.
+Open `DropSpace.sln` in Visual Studio to deploy the packaged app locally. The manifest targets Windows 10 build 17763. The formal release and compatibility evidence are x64-only; Windows 11-only visuals are selected at runtime.
 
 To validate package generation from PowerShell, run:
 
@@ -170,3 +165,12 @@ Third-party dependencies remain under their respective licenses; see [THIRD_PART
 ## v0.3.0-preview.7 feature boundary
 
 The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Actions, Windows-only DropLink handoff, opt-in cross-device clipboard, expiring Nearby browser links, and client-encrypted Internet Share. Preview.7 hardens the protocol boundaries and keeps network features disabled until explicitly enabled: handoff requires trusted peers, Nearby requires a private IPv4 address, and Internet Share requires a configured HTTPS Worker backend. See the [protocol](docs/protocol/droplink-v1.md), [validation plan](docs/test-plan/v0.3.0-preview.7.md), and [network threat model](docs/security/network-threat-model.md). macOS, iOS/iPadOS, Android, Linux, accounts, WebRTC, and native mobile clients remain out of scope.
+
+## Beta release naming
+
+The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+`vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
+releases remain immutable. Preview.23 requires one manual installation of
+Beta 24, preserving data/settings, because its shipped parser rejects Beta
+tags. Subsequent Beta updates are automatic according to user settings.
+See [migration contract](docs/dev/beta-migration.md).

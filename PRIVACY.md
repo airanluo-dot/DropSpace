@@ -1,5 +1,22 @@
 # DropSpace Privacy and Threat Model
 
+## Preview.24 lyrics and audio boundary
+
+When enabled in online mode, lyrics lookup sends only the current music title,
+artist, album and duration to the user-selected NetEase, QQ Music, Kugou, LRCLIB
+or AMLL provider. Per the September 13 user amendment, an empty or unavailable
+primary result automatically queries the other four online providers, with at
+most four concurrent requests and an eight-second per-provider budget. A valid
+result cancels and drains the remaining work. It does not send clipboard text,
+staged filenames or file bytes.
+Lyrics cache is process memory only (32 entries, bounded text size, two-hour age).
+Local LRC mode reads only a selected folder with a bounded, nonrecursive scan.
+If every online provider fails, display track metadata. Local mode never invokes
+online fallback. The integration must cancel
+lookup on track/settings/lifecycle changes before release acceptance.
+Process-loopback audio is intended only for the live spectrum; PCM must never be
+saved or uploaded. System notification and volume observation remain opt-in.
+
 ## Overview
 
 DropSpace stores sensitive classes of data by design. “Local only” reduces network exposure but does not make clipboard history safe by default. The product must minimize capture, make recording state obvious, bound retention, and avoid claims that content classification or source-app exclusions are complete.
@@ -252,3 +269,12 @@ exception text.
 ## Preview.17 derived data and staging cleanup
 
 Preview cache has a 24-hour age, 64-entry/64 MiB total and 16 MiB serialized-entry limit. External references are not cached. Record finalization, Undo recovery, clipboard clear and retention invalidate derived previews; cache generations reject late writes after clearing. Locked-file cleanup is logged and retried, not represented as forensic secure erasure. Staged import cleans every admitted app-owned staging path after completion or cancellation, never an external source. Automatic cross-device propagation remains opt-in/event-driven and keeps at most 16 queued items plus one active send, with bounded image reads. No telemetry, account, new network endpoint or collection category is added.
+# Preview.24 notification observer
+
+Notification activities are off by default. Enabling the option checks Windows
+access without requesting permission automatically. The explicit permission action
+uses the Windows notification listener consent dialog. Only newly added events are
+read; existing notification history is not replayed. Source names, titles and bodies
+are length-bounded, transient in memory, and never written to logs or sent online.
+Disabling cancels and drains the listener. Unpackaged or permission-denied hosts
+report unavailable/denied instead of fabricating notification activity.

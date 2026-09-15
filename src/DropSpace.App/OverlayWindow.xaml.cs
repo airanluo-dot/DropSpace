@@ -1,15 +1,10 @@
 using System.Diagnostics;
-using System.ComponentModel;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.WindowsRuntime;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
-using DropSpace.Core.Island;
-using DropSpace.Core.Media;
 using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using DropSpace.Core.Preview;
@@ -19,24 +14,25 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
 using Windows.Graphics;
 using Windows.Storage;
-using Windows.Storage.Streams;
 using WinRT.Interop;
 
 namespace DropSpace.App;
 
 public sealed partial class OverlayWindow : Window
 {
-    private const double HostWidth = 600;
+    private double ExpandedScale => Math.Min(_mediaViewModel.Settings.IslandAppearance.ExpandedScale,
+        Math.Min(_monitor.EffectiveWorkWidth / _monitor.Scale / OverlayPlacementPolicy.MaximumSurfaceWidthDips,
+            Math.Max(0.5, (_monitor.EffectiveWorkHeight / _monitor.Scale - OverlayPlacementPolicy.GetTopOffsetDips(_viewModel.FileDragWakeMode, _monitor.Scale)) / OverlayPlacementPolicy.MaximumSurfaceHeightDips)));
+    private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
+    private double HostWidth => OverlayPlacementPolicy.HostWidthDips * HostContentScale;
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
-    private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale);
+    private double HostHeight => OverlayPlacementPolicy.GetMinimumHostHeightDips(_monitor.Scale, HostContentScale);
     private readonly OverlayViewModel _viewModel;
     private readonly IAppStringLocalizer _strings;
     private readonly MonitorDescriptor _monitor;
@@ -49,7 +45,6 @@ public sealed partial class OverlayWindow : Window
     private readonly nint _windowHandle;
     private readonly SystemVisualPreferenceService _visualPreferences;
     private readonly OverlayMaterialController _materialController;
-    private readonly IslandBackdropController _backdropController;
     private readonly OverlayCompositionAnimator _compositionAnimator;
     private readonly OverlayNativeRegionController _nativeRegionController;
     private readonly OverlayMotionOrchestrator _motion;
@@ -73,6 +68,8 @@ public sealed partial class OverlayWindow : Window
     private readonly DispatcherQueueTimer _animationTimer;
     private readonly TypedEventHandler<DispatcherQueueTimer, object> _animationTimerHandler;
     private bool _placementEditActive;
+    private readonly DispatcherQueueTimer _rightHoldTimer;
+    private Microsoft.UI.Xaml.Input.Pointer? _rightHoldPointer;
     private bool _suppressedForPlacementEdit;
     private TaskCompletionSource<object?>? _motionSettled;
     private int _positionedHostWidthPixels = -1;
@@ -81,9 +78,11 @@ public sealed partial class OverlayWindow : Window
     private int _positionedHostTopPixels = int.MinValue;
     private bool? _noActivateApplied;
     private bool _nativeWindowShown;
-    private bool _mediaSeekPressed;
-    private long _artworkRevision;
-    private ExpandedIslandPage? _renderedExpandedPage;
+    private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
+    private readonly MediaViewModel _mediaViewModel;
+    private readonly WidgetViewModel _widgetViewModel;
+    private OverlaySnapshot? _presentationSnapshot;
+    private bool _mediaGeometryRefreshPending;
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -96,9 +95,15 @@ public sealed partial class OverlayWindow : Window
         DragActivationCallbacks dragCallbacks,
         Action openMainWindow,
         ILogger<OverlayWindow> logger,
-        SystemVisualPreferenceService visualPreferences)
+        SystemVisualPreferenceService visualPreferences,
+        DropSpace.Core.Island.IslandExperienceCoordinator experience,
+        MediaViewModel mediaViewModel,
+        WidgetViewModel widgetViewModel,
+        ClipboardIslandViewModel clipboardViewModel,
+        SystemActivityViewModel systemActivityViewModel)
     {
         _viewModel = viewModel;
+        _widgetViewModel = widgetViewModel;
         _strings = strings;
         _monitor = monitor;
         _monitorLayout = monitorLayout;
@@ -108,6 +113,7 @@ public sealed partial class OverlayWindow : Window
         _dragDropService = dragDropService;
         _quickActionDialog = quickActionDialog;
         _visualPreferences = visualPreferences;
+        _experience = experience; _mediaViewModel = mediaViewModel;
         _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
         _animationTimerHandler = OnAnimationFrame;
         _animationTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
@@ -125,13 +131,34 @@ public sealed partial class OverlayWindow : Window
 
         XamlResourceOverride.Apply(this, "OverlayWindow");
         Root.DataContext = viewModel;
+        _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
+        _rightHoldTimer.IsRepeating = false;
+        _rightHoldTimer.Tick += (_, _) =>
+        {
+            if (_rightHoldPointer is not null && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove)
+                PlacementEditRequested?.Invoke(this, MonitorId);
+        };
+        Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
+        Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
+        Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => { _rightHoldTimer.Stop(); _rightHoldPointer = null; }), true);
+        Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
+        {
+            if (_placementEditActive) return;
+            _rightHoldTimer.Stop(); _rightHoldPointer = null;
+        }), true);
+        MusicCompact.ViewModel = mediaViewModel;
+        MusicExpanded.ViewModel = mediaViewModel;
+        WidgetsExpanded.ViewModel = widgetViewModel;
+        ClipboardExpanded.ViewModel = clipboardViewModel;
+        ActivityCompact.DataContext = systemActivityViewModel;
+        MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
         _materialController = new OverlayMaterialController(
             AcrylicBackdrop,
             FallbackSurface,
             capabilities);
         _compositionAnimator = new OverlayCompositionAnimator(
             Surface,
-            SurfaceShadow,
             CompactPanel,
             DragPanel,
             ExpandedPanel,
@@ -140,7 +167,6 @@ public sealed partial class OverlayWindow : Window
         _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
         _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));
         _visualPreferences.Changed += OnSystemVisualPreferencesChanged;
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
         var presenter = OverlappedPresenter.Create();
         presenter.SetBorderAndTitleBar(false, false);
@@ -151,11 +177,10 @@ public sealed partial class OverlayWindow : Window
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
-        _backdropController = new IslandBackdropController(
+        _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
+        var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
             capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
-        _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
-        var nativeConfiguration = _backdropController.Attach(Root.ActualTheme == ElementTheme.Dark);
         foreach (var failure in nativeConfiguration.Failures)
         {
             LogNativeFailure(failure);
@@ -202,6 +227,13 @@ public sealed partial class OverlayWindow : Window
 
     public string MonitorId => _monitor.Id;
 
+    internal void ApplyTheme(ThemePreference preference) => Root.RequestedTheme = preference switch
+    {
+        ThemePreference.Light => ElementTheme.Light,
+        ThemePreference.Dark => ElementTheme.Dark,
+        _ => ElementTheme.Default,
+    };
+
     public bool IsPlacementEditing => _placementEditActive;
 
     internal string NativeVisibilityDiagnostics =>
@@ -211,6 +243,7 @@ public sealed partial class OverlayWindow : Window
         $"lastFailure={_lastNativeFailureDiagnostics}";
 
     public event EventHandler<OverlayPlacementEditEventArgs>? PlacementCommitted;
+    public event EventHandler<string>? PlacementEditRequested;
 
     public event EventHandler? PlacementCancelled;
 
@@ -371,6 +404,27 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
+        _presentationSnapshot = snapshot;
+        var page = _experience.Current.Page;
+        FilesExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Visible : Visibility.Collapsed;
+        MusicExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Music ? Visibility.Visible : Visibility.Collapsed;
+        WidgetsExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Visible : Visibility.Collapsed;
+        ClipboardExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Visible : Visibility.Collapsed;
+        PreviousPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Collapsed : Visibility.Visible;
+        NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
+        OtherPageCollapse.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
+        var mediaCompact = _experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music;
+        var activityCompact = _experience.Current.CompactContent is DropSpace.Core.Island.IslandContentKind.Notification or DropSpace.Core.Island.IslandContentKind.Volume;
+        ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
+        MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
+        FileCompactContent.Visibility = mediaCompact || activityCompact ? Visibility.Collapsed : Visibility.Visible;
+        var mediaScale = _mediaViewModel.Settings.IslandAppearance.CompactScale;
+        CompactPanel.Padding = new Thickness(mediaCompact ? 14 * mediaScale : 18, 0, mediaCompact ? 14 * mediaScale : 18, 0);
+        MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
+        MusicCompact.Height = MusicCompact.IdealIslandHeight;
+        MusicCompact.HorizontalAlignment = HorizontalAlignment.Center;
+        MusicCompact.RenderTransformOrigin = new Point(0.5, 0.5);
+        MusicCompact.RenderTransform = new ScaleTransform { ScaleX = mediaScale, ScaleY = mediaScale };
         if (_suppressedForPlacementEdit)
         {
             HideImmediately();
@@ -410,7 +464,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        var suppressedForFullscreen = snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
+        var suppressedForFullscreen = _mediaViewModel.Settings.SystemActivities.SuppressOverFullscreen && snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
                                       _monitorLayout.IsForegroundFullscreen(_monitor);
         if (suppressedForFullscreen)
         {
@@ -443,8 +497,18 @@ public sealed partial class OverlayWindow : Window
 
         var topOffset = _resolvedPlacement.SurfaceTopOffsetDips;
         var target = CreateMotionTarget(snapshot.State, topOffset);
+        if (activityCompact && snapshot.State == OverlayState.Compact)
+            target = Create(400, 80, topOffset, 28, 1, 0, 0);
+        if (mediaCompact && snapshot.State == OverlayState.Compact)
+        {
+            var geometry = DropSpace.Core.Island.IslandGeometry.ForMusicCompact(MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight, mediaScale);
+            target = Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0);
+        }
 
         EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
+        _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
+        WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
+        ClipboardExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
         PrepareContentForTarget(target);
         if (_previousState == OverlayState.DragReady && snapshot.State == OverlayState.Compact)
         {
@@ -458,6 +522,8 @@ public sealed partial class OverlayWindow : Window
 
     public void CloseForShutdown()
     {
+        _rightHoldTimer.Stop();
+        _rightHoldPointer = null;
         if (_placementEditActive)
         {
             EndPlacementEditVisuals();
@@ -468,11 +534,26 @@ public sealed partial class OverlayWindow : Window
         _animationTimer.Tick -= _animationTimerHandler;
         RevokeNativeDropTarget();
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
-        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _motion.Dispose();
-        _backdropController.Dispose();
         _materialController.Dispose();
+        MusicCompact.IdealWidthChanged -= OnMediaGeometryChanged;
+        _presentationSnapshot = null;
+        WidgetsExpanded.SetActive(false);
+        ClipboardExpanded.SetActive(false);
+        _mediaViewModel.SetPresentationVisible(this, false);
         Close();
+    }
+
+    private void OnMediaGeometryChanged(object? sender, EventArgs args)
+    {
+        if (_mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+        _mediaGeometryRefreshPending = true;
+        DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+        {
+            _mediaGeometryRefreshPending = false;
+            if (_presentationSnapshot is not { } snapshot) return;
+            ApplySnapshot(snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
+        });
     }
 
     private void EnsureVisualHostShown(bool allowActivation)
@@ -539,10 +620,11 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        WidgetsExpanded.SetActive(false);
+        ClipboardExpanded.SetActive(false);
+        _mediaViewModel.SetPresentationVisible(this, false);
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
-        NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
-        CompactMediaPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
         if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
@@ -562,11 +644,12 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        WidgetsExpanded.SetActive(false);
+        ClipboardExpanded.SetActive(false);
+        _mediaViewModel.SetPresentationVisible(this, false);
         _nativeWindowSafeToShow = false;
         StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
-        NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
-        CompactMediaPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
         _motion.SnapTo(OverlayMotionValues.Hidden);
@@ -589,6 +672,9 @@ public sealed partial class OverlayWindow : Window
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
+        WidgetsExpanded.SetActive(false);
+        ClipboardExpanded.SetActive(false);
+        _mediaViewModel.SetPresentationVisible(this, false);
         if (!_suppressedForFullscreen)
         {
             _logger.LogInformation(
@@ -670,7 +756,8 @@ public sealed partial class OverlayWindow : Window
                 _monitor.EffectiveWorkWidth,
                 _monitor.EffectiveWorkHeight,
                 _monitor.Scale,
-                wakeMode),
+                wakeMode,
+                HostContentScale),
             placement);
 
     private void StartAnimationFrames()
@@ -780,17 +867,11 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
     {
-        var preferences = _visualPreferences.Resolve(_viewModel.MotionPreference);
-        _materialController.Apply(preferences);
-        var backdropRefresh = _backdropController.Refresh(Root.ActualTheme == ElementTheme.Dark);
-        foreach (var failure in backdropRefresh.Failures)
-        {
-            LogNativeFailure(failure);
-        }
-        if (_viewModel.Snapshot.State != OverlayState.Hidden)
+        _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
+        if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
         {
             ApplySnapshot(
-                _viewModel.Snapshot,
+                snapshot,
                 _isActiveWindow,
                 _isActiveWindow,
                 _viewModel.FileDragWakeMode,
@@ -810,7 +891,6 @@ public sealed partial class OverlayWindow : Window
             values.BottomRadius,
             values.BottomRadius);
         _materialController.SetCornerRadius(Surface.CornerRadius);
-        CompactMediaPanel.Width = Math.Max(0, _viewModel.CompactMediaWidth);
         InteractionTintOverlay.CornerRadius = Surface.CornerRadius;
         SurfaceTransform.TranslateY = values.TopOffset;
         SurfaceTransform.ScaleX = values.DropTargetScale;
@@ -912,21 +992,11 @@ public sealed partial class OverlayWindow : Window
     {
         if (target.CompactContent > 0)
         {
-            var showActivity = _viewModel.IsNativeActivityVisible;
-            var showMedia = showActivity && _viewModel.IsMediaActivity;
-            CompactPanel.Visibility = showActivity ? Visibility.Collapsed : Visibility.Visible;
-            CompactPanel.IsHitTestVisible = !showActivity;
-            NativeActivityCompactPanel.Visibility = showActivity && !showMedia ? Visibility.Visible : Visibility.Collapsed;
-            NativeActivityCompactPanel.IsHitTestVisible = showActivity && !showMedia;
-            CompactMediaPanel.Visibility = showMedia ? Visibility.Visible : Visibility.Collapsed;
-            CompactMediaPanel.IsHitTestVisible = showMedia;
-            CompactSpectrumItems.Visibility = _viewModel.IsSpectrumVisible ? Visibility.Visible : Visibility.Collapsed;
-            UpdateExpandedPageVisuals();
+            CompactPanel.Visibility = Visibility.Visible;
+            CompactPanel.IsHitTestVisible = true;
         }
         else
         {
-            NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
-            CompactMediaPanel.Visibility = Visibility.Collapsed;
             CompactPanel.IsHitTestVisible = false;
         }
 
@@ -956,8 +1026,6 @@ public sealed partial class OverlayWindow : Window
         if (values.CompactContent <= 0.001 && _motion.Target.CompactContent == 0)
         {
             CompactPanel.Visibility = Visibility.Collapsed;
-            NativeActivityCompactPanel.Visibility = Visibility.Collapsed;
-            CompactMediaPanel.Visibility = Visibility.Collapsed;
         }
 
         if (values.DragContent <= 0.001 && _motion.Target.DragContent == 0)
@@ -977,18 +1045,20 @@ public sealed partial class OverlayWindow : Window
 
     private OverlayMotionValues CreateMotionTarget(OverlayState state, double topOffset)
     {
+        var geometry = DropSpace.Core.Island.IslandGeometry.ForFiles(state);
+        if (state == OverlayState.Expanded)
+            geometry = geometry with { Width = geometry.Width * ExpandedScale, Height = geometry.Height * ExpandedScale, Radius = geometry.Radius * ExpandedScale };
         return state switch
         {
-            OverlayState.DragApproaching => Create(300, 54, topOffset, 27, 0, 1, 0),
-            OverlayState.DragReady => Create(430, 92, topOffset, 30, 0, 1, 0),
-            OverlayState.Compact => Create(_viewModel.IsMediaActivity ? _viewModel.CompactMediaWidth : 340, 64, topOffset, 32, 1, 0, 0),
-            OverlayState.Expanded => Create(_viewModel.ExpandedPageSize.Width, _viewModel.ExpandedPageSize.Height, topOffset, 28, 0, 0, 1),
+            OverlayState.DragApproaching or OverlayState.DragReady => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 0, 1, 0),
+            OverlayState.Compact => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0),
+            OverlayState.Expanded => Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 0, 0, 1),
             OverlayState.Dismissing or OverlayState.Hidden => new OverlayMotionValues(
-                120,
-                12,
+                geometry.Width,
+                geometry.Height,
                 topOffset,
-                6,
-                6,
+                geometry.Radius,
+                geometry.Radius,
                 0,
                 0,
                 0,
@@ -1055,7 +1125,8 @@ public sealed partial class OverlayWindow : Window
             resolved,
             _monitor.EffectiveWorkLeft,
             _monitor.EffectiveWorkTop,
-            _monitor.Scale);
+            _monitor.Scale,
+            HostContentScale);
     }
 
     public void SuspendForPlacementEdit()
@@ -1091,8 +1162,17 @@ public sealed partial class OverlayWindow : Window
         RevokeNativeDropTarget();
         PlacementEditSurface.Visibility = Visibility.Visible;
         PlacementEditSurface.IsHitTestVisible = true;
-        PrepareContentForTarget(CreateMotionTarget(OverlayState.Compact, 0));
-        _motion.SetTarget(CreateMotionTarget(OverlayState.Compact, 0), IsReducedMotion());
+        PlacementConfirmActions.Visibility = Visibility.Collapsed;
+        CancelPlacementButton.Content = _strings.Get("CommonCancel");
+        var editTarget = Create(OverlayPlacementEditSession.EditorWidth, OverlayPlacementEditSession.EditorHeight, 0, 24, 0, 0, 0);
+        PrepareContentForTarget(editTarget);
+        _motion.SetTarget(editTarget, IsReducedMotion());
+        if (_rightHoldPointer is { } held && OverlayWindowInterop.TryGetCursorPosition(out var pointerPosition))
+        {
+            Surface.ReleasePointerCapture(held);
+            PlacementEditSurface.CapturePointer(held);
+            _placementEdit.TryBeginDrag(pointerPosition);
+        }
         if (!OverlayWindowInterop.SetNoActivate(_windowHandle, true, out var noActivateFailure))
         {
             LogNativeFailure(noActivateFailure);
@@ -1139,6 +1219,8 @@ public sealed partial class OverlayWindow : Window
 
     private void OnPlacementEditPointerPressed(object sender, PointerRoutedEventArgs args)
     {
+        for (var element = args.OriginalSource as DependencyObject; element is not null; element = VisualTreeHelper.GetParent(element))
+            if (element is Button) return;
         if (!_placementEditActive || !OverlayWindowInterop.TryGetCursorPosition(out var point) ||
             !_placementEdit.TryBeginDrag(point))
         {
@@ -1185,12 +1267,21 @@ public sealed partial class OverlayWindow : Window
             _placementEdit.Move(point, _monitor.Scale);
         }
 
-        var committed = _placementEdit.Commit();
+        _placementEdit.EndDrag();
         PlacementEditSurface.ReleasePointerCapture(args.Pointer);
-        EndPlacementEditVisuals();
-        PlacementCommitted?.Invoke(this, new OverlayPlacementEditEventArgs(committed));
+        PlacementConfirmActions.Visibility = Visibility.Visible;
         args.Handled = true;
     }
+
+    private void OnConfirmPlacementClicked(object sender, RoutedEventArgs args)
+    {
+        if (!_placementEditActive) return;
+        var committed = _placementEdit.Commit();
+        EndPlacementEditVisuals();
+        PlacementCommitted?.Invoke(this, new OverlayPlacementEditEventArgs(committed));
+    }
+
+    private void OnCancelPlacementClicked(object sender, RoutedEventArgs args) => CancelPlacementEdit();
 
     private void OnPlacementEditPointerCaptureLost(object sender, PointerRoutedEventArgs args)
     {
@@ -1213,7 +1304,8 @@ public sealed partial class OverlayWindow : Window
     {
         try
         {
-            await _viewModel.ExpandAsync();
+            if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music) _experience.Open(DropSpace.Core.Island.IslandPage.Music);
+            else await _viewModel.ExpandAsync();
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
             {
                 LogNativeFailure(noActivateFailure);
@@ -1227,223 +1319,39 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
-    private void OnCollapseClicked(object sender, RoutedEventArgs args) => _viewModel.Collapse();
+    private void OnCollapseClicked(object sender, RoutedEventArgs args) { _experience.Collapse(); _viewModel.Collapse(); }
 
-    private async void OnMediaPreviousClicked(object sender, RoutedEventArgs args) => await RunMediaCommandAsync(_viewModel.SkipPreviousMediaAsync, "previous");
-
-    private async void OnMediaPlayPauseClicked(object sender, RoutedEventArgs args) => await RunMediaCommandAsync(_viewModel.PlayPauseMediaAsync, "play/pause");
-
-    private async void OnMediaNextClicked(object sender, RoutedEventArgs args) => await RunMediaCommandAsync(_viewModel.SkipNextMediaAsync, "next");
-
-    private async Task RunMediaCommandAsync(Func<CancellationToken, Task> command, string commandName)
+    private void OnPreviousPageClicked(object sender, RoutedEventArgs args)
     {
-        try
-        {
-            await command(CancellationToken.None);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogInformation(exception, "Overlay media {Command} action failed.", commandName);
-        }
+        if (_experience.Current.Page > DropSpace.Core.Island.IslandPage.Widgets)
+            _experience.SelectPage(_experience.Current.Page - 1);
     }
 
-    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    public void RefreshLanguage()
     {
-        if (args.PropertyName is nameof(OverlayViewModel.CurrentMedia) or
-            nameof(OverlayViewModel.CurrentLyricsFrame) or
-            nameof(OverlayViewModel.CompactMediaWidth) or
-            nameof(OverlayViewModel.IsSpectrumVisible))
-        {
-            UpdateMediaVisuals();
-            if (_viewModel.Snapshot.State is OverlayState.Compact or OverlayState.Expanded)
-            {
-                ApplySnapshot(
-                    _viewModel.Snapshot,
-                    _isActiveWindow,
-                    _isActiveWindow,
-                    _viewModel.FileDragWakeMode,
-                    _viewModel.GetOverlayPlacement(_monitor.Id));
-            }
-        }
-
-        if (args.PropertyName is nameof(OverlayViewModel.ExpandedPage) or nameof(OverlayViewModel.ExpandedPageSize))
-        {
-            UpdateExpandedPageVisuals();
-            if (_viewModel.Snapshot.State == OverlayState.Expanded)
-            {
-                ApplySnapshot(
-                    _viewModel.Snapshot,
-                    _isActiveWindow,
-                    _isActiveWindow,
-                    _viewModel.FileDragWakeMode,
-                    _viewModel.GetOverlayPlacement(_monitor.Id));
-            }
-        }
+        XamlResourceOverride.ApplyTree(Root);
+        WidgetsExpanded.ViewModel = _widgetViewModel;
     }
-
-    private void UpdateMediaVisuals()
+    private void OnNextPageClicked(object sender, RoutedEventArgs args)
     {
-        var media = _viewModel.CurrentMedia;
-        var hasArtwork = _viewModel.IsMediaActivity && media.Artwork is { Length: > 0 };
-        CompactArtworkImage.Visibility = hasArtwork ? Visibility.Visible : Visibility.Collapsed;
-        CompactArtworkPlaceholder.Visibility = hasArtwork ? Visibility.Collapsed : Visibility.Visible;
-        ExpandedArtworkImage.Visibility = hasArtwork ? Visibility.Visible : Visibility.Collapsed;
-        ExpandedArtworkPlaceholder.Visibility = hasArtwork ? Visibility.Collapsed : Visibility.Visible;
-
-        ExpandedMusicTitleText.Text = media.TrackTitle;
-        ExpandedMusicArtistText.Text = media.Artist;
-        ExpandedMusicAlbumText.Text = media.AlbumTitle;
-        ExpandedMusicElapsedText.Text = FormatMediaTime(media.Timeline.Position);
-        ExpandedMusicRemainingText.Text = FormatMediaTime(media.Timeline.Duration - media.Timeline.Position);
-        ExpandedMediaPreviousButton.IsEnabled = media.CanSkipPrevious;
-        ExpandedMediaNextButton.IsEnabled = media.CanSkipNext;
-        ExpandedMediaPlayPauseButton.IsEnabled = media.CanPlay || media.CanPause;
-        if (ExpandedMediaPlayPauseButton.Content is FontIcon playPauseIcon)
-        {
-            playPauseIcon.Glyph = media.PlaybackState == MediaPlaybackState.Playing ? "\uE769" : "\uE768";
-        }
-
-        if (!_mediaSeekPressed && media.Timeline.Duration > TimeSpan.Zero)
-        {
-            _updatingMediaProgress = true;
-            ExpandedMusicProgressSlider.Value = Math.Clamp(
-                media.Timeline.Position.TotalMilliseconds / media.Timeline.Duration.TotalMilliseconds,
-                0,
-                1);
-            _updatingMediaProgress = false;
-        }
-
-        var revision = Interlocked.Increment(ref _artworkRevision);
-        _ = LoadArtworkAsync(media.Artwork, revision);
+        if (_experience.Current.Page < DropSpace.Core.Island.IslandPage.Clipboard)
+            _experience.SelectPage(_experience.Current.Page + 1);
     }
-
-    private async Task LoadArtworkAsync(byte[]? artwork, long revision)
+    private async void OnWidgetSettingsRequested(object? sender, EventArgs args)
     {
-        if (artwork is not { Length: > 0 })
-        {
-            CompactArtworkImage.Source = null;
-            ExpandedArtworkImage.Source = null;
-            return;
-        }
-
-        try
-        {
-            using var stream = new InMemoryRandomAccessStream();
-            await stream.WriteAsync(artwork.AsBuffer());
-            stream.Seek(0);
-            var image = new BitmapImage();
-            await image.SetSourceAsync(stream);
-            if (revision != Interlocked.Read(ref _artworkRevision))
-            {
-                return;
-            }
-
-            CompactArtworkImage.Source = image;
-            ExpandedArtworkImage.Source = image;
-        }
-        catch (Exception exception) when (exception is ArgumentException or COMException or InvalidOperationException)
-        {
-            _logger.LogDebug(exception, "Media artwork could not be decoded for the island.");
-            CompactArtworkImage.Source = null;
-            ExpandedArtworkImage.Source = null;
-        }
+        try { await _widgetViewModel.OpenSettingsAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        catch (Exception exception) { _logger.LogWarning("Widget settings navigation failed ({Category}).", exception.GetType().Name); }
     }
-
-    private bool _updatingMediaProgress;
-
-    private void UpdateExpandedPageVisuals()
+    private async void OnClipboardOpenMainRequested(object? sender, EventArgs args)
     {
-        var page = _viewModel.ExpandedPage;
-        var previousPage = _renderedExpandedPage;
-        ExpandedFilesPage.Visibility = page == ExpandedIslandPage.Files ? Visibility.Visible : Visibility.Collapsed;
-        ExpandedMusicPage.Visibility = page == ExpandedIslandPage.Music ? Visibility.Visible : Visibility.Collapsed;
-        ExpandedWidgetsPage.Visibility = page == ExpandedIslandPage.Widgets ? Visibility.Visible : Visibility.Collapsed;
-        ExpandedPagePreviousButton.IsEnabled = _viewModel.CanGoToPreviousExpandedPage;
-        ExpandedPageNextButton.IsEnabled = _viewModel.CanGoToNextExpandedPage;
-        (ExpandedPageNameText.Text, ExpandedPageDescriptionText.Text) = page switch
-        {
-            ExpandedIslandPage.Music => (_strings.Get("OverlayExpandedMusicTitle"), _strings.Get("OverlayExpandedMusicSubtitle")),
-            ExpandedIslandPage.Widgets => (_strings.Get("OverlayExpandedWidgetsTitle"), _strings.Get("OverlayExpandedWidgetsSubtitle")),
-            _ => (_strings.Get("OverlayExpandedFilesTitle"), _strings.Get("OverlayExpandedFilesSubtitle")),
-        };
-        ExpandedFilesItemsList.Visibility = _viewModel.RecentItems.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        ExpandedFilesEmptyState.Visibility = _viewModel.RecentItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (previousPage != page)
-        {
-            var direction = previousPage is null || (int)page >= (int)previousPage.Value ? 1 : -1;
-            _compositionAnimator.AnimatePage(GetExpandedPageElement(page), direction, IsReducedMotion());
-            _renderedExpandedPage = page;
-        }
-        UpdateMediaVisuals();
-    }
-
-    private FrameworkElement GetExpandedPageElement(ExpandedIslandPage page) => page switch
-    {
-        ExpandedIslandPage.Music => ExpandedMusicPage,
-        ExpandedIslandPage.Widgets => ExpandedWidgetsPage,
-        _ => ExpandedFilesPage,
-    };
-
-    private void OnExpandedPreviousPageClicked(object sender, RoutedEventArgs args)
-    {
-        _viewModel.NavigateExpandedPageLeft();
-        UpdateExpandedPageVisuals();
-        ApplySnapshot(_viewModel.Snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
-    }
-
-    private void OnExpandedNextPageClicked(object sender, RoutedEventArgs args)
-    {
-        _viewModel.NavigateExpandedPageRight();
-        UpdateExpandedPageVisuals();
-        ApplySnapshot(_viewModel.Snapshot, _isActiveWindow, _isActiveWindow, _viewModel.FileDragWakeMode, _viewModel.GetOverlayPlacement(_monitor.Id));
-    }
-
-    private void OnMusicProgressPressed(object sender, PointerRoutedEventArgs args) => _mediaSeekPressed = true;
-
-    private void OnMusicProgressReleased(object sender, PointerRoutedEventArgs args)
-    {
-        _mediaSeekPressed = false;
-        if (_updatingMediaProgress || _viewModel.CurrentMedia.Timeline.Duration <= TimeSpan.Zero)
-        {
-            return;
-        }
-
-        var duration = _viewModel.CurrentMedia.Timeline.Duration;
-        var position = TimeSpan.FromMilliseconds(duration.TotalMilliseconds * Math.Clamp(ExpandedMusicProgressSlider.Value, 0, 1));
-        _ = SeekMediaAsync(position);
-    }
-
-    private void OnMusicProgressChanged(object sender, RangeBaseValueChangedEventArgs args)
-    {
-        // The thumb is a local preview while pressed. The real SMTC position is updated once on
-        // release, so a flaky provider cannot overwrite the user's drag on every pointer tick.
-    }
-
-    private async Task SeekMediaAsync(TimeSpan position)
-    {
-        try
-        {
-            await _viewModel.SeekMediaAsync(position);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogInformation(exception, "Overlay media seek failed; the provider position remains authoritative.");
-        }
-    }
-
-    private static string FormatMediaTime(TimeSpan value)
-    {
-        if (value < TimeSpan.Zero || value == TimeSpan.MaxValue)
-        {
-            value = TimeSpan.Zero;
-        }
-
-        return $"{(int)value.TotalMinutes}:{value.Seconds:00}";
+        try { if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        catch (Exception exception) { _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name); }
     }
 
     private void OnOpenMainWindowClicked(object sender, RoutedEventArgs args)
     {
         _openMainWindow();
+        _experience.Collapse();
         _viewModel.Collapse();
     }
 
@@ -1576,6 +1484,14 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerPressed(object sender, PointerRoutedEventArgs args)
     {
+        if (!_placementEditActive && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove && args.GetCurrentPoint(Surface).Properties.IsRightButtonPressed)
+        {
+            _rightHoldPointer = args.Pointer;
+            Surface.CapturePointer(args.Pointer);
+            _rightHoldTimer.Start();
+            args.Handled = true;
+            return;
+        }
         if (_viewModel.Snapshot.State == OverlayState.Compact)
         {
             _motion.ApplyPress(true, IsReducedMotion());
@@ -1584,6 +1500,9 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerReleased(object sender, PointerRoutedEventArgs args)
     {
+        _rightHoldTimer.Stop();
+        if (_rightHoldPointer is { } held) Surface.ReleasePointerCapture(held);
+        _rightHoldPointer = null;
         _motion.ApplyPress(false, IsReducedMotion());
     }
 

@@ -41,6 +41,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private readonly IUpdateService _updates;
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
+    private readonly AppLanguageService _language;
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _queryCancellation;
     private readonly SemaphoreSlim _projectionLoadGate = new(1, 1);
@@ -93,7 +94,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         IUpdateService updates,
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
-        ILogger<MainViewModel> logger)
+        ILogger<MainViewModel> logger,
+        AppLanguageService language)
     {
         _repository = repository;
         _projection = projection;
@@ -117,6 +119,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _updateStatus = updates.Status;
         _dispatcher = dispatcher;
         _strings = strings;
+        _language = language;
         _logger = logger;
         _pageTitle = _strings.Get("PageTitleSpace");
         _pageDescription = _strings.Get("PageDescriptionSpace");
@@ -144,14 +147,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public string CurrentSection
     {
         get => _currentSection;
-        private set
-        {
-            if (SetProperty(ref _currentSection, value))
-            {
-                OnPropertyChanged(nameof(IsMusicVisible));
-                OnPropertyChanged(nameof(IsCollectionVisible));
-            }
-        }
+        private set { if (SetProperty(ref _currentSection, value)) { OnPropertyChanged(nameof(IsMusicVisible)); OnPropertyChanged(nameof(IsCollectionVisible)); } }
     }
 
     public string SearchText
@@ -241,8 +237,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
     }
 
-    public bool IsMusicVisible => string.Equals(CurrentSection, "Music", StringComparison.Ordinal);
-
+    public bool IsMusicVisible => CurrentSection == "Music";
     public bool IsCollectionVisible => !IsSettingsVisible && !IsMusicVisible;
 
     public int ItemCount
@@ -278,6 +273,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         get => _settings;
         private set
         {
+            var languageChanged = _settings.Language != value.Language;
+            if (languageChanged) _language.Apply(value.Language);
             if (SetProperty(ref _settings, value))
             {
                 OnPropertyChanged(nameof(IsClipboardPaused));
@@ -289,15 +286,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 OnPropertyChanged(nameof(EnableNearbySharing));
                 OnPropertyChanged(nameof(EnableInternetSharing));
                 OnPropertyChanged(nameof(DefaultClipboardSyncMode));
-                OnPropertyChanged(nameof(EnableMediaActivity));
-                OnPropertyChanged(nameof(ShowSpectrum));
-                OnPropertyChanged(nameof(EnableLyrics));
-                OnPropertyChanged(nameof(ShowWindowsNotifications));
-                OnPropertyChanged(nameof(ShowVolumeChanges));
-                OnPropertyChanged(nameof(EnableNativeWidgets));
-                OnPropertyChanged(nameof(ClockWidgetEnabled));
-                OnPropertyChanged(nameof(CalendarWidgetEnabled));
-                OnPropertyChanged(nameof(ResourceUsageWidgetEnabled));
                 OnPropertyChanged(nameof(StartWithWindows));
                 OnPropertyChanged(nameof(MaxImageMegabytes));
                 OnPropertyChanged(nameof(MaxImageMegapixels));
@@ -319,6 +307,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 OnPropertyChanged(nameof(AutoInstallUpdates));
                 OnPropertyChanged(nameof(UpdateChannel));
                 OnPropertyChanged(nameof(Language));
+                if (languageChanged)
+                {
+                    var keys = CurrentSection switch
+                    {
+                        "Clipboard" => ("PageTitleClipboard", "PageDescriptionClipboard"),
+                        "Pinned" => ("PageTitlePinned", "PageDescriptionPinned"),
+                        "Settings" => ("PageTitleSettings", "PageDescriptionSettings"),
+                        "Music" => ("PageTitleMusic", "PageDescriptionMusic"),
+                        _ => ("PageTitleSpace", "PageDescriptionSpace"),
+                    };
+                    PageTitle = _strings.Get(keys.Item1);
+                    PageDescription = _strings.Get(keys.Item2);
+                    ClipboardStatusText = FormatClipboardStatus(_clipboard.Status);
+                }
                 OnPropertyChanged(nameof(LastUpdateCheckText));
                 OnPropertyChanged(nameof(LastUpdateCheckDisplayText));
                 foreach (var card in Items)
@@ -346,24 +348,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public bool EnableInternetSharing => Settings.EnableInternetSharing;
 
     public ClipboardSyncMode DefaultClipboardSyncMode => Settings.DefaultClipboardSyncMode;
-
-    public bool EnableMediaActivity => Settings.IslandActivity.EnableMediaActivity;
-
-    public bool ShowSpectrum => Settings.IslandActivity.ShowSpectrum;
-
-    public bool EnableLyrics => Settings.Lyrics.Enabled;
-
-    public bool ShowWindowsNotifications => Settings.SystemActivities.ShowWindowsNotifications;
-
-    public bool ShowVolumeChanges => Settings.SystemActivities.ShowVolumeChanges;
-
-    public bool EnableNativeWidgets => Settings.Widgets.Enabled;
-
-    public bool ClockWidgetEnabled => Settings.Widgets.ClockEnabled;
-
-    public bool CalendarWidgetEnabled => Settings.Widgets.CalendarEnabled;
-
-    public bool ResourceUsageWidgetEnabled => Settings.Widgets.ResourceUsageEnabled;
 
     public bool StartWithWindows => Settings.StartWithWindows;
 
@@ -529,7 +513,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public AppLanguagePreference Language => Settings.Language;
 
-    public string CurrentVersionText => _updates.CurrentVersion.ToString();
+    public string CurrentVersionText => _updates.CurrentVersion.IsPrerelease
+        ? $"{_updates.CurrentVersion.Major}.{_updates.CurrentVersion.Minor}.{_updates.CurrentVersion.Patch} (Beta {_updates.CurrentVersion.PrereleaseNumber})"
+        : _updates.CurrentVersion.ToString();
 
     public string CurrentVersionDisplayText => _strings.Format("CurrentVersion", CurrentVersionText);
 
@@ -755,12 +741,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             case "Music":
                 PageTitle = _strings.Get("PageTitleMusic");
                 PageDescription = _strings.Get("PageDescriptionMusic");
-                IsBusy = false;
-                Items.Clear();
-                _projectionCursor = null;
-                HasMoreItems = false;
-                ItemCount = 0;
-                IsEmpty = true;
+                IsBusy = false; Items.Clear(); _projectionCursor = null;
+                HasMoreItems = false; ItemCount = 0; IsEmpty = true;
                 return;
             default:
                 CurrentSection = "Space";
@@ -774,6 +756,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
+        if (!IsCollectionVisible) return;
         ObjectDisposedException.ThrowIf(_disposed, this);
         var revision = Interlocked.Increment(ref _reloadRevision);
         var request = new ItemProjectionRequest(CurrentSection, SearchText);
@@ -1106,6 +1089,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSpaceItemsAsync(
         int limit,
         CancellationToken cancellationToken = default)
+        => await GetRecentSourceItemsAsync(ItemSource.Space, limit, cancellationToken);
+
+    public async Task<IReadOnlyList<ItemCardViewModel>> GetRecentSourceItemsAsync(
+        ItemSource source, int limit, CancellationToken cancellationToken = default)
     {
         if (limit is < 1 or > 20)
         {
@@ -1113,7 +1100,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
 
         var items = await _repository.QueryAsync(
-            new ItemQuery(Source: ItemSource.Space, Limit: limit),
+            new ItemQuery(Source: source, Limit: limit),
             cancellationToken);
         var cards = items.Select(item =>
         {
@@ -1206,9 +1193,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             await _dispatcher.EnqueueAsync(() =>
             {
                 Settings = updated;
-                StatusMessage = Settings.Language == previous.Language
-                    ? _strings.Get("SettingsSaved")
-                    : _strings.Get("LanguageChangeRestartRequired");
+                StatusMessage = string.Empty;
                 return Task.CompletedTask;
             });
         }

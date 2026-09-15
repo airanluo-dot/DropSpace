@@ -1,5 +1,26 @@
 # DropSpace UX Specification
 
+## Beta 24 amended island and settings
+
+Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the
+left rail on Widgets and the right rail on Clipboard. Playback updates retain
+the selected expanded page. A drag temporarily presents the Files drop target.
+The widget editor uses 4 rows by 8 columns; size choices list supported shapes
+instead of accepting arbitrary dimensions. Small settings and capture-control
+widgets have 1 by 1 forms; CPU/memory needs at least 2 by 1. Empty slots stay empty.
+Dragging changes widget position; selecting a widget shows an accent border,
+bold label and accessible selected status. Adding from the library scans vacant
+contiguous cells and never moves existing widgets. Insufficient space shows a
+localized error. Position/size controls remain available without dragging.
+Music is a main-window navigation destination. Settings categories are General,
+Island, Widgets, System activities, Devices and sharing, Updates, About. Keep
+native control labels, keyboard alternatives, and visible save/action errors.
+Settings apply immediately without success notices or Save/Apply actions. Only
+island position retains explicit confirmation. Widget position/size changes and
+valid hotkey/exclusion text changes commit directly; language refreshes in place.
+The Clipboard page names pin state and record removal explicitly and links to
+the full history. These changes are under validation, not a released snapshot.
+
 ## Experience goal
 
 DropSpace should feel like a compact system utility, not a content dashboard. The common path is: capture silently, locate quickly, act once, disappear.
@@ -221,3 +242,5 @@ Settings apply only edited fields to the latest saved snapshot. Unchanged startu
 Image cards prioritize resize, format conversion, and metadata removal when available. Main item actions occupy a separate row from the item title, and More actions uses a visible text label. Network actions remain discoverable when disabled, with a setup explanation. Hash, ZIP, QR, and metadata removal use the default export folder immediately. Hash results display a selectable SHA-256 value and a Copy checksum button; output results offer Open output folder. Images expose original/75%/50%/25% presets, show output dimensions, and retain custom pixel controls. Outputs never overwrite sources.
 
 Windows visual, keyboard, high contrast, DPI, image codec, startup registration, and two-device acceptance are still required before claiming this update verified on Windows.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

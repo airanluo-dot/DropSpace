@@ -7,9 +7,10 @@ public readonly partial record struct ReleaseVersion(
     int Major,
     int Minor,
     int Patch,
-    int? PreviewNumber) : IComparable<ReleaseVersion>
+    int? PrereleaseNumber,
+    string PrereleaseLabel = "beta") : IComparable<ReleaseVersion>
 {
-    public bool IsPreview => PreviewNumber.HasValue;
+    public bool IsPrerelease => PrereleaseNumber.HasValue;
 
     public static ReleaseVersion Parse(string value) =>
         TryParse(value, out var version)
@@ -38,19 +39,19 @@ public readonly partial record struct ReleaseVersion(
             return false;
         }
 
-        int? preview = null;
-        if (match.Groups["preview"].Success)
+        int? prerelease = null;
+        if (match.Groups["prerelease"].Success)
         {
-            if (!int.TryParse(match.Groups["preview"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ||
+            if (!int.TryParse(match.Groups["prerelease"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ||
                 number is < 1 or > 9998)
             {
                 return false;
             }
 
-            preview = number;
+            prerelease = number;
         }
 
-        version = new ReleaseVersion(major, minor, patch, preview);
+        version = new ReleaseVersion(major, minor, patch, prerelease, match.Groups["label"].Success ? match.Groups["label"].Value : "beta");
         return true;
     }
 
@@ -62,25 +63,25 @@ public readonly partial record struct ReleaseVersion(
         if (result != 0) return result;
         result = Patch.CompareTo(other.Patch);
         if (result != 0) return result;
-        if (!IsPreview && !other.IsPreview) return 0;
-        if (!IsPreview) return 1;
-        if (!other.IsPreview) return -1;
-        return PreviewNumber!.Value.CompareTo(other.PreviewNumber!.Value);
+        if (!IsPrerelease && !other.IsPrerelease) return 0;
+        if (!IsPrerelease) return 1;
+        if (!other.IsPrerelease) return -1;
+        return PrereleaseNumber!.Value.CompareTo(other.PrereleaseNumber!.Value);
     }
 
     public int ToVersionCode() => checked(
         (Major * 100_000_000) +
         (Minor * 1_000_000) +
         (Patch * 10_000) +
-        (PreviewNumber ?? 9_999));
+        (PrereleaseNumber ?? 9_999));
 
-    public Version ToWindowsVersion() => new(Major, Minor, Patch, PreviewNumber ?? 0);
+    public Version ToWindowsVersion() => new(Major, Minor, Patch, PrereleaseNumber ?? 0);
 
-    public Version ToPackageVersion() => new(Major, Minor, Patch, PreviewNumber ?? 9_999);
+    public Version ToPackageVersion() => new(Major, Minor, Patch, PrereleaseNumber ?? 9_999);
 
     public override string ToString() =>
-        IsPreview
-            ? $"{Major}.{Minor}.{Patch}-preview.{PreviewNumber!.Value}"
+        IsPrerelease
+            ? $"{Major}.{Minor}.{Patch}-{PrereleaseLabel}.{PrereleaseNumber!.Value}"
             : $"{Major}.{Minor}.{Patch}";
 
     public string ToTagString() => $"v{this}";
@@ -94,7 +95,7 @@ public readonly partial record struct ReleaseVersion(
     public static bool operator >=(ReleaseVersion left, ReleaseVersion right) => left.CompareTo(right) >= 0;
 
     [GeneratedRegex(
-        "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)\\.(?<patch>0|[1-9][0-9]*)(?:-preview\\.(?<preview>[1-9][0-9]*))?$",
+        "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)\\.(?<patch>0|[1-9][0-9]*)(?:-(?<label>preview|beta)\\.(?<prerelease>[1-9][0-9]*))?$",
         RegexOptions.CultureInvariant)]
     private static partial Regex ReleasePattern();
 }

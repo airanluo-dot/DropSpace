@@ -10,8 +10,6 @@ The release-specific Preview.14 motion and Acrylic matrix is in the
 [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md).
 The release-specific Preview.21 settings and action usability matrix is in the
 [Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md).
-The release-specific Preview.23 Native Island UI refactor matrix is in the
-[Preview.23 Native Island UI refactor test plan](docs/test-plan/v0.3.0-preview.23.md).
 
 ## Quality gates
 
@@ -131,8 +129,8 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 ### Windows compatibility baseline (Preview.8)
 
-- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Preview.23 Build 20348 minimum, capability fallbacks, distribution consistency, and evidence boundary.
-- Exercise Windows build 20348 and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100).
+- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Build 17763 minimum, capability fallbacks, distribution consistency, and evidence boundary.
+- Exercise Windows 10 1809/1909/20H2/22H2 (17763/18363/19042/19045) and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100).
 - At each available OS, cover 100%, 125%, 150%, 175%, and 200% scaling, one-to-three monitors, primary/non-primary placement, topology refresh, normal launch, `--startup`, clipboard, Smart/Classic drag, visible direct drops, preview fallback, updater, and the relevant packaging path.
 - Treat Mica, modern DWM attributes, Windows Share identity, and optional PDF/media APIs as capability outcomes. Windows 10 must retain the base visual and local drop/clipboard paths without probing failures or stale overlay hit regions.
 - Do not mark this gate complete from source inspection, Linux checks, or Windows 11 CI alone; attach executable OS/build/DPI/monitor evidence.
@@ -263,3 +261,5 @@ Automation does not claim visual quality or real Explorer/UIA/third-party provid
 Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.
 
 The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); the Preview.6 plan remains as historical scope. It is a release gate: CI proves policy, protocol, and crypto contracts; two real Windows devices plus an operator-deployed Worker are still required for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

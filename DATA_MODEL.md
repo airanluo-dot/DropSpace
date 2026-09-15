@@ -1,5 +1,27 @@
 # DropSpace Data Model
 
+## Beta 24 settings schema 14
+
+Settings JSON advances from 11/12/13 to 14; SQLite remains unchanged. Preserve
+existing item, clipboard, placement, sharing, action and update preferences.
+Native sections are IslandActivity, Lyrics, IslandAppearance, SystemActivities
+and Widgets. Valid provider, delay, app allowlist and custom layout survive migration.
+Invalid native fields normalize independently instead of quarantining the whole file.
+Whole-host material, widget idle keepalive and saved expanded-page state are not fields.
+Fresh defaults enable media/artwork/lyrics/FFT with NetEase lyrics and a 3-second
+pause delay; notifications and volume observation are off. The widget layout is
+8 columns by 4 rows with explicit compact slots; it carries no automatic visibility authority.
+Compact slots remain round-trippable for compatibility. The optional compact-widget
+feature from plan section 36.4 is not exposed; the editor controls the expanded grid.
+The September 12 user amendment supersedes the original 6 by 3 specification.
+Existing widget IDs 0–3 retain their meaning; Battery, Uptime, Stopwatch and
+ClipboardPause append IDs 4–7. Each widget has a bounded catalog of supported
+sizes. The editor rejects changes that cannot retain every existing widget.
+`IslandActivity.UseMediaSourceAllowList=true` with an empty list means no allowed
+players; false with an empty list means all players. This distinction survives restart.
+Clipboard island items remain references to canonical Clipboard source records;
+pinning changes state, and removing a record never deletes a source file.
+
 ## Modeling decision
 
 Use one aggregate plus composed payload records. `ClipboardItem`, `FileItem`, `ImageItem`, `TextItem`, and `UrlItem` are conceptual projections, not persistence subclasses.
@@ -283,3 +305,5 @@ Schema 3 adds the following nullable columns to `items`:
 - `pending_delete_expires_at_utc TEXT NULL`
 
 `ix_items_pending_delete` indexes the token and expiry. A pending row remains fully intact (same ID, metadata, payload reference, timestamps, pin state, and batch metadata) but is excluded from normal queries/counts and mutation projections. `UndoPendingRemovalAsync(token)` clears both columns atomically. `FinalizePendingRemovalAsync(token)` deletes the rows and unreferenced payload metadata in one transaction, returning relative paths only for payload records that were actually removed; the App-owned payload store then performs confined cleanup. Startup finalizes expired tokens. The user-facing Clear Clipboard operation uses the same pending path and excludes pinned rows by default.
+
+Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

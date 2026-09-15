@@ -23,6 +23,11 @@ public sealed class OverlayWindowService : IDisposable
     private readonly IWindowsCapabilityService _capabilities;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly OverlayStateMachine _stateMachine;
+    private readonly DropSpace.Core.Island.IslandExperienceCoordinator _experience;
+    private readonly MediaViewModel _mediaViewModel;
+    private readonly WidgetViewModel _widgetViewModel;
+    private readonly ClipboardIslandViewModel _clipboardViewModel;
+    private readonly SystemActivityViewModel _systemActivityViewModel;
     private readonly OleDragDropService _dragDropService;
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
@@ -35,6 +40,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly List<DragActivationHost> _activationHosts = [];
     private DisplayTopologyWatcher? _displayTopologyWatcher;
     private MonitorDescriptor? _primaryMonitor;
+    private AppLanguagePreference _displayLanguage;
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
     private long _activeSmartSessionId;
@@ -60,11 +66,18 @@ public sealed class OverlayWindowService : IDisposable
         DispatcherQueue dispatcher,
         ILoggerFactory loggerFactory,
         CrashDiagnosticsService crashDiagnostics,
-        SystemVisualPreferenceService visualPreferences)
+        SystemVisualPreferenceService visualPreferences,
+        DropSpace.Core.Island.IslandExperienceCoordinator experience,
+        MediaViewModel mediaViewModel,
+        WidgetViewModel widgetViewModel,
+        ClipboardIslandViewModel clipboardViewModel,
+        SystemActivityViewModel systemActivityViewModel)
     {
         _viewModel = viewModel;
         _strings = strings;
         _mainViewModel = mainViewModel;
+        _systemActivityViewModel = systemActivityViewModel;
+        _displayLanguage = mainViewModel.Language;
         _quickActionDialog = quickActionDialog;
         _monitorLayout = monitorLayout;
         _capabilities = capabilities;
@@ -78,6 +91,9 @@ public sealed class OverlayWindowService : IDisposable
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
         _crashDiagnostics = crashDiagnostics;
         _visualPreferences = visualPreferences;
+        _experience = experience; _mediaViewModel = mediaViewModel;
+        _widgetViewModel = widgetViewModel;
+        _clipboardViewModel = clipboardViewModel;
     }
 
     public async Task InitializeAsync(Action openMainWindow, CancellationToken cancellationToken = default)
@@ -95,8 +111,11 @@ public sealed class OverlayWindowService : IDisposable
             ?? throw new InvalidOperationException("No primary monitor was available after creating overlay surfaces.");
 
         _viewModel.SnapshotChanged += OnSnapshotChanged;
+        _experience.Changed += OnExperienceChanged;
+        _mediaViewModel.PropertyChanged += OnMediaSettingsChanged;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested += OnOverlayPlacementEditRequested;
+        _mainViewModel.PropertyChanged += OnMainSettingsChanged;
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
@@ -516,8 +535,11 @@ public sealed class OverlayWindowService : IDisposable
         }
 
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
+        _experience.Changed -= OnExperienceChanged;
+        _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _mainViewModel.OverlayPlacementEditRequested -= OnOverlayPlacementEditRequested;
+        _mainViewModel.PropertyChanged -= OnMainSettingsChanged;
         _foregroundWindowMonitor.ForegroundChanged -= OnForegroundChanged;
         _dragSessionDetector.CandidateStarted -= OnSmartDragCandidateStarted;
         _dragSessionDetector.VerifiedFileDragStarted -= OnSmartVerifiedFileDragStarted;
@@ -540,6 +562,7 @@ public sealed class OverlayWindowService : IDisposable
         foreach (var window in _windows)
         {
             window.PlacementCommitted -= OnPlacementCommitted;
+            window.PlacementEditRequested -= OnOverlayPlacementEditRequested;
             window.PlacementCancelled -= OnPlacementCancelled;
             window.CloseForShutdown();
         }
@@ -558,6 +581,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnSnapshotChanged(object? sender, OverlaySnapshot snapshot)
     {
+        _experience.UpdateFiles(snapshot);
         _logger.LogInformation(
             "Overlay state transition: {State}, temporary item count {TemporaryItemCount}, monitor {MonitorId}, revision {Revision}, cause {Cause}, motion {MotionPreference}.",
             snapshot.State,
@@ -570,6 +594,33 @@ public sealed class OverlayWindowService : IDisposable
     }
 
     private void OnForegroundChanged(object? sender, EventArgs args) => ApplySnapshot(_viewModel.Snapshot);
+
+    private void OnExperienceChanged(object? sender, DropSpace.Core.Island.IslandExperienceSnapshot snapshot) => ApplySnapshot(_viewModel.Snapshot);
+
+    private void OnMainSettingsChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MainViewModel.Language) && _displayLanguage != _mainViewModel.Language)
+        {
+            _displayLanguage = _mainViewModel.Language;
+            _dispatcher.TryEnqueue(() =>
+            {
+                if (_disposed) return;
+                foreach (var window in _windows) window.RefreshLanguage();
+            });
+            return;
+        }
+        if (args.PropertyName != nameof(MainViewModel.Theme)) return;
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (_disposed) return;
+            foreach (var window in _windows) window.ApplyTheme(_mainViewModel.Theme);
+        });
+    }
+
+    private void OnMediaSettingsChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings)) ApplySnapshot(_viewModel.Snapshot);
+    }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -609,10 +660,6 @@ public sealed class OverlayWindowService : IDisposable
         else if (args.PropertyName == nameof(OverlayViewModel.SmartDragExcludedProcesses))
         {
             _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
-        }
-        else if (args.PropertyName is nameof(OverlayViewModel.IsNativeActivityVisible) or nameof(OverlayViewModel.ActivityTitle) or nameof(OverlayViewModel.ActivitySubtitle))
-        {
-            ApplySnapshot(_viewModel.Snapshot);
         }
     }
 
@@ -791,12 +838,14 @@ public sealed class OverlayWindowService : IDisposable
             _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
             _activeSmartSessionId = 0;
             _stateMachine.OpenQuickPanel();
+            _experience.Open();
             _logger.LogInformation("Quick Panel opened from the registered global hotkey.");
         });
     }
 
     private void ApplySnapshot(OverlaySnapshot snapshot)
     {
+        snapshot = snapshot with { State = _experience.Current.State };
         if (_primaryMonitor is null)
         {
             return;
@@ -854,8 +903,15 @@ public sealed class OverlayWindowService : IDisposable
                 visualCallbacks,
                 _openMainWindow ?? throw new InvalidOperationException("The main-window callback is unavailable."),
                 _loggerFactory.CreateLogger<OverlayWindow>(),
-                _visualPreferences);
+                _visualPreferences,
+                _experience,
+                _mediaViewModel,
+                _widgetViewModel,
+                _clipboardViewModel,
+                _systemActivityViewModel);
+            window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
+            window.PlacementEditRequested += OnOverlayPlacementEditRequested;
             window.PlacementCancelled += OnPlacementCancelled;
             _windows.Add(window);
         }
@@ -1217,6 +1273,7 @@ public sealed class OverlayWindowService : IDisposable
                 foreach (var window in _windows)
                 {
                     window.PlacementCommitted -= OnPlacementCommitted;
+            window.PlacementEditRequested -= OnOverlayPlacementEditRequested;
                     window.PlacementCancelled -= OnPlacementCancelled;
                     window.CloseForShutdown();
                 }
@@ -1278,18 +1335,8 @@ public sealed class OverlayWindowService : IDisposable
 
     private bool VerifyWakeModeSwitchOwnership(FileDragWakeMode originalMode)
     {
-        var nativeActivityWasVisible = _viewModel.ActivitySnapshot.Current is not null;
-        var originalTemporaryItemCount = _viewModel.Snapshot.TemporaryItemCount;
         try
         {
-            // Native widgets are allowed to keep the island Compact with zero temporary items.
-            // The activation-host contract is specifically a hidden-surface contract, so make
-            // that precondition explicit instead of accidentally testing ownership against a
-            // visible native activity surface.
-            _stateMachine.SetNativeActivityVisible(false);
-            _stateMachine.Restore(0);
-            ApplySnapshot(_viewModel.Snapshot);
-
             ConfigureWakeMode(FileDragWakeMode.ClassicTopEdge, force: true);
             ApplySnapshot(_viewModel.Snapshot);
             var classicTargetOwned = _activationHosts.Count == _windows.Count &&
@@ -1304,8 +1351,6 @@ public sealed class OverlayWindowService : IDisposable
         finally
         {
             ConfigureWakeMode(originalMode, force: true);
-            _stateMachine.SetNativeActivityVisible(nativeActivityWasVisible);
-            _stateMachine.Restore(originalTemporaryItemCount);
             ApplySnapshot(_viewModel.Snapshot);
         }
     }
