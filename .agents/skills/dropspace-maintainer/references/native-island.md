@@ -55,3 +55,5 @@ Placement editing supports right-button hold and explicit settings entry. Releas
 Audio hardware smoke tests require an actual render endpoint. A host without one reports Inconclusive, never a successful audio validation. Before release, run the same PCM/volume tests on an equipped Windows desktop and record zero skips.
 
 Widget settings retain existing button instances when placements change. Recreating the focused grid on every save transfers focus to the numeric editor and scrolls away from the drop target; verify focus and scroll position in native drag acceptance.
+
+Maintenance shutdown must drain window-owned work and DI/native services before closing the final main HWND. Detach the window callbacks first, keep its dispatcher alive during async cleanup, then close after cleanup. The installer lifecycle gate must verify graceful /UPDATE shutdown and restart.

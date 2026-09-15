@@ -372,9 +372,9 @@ public partial class App : Application
 
         var window = _window;
         _window = null;
-        await CleanupAsync("main window close", () =>
+        await CleanupAsync("main window detach", () =>
         {
-            window?.AllowCloseAndClose();
+            window?.PrepareForShutdown();
             return Task.CompletedTask;
         });
         if (window is not null)
@@ -395,6 +395,11 @@ public partial class App : Application
             try { await fileLogger.DisposeAsync(); }
             catch (Exception exception) { Debug.WriteLine(exception); }
         }
+
+        // Keep the final HWND and its dispatcher alive while COM/native services
+        // detach and asynchronous cleanup drains. Closing it earlier can tear down
+        // WinUI before maintenance shutdown can acknowledge completion to Setup.
+        window?.AllowCloseAndClose();
 
         async Task CleanupAsync(string stage, Func<Task> cleanup)
         {

@@ -196,6 +196,13 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
 
     public void AllowCloseAndClose()
     {
+        PrepareForShutdown();
+        Close();
+    }
+
+    public void PrepareForShutdown()
+    {
+        if (_allowClose) return;
         _allowClose = true;
         AppWindow.Changed -= OnWindowPresentationChanged;
         _viewModel.PropertyChanged -= OnMediaSectionChanged;
@@ -205,7 +212,6 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         _viewModel.Dispose();
         _tray?.Dispose();
         _tray = null;
-        Close();
     }
 
     public async Task ShowRecoveryAsync()
