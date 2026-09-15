@@ -277,3 +277,26 @@ the probe. Transient activity runtime wiring is in progress, not accepted yet.
 
 Repository Skill text updated. Personal Skill synchronization/publication and
 all remaining phase 8/9 release gates are still open; no release is claimed.
+
+## September 15 Beta 24 release validation
+
+Current canonical version is v0.3.0-beta.24; the earlier Preview.24 sections
+are execution history, not published releases. See beta-migration.md for the
+version/parser/channel contract and approved Preview.23 manual upgrade boundary.
+Core 212, Infrastructure 151, App 40 local tests pass; real PCM and volume
+were retried with 2 passed and zero skipped. Website 27 unit and 6 Chromium
+browser tests pass. Latest native widget drag swaps Clock and ResourceUsage,
+preserves the other six placements, and retains scroll/focus after saving.
+Placement editing shows Confirm/Cancel after release and does not persist the
+preview; Cancel restores the original. Right-hold input is implemented but its
+actual hold gesture has not been independently exercised by the current tool.
+Full native smoke beta24-final-native-smoke.json passed lifecycle/geometry,
+source preservation, clipboard and resource plateau checks. Repository/personal
+Skill copies are synchronized and both validate.
+
+The hosted installer caught premature final-HWND closure during maintenance.
+Shutdown now drains native/DI services before closing that HWND. Two local
+startup/maintenance cycles exited successfully; the measured second request
+returned 0 in 406 ms. The existing installer lifecycle regression is rerunning
+in hosted CI, followed by publication and live website/API verification.
+No public Beta release is claimed until those gates complete.

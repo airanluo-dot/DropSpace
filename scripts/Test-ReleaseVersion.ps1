@@ -90,7 +90,7 @@ foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1
     }
 }
 
-Write-Host "Stable/Preview release metadata and shared VersionCode rules passed."
+Write-Host "Stable/Beta release metadata, historical Preview compatibility, and shared VersionCode rules passed."
 
 $beta = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.24"
 Assert-Equal $beta.Channel "beta" "Beta channel"
