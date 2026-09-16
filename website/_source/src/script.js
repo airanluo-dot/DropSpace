@@ -230,3 +230,30 @@ function renderReleaseEntries(container, releases, zh) {
   }
   container.replaceChildren(fragment);
 }
+
+// Explicit, keyboard-accessible exploration; never auto-rotate or play audio.
+for (const showcase of document.querySelectorAll('[data-native-showcase]')) {
+  const tabs = [...showcase.querySelectorAll('[role="tab"]')];
+  const select = (tab, focus = false) => {
+    for (const item of tabs) {
+      const active = item === tab;
+      item.setAttribute('aria-selected', String(active));
+      item.tabIndex = active ? 0 : -1;
+      document.getElementById(item.getAttribute('aria-controls')).hidden = !active;
+    }
+    if (focus) tab.focus();
+  };
+  for (const [index, tab] of tabs.entries()) {
+    tab.addEventListener('click', () => select(tab));
+    tab.addEventListener('keydown', (event) => {
+      let target;
+      if (event.key === 'ArrowRight') target = Math.min(tabs.length - 1, index + 1);
+      if (event.key === 'ArrowLeft') target = Math.max(0, index - 1);
+      if (event.key === 'Home') target = 0;
+      if (event.key === 'End') target = tabs.length - 1;
+      if (target === undefined) return;
+      event.preventDefault();
+      select(tabs[target], true);
+    });
+  }
+}

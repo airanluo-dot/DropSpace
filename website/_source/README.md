@@ -27,3 +27,20 @@ The committed `data/releases.json` is only a local-development and pull-request 
 CSS, JavaScript, brand assets, screenshots, and demo media receive content-hashed filenames so each Pages artifact is internally consistent.
 
 GitHub Pages does not expose arbitrary response-header or cache-rule configuration. The build therefore uses a strict per-document CSP meta policy, immutable versioned asset URLs, static redirects, a custom 404 page, and an atomic Pages artifact deployment. Moving to a host with response-header controls would allow the same CSP to be enforced as an HTTP header.
+
+## Beta 24 homepage stories
+
+The homepage's native-island, widgets and music sections share the original
+shell, dark palette, section typography and gradient accents. Their illustrations
+use labeled sample content, not live desktop/audio data. The four-page showcase
+supports pointer and keyboard selection without autoplay or wraparound. Maintain
+English/Simplified Chinese copy together in scripts/i18n.mjs. Browser coverage in
+tests/native-showcase.spec.mjs checks tab behavior, locale, the Beta download,
+eight widget tiles and mobile overflow. Website-only publication uses the Pages
+workflow; do not create another App release for presentation changes.
+
+Visual consistency is mandatory: the new feature stage reuses the original
+mode-screen background, native surfaces reuse its expanded-island background,
+border and shadow, and page transitions reuse the original .55s easing and
+popover entrance geometry. Browser tests compare computed appearance/motion
+against those existing elements and verify reduced-motion behavior.
