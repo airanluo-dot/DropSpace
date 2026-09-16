@@ -175,7 +175,8 @@ public sealed record TransferManifest(
     DropLinkProtocolVersion Protocol,
     IReadOnlyList<TransferItemManifest> Items,
     long TotalBytes,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    int ChunkBytes = TransferLimits.DefaultChunkBytes);
 
 public sealed record TransferSession(
     Guid Id,

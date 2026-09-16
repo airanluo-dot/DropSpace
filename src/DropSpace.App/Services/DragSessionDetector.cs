@@ -808,11 +808,13 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
             {
                 var signal = await ReadNextSignalAsync(cancellationToken).ConfigureAwait(false);
                 Interlocked.Increment(ref _observedSignals);
+                try
+                {
                 if (signal.CandidateCreationSuppressed || CandidateCreationSuppressed)
                 {
                     if (signal.Kind == DetectorSignalKind.Cancelled && CandidateCreationSuppressed)
                     {
-                        PlacementEditEscapeRequested?.Invoke(this, EventArgs.Empty);
+                        PublishPlacementEditEscapeRequested();
                     }
 
                     // Suppression forbids creation/promotion only. Terminal events still
@@ -919,6 +921,37 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                     pressedShellSurface = DragSourceKind.Unknown;
                     pressedExcluded = false;
                 }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    // A transient UIA/monitor/COM failure must not permanently disable the
+                    // global drag observer. Converge any partially active policy session before
+                    // continuing with later signals; event subscribers are isolated below.
+                    _logger.LogWarning(
+                        exception,
+                        "Smart drag signal {SignalKind} failed; continuing the observer.",
+                        signal.Kind);
+                    pressedShellSurface = DragSourceKind.Unknown;
+                    pressedExcluded = false;
+                    if (_policy.IsActive)
+                    {
+                        try
+                        {
+                            PublishTransition(_policy.DragCancelled(signal.Point));
+                        }
+                        catch (Exception cancelException) when (cancelException is not OutOfMemoryException)
+                        {
+                            _logger.LogWarning(
+                                cancelException,
+                                "Smart drag recovery cancellation failed ({Category}).",
+                                cancelException.GetType().Name);
+                        }
+                    }
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -953,7 +986,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                 transition.EvidenceLevel,
                 transition.Evidence,
                 transition.RequiresOleVerification);
-            CandidateStarted?.Invoke(this, new DragSessionCandidate(
+            PublishCandidateStarted(new DragSessionCandidate(
                 transition.SessionId,
                 monitor.Id,
                 transition.Point,
@@ -976,7 +1009,7 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                 monitor.Id,
                 transition.EvidenceLevel,
                 transition.Evidence);
-            VerifiedFileDragStarted?.Invoke(this, new DragSessionCandidate(
+            PublishVerifiedFileDragStarted(new DragSessionCandidate(
                 transition.SessionId,
                 monitor.Id,
                 transition.Point,
@@ -1010,7 +1043,87 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
                 "Smart file-drag candidate session {SessionId} ended with {Result}.",
                 transition.SessionId,
                 transition.Kind);
-            CandidateEnded?.Invoke(this, transition.SessionId);
+            PublishCandidateEnded(transition.SessionId);
+        }
+    }
+
+    private void PublishPlacementEditEscapeRequested()
+    {
+        if (PlacementEditEscapeRequested is not { } handlers)
+        {
+            return;
+        }
+
+        foreach (EventHandler handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler(this, EventArgs.Empty);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _logger.LogWarning(exception, "Smart-drag placement-edit subscriber failed ({Category}).", exception.GetType().Name);
+            }
+        }
+    }
+
+    private void PublishCandidateStarted(DragSessionCandidate candidate)
+    {
+        if (CandidateStarted is not { } handlers)
+        {
+            return;
+        }
+
+        foreach (EventHandler<DragSessionCandidate> handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler(this, candidate);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _logger.LogWarning(exception, "Smart-drag candidate subscriber failed ({Category}).", exception.GetType().Name);
+            }
+        }
+    }
+
+    private void PublishVerifiedFileDragStarted(DragSessionCandidate candidate)
+    {
+        if (VerifiedFileDragStarted is not { } handlers)
+        {
+            return;
+        }
+
+        foreach (EventHandler<DragSessionCandidate> handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler(this, candidate);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _logger.LogWarning(exception, "Smart-drag verified subscriber failed ({Category}).", exception.GetType().Name);
+            }
+        }
+    }
+
+    private void PublishCandidateEnded(long sessionId)
+    {
+        if (CandidateEnded is not { } handlers)
+        {
+            return;
+        }
+
+        foreach (EventHandler<long> handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler(this, sessionId);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _logger.LogWarning(exception, "Smart-drag candidate-ended subscriber failed ({Category}).", exception.GetType().Name);
+            }
         }
     }
 
@@ -1183,6 +1296,17 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
             var moveReady = _moveSignals.WaitToReadAsync(waitCancellation.Token).AsTask();
             _ = await Task.WhenAny(criticalReady, moveReady).ConfigureAwait(false);
             await waitCancellation.CancelAsync().ConfigureAwait(false);
+            // The losing WaitToReadAsync task is intentionally cancelled, but it still owns a
+            // channel registration until it observes that cancellation. Await both tasks so the
+            // cancellation exception is observed and the registration is released before the
+            // next pair is created during a long drag.
+            try
+            {
+                await Task.WhenAll(criticalReady, moveReady).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (waitCancellation.IsCancellationRequested)
+            {
+            }
             cancellationToken.ThrowIfCancellationRequested();
         }
     }

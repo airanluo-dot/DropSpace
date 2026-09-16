@@ -25,9 +25,10 @@ For v0.3 network/preview changes, read the DropSpace maintainer skill and the co
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. Preview.23 requires one manual installation of
 Beta 24, preserving data/settings, because its shipped parser rejects Beta
-tags. Subsequent Beta updates are automatic according to user settings.
+tags. Beta 25 is the full Beta.24 audit-remediation release; subsequent Beta
+updates are automatic according to user settings.
 See [migration contract](docs/dev/beta-migration.md).

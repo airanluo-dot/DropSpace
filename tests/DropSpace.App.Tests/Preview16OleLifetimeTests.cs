@@ -26,7 +26,11 @@ public sealed class Preview16OleLifetimeTests
             var stagingLeases = new StagingLeaseStore(paths, NullLogger<StagingLeaseStore>.Instance);
             var materializer = new VirtualFileMaterializer(paths, classifier, NullLogger<VirtualFileMaterializer>.Instance, stagingLeases);
             var task = materializer.MaterializeAsync(source);
-            if (!asyncMode) Assert.IsTrue(task.IsCompletedSuccessfully);
+            // A non-async source only guarantees IDataObject access through the OLE callback.
+            // The implementation now takes ownership of its content medium before returning,
+            // then copies owned bytes off-thread, so the materialization task may still be
+            // running when the source releases its IDataObject.
+            if (!asyncMode) Assert.IsGreaterThan(0, source.ContentDataRequests);
             source.DropReturned = true;
             var batch = await task;
             Assert.AreEqual(1, batch.Paths.Count);
@@ -59,6 +63,7 @@ public sealed class Preview16OleLifetimeTests
     private sealed class VirtualSource(OleFileDataClassifier classifier, bool asyncMode) : IDataObject, VirtualFileMaterializer.IDataObjectAsyncCapability
     {
         public bool DropReturned { get; set; }
+        public int ContentDataRequests { get; private set; }
         public int EndCount { get; private set; }
         private bool _started;
         public void GetData(ref FORMATETC formatetc, out STGMEDIUM medium)
@@ -73,7 +78,11 @@ public sealed class Preview16OleLifetimeTests
                 // the native payload's four-byte count precedes it.
                 Encoding.Unicode.GetBytes("payload.txt").CopyTo(bytes, 76);
             }
-            else bytes = [1, 2, 3];
+            else
+            {
+                ContentDataRequests++;
+                bytes = [1, 2, 3];
+            }
             var handle = GlobalAlloc(0x42, (nuint)bytes.Length);
             var pointer = GlobalLock(handle);
             Marshal.Copy(bytes, 0, pointer, bytes.Length);

@@ -307,7 +307,13 @@ public partial class App : Application
                 if (_window is not null)
                 {
                     _services?.GetService<MaintenanceShutdownService>()?.MarkReady();
-                    await _window.ShowRecoveryAsync();
+                    if (!await _window.ShowRecoveryAsync(_appLifetimeCancellation.Token))
+                    {
+                        // Do not leave a process without a usable window or a recovery
+                        // explanation when startup failed before XamlRoot was attached.
+                        await ShutdownAsync();
+                        Environment.Exit(1);
+                    }
                 }
                 else
                 {

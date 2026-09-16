@@ -26,7 +26,10 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     public ClipboardIslandViewModel(MainViewModel main, ClipboardCaptureService capture, IAppStringLocalizer strings, ILogger<ClipboardIslandViewModel> logger, DispatcherQueue dispatcher)
     {
         _main = main; _capture = capture; _strings = strings; _logger = logger; _dispatcher = dispatcher;
-        _main.PropertyChanged += OnMainChanged; _capture.ItemCaptured += OnCaptured; _worker = RunAsync();
+        _main.PropertyChanged += OnMainChanged;
+        _capture.ItemCaptured += OnCaptured;
+        _capture.ItemImported += OnCaptured;
+        _worker = RunAsync();
     }
     public ObservableCollection<ItemCardViewModel> Items { get; } = [];
     public string Error { get => _error; private set => SetProperty(ref _error, value); }
@@ -81,7 +84,11 @@ public sealed class ClipboardIslandViewModel : ObservableObject, IAsyncDisposabl
     }
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) return; _disposed = true; _main.PropertyChanged -= OnMainChanged; _capture.ItemCaptured -= OnCaptured;
+        if (_disposed) return;
+        _disposed = true;
+        _main.PropertyChanged -= OnMainChanged;
+        _capture.ItemCaptured -= OnCaptured;
+        _capture.ItemImported -= OnCaptured;
         _stop.Cancel(); _refresh.Writer.TryComplete(); await _worker; _stop.Dispose();
     }
 }

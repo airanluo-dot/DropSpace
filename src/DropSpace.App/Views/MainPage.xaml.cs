@@ -98,6 +98,17 @@ public sealed partial class MainPage : Page
             throw new InvalidOperationException("Main-page XAML initialization failed.", exception);
         }
 
+        // Windows.System.VirtualKey has no named value for the US comma key,
+        // although the Win32 virtual-key value is stable. Configure this
+        // accelerator in code so XAML parsing cannot reject the numeric value.
+        var settingsAccelerator = new KeyboardAccelerator
+        {
+            Key = (VirtualKey)188,
+            Modifiers = VirtualKeyModifiers.Control,
+        };
+        settingsAccelerator.Invoked += OnSettingsAccelerator;
+        KeyboardAccelerators.Add(settingsAccelerator);
+
         DataContext = viewModel;
         MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle);
         BuildSettingsPages(settingsEditor);
@@ -223,7 +234,8 @@ public sealed partial class MainPage : Page
     {
         if (args.Key == VirtualKey.Escape)
         {
-            SearchBox.Text = string.Empty;
+            if (!string.IsNullOrEmpty(SearchBox.Text)) SearchBox.Text = string.Empty;
+            else ItemsList.Focus(FocusState.Keyboard);
             args.Handled = true;
         }
     }
@@ -260,27 +272,28 @@ public sealed partial class MainPage : Page
 
     private async void OnAddTextUrlClicked(object sender, RoutedEventArgs args)
     {
-        var editor = new TextBox
+        await RunAsync(async () =>
         {
-            AcceptsReturn = true,
-            MinWidth = 420,
-            MinHeight = 140,
-            TextWrapping = TextWrapping.Wrap,
-            PlaceholderText = _strings.Get("AddTextUrlPlaceholder"),
-        };
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = _strings.Get("AddTextUrlTitle"),
-            Content = editor,
-            PrimaryButtonText = _strings.Get("AddTextUrlConfirm"),
-            CloseButtonText = _strings.Get("Cancel"),
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(editor.Text))
-        {
-            await RunAsync(() => _viewModel.AddTextToSpaceAsync(editor.Text, "manual-text-url"));
-        }
+            var editor = new TextBox
+            {
+                AcceptsReturn = true,
+                MinWidth = 420,
+                MinHeight = 140,
+                TextWrapping = TextWrapping.Wrap,
+                PlaceholderText = _strings.Get("AddTextUrlPlaceholder"),
+            };
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = _strings.Get("AddTextUrlTitle"),
+                Content = editor,
+                PrimaryButtonText = _strings.Get("AddTextUrlConfirm"),
+                CloseButtonText = _strings.Get("Cancel"),
+                DefaultButton = ContentDialogButton.Primary,
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(editor.Text))
+                await _viewModel.AddTextToSpaceAsync(editor.Text, "manual-text-url");
+        });
     }
 
     private void OnDragEnter(object sender, DragEventArgs args) => SetDropHint(args, true);
@@ -298,7 +311,9 @@ public sealed partial class MainPage : Page
             {
                 var storageItems = await args.DataView.GetStorageItemsAsync();
                 await _viewModel.AddPathsBatchAsync(
-                    storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path)).Select(item => item.Path),
+                    storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path))
+                        .Take(MainViewModel.MaximumManualBatchItems + 1)
+                        .Select(item => item.Path),
                     null,
                     "main-window-drop");
                 return;
@@ -668,28 +683,35 @@ public sealed partial class MainPage : Page
 
     private async Task ShowPreviewAsync(ItemCardViewModel card)
     {
-        var descriptor = await _previews.LoadAsync(card.Item, inline: false);
-        var content = await CreatePreviewContentAsync(descriptor, card.Item);
-        if (descriptor.Kind == PreviewKind.Pdf && content is PdfPreviewHost)
-        {
-            try
-            {
-                await _previews.CacheSuccessfulAsync(card.Item, descriptor);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                // A cache failure must not hide a successfully rendered preview.
-            }
-        }
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = card.Title,
-            Content = content,
-            CloseButtonText = _strings.Get("CommonClose"),
-        };
+        UIElement? content = null;
         try
         {
+            var descriptor = await _previews.LoadAsync(card.Item, inline: false);
+            content = await CreatePreviewContentAsync(descriptor, card.Item);
+            if (descriptor.Kind == PreviewKind.Pdf && content is PdfPreviewHost)
+            {
+                try
+                {
+                    await _previews.CacheSuccessfulAsync(card.Item, descriptor);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // A cache failure must not hide a successfully rendered preview.
+                }
+            }
+
+            if (XamlRoot is not { } xamlRoot)
+            {
+                throw new InvalidOperationException("The preview dialog has no XamlRoot.");
+            }
+
+            var dialog = new ContentDialog
+            {
+                XamlRoot = xamlRoot,
+                Title = card.Title,
+                Content = content,
+                CloseButtonText = _strings.Get("CommonClose"),
+            };
             await dialog.ShowAsync();
         }
         finally

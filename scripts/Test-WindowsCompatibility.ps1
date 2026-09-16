@@ -40,7 +40,7 @@ function Read-CompatibilityFile
         return ""
     }
 
-    return Get-Content -Path $path -Raw
+    return Get-Content -Path $path -Raw -Encoding UTF8
 }
 
 function Assert-CompatibilityText
@@ -124,6 +124,7 @@ Assert-CompatibilityText "compatibility-baseline.md" '20348' "The compatibility 
 Assert-CompatibilityText "docs/test-plan/v0.3.0-preview.10.md" 'Windows 10 (version )?1809' "The current Preview test plan is missing the required Windows 10 1809 matrix."
 Assert-CompatibilityText "website/_source/src/index.html" 'Minimum system requirements depend on the release' "The website must explain that system requirements are release-specific."
 Assert-CompatibilityText "website/_source/src/index.html" '<a\b[^>]*href="\{\{STABLE_URL\}\}"[^>]*data-release-url[^>]*>Release notes' "The website must link system requirements to synchronized release notes."
+Assert-CompatibilityText "website/_source/src/index.html" '20348' "The website does not state the Beta.25 minimum."
 
 if ($errors.Count -ne 0)
 {

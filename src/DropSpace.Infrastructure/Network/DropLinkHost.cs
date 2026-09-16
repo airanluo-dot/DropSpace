@@ -592,8 +592,8 @@ public sealed class DropLinkHost(
                 }
 
                 var expectedLength = Math.Min(
-                    TransferLimits.DefaultChunkBytes,
-                    item.Size - ((long)index * TransferLimits.DefaultChunkBytes));
+                    receive.Manifest.ChunkBytes,
+                    item.Size - ((long)index * receive.Manifest.ChunkBytes));
                 if (expectedLength < 0 || context.Request.ContentLength != expectedLength)
                 {
                     return Results.BadRequest(new { error = "chunk-length-invalid" });

@@ -17,7 +17,7 @@ function Get-ResourceNames([string]$Path)
         throw "Localized resource file is missing: $Path"
     }
 
-    [xml]$resourceDocument = Get-Content -Path $Path -Raw
+    [xml]$resourceDocument = Get-Content -Path $Path -Raw -Encoding UTF8
     $names = @($resourceDocument.root.data | ForEach-Object { [string]$_.name })
     if ($names.Count -eq 0)
     {
@@ -55,7 +55,7 @@ $sourceFiles = @(
 $hardcodedChinese = @(
     foreach ($file in $sourceFiles)
     {
-        $matches = Select-String -Path $file.FullName -Pattern "[\p{IsCJKUnifiedIdeographs}\p{IsCJKCompatibilityIdeographs}]" -AllMatches
+        $matches = Select-String -Path $file.FullName -Pattern "[\p{IsCJKUnifiedIdeographs}\p{IsCJKCompatibilityIdeographs}]" -AllMatches -Encoding UTF8
         foreach ($match in $matches)
         {
             "{0}:{1}:{2}" -f $file.FullName.Substring($repositoryRoot.Length + 1), $match.LineNumber, $match.Line.Trim()
@@ -70,7 +70,7 @@ if ($hardcodedChinese.Count -gt 0)
 $imperativeResourceKeys = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($file in $sourceFiles | Where-Object Extension -eq ".cs")
 {
-    $content = Get-Content -Path $file.FullName -Raw
+    $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
     foreach ($match in [regex]::Matches($content, '_strings\.(?:Get|Format)\("(?<key>[^"]+)"'))
     {
         [void]$imperativeResourceKeys.Add($match.Groups["key"].Value)
@@ -86,7 +86,7 @@ if ($missingImperativeKeys.Count -gt 0)
 $xamlResourceIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($file in $sourceFiles | Where-Object Extension -eq ".xaml")
 {
-    $content = Get-Content -Path $file.FullName -Raw
+    $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
     if ($content -match '\bx:Uid=')
     {
         $relativePath = $file.FullName.Substring($repositoryRoot.Length + 1)
@@ -114,7 +114,7 @@ foreach ($windowOverride in $windowOverrides)
         throw "Window localization identifier '$uid' has no code-behind override."
     }
 
-    $codeBehind = Get-Content -Path $codeBehindPath -Raw
+    $codeBehind = Get-Content -Path $codeBehindPath -Raw -Encoding UTF8
     $applyPattern = 'XamlResourceOverride\.Apply\(\s*' + [regex]::Escape($target) + '\s*,\s*"' + [regex]::Escape($uid) + '"\)'
     if ($codeBehind -notmatch $applyPattern)
     {
@@ -133,7 +133,7 @@ $resourceIdsWithoutResources = @(
     $xamlResourceIds |
         Where-Object {
             $prefix = "$($_)."
-            -not @($englishNames | Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) }).Count
+            -not @($englishNames | Where-Object { $_.IndexOf($prefix, [System.StringComparison]::Ordinal) -eq 0 }).Count
         } |
         Sort-Object
 )
@@ -143,12 +143,12 @@ if ($resourceIdsWithoutResources.Count -gt 0)
 }
 
 $projectFile = Join-Path $appRoot "DropSpace.App.csproj"
-if ((Get-Content -Path $projectFile -Raw) -notmatch '<DefaultLanguage>en-US</DefaultLanguage>')
+if ((Get-Content -Path $projectFile -Raw -Encoding UTF8) -notmatch '<DefaultLanguage>en-US</DefaultLanguage>')
 {
     throw "DropSpace.App.csproj must declare en-US as the default resource language."
 }
 
-$projectText = Get-Content -Path $projectFile -Raw
+$projectText = Get-Content -Path $projectFile -Raw -Encoding UTF8
 if ($projectText -notmatch 'GenerateDropSpacePortableResourceIndex' -or
     $projectText -notmatch 'BundleDropSpacePortableResourceIndex' -or
     $projectText -notmatch 'DropSpace\.resources\.pri')
@@ -158,16 +158,16 @@ if ($projectText -notmatch 'GenerateDropSpacePortableResourceIndex' -or
 
 $portablePriScript = Join-Path $repositoryRoot "scripts/Generate-PortableResourcesPri.ps1"
 if (-not (Test-Path $portablePriScript -PathType Leaf) -or
-    (Get-Content -Path $portablePriScript -Raw) -notmatch 'RemoveChild\(\$packagingNode\)' -or
-    (Get-Content -Path $portablePriScript -Raw) -notmatch 'Copy-ProjectFile' -or
-    (Get-Content -Path $portablePriScript -Raw) -notmatch '"Assets"' -or
-    (Get-Content -Path $portablePriScript -Raw) -match 'GetRelativePath')
+    (Get-Content -Path $portablePriScript -Raw -Encoding UTF8) -notmatch 'RemoveChild\(\$packagingNode\)' -or
+    (Get-Content -Path $portablePriScript -Raw -Encoding UTF8) -notmatch 'Copy-ProjectFile' -or
+    (Get-Content -Path $portablePriScript -Raw -Encoding UTF8) -notmatch '"Assets"' -or
+    (Get-Content -Path $portablePriScript -Raw -Encoding UTF8) -match 'GetRelativePath')
 {
     throw "The portable resource index generator must omit package identity while staging XAML and asset resources with Windows PowerShell-compatible paths."
 }
 
 $resourceLocalizerPath = Join-Path $appRoot "Services/ResourceStringLocalizer.cs"
-$resourceLocalizerText = Get-Content -Path $resourceLocalizerPath -Raw
+$resourceLocalizerText = Get-Content -Path $resourceLocalizerPath -Raw -Encoding UTF8
 if ($resourceLocalizerText -notmatch 'ToResourceMapPath' -or
     $resourceLocalizerText -notmatch 'bracketDepth' -or
     $resourceLocalizerText -match "key\.Replace\('\.',\s*'/'\)")
@@ -176,7 +176,7 @@ if ($resourceLocalizerText -notmatch 'ToResourceMapPath' -or
 }
 
 $packageManifest = Join-Path $appRoot "Package.appxmanifest"
-$manifestText = Get-Content -Path $packageManifest -Raw
+$manifestText = Get-Content -Path $packageManifest -Raw -Encoding UTF8
 if ($manifestText -notmatch 'DisplayName="ms-resource:AppDisplayName"' -or
     $manifestText -notmatch 'Description="ms-resource:AppDescription"')
 {
@@ -191,7 +191,7 @@ foreach ($manifestResource in "AppDisplayName", "AppDescription")
     }
 }
 
-$mainPage = Get-Content -Path (Join-Path $appRoot "Views/MainPage.xaml") -Raw
+$mainPage = Get-Content -Path (Join-Path $appRoot "Views/MainPage.xaml") -Raw -Encoding UTF8
 foreach ($tag in "System", "English", "SimplifiedChinese")
 {
     $expectedTag = 'Tag="' + $tag + '"'

@@ -1,6 +1,6 @@
 # MSIX symbol policy
 
-Preview.20 intentionally publishes the unsigned/signed MSIX package under an
+Beta.25 intentionally publishes the unsigned/signed MSIX package under an
 explicit no-symbol policy, without a separate `.appxsym` symbol artifact. The hosted Windows build image does not
 provide `mspdbcmf.exe`, and the release must not claim crash-symbol coverage it
 did not produce.

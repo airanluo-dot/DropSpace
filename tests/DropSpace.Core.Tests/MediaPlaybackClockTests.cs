@@ -81,6 +81,33 @@ public sealed class MediaPlaybackClockTests
         Assert.AreEqual(2, clock.Position.TotalSeconds, 0.001);
     }
 
+    [TestMethod]
+    public void MissingTimelineAfterLongGapDoesNotBecomeAFalseTrackChange()
+    {
+        var time = new ManualTime(); var clock = new MediaPlaybackClock(time);
+        var session = MediaSessionSnapshot.Empty with
+        {
+            SessionId = "apple-session",
+            TrackTitle = "Track",
+            Artist = "Artist",
+            PlaybackState = MediaPlaybackState.Playing,
+            Timeline = new(TimeSpan.FromSeconds(30), TimeSpan.Zero, TimeSpan.FromSeconds(120), 1, time.GetUtcNow()),
+        };
+
+        clock.Update(session);
+        time.Advance(20);
+        var missingTimeline = session with
+        {
+            Timeline = new(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero, 1, DateTimeOffset.FromFileTime(0)),
+        };
+        clock.Update(missingTimeline);
+
+        Assert.IsTrue(clock.IsEstimated);
+        Assert.AreEqual(30, clock.Position.TotalSeconds, 0.001);
+        time.Advance(1);
+        Assert.AreEqual(31, clock.Position.TotalSeconds, 0.001);
+    }
+
     private sealed class ManualTime : TimeProvider
     {
         private long _ticks;

@@ -13,13 +13,19 @@ public static partial class ContentClassifier
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal);
         if (normalized.Length == 0)
         {
             throw new ArgumentException("Clipboard text cannot be empty.", nameof(text));
         }
 
-        var (kind, subtype, confidence, url) = Classify(normalized);
+        var classificationText = normalized.Trim();
+        if (classificationText.Length == 0)
+        {
+            throw new ArgumentException("Clipboard text cannot be empty.", nameof(text));
+        }
+
+        var (kind, subtype, confidence, url) = Classify(classificationText);
         var title = CreateTitle(normalized, url);
         var fingerprint = FingerprintService.ForText(normalized);
 

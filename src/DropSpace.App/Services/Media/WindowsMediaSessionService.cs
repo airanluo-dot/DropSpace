@@ -24,8 +24,10 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private MediaSessionSnapshot _current = MediaSessionSnapshot.Empty;
     private string[] _allowedSources = [];
     private long _metadataRevision;
+    private long _snapshotRevision;
     private long _artworkRevision = -1;
     private bool _restrictSources;
+    private string _sessionIdentity = string.Empty;
 
     public event EventHandler<MediaSessionSnapshot>? Changed;
     public MediaSessionSnapshot Current => Volatile.Read(ref _current);
@@ -136,7 +138,8 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                 {
                     if (token.IsCancellationRequested) break;
                     logger.LogDebug("SMTC refresh failed ({Category}).", exception.GetType().Name);
-                    Publish(MediaSessionSnapshot.Empty);
+                    var current = Current;
+                    Publish(_session is not null && current.IsActive ? current : MediaSessionSnapshot.Empty);
                 }
                 finally { _sessionGate.Release(); }
             }
@@ -149,52 +152,127 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         var observedAt = DateTimeOffset.UtcNow;
         var manager = _manager;
         if (manager is null) return MediaSessionSnapshot.Empty;
-        var sessions = manager.GetSessions().Take(128).ToArray();
-        AvailableSources = sessions.Select(session => Bound(session.SourceAppUserModelId)).Distinct().ToArray();
         var allowed = Volatile.Read(ref _allowedSources);
-        bool Accept(GlobalSystemMediaTransportControlsSession value) => !Volatile.Read(ref _restrictSources) || allowed.Contains(value.SourceAppUserModelId, StringComparer.OrdinalIgnoreCase);
-        var selected = manager.GetCurrentSession();
-        if (selected is null || !Accept(selected))
-            selected = sessions.FirstOrDefault(value => Accept(value) && value.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
-                ?? sessions.FirstOrDefault(Accept);
-        if (!ReferenceEquals(selected, _session))
+        bool Accept(GlobalSystemMediaTransportControlsSession value)
         {
-            DetachSession();
-            _session = selected;
-            if (selected is not null)
+            var source = TryReadSource(value);
+            return source is not null &&
+                (!Volatile.Read(ref _restrictSources) || allowed.Contains(source, StringComparer.OrdinalIgnoreCase));
+        }
+        GlobalSystemMediaTransportControlsSession? currentSession = null;
+        try
+        {
+            currentSession = manager.GetCurrentSession();
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            logger.LogDebug("The current SMTC session could not be read ({Category}); fallback selection will use the session list.", exception.GetType().Name);
+        }
+
+        // Prefer an actively playing and explicitly current session before applying the safety
+        // cap. The old first-128 slice could hide a valid Apple Music renderer behind unrelated
+        // sessions, causing a false Empty snapshot.
+        var rawSessions = manager.GetSessions().ToArray();
+        var allSessions = rawSessions.Where(Accept).ToArray();
+        var sessions = allSessions
+            .OrderByDescending(value => ReferenceEquals(value, currentSession))
+            .ThenByDescending(IsPlaying)
+            .Take(512)
+            .ToArray();
+        AvailableSources = rawSessions
+            .Take(512)
+            .Select(TryReadSource)
+            .Where(static source => !string.IsNullOrWhiteSpace(source))
+            .Select(static source => source!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var selected = currentSession;
+        if (selected is null || !Accept(selected))
+            selected = sessions.FirstOrDefault() ?? allSessions.FirstOrDefault();
+        var candidates = (selected is null ? sessions : new[] { selected }.Concat(sessions))
+            .Distinct(new SessionReferenceComparer())
+            .ToArray();
+        if (candidates.Length == 0) return MediaSessionSnapshot.Empty;
+        var previous = Current;
+        foreach (var candidate in candidates)
+        {
+            if (!ReferenceEquals(candidate, _session))
             {
-                selected.MediaPropertiesChanged += OnMediaPropertiesChanged;
-                selected.PlaybackInfoChanged += OnPlaybackInfoChanged;
-                selected.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
+                DetachSession();
+                _session = candidate;
+                _sessionIdentity = Guid.NewGuid().ToString("N");
+                candidate.MediaPropertiesChanged += OnMediaPropertiesChanged;
+                candidate.PlaybackInfoChanged += OnPlaybackInfoChanged;
+                candidate.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
+            }
+            try
+            {
+                for (var attempt = 0; attempt < 2; attempt++)
+                {
+                    var revision = Interlocked.Read(ref _snapshotRevision);
+                    var metadataRevision = Interlocked.Read(ref _metadataRevision);
+                    var properties = await candidate.TryGetMediaPropertiesAsync().AsTask(token).ConfigureAwait(false);
+                    var playback = candidate.GetPlaybackInfo();
+                    var timeline = candidate.GetTimelineProperties();
+                    if (revision != Interlocked.Read(ref _snapshotRevision) && attempt == 0) continue;
+                    if (revision != Interlocked.Read(ref _snapshotRevision))
+                    {
+                        RequestRefresh();
+                        return previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                    }
+                    var source = Bound(candidate.SourceAppUserModelId);
+                    var title = Bound(properties.Title);
+                    var artist = Bound(properties.Artist);
+                    var albumArtist = Bound(properties.AlbumArtist);
+                    var album = Bound(properties.AlbumTitle);
+                    var trackNumber = properties.TrackNumber;
+                    var duration = timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero;
+                    var durationConsistent = previous.Timeline.Duration <= TimeSpan.Zero || duration <= TimeSpan.Zero ||
+                        Math.Abs((previous.Timeline.Duration - duration).TotalSeconds) <= 2;
+                    var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
+                        previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
+                        previous.TrackNumber == trackNumber && durationConsistent;
+                    var effectiveStart = timeline.StartTime;
+                    var effectiveEnd = timeline.EndTime;
+                    if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
+                    {
+                        // A short-lived zero timeline is an Apple Music metadata refresh, not a new
+                        // track. Keep the last known bounds so the UI and lyric clock do not collapse
+                        // to a one-second duration while the native session catches up.
+                        effectiveStart = previous.Timeline.Start;
+                        effectiveEnd = previous.Timeline.End;
+                    }
+                    // Players can deliver the new title before its thumbnail. Metadata events
+                    // invalidate artwork even when the track key has not changed.
+                    var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
+                        ? previous.Artwork : await ReadArtworkAsync(properties.Thumbnail, token).ConfigureAwait(false);
+                    if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
+                    if (revision != Interlocked.Read(ref _snapshotRevision))
+                    {
+                        RequestRefresh();
+                        return previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                    }
+                    _artworkRevision = metadataRevision;
+                    return new(_sessionIdentity, source, FriendlyName(source, strings), title, artist, album, artwork,
+                        playback.PlaybackStatus switch
+                        {
+                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
+                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => MediaPlaybackState.Paused,
+                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => MediaPlaybackState.Stopped,
+                            _ => MediaPlaybackState.Unknown,
+                        }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
+                        playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
+                        new(timeline.Position, effectiveStart, effectiveEnd, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt,
+                        albumArtist, trackNumber);
+                }
+            }
+            catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
+            {
+                logger.LogDebug("SMTC candidate session could not be read ({Category}); trying the next session.", exception.GetType().Name);
+                if (ReferenceEquals(_session, candidate)) DetachSession();
             }
         }
-        if (selected is null) return MediaSessionSnapshot.Empty;
-        var metadataRevision = Interlocked.Read(ref _metadataRevision);
-        var properties = await selected.TryGetMediaPropertiesAsync().AsTask(token).ConfigureAwait(false);
-        var playback = selected.GetPlaybackInfo();
-        var timeline = selected.GetTimelineProperties();
-        var source = Bound(selected.SourceAppUserModelId);
-        var title = Bound(properties.Title);
-        var artist = Bound(properties.Artist);
-        var album = Bound(properties.AlbumTitle);
-        var previous = Current;
-        var sameTrack = previous.SourceAppUserModelId == source && previous.TrackTitle == title && previous.Artist == artist && previous.AlbumTitle == album;
-        // Players can deliver the new title before its thumbnail. Metadata events
-        // invalidate artwork even when the track key has not changed.
-        var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
-            ? previous.Artwork : await ReadArtworkAsync(properties.Thumbnail, token).ConfigureAwait(false);
-        if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
-        _artworkRevision = metadataRevision;
-        return new(source, source, FriendlyName(source, strings), title, artist, album, artwork,
-            playback.PlaybackStatus switch
-            {
-                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
-                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => MediaPlaybackState.Paused,
-                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => MediaPlaybackState.Stopped,
-                _ => MediaPlaybackState.Unknown,
-            }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
-            playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
-            new(timeline.Position, timeline.StartTime, timeline.EndTime, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt);
+        return previous.IsActive ? previous : MediaSessionSnapshot.Empty;
     }
 
     private static async Task<byte[]?> ReadArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
@@ -250,22 +328,75 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     private void DetachSession()
     {
-        if (_session is null) return;
-        _session.MediaPropertiesChanged -= OnMediaPropertiesChanged;
-        _session.PlaybackInfoChanged -= OnPlaybackInfoChanged;
-        _session.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
+        if (_session is not null)
+        {
+            _session.MediaPropertiesChanged -= OnMediaPropertiesChanged;
+            _session.PlaybackInfoChanged -= OnPlaybackInfoChanged;
+            _session.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
+        }
         _session = null;
+        _sessionIdentity = string.Empty;
     }
 
     private void RequestRefresh() => _refresh?.Writer.TryWrite(true);
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) => RequestRefresh();
     private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args) => RequestRefresh();
     private void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
-    { Interlocked.Increment(ref _metadataRevision); RequestRefresh(); }
-    private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args) => RequestRefresh();
-    private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args) => RequestRefresh();
-    private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or IOException;
-    private static string Bound(string? text) => text is null ? string.Empty : text[..Math.Min(text.Length, MaximumMetadataCharacters)];
+    {
+        if (!ReferenceEquals(sender, _session)) return;
+        Interlocked.Increment(ref _metadataRevision);
+        Interlocked.Increment(ref _snapshotRevision);
+        RequestRefresh();
+    }
+    private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
+    {
+        if (!ReferenceEquals(sender, _session)) return;
+        Interlocked.Increment(ref _snapshotRevision);
+        RequestRefresh();
+    }
+    private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
+    {
+        if (!ReferenceEquals(sender, _session)) return;
+        Interlocked.Increment(ref _snapshotRevision);
+        RequestRefresh();
+    }
+    private static bool IsPlaying(GlobalSystemMediaTransportControlsSession value)
+    {
+        try { return value.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
+        catch (Exception exception) when (IsRecoverable(exception)) { return false; }
+    }
+    private string? TryReadSource(GlobalSystemMediaTransportControlsSession value)
+    {
+        try
+        {
+            var source = Bound(value.SourceAppUserModelId);
+            return string.IsNullOrWhiteSpace(source) ? null : source;
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            logger.LogDebug("An SMTC session source could not be read ({Category}); the session was skipped.", exception.GetType().Name);
+            return null;
+        }
+    }
+
+    private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or IOException or ArgumentException;
+    private static string Bound(string? text)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= MaximumMetadataCharacters)
+        {
+            return text ?? string.Empty;
+        }
+
+        var length = MaximumMetadataCharacters;
+        // Do not leave a dangling UTF-16 surrogate in a title/artist that is later used as a
+        // lyrics key or displayed in XAML.
+        if (length < text.Length && char.IsLowSurrogate(text[length]) && char.IsHighSurrogate(text[length - 1]))
+        {
+            length--;
+        }
+
+        return text[..length];
+    }
     public static string FriendlyName(string identity, DropSpace.Core.Abstractions.IAppStringLocalizer? strings = null)
     {
         if (identity.Equals("cloudmusic.exe", StringComparison.OrdinalIgnoreCase)) return strings?.Get("LyricsProviderNetEase") ?? "NetEase Cloud Music";
@@ -285,5 +416,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             try { handler(this, snapshot); }
             catch (Exception exception) { logger.LogWarning("Media subscriber failed ({Category}).", exception.GetType().Name); }
         }
+    }
+
+    private sealed class SessionReferenceComparer : IEqualityComparer<GlobalSystemMediaTransportControlsSession>
+    {
+        public bool Equals(GlobalSystemMediaTransportControlsSession? x, GlobalSystemMediaTransportControlsSession? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(GlobalSystemMediaTransportControlsSession obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 }

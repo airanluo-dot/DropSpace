@@ -48,7 +48,8 @@ public static class TransferManifestPolicy
             DropLinkProtocolVersion.V1,
             items.ToArray(),
             total,
-            (nowUtc ?? DateTimeOffset.UtcNow).ToUniversalTime());
+            (nowUtc ?? DateTimeOffset.UtcNow).ToUniversalTime(),
+            limits.ChunkBytes);
     }
 
     public static void Validate(TransferManifest manifest, TransferLimits? limits = null)
@@ -59,6 +60,8 @@ public static class TransferManifestPolicy
             throw new InvalidDataException("The transfer protocol version is not supported.");
         }
 
+        limits ??= new TransferLimits();
+        limits = limits with { ChunkBytes = manifest.ChunkBytes };
         var expected = Create(manifest.SessionId, manifest.Items, limits, manifest.CreatedAtUtc);
         if (expected.TotalBytes != manifest.TotalBytes || expected.CreatedAtUtc != manifest.CreatedAtUtc.ToUniversalTime())
         {

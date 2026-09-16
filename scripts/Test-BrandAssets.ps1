@@ -39,7 +39,7 @@ foreach ($entry in $sourceHashes.GetEnumerator())
 }
 
 $sourceManifestPath = Join-Path $repositoryRoot "branding/SOURCE_MANIFEST.json"
-$sourceManifest = Get-Content $sourceManifestPath -Raw | ConvertFrom-Json
+$sourceManifest = Get-Content $sourceManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($sourceManifest.schemaVersion -ne 2 -or
     $sourceManifest.authoritativeRuntimeVariant -ne "Transparent Final" -or
     $sourceManifest.runtimeBackground -ne "transparent" -or
@@ -49,21 +49,21 @@ if ($sourceManifest.schemaVersion -ne 2 -or
     throw "Brand source manifest does not enforce the transparent Final runtime policy."
 }
 
-$generator = Get-Content (Join-Path $repositoryRoot "scripts/Generate-BrandAssets.ps1") -Raw
+$generator = Get-Content (Join-Path $repositoryRoot "scripts/Generate-BrandAssets.ps1") -Raw -Encoding UTF8
 foreach ($requiredText in @(
     'transparent/DropSpace-Logo-Transparent-Final.png',
     'Write-RenderedPng $runtimeMain',
     'DropSpace-Logo-Transparent.png',
     'WebsiteAssetRoot'))
 {
-    if (-not $generator.Contains($requiredText, [StringComparison]::Ordinal))
+    if ($generator.IndexOf($requiredText, [StringComparison]::Ordinal) -lt 0)
     {
         throw "Brand generator is missing the transparent Final invariant: $requiredText"
     }
 }
 foreach ($forbiddenSelection in @('Read-Bitmap $blackLegacySource', 'Read-Bitmap $whiteBackupSource'))
 {
-    if ($generator.Contains($forbiddenSelection, [StringComparison]::Ordinal))
+    if ($generator.IndexOf($forbiddenSelection, [StringComparison]::Ordinal) -ge 0)
     {
         throw "Legacy artwork must remain retained but inactive: $forbiddenSelection"
     }
@@ -192,8 +192,8 @@ $references = @{
 }
 foreach ($entry in $references.GetEnumerator())
 {
-    $content = Get-Content (Join-Path $repositoryRoot $entry.Key) -Raw
-    if (-not $content.Contains($entry.Value, [StringComparison]::Ordinal))
+    $content = Get-Content (Join-Path $repositoryRoot $entry.Key) -Raw -Encoding UTF8
+    if ($content.IndexOf($entry.Value, [StringComparison]::Ordinal) -lt 0)
     {
         throw "Brand asset reference is missing from $($entry.Key): $($entry.Value)"
     }

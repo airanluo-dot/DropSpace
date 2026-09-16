@@ -27,7 +27,11 @@ public sealed class MediaProcessResolver
         var processes = Process.GetProcesses();
         try
         {
-            foreach (var process in processes.Take(512))
+            // Process identity resolution happens only on a media-source transition. Scanning
+            // an arbitrary first 512 processes could miss Apple Music's detached renderer when
+            // a machine has many background processes, so inspect the complete OS-provided
+            // snapshot while keeping each process handle short-lived.
+            foreach (var process in processes)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 try

@@ -1,5 +1,15 @@
 # Windows Integration Feasibility
 
+## Beta.25 runtime and ownership boundary
+
+Beta.25 keeps the x64 Windows build 20348 minimum and treats WinUI native
+smoke, real Apple Music/SMTC behavior, Explorer/OLE, mixed-DPI, multi-monitor,
+lock/sleep and installer evidence as target-machine gates. Non-async virtual-file
+OLE sources synchronously transfer only bounded `STGMEDIUM` ownership before the
+source callback returns; byte copying remains on the background import path.
+Async-capable sources use their documented start/end operation lifetime. Neither
+path moves or deletes the external source.
+
 ## Preview.24 Apple Music findings (2026-09-13)
 
 Native playback on Windows build 26200 showed Apple Music updating SMTC timestamps
@@ -22,10 +32,16 @@ Status labels: **Supported**, **Supported with Win32 interop**, **Complex/valida
 
 ## Platform baseline
 
-WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace supports 64-bit Windows 10 version 1809 (Build 17763) and later, including Windows 11. The app compiles against the pinned 26100 SDK but probes runtime OS/API availability before using newer capabilities. It supports the recommended per-user Inno Setup installer, the same unpackaged self-contained single-file x64 EXE as a portable option, and an MSIX package as an alternative. No deployment path stores runtime data beside the executable.
+WinUI 3 is the native UI layer shipped with the Windows App SDK. DropSpace
+Beta.25 supports x64 Windows build 20348 and later, including Windows 11. The
+app compiles against the pinned 26100 SDK but probes runtime OS/API availability
+before using newer capabilities. It supports the recommended per-user Inno Setup
+installer, the same unpackaged self-contained single-file x64 EXE as a portable
+option, and an MSIX package as an alternative. No deployment path stores runtime
+data beside the executable.
 
 The compatibility boundary is implemented in `DropSpace.Core.Compatibility` and
-the App-layer Windows adapters. Build 17763 is declared in the target
+the App-layer Windows adapters. Build 20348 is declared in the target
 framework, platform minimum, MSIX/identity manifests, Inno Setup, and update
 manifest. A direct Portable launch below that build exits with a diagnostic
 marker. Windows 10 keeps the solid base visual, existing Clipboard/Overlay/OLE

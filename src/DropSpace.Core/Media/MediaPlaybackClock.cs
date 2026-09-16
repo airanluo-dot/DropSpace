@@ -3,6 +3,7 @@ namespace DropSpace.Core.Media;
 /// <summary>Monotonic playback interpolation. Missing native timelines are explicitly estimated.</summary>
 public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
 {
+    private static readonly TimeSpan MaximumEstimatedObservationGap = TimeSpan.FromSeconds(5);
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     private MediaSessionSnapshot _session = MediaSessionSnapshot.Empty;
     private double _position;
@@ -24,16 +25,29 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
     public void Update(MediaSessionSnapshot session)
     {
         var now = _time.GetUtcNow();
-        var sameTrack = _hasSnapshot && _session.SourceAppUserModelId == session.SourceAppUserModelId &&
-            _session.TrackTitle == session.TrackTitle && _session.Artist == session.Artist;
-        var validTimestamp = session.Timeline.LastUpdated.Year >= 2000 && session.Timeline.LastUpdated <= now.AddMinutes(5);
-        var native = validTimestamp && (session.Timeline.End > session.Timeline.Start || session.Timeline.Position > TimeSpan.Zero);
+        var sameTrack = _hasSnapshot && _session.IsSameTrack(session);
+        var validTimelineTimestamp = session.Timeline.LastUpdated.Year >= 2000 &&
+            session.Timeline.LastUpdated >= now.AddMinutes(-5) &&
+            session.Timeline.LastUpdated <= now.AddMinutes(5);
+        var validSessionTimestamp = session.LastUpdated.Year >= 2000 &&
+            session.LastUpdated >= now.AddMinutes(-5) &&
+            session.LastUpdated <= now.AddMinutes(5);
+        var native = validTimelineTimestamp && (session.Timeline.End > session.Timeline.Start || session.Timeline.Position > TimeSpan.Zero);
         // Apple Music refreshes timestamps several times within the same whole
         // second. Timestamp-only updates are not new position observations and
         // must not repeatedly rewind the interpolated word highlight.
         var nativeChanged = !sameTrack || IsEstimated || session.Timeline.Position != _session.Timeline.Position || session.PlaybackState != _session.PlaybackState;
+        var elapsedSinceObservation = _hasSnapshot ? _time.GetElapsedTime(_anchor) : TimeSpan.Zero;
         var position = sameTrack ? Position.TotalSeconds : Math.Max(0, session.Timeline.Position.TotalSeconds);
-        if (!sameTrack && !native && session.PlaybackState == MediaPlaybackState.Playing)
+        if (sameTrack && !native && elapsedSinceObservation > MaximumEstimatedObservationGap)
+        {
+            // An invalid Apple timeline cannot tell us where playback resumed after a lock,
+            // sleep, or a long hidden-window interval. Do not jump lyrics by the entire wall
+            // clock gap; hold the last trusted estimate until SMTC supplies a real position or
+            // the track changes.
+            position = _position;
+        }
+        if (!sameTrack && !native && session.PlaybackState == MediaPlaybackState.Playing && validSessionTimestamp)
             position += Math.Clamp((now - session.LastUpdated).TotalSeconds, 0, 30);
         if (native && nativeChanged)
         {

@@ -14,7 +14,7 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $projectPath = Join-Path $repositoryRoot "src/DropSpace.App/DropSpace.App.csproj"
 $publishDirectory = Join-Path $repositoryRoot "artifacts/portable/win-x64"
 $releaseDirectory = Join-Path $repositoryRoot "artifacts/release"
-$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
+$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim()
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 $repositoryVersion = $releaseInfo.SemanticVersion

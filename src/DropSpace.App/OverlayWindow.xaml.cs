@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
@@ -717,9 +718,22 @@ public sealed partial class OverlayWindow : Window
 
         // The animated HRGN is expressed in client coordinates. ResizeClient keeps that
         // coordinate space exact even when Windows reports a presenter-specific outer frame;
-        // Move uses independent screen coordinates for the host's origin.
-        AppWindow.ResizeClient(new SizeInt32(width, height));
-        AppWindow.Move(new PointInt32(left, top));
+        // Move uses independent screen coordinates for the host's origin. During a display/DPI
+        // transition either AppWindow call can temporarily reject the stale HWND/monitor
+        // geometry; treat that frame as unsafe and let the topology refresh retry it.
+        try
+        {
+            AppWindow.ResizeClient(new SizeInt32(width, height));
+            AppWindow.Move(new PointInt32(left, top));
+        }
+        catch (Exception exception) when (exception is COMException or ArgumentException or InvalidOperationException)
+        {
+            _logger.LogWarning(
+                exception,
+                "Overlay HWND geometry update was rejected on monitor {MonitorId}; the frame will remain hidden until the next safe retry.",
+                _monitor.Id);
+            return false;
+        }
         var matches = OverlayWindowInterop.TryGetClientSize(_windowHandle, out var actualWidth, out var actualHeight) &&
                       actualWidth == width && actualHeight == height;
         if (!matches)
@@ -1513,11 +1527,15 @@ public sealed partial class OverlayWindow : Window
         args.Handled = canAccept;
         if (!canAccept)
         {
+            ResetVisualDrag();
             return;
         }
 
-        _visualDragActive = true;
-        _visualDragCallbacks.DragApproaching(_monitor.Id);
+        if (!_visualDragActive)
+        {
+            _visualDragActive = true;
+            _visualDragCallbacks.DragApproaching(_monitor.Id);
+        }
         _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
         _logger.LogInformation(
             "WinUI visual-surface DragEnter received on monitor {MonitorId}: StorageItems=true, root HWND {WindowHandle}.",
@@ -1532,7 +1550,16 @@ public sealed partial class OverlayWindow : Window
         args.Handled = canAccept;
         if (canAccept)
         {
+            if (!_visualDragActive)
+            {
+                _visualDragActive = true;
+                _visualDragCallbacks.DragApproaching(_monitor.Id);
+            }
             _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
+        }
+        else
+        {
+            ResetVisualDrag();
         }
     }
 
@@ -1543,8 +1570,7 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        _visualDragActive = false;
-        _visualDragCallbacks.DragLeft(_monitor.Id);
+        ResetVisualDrag();
         _logger.LogInformation(
             "WinUI visual-surface DragLeave received on monitor {MonitorId}.",
             _monitor.Id);
@@ -1555,13 +1581,48 @@ public sealed partial class OverlayWindow : Window
         if (!CanAcceptData(args.DataView))
         {
             args.AcceptedOperation = DataPackageOperation.None;
+            ResetVisualDrag();
             return;
         }
 
         args.Handled = true;
-        _visualDragActive = false;
         try
         {
+            // StorageItems are the authoritative payload when a producer exposes both a
+            // display text label and files. Consuming text first made mixed drags silently
+            // add the label instead of the files.
+            if (args.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                var items = await args.DataView.GetStorageItemsAsync();
+                var paths = items
+                    .Where(static item => item is IStorageFile or IStorageFolder)
+                    .Select(static item => item.Path)
+                    .Where(static path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                args.AcceptedOperation = paths.Length > 0
+                    ? DataPackageOperation.Copy
+                    : DataPackageOperation.None;
+                _logger.LogInformation(
+                    "WinUI visual-surface Drop received on monitor {MonitorId}: offered item count {ItemCount}, accepted path count {PathCount}.",
+                    _monitor.Id,
+                    items.Count,
+                    paths.Length);
+                if (paths.Length == 0)
+                {
+                    ResetVisualDrag();
+                    return;
+                }
+
+                await _visualDragCallbacks.Dropped(_monitor.Id, paths);
+                // Use the same cleanup path as DragLeave. The drop callback normally clears
+                // ownership in OverlayWindowService, but keeping this local state transition
+                // explicit also covers direct/test callbacks and guarantees the visual target
+                // cannot remain in a drag-ready state after a successful drop.
+                ResetVisualDrag();
+                return;
+            }
+
             if (args.DataView.Contains(StandardDataFormats.WebLink) ||
                 args.DataView.Contains(StandardDataFormats.Text))
             {
@@ -1570,38 +1631,32 @@ public sealed partial class OverlayWindow : Window
                     : await args.DataView.GetTextAsync();
                 await _viewModel.CompleteVisibleTextDropAsync(_monitor.Id, text);
                 args.AcceptedOperation = DataPackageOperation.Copy;
+                // Text drops do not go through the file-drop callback's common cleanup path.
+                // Reset after completion so the completed drop is not immediately cancelled.
+                ResetVisualDrag();
                 return;
             }
 
-            var items = await args.DataView.GetStorageItemsAsync();
-            var paths = items
-                .Where(static item => item is IStorageFile or IStorageFolder)
-                .Select(static item => item.Path)
-                .Where(static path => !string.IsNullOrWhiteSpace(path))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-            args.AcceptedOperation = paths.Length > 0
-                ? DataPackageOperation.Copy
-                : DataPackageOperation.None;
-            _logger.LogInformation(
-                "WinUI visual-surface Drop received on monitor {MonitorId}: offered item count {ItemCount}, accepted path count {PathCount}.",
-                _monitor.Id,
-                items.Count,
-                paths.Length);
-            if (paths.Length == 0)
-            {
-                _visualDragCallbacks.DragLeft(_monitor.Id);
-                return;
-            }
-
-            await _visualDragCallbacks.Dropped(_monitor.Id, paths);
+            args.AcceptedOperation = DataPackageOperation.None;
+            ResetVisualDrag();
         }
         catch (Exception exception)
         {
             args.AcceptedOperation = DataPackageOperation.None;
             _logger.LogWarning(exception, "Visible Overlay StorageItems drop failed.");
-            _visualDragCallbacks.DragLeft(_monitor.Id);
+            ResetVisualDrag();
         }
+    }
+
+    private void ResetVisualDrag()
+    {
+        if (!_visualDragActive)
+        {
+            return;
+        }
+
+        _visualDragActive = false;
+        _visualDragCallbacks.DragLeft(_monitor.Id);
     }
 
     private static bool CanAcceptData(DataPackageView data) =>

@@ -32,7 +32,7 @@ else
 {
     [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $PortableExecutable))
 }
-$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
+$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim()
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 $currentVersion = $releaseInfo.SemanticVersion
@@ -84,7 +84,7 @@ function Invoke-CheckedProcess
         if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
         {
             Write-Host "---- $Description log tail ----"
-            Get-Content $LogPath -Tail 120 | Write-Host
+            Get-Content $LogPath -Tail 120 -Encoding UTF8 | Write-Host
         }
 
         throw "$Description did not exit within $TimeoutSeconds seconds."
@@ -96,7 +96,7 @@ function Invoke-CheckedProcess
         if (-not [string]::IsNullOrWhiteSpace($LogPath) -and (Test-Path $LogPath -PathType Leaf))
         {
             Write-Host "---- $Description log tail ----"
-            Get-Content $LogPath -Tail 120 | Write-Host
+            Get-Content $LogPath -Tail 120 -Encoding UTF8 | Write-Host
         }
 
         throw "$Description failed with exit code $($process.ExitCode)."
@@ -162,7 +162,7 @@ function Write-ApplicationStartupDiagnostics
         if (Test-Path $path -PathType Leaf)
         {
             Write-Host "[$fileName]"
-            Get-Content -Path $path -Tail 40 | Write-Host
+            Get-Content -Path $path -Tail 40 -Encoding UTF8 | Write-Host
         }
     }
 }
@@ -293,7 +293,7 @@ try
         throw "In-place upgrade did not gracefully stop the running DropSpace process."
     }
     $runningProcess = $null
-    if ((Get-Content (Join-Path $installPath "install.version") -Raw).Trim() -ne $currentVersion)
+    if ((Get-Content (Join-Path $installPath "install.version") -Raw -Encoding UTF8).Trim() -ne $currentVersion)
     {
         throw "In-place upgrade did not replace the program version marker."
     }
@@ -308,7 +308,7 @@ try
         if (Test-Path $upgradeLogPath -PathType Leaf)
         {
             Write-Host "---- in-place upgrade log tail ----"
-            Get-Content $upgradeLogPath -Tail 160 | Write-Host
+            Get-Content $upgradeLogPath -Tail 160 -Encoding UTF8 | Write-Host
         }
         throw "In-place upgrade did not create both Windows shell integrations."
     }
@@ -347,7 +347,7 @@ try
         }
 
         if ((Test-Path $updatedMarker -PathType Leaf) -and
-            (Get-Content $updatedMarker -Raw) -match [regex]::Escape($currentVersion))
+            (Get-Content $updatedMarker -Raw -Encoding UTF8) -match [regex]::Escape($currentVersion))
         {
             break
         }
@@ -355,7 +355,7 @@ try
         Start-Sleep -Milliseconds 250
     }
     if (-not (Test-Path $updatedMarker -PathType Leaf) -or
-        (Get-Content $updatedMarker -Raw) -notmatch [regex]::Escape($currentVersion))
+        (Get-Content $updatedMarker -Raw -Encoding UTF8) -notmatch [regex]::Escape($currentVersion))
     {
         throw "The restarted version did not persist the expected update launch marker within 45 seconds."
     }

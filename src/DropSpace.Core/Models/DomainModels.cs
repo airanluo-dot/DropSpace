@@ -133,6 +133,11 @@ public sealed record FileCandidate(
 
 public sealed record FileAvailabilityCheck(ItemStatus Status, string? Reason);
 
+public sealed record ClipboardFileCandidate(
+    FileCandidate Candidate,
+    string Fingerprint,
+    string? MetadataJson);
+
 public sealed record TextCandidate(
     string Text,
     string Fingerprint,

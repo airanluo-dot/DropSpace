@@ -130,12 +130,14 @@
   <data name="UpdateDownloadCancelled" xml:space="preserve"><value>Update download cancelled.</value></data>
   <data name="UpdateDownloadFailed" xml:space="preserve"><value>Update download failed. Check your connection and try again.</value></data>
   <data name="UpdateDownloadIntegrityFailed" xml:space="preserve"><value>The update download did not pass integrity verification.</value></data>
+  <data name="UpdateRecoveryFailed" xml:space="preserve"><value>DropSpace could not recover the previous update state. You can check for updates again.</value></data>
   <data name="UpdateDownloadedReadyToInstall" xml:space="preserve"><value>Update downloaded and verified. Ready to install.</value></data>
   <data name="UpdateDownloadedVerified" xml:space="preserve"><value>Update downloaded and verified.</value></data>
   <data name="UpdateDownloading" xml:space="preserve"><value>Downloading update…</value></data>
   <data name="UpdateFound" xml:space="preserve"><value>Update {0} is available.</value></data>
   <data name="UpdateFoundManaged" xml:space="preserve"><value>Update {0} is available and will be managed by Windows.</value></data>
   <data name="UpdateInstallIntegrityFailed" xml:space="preserve"><value>The update cannot be installed because integrity verification failed.</value></data>
+  <data name="UpdateInstallStateFailed" xml:space="preserve"><value>The update could not be prepared for installation because its recovery state could not be saved.</value></data>
   <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>The verified installer could not be started.</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>Starting update installer…</value></data>
   <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>The previous update download was incomplete and has been discarded.</value></data>
@@ -516,6 +518,9 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetRight" xml:space="preserve"><value>Right</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>Left</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
+  <data name="LyricsLoading" xml:space="preserve"><value>Loading lyrics…</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>No verified lyrics found for this track.</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>Lyrics could not be loaded. Check the connection or try again.</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>

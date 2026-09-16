@@ -1,5 +1,14 @@
 # DropSpace Privacy and Threat Model
 
+## Beta.25 bug-fix privacy boundary
+
+Beta.25 keeps the same local-first and opt-in online lyrics boundary while
+requiring candidate identity/metadata validation before a provider result is
+shown. Track identity, cache keys and asynchronous result acceptance include the
+current media session rather than trusting a title-only match. Clipboard, file,
+OLE and updater hardening adds bounds and recovery without uploading user data,
+logging raw payloads, or changing source-file ownership.
+
 ## Preview.24 lyrics and audio boundary
 
 When enabled in online mode, lyrics lookup sends only the current music title,

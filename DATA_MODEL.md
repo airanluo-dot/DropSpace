@@ -1,6 +1,6 @@
 # DropSpace Data Model
 
-## Beta 24 settings schema 14
+## Beta 25 settings schema 14
 
 Settings JSON advances from 11/12/13 to 14; SQLite remains unchanged. Preserve
 existing item, clipboard, placement, sharing, action and update preferences.
@@ -306,4 +306,6 @@ Schema 3 adds the following nullable columns to `items`:
 
 `ix_items_pending_delete` indexes the token and expiry. A pending row remains fully intact (same ID, metadata, payload reference, timestamps, pin state, and batch metadata) but is excluded from normal queries/counts and mutation projections. `UndoPendingRemovalAsync(token)` clears both columns atomically. `FinalizePendingRemovalAsync(token)` deletes the rows and unreferenced payload metadata in one transaction, returning relative paths only for payload records that were actually removed; the App-owned payload store then performs confined cleanup. Startup finalizes expired tokens. The user-facing Clear Clipboard operation uses the same pending path and excludes pinned rows by default.
 
-Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.
+Beta 25 does not add a schema migration. Current prerelease naming and
+compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New
+releases use Beta; historical Preview identities remain unchanged.

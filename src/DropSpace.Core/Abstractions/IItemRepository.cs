@@ -25,6 +25,10 @@ public interface IItemRepository
         string? metadataJson,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<DropItem>> AddClipboardFilesAsync(
+        IReadOnlyList<ClipboardFileCandidate> candidates,
+        CancellationToken cancellationToken = default);
+
     Task<DropItem> AddTextAsync(TextCandidate candidate, CancellationToken cancellationToken = default);
 
     Task<DropItem> AddSpaceTextAsync(
@@ -118,4 +122,6 @@ public interface IItemRepository
         CancellationToken cancellationToken = default);
 
     Task<int> CountAsync(ItemSource? source = null, bool pinnedOnly = false, CancellationToken cancellationToken = default);
+
+    Task<int> CountClipboardAsync(DateTimeOffset? fromUtc, bool includePinned, CancellationToken cancellationToken = default);
 }

@@ -110,7 +110,23 @@ public sealed class CrossDeviceClipboardService(
         var envelope = await CreateEnvelopeAsync(item, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("The selected item is not a supported clipboard payload.");
         if (!_loopGuard.TryAccept(envelope)) return new ClipboardSyncResponse(false, "duplicate-loop-guard");
-        return await client.SendClipboardAsync(peer, endpoint, envelope, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var result = await client.SendClipboardAsync(peer, endpoint, envelope, cancellationToken).ConfigureAwait(false);
+            if (!result.Accepted)
+            {
+                // A rejected manual send did not create a remote durable event. Let the
+                // user retry it instead of reporting a local loop-guard duplicate.
+                _loopGuard.Remove(envelope);
+            }
+
+            return result;
+        }
+        catch
+        {
+            _loopGuard.Remove(envelope);
+            throw;
+        }
     }
 
     private void OnItemCaptured(object? sender, DropItem item)
@@ -157,7 +173,22 @@ public sealed class CrossDeviceClipboardService(
             if (capture.IsPaused) throw new ClipboardPausedException();
             ClipboardEnvelopePolicy.Validate(envelope);
             if (!_loopGuard.TryAccept(envelope)) return;
-            await capture.ImportRemoteAsync(envelope, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // A remote import is already an origin event. Do not republish it as a new
+                // local event, otherwise two peers can bounce the same clipboard payload.
+                await capture.ImportRemoteAsync(
+                    envelope,
+                    cancellationToken,
+                    publishCaptured: false).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Reserve only suppresses an exact retransmission. If durable import did not
+                // complete, release it so a sender retry is not mistaken for a loop.
+                _loopGuard.Remove(envelope);
+                throw;
+            }
         }
         finally { _lifecycleGate.Release(); }
     }

@@ -33,12 +33,12 @@ public sealed class StagedFileImportService(
         }
 
         var admittedPaths = stagingPaths.ToArray();
-        // An owned lease must reach ImportCoreAsync even when the caller has already
-        // cancelled; its finally block is the handoff's terminal cleanup owner.
-        var schedulingCancellation = ownedLease is null ? cancellationToken : CancellationToken.None;
+        // ImportCoreAsync owns cleanup for every admitted staging path. Never let Task.Run's
+        // scheduling token short-circuit that finally block when the caller is already
+        // cancelled; cancellation is still passed into the body for a prompt bounded exit.
         return Task.Run(
             () => ImportCoreAsync(admittedPaths, dropSessionId, acquisitionKind, maximumFileBytes, cancellationToken, ownedLease),
-            schedulingCancellation);
+            CancellationToken.None);
     }
 
     private async Task<StagedFileImportResult> ImportCoreAsync(
@@ -68,6 +68,7 @@ public sealed class StagedFileImportService(
         }
         var batchId = Guid.NewGuid();
         var accepted = 0;
+        var acceptedIndex = 0;
         try
         {
             if (stagingLeases is not null && ownedLease is null)
@@ -106,10 +107,16 @@ public sealed class StagedFileImportService(
                     payload = await payloads.WriteFileAsync("files", candidate.Extension, input, maximumFileBytes, cancellationToken).ConfigureAwait(false);
                     var ownedPath = payloads.ResolvePath(payload.RelativePath);
                     var owned = candidate with { OriginalPath = ownedPath, NormalizedPath = Path.GetFullPath(ownedPath) };
-                    var metadata = JsonSerializer.Serialize(new DropBatchMetadata(batchId, dropSessionId, index, admitted.Count, acquisitionKind));
+                    var metadata = JsonSerializer.Serialize(new DropBatchMetadata(
+                        batchId,
+                        dropSessionId,
+                        acceptedIndex,
+                        admitted.Count,
+                        acquisitionKind));
                     await repository.AddOwnedSpaceFileAsync(owned, payload, metadata, cancellationToken).ConfigureAwait(false);
                     payload = null;
                     accepted++;
+                    acceptedIndex++;
                 }
                 catch (Exception exception) when (IsFileFailure(exception))
                 {
@@ -153,7 +160,17 @@ public sealed class StagedFileImportService(
             {
                 foreach (var lease in leases)
                 {
-                    await stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false);
+                    try
+                    {
+                        await stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (IsFileFailure(exception))
+                    {
+                        // One retained or temporarily inaccessible lease must not prevent
+                        // later leases from being completed. The durable lease record remains
+                        // available for recovery on the next startup.
+                        logger.LogWarning(exception, "Staging lease completion was deferred.");
+                    }
                 }
             }
         }

@@ -92,13 +92,20 @@ foreach ($invalid in @("0.1.0", "v0.1", "v0.1.0-rc.1", "v0.1.0-preview.0", "v0.1
 
 Write-Host "Stable/Beta release metadata, historical Preview compatibility, and shared VersionCode rules passed."
 
-$beta = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.24"
+$beta = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.25"
 Assert-Equal $beta.Channel "beta" "Beta channel"
-Assert-Equal $beta.PackageVersion "0.3.0.24" "Beta package version"
-Assert-Equal $beta.FileVersion "0.3.0.24" "Beta file version"
-Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $beta) "0.3.0-preview.23" "Legacy upgrade baseline"
+Assert-Equal $beta.PackageVersion "0.3.0.25" "Beta package version"
+Assert-Equal $beta.FileVersion "0.3.0.25" "Beta file version"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $beta) "0.3.0-beta.24" "Beta.24 upgrade baseline"
 $rejected = $false
-try { Assert-DropSpaceNewReleaseVersion "v0.3.0-preview.24" | Out-Null } catch { $rejected = $true }
+try { Assert-DropSpaceNewReleaseVersion "v0.3.0-preview.25" | Out-Null } catch { $rejected = $true }
 Assert-Equal $rejected $true "Reject new Preview publication"
-$current = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $PSScriptRoot '../RELEASE_VERSION') -Raw).Trim())
+$current = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $PSScriptRoot '../RELEASE_VERSION') -Raw -Encoding UTF8).Trim())
 if (-not (Test-Path (Join-Path $PSScriptRoot "../.github/release-notes/$($current.Tag).md"))) { throw "Missing current release notes." }
+
+$appProject = Get-Content (Join-Path $PSScriptRoot "../src/DropSpace.App/DropSpace.App.csproj") -Raw -Encoding UTF8
+if ($appProject -notmatch '(?s)Name="PrepareDropSpacePackageManifest".*?XmlPoke' -or
+    $appProject -notmatch 'DropSpacePackageVersion')
+{
+    throw "The packaged app manifest is not bound to the shared release package version."
+}

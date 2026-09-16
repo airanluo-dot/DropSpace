@@ -4,12 +4,18 @@
 
 Test pure policies heavily, OS adapters with integration harnesses, and a small number of critical end-to-end flows. Manual compatibility testing remains necessary for cross-process drag, tray, display/DPI, and clipboard behavior.
 
-The release-specific P0 recovery matrix for `v0.3.0-preview.10` is in the
+The historical release-specific P0 recovery matrix for `v0.3.0-preview.10` is in the
 [Preview.10 recovery test plan](docs/test-plan/v0.3.0-preview.10.md).
 The release-specific Preview.14 motion and Acrylic matrix is in the
 [Preview.14 motion-system test plan](docs/test-plan/v0.3.0-preview.14.md).
-The release-specific Preview.21 settings and action usability matrix is in the
+The historical release-specific Preview.21 settings and action usability matrix is in the
 [Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md).
+
+The current Beta.25 release gate and the complete 52-item audit mapping are in
+[the Beta.25 bug-fix ledger](docs/dev/beta25-bugfix-ledger.md) and
+[compatibility-baseline.md](compatibility-baseline.md). Beta.25 requires x64
+Windows build 20348 or later; real Windows/OLE/DPI/Apple Music and packaging
+evidence remains conditional until recorded on the target machine.
 
 ## Quality gates
 
@@ -127,10 +133,10 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 - Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; ensure no stale language or raw exception message is announced.
 - CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real Windows 10 and Windows 11 installations remain required release evidence.
 
-### Windows compatibility baseline (Preview.8)
+### Windows compatibility baseline (Beta.25)
 
-- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Build 17763 minimum, capability fallbacks, distribution consistency, and evidence boundary.
-- Exercise Windows 10 1809/1909/20H2/22H2 (17763/18363/19042/19045) and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100).
+- Run [compatibility-baseline.md](compatibility-baseline.md) for the authoritative Build 20348 minimum, capability fallbacks, distribution consistency, and evidence boundary.
+- Exercise the supported build 20348 baseline, Windows 10 1909/20H2/22H2 (18363/19042/19045), and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100).
 - At each available OS, cover 100%, 125%, 150%, 175%, and 200% scaling, one-to-three monitors, primary/non-primary placement, topology refresh, normal launch, `--startup`, clipboard, Smart/Classic drag, visible direct drops, preview fallback, updater, and the relevant packaging path.
 - Treat Mica, modern DWM attributes, Windows Share identity, and optional PDF/media APIs as capability outcomes. Windows 10 must retain the base visual and local drop/clipboard paths without probing failures or stale overlay hit regions.
 - Do not mark this gate complete from source inspection, Linux checks, or Windows 11 CI alone; attach executable OS/build/DPI/monitor evidence.
