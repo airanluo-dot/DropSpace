@@ -65,3 +65,10 @@ Keep homepage additions in the original visual language: reuse the existing
 showcase/island tokens and popover duration/easing, rather than introducing a
 parallel palette or motion system. Browser regression compares new and existing
 computed backgrounds, radius and motion, including reduced-motion handling.
+
+Homepage section indexes use a continuous NN / NAME sequence in both languages.
+Keep feature copy evergreen: release-specific changes belong in API-driven news
+and immutable release notes, not feature stories or hard-coded Beta download
+buttons. Use the shared i18n map and existing data-download/data-release-url
+hooks for download links; preserve release API routes and historical metadata.
+The Windows compatibility gate checks release-specific website guidance and the synchronized release-notes link; concrete OS minimums remain enforced in app, installer, manifest and baseline sources.
