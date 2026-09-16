@@ -71,3 +71,4 @@ Keep feature copy evergreen: release-specific changes belong in API-driven news
 and immutable release notes, not feature stories or hard-coded Beta download
 buttons. Use the shared i18n map and existing data-download/data-release-url
 hooks for download links; preserve release API routes and historical metadata.
+The Windows compatibility gate checks release-specific website guidance and the synchronized release-notes link; concrete OS minimums remain enforced in app, installer, manifest and baseline sources.

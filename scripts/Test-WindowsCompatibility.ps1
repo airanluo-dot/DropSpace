@@ -122,7 +122,8 @@ if ((Read-CompatibilityFile "src/DropSpace.App/App.xaml.cs") -match 'Application
 
 Assert-CompatibilityText "compatibility-baseline.md" '20348' "The compatibility baseline report is missing the build 20348 minimum."
 Assert-CompatibilityText "docs/test-plan/v0.3.0-preview.10.md" 'Windows 10 (version )?1809' "The current Preview test plan is missing the required Windows 10 1809 matrix."
-Assert-CompatibilityText "website/_source/src/index.html" '20348' "The website does not state the Preview.24 minimum."
+Assert-CompatibilityText "website/_source/src/index.html" 'Minimum system requirements depend on the release' "The website must explain that system requirements are release-specific."
+Assert-CompatibilityText "website/_source/src/index.html" '<a\b[^>]*href="\{\{STABLE_URL\}\}"[^>]*data-release-url[^>]*>Release notes' "The website must link system requirements to synchronized release notes."
 
 if ($errors.Count -ne 0)
 {
