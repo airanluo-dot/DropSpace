@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 for (const route of ['en', 'zh-cn']) {
-  test(`Beta 24 showcase supports page selection and keyboard navigation (${route})`, async ({ page }) => {
+  test(`Native Island showcase supports page selection and keyboard navigation (${route})`, async ({ page }) => {
     await page.goto(`/DropSpace/${route}/`);
     const story = page.locator('#native-island');
     await story.scrollIntoViewIfNeeded();
@@ -17,7 +17,7 @@ for (const route of ['en', 'zh-cn']) {
     await expect(tabs.nth(3)).toBeFocused();
     await tabs.nth(3).press('Home');
     await expect(page.locator('#native-panel-widgets')).toBeVisible();
-    await expect(story.locator('a')).toHaveAttribute('href', /v0\.3\.0-beta\.24\/DropSpaceSetup\.exe$/);
+    await expect(story.locator('a')).toHaveCount(0);
     await expect(page.locator('.widget-tile')).toHaveCount(8);
     const design = await page.evaluate(() => {
       const style = (selector) => getComputedStyle(document.querySelector(selector));
