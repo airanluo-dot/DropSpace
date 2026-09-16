@@ -13,14 +13,14 @@ $root = if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
     [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $RepositoryRoot))
 }
 
-$ignore = Get-Content (Join-Path $root ".gitignore") -Raw
+$ignore = Get-Content (Join-Path $root ".gitignore") -Raw -Encoding UTF8
 foreach ($pattern in @(".env", ".env.*", "*.pem", "*.key", "*.private", "secrets.*")) {
-    if (-not $ignore.Contains($pattern, [StringComparison]::Ordinal)) {
+    if ($ignore.IndexOf($pattern, [StringComparison]::Ordinal) -lt 0) {
         throw ".gitignore is missing the credential exclusion '$pattern'."
     }
 }
 
-$tracked = & git -C $root ls-files
+$tracked = & git -c core.quotepath=false -C $root ls-files
 $textExtensions = @(
     ".c", ".cc", ".cpp", ".cs", ".csproj", ".css", ".fs", ".fsx", ".go", ".h", ".hpp",
     ".html", ".ini", ".js", ".json", ".jsx", ".md", ".props", ".ps1", ".psm1", ".py",

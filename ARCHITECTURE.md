@@ -20,7 +20,7 @@ Exact versions are selected and recorded in Phase 0; do not write “latest” i
 
 ## Windows compatibility boundary
 
-The Beta 24 runtime baseline is 64-bit Windows build 20348
+The Beta 25 runtime baseline is 64-bit Windows build 20348
 or later, including Windows 11. The app continues to compile against
 the pinned Windows SDK Build Tools 10.0.26100.8249; compile-time API availability
 is not treated as proof that an API exists on the current OS.
@@ -366,9 +366,9 @@ The three-project graph is unchanged. SqliteDatabase owns the shared repository 
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Preview.23 requires one manual installation of
-Beta 24, preserving data/settings, because its shipped parser rejects Beta
-tags. Subsequent Beta updates are automatic according to user settings.
+releases remain immutable. Beta 24 is the immediate upgrade baseline and
+preserves data/settings. Subsequent Beta updates are automatic according to
+user settings.
 See [migration contract](docs/dev/beta-migration.md).

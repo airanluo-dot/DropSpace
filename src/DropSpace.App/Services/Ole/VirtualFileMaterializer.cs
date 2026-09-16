@@ -55,6 +55,7 @@ internal sealed class VirtualFileMaterializer
         var relativeRoot = $"virtual-{Guid.NewGuid():N}";
         var batchRoot = Path.Combine(_paths.Staging, relativeRoot);
         StagingLease? lease = null;
+        List<OwnedVirtualMedium>? ownedMedia = null;
         try
         {
             // Preserve the materializer's storage initialization contract even when
@@ -80,19 +81,46 @@ internal sealed class VirtualFileMaterializer
             if (asyncOperationStarted) await Task.Yield();
             var descriptors = ReadDescriptors(dataObject);
             var paths = new List<string>(descriptors.Count);
+            ValidateAnnouncedSizes(descriptors);
             long totalBytes = 0;
-            for (var index = 0; index < descriptors.Count; index++)
+            if (!asyncOperationStarted)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var descriptor = descriptors[index];
-                var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName);
-                var written = await WriteContentsAsync(dataObject, index, destination, asyncOperationStarted, cancellationToken);
-                totalBytes = checked(totalBytes + written);
-                if (written > MaximumFileBytes || totalBytes > MaximumBatchBytes)
+                // A non-async OLE source may release IDataObject as soon as Drop returns. Take
+                // ownership of every returned medium before returning, then copy only those
+                // already-owned handles on a worker. This keeps the source-lifetime contract
+                // without making Explorer wait for the complete payload.
+                ownedMedia = new List<OwnedVirtualMedium>(descriptors.Count);
+                for (var index = 0; index < descriptors.Count; index++)
                 {
-                    throw new InvalidDataException("A virtual-file payload exceeded the bounded staging limit.");
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var descriptor = descriptors[index];
+                    var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName);
+                    ownedMedia.Add(AcquireContentMedium(dataObject, index, destination, marshalForBackground: true));
+                    paths.Add(destination);
                 }
-                paths.Add(destination);
+
+                var acquiredMedia = ownedMedia;
+                var copyTask = Task.Run(
+                    () => CopyOwnedMediaAsync(acquiredMedia, cancellationToken),
+                    CancellationToken.None);
+                ownedMedia = null;
+                totalBytes = await copyTask.ConfigureAwait(false);
+            }
+            else
+            {
+                for (var index = 0; index < descriptors.Count; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var descriptor = descriptors[index];
+                    var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName);
+                    var written = await WriteContentsAsync(dataObject, index, destination, cancellationToken);
+                    totalBytes = checked(totalBytes + written);
+                    if (written > MaximumFileBytes || totalBytes > MaximumBatchBytes)
+                    {
+                        throw new InvalidDataException("A virtual-file payload exceeded the bounded staging limit.");
+                    }
+                    paths.Add(destination);
+                }
             }
 
             _logger.LogInformation(
@@ -104,6 +132,13 @@ internal sealed class VirtualFileMaterializer
         catch
         {
             operationResult = unchecked((int)0x80004005);
+            if (ownedMedia is not null)
+            {
+                foreach (var medium in ownedMedia)
+                {
+                    medium.Dispose();
+                }
+            }
             if (lease is not null)
             {
                 try
@@ -214,8 +249,31 @@ internal sealed class VirtualFileMaterializer
         IDataObject dataObject,
         int index,
         string destination,
-        bool allowAsync,
         CancellationToken cancellationToken)
+    {
+        var ownedMedium = AcquireContentMedium(dataObject, index, destination);
+        try
+        {
+            using var output = new FileStream(
+                destination,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                BufferSize,
+                FileOptions.Asynchronous | FileOptions.WriteThrough | FileOptions.SequentialScan);
+            return await CopyMediumAsync(ownedMedium.Medium, output, allowAsync: true, cancellationToken);
+        }
+        finally
+        {
+            ownedMedium.Dispose();
+        }
+    }
+
+    private OwnedVirtualMedium AcquireContentMedium(
+        IDataObject dataObject,
+        int index,
+        string destination,
+        bool marshalForBackground = false)
     {
         var format = CreateFormat(
             _classifier.FileContentsClipboardFormat,
@@ -229,42 +287,109 @@ internal sealed class VirtualFileMaterializer
         dataObject.GetData(ref format, out var medium);
         try
         {
-            using var output = new FileStream(
-                destination,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                BufferSize,
-                FileOptions.Asynchronous | FileOptions.WriteThrough | FileOptions.SequentialScan);
-            return medium.tymed switch
+            if (medium.tymed is not (TYMED.TYMED_ISTREAM or TYMED.TYMED_HGLOBAL) || medium.unionmember == nint.Zero)
             {
-                TYMED.TYMED_ISTREAM => await CopyComStreamAsync(medium.unionmember, output, allowAsync, cancellationToken),
-                TYMED.TYMED_HGLOBAL => await CopyGlobalMemoryAsync(medium.unionmember, output, allowAsync, cancellationToken),
-                _ => throw new InvalidDataException("The virtual-file content medium is unsupported."),
-            };
+                throw new InvalidDataException("The virtual-file content medium is invalid.");
+            }
+
+            if (marshalForBackground && medium.tymed == TYMED.TYMED_ISTREAM)
+            {
+                var marshaled = MarshalStreamForBackground(medium.unionmember);
+                ReleaseStgMedium(ref medium);
+                return OwnedVirtualMedium.FromMarshaledStream(destination, marshaled);
+            }
+
+            return new OwnedVirtualMedium(destination, medium);
+        }
+        catch
+        {
+            ReleaseStgMedium(ref medium);
+            throw;
+        }
+    }
+
+    private static async Task<long> CopyOwnedMediaAsync(
+        IReadOnlyList<OwnedVirtualMedium> media,
+        CancellationToken cancellationToken)
+    {
+        long totalBytes = 0;
+        try
+        {
+            foreach (var content in media)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using var output = new FileStream(
+                    content.Destination,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    BufferSize,
+                    FileOptions.Asynchronous | FileOptions.WriteThrough | FileOptions.SequentialScan);
+                var written = content.TryTakeMarshaledStream(out var marshaledStream)
+                    ? await CopyMarshaledStreamAsync(marshaledStream, output, cancellationToken)
+                    : await CopyMediumAsync(content.Medium, output, allowAsync: false, cancellationToken);
+                totalBytes = checked(totalBytes + written);
+                if (written > MaximumFileBytes || totalBytes > MaximumBatchBytes)
+                {
+                    throw new InvalidDataException("A virtual-file payload exceeded the bounded staging limit.");
+                }
+            }
+            return totalBytes;
         }
         finally
         {
-            ReleaseStgMedium(ref medium);
+            foreach (var content in media)
+            {
+                content.Dispose();
+            }
         }
+    }
+
+    private static async Task<long> CopyMediumAsync(
+        STGMEDIUM medium,
+        Stream destination,
+        bool allowAsync,
+        CancellationToken cancellationToken) =>
+        medium.tymed switch
+        {
+            TYMED.TYMED_ISTREAM => await CopyComStreamAsync(medium.unionmember, destination, allowAsync, cancellationToken),
+            TYMED.TYMED_HGLOBAL => await CopyGlobalMemoryAsync(medium.unionmember, destination, allowAsync, cancellationToken),
+            _ => throw new InvalidDataException("The virtual-file content medium is unsupported."),
+        };
+
+    private static async Task<long> CopyMarshaledStreamAsync(
+        nint marshaledStream,
+        Stream destination,
+        CancellationToken cancellationToken)
+    {
+        var interfaceId = IStreamInterfaceId;
+        var stream = CoGetInterfaceAndReleaseStream(marshaledStream, ref interfaceId);
+        if (stream == nint.Zero)
+        {
+            throw new COMException("The OLE content stream could not be unmarshaled.");
+        }
+
+        return await CopyComStreamAsync(stream, destination, allowAsync: false, cancellationToken, releaseInterfacePointer: true);
     }
 
     private static async Task<long> CopyComStreamAsync(
         nint unknown,
         Stream destination,
         bool allowAsync,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool releaseInterfacePointer = false)
     {
         if (unknown == nint.Zero)
         {
             throw new InvalidDataException("The virtual-file stream pointer is null.");
         }
-        var stream = (IStream)Marshal.GetObjectForIUnknown(unknown);
         var buffer = new byte[BufferSize];
         var countPointer = Marshal.AllocCoTaskMem(sizeof(int));
+        IStream? stream = null;
         long total = 0;
         try
         {
+            stream = (IStream)Marshal.GetObjectForIUnknown(unknown);
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -289,9 +414,31 @@ internal sealed class VirtualFileMaterializer
         finally
         {
             Marshal.FreeCoTaskMem(countPointer);
-            if (Marshal.IsComObject(stream))
+            if (stream is not null && Marshal.IsComObject(stream))
             {
                 _ = Marshal.ReleaseComObject(stream);
+            }
+            if (releaseInterfacePointer)
+            {
+                _ = Marshal.Release(unknown);
+            }
+        }
+    }
+
+    private static void ValidateAnnouncedSizes(IReadOnlyList<VirtualFileDescriptor> descriptors)
+    {
+        long total = 0;
+        foreach (var descriptor in descriptors)
+        {
+            if (descriptor.AnnouncedSize > MaximumFileBytes)
+            {
+                throw new InvalidDataException("A virtual file announced an unsupported size.");
+            }
+
+            total = checked(total + descriptor.AnnouncedSize);
+            if (total > MaximumBatchBytes)
+            {
+                throw new InvalidDataException("The virtual-file batch announced an unsupported size.");
             }
         }
     }
@@ -381,6 +528,52 @@ internal sealed class VirtualFileMaterializer
 
     private readonly record struct VirtualFileDescriptor(string FileName, long AnnouncedSize);
 
+    private sealed class OwnedVirtualMedium(string destination, STGMEDIUM medium) : IDisposable
+    {
+        private STGMEDIUM _medium = medium;
+        private nint _marshaledStream;
+
+        private OwnedVirtualMedium(string destination, nint marshaledStream)
+            : this(destination, default(STGMEDIUM))
+        {
+            _marshaledStream = marshaledStream;
+        }
+
+        public string Destination { get; } = destination;
+
+        public STGMEDIUM Medium => _medium;
+
+        public static OwnedVirtualMedium FromMarshaledStream(string destination, nint marshaledStream)
+        {
+            if (marshaledStream == nint.Zero) throw new ArgumentException("A marshaled stream is required.", nameof(marshaledStream));
+            return new OwnedVirtualMedium(destination, marshaledStream);
+        }
+
+        public bool TryTakeMarshaledStream(out nint marshaledStream)
+        {
+            marshaledStream = Interlocked.Exchange(ref _marshaledStream, nint.Zero);
+            return marshaledStream != nint.Zero;
+        }
+
+        public void Dispose()
+        {
+            var marshaledStream = Interlocked.Exchange(ref _marshaledStream, nint.Zero);
+            if (marshaledStream != nint.Zero)
+            {
+                _ = Marshal.Release(marshaledStream);
+            }
+
+            if (_medium.unionmember == nint.Zero)
+            {
+                return;
+            }
+
+            var medium = _medium;
+            _medium = default;
+            ReleaseStgMedium(ref medium);
+        }
+    }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct FileDescriptorW
     {
@@ -414,6 +607,34 @@ internal sealed class VirtualFileMaterializer
 
     [DllImport("ole32.dll")]
     private static extern void ReleaseStgMedium(ref STGMEDIUM medium);
+
+    private static readonly Guid IStreamInterfaceId = new("0000000C-0000-0000-C000-000000000046");
+
+    [DllImport("ole32.dll")]
+    private static extern int CoMarshalInterThreadInterfaceInStream(
+        ref Guid riid,
+        nint pUnk,
+        out nint ppStm);
+
+    [DllImport("ole32.dll")]
+    private static extern nint CoGetInterfaceAndReleaseStream(
+        nint pStm,
+        ref Guid riid);
+
+    private static nint MarshalStreamForBackground(nint stream)
+    {
+        var interfaceId = IStreamInterfaceId;
+        var result = CoMarshalInterThreadInterfaceInStream(ref interfaceId, stream, out var marshaled);
+        if (result < 0)
+        {
+            // The OLE API normally returns a null output on failure, but release a defensive
+            // non-null result as an interface pointer if a non-conforming provider leaves one.
+            if (marshaled != nint.Zero) _ = Marshal.Release(marshaled);
+            Marshal.ThrowExceptionForHR(result);
+        }
+
+        return marshaled;
+    }
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern nint GlobalLock(nint memory);

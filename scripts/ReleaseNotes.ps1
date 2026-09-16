@@ -23,7 +23,7 @@ function Get-DropSpaceUpdateSummary
         throw "Missing release notes for $Tag."
     }
 
-    $notes = Get-Content $notesPath -Raw
+    $notes = Get-Content $notesPath -Raw -Encoding UTF8
     $matches = [regex]::Matches(
         $notes,
         '(?im)^\s*<!--\s*update-summary:\s*(?<summary>[^\r\n]*?)\s*-->\s*$')

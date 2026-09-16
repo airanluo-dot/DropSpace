@@ -91,7 +91,7 @@ try
         {
             try
             {
-                $marker = Get-Content -Path $markerPath -Raw | ConvertFrom-Json
+                $marker = Get-Content -Path $markerPath -Raw -Encoding UTF8 | ConvertFrom-Json
                 if ($null -ne $marker.stage)
                 {
                     $lastStage = [string]$marker.stage
@@ -217,7 +217,7 @@ try
         {
             try
             {
-                $startupMarker = Get-Content -Path $startupMarkerPath -Raw | ConvertFrom-Json
+                $startupMarker = Get-Content -Path $startupMarkerPath -Raw -Encoding UTF8 | ConvertFrom-Json
                 if ($null -ne $startupMarker.stage)
                 {
                     $startupLastStage = [string]$startupMarker.stage

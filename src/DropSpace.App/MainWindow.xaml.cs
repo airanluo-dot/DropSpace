@@ -214,23 +214,69 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         _tray = null;
     }
 
-    public async Task ShowRecoveryAsync()
+    public async Task<bool> ShowRecoveryAsync(CancellationToken cancellationToken = default)
     {
-        if (_mainPage.XamlRoot is null)
+        ShowAndActivate();
+        var xamlRoot = await WaitForXamlRootAsync(cancellationToken).ConfigureAwait(true);
+        if (xamlRoot is null)
         {
-            _logger.LogError("A startup recovery dialog could not be shown before the main page received a XamlRoot.");
-            return;
+            _logger.LogError("A startup recovery dialog could not be shown because the main page never received a XamlRoot.");
+            return false;
         }
 
-        ShowAndActivate();
-        var dialog = new ContentDialog
+        try
         {
-            XamlRoot = _mainPage.XamlRoot,
-            Title = _strings.Get("StartupRecoveryTitle"),
-            Content = _strings.Get("StartupRecoveryContent"),
-            CloseButtonText = _strings.Get("CommonClose"),
-        };
-        await dialog.ShowAsync();
+            var dialog = new ContentDialog
+            {
+                XamlRoot = xamlRoot,
+                Title = _strings.Get("StartupRecoveryTitle"),
+                Content = _strings.Get("StartupRecoveryContent"),
+                CloseButtonText = _strings.Get("CommonClose"),
+            };
+            await dialog.ShowAsync();
+            return true;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            _logger.LogError(exception, "The startup recovery dialog could not be displayed.");
+            return false;
+        }
+    }
+
+    private async Task<XamlRoot?> WaitForXamlRootAsync(CancellationToken cancellationToken)
+    {
+        if (_mainPage.XamlRoot is { } current)
+        {
+            return current;
+        }
+
+        var completion = new TaskCompletionSource<XamlRoot?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnLoaded(object sender, RoutedEventArgs args)
+        {
+            completion.TrySetResult(_mainPage.XamlRoot);
+        }
+
+        _mainPage.Loaded += OnLoaded;
+        try
+        {
+            if (_mainPage.XamlRoot is { } attached)
+            {
+                completion.TrySetResult(attached);
+            }
+
+            try
+            {
+                return await completion.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(true);
+            }
+            catch (TimeoutException)
+            {
+                return _mainPage.XamlRoot;
+            }
+        }
+        finally
+        {
+            _mainPage.Loaded -= OnLoaded;
+        }
     }
 
     private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)

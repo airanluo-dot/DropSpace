@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>DropSpace</AssemblyName>
     <Product>DropSpace</Product>
-    <Description>DropSpace temporary file and clipboard workspace for Windows 10 version 1809 and later.</Description>
+    <Description>DropSpace temporary file and clipboard workspace for 64-bit Windows build 20348 and later.</Description>
     <AssemblyTitle>DropSpace</AssemblyTitle>
     <Version>$(DropSpaceReleaseVersion)</Version>
     <AssemblyVersion>$(DropSpaceVersionPrefix).0</AssemblyVersion>
@@ -58,6 +58,26 @@
   <PropertyGroup>
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
+  <Target
+    Name="PrepareDropSpacePackageManifest"
+    BeforeTargets="_ValidatePresenceOfAppxManifestItems"
+    Condition="'$(DropSpaceDeployment)' == 'Packaged' and '$(OS)' == 'Windows_NT'">
+    <PropertyGroup>
+      <DropSpacePackageManifestPath>$(IntermediateOutputPath)DropSpace.Package.appxmanifest</DropSpacePackageManifestPath>
+    </PropertyGroup>
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\Package.appxmanifest"
+      DestinationFiles="$(DropSpacePackageManifestPath)"
+      SkipUnchangedFiles="false" />
+    <XmlPoke
+      XmlInputPath="$(DropSpacePackageManifestPath)"
+      Query="/*[local-name()='Package']/*[local-name()='Identity']/@Version"
+      Value="$(DropSpacePackageVersion)" />
+    <ItemGroup>
+      <AppxManifest Remove="@(AppxManifest)" />
+      <AppxManifest Include="$(DropSpacePackageManifestPath)" />
+    </ItemGroup>
+  </Target>
   <Target
     Name="CompileDropSpaceBootstrapWin32Resource"
     BeforeTargets="PrepareForBuild"

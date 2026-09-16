@@ -33,9 +33,31 @@ public sealed record MediaSessionSnapshot(
     bool CanSkipPrevious,
     bool CanSeek,
     MediaTimelineSnapshot Timeline,
-    DateTimeOffset LastUpdated)
+    DateTimeOffset LastUpdated,
+    string AlbumArtist = "",
+    int TrackNumber = 0)
 {
     public bool IsActive => !string.IsNullOrWhiteSpace(TrackTitle) && PlaybackState is not MediaPlaybackState.Stopped;
+
+    /// <summary>Runtime-only key that excludes position and volatile timeline metadata.</summary>
+    public string TrackIdentity => string.Join('\u001f', SessionId, SourceAppUserModelId, TrackTitle, Artist, AlbumArtist, AlbumTitle, TrackNumber);
+
+    /// <summary>
+    /// Compares track metadata while treating a temporarily missing duration as unknown. Media
+    /// sessions can briefly publish a zero timeline while Apple Music refreshes its metadata.
+    /// </summary>
+    public bool IsSameTrack(MediaSessionSnapshot other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (!string.Equals(TrackIdentity, other.TrackIdentity, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var left = Timeline.Duration;
+        var right = other.Timeline.Duration;
+        return left <= TimeSpan.Zero || right <= TimeSpan.Zero || Math.Abs((left - right).TotalSeconds) <= 2;
+    }
 
     public static MediaSessionSnapshot Empty { get; } = new(
         string.Empty,

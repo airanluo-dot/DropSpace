@@ -130,12 +130,14 @@
   <data name="UpdateDownloadCancelled" xml:space="preserve"><value>更新下载已取消。</value></data>
   <data name="UpdateDownloadFailed" xml:space="preserve"><value>更新下载失败。请检查网络后重试。</value></data>
   <data name="UpdateDownloadIntegrityFailed" xml:space="preserve"><value>更新下载未通过完整性验证。</value></data>
+  <data name="UpdateRecoveryFailed" xml:space="preserve"><value>DropSpace 无法恢复上次更新状态。你可以重新检查更新。</value></data>
   <data name="UpdateDownloadedReadyToInstall" xml:space="preserve"><value>更新已下载并验证，可以安装。</value></data>
   <data name="UpdateDownloadedVerified" xml:space="preserve"><value>更新已下载并验证。</value></data>
   <data name="UpdateDownloading" xml:space="preserve"><value>正在下载更新…</value></data>
   <data name="UpdateFound" xml:space="preserve"><value>发现可用更新 {0}。</value></data>
   <data name="UpdateFoundManaged" xml:space="preserve"><value>发现可用更新 {0}，将由 Windows 管理。</value></data>
   <data name="UpdateInstallIntegrityFailed" xml:space="preserve"><value>更新未通过完整性验证，无法安装。</value></data>
+  <data name="UpdateInstallStateFailed" xml:space="preserve"><value>无法保存更新恢复状态，更新暂时不能安装。</value></data>
   <data name="UpdateInstallerLaunchFailed" xml:space="preserve"><value>已验证的安装程序无法启动。</value></data>
   <data name="UpdateInstalling" xml:space="preserve"><value>正在启动更新安装程序…</value></data>
   <data name="UpdateLastDownloadIncomplete" xml:space="preserve"><value>上次更新下载未完成，已丢弃不完整文件。</value></data>
@@ -516,6 +518,9 @@
   <data name="WidgetRight" xml:space="preserve"><value>右侧</value></data>
   <data name="WidgetLeft" xml:space="preserve"><value>左侧</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>启用歌词</value></data>
+  <data name="LyricsLoading" xml:space="preserve"><value>正在加载歌词……</value></data>
+  <data name="LyricsNotFound" xml:space="preserve"><value>没有找到已验证属于当前歌曲的歌词。</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>歌词加载失败，请检查网络后重试。</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>无法在此放置小组件，请拖到网格单元格或使用位置设置。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>灵动岛</value></data>

@@ -5,7 +5,7 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 
 function Read-TextFile([string]$relativePath)
 {
-    return Get-Content -LiteralPath (Join-Path $repositoryRoot $relativePath) -Raw
+    return Get-Content -LiteralPath (Join-Path $repositoryRoot $relativePath) -Raw -Encoding UTF8
 }
 
 $visualFiles = @(

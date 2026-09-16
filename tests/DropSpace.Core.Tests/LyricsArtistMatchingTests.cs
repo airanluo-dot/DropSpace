@@ -23,4 +23,52 @@ public sealed class LyricsArtistMatchingTests
         var wrong = LyricsMatcher.Score(query, "Song", "Alice Cooper; Guest", "", 0);
         Assert.IsGreaterThan(wrong, correct);
     }
+
+    [TestMethod]
+    public void TitleOnlyMetadataCannotAuthorizeALyricsCandidate()
+    {
+        var query = new LyricsQuery("Song", string.Empty, string.Empty, TimeSpan.Zero);
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", string.Empty, string.Empty, 0));
+    }
+
+    [TestMethod]
+    public void CandidateWithoutIdentityCannotAuthorizeAnAlbumDisambiguatedQuery()
+    {
+        var query = new LyricsQuery("Song", string.Empty, "Album", TimeSpan.Zero);
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", string.Empty, string.Empty, 0));
+    }
+
+    [TestMethod]
+    public void LiveCandidateIsRejectedForAPlainTitle()
+    {
+        var query = new LyricsQuery("Song", "Artist", string.Empty, TimeSpan.Zero);
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song (Live)", "Artist", string.Empty, 0));
+    }
+
+    [TestMethod]
+    public void CandidateWithAnIncompatibleKnownDurationIsRejected()
+    {
+        var query = new LyricsQuery("Song", "Artist", string.Empty, TimeSpan.FromSeconds(180));
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", string.Empty, 240));
+    }
+
+    [TestMethod]
+    public void CandidateWithAConflictingKnownAlbumIsRejected()
+    {
+        var query = new LyricsQuery("Song", "Artist", "Album A", TimeSpan.Zero);
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", "Album B", 0));
+    }
+
+    [TestMethod]
+    public void CandidateWithoutAlbumIdentityCannotAuthorizeAnAlbumDisambiguatedQuery()
+    {
+        var query = new LyricsQuery("Song", "Artist", "Album A", TimeSpan.FromSeconds(180));
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", string.Empty, 180));
+    }
 }

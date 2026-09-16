@@ -61,7 +61,7 @@ New-Item -ItemType Directory -Path $resourceProjectRoot -Force | Out-Null
 function Copy-ProjectFile([string]$SourcePath)
 {
     $projectRootWithSeparator = $resolvedProjectRoot.TrimEnd([char]92, [char]47) + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $SourcePath.StartsWith($projectRootWithSeparator, [StringComparison]::OrdinalIgnoreCase))
+    if ($SourcePath.IndexOf($projectRootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase) -ne 0)
     {
         throw "PRI source is outside the project root: $SourcePath"
     }
@@ -98,7 +98,7 @@ if ($LASTEXITCODE -ne 0)
     throw "MakePri createconfig failed with exit code $LASTEXITCODE."
 }
 
-[xml]$configuration = Get-Content -Path $resolvedConfigurationPath -Raw
+[xml]$configuration = Get-Content -Path $resolvedConfigurationPath -Raw -Encoding UTF8
 $packagingNodes = @($configuration.SelectNodes("//*[translate(local-name(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = 'packaging']"))
 if ($packagingNodes.Count -eq 0)
 {

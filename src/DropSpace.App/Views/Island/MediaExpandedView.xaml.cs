@@ -46,10 +46,11 @@ public sealed partial class MediaExpandedView : UserControl
             EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
             ArtworkColumn.Width = new GridLength(empty ? 0 : 100);
             ArtworkHost.Visibility = TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+            LyricsArea.Visibility = empty || !_view.Settings.Lyrics.Enabled ? Visibility.Collapsed : Visibility.Visible;
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? Visibility.Visible : Visibility.Collapsed;
             for (var index = 0; index < Spectrum.Children.Count; index++)
-                ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands[index], 0, 1);
+                ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
         }
         finally { _updating = false; }
     }

@@ -31,6 +31,9 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
     private Task<UpdateStatusSnapshot>? _activeCheck;
     private Task<UpdateStatusSnapshot>? _activeDownload;
     private Task<UpdateStatusSnapshot>? _activeInstall;
+    private SharedUpdateOperation? _checkOperation;
+    private SharedUpdateOperation? _downloadOperation;
+    private SharedUpdateOperation? _installOperation;
     private int _startupCheckStarted;
     private UpdateStatusSnapshot _status;
 
@@ -75,16 +78,53 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
 
     private async Task<UpdateStatusSnapshot> RecoverPendingCoreAsync(CancellationToken cancellationToken = default)
     {
-        var pending = await _stateStore.LoadHighestAsync(CurrentVersion, _deploymentMode.Current, cancellationToken)
-            .ConfigureAwait(false);
+        var operationId = OperationCorrelation.New();
+        (DownloadedUpdate Update, string State)? pending;
+        try
+        {
+            pending = await _stateStore.LoadHighestAsync(CurrentVersion, _deploymentMode.Current, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
+        {
+            _logger.LogWarning(exception, "Update operation {OperationId} pending-state recovery failed.", operationId);
+            return Publish(Status with
+            {
+                State = UpdateState.Failed,
+                Message = _strings.Get("UpdateRecoveryFailed"),
+                PreviousInstallIncomplete = true,
+            });
+        }
+
         if (pending is null)
         {
             return Status;
         }
 
         var (download, state) = pending.Value;
-        if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
+        try
         {
+            if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
+            {
+                return Publish(Status with
+                {
+                    State = UpdateState.Failed,
+                    Message = _strings.Get("UpdateLastDownloadIncomplete"),
+                    PreviousInstallIncomplete = true,
+                });
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
+        {
+            _logger.LogWarning(exception, "Pending update integrity verification could not complete.");
             return Publish(Status with
             {
                 State = UpdateState.Failed,
@@ -131,39 +171,56 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         {
             if (_activeDownload is { IsCompleted: false })
             {
-                return _activeDownload.WaitAsync(cancellationToken);
+                return WaitForSharedOperation(_downloadOperation!, cancellationToken);
             }
 
-            _activeDownload = RunExclusiveAsync(
-                DownloadCoreAsync,
-                CancellationToken.None);
-            return _activeDownload.WaitAsync(cancellationToken);
+            _downloadOperation = new SharedUpdateOperation();
+            _activeDownload = _downloadOperation.Start(
+                token => RunExclusiveAsync(DownloadCoreAsync, token));
+            return WaitForSharedOperation(_downloadOperation, cancellationToken);
         }
     }
 
     private async Task<UpdateStatusSnapshot> DownloadCoreAsync(CancellationToken cancellationToken = default)
     {
         var operationId = OperationCorrelation.New();
-        var candidate = Status.Candidate ?? throw new InvalidOperationException("No validated update is available.");
-        if (_deploymentMode.Current == DeploymentMode.Packaged)
-        {
-            return Publish(Status with { Message = _strings.Get("UpdateManagedByWindows") });
-        }
-
-        Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = null });
+        DownloadedUpdate? download = null;
         try
         {
+            var candidate = Status.Candidate ?? throw new InvalidOperationException("No validated update is available.");
+            if (_deploymentMode.Current == DeploymentMode.Packaged)
+            {
+                return Publish(Status with { Message = _strings.Get("UpdateManagedByWindows") });
+            }
+
+            Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = null });
             var progress = new InlineProgress<UpdateDownloadProgress>(value =>
                 Publish(Status with { State = UpdateState.Downloading, Message = _strings.Get("UpdateDownloading"), Progress = value }));
-            var download = await _downloader.DownloadAsync(candidate, progress, cancellationToken).ConfigureAwait(false);
+            download = await _downloader.DownloadAsync(candidate, progress, cancellationToken).ConfigureAwait(false);
             if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
             {
                 TryDelete(download.FilePath);
                 throw new InvalidDataException("The completed update failed its second integrity verification.");
             }
 
-            var trust = await _trustedVerifier.VerifyPublisherAsync(download.FilePath, cancellationToken)
-                .ConfigureAwait(false);
+            TrustedUpdateVerification trust;
+            try
+            {
+                trust = await _trustedVerifier.VerifyPublisherAsync(download.FilePath, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception) when (IsHandledUpdateException(exception))
+            {
+                // Publisher verification is a fail-closed capability check. A manual install can
+                // still be offered after the manifest hash succeeds, while unattended install
+                // remains disabled because trust is unavailable rather than silently assumed.
+                _logger.LogWarning(exception, "Update publisher verification was unavailable.");
+                trust = new TrustedUpdateVerification(false, "Publisher verification was unavailable.");
+            }
             return Publish(Status with
             {
                 State = UpdateState.ReadyToInstall,
@@ -177,17 +234,20 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return Publish(Status with { State = UpdateState.UpdateAvailable, Message = _strings.Get("UpdateDownloadCancelled"), Progress = null });
+            if (download is not null) TryDelete(download.FilePath);
+            return Publish(Status with { State = UpdateState.UpdateAvailable, Message = _strings.Get("UpdateDownloadCancelled"), Download = null, Progress = null });
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException or InvalidDataException or TaskCanceledException)
+        catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogWarning(exception, "Update operation {OperationId} download or integrity verification failed.", operationId);
+            if (download is not null) TryDelete(download.FilePath);
             return Publish(Status with
             {
                 State = UpdateState.Failed,
                 Message = exception is InvalidDataException
                     ? _strings.Get("UpdateDownloadIntegrityFailed")
                     : _strings.Get("UpdateDownloadFailed"),
+                Download = null,
                 Progress = null,
             });
         }
@@ -202,13 +262,13 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         {
             if (_activeInstall is { IsCompleted: false })
             {
-                return _activeInstall.WaitAsync(cancellationToken);
+                return WaitForSharedOperation(_installOperation!, cancellationToken);
             }
 
-            _activeInstall = RunExclusiveAsync(
-                token => InstallCoreAsync(unattended, token),
-                CancellationToken.None);
-            return _activeInstall.WaitAsync(cancellationToken);
+            _installOperation = new SharedUpdateOperation();
+            _activeInstall = _installOperation.Start(
+                token => RunExclusiveAsync(innerToken => InstallCoreAsync(unattended, innerToken), token));
+            return WaitForSharedOperation(_installOperation, cancellationToken);
         }
     }
 
@@ -217,24 +277,54 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         CancellationToken cancellationToken = default)
     {
         var operationId = OperationCorrelation.New();
-        var download = Status.Download ?? throw new InvalidOperationException("No verified update is ready to install.");
-        if (_deploymentMode.Current != DeploymentMode.Installer)
+        DownloadedUpdate? download = null;
+        try
         {
-            return Publish(Status with
+            download = Status.Download ?? throw new InvalidOperationException("No verified update is ready to install.");
+            if (_deploymentMode.Current != DeploymentMode.Installer)
             {
-                Message = _deploymentMode.Current == DeploymentMode.Packaged
-                    ? _strings.Get("UpdateManagedByWindows")
-                    : _strings.Get("UpdatePortableManualReplacement"),
-            });
-        }
+                return Publish(Status with
+                {
+                    Message = _deploymentMode.Current == DeploymentMode.Packaged
+                        ? _strings.Get("UpdateManagedByWindows")
+                        : _strings.Get("UpdatePortableManualReplacement"),
+                });
+            }
 
-        if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
+            if (!await _verifier.VerifyIntegrityAsync(download, cancellationToken).ConfigureAwait(false))
+            {
+                TryDelete(download.FilePath);
+                return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallIntegrityFailed"), Download = null });
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            TryDelete(download.FilePath);
-            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallIntegrityFailed") });
+            throw;
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
+        {
+            _logger.LogWarning(exception, "Update operation {OperationId} install integrity verification failed.", operationId);
+            if (download is not null)
+            {
+                TryDelete(download.FilePath);
+            }
+            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallIntegrityFailed"), Download = null });
         }
 
-        var trust = await _trustedVerifier.VerifyPublisherAsync(download.FilePath, cancellationToken).ConfigureAwait(false);
+        TrustedUpdateVerification trust;
+        try
+        {
+            trust = await _trustedVerifier.VerifyPublisherAsync(download.FilePath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
+        {
+            _logger.LogWarning(exception, "Update operation {OperationId} publisher verification was unavailable.", operationId);
+            trust = new TrustedUpdateVerification(false, "Publisher verification was unavailable.");
+        }
         // D-035: a manual install is an explicit user action and may install an unsigned Preview
         // after the manifest/size/hash checks above. Only unattended installation is gated on
         // publisher trust; Preview builds remain usable without pretending to be signed.
@@ -248,7 +338,19 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
 
         Publish(Status with { State = UpdateState.Installing, Message = _strings.Get("UpdateInstalling") });
-        await _stateStore.SaveAsync(download, "Installing", cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _stateStore.SaveAsync(download, "Installing", cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
+        {
+            _logger.LogError(exception, "Update operation {OperationId} could not persist the installing state.", operationId);
+            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallStateFailed") });
+        }
         try
         {
             if (!await _installerLauncher.LaunchAsync(download, cancellationToken).ConfigureAwait(false))
@@ -258,10 +360,26 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
 
             return Status;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogError(exception, "Update operation {OperationId} installer launch failed.", operationId);
-            await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);
+            if (download is not null)
+            {
+                try
+                {
+                    await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception stateException) when (IsHandledUpdateException(stateException))
+                {
+                    // The installer did not start. Keep the in-memory action retryable even if the
+                    // best-effort durable state rollback is temporarily blocked by another process.
+                    _logger.LogError(stateException, "Update operation {OperationId} could not restore the ready state after launch failure.", operationId);
+                }
+            }
             return Publish(Status with { State = UpdateState.ReadyToInstall, Message = _strings.Get("UpdateInstallerLaunchFailed") });
         }
     }
@@ -286,11 +404,13 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         {
             if (_activeCheck is { IsCompleted: false })
             {
-                return _activeCheck.WaitAsync(cancellationToken);
+                return WaitForSharedOperation(_checkOperation!, cancellationToken);
             }
 
-            _activeCheck = CheckCoreAsync(settings, automatic, CancellationToken.None);
-            return _activeCheck.WaitAsync(cancellationToken);
+            _checkOperation = new SharedUpdateOperation();
+            _activeCheck = _checkOperation.Start(
+                token => CheckCoreAsync(settings, automatic, token));
+            return WaitForSharedOperation(_checkOperation, cancellationToken);
         }
     }
 
@@ -354,12 +474,12 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         {
             return Publish(Status with { State = UpdateState.Idle, Message = _strings.Get("UpdateCheckCancelled") });
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or JsonException or TaskCanceledException)
+        catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogWarning(exception, "Update operation {OperationId} {UpdateCheckKind} check failed.", operationId, automatic ? "Automatic" : "Manual");
             var message = exception switch
             {
-                InvalidDataException or JsonException => _strings.Get("UpdateServiceValidationFailed"),
+                InvalidDataException or JsonException or InvalidOperationException or ArgumentException => _strings.Get("UpdateServiceValidationFailed"),
                 TaskCanceledException => _strings.Get("UpdateServiceTimedOut"),
                 _ => _strings.Get("UpdateServiceUnavailable"),
             };
@@ -388,6 +508,34 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
             var task = RunExclusiveCoreAsync(operation, cancellationToken);
             _operations.Add(task);
             return task;
+        }
+    }
+
+    private static Task<UpdateStatusSnapshot> WaitForSharedOperation(
+        SharedUpdateOperation operation,
+        CancellationToken callerToken)
+    {
+        operation.AddWaiter();
+        if (!callerToken.CanBeCanceled)
+        {
+            operation.ReleaseWhenCompleted();
+            return operation.Task;
+        }
+
+        return WaitWithCallerCancellationAsync(operation, callerToken);
+    }
+
+    private static async Task<UpdateStatusSnapshot> WaitWithCallerCancellationAsync(
+        SharedUpdateOperation operation,
+        CancellationToken callerToken)
+    {
+        try
+        {
+            return await operation.Task.WaitAsync(callerToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            operation.ReleaseWaiter();
         }
     }
 
@@ -461,7 +609,15 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
     private UpdateStatusSnapshot Publish(UpdateStatusSnapshot snapshot)
     {
         Volatile.Write(ref _status, snapshot);
-        StatusChanged?.Invoke(this, snapshot);
+        if (StatusChanged is { } handlers)
+        {
+            foreach (EventHandler<UpdateStatusSnapshot> handler in handlers.GetInvocationList())
+            {
+                try { handler(this, snapshot); }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                { _logger.LogWarning("Update status subscriber failed ({Category}).", exception.GetType().Name); }
+            }
+        }
         return snapshot;
     }
 
@@ -484,5 +640,79 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
     private sealed class InlineProgress<T>(Action<T> callback) : IProgress<T>
     {
         public void Report(T value) => callback(value);
+    }
+
+    private static bool IsHandledUpdateException(Exception exception) => exception is
+        HttpRequestException or IOException or UnauthorizedAccessException or InvalidDataException or
+        JsonException or TaskCanceledException or InvalidOperationException or ArgumentException or
+        TimeoutException or NotSupportedException or
+        System.ComponentModel.Win32Exception or System.Security.Cryptography.CryptographicException or
+        DllNotFoundException or EntryPointNotFoundException or BadImageFormatException or
+        PlatformNotSupportedException;
+
+    /// <summary>
+    /// Gives a shared update operation its own cancellation ownership. Individual callers may
+    /// stop waiting without interrupting another caller, while an operation with no remaining
+    /// waiters is still cancelled so a forgotten download/check does not run indefinitely.
+    /// </summary>
+    private sealed class SharedUpdateOperation
+    {
+        private readonly CancellationTokenSource _cancellation = new();
+        private int _waiters;
+        private int _completed;
+        private int _disposed;
+
+        public Task<UpdateStatusSnapshot> Task { get; private set; } = null!;
+        private CancellationToken Token => _cancellation.Token;
+
+        public Task<UpdateStatusSnapshot> Start(Func<CancellationToken, Task<UpdateStatusSnapshot>> operation)
+        {
+            Task = operation(Token);
+            _ = ObserveCompletionAsync();
+            return Task;
+        }
+
+        public void AddWaiter() => Interlocked.Increment(ref _waiters);
+
+        public void ReleaseWhenCompleted()
+        {
+            _ = ObserveWaiterCompletionAsync();
+        }
+
+        public void ReleaseWaiter()
+        {
+            if (Interlocked.Decrement(ref _waiters) == 0 && Volatile.Read(ref _completed) == 0)
+            {
+                try { _cancellation.Cancel(); }
+                catch (ObjectDisposedException) { }
+            }
+
+            TryDispose();
+        }
+
+        private async Task ObserveWaiterCompletionAsync()
+        {
+            try { await Task.ConfigureAwait(false); }
+            catch (Exception) { }
+            finally { ReleaseWaiter(); }
+        }
+
+        private async Task ObserveCompletionAsync()
+        {
+            try { await Task.ConfigureAwait(false); }
+            catch (Exception) { }
+            finally
+            {
+                Volatile.Write(ref _completed, 1);
+                TryDispose();
+            }
+        }
+
+        private void TryDispose()
+        {
+            if (Volatile.Read(ref _completed) == 0 || Volatile.Read(ref _waiters) != 0 ||
+                Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            _cancellation.Dispose();
+        }
     }
 }

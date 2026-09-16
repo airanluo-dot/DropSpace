@@ -1,18 +1,21 @@
 # DropSpace Product Specification
 
-## Beta 24 user amendment (implementation in progress)
+## Beta 25 full-audit bug-fix amendment
 
 The native island has four independent pages, ordered Widgets, Music controls,
 Files staging, Clipboard. Widgets use 4 rows by 8 columns with suitable alternate
 sizes. The eight types are clock, calendar, resource usage, settings shortcut,
 power, uptime, stopwatch and clipboard capture pause/resume. Playback changes
 must not steal the selected page. Clipboard and Space remain visibly distinct.
-The main window adds Music and seven focused settings categories. Release status
-and unresolved acceptance gates are tracked in `docs/dev/preview24-progress.md`.
+The main window adds Music and seven focused settings categories. Beta 25 is the
+complete remediation pass for the Beta 24 audit, including lyric identity and
+sync, clipboard/drag lifetimes, batch persistence, native recovery, and updater
+failure handling. Release status and the 52-item fix ledger are tracked in
+`docs/dev/beta25-bugfix-ledger.md`.
 
-Status: v0.3 Preview product contract
+Status: v0.3.0-beta.25 product contract
 Target: 64-bit Windows build 20348 or later desktop, including Windows 11; local-first
-Last reviewed: 2026-08-27
+Last reviewed: 2026-09-16
 
 ## One-sentence definition
 
@@ -90,7 +93,7 @@ Compared with Explorer, DropSpace avoids premature organization. Compared with a
 - Honest degradation: show missing, unavailable, unsupported, or too-large states.
 - Privacy is a control surface, not a settings footnote.
 - Keyboard and pointer are first-class peers.
-- Windows build 20348 is the Beta 24 runtime baseline; Windows 11-only visuals and
+- Windows build 20348 is the Beta 25 runtime baseline; Windows 11-only visuals and
   contracts are optional capabilities with explicit fallbacks.
 
 ## Final MVP scope
@@ -160,7 +163,7 @@ The first shippable MVP is deliberately smaller than the original list.
 
 ## Open product assumptions
 
-- 64-bit Windows build 20348 or later is the Beta 24 minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
+- 64-bit Windows build 20348 or later is the Beta 25 minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
 - The app remains running in the tray only when the user selected that close behavior.
 - Clipboard capture stops when the process exits.
 - Default clipboard retention: 30 days or 1,000 items, whichever limit is reached first; pinned items are exempt.
@@ -194,9 +197,9 @@ row has already passed.
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.24` (Beta 24). All new prereleases use
+The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Preview.23 requires one manual installation of
-Beta 24, preserving data/settings, because its shipped parser rejects Beta
-tags. Subsequent Beta updates are automatic according to user settings.
+releases remain immutable. Beta 24 is the immediate upgrade baseline and
+preserves data/settings. Subsequent Beta updates are automatic according to
+user settings.
 See [migration contract](docs/dev/beta-migration.md).

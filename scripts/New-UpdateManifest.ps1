@@ -12,7 +12,7 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 . (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
 $windowsCompatibility = Get-DropSpaceWindowsCompatibility
-$releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
+$releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim())
 $releaseSummary = if (-not [string]::IsNullOrWhiteSpace($Summary))
 {
     $Summary.Trim()

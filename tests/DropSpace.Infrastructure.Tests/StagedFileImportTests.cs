@@ -46,6 +46,29 @@ public sealed class StagedFileImportTests
     }
 
     [TestMethod]
+    public async Task RejectedFirstBatchMemberDoesNotHideTheAcceptedHeader()
+    {
+        _paths.EnsureCreated();
+        var batch = Path.Combine(_paths.Staging, "batch");
+        Directory.CreateDirectory(batch);
+        var oversized = Path.Combine(batch, "oversized.txt");
+        var good = Path.Combine(batch, "good.txt");
+        await File.WriteAllTextAsync(oversized, "too large");
+        await File.WriteAllTextAsync(good, "ok");
+        var repository = Repository();
+        var service = Service(repository, new LocalFileReferenceService());
+
+        var result = await service.ImportBatchAsync([oversized, good], null, "virtual-file", 2);
+
+        Assert.AreEqual(1, result.Accepted);
+        Assert.AreEqual(1, result.Rejected);
+        var item = (await repository.QueryAsync(new ItemQuery())).Single();
+        var metadata = System.Text.Json.JsonSerializer.Deserialize<DropBatchMetadata>(item.MetadataJson!)!;
+        Assert.AreEqual(0, metadata.ItemIndex);
+        Assert.AreEqual(2, metadata.ItemCount);
+    }
+
+    [TestMethod]
     public async Task CancellationAfterAdmissionCleansUnvisitedStagingFiles()
     {
         _paths.EnsureCreated();

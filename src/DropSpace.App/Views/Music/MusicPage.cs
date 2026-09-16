@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using DropSpace.Core.Lyrics;
 using DropSpace.App.Services.Media;
 using DropSpace.App.ViewModels;
 using DropSpace.App.Views.Island;
@@ -8,11 +9,15 @@ using DropSpace.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Text;
+using System.Diagnostics;
+using Windows.Foundation;
 
 namespace DropSpace.App.Views.Music;
 
 public sealed class MusicPage : UserControl
 {
+    private const int MaximumDisplayedLyricsLines = 2_000;
     private readonly NativeSettingsEditor _editor;
     private readonly MediaViewModel _media;
     private readonly WindowsMediaSessionService _sessions;
@@ -21,17 +26,43 @@ public sealed class MusicPage : UserControl
     private readonly StackPanel _applications = new() { Spacing = 8 };
     private readonly TextBlock _folder = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _source = new() { Opacity = 0.7 };
+    private readonly StackPanel _lyricsRows = new() { Spacing = 8 };
+    private readonly ScrollViewer _lyricsScroll;
+    private readonly TextBlock _lyricsStatus = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly MediaExpandedView _nowPlaying;
     private CancellationTokenSource? _iconStop;
     private Task _iconJob = Task.CompletedTask;
     private string _sourcesKey = string.Empty;
+    private IReadOnlyList<DropSpace.Core.Lyrics.LyricsLine> _renderedLyrics = [];
+    private string _renderedLyricsOptions = string.Empty;
+    private int _lastCenteredLyric = -1;
     public MusicPage(NativeSettingsEditor editor, MediaViewModel media, WindowsMediaSessionService sessions,
         MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
         var body = new StackPanel { Spacing = 16, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
-        _nowPlaying = new MediaExpandedView { ViewModel = media, Height = 280 };
-        body.Children.Add(_nowPlaying); body.Children.Add(_source);
+        _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
+        body.Children.Add(_nowPlaying);
+        _lyricsScroll = new ScrollViewer
+        {
+            Content = _lyricsRows,
+            MaxHeight = 360,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Padding = new(4, 2, 4, 8),
+        };
+        AutomationProperties.SetName(_lyricsScroll, strings.Get("MusicLyricsSection"));
+        var lyricsPanel = new StackPanel { Spacing = 8 };
+        lyricsPanel.Children.Add(new TextBlock
+        {
+            Text = strings.Get("MusicLyricsSection"),
+            FontSize = 18,
+            FontWeight = FontWeights.SemiBold,
+        });
+        lyricsPanel.Children.Add(_lyricsStatus);
+        lyricsPanel.Children.Add(_lyricsScroll);
+        body.Children.Add(lyricsPanel);
+        body.Children.Add(_source);
         var form = new SettingsForm(editor, strings); body.Children.Add(form);
         form.AddHeading("MusicPlaybackSection");
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });
@@ -66,16 +97,33 @@ public sealed class MusicPage : UserControl
     private void OnLoaded(object sender, RoutedEventArgs args)
     { _editor.PropertyChanged += OnSettings; _media.PropertyChanged += OnMedia; Refresh(); }
     private void OnUnloaded(object sender, RoutedEventArgs args)
-    { _editor.PropertyChanged -= OnSettings; _media.PropertyChanged -= OnMedia; _iconStop?.Cancel(); _sourcesKey = string.Empty; }
+    {
+        _editor.PropertyChanged -= OnSettings;
+        _media.PropertyChanged -= OnMedia;
+        var stop = Interlocked.Exchange(ref _iconStop, null);
+        stop?.Cancel();
+        var job = _iconJob;
+        _iconJob = Task.CompletedTask;
+        _ = ObserveIconShutdownAsync(job, stop);
+        _sourcesKey = string.Empty;
+    }
     private void OnSettings(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Refresh(); }
-    private void OnMedia(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(MediaViewModel.Session)) Refresh(); }
+    private void OnMedia(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(MediaViewModel.Session) or nameof(MediaViewModel.LyricsLines) or
+            nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Settings))
+        {
+            Refresh();
+        }
+    }
     private void Refresh()
     {
         _folder.Text = _editor.Settings.Lyrics.LocalLrcDirectory;
-        _nowPlaying.Height = string.IsNullOrEmpty(_media.Title) ? 100 : 280;
+        _nowPlaying.Height = string.IsNullOrEmpty(_media.Title) ? 100 : 380;
         _source.Text = _media.Session.SourceDisplayName;
+        RefreshLyrics();
         var settings = _editor.Settings.IslandActivity;
-        var sources = _sessions.AvailableSources.Concat(settings.AllowedMediaSourceAppIds).Distinct(StringComparer.OrdinalIgnoreCase).Take(128).ToArray();
+        var sources = _sessions.AvailableSources.Concat(settings.AllowedMediaSourceAppIds).Distinct(StringComparer.OrdinalIgnoreCase).Take(512).ToArray();
         var key = string.Join('\n', sources) + "|" + settings.UseMediaSourceAllowList + "|" + string.Join('\n', settings.AllowedMediaSourceAppIds);
         if (_sourcesKey == key && _applications.Children.Count > 0) return;
         _sourcesKey = key; _iconStop?.Cancel(); _applications.Children.Clear();
@@ -107,14 +155,137 @@ public sealed class MusicPage : UserControl
         var previous = _iconJob; var oldStop = _iconStop; _iconStop = new();
         _iconJob = LoadIconsAsync(previous, oldStop, images, _iconStop.Token);
     }
+
+    private void RefreshLyrics()
+    {
+        var hasTrack = !string.IsNullOrWhiteSpace(_media.Title);
+        var lines = _media.LyricsLines;
+        var lyricsEnabled = _media.Settings.Lyrics.Enabled;
+        _lyricsStatus.Text = hasTrack && lyricsEnabled ? _media.LyricsStatusText : string.Empty;
+        _lyricsStatus.Visibility = string.IsNullOrWhiteSpace(_lyricsStatus.Text) ? Visibility.Collapsed : Visibility.Visible;
+        _lyricsScroll.Visibility = hasTrack && lyricsEnabled && lines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        var lyricsOptions = string.Concat(
+            _strings.Culture.Name, "|",
+            _media.Settings.Lyrics.Enabled, "|",
+            _media.Settings.Lyrics.SecondaryLyrics);
+        if (!ReferenceEquals(_renderedLyrics, lines) || !string.Equals(_renderedLyricsOptions, lyricsOptions, StringComparison.Ordinal))
+        {
+            _lyricsRows.Children.Clear();
+            foreach (var line in lines.Take(MaximumDisplayedLyricsLines))
+            {
+                var row = new StackPanel { Spacing = 2 };
+                row.Children.Add(new TextBlock
+                {
+                    Text = line.Text,
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize = 16,
+                });
+                var secondary = LyricsDisplayPolicy.Secondary(
+                    line,
+                    _strings.Culture.Name,
+                    _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics);
+                if (secondary is { Length: > 0 })
+                {
+                    row.Children.Add(new TextBlock
+                    {
+                        Text = secondary,
+                        TextWrapping = TextWrapping.Wrap,
+                        FontSize = 12,
+                        Opacity = 0.72,
+                    });
+                }
+                _lyricsRows.Children.Add(row);
+            }
+
+            _renderedLyrics = lines;
+            _renderedLyricsOptions = lyricsOptions;
+            _lastCenteredLyric = -1;
+        }
+
+        var current = _media.CurrentLyricIndex;
+        for (var index = 0; index < _lyricsRows.Children.Count; index++)
+        {
+            if (_lyricsRows.Children[index] is not StackPanel row || row.Children.FirstOrDefault() is not TextBlock text)
+            {
+                continue;
+            }
+
+            var active = index == current;
+            text.FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal;
+            row.Opacity = active ? 1 : 0.58;
+        }
+
+        if (current < 0 || current >= _lyricsRows.Children.Count || current == _lastCenteredLyric || !_lyricsScroll.IsLoaded)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_lyricsRows.Children[current] is not FrameworkElement row) return;
+            var point = row.TransformToVisual(_lyricsScroll).TransformPoint(new Point(0, 0));
+            var target = Math.Max(0, _lyricsScroll.VerticalOffset + point.Y -
+                Math.Max(0, (_lyricsScroll.ViewportHeight - row.ActualHeight) / 2));
+            _lyricsScroll.ChangeView(null, target, null, _media.IsReducedMotion);
+            _lastCenteredLyric = current;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            Debug.WriteLine($"DropSpace lyrics scroll positioning failed: {exception.GetType().Name}");
+        }
+    }
     private async Task LoadIconsAsync(Task previous, CancellationTokenSource? oldStop, List<(string Source, Image Image)> images, CancellationToken token)
     {
-        await previous; oldStop?.Dispose();
-        foreach (var (source, image) in images)
+        try
         {
-            if (token.IsCancellationRequested) break;
-            try { var icon = await _icons.LoadAsync(source, token); if (!token.IsCancellationRequested) image.Source = icon; }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { break; }
+            try
+            {
+                await previous.ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                // A superseded icon job must not poison the replacement job.
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                Debug.WriteLine($"DropSpace media icon job predecessor failed: {exception.GetType().Name}");
+            }
+
+            foreach (var (source, image) in images)
+            {
+                if (token.IsCancellationRequested) break;
+                try
+                {
+                    var icon = await _icons.LoadAsync(source, token).ConfigureAwait(true);
+                    if (!token.IsCancellationRequested) image.Source = icon;
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { break; }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    Debug.WriteLine($"DropSpace media icon load failed for {source}: {exception.GetType().Name}");
+                }
+            }
+        }
+        finally
+        {
+            oldStop?.Dispose();
+        }
+    }
+
+    private static async Task ObserveIconShutdownAsync(Task job, CancellationTokenSource? stop)
+    {
+        try
+        {
+            await job.ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Debug.WriteLine($"DropSpace media icon shutdown failed: {exception.GetType().Name}");
+        }
+        finally
+        {
+            stop?.Dispose();
         }
     }
 }

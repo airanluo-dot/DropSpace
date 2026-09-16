@@ -61,6 +61,37 @@ public sealed class UpdateCoordinatorTests
     }
 
     [TestMethod]
+    public async Task SoleCallerCancellationCancelsUnderlyingSharedCheck()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var source = new FakeSource(gate.Task);
+        var service = Create(source);
+        var settings = new AppSettings { AutoDownloadUpdates = false };
+        using var caller = new CancellationTokenSource();
+
+        var check = service.CheckManuallyAsync(settings, caller.Token);
+        await source.Started.Task;
+        caller.Cancel();
+
+        await source.CancellationObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await check);
+        Assert.AreEqual(1, source.CallCount);
+    }
+
+    [TestMethod]
+    public async Task ThrowingStatusSubscriberDoesNotBreakUpdateOperation()
+    {
+        var source = new FakeSource();
+        var service = Create(source);
+        service.StatusChanged += (_, _) => throw new InvalidOperationException("subscriber failure");
+
+        var result = await service.CheckManuallyAsync(new AppSettings { AutoDownloadUpdates = false });
+
+        Assert.AreEqual(UpdateState.UpToDate, result.State);
+        Assert.AreEqual(1, source.CallCount);
+    }
+
+    [TestMethod]
     public async Task StartupCheck_RunsAtMostOnceForProcessLifetime()
     {
         var source = new FakeSource();
@@ -182,6 +213,36 @@ public sealed class UpdateCoordinatorTests
     }
 
     [TestMethod]
+    public async Task InstallerIntegrityFailureIsReportedInsteadOfFaultingTheOperation()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+        var update = CreateInstallerUpdate(paths);
+        Directory.CreateDirectory(Path.GetDirectoryName(update.FilePath)!);
+        await File.WriteAllBytesAsync(update.FilePath, [1]);
+        await store.SaveAsync(update, "ReadyToInstall");
+        var service = new UpdateService(
+            ReleaseVersion.Parse("0.1.0"),
+            new FakeSource(),
+            new UpdateManifestParser(),
+            new NeverDownloader(),
+            new ThrowingVerifier(),
+            new UntrustedVerifier(),
+            new NeverLauncher(),
+            new FakeDeploymentMode(DeploymentMode.Installer),
+            store,
+            IdentityAppStringLocalizer.Instance,
+            NullLogger<UpdateService>.Instance);
+
+        await service.RecoverPendingAsync();
+        var result = await service.InstallAsync(unattended: false);
+
+        Assert.AreEqual(UpdateState.Failed, result.State);
+    }
+
+    [TestMethod]
     public async Task RecoveryScansEveryUpdateStateBeforeSelectingHighestVersion()
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
@@ -231,13 +292,22 @@ public sealed class UpdateCoordinatorTests
     {
         private int _calls;
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource CancellationObserved { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int CallCount => Volatile.Read(ref _calls);
 
         public async Task<IReadOnlyList<UpdateRelease>> GetReleasesAsync(CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref _calls);
             Started.TrySetResult();
-            if (gate is not null) await gate.WaitAsync(cancellationToken);
+            if (gate is not null)
+            {
+                try { await gate.WaitAsync(cancellationToken); }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    CancellationObserved.TrySetResult();
+                    throw;
+                }
+            }
             return [];
         }
 
@@ -298,6 +368,17 @@ public sealed class UpdateCoordinatorTests
     private sealed class AlwaysVerifier : IUpdateVerifier
     {
         public Task<bool> VerifyIntegrityAsync(DownloadedUpdate update, CancellationToken cancellationToken = default) => Task.FromResult(true);
+    }
+
+    private sealed class ThrowingVerifier : IUpdateVerifier
+    {
+        private int _calls;
+
+        public Task<bool> VerifyIntegrityAsync(DownloadedUpdate update, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Increment(ref _calls) == 1) return Task.FromResult(true);
+            throw new IOException("Simulated verifier I/O failure.");
+        }
     }
 
     private sealed class UntrustedVerifier : ITrustedUpdateVerifier

@@ -3,7 +3,7 @@
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:services="using:DropSpace.App.Services">
  <Grid Padding="28,24" RowSpacing="12">
-  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid ColumnSpacing="18">
    <Grid.ColumnDefinitions><ColumnDefinition x:Name="ArtworkColumn" Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <Border x:Name="ArtworkHost" Height="100" CornerRadius="16" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
@@ -23,18 +23,23 @@
     <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
    </StackPanel>
   </Grid>
-  <Grid x:Name="TimelineRow" Grid.Row="1" ColumnSpacing="12">
+  <StackPanel x:Name="LyricsArea" Grid.Row="1" Spacing="2" MaxHeight="112">
+   <TextBlock Text="{Binding CurrentLyricText}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
+   <TextBlock Text="{Binding SecondaryLyricText}" FontSize="13" Opacity="0.72" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+   <TextBlock Text="{Binding LyricsStatusText}" FontSize="11" Opacity="0.72" TextWrapping="Wrap" />
+  </StackPanel>
+  <Grid x:Name="TimelineRow" Grid.Row="2" ColumnSpacing="12">
    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <TextBlock Text="{Binding ElapsedText}" VerticalAlignment="Center"/>
    <Slider x:Name="Progress" services:XamlResourceOverride.Uid="MediaSeek" Grid.Column="1" Minimum="0" IsThumbToolTipEnabled="False" ValueChanged="OnSeekChanged"/>
    <TextBlock Grid.Column="2" Text="{Binding RemainingText}" VerticalAlignment="Center"/>
   </Grid>
-  <StackPanel x:Name="ControlsRow" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
+  <StackPanel x:Name="ControlsRow" Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
    <Button services:XamlResourceOverride.Uid="MediaPrevious" Command="{Binding PreviousCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE892;"/></Button>
    <Button x:Name="PlayPause" Command="{Binding PlayPauseCommand}" Width="56" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="{Binding PlaybackGlyph}" FontSize="28"/></Button>
    <Button services:XamlResourceOverride.Uid="MediaNext" Command="{Binding NextCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE893;"/></Button>
   </StackPanel>
-  <StackPanel Grid.Row="3" Spacing="2">
+  <StackPanel Grid.Row="4" Spacing="2">
    <TextBlock Text="{Binding TimelineStatus}" FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
    <TextBlock Text="{Binding ControlError}" FontSize="11" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
   </StackPanel>

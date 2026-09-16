@@ -20,6 +20,8 @@ namespace DropSpace.App.ViewModels;
 
 public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
+    internal const int MaximumManualBatchItems = 2_048;
+    private const int MaximumLiveClipboardItems = 250;
     private readonly IItemRepository _repository;
     private readonly ItemProjectionService _projection;
     private readonly StagedFileImportService _stagedFiles;
@@ -71,6 +73,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     private UndoOperationKind? _lastUndoKind;
     private bool _undoRequested;
     private bool _disposed;
+    private readonly Dictionary<Guid, bool> _batchExpansion = [];
 
     public MainViewModel(
         IItemRepository repository,
@@ -126,6 +129,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         _clipboardStatusText = _strings.Get("ClipboardStarting");
         _storageSummary = _strings.Get("StorageCalculating");
         _clipboard.ItemCaptured += OnItemCaptured;
+        _clipboard.ItemImported += OnItemCaptured;
         _clipboard.StatusChanged += OnClipboardStatusChanged;
         _updates.StatusChanged += OnUpdateStatusChanged;
         _undo.StateChanged += OnUndoStateChanged;
@@ -861,26 +865,39 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     {
         ArgumentNullException.ThrowIfNull(paths);
         ArgumentException.ThrowIfNullOrWhiteSpace(acquisitionKind);
-        var uniquePaths = paths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var uniquePaths = paths.Distinct(StringComparer.OrdinalIgnoreCase).Take(MaximumManualBatchItems + 1).ToArray();
         var batchId = Guid.NewGuid();
         var accepted = 0;
-        var rejected = 0;
-        for (var index = 0; index < uniquePaths.Length; index++)
+        var rejected = Math.Max(0, uniquePaths.Length - MaximumManualBatchItems);
+        if (rejected > 0) uniquePaths = uniquePaths[..MaximumManualBatchItems];
+        var candidates = new List<FileCandidate>(uniquePaths.Length);
+        foreach (var path in uniquePaths)
         {
-            var path = uniquePaths[index];
             try
             {
-                var candidate = await _fileReferences.InspectAsync(path, cancellationToken);
+                candidates.Add(await _fileReferences.InspectAsync(path, cancellationToken));
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or NotSupportedException)
+            {
+                rejected++;
+                _logger.LogWarning(exception, "A dropped file reference was rejected.");
+            }
+        }
+
+        foreach (var candidate in candidates)
+        {
+            try
+            {
                 var metadata = JsonSerializer.Serialize(new DropBatchMetadata(
                     batchId,
                     dropSessionId,
-                    index,
-                    uniquePaths.Length,
+                    accepted,
+                    candidates.Count,
                     acquisitionKind));
                 await _repository.AddSpaceFileAsync(candidate, metadata, cancellationToken);
                 accepted++;
             }
-            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+            catch (Exception exception) when (exception is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException or NotSupportedException)
             {
                 rejected++;
                 _logger.LogWarning(exception, "A dropped file reference was rejected.");
@@ -1044,6 +1061,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
         var members = Items.Where(item => item.DropBatchId == batchId).ToArray();
         var expanded = !card.IsBatchExpanded;
+        _batchExpansion[batchId] = expanded;
         foreach (var member in members)
         {
             member.IsBatchExpanded = expanded;
@@ -1056,12 +1074,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         foreach (var group in Items.Where(item => item.IsGrouped && item.DropBatchId is not null)
                      .GroupBy(item => item.DropBatchId))
         {
-            var first = true;
-            foreach (var card in group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue))
+            var ordered = group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue).ToArray();
+            var hasIndexedMetadata = ordered.Any(item => item.BatchMetadata is not null);
+            var hasHeaderOnThisPage = ordered.Any(item => item.BatchMetadata?.ItemIndex == 0);
+            var isSearchProjection = !string.IsNullOrWhiteSpace(SearchText);
+            var expanded = _batchExpansion.TryGetValue(group.Key!.Value, out var value) && value;
+            for (var index = 0; index < ordered.Length; index++)
             {
-                card.IsBatchHeader = first;
-                card.IsBatchMemberVisible = true;
-                first = false;
+                var card = ordered[index];
+                // Keyset paging can start in the middle of a batch. Only the persisted
+                // ItemIndex=0 record is the header; a page-local first member must not
+                // become a second header that is visible while the batch is collapsed.
+                var isHeader = hasIndexedMetadata
+                    ? card.BatchMetadata?.ItemIndex == 0
+                    : index == 0;
+                if (hasIndexedMetadata && !hasHeaderOnThisPage && !isSearchProjection)
+                {
+                    isHeader = false;
+                }
+                else if (hasIndexedMetadata && !hasHeaderOnThisPage && isSearchProjection)
+                {
+                    // A search page may contain only a matching member. Keep that result
+                    // actionable by presenting the first matched member as the local group
+                    // representative; ordinary keyset pages still wait for ItemIndex=0.
+                    isHeader = index == 0;
+                }
+
+                card.IsBatchHeader = isHeader;
+                card.IsBatchExpanded = expanded;
+                card.IsBatchMemberVisible = isHeader || expanded;
             }
         }
     }
@@ -1260,10 +1301,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
     public async Task<int> GetClearPreviewCountAsync(ClearRange range, CancellationToken cancellationToken = default)
     {
         var fromUtc = GetClearFromUtc(range);
-        var items = await _repository.QueryAsync(
-            new ItemQuery(Source: ItemSource.Clipboard, Limit: 100_000),
-            cancellationToken);
-        return items.Count(item => !item.IsPinned && (fromUtc is null || item.CreatedAtUtc >= fromUtc));
+        return await _repository.CountClipboardAsync(fromUtc, includePinned: false, cancellationToken: cancellationToken);
     }
 
     public async Task ExportImageAsync(
@@ -1290,6 +1328,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
 
         _clipboard.ItemCaptured -= OnItemCaptured;
+        _clipboard.ItemImported -= OnItemCaptured;
         _clipboard.StatusChanged -= OnClipboardStatusChanged;
         _updates.StatusChanged -= OnUpdateStatusChanged;
         _undo.StateChanged -= OnUndoStateChanged;
@@ -1475,6 +1514,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                     RefreshPrimaryQuickActions(card);
                     Items.Insert(0, card);
                     TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
+                    while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
                 }
 
                 ItemCount = Items.Count;

@@ -70,7 +70,9 @@ public static class DropLinkProtocolPolicy
     public const int BodyHashBytes = 32;
     public const int BodyHashHexLength = BodyHashBytes * 2;
     public const int MaximumPairingBodyBytes = 64 * 1024;
-    public const int MaximumAuthenticatedBodyBytes = TransferLimits.DefaultChunkBytes + 64 * 1024;
+    // The manifest carries the negotiated chunk size. The middleware must allow the complete
+    // protocol range before the endpoint validates the per-transfer value.
+    public const int MaximumAuthenticatedBodyBytes = 16 * 1024 * 1024 + 64 * 1024;
     public const int MaximumHandoffReplayEntries = 4_096;
     public const int MaximumHandoffReplayEntriesPerPeer = 256;
     public static readonly TimeSpan HandoffReplayRetention = TimeSpan.FromMinutes(10);

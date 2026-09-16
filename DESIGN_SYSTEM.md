@@ -6,7 +6,7 @@ Status: Fluent design specification v1. No visual prototype was generated in thi
 
 Use Windows 11 Fluent design as a native utility, drawing structural cues from Windows Settings and PowerToys: calm Mica foundation, restrained cards, compact rows, clear status, and native menus. Avoid dashboard metrics, oversized marketing headings, floating glass panels, and excessive gradients.
 
-## Preview.24 island surface
+## Beta.25 island surface
 
 The fixed host remains transparent. Only the bounded SystemBackdropElement owns
 Desktop Acrylic, using an island-specific input-active configuration so unfocusing
@@ -16,6 +16,11 @@ High contrast and reduced-effects policies retain a readable solid fallback.
 IslandGeometry supplies the visible shape; animated values feed both XAML material
 corners and the native region. SetWindowRgn coordinates include the actual client
 inset and use exclusive right/bottom bounds, avoiding a one-pixel dark rim.
+
+Music surfaces keep a bounded lyric viewport with explicit loading, not-found and
+failure states. Current-line highlighting and compact auto-scroll use the same
+track-relative clock as the expanded player, and session/DPI/theme changes clear
+stale presentation state before the next frame is rendered.
 
 ## Preview.14 transient motion and material (historical)
 

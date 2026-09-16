@@ -41,6 +41,77 @@ public sealed class SqliteItemRepository(
         return AddFileCoreAsync(candidate, ItemSource.Clipboard, fingerprint, metadataJson, null, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DropItem>> AddClipboardFilesAsync(
+        IReadOnlyList<ClipboardFileCandidate> candidates,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        if (candidates.Count == 0)
+        {
+            return [];
+        }
+
+        await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            var itemIds = new List<Guid>(candidates.Count);
+            foreach (var entry in candidates)
+            {
+                ArgumentNullException.ThrowIfNull(entry);
+                ArgumentNullException.ThrowIfNull(entry.Candidate);
+                ArgumentException.ThrowIfNullOrWhiteSpace(entry.Fingerprint);
+                var itemId = Guid.NewGuid();
+                var now = DateTimeOffset.UtcNow;
+                await InsertBaseItemAsync(
+                        connection,
+                        transaction,
+                        itemId,
+                        ItemSource.Clipboard,
+                        entry.Candidate.EntryKind == FileEntryKind.Folder ? ItemKind.Folder : ItemKind.File,
+                        entry.Candidate.Title,
+                        now,
+                        entry.Candidate.Status,
+                        ContentClassifier.BuildSearchText(entry.Candidate.Title, entry.Candidate.OriginalPath),
+                        entry.Fingerprint,
+                        null,
+                        cancellationToken,
+                        entry.MetadataJson)
+                    .ConfigureAwait(false);
+                await InsertFileReferenceAsync(
+                        connection,
+                        transaction,
+                        itemId,
+                        entry.Candidate,
+                        now,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                itemIds.Add(itemId);
+            }
+
+            // A cancellation after all rows are written must not leave the caller unsure
+            // whether the transaction committed. Commit and reload are the durable tail of
+            // this operation and therefore complete with a non-cancelable token.
+            await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            var result = new List<DropItem>(itemIds.Count);
+            foreach (var itemId in itemIds)
+            {
+                var item = await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false);
+                if (item is null)
+                {
+                    throw new InvalidDataException("A committed clipboard file row could not be reloaded.");
+                }
+                result.Add(item);
+            }
+            return result;
+        }
+        finally
+        {
+            database.WriteGate.Release();
+        }
+    }
+
     private async Task<DropItem> AddFileCoreAsync(
         FileCandidate candidate,
         ItemSource source,
@@ -107,8 +178,8 @@ public sealed class SqliteItemRepository(
             command.Parameters.AddWithValue("@last_checked_at_utc", ToTimestamp(now));
             command.Parameters.AddWithValue("@availability_reason", DbValue(candidate.AvailabilityReason));
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return (await GetWithConnectionAsync(connection, itemId, cancellationToken).ConfigureAwait(false))!;
+            await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            return (await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false))!;
         }
         finally
         {
@@ -187,8 +258,8 @@ public sealed class SqliteItemRepository(
                 await urlCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return (await GetWithConnectionAsync(connection, itemId, cancellationToken).ConfigureAwait(false))!;
+            await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            return (await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false))!;
         }
         finally
         {
@@ -236,8 +307,8 @@ public sealed class SqliteItemRepository(
             imageCommand.Parameters.AddWithValue("@mime_type", candidate.MimeType);
             imageCommand.Parameters.AddWithValue("@has_alpha", DbValue(candidate.HasAlpha is null ? null : candidate.HasAlpha.Value ? 1 : 0));
             await imageCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return (await GetWithConnectionAsync(connection, itemId, cancellationToken).ConfigureAwait(false))!;
+            await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            return (await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false))!;
         }
         finally
         {
@@ -395,8 +466,7 @@ public sealed class SqliteItemRepository(
         await using var command = connection.CreateCommand();
         command.CommandText = string.Concat(
             SelectSql,
-            " WHERE i.pending_delete_token IS NULL AND i.source = @source AND json_valid(i.metadata_json) AND json_extract(i.metadata_json, '$.DropBatchId') = @batch ORDER BY i.created_at_utc, i.id;");
-        command.Parameters.AddWithValue("@source", (int)ItemSource.Space);
+            " WHERE i.pending_delete_token IS NULL AND json_valid(i.metadata_json) AND json_extract(i.metadata_json, '$.DropBatchId') = @batch ORDER BY i.created_at_utc, i.id;");
         command.Parameters.AddWithValue("@batch", dropBatchId.ToString());
         var items = new List<DropItem>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -1052,6 +1122,22 @@ public sealed class SqliteItemRepository(
             CultureInfo.InvariantCulture);
     }
 
+    public async Task<int> CountClipboardAsync(DateTimeOffset? fromUtc, bool includePinned, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        var clauses = new List<string> { "pending_delete_token IS NULL", "source = @source" };
+        command.Parameters.AddWithValue("@source", (int)ItemSource.Clipboard);
+        if (!includePinned) clauses.Add("is_pinned = 0");
+        if (fromUtc is not null)
+        {
+            clauses.Add("created_at_utc >= @from_utc");
+            command.Parameters.AddWithValue("@from_utc", ToTimestamp(fromUtc.Value));
+        }
+        command.CommandText = $"SELECT COUNT(*) FROM items WHERE {string.Join(" AND ", clauses)};";
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
+    }
+
     private async Task ExecuteItemUpdateAsync(
         string sql,
         Guid id,
@@ -1182,6 +1268,36 @@ public sealed class SqliteItemRepository(
         command.Parameters.AddWithValue("@content_hash", Convert.FromHexString(payload.ContentHash));
         command.Parameters.AddWithValue("@created_at_utc", ToTimestamp(payload.CreatedAtUtc));
         command.Parameters.AddWithValue("@storage_version", payload.StorageVersion);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task InsertFileReferenceAsync(
+        SqliteConnection connection,
+        System.Data.Common.DbTransaction transaction,
+        Guid itemId,
+        FileCandidate candidate,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = (SqliteTransaction)transaction;
+        command.CommandText = """
+            INSERT INTO file_references (
+                item_id, original_path, normalized_path, entry_kind, extension, known_size,
+                known_modified_at_utc, volume_hint, last_checked_at_utc, availability_reason)
+            VALUES (
+                @item_id, @original_path, @normalized_path, @entry_kind, @extension, @known_size,
+                @known_modified_at_utc, NULL, @last_checked_at_utc, @availability_reason);
+            """;
+        command.Parameters.AddWithValue("@item_id", ToBytes(itemId));
+        command.Parameters.AddWithValue("@original_path", candidate.OriginalPath);
+        command.Parameters.AddWithValue("@normalized_path", candidate.NormalizedPath);
+        command.Parameters.AddWithValue("@entry_kind", (int)candidate.EntryKind);
+        command.Parameters.AddWithValue("@extension", DbValue(candidate.Extension));
+        command.Parameters.AddWithValue("@known_size", DbValue(candidate.KnownSize));
+        command.Parameters.AddWithValue("@known_modified_at_utc", DbTimestamp(candidate.KnownModifiedAtUtc));
+        command.Parameters.AddWithValue("@last_checked_at_utc", ToTimestamp(now));
+        command.Parameters.AddWithValue("@availability_reason", DbValue(candidate.AvailabilityReason));
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 

@@ -13,6 +13,9 @@ public sealed class MediaViewModel : ObservableObject
 {
     private MediaSessionSnapshot _session = MediaSessionSnapshot.Empty;
     private LyricsHighlightFrame _lyrics = LyricsHighlightFrame.Empty;
+    private LyricsDocument _lyricsDocument = LyricsDocument.Empty;
+    private int _currentLyricIndex = -1;
+    private LyricsQueryStatus _lyricsStatus = LyricsQueryStatus.Disabled;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
     private ImageSource? _artwork;
     private TimeSpan _position;
@@ -58,20 +61,58 @@ public sealed class MediaViewModel : ObservableObject
         internal set
         {
             if (!SetProperty(ref _session, value)) return;
-            OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText));
+            OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
-            OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus));
+            OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
             PlayPauseCommand.NotifyCanExecuteChanged(); PreviousCommand.NotifyCanExecuteChanged(); NextCommand.NotifyCanExecuteChanged(); SeekCommand.NotifyCanExecuteChanged();
         }
     }
     public LyricsHighlightFrame Lyrics
     {
         get => _lyrics;
-        internal set { if (SetProperty(ref _lyrics, value)) OnPropertyChanged(nameof(CurrentLyricText)); }
+        internal set
+        {
+            if (!SetProperty(ref _lyrics, value)) return;
+            var index = FindLyricIndex(value.Line);
+            SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
+            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
+        }
+    }
+
+    public IReadOnlyList<LyricsLine> LyricsLines => _lyricsDocument.Lines;
+    public int CurrentLyricIndex => _currentLyricIndex;
+
+    internal void SetLyricsDocument(LyricsDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (ReferenceEquals(_lyricsDocument, document)) return;
+        _lyricsDocument = document;
+        var index = FindLyricIndex(_lyrics.Line);
+        SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
+        OnPropertyChanged(nameof(LyricsLines));
+        OnPropertyChanged(nameof(CurrentLyricText));
+        OnPropertyChanged(nameof(SecondaryLyricText));
+    }
+    public LyricsQueryStatus LyricsStatus
+    {
+        get => _lyricsStatus;
+        internal set
+        {
+            if (!SetProperty(ref _lyricsStatus, value)) return;
+            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(LyricsStatusText));
+        }
     }
     public SpectrumFrame Spectrum { get => _spectrum; internal set => SetProperty(ref _spectrum, value); }
     public ImageSource? Artwork { get => _artwork; internal set => SetProperty(ref _artwork, value); }
-    public AppSettings Settings { get => _settings; internal set => SetProperty(ref _settings, value); }
+    public AppSettings Settings
+    {
+        get => _settings;
+        internal set
+        {
+            if (!SetProperty(ref _settings, value)) return;
+            OnPropertyChanged(nameof(SecondaryLyricText)); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
+        }
+    }
     public TimeSpan Position
     {
         get => _position;
@@ -86,8 +127,15 @@ public sealed class MediaViewModel : ObservableObject
     public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
     public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
-    public string CurrentLyricText => Lyrics.Line?.Text ?? Title;
+    public string CurrentLyricText => Settings.Lyrics.Enabled ? Lyrics.Line?.Text ?? Title : Title;
     public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(Lyrics.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
+    public string LyricsStatusText => string.IsNullOrEmpty(Title) || !Settings.Lyrics.Enabled ? string.Empty : LyricsStatus switch
+    {
+        LyricsQueryStatus.Loading => _strings.Get("LyricsLoading"),
+        LyricsQueryStatus.NotFound => _strings.Get("LyricsNotFound"),
+        LyricsQueryStatus.Failed => _strings.Get("LyricsFailed"),
+        _ => string.Empty,
+    };
     public bool IsPlaying => Session.PlaybackState == MediaPlaybackState.Playing;
     public string PlaybackGlyph => IsPlaying ? "\uE769" : "\uE768";
     public double PositionSeconds => Math.Max(0, (Position - Session.Timeline.Start).TotalSeconds);
@@ -98,6 +146,21 @@ public sealed class MediaViewModel : ObservableObject
     public IAsyncRelayCommand PreviousCommand { get; }
     public IAsyncRelayCommand NextCommand { get; }
     public IAsyncRelayCommand<double?> SeekCommand { get; }
+
+    private int FindLyricIndex(LyricsLine? line)
+    {
+        if (line is null) return -1;
+        for (var index = 0; index < _lyricsDocument.Lines.Count; index++)
+        {
+            if (ReferenceEquals(_lyricsDocument.Lines[index], line) || _lyricsDocument.Lines[index].Equals(line))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
     private static string FormatTime(TimeSpan time)
     {
         var seconds = Math.Max(0, (long)time.TotalSeconds);

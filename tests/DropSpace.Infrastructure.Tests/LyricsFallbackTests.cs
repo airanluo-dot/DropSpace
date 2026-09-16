@@ -9,7 +9,9 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class LyricsFallbackTests
 {
     private static readonly LyricsQuery Query = new("Track", "Artist", "", TimeSpan.Zero);
-    private static LyricsDocument Document(LyricsProviderKind kind) => new([new(TimeSpan.Zero, TimeSpan.FromSeconds(10), "Test line", null, [])], kind);
+    private static LyricsDocument Document(LyricsProviderKind kind) =>
+        new LyricsDocument([new(TimeSpan.Zero, TimeSpan.FromSeconds(10), "Test line", null, [])], kind)
+            .Bind(Query, Query.Title, Query.Artist, Query.Album, 0, LyricsMatcher.Score(Query, Query.Title, Query.Artist, Query.Album, 0), kind.ToString());
 
     [TestMethod]
     public async Task PrimaryHitSkipsOtherProvidersAndCachesTheResult()

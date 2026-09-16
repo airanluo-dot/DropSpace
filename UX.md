@@ -1,6 +1,6 @@
 # DropSpace UX Specification
 
-## Beta 24 amended island and settings
+## Beta 25 amended island and settings
 
 Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the
 left rail on Widgets and the right rail on Clipboard. Playback updates retain
@@ -20,6 +20,11 @@ island position retains explicit confirmation. Widget position/size changes and
 valid hotkey/exclusion text changes commit directly; language refreshes in place.
 The Clipboard page names pin state and record removal explicitly and links to
 the full history. These changes are under validation, not a released snapshot.
+
+Beta 25 keeps lyric content tied to the current media identity. Expanded Music
+shows loading, not-found and failed states; compact lyric scrolling uses the
+track-relative clock and resets on session changes, layout changes, DPI changes
+and disabled lyrics.
 
 ## Experience goal
 

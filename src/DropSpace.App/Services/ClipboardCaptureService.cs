@@ -35,11 +35,14 @@ public sealed record ClipboardCaptureStatus(
 
 public sealed class ClipboardCaptureService : IAsyncDisposable
 {
+    private const int MaximumClipboardCopyItems = 512;
+
     private readonly IItemRepository _repository;
     private readonly ISettingsService _settingsService;
     private readonly IPayloadStore _payloadStore;
     private readonly IPreviewCache _previews;
     private readonly IFileReferenceService _fileReferences;
+    private readonly IPayloadCleanupCoordinator? _payloadCleanup;
     private readonly ClipboardNotificationService _notifications;
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
@@ -48,13 +51,19 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         SingleReader = true,
         SingleWriter = false,
-        FullMode = BoundedChannelFullMode.Wait,
+        // Clipboard notifications are level-triggered: only the newest sequence is
+        // actionable. Dropping the oldest queued signal keeps a burst from losing the
+        // final clipboard state or stalling the notification thread.
+        FullMode = BoundedChannelFullMode.DropOldest,
     });
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _stateGate = new(1, 1);
     private readonly SemaphoreSlim _commitGate = new(1, 1);
+    private readonly SemaphoreSlim _clipboardWriteGate = new(1, 1);
+    private readonly SemaphoreSlim _retentionGate = new(1, 1);
     private readonly ConsecutiveClipboardCaptureCoordinator _consecutiveCaptures = new();
     private Task? _worker;
+    private Task? _retentionTask;
     private AppSettings _settings = new();
     private volatile bool _paused;
     private volatile bool _initialized;
@@ -64,12 +73,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private long _suppressedConsecutiveDuplicates;
     private long _failedReads;
     private long _droppedEvents;
-    private string? _selfFingerprint;
-    private DateTimeOffset _selfWriteExpiresUtc;
+    private long _selfWriteId;
     private DateTimeOffset _lastRetentionUtc = DateTimeOffset.MinValue;
     private uint _lastProcessedClipboardSequence;
     private int _disposeStarted;
     private readonly object _disposeGate = new();
+    private readonly object _selfWriteGate = new();
+    private readonly Queue<SelfWriteMarker> _selfWrites = new();
     private Task? _disposeTask;
     private Task? _lateWorkerCleanupTask;
     private int _managedResourcesDisposed;
@@ -83,13 +93,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         ClipboardNotificationService notifications,
         DispatcherQueue dispatcher,
         IAppStringLocalizer strings,
-        ILogger<ClipboardCaptureService> logger)
+        ILogger<ClipboardCaptureService> logger,
+        IPayloadCleanupCoordinator? payloadCleanup = null)
     {
         _repository = repository;
         _settingsService = settingsService;
         _payloadStore = payloadStore;
         _previews = previews;
         _fileReferences = fileReferences;
+        _payloadCleanup = payloadCleanup;
         _notifications = notifications;
         _dispatcher = dispatcher;
         _strings = strings;
@@ -99,6 +111,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     public event EventHandler<ClipboardCaptureStatus>? StatusChanged;
 
     public event EventHandler<DropItem>? ItemCaptured;
+
+    /// <summary>
+    /// Raised for a remote item after it has been durably imported. This is deliberately
+    /// separate from <see cref="ItemCaptured"/> so cross-device propagation can update the
+    /// local UI without treating the remote event as a new local origin to broadcast.
+    /// </summary>
+    public event EventHandler<DropItem>? ItemImported;
 
     public ClipboardCaptureStatus Status => CreateStatus(null);
 
@@ -126,6 +145,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _notifications.ClipboardChanged += OnClipboardChanged;
             _notifications.StatusChanged += OnNotificationStatusChanged;
             _worker = Task.Run(ProcessSignalsAsync, CancellationToken.None);
+            _retentionTask = Task.Run(RetentionLoopAsync, CancellationToken.None);
             _initialized = true;
             PublishStatus(
                 _notifications.Status.IsRegistered
@@ -155,10 +175,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     return;
                 }
 
-                _paused = true;
-                Interlocked.Increment(ref _pauseGeneration);
                 _settings = await _settingsService.UpdateAsync(
                     current => current with { ClipboardPaused = true }, cancellationToken).ConfigureAwait(false);
+                _paused = true;
+                Interlocked.Increment(ref _pauseGeneration);
                 PublishStatus(_strings.Get("ClipboardPaused"));
             }
             finally
@@ -185,10 +205,12 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     return;
                 }
 
-                await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
-
                 _settings = await _settingsService.UpdateAsync(
                     current => current with { ClipboardPaused = false }, cancellationToken).ConfigureAwait(false);
+                // Reset only after persistence succeeds. Otherwise a failed resume could
+                // leave the in-memory duplicate coordinator out of sync with the still-paused
+                // durable state after restart.
+                await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
                 _paused = false;
                 Interlocked.Increment(ref _pauseGeneration);
                 PublishStatus(_strings.Get("ClipboardResumed"));
@@ -226,22 +248,38 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         cancellationToken.ThrowIfCancellationRequested();
-        var fingerprint = FingerprintService.ForText(text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim());
-        MarkSelfWrite(fingerprint);
-        await _dispatcher.EnqueueAsync(() =>
+        var fingerprint = FingerprintService.ForText(text.Replace("\r\n", "\n", StringComparison.Ordinal));
+        await _clipboardWriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        SelfWriteMarker? selfWrite = null;
+        try
         {
-            var package = new DataPackage
+            await _dispatcher.EnqueueAsync(() =>
             {
-                RequestedOperation = DataPackageOperation.Copy,
-            };
-            package.SetText(text);
-            return ClipboardAccessPolicy.SetContentAsync(
-                () => Clipboard.SetContent(package),
-                cancellationToken);
-        }).ConfigureAwait(false);
+                // Mark immediately before the native mutation. A busy dispatcher must not
+                // consume the short-lived self-write window before Clipboard.SetContent runs.
+                selfWrite = MarkSelfWrite(fingerprint);
+                var package = new DataPackage
+                {
+                    RequestedOperation = DataPackageOperation.Copy,
+                };
+                package.SetText(text);
+                return ClipboardAccessPolicy.SetContentAsync(
+                    () => Clipboard.SetContent(package),
+                    cancellationToken);
+            }).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (selfWrite is not null) ClearSelfWrite(selfWrite);
+            throw;
+        }
+        finally { _clipboardWriteGate.Release(); }
     }
 
-    public async Task<DropItem> ImportRemoteAsync(ClipboardEnvelope envelope, CancellationToken cancellationToken = default)
+    public async Task<DropItem> ImportRemoteAsync(
+        ClipboardEnvelope envelope,
+        CancellationToken cancellationToken = default,
+        bool publishCaptured = true)
     {
         if (_paused) throw new ClipboardPausedException();
         ClipboardEnvelopePolicy.Validate(envelope);
@@ -272,24 +310,55 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 }
                 catch
                 {
-                    await _payloadStore.DeleteAsync(payload.RelativePath, cancellationToken).ConfigureAwait(false);
+                    await _payloadStore.DeleteAsync(payload.RelativePath, CancellationToken.None).ConfigureAwait(false);
                     throw;
                 }
             }
 
-            // Keep the commit gate through the final pause check and the optional
-            // Windows clipboard mutation. PauseAsync cannot become effective between
-            // this check and CopyTextAsync/CopyImageAsync.
+            // The database row is durable at this point. Publish it even if PauseAsync won
+            // the race after the commit, so the local UI does not remain stale merely because
+            // the optional Windows clipboard side effect is skipped.
+            if (publishCaptured)
+            {
+                PublishItemCaptured(item);
+            }
+            else
+            {
+                PublishItemImported(item);
+            }
+
+            // Keep the commit gate through the final pause check and the optional Windows
+            // clipboard mutation. PauseAsync cannot become effective between this check and
+            // CopyTextAsync/CopyImageAsync.
             if (_paused) return item;
 
-            ItemCaptured?.Invoke(this, item);
             if (item.Text?.InlineText is { } text)
             {
-                await CopyTextAsync(text, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    // The history row is already durable. Do not turn a caller cancellation
+                    // during the best-effort Windows clipboard side effect into a retryable
+                    // import, which would create a duplicate row on the peer.
+                    await CopyTextAsync(text, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    // The durable local history row is already committed. A clipboard mutation
+                    // failure must not make the sender retry the same envelope and create a
+                    // second history row; the current clipboard is simply left untouched.
+                    _logger.LogWarning(exception, "Remote text was stored locally but could not be written to the Windows clipboard.");
+                }
             }
             else if (item.Payload is { RelativePath: var relativePath })
             {
-                await CopyImageAsync(relativePath, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await CopyImageAsync(relativePath, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    _logger.LogWarning(exception, "Remote image was stored locally but could not be written to the Windows clipboard.");
+                }
             }
 
             return item;
@@ -321,21 +390,37 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     public async Task CopyImageAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var absolutePath = _payloadStore.ResolvePath(relativePath);
-        var bytes = await File.ReadAllBytesAsync(absolutePath, cancellationToken).ConfigureAwait(false);
-        MarkSelfWrite(FingerprintService.ForBytes(bytes));
-
-        await _dispatcher.EnqueueAsync(async () =>
+        var fileInfo = new FileInfo(absolutePath);
+        if (!fileInfo.Exists || fileInfo.Length is <= 0 or > int.MaxValue || fileInfo.Length > _settings.MaxImageBytes)
         {
-            var file = await StorageFile.GetFileFromPathAsync(absolutePath);
-            var package = new DataPackage
+            throw new InvalidDataException("Clipboard image exceeds the configured copy budget.");
+        }
+        var bytes = await File.ReadAllBytesAsync(absolutePath, cancellationToken).ConfigureAwait(false);
+        var fingerprint = FingerprintService.ForBytes(bytes);
+        await _clipboardWriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        SelfWriteMarker? selfWrite = null;
+        try
+        {
+            await _dispatcher.EnqueueAsync(async () =>
             {
-                RequestedOperation = DataPackageOperation.Copy,
-            };
-            package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
-            await ClipboardAccessPolicy.SetContentAsync(
-                () => Clipboard.SetContent(package),
-                cancellationToken);
-        }).ConfigureAwait(false);
+                selfWrite = MarkSelfWrite(fingerprint);
+                var file = await StorageFile.GetFileFromPathAsync(absolutePath);
+                var package = new DataPackage
+                {
+                    RequestedOperation = DataPackageOperation.Copy,
+                };
+                package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
+                await ClipboardAccessPolicy.SetContentAsync(
+                    () => Clipboard.SetContent(package),
+                    cancellationToken);
+            }).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (selfWrite is not null) ClearSelfWrite(selfWrite);
+            throw;
+        }
+        finally { _clipboardWriteGate.Release(); }
     }
 
     public async Task CopyFilesAsync(
@@ -347,33 +432,52 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Select(Path.GetFullPath)
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MaximumClipboardCopyItems + 1)
             .ToArray();
+        if (distinctPaths.Length > MaximumClipboardCopyItems)
+        {
+            throw new InvalidDataException(
+                $"Clipboard copy supports at most {MaximumClipboardCopyItems} distinct paths.");
+        }
+
         if (distinctPaths.Length == 0)
         {
             throw new ArgumentException("At least one file-system path is required.", nameof(paths));
         }
 
-        MarkSelfWrite(CreateFileClipboardFingerprint(distinctPaths));
-        await _dispatcher.EnqueueAsync(async () =>
+        var fingerprint = CreateFileClipboardFingerprint(distinctPaths);
+        await _clipboardWriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        SelfWriteMarker? selfWrite = null;
+        try
         {
-            var storageItems = new List<IStorageItem>(distinctPaths.Length);
-            foreach (var path in distinctPaths)
+            await _dispatcher.EnqueueAsync(async () =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                storageItems.Add(Directory.Exists(path)
-                    ? await StorageFolder.GetFolderFromPathAsync(path)
-                    : await StorageFile.GetFileFromPathAsync(path));
-            }
+                selfWrite = MarkSelfWrite(fingerprint);
+                var storageItems = new List<IStorageItem>(distinctPaths.Length);
+                foreach (var path in distinctPaths)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    storageItems.Add(Directory.Exists(path)
+                        ? await StorageFolder.GetFolderFromPathAsync(path)
+                        : await StorageFile.GetFileFromPathAsync(path));
+                }
 
-            var package = new DataPackage
-            {
-                RequestedOperation = DataPackageOperation.Copy,
-            };
-            package.SetStorageItems(storageItems, readOnly: true);
-            await ClipboardAccessPolicy.SetContentAsync(
-                () => Clipboard.SetContent(package),
-                cancellationToken);
-        }).ConfigureAwait(false);
+                var package = new DataPackage
+                {
+                    RequestedOperation = DataPackageOperation.Copy,
+                };
+                package.SetStorageItems(storageItems, readOnly: true);
+                await ClipboardAccessPolicy.SetContentAsync(
+                    () => Clipboard.SetContent(package),
+                    cancellationToken);
+            }).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (selfWrite is not null) ClearSelfWrite(selfWrite);
+            throw;
+        }
+        finally { _clipboardWriteGate.Release(); }
     }
 
     public async ValueTask DisposeAsync()
@@ -399,11 +503,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _signals.Writer.TryComplete();
         _shutdown.Cancel();
         var worker = _worker;
+        var workerCompleted = worker is null;
         if (worker is not null)
         {
             try
             {
                 await worker.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                workerCompleted = true;
             }
             catch (TimeoutException)
             {
@@ -411,33 +517,62 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 // owned until that task actually exits; disposing them here would create a
                 // use-after-dispose race during a stalled shutdown.
                 _logger.LogInformation("Clipboard worker shutdown exceeded the bounded wait; managed resources remain owned by the worker.");
-                _lateWorkerCleanupTask = DisposeResourcesAfterWorkerAsync(worker);
             }
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("Clipboard worker shutdown was cancelled.");
+                workerCompleted = true;
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
                 _logger.LogWarning(exception, "Clipboard worker failed while shutting down.");
+                workerCompleted = true;
             }
         }
 
-        if (worker is null || worker.IsCompleted)
+        var retentionCompleted = _retentionTask is null;
+        if (_retentionTask is not null)
+        {
+            try
+            {
+                await _retentionTask.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                retentionCompleted = true;
+            }
+            catch (TimeoutException) { _logger.LogInformation("Clipboard retention worker shutdown exceeded the bounded wait."); }
+            catch (OperationCanceledException) { retentionCompleted = true; }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                _logger.LogWarning(exception, "Clipboard retention worker failed while shutting down.");
+                retentionCompleted = true;
+            }
+        }
+
+        if (workerCompleted && retentionCompleted)
         {
             DisposeManagedResources();
         }
+        else
+        {
+            _lateWorkerCleanupTask = DisposeResourcesAfterBackgroundTasksAsync(worker, _retentionTask);
+        }
     }
 
-    private async Task DisposeResourcesAfterWorkerAsync(Task worker)
+    private async Task DisposeResourcesAfterBackgroundTasksAsync(Task? worker, Task? retentionTask)
     {
         try
         {
-            await worker.ConfigureAwait(false);
+            var tasks = new[] { worker, retentionTask }
+                .Where(task => task is not null)
+                .Cast<Task>()
+                .ToArray();
+            if (tasks.Length > 0)
+            {
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            _logger.LogDebug(exception, "Clipboard worker completed after the bounded shutdown wait.");
+            _logger.LogDebug(exception, "Clipboard background task completed after the bounded shutdown wait.");
         }
         finally
         {
@@ -455,6 +590,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _shutdown.Dispose();
         _stateGate.Dispose();
         _commitGate.Dispose();
+        _clipboardWriteGate.Dispose();
+        _retentionGate.Dispose();
         _consecutiveCaptures.Dispose();
     }
 
@@ -482,6 +619,24 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             Interlocked.Increment(ref _droppedEvents);
             PublishStatus(_strings.Get("ClipboardEventDropped"));
         }
+    }
+
+    private bool IsSignalStillCurrent(CaptureSignal signal)
+    {
+        if (signal.ClipboardSequenceNumber == 0) return true;
+        var current = GetClipboardSequenceNumber();
+        return current == 0 || current == signal.ClipboardSequenceNumber;
+    }
+
+    private void QueueCurrentClipboardSignal(CaptureSignal signal)
+    {
+        var current = GetClipboardSequenceNumber();
+        if (current == 0 || current == signal.ClipboardSequenceNumber) return;
+        _signals.Writer.TryWrite(new CaptureSignal(
+            current,
+            Interlocked.Read(ref _observedEvents),
+            Volatile.Read(ref _pauseGeneration),
+            DateTimeOffset.UtcNow));
     }
 
     private void OnNotificationStatusChanged(object? sender, ClipboardNotificationStatus status)
@@ -515,21 +670,37 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 try
                 {
                     var snapshot = await ReadSnapshotWithRetryAsync(signal, _shutdown.Token).ConfigureAwait(false);
-                    _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
-                    if (snapshot is null || IsSelfWrite(snapshot.Fingerprint))
+                    if (snapshot is null)
                     {
-                        if (snapshot is not null)
-                        {
-                            _logger.LogInformation(
-                                "Clipboard self-write suppressed for sequence {SequenceNumber}.",
-                                signal.ClipboardSequenceNumber);
-                        }
-
+                        // A retry can discover that a newer clipboard sequence replaced the
+                        // signal while the read was in flight. Do not consume the old signal
+                        // without giving the newer sequence a chance to be processed.
+                        QueueCurrentClipboardSignal(signal);
+                        _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                         continue;
                     }
 
                     if (_paused || signal.PauseGeneration != Volatile.Read(ref _pauseGeneration))
                     {
+                        continue;
+                    }
+
+                    // A queued signal may be older than the clipboard contents that are now
+                    // being read. Never commit the newer contents under the old sequence; the
+                    // latest sequence is queued again below and will be read as its own event.
+                    if (!IsSignalStillCurrent(signal))
+                    {
+                        QueueCurrentClipboardSignal(signal);
+                        _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                        continue;
+                    }
+
+                    if (IsSelfWrite(snapshot.Fingerprint))
+                    {
+                        _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                        _logger.LogInformation(
+                            "Clipboard self-write suppressed for sequence {SequenceNumber}.",
+                            signal.ClipboardSequenceNumber);
                         continue;
                     }
 
@@ -542,6 +713,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                             continue;
                         }
 
+                        if (!IsSignalStillCurrent(signal))
+                        {
+                            QueueCurrentClipboardSignal(signal);
+                            _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                            continue;
+                        }
+
                         var capture = await _consecutiveCaptures.ExecuteAsync(
                                 snapshot.Fingerprint,
                                 token => CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, token),
@@ -551,6 +729,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         if (capture.Suppressed)
                         {
                             Interlocked.Increment(ref _suppressedConsecutiveDuplicates);
+                            _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                             _logger.LogInformation(
                                 "Consecutive clipboard snapshot suppressed for sequence {SequenceNumber}.",
                                 signal.ClipboardSequenceNumber);
@@ -561,6 +740,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         items = capture.Value;
                         if (items.Count == 0)
                         {
+                            _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                             continue;
                         }
                     }
@@ -572,10 +752,25 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     Interlocked.Add(ref _capturedItems, items.Count);
                     foreach (var item in items)
                     {
-                        ItemCaptured?.Invoke(this, item);
+                        PublishItemCaptured(item);
                     }
+                    _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                     PublishStatus(null);
-                    await ApplyRetentionIfDueAsync(_shutdown.Token).ConfigureAwait(false);
+                    try
+                    {
+                        await ApplyRetentionIfDueAsync(_shutdown.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    catch (Exception retentionException) when (retentionException is not OutOfMemoryException)
+                    {
+                        // Retention is maintenance. A failed cleanup must not make the
+                        // already-committed clipboard signal look uncommitted and trigger a
+                        // duplicate retry of the user's content.
+                        _logger.LogWarning(retentionException, "Clipboard retention pass failed after a successful capture.");
+                    }
                 }
                 catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
                 {
@@ -583,8 +778,24 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 }
                 catch (Exception exception)
                 {
-                    _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
                     _logger.LogWarning(exception, "Clipboard event could not be captured.");
+                    if (!_shutdown.IsCancellationRequested && signal.Attempt < 2)
+                    {
+                        var currentSequence = GetClipboardSequenceNumber();
+                        if (signal.ClipboardSequenceNumber == 0 ||
+                            currentSequence == 0 ||
+                            currentSequence == signal.ClipboardSequenceNumber)
+                        {
+                            if (_signals.Writer.TryWrite(signal with { Attempt = signal.Attempt + 1 }))
+                            {
+                                PublishStatus(_strings.Get("ClipboardBusyRetrying"));
+                                continue;
+                            }
+
+                            Interlocked.Increment(ref _droppedEvents);
+                        }
+                    }
+
                     PublishStatus(_strings.Get("ClipboardItemCaptureFailed"));
                 }
             }
@@ -715,6 +926,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 .Select(item => item.Path)
                 .Where(path => !string.IsNullOrWhiteSpace(path))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(_settings.MaxClipboardFileItems + 1)
                 .ToArray();
             if (paths.Length > 0)
             {
@@ -769,7 +981,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     null);
             }
 
-            var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+            var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal);
             return new ClipboardReadResult(
                 new ClipboardSnapshot(
                     normalized,
@@ -918,7 +1130,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     .ConfigureAwait(false);
                 if (item.Payload?.Id != payload.Id)
                 {
-                    await _payloadStore.DeleteAsync(payload.RelativePath, cancellationToken).ConfigureAwait(false);
+                    await _payloadStore.DeleteAsync(payload.RelativePath, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 _logger.LogInformation("Clipboard image committed for sequence {SequenceNumber}.", sequenceNumber);
@@ -926,7 +1138,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
             catch
             {
-                await _payloadStore.DeleteAsync(payload.RelativePath, cancellationToken).ConfigureAwait(false);
+                await _payloadStore.DeleteAsync(payload.RelativePath, CancellationToken.None).ConfigureAwait(false);
                 throw;
             }
         }
@@ -977,24 +1189,25 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
         }
 
-        var captured = new List<DropItem>(candidates.Count);
-        for (var index = 0; index < candidates.Count; index++)
-        {
-            var candidate = candidates[index];
-            var fingerprint = FingerprintService.ForText($"clipboard-file\0{candidate.NormalizedPath}");
-            var metadata = JsonSerializer.Serialize(new
-            {
-                batchFingerprint = snapshot.Fingerprint,
-                batchItemCount = snapshot.FilePaths.Count,
-                itemIndex = index,
-            });
-            captured.Add(await _repository.AddClipboardFileAsync(
-                    candidate,
-                    fingerprint,
-                    metadata,
-                    cancellationToken)
-                .ConfigureAwait(false));
-        }
+        // Keep clipboard file batches on the same metadata contract as explicit file
+        // drops. The previous ad-hoc JSON (batchFingerprint/batchItemCount/itemIndex)
+        // could be stored successfully but could never deserialize as
+        // DropBatchMetadata, so the UI lost the batch header and expand/collapse state.
+        var batchId = Guid.NewGuid();
+        var batchItemCount = candidates.Count;
+        var batchCandidates = candidates.Select((candidate, index) =>
+                     new ClipboardFileCandidate(
+                         candidate,
+                         FingerprintService.ForText($"clipboard-file\0{candidate.NormalizedPath}"),
+                         JsonSerializer.Serialize(new DropBatchMetadata(
+                             batchId,
+                             null,
+                             index,
+                             batchItemCount,
+                             "clipboard-files"))))
+            .ToArray();
+
+        var captured = await _repository.AddClipboardFilesAsync(batchCandidates, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation(
             "Clipboard file batch committed for sequence {SequenceNumber}: offered {OfferedCount}, captured {CapturedCount}, known bytes {KnownBytes}.",
@@ -1012,42 +1225,180 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private async Task ApplyRetentionIfDueAsync(CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow;
-        if (now - _lastRetentionUtc < TimeSpan.FromMinutes(5))
+        await _retentionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            return;
+            var now = DateTimeOffset.UtcNow;
+            if (now - _lastRetentionUtc < TimeSpan.FromMinutes(5))
+            {
+                return;
+            }
+
+            var result = await _repository.ApplyRetentionAsync(
+                    now.AddDays(-_settings.RetentionDays),
+                    _settings.RetentionItemCount,
+                    cancellationToken)
+                    .ConfigureAwait(false);
+            if (result.RemovedCount > 0)
+                await _previews.ClearAsync(cancellationToken).ConfigureAwait(false);
+            if (_payloadCleanup is not null)
+            {
+                // Retention deletes payload rows transactionally and records their physical
+                // paths in the durable outbox. Drain that outbox so successful deletion also
+                // completes the obligation; otherwise every retention pass would leave a stale
+                // entry until the next process restart. Failed entries remain retryable.
+                while (await _payloadCleanup.DrainAsync(cancellationToken).ConfigureAwait(false) > 0) { }
+            }
+            else
+            {
+                foreach (var path in result.PayloadPaths)
+                {
+                    try
+                    {
+                        await _payloadStore.DeleteAsync(path, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                    {
+                        _logger.LogWarning(exception, "Deferred payload cleanup failed.");
+                    }
+                }
+            }
+
+            // Advance the watermark only after the database and preview cleanup completed;
+            // a failed pass is then eligible for a retry instead of being suppressed for five
+            // minutes.
+            _lastRetentionUtc = now;
+        }
+        finally
+        {
+            _retentionGate.Release();
+        }
+    }
+
+    private SelfWriteMarker MarkSelfWrite(string fingerprint)
+    {
+        var marker = new SelfWriteMarker(
+            Interlocked.Increment(ref _selfWriteId),
+            fingerprint,
+            DateTimeOffset.UtcNow.AddSeconds(3));
+        lock (_selfWriteGate)
+        {
+            PruneSelfWrites(DateTimeOffset.UtcNow);
+            _selfWrites.Enqueue(marker);
         }
 
-        _lastRetentionUtc = now;
-        var result = await _repository.ApplyRetentionAsync(
-                now.AddDays(-_settings.RetentionDays),
-                _settings.RetentionItemCount,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (result.RemovedCount > 0)
-            await _previews.ClearAsync(CancellationToken.None).ConfigureAwait(false);
-        foreach (var path in result.PayloadPaths)
+        return marker;
+    }
+
+    private bool IsSelfWrite(string fingerprint)
+    {
+        lock (_selfWriteGate)
+        {
+            PruneSelfWrites(DateTimeOffset.UtcNow);
+            var matched = false;
+            var remaining = new Queue<SelfWriteMarker>(_selfWrites.Count);
+            while (_selfWrites.TryDequeue(out var marker))
+            {
+                if (!matched && string.Equals(fingerprint, marker.Fingerprint, StringComparison.Ordinal))
+                {
+                    matched = true;
+                    continue;
+                }
+
+                remaining.Enqueue(marker);
+            }
+
+            while (remaining.TryDequeue(out var marker)) _selfWrites.Enqueue(marker);
+            return matched;
+        }
+    }
+
+    private void ClearSelfWrite(SelfWriteMarker marker)
+    {
+        lock (_selfWriteGate)
+        {
+            var remaining = new Queue<SelfWriteMarker>(_selfWrites.Count);
+            while (_selfWrites.TryDequeue(out var current))
+            {
+                if (current.Id != marker.Id) remaining.Enqueue(current);
+            }
+
+            while (remaining.TryDequeue(out var current)) _selfWrites.Enqueue(current);
+        }
+    }
+
+    private void PruneSelfWrites(DateTimeOffset now)
+    {
+        while (_selfWrites.TryPeek(out var marker) && marker.ExpiresUtc < now) _selfWrites.Dequeue();
+    }
+
+    private async Task RetentionLoopAsync()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
+            while (!_shutdown.IsCancellationRequested)
+            {
+                try
+                {
+                    await ApplyRetentionIfDueAsync(_shutdown.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    _logger.LogWarning(exception, "Clipboard retention pass failed; it will be retried.");
+                }
+
+                if (!await timer.WaitForNextTickAsync(_shutdown.Token).ConfigureAwait(false))
+                {
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+        {
+        }
+    }
+
+    private void PublishItemCaptured(DropItem item)
+    {
+        if (ItemCaptured is not { } handlers) return;
+        foreach (EventHandler<DropItem> handler in handlers.GetInvocationList())
+        {
+            try { handler(this, item); }
+            catch (Exception exception) { _logger.LogWarning(exception, "Clipboard item subscriber failed ({Category}).", exception.GetType().Name); }
+        }
+    }
+
+    private void PublishItemImported(DropItem item)
+    {
+        if (ItemImported is not { } handlers) return;
+        foreach (EventHandler<DropItem> handler in handlers.GetInvocationList())
         {
             try
             {
-                await _payloadStore.DeleteAsync(path, cancellationToken).ConfigureAwait(false);
+                handler(this, item);
             }
-            catch (IOException exception)
+            catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                _logger.LogWarning(exception, "Deferred payload cleanup failed.");
+                _logger.LogWarning(exception, "Clipboard import subscriber failed without changing the imported item.");
             }
         }
     }
 
-    private void MarkSelfWrite(string fingerprint)
+    private void PublishStatus(string? message, ClipboardRecordingState? state = null)
     {
-        _selfFingerprint = fingerprint;
-        _selfWriteExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(3);
+        if (StatusChanged is not { } handlers) return;
+        var status = CreateStatus(message, state);
+        foreach (EventHandler<ClipboardCaptureStatus> handler in handlers.GetInvocationList())
+        {
+            try { handler(this, status); }
+            catch (Exception exception) { _logger.LogWarning(exception, "Clipboard status subscriber failed ({Category}).", exception.GetType().Name); }
+        }
     }
-
-    private bool IsSelfWrite(string fingerprint) =>
-        DateTimeOffset.UtcNow <= _selfWriteExpiresUtc &&
-        string.Equals(fingerprint, _selfFingerprint, StringComparison.Ordinal);
 
     private ClipboardCaptureStatus CreateStatus(string? message, ClipboardRecordingState? state = null) =>
         new(
@@ -1063,9 +1414,6 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             Interlocked.Read(ref _droppedEvents),
             message);
 
-    private void PublishStatus(string? message, ClipboardRecordingState? state = null) =>
-        StatusChanged?.Invoke(this, CreateStatus(message, state));
-
     private void ThrowIfDisposing() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeStarted) != 0, this);
 
     [DllImport("user32.dll")]
@@ -1075,7 +1423,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         uint ClipboardSequenceNumber,
         long ObservedEventNumber,
         int PauseGeneration,
-        DateTimeOffset ObservedAtUtc);
+        DateTimeOffset ObservedAtUtc,
+        int Attempt = 0);
+
+    private sealed record SelfWriteMarker(long Id, string Fingerprint, DateTimeOffset ExpiresUtc);
 
     private sealed record ClipboardReadResult(
         ClipboardSnapshot? Snapshot,

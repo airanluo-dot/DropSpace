@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
-$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim()
+$releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim()
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 $packageVersion = $releaseInfo.PackageVersion
@@ -50,7 +50,7 @@ if (Test-Path $stage)
 }
 New-Item -ItemType Directory -Path (Join-Path $stage "Assets") -Force | Out-Null
 
-$template = Get-Content (Join-Path $repositoryRoot "identity/AppxManifest.xml.template") -Raw
+$template = Get-Content (Join-Path $repositoryRoot "identity/AppxManifest.xml.template") -Raw -Encoding UTF8
 $manifest = $template.Replace("__PACKAGE_VERSION__", $packageVersion)
 $manifestPath = Join-Path $stage "AppxManifest.xml"
 $manifest | Set-Content $manifestPath -Encoding utf8NoBOM
@@ -85,7 +85,7 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $packagePath -PathType Leaf))
     throw "MakeAppx failed to build the external-location identity package."
 }
 
-[xml]$xml = Get-Content $manifestPath -Raw
+[xml]$xml = Get-Content $manifestPath -Raw -Encoding UTF8
 $identity = $xml.Package.Identity
 if ($identity.Name -ne "AiranLuo.DropSpace.Identity" -or
     $identity.Publisher -ne "CN=airanluo-dot" -or

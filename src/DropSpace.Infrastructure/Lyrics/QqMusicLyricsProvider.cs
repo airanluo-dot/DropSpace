@@ -14,10 +14,19 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : ILyricsProvid
         var best = Array(search.RootElement, "data", "song", "list").Select(song => new
         {
             Song = song,
-            Score = LyricsMatcher.Score(query, Text(song, "songname"), string.Join("; ", Array(song, "singer").Select(artist => Text(artist, "name"))), Text(song, "albumname"), Number(song, "interval")),
+            Title = Text(song, "songname"),
+            Artist = string.Join("; ", Array(song, "singer").Select(artist => Text(artist, "name"))),
+            Album = Text(song, "albumname"),
+            Duration = Number(song, "interval"),
+        }).Select(candidate => new
+        {
+            candidate.Song, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration,
+            Score = LyricsMatcher.Score(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
         }).OrderByDescending(candidate => candidate.Score).FirstOrDefault();
-        if (best is null || best.Score < 4) return LyricsDocument.Empty;
-        using var lyric = await http.GetAsync($"https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid={Escape(Text(best.Song, "songmid"))}&format=json&nobase64=1&g_tk=5381", cancellationToken, "https://y.qq.com/");
-        return LyricsParser.Parse(WebUtility.HtmlDecode(Text(lyric.RootElement, "lyric")), Kind, WebUtility.HtmlDecode(Text(lyric.RootElement, "trans")));
+        var songId = best is null ? string.Empty : Text(best.Song, "songmid");
+        if (best is null || best.Score < 4 || string.IsNullOrWhiteSpace(songId)) return LyricsDocument.Empty;
+        using var lyric = await http.GetAsync($"https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid={Escape(songId)}&format=json&nobase64=1&g_tk=5381", cancellationToken, "https://y.qq.com/");
+        return LyricsParser.Parse(WebUtility.HtmlDecode(Text(lyric.RootElement, "lyric")), Kind, WebUtility.HtmlDecode(Text(lyric.RootElement, "trans")))
+            .Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, songId);
     }
 }

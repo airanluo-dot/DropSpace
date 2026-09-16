@@ -73,7 +73,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     public void ClearLyricsCache()
     {
         _lyrics.ClearCache(); Interlocked.Increment(ref _generation); Interlocked.Increment(ref _reloadRequest);
-        _document = LyricsDocument.Empty; _view.Lyrics = LyricsHighlightFrame.Empty; _changes.Writer.TryWrite(true);
+        _document = LyricsDocument.Empty; _view.SetLyricsDocument(LyricsDocument.Empty); _view.Lyrics = LyricsHighlightFrame.Empty; _changes.Writer.TryWrite(true);
     }
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -108,8 +108,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     }
                     var session = Volatile.Read(ref _latest);
                     var playing = session.PlaybackState == MediaPlaybackState.Playing && !string.IsNullOrWhiteSpace(session.TrackTitle);
-                    var trackChanged = previousMedia?.SourceAppUserModelId != session.SourceAppUserModelId || previousMedia.TrackTitle != session.TrackTitle ||
-                        previousMedia.Artist != session.Artist || previousMedia.AlbumTitle != session.AlbumTitle;
+                    var trackChanged = previousMedia is null || !previousMedia.IsSameTrack(session);
                     var reload = trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
                         previousReloadRequest != reloadRequest;
                     var reloadArtwork = trackChanged || !ReferenceEquals(previousMedia?.Artwork, session.Artwork);
@@ -123,10 +122,22 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     {
                         if (_disposed) return Task.CompletedTask;
                         _clock.Update(session);
+                        var resetLyrics = trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousReloadRequest != reloadRequest;
+                        // Clear the old frame before publishing the new session. Property
+                        // subscribers render synchronously, so assigning Session first would
+                        // briefly display the previous song's lyric under the new title.
+                        if (resetLyrics)
+                        {
+                            _document = LyricsDocument.Empty;
+                            _view.SetLyricsDocument(LyricsDocument.Empty);
+                            _view.Lyrics = LyricsHighlightFrame.Empty;
+                        }
                         _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
+                        if (resetLyrics)
+                            _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
+                                ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
                         if (trackChanged) _view.Artwork = null;
-                        if (trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousReloadRequest != reloadRequest) _document = LyricsDocument.Empty;
                         _experience.UpdateMedia(playing, settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, settings.IslandAppearance.AutoHide);
                         RenderFrame(); UpdateFrameTimer();
                         return Task.CompletedTask;
@@ -146,11 +157,18 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     var sourceKey = playing && settings.IslandActivity.ShowSpectrum && _view.IsPresentationVisible ? session.SourceAppUserModelId : string.Empty;
                     if (audioKey != sourceKey || trackChanged)
                     {
-                        audioKey = sourceKey;
-                        var process = sourceKey.Length == 0 ? null : await _processes.ResolveAudioAsync(sourceKey, token).ConfigureAwait(false);
-                        try { await _audio.SetSourceAsync(process, sourceKey.Length > 0, token).ConfigureAwait(false); }
+                        var resolved = true;
+                        uint? process = null;
+                        if (sourceKey.Length > 0)
+                        {
+                            try { process = await _processes.ResolveAudioAsync(sourceKey, token).ConfigureAwait(false); }
+                            catch (Exception exception) when (exception is not OperationCanceledException)
+                            { resolved = false; _logger.LogDebug("Player process resolution unavailable ({Category}).", exception.GetType().Name); }
+                        }
+                        try { await _audio.SetSourceAsync(process, resolved && sourceKey.Length > 0, token).ConfigureAwait(false); }
                         catch (Exception exception) when (exception is not OperationCanceledException)
-                        { _logger.LogDebug("Player capture unavailable ({Category}).", exception.GetType().Name); }
+                        { resolved = false; _logger.LogDebug("Player capture unavailable ({Category}).", exception.GetType().Name); }
+                        audioKey = resolved ? sourceKey : null;
                     }
                     previousSettings = settings; previousMedia = session;
                     previousReloadRequest = reloadRequest;
@@ -166,17 +184,44 @@ public sealed class MediaExperienceService : IAsyncDisposable
     {
         try
         {
-            var document = !string.IsNullOrWhiteSpace(session.TrackTitle)
-                ? await _lyrics.QueryAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle, session.Timeline.Duration), settings.Lyrics, token).ConfigureAwait(false)
-                : LyricsDocument.Empty;
+            var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
+                ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle, session.Timeline.Duration, session.TrackIdentity), settings.Lyrics, token).ConfigureAwait(false)
+                : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
             await _dispatcher.EnqueueAsync(() =>
             {
-                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed) { _document = document; RenderFrame(); }
+                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed)
+                {
+                    _document = result.Document;
+                    _view.SetLyricsDocument(result.Document);
+                    _view.LyricsStatus = result.Status;
+                    RenderFrame();
+                }
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception exception) { _logger.LogDebug("Lyrics unavailable ({Category}).", exception.GetType().Name); }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            _logger.LogDebug("Lyrics unavailable ({Category}).", exception.GetType().Name);
+            try
+            {
+                await _dispatcher.EnqueueAsync(() =>
+                {
+                    if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed)
+                    {
+                        _document = LyricsDocument.Empty;
+                        _view.SetLyricsDocument(LyricsDocument.Empty);
+                        _view.LyricsStatus = LyricsQueryStatus.Failed;
+                        _view.Lyrics = LyricsHighlightFrame.Empty;
+                    }
+                    return Task.CompletedTask;
+                }).ConfigureAwait(false);
+            }
+            catch (Exception dispatchException) when (dispatchException is not OutOfMemoryException)
+            {
+                _logger.LogDebug("Lyrics failure state could not reach the UI ({Category}).", dispatchException.GetType().Name);
+            }
+        }
     }
     private async Task LoadArtworkAsync(MediaSessionSnapshot session, long generation, CancellationToken token)
     {
@@ -198,7 +243,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private void RenderFrame()
     {
         _view.Position = _clock.Position;
-        _view.Lyrics = _timeline.GetFrame(_document, _view.Position, _view.Settings.Lyrics.DelayMilliseconds);
+        // SMTC timelines may have a non-zero media start. Lyric timestamps are track-relative,
+        // so keep the clock absolute for seeking/display but feed the lyric engine a relative
+        // position.
+        var lyricPosition = _view.Position - _view.Session.Timeline.Start;
+        _view.Lyrics = _timeline.GetFrame(_document, lyricPosition, _view.Settings.Lyrics.DelayMilliseconds);
         _view.Spectrum = Volatile.Read(ref _spectrum);
     }
     private void OnExperienceChanged(object? sender, IslandExperienceSnapshot snapshot)

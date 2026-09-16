@@ -1,14 +1,14 @@
 # DropSpace Windows compatibility baseline
 
-Status: implementation baseline for `v0.3.0-preview.24` (conditional until the
+Status: implementation baseline for `v0.3.0-beta.25` (conditional until the
 Windows matrix below has executable evidence). The release runner is pinned to
 the named `windows-2025` image; this is build reproducibility evidence, not a
 substitute for the real OS/DPI/OLE/accessibility rows.
 
 ## Supported operating systems
 
-Preview.24 requires 64-bit Windows build 20348 or later, including Windows 11.
-Earlier Preview releases retain their published minimums. Windows App SDK's
+Beta.25 requires 64-bit Windows build 20348 or later, including Windows 11.
+Earlier Preview and Beta releases retain their published minimums. Windows App SDK's
 support table and versioning guidance are the authority for the framework
 relationship:
 

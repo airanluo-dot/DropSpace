@@ -592,6 +592,47 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
+    public async Task Repository_ClipboardFileBatchPreservesDropBatchMetadata()
+    {
+        Directory.CreateDirectory(_root);
+        var firstPath = Path.Combine(_root, "clipboard-batch-one.txt");
+        var secondPath = Path.Combine(_root, "clipboard-batch-two.txt");
+        await File.WriteAllTextAsync(firstPath, "one");
+        await File.WriteAllTextAsync(secondPath, "two");
+        var repository = CreateRepository();
+        var references = new LocalFileReferenceService();
+        var first = await references.InspectAsync(firstPath);
+        var second = await references.InspectAsync(secondPath);
+        var batchId = Guid.NewGuid();
+        var candidates = new[]
+        {
+            new ClipboardFileCandidate(
+                first,
+                FingerprintService.ForText($"clipboard-file\0{first.NormalizedPath}"),
+                System.Text.Json.JsonSerializer.Serialize(new DropBatchMetadata(batchId, null, 0, 2, "clipboard-files"))),
+            new ClipboardFileCandidate(
+                second,
+                FingerprintService.ForText($"clipboard-file\0{second.NormalizedPath}"),
+                System.Text.Json.JsonSerializer.Serialize(new DropBatchMetadata(batchId, null, 1, 2, "clipboard-files"))),
+        };
+
+        var items = await repository.AddClipboardFilesAsync(candidates);
+
+        Assert.AreEqual(2, items.Count);
+        var batch = await repository.QueryAsync(new ItemQuery(Source: ItemSource.Clipboard, Limit: 10));
+        Assert.AreEqual(2, batch.Count);
+        var queriedBatch = await repository.QueryDropBatchAsync(batchId);
+        CollectionAssert.AreEquivalent(items.Select(item => item.Id).ToArray(), queriedBatch.Select(item => item.Id).ToArray());
+        var metadata = batch
+            .Select(item => System.Text.Json.JsonSerializer.Deserialize<DropBatchMetadata>(item.MetadataJson!)!)
+            .OrderBy(value => value.ItemIndex)
+            .ToArray();
+        Assert.AreEqual(batchId, metadata[0].DropBatchId);
+        Assert.AreEqual(0, metadata[0].ItemIndex);
+        Assert.AreEqual(1, metadata[1].ItemIndex);
+    }
+
+    [TestMethod]
     public async Task Repository_SpaceTextAndDropBatchMetadataRemainSeparateFromClipboardHistory()
     {
         var repository = CreateRepository();

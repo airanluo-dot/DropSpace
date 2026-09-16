@@ -10,7 +10,7 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 . (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
 $windowsCompatibility = Get-DropSpaceWindowsCompatibility
-$releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw).Trim())
+$releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim())
 $expectedSummary = Get-DropSpaceUpdateSummary -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
 $manifestFile = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ManifestPath))
 $releaseRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDirectory))
@@ -19,7 +19,7 @@ if (-not (Test-Path $manifestFile -PathType Leaf) -or (Get-Item $manifestFile).L
     throw "update-manifest.json is missing or exceeds 64 KiB."
 }
 
-$manifest = Get-Content $manifestFile -Raw | ConvertFrom-Json
+$manifest = Get-Content $manifestFile -Raw -Encoding UTF8 | ConvertFrom-Json
 $expectedTop = @("schemaVersion", "channel", "version", "versionCode", "publishedAt", "minimumWindowsBuild", "mandatory", "summary", "installer", "portable")
 $actualTop = @($manifest.PSObject.Properties.Name)
 if (@(Compare-Object ($expectedTop | Sort-Object) ($actualTop | Sort-Object)).Count -ne 0)
