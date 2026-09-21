@@ -10,6 +10,18 @@
     <!-- The referenced App project selects win-x64 from Platform; VSTest stays framework-dependent. -->
     <SelfContained>false</SelfContained>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <!-- VSTest is an unpackaged process: attach its Windows App SDK framework
+         before loading the App assembly or activating WinRT services. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
+    <!-- Missing CI runtime must fail with an HRESULT, never open the SDK's
+         default download dialog in a headless test worker. -->
+    <WindowsAppSDKBootstrapAutoInitializeOptions_None>true</WindowsAppSDKBootstrapAutoInitializeOptions_None>
+    <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <!-- The SDK emits the same internal version types into both assemblies;
+         InternalsVisibleTo exposes the App copy to this test compilation. -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DropSpace.App\DropSpace.App.csproj" />

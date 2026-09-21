@@ -9,6 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+. (Join-Path $PSScriptRoot "ReleaseArtifactVersion.ps1")
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 . (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
 $windowsCompatibility = Get-DropSpaceWindowsCompatibility
@@ -29,6 +30,8 @@ $directory = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDi
 $output = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $OutputPath))
 $installer = Join-Path $directory "DropSpaceSetup.exe"
 $portable = Join-Path $directory "DropSpace.exe"
+Assert-DropSpaceExecutableVersion -Path $portable -ReleaseInfo $releaseInfo
+Assert-DropSpaceExecutableVersion -Path $installer -ReleaseInfo $releaseInfo -Installer
 foreach ($path in @($installer, $portable))
 {
     if (-not (Test-Path $path -PathType Leaf) -or (Get-Item $path).Length -le 0)

@@ -1,21 +1,41 @@
 # DropSpace Product Specification
 
-## Beta 25 full-audit bug-fix amendment
+## NetEase enhancement amendment — September 21
+
+The user-authorized next slice adds a Music-page enhancement card with one explicit
+confirmation for installing independent third-party components. Preparation, verified
+downloads, deployment, restart and Windows media capability checks then run automatically.
+Successful management exposes update, reinstall and removal. Native complete SMTC support
+skips installation. Installation files alone cannot establish success. Windows security
+consent cannot be bypassed. The current user amendment removes shuffle/repeat controls
+and their acceptance requirements from this slice. Beta26 publication is authorized again
+after the revised core-capability acceptance and all release gates pass.
+
+Official InfLink-rs 3.2.11's incomplete shuffle/repeat semantics remain a documented upstream
+limitation, not a gate for the revised scope. Restart verification must rediscover live
+Windows media connections and sessions. See D-064 and the native report for acceptance
+criteria and actual evidence; no success is inferred from deployment alone.
+
+## Beta 26 full-audit bug-fix amendment
 
 The native island has four independent pages, ordered Widgets, Music controls,
 Files staging, Clipboard. Widgets use 4 rows by 8 columns with suitable alternate
 sizes. The eight types are clock, calendar, resource usage, settings shortcut,
 power, uptime, stopwatch and clipboard capture pause/resume. Playback changes
 must not steal the selected page. Clipboard and Space remain visibly distinct.
-The main window adds Music and seven focused settings categories. Beta 25 is the
-complete remediation pass for the Beta 24 audit, including lyric identity and
-sync, clipboard/drag lifetimes, batch persistence, native recovery, and updater
-failure handling. Release status and the 52-item fix ledger are tracked in
-`docs/dev/beta25-bugfix-ledger.md`.
+The main window adds Music and seven focused settings categories. Beta 26 audits
+the shipped Beta 25, including real lyric-provider behavior, media identity and
+timeline, native virtual-file ownership, source-safe cleanup, ZIP export and
+updater recovery. Current evidence and release status are tracked in
+`docs/dev/beta26-rc-audit.md`.
 
-Status: v0.3.0-beta.25 product contract
+The authorized Beta 26 task continues through validated official publication
+and website/API synchronization. Local source, fixture and provider checks are
+reported separately from actual player/display acceptance and published assets.
+
+Status: v0.3.0-beta.26 product contract
 Target: 64-bit Windows build 20348 or later desktop, including Windows 11; local-first
-Last reviewed: 2026-09-16
+Last reviewed: 2026-09-21
 
 ## One-sentence definition
 
@@ -93,7 +113,7 @@ Compared with Explorer, DropSpace avoids premature organization. Compared with a
 - Honest degradation: show missing, unavailable, unsupported, or too-large states.
 - Privacy is a control surface, not a settings footnote.
 - Keyboard and pointer are first-class peers.
-- Windows build 20348 is the Beta 25 runtime baseline; Windows 11-only visuals and
+- Windows build 20348 is the Beta 26 runtime baseline; Windows 11-only visuals and
   contracts are optional capabilities with explicit fallbacks.
 
 ## Final MVP scope
@@ -163,7 +183,7 @@ The first shippable MVP is deliberately smaller than the original list.
 
 ## Open product assumptions
 
-- 64-bit Windows build 20348 or later is the Beta 25 minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
+- 64-bit Windows build 20348 or later is the Beta 26 minimum supported OS; Windows 11-only visuals and contracts are optional capabilities.
 - The app remains running in the tray only when the user selected that close behavior.
 - Clipboard capture stops when the process exits.
 - Default clipboard retention: 30 days or 1,000 items, whichever limit is reached first; pinned items are exempt.
@@ -197,9 +217,9 @@ row has already passed.
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
+The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 24 is the immediate upgrade baseline and
+releases remain immutable. Beta 25 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

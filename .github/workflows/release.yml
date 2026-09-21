@@ -152,7 +152,13 @@ jobs:
       - name: Test persistence, manifests, downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure-release.trx"
 
+      - name: Install locked Windows App Runtime for native tests
+        timeout-minutes: 10
+        shell: pwsh
+        run: ./scripts/Install-TestWindowsAppRuntime.ps1
+
       - name: Test App policies and native-boundary contracts
+        timeout-minutes: 10
         run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --logger "trx;LogFileName=app-release.trx"
 
       - name: Build WinUI Release
@@ -186,6 +192,10 @@ jobs:
         run: |
           ./scripts/Build-Installer.ps1
           Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
+
+      - name: Reject mismatched executable release identities
+        shell: pwsh
+        run: ./scripts/Test-ReleaseArtifactVersion.ps1
 
       - name: Validate generated icon and brand chain
         shell: pwsh

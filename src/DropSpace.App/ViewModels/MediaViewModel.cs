@@ -37,7 +37,7 @@ public sealed class MediaViewModel : ObservableObject
     public MediaViewModel(IMediaSessionService media, IAppStringLocalizer strings, ILogger<MediaViewModel> logger)
     {
         _strings = strings;
-        PlayPauseCommand = new AsyncRelayCommand(token => Execute(() => media.PlayPauseAsync(token)), () => Session.CanPlay || Session.CanPause);
+        PlayPauseCommand = new AsyncRelayCommand(token => Execute(() => media.PlayPauseAsync(token)), () => IsPlaying ? Session.CanPause : Session.CanPlay);
         PreviousCommand = new AsyncRelayCommand(token => Execute(() => media.SkipPreviousAsync(token)), () => Session.CanSkipPrevious);
         NextCommand = new AsyncRelayCommand(token => Execute(() => media.SkipNextAsync(token)), () => Session.CanSkipNext);
         SeekCommand = new AsyncRelayCommand<double?>(value => Execute(async () => { if (value is { } seconds && double.IsFinite(seconds)) await media.SeekAsync(Session.Timeline.Start + TimeSpan.FromSeconds(seconds)); }), _ => Session.CanSeek && !PositionEstimated);
@@ -63,6 +63,7 @@ public sealed class MediaViewModel : ObservableObject
             if (!SetProperty(ref _session, value)) return;
             OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
+            OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
             OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
             PlayPauseCommand.NotifyCanExecuteChanged(); PreviousCommand.NotifyCanExecuteChanged(); NextCommand.NotifyCanExecuteChanged(); SeekCommand.NotifyCanExecuteChanged();
         }

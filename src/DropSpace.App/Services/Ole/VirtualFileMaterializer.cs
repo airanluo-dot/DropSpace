@@ -81,6 +81,7 @@ internal sealed class VirtualFileMaterializer
             if (asyncOperationStarted) await Task.Yield();
             var descriptors = ReadDescriptors(dataObject);
             var paths = new List<string>(descriptors.Count);
+            var reservedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             ValidateAnnouncedSizes(descriptors);
             long totalBytes = 0;
             if (!asyncOperationStarted)
@@ -94,7 +95,7 @@ internal sealed class VirtualFileMaterializer
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var descriptor = descriptors[index];
-                    var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName);
+                    var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName, reservedPaths);
                     ownedMedia.Add(AcquireContentMedium(dataObject, index, destination, marshalForBackground: true));
                     paths.Add(destination);
                 }
@@ -112,7 +113,7 @@ internal sealed class VirtualFileMaterializer
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var descriptor = descriptors[index];
-                    var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName);
+                    var destination = GetUniqueConfinedPath(batchRoot, descriptor.FileName, reservedPaths);
                     var written = await WriteContentsAsync(dataObject, index, destination, cancellationToken);
                     totalBytes = checked(totalBytes + written);
                     if (written > MaximumFileBytes || totalBytes > MaximumBatchBytes)
@@ -363,7 +364,12 @@ internal sealed class VirtualFileMaterializer
         CancellationToken cancellationToken)
     {
         var interfaceId = IStreamInterfaceId;
-        var stream = CoGetInterfaceAndReleaseStream(marshaledStream, ref interfaceId);
+        var result = CoGetInterfaceAndReleaseStream(marshaledStream, ref interfaceId, out var stream);
+        if (result < 0)
+        {
+            if (stream != nint.Zero) _ = Marshal.Release(stream);
+            Marshal.ThrowExceptionForHR(result);
+        }
         if (stream == nint.Zero)
         {
             throw new COMException("The OLE content stream could not be unmarshaled.");
@@ -485,7 +491,7 @@ internal sealed class VirtualFileMaterializer
         }
     }
 
-    private static string GetUniqueConfinedPath(string root, string leafName)
+    private static string GetUniqueConfinedPath(string root, string leafName, HashSet<string> reservedPaths)
     {
         var stem = Path.GetFileNameWithoutExtension(leafName);
         var extension = Path.GetExtension(leafName);
@@ -497,7 +503,7 @@ internal sealed class VirtualFileMaterializer
             {
                 throw new InvalidDataException("A virtual filename escaped the staging root.");
             }
-            if (!File.Exists(candidate) && !Directory.Exists(candidate))
+            if (!File.Exists(candidate) && !Directory.Exists(candidate) && reservedPaths.Add(candidate))
             {
                 return candidate;
             }
@@ -560,7 +566,13 @@ internal sealed class VirtualFileMaterializer
             var marshaledStream = Interlocked.Exchange(ref _marshaledStream, nint.Zero);
             if (marshaledStream != nint.Zero)
             {
-                _ = Marshal.Release(marshaledStream);
+                // Releasing only the packet stream leaks its marshaled interface reference.
+                // Consume the packet even when cancellation prevents reading the content;
+                // this works on either apartment and releases the packet on failure too.
+                var interfaceId = IStreamInterfaceId;
+                var result = CoGetInterfaceAndReleaseStream(marshaledStream, ref interfaceId, out var stream);
+                if (stream != nint.Zero) _ = Marshal.Release(stream);
+                if (result < 0) System.Diagnostics.Debug.WriteLine($"OLE marshal cleanup failed: 0x{result:X8}.");
             }
 
             if (_medium.unionmember == nint.Zero)
@@ -617,9 +629,10 @@ internal sealed class VirtualFileMaterializer
         out nint ppStm);
 
     [DllImport("ole32.dll")]
-    private static extern nint CoGetInterfaceAndReleaseStream(
+    private static extern int CoGetInterfaceAndReleaseStream(
         nint pStm,
-        ref Guid riid);
+        ref Guid riid,
+        out nint ppv);
 
     private static nint MarshalStreamForBackground(nint stream)
     {

@@ -11,14 +11,17 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.25 is the current Beta release target**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.26 is the current Beta release line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.25](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.25). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.26](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.26). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-Beta 25 is the full Beta.24 audit remediation release. It requires x64 Windows
+Beta 26 audits the shipped Beta 25 and fixes lyrics, media state, native virtual
+files, payload cleanup, ZIP exports and updater/release validation. It requires x64 Windows
 build 20348 or later and keeps the local-first, source-file-safe data boundary.
-The complete 52-item fix mapping is in
-[docs/dev/beta25-bugfix-ledger.md](docs/dev/beta25-bugfix-ledger.md).
+Executed evidence and outstanding target-machine checks are in
+[the Beta 26 audit](docs/dev/beta26-rc-audit.md). Official downloads are the assets
+on the linked GitHub Release; publication and website/API synchronization follow
+the protected release workflow after validation.
 
 The **v0.3.0-preview.21** settings and action usability line follows Preview.20. Its release notes and [Preview.21 test plan](docs/test-plan/v0.3.0-preview.21.md) record the settings transaction, readable Quick Actions, simpler image presets, and verification evidence; physical Windows, multi-device, deployed Worker/browser, and long-run evidence remain explicitly conditional when unavailable.
 
@@ -61,7 +64,7 @@ The implemented vertical slice includes:
 - A win-x64 unpackaged, self-contained, single-file `DropSpace.exe` release path that persists data below `%LOCALAPPDATA%\DropSpace`.
 - A pinned Inno Setup 7.0.2 `DropSpaceSetup.exe` with custom per-user install path, independent uninstaller, stable product identity, graceful in-place upgrades, preserve-data uninstall, and explicit complete-uninstall mode.
 - Per-user Windows startup enabled by default and controlled in Settings; disabling it removes only DropSpace's own `HKCU` Run value.
-- Process-lifetime in-app update checks, repeatable manual checks, Stable/Preview channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
+- Process-lifetime in-app update checks, repeatable manual checks, Stable/Beta channels, resilient official website/GitHub metadata sources, streaming downloads, size/SHA-256 verification, trusted-publisher auto-install gating, and Inno `/UPDATE` graceful restart.
 
 Windows CI audits dependencies, builds the x64 app, portable EXE, installer, unsigned MSIX and external-location identity artifact, and runs policy/persistence tests. It starts the built app and verifies Windows App SDK/SQLite/AppData initialization, real Win32 clipboard notification/persistence/consecutive-only duplicate suppression/Pause/Resume/self-write suppression, Smart mouse plus accessibility WinEvent observer registration, hidden top-edge pass-through, temporary visible-target discovery, synthetic CF_HDROP delivery in Compact/Expanded, the ephemeral probe's hollow Region/native styles/single ownership/60 ms cleanup, query-only OLE classification, DPI-aware host containment, 1,000 deduplicated candidate sessions, settings migration, 200 serialized deletion cycles, 1,000 Overlay lifecycle cycles with 100/250/500/750/1000 resource checkpoints, 1,000 interruptible Island geometry transitions, second-instance redirection, graceful maintenance shutdown, silent install, in-place upgrade, both uninstall modes, and external-file sentinel protection. Each matrix lane also validates synchronized `en-US`/`zh-CN` resources, rejects CJK source hardcoding, and runs the executable smoke under that resource context. Real Explorer/Desktop and third-party provider coverage, cross-process event delivery, false-positive rate, probe cursor feedback, Drop Tray coexistence, zero-pixel Hidden appearance, actual Windows display-language behavior, accessibility, mixed-DPI geometry, and animation feel remain manual Preview gates and are not claimed by automation.
 
@@ -173,9 +176,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
+The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 24 is the immediate upgrade baseline and
+releases remain immutable. Beta 25 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

@@ -8,6 +8,47 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsParserTests
 {
     [TestMethod]
+    public void ZeroTimeYrcCreditsDoNotReuseTheFirstSungTranslation()
+    {
+        var document = LyricsParser.Parse(
+            "[0,0](0,0,0)Composer credit\n[0,0](0,0,0)Writer credit\n[0,3000](0,3000,0)first\n[4000,2000](4000,2000,0)second",
+            LyricsProviderKind.NetEase, "[00:00.000]translated first\n[00:04.000]translated second");
+
+        Assert.IsNull(document.Lines[0].Secondary);
+        Assert.IsNull(document.Lines[1].Secondary);
+        Assert.AreEqual("translated first", document.Lines[2].Secondary);
+        Assert.AreEqual("translated second", document.Lines[3].Secondary);
+    }
+
+    [TestMethod]
+    public void NearbyLrcCreditsDoNotStealAnExactTranslation()
+    {
+        var document = LyricsParser.Parse(
+            "[00:00.000]Composer credit\n[00:00.131]Writer credit\n[00:00.262]first\n[00:01.755]second",
+            LyricsProviderKind.NetEase, "[00:00.262]translated first\n[00:01.755]translated second");
+
+        Assert.IsNull(document.Lines[0].Secondary);
+        Assert.IsNull(document.Lines[1].Secondary);
+        Assert.AreEqual("translated first", document.Lines[2].Secondary);
+        Assert.AreEqual("translated second", document.Lines[3].Secondary);
+    }
+
+    [TestMethod]
+    public void DeclaredYrcAndTtmlEndsDoNotExtendAcrossInstrumentalGaps()
+    {
+        foreach (var text in new[]
+        {
+            "[1000,1000](1000,1000,0)first\n[10000,1000](10000,1000,0)second",
+            "<tt><body><p begin=\"1s\" end=\"2s\">first</p><p begin=\"10s\" end=\"11s\">second</p></body></tt>",
+        })
+        {
+            var document = LyricsParser.Parse(text, LyricsProviderKind.Amll);
+            Assert.AreEqual(TimeSpan.FromSeconds(2), document.Lines[0].End);
+            Assert.IsNull(new LyricsTimelineEngine().GetFrame(document, TimeSpan.FromSeconds(5), 0).Line);
+        }
+    }
+
+    [TestMethod]
     public void FinalTimedLineExpiresAtItsDeclaredEnd()
     {
         var document = LyricsParser.Parse(

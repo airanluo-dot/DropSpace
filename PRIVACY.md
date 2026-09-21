@@ -1,5 +1,18 @@
 # DropSpace Privacy and Threat Model
 
+## Explicit NetEase enhancement boundary
+
+Only a user-confirmed enhancement/update/reinstall downloads independent third-party components.
+Requests contain public release/asset identifiers, not clipboard/file payloads or playback metadata.
+GitHub serves upstream BetterNCM and InfLink-rs artifacts; Microsoft serves required VC runtimes.
+Integrity checks, bounded downloads and file ownership are required before deployment. Local receipts
+contain installation/profile paths and hashes needed for recovery; logs use category codes rather
+than full paths. The player may restart and briefly change playback during verification. InfLink's
+upstream default enables SMTC and disables Discord RPC; existing plugin preferences are not silently
+rewritten. DropSpace uses no plugin JavaScript API, adds no telemetry, and cannot guarantee the
+privacy behavior of an independently installed third-party plugin. Removing enhancement preserves
+unrelated existing plugins and user configuration.
+
 ## Beta.25 bug-fix privacy boundary
 
 Beta.25 keeps the same local-first and opt-in online lyrics boundary while

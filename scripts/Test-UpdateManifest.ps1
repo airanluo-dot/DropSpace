@@ -7,6 +7,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+. (Join-Path $PSScriptRoot "ReleaseArtifactVersion.ps1")
 . (Join-Path $PSScriptRoot "ReleaseNotes.ps1")
 . (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
 $windowsCompatibility = Get-DropSpaceWindowsCompatibility
@@ -14,6 +15,8 @@ $releaseInfo = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $repos
 $expectedSummary = Get-DropSpaceUpdateSummary -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
 $manifestFile = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ManifestPath))
 $releaseRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $ReleaseDirectory))
+Assert-DropSpaceExecutableVersion -Path (Join-Path $releaseRoot 'DropSpace.exe') -ReleaseInfo $releaseInfo
+Assert-DropSpaceExecutableVersion -Path (Join-Path $releaseRoot 'DropSpaceSetup.exe') -ReleaseInfo $releaseInfo -Installer
 if (-not (Test-Path $manifestFile -PathType Leaf) -or (Get-Item $manifestFile).Length -gt 65536)
 {
     throw "update-manifest.json is missing or exceeds 64 KiB."

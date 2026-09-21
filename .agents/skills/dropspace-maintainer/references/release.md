@@ -4,6 +4,13 @@ Repository: airanluo-dot/DropSpace. Website:
 https://airanluo-dot.github.io/DropSpace/. Canonical assets live in GitHub Releases.
 Website updater feed: /DropSpace/api/v1/releases.json; GitHub Releases is fallback.
 
+Current Beta26 authorization: D-064 resumes PR67 delivery and final publication
+after real one-click NetEase acceptance and all release gates. Shuffle/repeat
+expansion and mode acceptance were explicitly removed; the 12 core-capability
+gate remains mandatory. The earlier pause is superseded. Preserve historical
+audit evidence, then complete protected merge, release publication and live
+website/API checks. Authorization is not evidence of native success.
+
 ## Version contract
 
 All new prereleases use vMAJOR.MINOR.PATCH-beta.N. Stable uses vMAJOR.MINOR.PATCH.
@@ -40,6 +47,31 @@ The public bundle contains DropSpace.exe, DropSpaceSetup.exe, DropSpace-x64.msix
 SHA256SUMS.txt and update-manifest.json. Verify actual asset count/names, nonzero
 sizes, checksums and manifest version/channel/versionCode. CI artifacts are not
 public update assets. Never delete releases to clean Actions artifact storage.
+
+`scripts/ReleaseArtifactVersion.ps1` validates executable numeric/text versions
+and product identity against RELEASE_VERSION. Installer creation and manifest
+creation/validation reject stale payloads. The lifecycle baseline must be the
+real historical installer, with downloaded release checksums verified, never a
+current binary relabelled as the old version. Verify the installed PE before
+and after upgrade in addition to install/update markers. Run destructive
+installer lifecycle checks only in an isolated account/runner; existing user
+data, installation state and running instances must be protected. Portable smoke
+uses a unique test-data root and restores the user's startup registry value.
+
+Cancellation before installer launch restores durable and visible ReadyToInstall
+state without reusing the canceled token; failed rollback remains visible.
+Restored update state must agree on version/tag, channel/prerelease, version code,
+minimum Windows contract, official selected asset and integrity metadata.
+App regression tests require their unpackaged Windows App SDK test bootstrap.
+On clean Windows runners, run `scripts/Install-TestWindowsAppRuntime.ps1` after
+locked restore; it uses the runtime MSIX files from that exact locked NuGet
+package and verifies registration. `-InspectOnly` reports without installing.
+Test bootstrap uses the None option so a missing runtime fails with an HRESULT
+instead of opening an invisible download dialog. Keep prerequisite and App-test
+steps bounded; do not skip native tests or change production initialization.
+Native COM/clipboard fixtures, ZIP directory-budget tests, live lyric-provider
+smoke and actual target-machine player behavior cover different release risks;
+record their results separately rather than substituting one for another.
 
 ## Website and completion
 

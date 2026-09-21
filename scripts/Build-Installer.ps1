@@ -36,6 +36,7 @@ else
 }
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim()
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+. (Join-Path $PSScriptRoot "ReleaseArtifactVersion.ps1")
 $repositoryRelease = Get-DropSpaceReleaseInfo $releaseTag
 
 if ([string]::IsNullOrWhiteSpace($AppVersion))
@@ -48,6 +49,11 @@ if ($VersionCode -eq 0)
 {
     $VersionCode = $releaseInfo.VersionCode
 }
+if ($AppVersion -ne $repositoryRelease.SemanticVersion -or $VersionCode -ne $repositoryRelease.VersionCode)
+{
+    throw "Installer version must match RELEASE_VERSION; lifecycle baselines must use the real historical installer."
+}
+Assert-DropSpaceExecutableVersion -Path $sourceExe -ReleaseInfo $releaseInfo
 if (-not (Test-Path $sourceExe -PathType Leaf))
 {
     throw "Portable DropSpace.exe does not exist: $sourceExe"

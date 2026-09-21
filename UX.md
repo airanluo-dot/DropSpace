@@ -1,6 +1,18 @@
 # DropSpace UX Specification
 
-## Beta 25 amended island and settings
+## NetEase enhancement card
+
+Music places a concise enhancement card below Now Playing. One confirmation names InfLink-rs,
+independent third-party components, the player restart and brief playback-control verification.
+The operation survives navigation and reports detecting/preparing/installing/restarting/verifying
+states with an indeterminate progress indicator; no fabricated percentage. Only actual complete
+Windows media evidence displays Enhanced. Update/reinstall/remove controls apply to managed
+installations. Errors explain recovery without exposing paths or implementation details by default.
+Shuffle/repeat controls are removed from this slice's Music surfaces and acceptance flow.
+Verification reports the failing stage when Windows connection, session discovery, metadata,
+timeline or controls cannot be established; stale pre-restart sessions cannot imply success.
+
+## Beta 26 amended island and settings
 
 Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the
 left rail on Widgets and the right rail on Clipboard. Playback updates retain
@@ -21,10 +33,18 @@ valid hotkey/exclusion text changes commit directly; language refreshes in place
 The Clipboard page names pin state and record removal explicitly and links to
 the full history. These changes are under validation, not a released snapshot.
 
-Beta 25 keeps lyric content tied to the current media identity. Expanded Music
+Beta 26 keeps lyric content tied to the current media identity. Expanded Music
 shows loading, not-found and failed states; compact lyric scrolling uses the
 track-relative clock and resets on session changes, layout changes, DPI changes
 and disabled lyrics.
+
+Artwork load failure leaves the new track's metadata available with no cover;
+ShowArtwork applies to both expanded and main Music surfaces. Play/Pause is
+enabled only for the action supported in the current playback state. Estimated
+position does not rewind merely because metadata callbacks are sparse, and
+explicitly timed lyrics disappear during gaps after their declared end.
+Translation lines attach to their nearest original once, so opening credits do
+not repeat the first sung line's translation when timestamps coincide.
 
 ## Experience goal
 

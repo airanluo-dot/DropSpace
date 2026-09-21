@@ -1,5 +1,18 @@
 # DropSpace Architecture
 
+## NetEase enhancement boundary
+
+`NeteaseEnhancementService` orchestrates separate installation/profile probes, official artifact
+deployment, prerequisite installation and event-driven `NeteaseSmtcVerifier` acceptance. A dedicated
+ViewModel projects installation state into Music. The general WindowsMediaSessionService has no
+installer or NetEase-specific branch; Windows remains the sole runtime media protocol. Deployment
+receipts are local operational state under the DropSpace application-data root, independent of the
+item database and settings schema. Restart verification retires pre-restart sessions and
+rediscovers live sessions; a healthy manager may remain connected. Retained pre-restart COM
+session objects are not valid evidence. Connection,
+session discovery and capability validation have separate diagnostic stages. Shuffle/repeat
+expansion is outside the amended scope. See D-063/D-064 and `docs/dev/netease-enhancement.md`.
+
 ## Architecture goals
 
 - Native Windows behavior and predictable resource use.
@@ -20,10 +33,21 @@ Exact versions are selected and recorded in Phase 0; do not write “latest” i
 
 ## Windows compatibility boundary
 
-The Beta 25 runtime baseline is 64-bit Windows build 20348
+The Beta 26 runtime baseline is 64-bit Windows build 20348
 or later, including Windows 11. The app continues to compile against
 the pinned Windows SDK Build Tools 10.0.26100.8249; compile-time API availability
 is not treated as proof that an API exists on the current OS.
+
+Beta 26 keeps the existing three-project, local-first architecture and settings
+schema 14. Infrastructure validates provider-owned lyric identities, preserves
+provider-specific duration units, bounds same-origin HTTPS redirects, and uses
+search when LRCLIB exact-query metadata is incomplete. Core preserves explicit
+timed-line ends; App separates optional artwork failure from current metadata
+and observes estimated playback time on visible frames. Native virtual-file
+marshaling owns every interface/packet and batch destination; payload operations
+and their deferred journal share reparse-safe ownership checks. Cleanup retries
+order by attempt age to avoid starvation. See the Beta 26 sub-audits under
+`docs/dev` for the regressions and evidence boundaries.
 
 `DropSpace.Core.Compatibility` owns the platform-neutral policy constants,
 capability states, and contracts (`IOsVersionPolicy`,
@@ -366,9 +390,9 @@ The three-project graph is unchanged. SqliteDatabase owns the shared repository 
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
+The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 24 is the immediate upgrade baseline and
+releases remain immutable. Beta 25 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

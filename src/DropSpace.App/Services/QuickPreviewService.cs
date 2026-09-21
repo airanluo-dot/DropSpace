@@ -50,7 +50,7 @@ public sealed class QuickPreviewService(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            logger.LogDebug(exception, "Rendered preview remains usable despite cache write failure.");
+            logger.LogDebug("Rendered preview remains usable despite cache write failure ({Category}).", exception.GetType().Name);
         }
     }
 

@@ -132,12 +132,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             _view.SetLyricsDocument(LyricsDocument.Empty);
                             _view.Lyrics = LyricsHighlightFrame.Empty;
                         }
+                        if (trackChanged) _view.Artwork = null;
                         _view.Settings = settings; _view.Session = session; _view.PositionEstimated = _clock.IsEstimated;
                         if (resetLyrics)
                             _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
                                 ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
                         _view.IsReducedMotion = _visualPreferences.IsReducedMotion(settings.OverlayMotion);
-                        if (trackChanged) _view.Artwork = null;
                         _experience.UpdateMedia(playing, settings.IslandActivity.EnableMediaActivity, settings.IslandAppearance.HideDelayMilliseconds, settings.IslandAppearance.AutoHide);
                         RenderFrame(); UpdateFrameTimer();
                         return Task.CompletedTask;

@@ -1,26 +1,41 @@
 # DropSpace Roadmap
 
-## Active authorized slice: v0.3.0-beta.25
+## Current user amendment — NetEase enhancement; publication reauthorized
 
-Complete the full Beta.24 bug-fix audit in the mandatory order recorded in
-`docs/dev/beta25-bugfix-ledger.md`. This task explicitly includes source fixes,
-regression tests, Windows verification, required CI, Beta publication and
-website/API synchronization.
+Preserve the Beta26 audit checkpoint and PR67. Complete the one-confirmation NetEase enhancement
+manager against the revised core-capability criteria, including real installation/restart and
+failed deployment recovery. Remove shuffle/repeat expansion and its acceptance requirements.
+Fix stale-session rediscovery across player restart and provide separate diagnostic stages.
+The latest user instruction reauthorizes protected merge and Beta26 publication after real
+one-click acceptance and the release gates, followed by official website/API verification.
+
+Official InfLink-rs 3.2.11's mode limitation remains recorded in the historical audit, but
+does not block the explicitly revised scope. Preserve original upstream artifacts and the
+Windows SMTC-only runtime boundary. See D-064 and the native report; do not infer a live pass.
+
+## Active authorized slice: v0.3.0-beta.26
+
+Audit the shipped Beta 25 as a release candidate, fix confirmed defects, and
+deliver Beta 26 with regression tests, real provider/Windows evidence and fresh
+version-verified artifacts. The current user authorization includes protected
+merge, official Beta publication and live website/API verification after the
+release gates. See `docs/dev/beta26-rc-audit.md` and the linked release workflows
+for executed evidence; local artifacts and public release assets are distinct.
 Runtime baseline is x64 Windows build 20348; settings migrate 11/12/13 to 14.
 No functional phase is complete until its targeted tests, native smoke where required,
 and local Git checkpoint are recorded. Release blockers in the supplied plan are binding.
 
 The September 12 user amendment sets the island page order to Widgets, Music,
 Files, Clipboard, and the widget editor to 4 rows by 8 columns with eight widget
-types and catalogued size choices. The Beta 25 remediation pass is in progress:
-native four-page navigation and live multi-track lyric checks are retained, while
-the 52-item regression ledger, final smoke, release artifacts and target-machine
-evidence are the remaining release gates.
+types and catalogued size choices. Beta 26 retains the current feature scope;
+the audit evidence distinguishes executed local/hosted checks from unavailable
+physical OS, multi-monitor and accessibility acceptance. Apple Music and NetEase
+have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.25
-is the current Beta bug-fix target following Beta.24. Hosted Windows checks are
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.26
+is the current Beta bug-fix target following Beta 25. Hosted Windows checks are
 the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer,
 Apple Music/provider, and Worker/browser evidence remain explicit operational
 gates. Beta signing remains optional; Stable publication is signing-gated.
@@ -681,9 +696,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
+The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 24 is the immediate upgrade baseline and
+releases remain immutable. Beta 25 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

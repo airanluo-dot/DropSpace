@@ -50,7 +50,7 @@ public sealed class AuthenticodeTrustedUpdateVerifier : ITrustedUpdateVerifier
         }
     }
 
-    private static uint VerifyEmbeddedSignature(string filePath)
+    internal static uint VerifyEmbeddedSignature(string filePath)
     {
         var filePathPointer = Marshal.StringToCoTaskMemUni(filePath);
         var fileInfoPointer = IntPtr.Zero;

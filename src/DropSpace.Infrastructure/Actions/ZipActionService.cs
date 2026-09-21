@@ -78,7 +78,8 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
         CancellationToken cancellationToken)
     {
         var pending = new Queue<(string Path, string Name)>();
-        pending.Enqueue((root, prefix));
+        if (File.GetAttributes(root).HasFlag(FileAttributes.ReparsePoint)) return;
+        pending.Enqueue((root, AddDirectoryEntry(archive, prefix, budget)));
         while (pending.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -87,11 +88,12 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
             if (attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
             foreach (var child in Directory.EnumerateFileSystemEntries(current.Path))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (PathsEqual(child, archivePath)) continue;
                 var childName = string.Concat(current.Name, "/", SanitizeEntryName(Path.GetFileName(child)));
                 var childAttributes = File.GetAttributes(child);
                 if (childAttributes.HasFlag(FileAttributes.ReparsePoint)) continue;
-                if (childAttributes.HasFlag(FileAttributes.Directory)) pending.Enqueue((child, childName));
+                if (childAttributes.HasFlag(FileAttributes.Directory)) pending.Enqueue((child, AddDirectoryEntry(archive, childName, budget)));
                 else await AddFileAsync(archive, child, childName, budget, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -99,6 +101,14 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
 
     private static bool PathsEqual(string left, string right) =>
         string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+
+    private static string AddDirectoryEntry(ZipArchive archive, string name, ArchiveBudget budget)
+    {
+        if (++budget.Entries > MaximumEntries) throw new InvalidDataException("The ZIP item limit was exceeded.");
+        var uniqueName = GetUniqueEntryName(name, budget);
+        archive.CreateEntry(uniqueName + "/");
+        return uniqueName;
+    }
 
     private static async Task AddFileAsync(ZipArchive archive, string path, string name, ArchiveBudget budget, CancellationToken cancellationToken)
     {
@@ -113,7 +123,7 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
     }
 
     private static string SanitizeEntryName(string name) =>
-        string.IsNullOrWhiteSpace(name) ? "item" : name.Replace('\0', '_').Replace('/', '_').Replace('\\', '_');
+        string.IsNullOrWhiteSpace(name) || name is "." or ".." ? "item" : name.Replace('\0', '_').Replace('/', '_').Replace('\\', '_');
 
     private static string GetEntryName(DropItemSnapshot item, IItemContentResolver contentResolver)
     {
@@ -124,7 +134,9 @@ public sealed class ZipActionService(AppStoragePaths paths, IItemContentResolver
 
     private static string GetUniqueEntryName(string name, ArchiveBudget budget)
     {
-        var candidate = SanitizeEntryName(name);
+        // Every component was sanitized before assembly. Sanitizing the assembled path
+        // would replace its separators and silently flatten the selected directory tree.
+        var candidate = name;
         if (budget.EntryNames.Add(candidate))
         {
             return candidate;

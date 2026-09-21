@@ -101,6 +101,9 @@ $rejected = $false
 try { Assert-DropSpaceNewReleaseVersion "v0.3.0-preview.25" | Out-Null } catch { $rejected = $true }
 Assert-Equal $rejected $true "Reject new Preview publication"
 $current = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $PSScriptRoot '../RELEASE_VERSION') -Raw -Encoding UTF8).Trim())
+$beta26 = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.26"
+Assert-Equal $beta26.PackageVersion "0.3.0.26" "Beta.26 package version"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $beta26) "0.3.0-beta.25" "Beta.26 genuine upgrade baseline"
 if (-not (Test-Path (Join-Path $PSScriptRoot "../.github/release-notes/$($current.Tag).md"))) { throw "Missing current release notes." }
 
 $appProject = Get-Content (Join-Path $PSScriptRoot "../src/DropSpace.App/DropSpace.App.csproj") -Raw -Encoding UTF8

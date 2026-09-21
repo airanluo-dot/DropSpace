@@ -160,7 +160,8 @@ public partial class App : Application
                 _services.GetRequiredService<MediaViewModel>(),
                 _services.GetRequiredService<Services.Media.WindowsMediaSessionService>(),
                 _services.GetRequiredService<Services.Media.MediaExperienceService>(),
-                _services.GetRequiredService<Services.Media.MediaApplicationIconService>());
+                _services.GetRequiredService<Services.Media.MediaApplicationIconService>(),
+                _services.GetRequiredService<NeteaseEnhancementViewModel>());
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             if (!isStartupLaunch && !isShareActivation && !isShellActivation)
@@ -558,6 +559,13 @@ public partial class App : Application
         services.AddSingleton<Services.Media.MediaProcessResolver>();
         services.AddSingleton<Services.Media.MediaArtworkService>();
         services.AddSingleton<MediaViewModel>();
+        services.AddSingleton<Services.NeteaseEnhancement.NeteaseInstallationProbe>();
+        services.AddSingleton<Services.NeteaseEnhancement.NeteaseSmtcVerifier>();
+        services.AddSingleton<Services.NeteaseEnhancement.NeteaseRuntimeInstaller>();
+        services.AddSingleton(provider => new Services.NeteaseEnhancement.InfLinkDeploymentService(
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "NeteaseEnhancement")));
+        services.AddSingleton<DropSpace.Core.Media.INeteaseEnhancementService, Services.NeteaseEnhancement.NeteaseEnhancementService>();
+        services.AddSingleton<NeteaseEnhancementViewModel>();
         services.AddSingleton<NativeFolderPickerService>();
         services.AddSingleton<NativeSettingsEditor>();
         services.AddSingleton<Services.Media.MediaApplicationIconService>();

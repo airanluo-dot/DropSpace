@@ -180,7 +180,8 @@ public sealed class FilePayloadStore : IPayloadStore
         }
     }
 
-    public string ResolvePath(string relativePath) => PayloadPathPolicy.ResolveContainedPath(paths.Payloads, relativePath);
+    public string ResolvePath(string relativePath) =>
+        ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(paths.Payloads, relativePath);
 
     private void QueueDeferredDelete(string relativePath)
     {

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.Models;
@@ -265,6 +266,82 @@ public sealed class UpdateCoordinatorTests
 
         Assert.IsNotNull(recovered);
         Assert.AreEqual(ReleaseVersion.Parse("0.2.0"), recovered.Value.Update.Candidate.Manifest.Version);
+    }
+
+    [TestMethod]
+    [DataRow("nullHash")]
+    [DataRow("wrongTag")]
+    [DataRow("wrongChannel")]
+    [DataRow("wrongPrerelease")]
+    [DataRow("unsupportedWindows")]
+    public async Task RecoverySkipsMalformedHigherStateAndFindsValidUpdate(string corruption)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+        var valid = CreateInstallerUpdate(paths);
+        var invalid = CreateInstallerUpdate(paths, "0.2.0");
+        foreach (var update in new[] { valid, invalid })
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(update.FilePath)!);
+            await store.SaveAsync(update, "ReadyToInstall");
+        }
+        var statePath = Path.Combine(Path.GetDirectoryName(invalid.FilePath)!, "update-state.json");
+        var json = JsonNode.Parse(await File.ReadAllTextAsync(statePath))!;
+        switch (corruption)
+        {
+            case "nullHash": json["installer"]!["sha256"] = null; break;
+            case "wrongTag": json["tagName"] = "v0.3.0"; break;
+            case "wrongChannel": json["channel"] = "Beta"; break;
+            case "wrongPrerelease": json["isPrerelease"] = true; break;
+            case "unsupportedWindows": json["minimumWindowsBuild"] = 1; break;
+        }
+        await File.WriteAllTextAsync(statePath, json.ToJsonString());
+
+        var recovered = await store.LoadHighestAsync(ReleaseVersion.Parse("0.1.0"), DeploymentMode.Installer);
+
+        Assert.IsNotNull(recovered);
+        Assert.AreEqual(valid.Candidate.Manifest.Version, recovered.Value.Update.Candidate.Manifest.Version);
+    }
+
+    [TestMethod]
+    public async Task CancellationBeforeInstallerLaunchRestoresDurableAndVisibleReadyState()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+        var update = CreateInstallerUpdate(paths);
+        Directory.CreateDirectory(Path.GetDirectoryName(update.FilePath)!);
+        await store.SaveAsync(update, "ReadyToInstall");
+        var launcher = new CancellableLauncher();
+        var service = new UpdateService(ReleaseVersion.Parse("0.1.0"), new FakeSource(),
+            new UpdateManifestParser(), new NeverDownloader(), new AlwaysVerifier(), new UntrustedVerifier(),
+            launcher, new FakeDeploymentMode(DeploymentMode.Installer), store,
+            IdentityAppStringLocalizer.Instance, NullLogger<UpdateService>.Instance);
+        await service.RecoverPendingAsync();
+        using var caller = new CancellationTokenSource();
+        var install = service.InstallAsync(false, caller.Token);
+        await launcher.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        caller.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await install);
+        await service.DisposeAsync(); // drains rollback, not just the cancelled waiter
+
+        Assert.AreEqual(UpdateState.ReadyToInstall, service.Status.State);
+        Assert.AreEqual("ReadyToInstall", (await store.LoadHighestAsync(
+            ReleaseVersion.Parse("0.1.0"), DeploymentMode.Installer))?.State);
+    }
+
+    private sealed class CancellableLauncher : IUpdateInstallerLauncher
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return false;
+        }
     }
 
     private UpdateService Create(IUpdateSource source)
