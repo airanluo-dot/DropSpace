@@ -12,13 +12,10 @@ public sealed class LyricsHttpClient(HttpClient client)
     public async Task<JsonDocument> GetAsync(string url, CancellationToken token, string? referer = null)
     {
         var uri = new Uri(url);
-        if (uri.Scheme != "https" || !Hosts.Contains(uri.Host) || !uri.IsDefaultPort) throw new InvalidDataException("Untrusted lyrics host.");
+        if (uri.Scheme != "https" || !Hosts.Contains(uri.Host) || !uri.IsDefaultPort || !string.IsNullOrEmpty(uri.UserInfo)) throw new InvalidDataException("Untrusted lyrics host.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(8));
-        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-        request.Headers.UserAgent.ParseAdd("DropSpace/0.3 (+https://github.com/airanluo-dot/DropSpace)");
-        if (referer is not null) request.Headers.Referrer = new(referer);
-        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+        using var response = await SendAsync(uri, referer, timeout.Token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var finalUri = response.RequestMessage?.RequestUri;
         if (finalUri is null || finalUri.Scheme != "https" || !finalUri.IsDefaultPort || !Hosts.Contains(finalUri.Host)) throw new InvalidDataException("Untrusted lyrics response.");
@@ -51,6 +48,27 @@ public sealed class LyricsHttpClient(HttpClient client)
             json = json[(begin + 1)..end];
         }
         return JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 });
+    }
+
+    // The production transport disables automatic redirects. Follow only bounded,
+    // same-origin HTTPS redirects so metadata cannot be forwarded to another service.
+    private async Task<HttpResponseMessage> SendAsync(Uri uri, string? referer, CancellationToken token)
+    {
+        for (var redirects = 0; ; redirects++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.UserAgent.ParseAdd("DropSpace/0.3 (+https://github.com/airanluo-dot/DropSpace)");
+            if (referer is not null) request.Headers.Referrer = new(referer);
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            if ((int)response.StatusCode is not (301 or 302 or 303 or 307 or 308)) return response;
+            var location = response.Headers.Location;
+            response.Dispose();
+            if (redirects >= 3 || location is null || !Uri.TryCreate(uri, location, out var next) ||
+                next.Scheme != "https" || !next.IsDefaultPort || !string.Equals(uri.Host, next.Host, StringComparison.OrdinalIgnoreCase) ||
+                !string.IsNullOrEmpty(next.UserInfo))
+                throw new InvalidDataException("Untrusted or excessive lyrics redirect.");
+            uri = next;
+        }
     }
 
     public static string Escape(string text) => Uri.EscapeDataString(string.Concat(text.EnumerateRunes().Take(2_048).Select(rune => rune.ToString())));

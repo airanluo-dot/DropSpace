@@ -52,6 +52,43 @@ public sealed class AuditHardeningTests
         finally { Cleanup(paths); }
     }
 
+    [TestMethod]
+    public async Task PayloadStoreAndRecoveryNeverFollowDirectoryLinksToExternalFiles()
+    {
+        var paths = Paths();
+        var link = Path.Combine(paths.Payloads, "linked");
+        try
+        {
+            paths.EnsureCreated();
+            var external = Path.Combine(paths.Root, "external");
+            Directory.CreateDirectory(external);
+            var sentinel = Path.Combine(external, "sentinel.txt");
+            await File.WriteAllTextAsync(sentinel, "source must survive");
+            try { Directory.CreateSymbolicLink(link, external); }
+            catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+            {
+                Assert.Inconclusive($"Directory links are unavailable: {exception.GetType().Name}");
+            }
+
+            var store = new FilePayloadStore(paths);
+            await Assert.ThrowsAsync<InvalidDataException>(() => store.DeleteAsync("linked/sentinel.txt"));
+            await Assert.ThrowsAsync<InvalidDataException>(() => store.OpenReadAsync("linked/sentinel.txt"));
+            await using var content = new MemoryStream([1, 2, 3]);
+            await Assert.ThrowsAsync<InvalidDataException>(() => store.WriteAsync("linked", content, 1024));
+
+            // Exercise the legacy journal, which bypasses PayloadCleanupCoordinator.
+            await File.WriteAllTextAsync(Path.Combine(paths.Data, "payload-delete.queue"), "linked/sentinel.txt" + Environment.NewLine);
+            _ = new FilePayloadStore(paths);
+            Assert.AreEqual("source must survive", await File.ReadAllTextAsync(sentinel));
+            Assert.AreEqual(1, Directory.GetFiles(external, "*", SearchOption.AllDirectories).Length);
+        }
+        finally
+        {
+            if (Directory.Exists(link)) Directory.Delete(link);
+            Cleanup(paths);
+        }
+    }
+
     private static AppStoragePaths Paths() =>
         new(Path.Combine(Path.GetTempPath(), "DropSpace-audit-tests", Guid.NewGuid().ToString("N")));
 

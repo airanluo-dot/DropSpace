@@ -33,6 +33,9 @@ public sealed class UpdateVersionTests
     [DataRow("0.2.0-preview.2", UpdateChannel.Stable, "0.1.9|0.2.0-preview.3", null)]
     [DataRow("0.1.0", UpdateChannel.Stable, "0.2.0-preview.1", null)]
     [DataRow("0.1.0", UpdateChannel.Beta, "0.2.0-preview.1", "0.2.0-preview.1")]
+    [DataRow("0.3.0-beta.25", UpdateChannel.Beta, "0.3.0-beta.24|0.3.0-beta.26|0.2.1", "0.3.0-beta.26")]
+    [DataRow("0.3.0-beta.25", UpdateChannel.Stable, "0.3.0-beta.26|0.2.1", null)]
+    [DataRow("0.3.0-beta.26", UpdateChannel.Beta, "0.3.0-beta.25|0.2.1", null)]
     public void ChannelSelection_ReturnsHighestEligibleVersionWithoutDowngrade(
         string current,
         UpdateChannel channel,

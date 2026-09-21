@@ -10,29 +10,34 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
     public LyricsProviderKind Kind => LyricsProviderKind.Lrclib;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
     {
-        try
+        if (query.Duration > TimeSpan.Zero && !string.IsNullOrWhiteSpace(query.Artist) && !string.IsNullOrWhiteSpace(query.Album))
         {
-            using var exact = await http.GetAsync($"https://lrclib.net/api/get?track_name={Escape(query.Title)}&artist_name={Escape(query.Artist)}&album_name={Escape(query.Album)}&duration={(long)query.Duration.TotalSeconds}", cancellationToken);
-            var exactTitle = Text(exact.RootElement, "trackName");
-            var exactArtist = Text(exact.RootElement, "artistName");
-            var exactAlbum = Text(exact.RootElement, "albumName");
-            var exactDuration = Number(exact.RootElement, "duration");
-            var exactText = Text(exact.RootElement, "syncedLyrics");
-            if (string.IsNullOrWhiteSpace(exactText)) exactText = Text(exact.RootElement, "plainLyrics");
-            var parsed = LyricsParser.Parse(exactText, Kind);
-            var exactId = Text(exact.RootElement, "id");
-            if (parsed.Lines.Count > 0 && !string.IsNullOrWhiteSpace(exactId))
+            try
             {
-                var matchTitle = string.IsNullOrWhiteSpace(exactTitle) ? query.Title : exactTitle;
-                var matchArtist = string.IsNullOrWhiteSpace(exactArtist) ? query.Artist : exactArtist;
-                var matchAlbum = string.IsNullOrWhiteSpace(exactAlbum) ? query.Album : exactAlbum;
-                var score = LyricsMatcher.Score(query, matchTitle, matchArtist, matchAlbum, exactDuration);
-                return parsed.Bind(query, matchTitle, matchArtist, matchAlbum, exactDuration, score, exactId);
+                using var exact = await http.GetAsync($"https://lrclib.net/api/get?track_name={Escape(query.Title)}&artist_name={Escape(query.Artist)}&album_name={Escape(query.Album)}&duration={(long)query.Duration.TotalSeconds}", cancellationToken);
+                var exactTitle = Text(exact.RootElement, "trackName");
+                var exactArtist = Text(exact.RootElement, "artistName");
+                var exactAlbum = Text(exact.RootElement, "albumName");
+                var exactDuration = Number(exact.RootElement, "duration");
+                var exactText = Text(exact.RootElement, "syncedLyrics");
+                if (string.IsNullOrWhiteSpace(exactText)) exactText = Text(exact.RootElement, "plainLyrics");
+                var parsed = LyricsParser.Parse(exactText, Kind);
+                var exactId = Text(exact.RootElement, "id");
+                if (parsed.Lines.Count > 0 && !string.IsNullOrWhiteSpace(exactId))
+                {
+                    var matchTitle = exactTitle;
+                    var matchArtist = exactArtist;
+                    var matchAlbum = exactAlbum;
+                    var score = LyricsMatcher.Score(query, matchTitle, matchArtist, matchAlbum, exactDuration);
+                    if (score >= 4) return parsed.Bind(query, matchTitle, matchArtist, matchAlbum, exactDuration, score, exactId);
+                }
             }
+            catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest) { }
         }
-        catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.NotFound) { }
         using var search = await http.GetAsync($"https://lrclib.net/api/search?q={Escape(query.Title + " " + query.Artist)}", cancellationToken);
-        var best = Array(search.RootElement).Select(item => new
+        var best = Array(search.RootElement)
+            .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")))
+            .Select(item => new
         { Item = item, Score = LyricsMatcher.Score(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
             .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
         var bestId = best is null ? string.Empty : Text(best.Item, "id");

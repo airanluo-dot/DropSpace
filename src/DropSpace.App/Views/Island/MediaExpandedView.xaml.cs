@@ -44,8 +44,10 @@ public sealed partial class MediaExpandedView : UserControl
             Progress.Visibility = _view.Settings.IslandActivity.ShowProgress ? Visibility.Visible : Visibility.Collapsed;
             var empty = string.IsNullOrEmpty(_view.Title);
             EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
-            ArtworkColumn.Width = new GridLength(empty ? 0 : 100);
-            ArtworkHost.Visibility = TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+            var showArtwork = !empty && _view.Settings.IslandActivity.ShowArtwork;
+            ArtworkColumn.Width = new GridLength(showArtwork ? 100 : 0);
+            ArtworkHost.Visibility = showArtwork ? Visibility.Visible : Visibility.Collapsed;
+            TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
             LyricsArea.Visibility = empty || !_view.Settings.Lyrics.Enabled ? Visibility.Collapsed : Visibility.Visible;
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? Visibility.Visible : Visibility.Collapsed;

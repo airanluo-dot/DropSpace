@@ -26,6 +26,16 @@ if (-not (Test-Path $resolvedExecutable -PathType Leaf))
 {
     throw "Portable smoke test executable does not exist: $resolvedExecutable"
 }
+if (Get-Process -Name DropSpace -ErrorAction SilentlyContinue)
+{
+    throw "Close the existing DropSpace instance before running smoke tests; its data must not receive test activations."
+}
+$previousTestRoot = $env:DROPSPACE_TEST_DATA_ROOT
+$startupKey = 'Software\Microsoft\Windows\CurrentVersion\Run'
+$startupRegistry = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($startupKey)
+$previousStartupValue = if ($null -ne $startupRegistry) { $startupRegistry.GetValue('DropSpace', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) } else { $null }
+$previousStartupKind = if ($null -ne $previousStartupValue) { $startupRegistry.GetValueKind('DropSpace') } else { $null }
+if ($null -ne $startupRegistry) { $startupRegistry.Dispose() }
 
 $first = $null
 $second = $null
@@ -80,7 +90,8 @@ public static class DropSpaceWindowVisibility
 
 try
 {
-    $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test", "--smoke-hold", "--smoke-language", $Language -PassThru
+    $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $repositoryRoot "artifacts/smoke/$([Guid]::NewGuid().ToString('N'))"
+    $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -WindowStyle Hidden -PassThru
     $markerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($first.Id).json"
     $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
     $lastStage = "process-launch"
@@ -185,7 +196,7 @@ try
         throw "DropSpace.exe produced an invalid startup marker."
     }
 
-    $second = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test" -PassThru
+    $second = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--smoke-test" -WindowStyle Hidden -PassThru
     if (-not $second.WaitForExit(15000))
     {
         throw "The second DropSpace instance did not redirect and exit within 15 seconds."
@@ -206,7 +217,7 @@ try
         throw "The primary DropSpace smoke process exited with code $($first.ExitCode)."
     }
 
-    $startup = Start-Process -FilePath $resolvedExecutable -ArgumentList "--startup", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -PassThru
+    $startup = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--startup", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -WindowStyle Hidden -PassThru
     $startupMarkerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($startup.Id).json"
     $startupDeadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
     $startupLastStage = "process-launch"
@@ -267,7 +278,7 @@ try
         throw "DropSpace.exe --startup exposed visible top-level window(s) after readiness: $($visibleWindows -join ', ')."
     }
 
-    $startupSecond = Start-Process -FilePath $resolvedExecutable -ArgumentList "--smoke-test" -PassThru
+    $startupSecond = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--smoke-test" -WindowStyle Hidden -PassThru
     if (-not $startupSecond.WaitForExit(15000))
     {
         throw "The redirected activation against the startup instance did not exit within 15 seconds."
@@ -309,6 +320,14 @@ finally
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         }
     }
+    $env:DROPSPACE_TEST_DATA_ROOT = $previousTestRoot
+    $startupRegistry = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($startupKey)
+    try
+    {
+        if ($null -eq $previousStartupValue) { $startupRegistry.DeleteValue('DropSpace', $false) }
+        else { $startupRegistry.SetValue('DropSpace', $previousStartupValue, $previousStartupKind) }
+    }
+    finally { $startupRegistry.Dispose() }
 
     if ($null -ne $markerPath -and (Test-Path $markerPath))
     {

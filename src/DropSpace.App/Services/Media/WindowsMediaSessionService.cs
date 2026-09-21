@@ -17,6 +17,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private readonly SemaphoreSlim _sessionGate = new(1, 1);
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
+    private GlobalSystemMediaTransportControlsSession? _preferredSession;
     private CancellationTokenSource? _lifetime;
     private Channel<bool>? _refresh;
     private Task _consumer = Task.CompletedTask;
@@ -139,7 +140,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     if (token.IsCancellationRequested) break;
                     logger.LogDebug("SMTC refresh failed ({Category}).", exception.GetType().Name);
                     var current = Current;
-                    Publish(_session is not null && current.IsActive ? current : MediaSessionSnapshot.Empty);
+                    Publish(_session is not null && current.SessionId == _sessionIdentity && current.IsActive ? current : MediaSessionSnapshot.Empty);
                 }
                 finally { _sessionGate.Release(); }
             }
@@ -192,7 +193,16 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         var candidates = (selected is null ? sessions : new[] { selected }.Concat(sessions))
             .Distinct(new SessionReferenceComparer())
             .ToArray();
-        if (candidates.Length == 0) return MediaSessionSnapshot.Empty;
+        if (candidates.Length == 0)
+        {
+            ObservePreferredSession(null);
+            DetachSession();
+            return MediaSessionSnapshot.Empty;
+        }
+        // A temporarily unreadable preferred player must remain observed even if a
+        // paused fallback becomes the display/control source. Otherwise only the paused
+        // fallback is subscribed and the preferred player's recovery cannot refresh us.
+        ObservePreferredSession(candidates[0]);
         var previous = Current;
         foreach (var candidate in candidates)
         {
@@ -218,7 +228,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     if (revision != Interlocked.Read(ref _snapshotRevision))
                     {
                         RequestRefresh();
-                        return previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                        return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
                     }
                     var source = Bound(candidate.SourceAppUserModelId);
                     var title = Bound(properties.Title);
@@ -245,12 +255,13 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     // Players can deliver the new title before its thumbnail. Metadata events
                     // invalidate artwork even when the track key has not changed.
                     var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
-                        ? previous.Artwork : await ReadArtworkAsync(properties.Thumbnail, token).ConfigureAwait(false);
+                        ? previous.Artwork : await ReadOptionalArtworkAsync(
+                            artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), token).ConfigureAwait(false);
                     if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
-                    if (revision != Interlocked.Read(ref _snapshotRevision))
+                    if (metadataRevision != Interlocked.Read(ref _metadataRevision))
                     {
                         RequestRefresh();
-                        return previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                        return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
                     }
                     _artworkRevision = metadataRevision;
                     return new(_sessionIdentity, source, FriendlyName(source, strings), title, artist, album, artwork,
@@ -272,7 +283,24 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                 if (ReferenceEquals(_session, candidate)) DetachSession();
             }
         }
-        return previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+        return MediaSessionSnapshot.Empty;
+    }
+
+    internal async Task<byte[]?> ReadOptionalArtworkAsync(Func<CancellationToken, Task<byte[]?>> read, CancellationToken token)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(1));
+        try
+        {
+            // Optional thumbnail failures must never retain the previous song's metadata.
+            return await read(timeout.Token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            token.ThrowIfCancellationRequested();
+            logger.LogDebug("SMTC artwork unavailable ({Category}).", exception.GetType().Name);
+            return null;
+        }
     }
 
     private static async Task<byte[]?> ReadArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
@@ -296,6 +324,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         await _sessionGate.WaitAsync().ConfigureAwait(false);
         try
         {
+            ObservePreferredSession(null);
             DetachSession();
             if (_manager is not null)
             {
@@ -337,6 +366,31 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         _session = null;
         _sessionIdentity = string.Empty;
     }
+
+    private void ObservePreferredSession(GlobalSystemMediaTransportControlsSession? session)
+    {
+        if (ReferenceEquals(session, _preferredSession)) return;
+        if (_preferredSession is { } previous)
+        {
+            previous.MediaPropertiesChanged -= OnPreferredMediaPropertiesChanged;
+            previous.PlaybackInfoChanged -= OnPreferredPlaybackInfoChanged;
+            previous.TimelinePropertiesChanged -= OnPreferredTimelinePropertiesChanged;
+        }
+        _preferredSession = session;
+        if (session is not null)
+        {
+            session.MediaPropertiesChanged += OnPreferredMediaPropertiesChanged;
+            session.PlaybackInfoChanged += OnPreferredPlaybackInfoChanged;
+            session.TimelinePropertiesChanged += OnPreferredTimelinePropertiesChanged;
+        }
+    }
+
+    private void OnPreferredMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
+    { if (ReferenceEquals(sender, _preferredSession) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    private void OnPreferredPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
+    { if (ReferenceEquals(sender, _preferredSession) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    private void OnPreferredTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
+    { if (ReferenceEquals(sender, _preferredSession) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
 
     private void RequestRefresh() => _refresh?.Writer.TryWrite(true);
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) => RequestRefresh();

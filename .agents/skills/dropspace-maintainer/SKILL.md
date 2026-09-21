@@ -26,9 +26,9 @@ Run checks proportional to the change. Local fixture tests are authorized;
 repair introduced failures and rerun affected checks without asking at each
 step. Repeat broad passing checks only after changes that invalidate them.
 
-## Beta.25 current verification boundary
+## Beta.26 current verification boundary
 
-The current release target is `v0.3.0-beta.25`, with x64 Windows build 20348
+The current release target is `v0.3.0-beta.26`, with x64 Windows build 20348
 as the minimum. Lyrics are not considered matched unless a provider candidate
 has an identity and passes title/artist/album/duration validation; media session
 identity, cache isolation, cancellation, and stale-result rejection must be
@@ -36,13 +36,21 @@ checked together. Clipboard and virtual-file paths retain bounded queues,
 transactional commits, durable payload cleanup, and source-safe ownership.
 Updater download/install waiters own cancellation independently and integrity,
 trust, state-persistence, launcher, and rollback failures remain visible.
-The deterministic release gate is a clean solution build plus passing Core and
-Infrastructure suites, website/script checks, and an explicit report of any
-Windows App SDK/native or target-machine evidence unavailable in the current
-environment.
+The deterministic release gate is a clean solution build plus passing Core,
+Infrastructure and relevant App suites, website/script checks, and an explicit
+report of any native or target-machine evidence unavailable in the current
+environment. App tests run in an unpackaged VSTest host with its own Windows
+App SDK bootstrap; a test-host activation failure is not proof that the actual
+application or host lacks platform support.
 Batch metadata/query spans both Space and Clipboard, and release packaging
 validates artifact identity/version from the current release source; stale
 artifacts must fail.
+
+The Beta 26 task includes authorized publication after validation and protected
+merge. Track final status in `docs/dev/beta26-rc-audit.md`; the lyrics, media and
+native/data sub-audits alongside it retain sample-level evidence and limits.
+Do not turn provider HTTP success or native fixtures into claims of unexecuted
+live-player, physical-monitor, accessibility or two-device acceptance.
 
 ## Skill synchronization
 

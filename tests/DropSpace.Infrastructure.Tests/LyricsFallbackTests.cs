@@ -54,6 +54,53 @@ public sealed class LyricsFallbackTests
         Assert.AreNotEqual(LyricsProviderKind.NetEase, result.Provider);
     }
 
+    [TestMethod]
+    public async Task FailedResponsesAreNotCachedAndNextAttemptCanRecover()
+    {
+        var failing = true;
+        var providers = Providers(kind => failing ? Task.FromException<LyricsDocument>(new HttpRequestException()) : Task.FromResult(Document(kind)));
+        var service = new LyricsService(new(providers));
+        Assert.AreEqual(LyricsQueryStatus.Failed, (await service.QueryDetailedAsync(Query, new(), default)).Status);
+        failing = false;
+        Assert.AreEqual(LyricsQueryStatus.Found, (await service.QueryDetailedAsync(Query, new(), default)).Status);
+        Assert.AreEqual(2, providers[0].Calls);
+    }
+
+    [TestMethod]
+    public async Task StaleProviderIdentityCannotEnterFallbackOrCache()
+    {
+        var query = Query with { TrackIdentity = "current" };
+        var providers = Providers(kind => Task.FromResult(kind == LyricsProviderKind.NetEase
+            ? Document(kind) with { Match = Document(kind).Match! with { TrackIdentity = "previous" } }
+            : kind == LyricsProviderKind.Kugou ? Document(kind) : LyricsDocument.Empty));
+        var service = new LyricsService(new(providers));
+        var result = await service.QueryDetailedAsync(query, new(), default);
+        Assert.AreEqual(LyricsProviderKind.Kugou, result.Document.Provider);
+        Assert.AreEqual("current", result.Document.Match!.TrackIdentity);
+        Assert.AreEqual(LyricsProviderKind.Kugou, (await service.QueryDetailedAsync(query, new(), default)).Document.Provider);
+    }
+
+    [TestMethod]
+    public async Task ClearingCacheWhileLookupIsPendingPreventsRepopulation()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var provider = new CancellableProvider(LyricsProviderKind.NetEase, async token =>
+        {
+            if (Interlocked.Increment(ref calls) == 1) { entered.SetResult(); await release.Task.WaitAsync(token); }
+            return Document(LyricsProviderKind.NetEase);
+        });
+        var service = new LyricsService(new([provider]));
+        var pending = service.QueryAsync(Query, new(), default);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        service.ClearCache();
+        release.SetResult();
+        await pending;
+        await service.QueryAsync(Query, new(), default);
+        Assert.AreEqual(2, calls);
+    }
+
     private static Provider[] Providers(Func<LyricsProviderKind, Task<LyricsDocument>> query) =>
         Enum.GetValues<LyricsProviderKind>().Select(kind => new Provider(kind, query)).ToArray();
 

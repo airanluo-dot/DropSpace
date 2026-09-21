@@ -141,6 +141,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
 
             _settings = await _settingsService.LoadAsync(cancellationToken).ConfigureAwait(false);
+            ThrowIfDisposing();
             _paused = _settings.ClipboardPaused;
             _notifications.ClipboardChanged += OnClipboardChanged;
             _notifications.StatusChanged += OnNotificationStatusChanged;
@@ -210,7 +211,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 // Reset only after persistence succeeds. Otherwise a failed resume could
                 // leave the in-memory duplicate coordinator out of sync with the still-paused
                 // durable state after restart.
-                await _consecutiveCaptures.ResetAsync(cancellationToken).ConfigureAwait(false);
+                // After that commit, finish the in-memory transition even if the caller
+                // cancels; returning with _paused=true would contradict persisted state.
+                await _consecutiveCaptures.ResetAsync(CancellationToken.None).ConfigureAwait(false);
                 _paused = false;
                 Interlocked.Increment(ref _pauseGeneration);
                 PublishStatus(_strings.Get("ClipboardResumed"));
@@ -493,11 +496,20 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private async Task DisposeCoreAsync()
     {
         Interlocked.Exchange(ref _disposeStarted, 1);
-
-        if (_initialized)
+        // Initialization may still be awaiting settings. Keep its gate alive until
+        // it has observed shutdown and released ownership of initialization.
+        await _stateGate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            _notifications.ClipboardChanged -= OnClipboardChanged;
-            _notifications.StatusChanged -= OnNotificationStatusChanged;
+            if (_initialized)
+            {
+                _notifications.ClipboardChanged -= OnClipboardChanged;
+                _notifications.StatusChanged -= OnNotificationStatusChanged;
+            }
+        }
+        finally
+        {
+            _stateGate.Release();
         }
 
         _signals.Writer.TryComplete();

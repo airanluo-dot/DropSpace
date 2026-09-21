@@ -992,12 +992,14 @@ public sealed class SqliteItemRepository(
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumEntries);
         maximumEntries = Math.Min(maximumEntries, 1_024);
+        // Rotate failed attempts behind unattempted/older work. A fixed oldest-created
+        // batch of locked or invalid paths must not starve every later obligation.
         await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, relative_path, created_at_utc, attempt_count, last_attempt_at_utc, last_error_category
             FROM payload_delete_outbox
-            ORDER BY created_at_utc, id
+            ORDER BY last_attempt_at_utc, created_at_utc, id
             LIMIT @limit;
             """;
         command.Parameters.AddWithValue("@limit", maximumEntries);

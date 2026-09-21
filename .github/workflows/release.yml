@@ -187,6 +187,10 @@ jobs:
           ./scripts/Build-Installer.ps1
           Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release/DropSpaceSetup.exe -Force
 
+      - name: Reject mismatched executable release identities
+        shell: pwsh
+        run: ./scripts/Test-ReleaseArtifactVersion.ps1
+
       - name: Validate generated icon and brand chain
         shell: pwsh
         run: ./scripts/Test-BrandAssets.ps1

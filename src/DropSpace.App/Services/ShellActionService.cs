@@ -23,12 +23,12 @@ public sealed class ShellActionService(
         try
         {
             Directory.CreateDirectory(path);
-            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+            using var process = Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
             return Task.FromResult(true);
         }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(exception, "Could not open a DropSpace-owned folder.");
+            logger.LogWarning("Could not open a DropSpace-owned folder ({Category}).", exception.GetType().Name);
             return Task.FromResult(false);
         }
     }
@@ -48,12 +48,12 @@ public sealed class ShellActionService(
                     FileName = path,
                     UseShellExecute = true,
                 };
-                Process.Start(info);
+                using var process = Process.Start(info);
                 return true;
             }
             catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
             {
-                logger.LogWarning(exception, "Shell open failed for item {ItemId}.", item.Id);
+                logger.LogWarning("Shell open failed for item {ItemId} ({Category}).", item.Id, exception.GetType().Name);
                 return false;
             }
         }
@@ -79,7 +79,7 @@ public sealed class ShellActionService(
         {
             if (item.File.EntryKind == FileEntryKind.Folder)
             {
-                Process.Start(new ProcessStartInfo
+                using var process = Process.Start(new ProcessStartInfo
                 {
                     FileName = item.File.OriginalPath,
                     UseShellExecute = true,
@@ -94,14 +94,14 @@ public sealed class ShellActionService(
                 };
                 info.ArgumentList.Add("/select,");
                 info.ArgumentList.Add(item.File.OriginalPath);
-                Process.Start(info);
+                using var process = Process.Start(info);
             }
 
             return true;
         }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
-            logger.LogWarning(exception, "Show-in-folder failed for item {ItemId}.", item.Id);
+            logger.LogWarning("Show-in-folder failed for item {ItemId} ({Category}).", item.Id, exception.GetType().Name);
             return false;
         }
     }

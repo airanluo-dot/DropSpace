@@ -9,7 +9,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
     {
-        using var search = await http.GetAsync($"https://music.163.com/api/search/get/web?s={Escape(LyricsMatcher.SearchTitle(query.Title))}&type=1&offset=0&total=true&limit=10", cancellationToken);
+        using var search = await http.GetAsync($"https://music.163.com/api/search/get/web?s={Escape(LyricsMatcher.SearchTitle(query.Title) + " " + query.Artist)}&type=1&offset=0&total=true&limit=10", cancellationToken);
         var best = Array(search.RootElement, "result", "songs").Select(song => new
         {
             Song = song,

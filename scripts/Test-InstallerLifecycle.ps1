@@ -3,12 +3,13 @@ param(
 
     [string]$PortableExecutable = "artifacts/release/DropSpace.exe",
 
-    [switch]$AllowUserDataMutation
+    [switch]$AllowUserDataMutation,
+
+    [string]$BaselineInstaller = ""
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-$env:DROPSPACE_TEST_MODE = "1"
 
 if (-not $AllowUserDataMutation)
 {
@@ -34,10 +35,10 @@ else
 }
 $releaseTag = (Get-Content (Join-Path $repositoryRoot "RELEASE_VERSION") -Raw -Encoding UTF8).Trim()
 . (Join-Path $PSScriptRoot "ReleaseVersion.ps1")
+. (Join-Path $PSScriptRoot "ReleaseArtifactVersion.ps1")
 $releaseInfo = Get-DropSpaceReleaseInfo $releaseTag
 $currentVersion = $releaseInfo.SemanticVersion
 $baselineVersion = Get-DropSpaceLifecycleBaselineVersion $releaseInfo
-$baselineVersionCode = (Get-DropSpaceReleaseInfo "v$baselineVersion").VersionCode
 $testBase = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP))
 {
     [System.IO.Path]::GetTempPath()
@@ -77,7 +78,14 @@ function Invoke-CheckedProcess
         $effectiveArguments += "/LOG=$LogPath"
     }
 
-    $process = Start-Process -FilePath $FilePath -ArgumentList $effectiveArguments -PassThru
+    $start = [Diagnostics.ProcessStartInfo]::new($FilePath)
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+    foreach ($argument in $effectiveArguments) { $start.ArgumentList.Add($argument) }
+    $process = [Diagnostics.Process]::Start($start)
+    try
+    {
     if (-not $process.WaitForExit($TimeoutSeconds * 1000))
     {
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
@@ -101,6 +109,8 @@ function Invoke-CheckedProcess
 
         throw "$Description failed with exit code $($process.ExitCode)."
     }
+    }
+    finally { $process.Dispose() }
 }
 
 function Get-UninstallEntry
@@ -226,23 +236,45 @@ if (Test-Path $dataRoot)
 {
     throw "The isolated runner already contains $dataRoot; refusing to risk pre-existing user data."
 }
+if ((Get-Process -Name DropSpace -ErrorAction SilentlyContinue) -or (Get-UninstallEntry) -or
+    (Test-Path $customRegistryPath) -or (Test-Path $shellVerbPath) -or
+    (Test-Path $startMenuShortcut) -or (Test-Path $desktopShortcut) -or (Test-Path $sendToShortcut) -or
+    (Get-ItemProperty -Path $startupRegistryPath -Name DropSpace -ErrorAction SilentlyContinue))
+{
+    throw "The runner contains an existing DropSpace installation or registration; use an isolated Windows account."
+}
 if (-not (Test-Path $currentInstallerPath -PathType Leaf) -or -not (Test-Path $portablePath -PathType Leaf))
 {
     throw "Current installer or portable payload is missing."
 }
 
 New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
+$previousTestMode = $env:DROPSPACE_TEST_MODE
 try
 {
-    & (Join-Path $PSScriptRoot "Build-Installer.ps1") `
-        -PortableExecutable $portablePath `
-        -OutputDirectory $baselineOutput `
-        -AppVersion $baselineVersion `
-        -VersionCode $baselineVersionCode `
-        -OutputBaseFilename "DropSpaceSetup-baseline"
-    $baselineInstaller = Join-Path $baselineOutput "DropSpaceSetup-baseline.exe"
+    $env:DROPSPACE_TEST_MODE = "1"
+    # A relabelled current binary cannot prove an upgrade from a shipped version.
+    if ([string]::IsNullOrWhiteSpace($BaselineInstaller))
+    {
+        New-Item -ItemType Directory -Path $baselineOutput -Force | Out-Null
+        $BaselineInstaller = Join-Path $baselineOutput "DropSpaceSetup.exe"
+        $baseUrl = "https://github.com/airanluo-dot/DropSpace/releases/download/v$baselineVersion"
+        Invoke-WebRequest "$baseUrl/DropSpaceSetup.exe" -OutFile $BaselineInstaller -TimeoutSec 180
+        $checksumContent = (Invoke-WebRequest "$baseUrl/SHA256SUMS.txt" -TimeoutSec 30).Content
+        # GitHub release assets use application/octet-stream, which PowerShell 7
+        # exposes as byte[] rather than a decoded string.
+        $checksums = if ($checksumContent -is [byte[]]) { [Text.Encoding]::ASCII.GetString($checksumContent) } else { [string]$checksumContent }
+        $match = [regex]::Match($checksums, '(?m)^([0-9a-f]{64})  DropSpaceSetup\.exe\r?$')
+        if (-not $match.Success -or (Get-FileHash $BaselineInstaller -Algorithm SHA256).Hash.ToLowerInvariant() -ne $match.Groups[1].Value)
+        {
+            throw "Historical installer SHA-256 verification failed."
+        }
+    }
+    Assert-DropSpaceExecutableVersion -Path $BaselineInstaller -ReleaseInfo (Get-DropSpaceReleaseInfo "v$baselineVersion") -Installer
+    Assert-DropSpaceExecutableVersion -Path $currentInstallerPath -ReleaseInfo $releaseInfo -Installer
+    Assert-DropSpaceExecutableVersion -Path $portablePath -ReleaseInfo $releaseInfo
 
-    Invoke-CheckedProcess $baselineInstaller @(
+    Invoke-CheckedProcess $BaselineInstaller @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
         "/DIR=$installPath", "/TASKS=desktopicon"
     ) "baseline silent install" (Join-Path $testRoot "baseline-install.log")
@@ -250,6 +282,7 @@ try
     $installedExe = Join-Path $installPath "DropSpace.exe"
     if (-not (Test-Path $installedExe -PathType Leaf)) { throw "Installed DropSpace.exe is missing." }
     Assert-X64Executable $installedExe
+    Assert-DropSpaceExecutableVersion -Path $installedExe -ReleaseInfo (Get-DropSpaceReleaseInfo "v$baselineVersion")
     $versionInfo = (Get-Item $installedExe).VersionInfo
     if ($versionInfo.ProductName -ne "DropSpace" -or $versionInfo.OriginalFilename -ne "DropSpace.exe")
     {
@@ -273,7 +306,7 @@ try
         throw "Custom installation path was not recorded."
     }
 
-    $runningProcess = Start-Process -FilePath $installedExe -PassThru
+    $runningProcess = Start-Process -FilePath $installedExe -WindowStyle Hidden -PassThru
     Wait-ForMaintenanceEndpoint $runningProcess
 
     try
@@ -297,6 +330,7 @@ try
     {
         throw "In-place upgrade did not replace the program version marker."
     }
+    Assert-DropSpaceExecutableVersion -Path $installedExe -ReleaseInfo $releaseInfo
     if (-not (Test-Path $dataMarker)) { throw "In-place upgrade deleted user data." }
     if ([System.IO.Path]::GetFullPath((Get-ItemProperty $customRegistryPath).InstallPath) -ne [System.IO.Path]::GetFullPath($installPath))
     {
@@ -435,6 +469,7 @@ try
 }
 finally
 {
+    $env:DROPSPACE_TEST_MODE = $previousTestMode
     foreach ($process in @($restartProcess, $runningProcess))
     {
         if ($null -ne $process -and -not $process.HasExited)

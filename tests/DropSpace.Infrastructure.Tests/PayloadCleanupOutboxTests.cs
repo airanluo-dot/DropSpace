@@ -100,6 +100,35 @@ public sealed class PayloadCleanupOutboxTests
         Assert.IsTrue(File.Exists(sentinel));
     }
 
+    [TestMethod]
+    public async Task FailedBatchDoesNotStarveLaterCleanupObligations()
+    {
+        var repository = CreateRepository();
+        await repository.InitializeAsync();
+        var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
+        await using (var connection = await database.OpenConnectionAsync())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                WITH RECURSIVE entries(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM entries WHERE n < 256)
+                INSERT INTO payload_delete_outbox
+                    (id, relative_path, created_at_utc, attempt_count, last_attempt_at_utc, last_error_category)
+                SELECT 'invalid-' || n, '../unowned-' || n, '2020-01-01T00:00:00.0000000+00:00', 0, NULL, NULL FROM entries;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+        var store = new FilePayloadStore(_paths);
+        var payload = await WritePayloadAsync(store);
+        var item = await repository.AddImageAsync(new ImageCandidate(payload.ContentHash, 1, 1, payload.ByteLength, "image/png", false, payload));
+        await repository.RemoveAsync(item.Id);
+        var cleanup = CreateCoordinator(repository, store);
+
+        Assert.AreEqual(0, await cleanup.DrainAsync());
+        Assert.AreEqual(1, await cleanup.DrainAsync(), "A failed bounded batch must rotate behind unattempted obligations.");
+        Assert.IsFalse(File.Exists(store.ResolvePath(payload.RelativePath)));
+        Assert.AreEqual(256, (await repository.GetPendingPayloadDeletesAsync(1024)).Count);
+    }
+
     private SqliteItemRepository CreateRepository() =>
         new(new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
 

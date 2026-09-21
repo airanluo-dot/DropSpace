@@ -20,6 +20,7 @@ public sealed class InnoUpdateInstallerLauncher : IUpdateInstallerLauncher
         {
             start.ArgumentList.Add(argument);
         }
-        return Task.FromResult(Process.Start(start) is not null);
+        using var process = Process.Start(start);
+        return Task.FromResult(process is not null);
     }
 }

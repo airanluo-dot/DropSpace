@@ -344,6 +344,7 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            await RestoreReadyStateAsync(download).ConfigureAwait(false);
             throw;
         }
         catch (Exception exception) when (IsHandledUpdateException(exception))
@@ -362,26 +363,30 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            await RestoreReadyStateAsync(download).ConfigureAwait(false);
             throw;
         }
         catch (Exception exception) when (IsHandledUpdateException(exception))
         {
             _logger.LogError(exception, "Update operation {OperationId} installer launch failed.", operationId);
-            if (download is not null)
-            {
-                try
-                {
-                    await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception stateException) when (IsHandledUpdateException(stateException))
-                {
-                    // The installer did not start. Keep the in-memory action retryable even if the
-                    // best-effort durable state rollback is temporarily blocked by another process.
-                    _logger.LogError(stateException, "Update operation {OperationId} could not restore the ready state after launch failure.", operationId);
-                }
-            }
-            return Publish(Status with { State = UpdateState.ReadyToInstall, Message = _strings.Get("UpdateInstallerLaunchFailed") });
+            return await RestoreReadyStateAsync(download).ConfigureAwait(false);
         }
+    }
+
+    private async Task<UpdateStatusSnapshot> RestoreReadyStateAsync(DownloadedUpdate download)
+    {
+        try
+        {
+            // Cancellation before launch is not an incomplete installation. Restore both
+            // durable and visible state without reusing the cancelled operation token.
+            await _stateStore.SaveAsync(download, "ReadyToInstall", CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (IsHandledUpdateException(exception))
+        {
+            _logger.LogError(exception, "Could not restore the ready state before installer launch.");
+            return Publish(Status with { State = UpdateState.Failed, Message = _strings.Get("UpdateInstallStateFailed") });
+        }
+        return Publish(Status with { State = UpdateState.ReadyToInstall, Message = _strings.Get("UpdateInstallerLaunchFailed") });
     }
 
 

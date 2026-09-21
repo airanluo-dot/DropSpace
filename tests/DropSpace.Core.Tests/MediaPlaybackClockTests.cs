@@ -7,6 +7,77 @@ namespace DropSpace.Core.Tests;
 public sealed class MediaPlaybackClockTests
 {
     [TestMethod]
+    public void ResumeWithOldNativeTimestampDoesNotCountPausedTimeOrRewindOnNextPosition()
+    {
+        var time = new ManualTime();
+        var clock = new MediaPlaybackClock(time);
+        var paused = MediaSessionSnapshot.Empty with
+        {
+            TrackTitle = "Apple track", PlaybackState = MediaPlaybackState.Paused,
+            Timeline = new(TimeSpan.FromSeconds(95), TimeSpan.Zero, TimeSpan.FromSeconds(227), 1, time.GetUtcNow()),
+            LastUpdated = time.GetUtcNow(),
+        };
+        clock.Update(paused);
+        time.Advance(28);
+        var resumed = paused with { PlaybackState = MediaPlaybackState.Playing, LastUpdated = time.GetUtcNow() };
+        clock.Update(resumed);
+        Assert.AreEqual(95, clock.Position.TotalSeconds, 0.001);
+        time.Advance(0.5);
+        clock.Update(resumed with { LastUpdated = time.GetUtcNow() });
+        Assert.AreEqual(95.5, clock.Position.TotalSeconds, 0.001);
+        time.Advance(0.5);
+        clock.Update(resumed with
+        {
+            LastUpdated = time.GetUtcNow(),
+            Timeline = resumed.Timeline with { Position = TimeSpan.FromSeconds(96), LastUpdated = time.GetUtcNow() },
+        });
+        Assert.AreEqual(96, clock.Position.TotalSeconds, 0.001);
+    }
+
+    [TestMethod]
+    public void DelayedResumeDeliveryOnlyInterpolatesAfterResumeObservation()
+    {
+        var time = new ManualTime();
+        var clock = new MediaPlaybackClock(time);
+        var session = MediaSessionSnapshot.Empty with
+        {
+            TrackTitle = "Apple track", PlaybackState = MediaPlaybackState.Paused,
+            Timeline = new(TimeSpan.FromSeconds(95), TimeSpan.Zero, TimeSpan.FromSeconds(227), 1, time.GetUtcNow()),
+            LastUpdated = time.GetUtcNow(),
+        };
+        clock.Update(session);
+        time.Advance(28);
+        var observedAt = time.GetUtcNow();
+        time.Advance(2);
+        clock.Update(session with { PlaybackState = MediaPlaybackState.Playing, LastUpdated = observedAt });
+        Assert.AreEqual(97, clock.Position.TotalSeconds, 0.001);
+    }
+
+    [TestMethod]
+    public void EstimatedPlaybackWithVisibleFramesDoesNotRewindAfterSparseMetadataEvents()
+    {
+        var time = new ManualTime();
+        var clock = new MediaPlaybackClock(time);
+        var session = MediaSessionSnapshot.Empty with
+        {
+            TrackTitle = "NetEase track", PlaybackState = MediaPlaybackState.Playing,
+            Timeline = new(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero, 1, DateTimeOffset.FromFileTime(0)),
+            LastUpdated = time.GetUtcNow(),
+        };
+        clock.Update(session);
+        for (var second = 1; second <= 20; second++)
+        {
+            time.Advance(1);
+            Assert.AreEqual(second, clock.Position.TotalSeconds, 0.001);
+        }
+        clock.Update(session with { PlaybackState = MediaPlaybackState.Paused });
+        Assert.AreEqual(20, clock.Position.TotalSeconds, 0.001);
+        time.Advance(10);
+        clock.Update(session);
+        Assert.AreEqual(20, clock.Position.TotalSeconds, 0.001);
+    }
+
+    [TestMethod]
     public void MissingWindowsEpochTimelineDoesNotJumpToEndAndMetadataDoesNotRewind()
     {
         var time = new ManualTime(); var clock = new MediaPlaybackClock(time);

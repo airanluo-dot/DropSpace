@@ -24,18 +24,18 @@ public static class LyricsParser
             ? ParseTtml(text) : ParseTimedText(text);
         var translations = (string.IsNullOrEmpty(secondary) ? [] : LooksLikeTtml(secondary) ? ParseTtml(secondary) : ParseTimedText(secondary))
             .OrderBy(line => line.Start).ToArray();
-        var translationIndex = 0;
         var ordered = lines.OrderBy(line => line.Start).Take(MaximumLines).ToArray();
+        var translationIndices = AlignTranslations(ordered, translations);
         for (var index = 0; index < ordered.Length; index++)
         {
             var line = ordered[index];
-            var end = index + 1 < ordered.Length && ordered[index + 1].Start > line.Start
-                ? ordered[index + 1].Start : line.End;
+            var end = line.End;
+            if (index + 1 < ordered.Length && ordered[index + 1].Start > line.Start &&
+                (end <= line.Start || ordered[index + 1].Start < end))
+                end = ordered[index + 1].Start;
             if (end <= line.Start) end = line.Start + TimeSpan.FromSeconds(5);
-            while (translationIndex + 1 < translations.Length &&
-                Math.Abs((translations[translationIndex + 1].Start - line.Start).TotalMilliseconds) < Math.Abs((translations[translationIndex].Start - line.Start).TotalMilliseconds)) translationIndex++;
-            var translated = translations.Length == 0 ? null : translations[translationIndex];
-            var translation = translated is not null && Math.Abs((translated.Start - line.Start).TotalMilliseconds) <= 250 ? translated.Text : line.Secondary;
+            var translationIndex = translationIndices[index];
+            var translation = translationIndex >= 0 ? translations[translationIndex].Text : line.Secondary;
             var words = line.Words.Select(word => word with
             {
                 End = word.End > word.Start ? (word.End > end ? end : word.End) : end,
@@ -43,6 +43,30 @@ public static class LyricsParser
             ordered[index] = line with { End = end, Secondary = translation, Words = words };
         }
         return new(ordered, provider);
+    }
+
+    private static int[] AlignTranslations(LyricsLine[] lines, LyricsLine[] translations)
+    {
+        var matches = Enumerable.Repeat(-1, lines.Length).ToArray();
+        if (lines.Length == 0) return matches;
+        var lineIndex = 0;
+        for (var index = 0; index < translations.Length; index++)
+        {
+            var start = translations[index].Start;
+            // Bind a translation once, to its closest original, rather than
+            // reusing it for nearby credits. NetEase emits several zero-time
+            // credits before its first zero-time sung YRC line; prefer the last
+            // original at an equal timestamp. Advance through duplicate stamps.
+            while (lineIndex + 1 < lines.Length &&
+                Math.Abs((lines[lineIndex + 1].Start - start).TotalMilliseconds) <=
+                Math.Abs((lines[lineIndex].Start - start).TotalMilliseconds)) lineIndex++;
+            var distance = Math.Abs((lines[lineIndex].Start - start).TotalMilliseconds);
+            var previous = matches[lineIndex];
+            if (distance <= 250 && (previous < 0 || distance <
+                Math.Abs((lines[lineIndex].Start - translations[previous].Start).TotalMilliseconds)))
+                matches[lineIndex] = index;
+        }
+        return matches;
     }
 
     private static bool LooksLikeTtml(string text) => text.TrimStart().StartsWith('<') &&
@@ -97,7 +121,9 @@ public static class LyricsParser
             foreach (Match stamp in times.Cast<Match>().Take(64))
             {
                 var start = Timestamp(stamp.Groups[1].Value);
-                output.Add(new(start, start + TimeSpan.FromSeconds(5), plain, null, timedWords));
+                // LRC has no declared line end; infer it from the next timestamp.
+                // YRC and TTML do declare ends, which must survive instrumental gaps.
+                output.Add(new(start, start, plain, null, timedWords));
             }
             if (output.Count >= MaximumLines) break;
         }

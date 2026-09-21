@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DropSpace.Core.Compatibility;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
 
@@ -115,9 +116,13 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
                     .ConfigureAwait(false);
                 if (state is null || state.SchemaVersion != 1 ||
                     !ReleaseVersion.TryParse(state.Version, out var version) || version <= currentVersion ||
+                    !ReleaseVersion.TryParse(state.TagName, out var tagVersion) || tagVersion != version ||
                     !UpdateChannelJsonConverter.TryParse(state.Channel, out var channel) ||
+                    channel != (version.IsPrerelease ? UpdateChannel.Beta : UpdateChannel.Stable) ||
+                    state.IsPrerelease != version.IsPrerelease ||
                     !Enum.TryParse<DeploymentMode>(state.DeploymentMode, out var mode) || mode != currentMode ||
                     state.VersionCode != version.ToVersionCode() ||
+                    !WindowsCompatibilityPolicy.IsSupportedBuild(state.MinimumWindowsBuild) ||
                     state.Installer is null || state.Portable is null ||
                     !Uri.TryCreate(state.ReleaseUrl, UriKind.Absolute, out var releaseUrl) ||
                     !Uri.TryCreate(state.DownloadUrl, UriKind.Absolute, out var downloadUrl) ||
@@ -154,7 +159,7 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
                 var expected = mode == DeploymentMode.Installer ? manifest.Installer : manifest.Portable;
                 if (!string.Equals(expected.AssetName, state.SelectedAssetName, StringComparison.Ordinal) ||
                     expected.Size != state.SelectedAssetSize || expected.Size <= 0 ||
-                    expected.Sha256.Length != 64 ||
+                    string.IsNullOrWhiteSpace(expected.Sha256) || expected.Sha256.Length != 64 ||
                     !expected.Sha256.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f') ||
                     !UpdateManifestParser.IsOfficialDownloadUri(downloadUrl, state.TagName, expected.AssetName) ||
                     !string.Equals(state.FileName, expected.AssetName, StringComparison.Ordinal) ||

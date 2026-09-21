@@ -21,14 +21,22 @@ Public APIs, documented platform behavior, and high-level interaction ideas may 
 
 Keep pull requests focused. Add or update tests and documentation when behavior changes, preserve user files and privacy boundaries, and never commit signing keys, tokens, private certificates, or user data.
 
+For Beta 26, keep real provider responses and native execution evidence distinct
+from deterministic fixtures. App tests bootstrap their unpackaged Windows App SDK
+host. Release validation checks actual executable versions, and upgrade lifecycle
+tests use the real historical installer in an isolated account, preserving all
+pre-existing user data and installation state. Synchronize the repository
+maintainer Skill and the installed `dropspace-codex` counterpart when contracts
+or validation procedures change.
+
 For v0.3 network/preview changes, read the DropSpace maintainer skill and the contracts under `docs/protocol`, `docs/architecture`, and `docs/security`. Do not add a new platform client, public backend, firewall rule, telemetry field, or release claim without an explicit documented boundary and a fail-closed unavailable state.
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.25` (Beta 25). All new prereleases use
+The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. Preview.23 requires one manual installation of
 Beta 24, preserving data/settings, because its shipped parser rejects Beta
-tags. Beta 25 is the full Beta.24 audit-remediation release; subsequent Beta
+tags. Beta 26 is the Beta 25 release-candidate audit remediation; subsequent Beta
 updates are automatic according to user settings.
 See [migration contract](docs/dev/beta-migration.md).

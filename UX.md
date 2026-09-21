@@ -1,6 +1,6 @@
 # DropSpace UX Specification
 
-## Beta 25 amended island and settings
+## Beta 26 amended island and settings
 
 Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the
 left rail on Widgets and the right rail on Clipboard. Playback updates retain
@@ -21,10 +21,18 @@ valid hotkey/exclusion text changes commit directly; language refreshes in place
 The Clipboard page names pin state and record removal explicitly and links to
 the full history. These changes are under validation, not a released snapshot.
 
-Beta 25 keeps lyric content tied to the current media identity. Expanded Music
+Beta 26 keeps lyric content tied to the current media identity. Expanded Music
 shows loading, not-found and failed states; compact lyric scrolling uses the
 track-relative clock and resets on session changes, layout changes, DPI changes
 and disabled lyrics.
+
+Artwork load failure leaves the new track's metadata available with no cover;
+ShowArtwork applies to both expanded and main Music surfaces. Play/Pause is
+enabled only for the action supported in the current playback state. Estimated
+position does not rewind merely because metadata callbacks are sparse, and
+explicitly timed lyrics disappear during gaps after their declared end.
+Translation lines attach to their nearest original once, so opening credits do
+not repeat the first sung line's translation when timestamps coincide.
 
 ## Experience goal
 
