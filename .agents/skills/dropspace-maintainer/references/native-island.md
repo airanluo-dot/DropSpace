@@ -15,21 +15,27 @@
   A complete native player skips plugin installation. Failed verification rolls back.
 - Upstream tested versions do not establish support for newer NetEase versions. Revalidate
   current target-machine installation and rollback before publishing claims.
-- Shuffle/repeat belong to generic IMediaSessionService: nullable unknown states, capability
-  gated commands, state reported by the player, and accessible controls on Music surfaces.
-- Actual InfLink 3.2.11 testing found null initial modes; upstream SMTC handlers ignore
-  requested mode values and toggle instead. Full one-click acceptance is blocked. Never
-  bypass this with a fork, JavaScript API, guessed initial modes, or relaxed success gate.
+- D-064 removes shuffle/repeat expansion, UI controls and acceptance requirements. The exact
+  12 core capabilities are Title, Artist, Album, Artwork, PlaybackState, Play, Pause,
+  Previous, Next, Timeline, LiveProgress and Seek. Require actual command effects and
+  advancing playback; state-specific Play/Pause flags need not be enabled simultaneously.
+- InfLink 3.2.11's null initial modes and toggle-only handlers remain historical upstream
+  limitations, not blockers for revised acceptance. Never use a fork, private JavaScript
+  API or guessed states to bypass Windows SMTC. Preserve earlier failure evidence.
 - Same-source/same-track duplicate sessions prefer richer standard timeline/seek information,
   within a two-second comparison budget and preserving cross-player priority. Different
   tracks remain distinct; dispatch commands to the exact selected session object.
 - Close/re-enumerate exact-path player processes under a total shutdown budget. Retry only
   actual owned-file access/sharing failures (seven attempts, 3.15s backoff); persistent
   failures retain receipts and remain visible. Attempt player restart even if rollback fails.
-- Reuse a live verification manager connection across installation restarts; connection
-  failures are infrastructure errors, not evidence that a plugin is missing. Ignore stale
-  candidate COM objects individually, observe new session events, and prove live progress
-  without polling. State-specific Play/Pause flags cannot be required simultaneously.
+- A healthy manager may remain connected, but retire concrete sessions before restart.
+  Discard invalid/stale COM candidates immediately and rediscover live sessions. Connection,
+  discovery and capability failures have separate diagnostic stages; connection failures
+  do not establish that a plugin is missing. Prove live progress through session events
+  without polling or carrying pre-restart session evidence into a new verification.
+- Publication is reauthorized after real one-click acceptance and release gates, followed
+  by protected merge, Beta26 publication and live website/API verification. D-064 supersedes
+  the earlier pause; never treat authorization as an unobserved success claim.
 
 
 The current Beta 26 audit preserves the Beta 24/25 four-page implementation,
@@ -122,3 +128,25 @@ shutdown drains initialization before disposing its synchronization resources.
 ZIP exports preserve directory hierarchy and empty folders and charge directory
 entries against the traversal budget. None of these operations modifies source
 files.
+
+The NetEase verifier's Windows calls use the existing dispatcher and preserve its
+context across awaits; installation/downloads remain background operations. This
+avoids the target-machine RPC_E_WRONG_THREAD observed in metadata and commands.
+Distinguish ERROR_NOT_READY during initialization from disconnected session objects.
+Seek must cause an observed position change toward its target; the tolerance is one
+second, matching the product's position display and asynchronous native updates.
+No-op or out-of-tolerance seek responses must fail regression tests. Keep diagnostic
+stage/HRESULT and command observations, without metadata payloads or filesystem paths.
+
+After Previous, metadata may precede track-load completion. Restoration retries once after
+an unobserved bounded operation and reasserts saved playback state after the seek. Passive
+inspection can retain a previously committed verification only when current core signals
+remain healthy; a receipt alone never proves enhancement. Generic same-source/same-track
+selection supports ordered primary/full artist credits without substring matching.
+
+D-064 local acceptance completed on NetEase 3.1.40 with official BetterNCM 1.3.4 / InfLink
+3.2.11: one-confirmation install/reinstall, fresh-session 12-capability verification,
+actual page slider/play/pause, and Apple Music selection/progress/pause. The generic GSMTC
+service uses the same dispatcher-context discipline as the verifier; retain that ownership
+for discovery, subscriptions, commands and disposal. Local suites total 531 passing tests.
+Publication completion still requires protected merge and live release/website checks.

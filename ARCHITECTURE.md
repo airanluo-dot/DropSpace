@@ -7,7 +7,11 @@ deployment, prerequisite installation and event-driven `NeteaseSmtcVerifier` acc
 ViewModel projects installation state into Music. The general WindowsMediaSessionService has no
 installer or NetEase-specific branch; Windows remains the sole runtime media protocol. Deployment
 receipts are local operational state under the DropSpace application-data root, independent of the
-item database and settings schema. See D-063 and `docs/dev/netease-enhancement.md`.
+item database and settings schema. Restart verification retires pre-restart sessions and
+rediscovers live sessions; a healthy manager may remain connected. Retained pre-restart COM
+session objects are not valid evidence. Connection,
+session discovery and capability validation have separate diagnostic stages. Shuffle/repeat
+expansion is outside the amended scope. See D-063/D-064 and `docs/dev/netease-enhancement.md`.
 
 ## Architecture goals
 

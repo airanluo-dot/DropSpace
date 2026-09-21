@@ -21,12 +21,12 @@ public sealed record NeteaseEnhancementState(
 public sealed record NeteaseMediaCapabilities(
     bool Title, bool Artist, bool Album, bool Artwork, bool PlaybackState,
     bool Play, bool Pause, bool Previous, bool Next, bool Timeline,
-    bool LiveProgress, bool Seek, bool Shuffle, bool Repeat)
+    bool LiveProgress, bool Seek)
 {
     public bool Complete => Title && Artist && Album && Artwork && PlaybackState &&
-        Play && Pause && Previous && Next && Timeline && LiveProgress && Seek && Shuffle && Repeat;
+        Play && Pause && Previous && Next && Timeline && LiveProgress && Seek;
     public static NeteaseMediaCapabilities Empty { get; } = new(false, false, false, false,
-        false, false, false, false, false, false, false, false, false, false);
+        false, false, false, false, false, false, false, false);
 }
 
 public interface INeteaseEnhancementService : IAsyncDisposable

@@ -3,9 +3,8 @@
 ## NetEase enhancement verification boundary
 
 The new enhancement manager uses official independent BetterNCM/InfLink components
-and verifies their output through Windows GSMTC. Generic shuffle/repeat capabilities,
-nullable state and control calls use standard Windows APIs available below the current
-20348 minimum. Player restart is bounded and scoped to the verified executable path;
+and verifies their output through Windows GSMTC. Shuffle/repeat expansion and its acceptance
+requirements are removed by D-064. Player restart is bounded and scoped to the verified executable path;
 closing to tray is followed by termination of those exact processes when necessary.
 Actual native timeline advances, control effects and restored playback preferences are
 acceptance evidence. File deployment or enabled-control flags alone are insufficient.
@@ -18,7 +17,12 @@ source. The generic selector preserves cross-player priority and prefers the ric
 only when source and nonempty title/artist match (with album/duration conflict checks).
 Comparison has a two-second budget; commands and subscriptions use the selected object.
 InfLink 3.2.11's initial Shuffle/Repeat state remains null on this host; upstream handlers
-toggle rather than honor the requested absolute mode. Complete enhancement is blocked.
+toggle rather than honor the requested absolute mode. That historical limitation no longer
+blocks the revised core-function acceptance. Verification after restart must rediscover a
+live session objects, retiring pre-restart sessions and discarding invalid COM candidates
+immediately before re-enumeration. A healthy manager may remain connected. Use separate
+connection/discovery/capability diagnostics;
+reusing a stale session or treating deployment as success is prohibited.
 Windows may temporarily retain DLL mappings after process exit; owned-file replacement and
 removal retry only actual access/sharing failures, at most seven attempts/3.15 seconds of
 backoff. Persistent failures stay visible; no successful stage receives a fixed sleep.
@@ -291,3 +295,10 @@ Release discovery uses `https://airanluo-dot.github.io/DropSpace/api/v1/releases
 ## Visible Overlay file drop
 
 Compact/Expanded visible pixels are direct targets. The XAML Surface accepts `StorageItems`; the root HWND uses the shared native classifier for `CF_HDROP` and resolvable Shell IDLists. The Classic top-edge HWND is hidden while stable visible geometry owns input, and any ephemeral Smart verification probe is revoked as soon as the visible target accepts ownership, so targets never overlap. A selected OLE owner is retained through Drop/Leave even if animation changes geometry. Diagnostics record root/descendant `WindowFromPoint`, classification, target kind and accepted counts, never paths or payload content.
+
+D-064 target-machine closeout (2026-09-21): NetEase 3.1.40.205461 with official BetterNCM
+1.3.4 / InfLink 3.2.11 passed all 12 required capabilities through one-confirmation install
+and reinstall. Both the verifier and generic GSMTC service preserve the dispatcher context
+for Windows calls across asynchronous waits; no player-specific command path was added.
+Actual DropSpace slider drag, playback and pause passed, and real Apple Music selection,
+progress and pause passed. See docs/dev/netease-enhancement.md for evidence and limits.

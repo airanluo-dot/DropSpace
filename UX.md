@@ -8,8 +8,9 @@ The operation survives navigation and reports detecting/preparing/installing/res
 states with an indeterminate progress indicator; no fabricated percentage. Only actual complete
 Windows media evidence displays Enhanced. Update/reinstall/remove controls apply to managed
 installations. Errors explain recovery without exposing paths or implementation details by default.
-Shuffle/repeat controls use Windows capability flags and nullable state for every player, with
-accessible names, visible current state, and no optimistic state change before player confirmation.
+Shuffle/repeat controls are removed from this slice's Music surfaces and acceptance flow.
+Verification reports the failing stage when Windows connection, session discovery, metadata,
+timeline or controls cannot be established; stale pre-restart sessions cannot imply success.
 
 ## Beta 26 amended island and settings
 

@@ -50,7 +50,7 @@ public sealed class NeteaseEnhancementService(
             receipt = await deployment.GetManagedReceiptAsync(installation, lifetime.Token).ConfigureAwait(false);
             // Merely opening Music never downloads, modifies components or starts playback.
             var capabilities = await verifier.VerifyAsync(TimeSpan.FromSeconds(4), false, lifetime.Token).ConfigureAwait(false);
-            Publish(new(capabilities.Complete ? NeteaseEnhancementStage.Enhanced : NeteaseEnhancementStage.NotInstalled,
+            Publish(new((capabilities.Complete || CanRetainVerifiedState(receipt is { Committed: true }, capabilities)) ? NeteaseEnhancementStage.Enhanced : NeteaseEnhancementStage.NotInstalled,
                 receipt is not null, receipt?.PluginVersion, receipt is { Committed: false } ? "Rollback" : null));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -61,6 +61,13 @@ public sealed class NeteaseEnhancementService(
             PublishFailure(exception, receipt is not null, receipt?.PluginVersion);
         }
     }
+
+    internal static bool CanRetainVerifiedState(bool committed, NeteaseMediaCapabilities current) =>
+        // A committed, hash-checked receipt records a completed active verification.
+        // Passive inspection must not start music merely to re-prove a paused clock.
+        // Still require a real current session with metadata, timeline and controls.
+        committed && (current.Play || current.Pause) &&
+        (current with { Play = true, Pause = true, LiveProgress = true }).Complete;
 
     private async Task RunAsync(bool remove, bool reinstall, CancellationToken token)
     {
@@ -80,6 +87,7 @@ public sealed class NeteaseEnhancementService(
             if (previous is { Committed: false })
             {
                 Publish(new(NeteaseEnhancementStage.Restarting, true, previous.PluginVersion));
+                await verifier.InvalidateBeforeRestartAsync(token).ConfigureAwait(false);
                 stopped = true; await deployment.StopAsync(installation, token).ConfigureAwait(false);
                 await deployment.RollbackAsync(previous, token).ConfigureAwait(false);
                 previous = await deployment.GetManagedReceiptAsync(installation, token).ConfigureAwait(false);
@@ -93,6 +101,7 @@ public sealed class NeteaseEnhancementService(
             {
                 if (previous is null) throw new EnhancementDeploymentException("NotManaged");
                 Publish(new(NeteaseEnhancementStage.Removing, true, previous.PluginVersion));
+                await verifier.InvalidateBeforeRestartAsync(token).ConfigureAwait(false);
                 stopped = true; await deployment.StopAsync(installation, token).ConfigureAwait(false);
                 await deployment.RemoveAsync(installation, token).ConfigureAwait(false);
                 previous = null;
@@ -112,6 +121,7 @@ public sealed class NeteaseEnhancementService(
                 Publish(new(NeteaseEnhancementStage.Enhanced, true, prepared.PluginVersion)); return;
             }
             Publish(new(NeteaseEnhancementStage.Installing, previous is not null, previous?.PluginVersion));
+            await verifier.InvalidateBeforeRestartAsync(token).ConfigureAwait(false);
             stopped = true; await deployment.StopAsync(installation, token).ConfigureAwait(false);
             transaction = await deployment.InstallAsync(prepared, token).ConfigureAwait(false);
             Publish(new(NeteaseEnhancementStage.Restarting, true, prepared.PluginVersion));
@@ -140,6 +150,7 @@ public sealed class NeteaseEnhancementService(
                 }
                 if (installation is not null && transaction is not null)
                 {
+                    await verifier.InvalidateBeforeRestartAsync(recovery.Token).ConfigureAwait(false);
                     await deployment.StopAsync(installation, recovery.Token).ConfigureAwait(false); stopped = true;
                     await deployment.RollbackAsync(transaction, recovery.Token).ConfigureAwait(false);
                 }

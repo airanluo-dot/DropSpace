@@ -1,6 +1,8 @@
 # NetEase enhancement implementation and acceptance
 
-Date: 2026-09-21. Target: current Beta26 working branch. Publication remains paused.
+Date: 2026-09-21. Target: PR #67 / Beta26. D-064 authorizes publication after the
+12-capability real one-click acceptance and normal release gates. Earlier mode-related
+blockers below are retained as historical evidence, not current acceptance requirements.
 The existing audit checkpoint is commit `84430f4`; its locally tested executable is
 preserved at `artifacts/beta26/DropSpace-audit-checkpoint.exe` (SHA-256
 `1b8c7cea72fb4689c1fcbf2e79dc9483a01d9d74ee42e1effd70f0d623569487`).
@@ -13,8 +15,8 @@ media verification. Navigation does not cancel an installation; app shutdown dra
 it and recovery. There is no percentage invented from elapsed time.
 
 Runtime communication is exclusively Windows SMTC/GSMTC. No plugin API calls, source
-copy, modified InfLink build or DropSpace fork. Standard nullable shuffle/repeat state
-and capability-gated commands are part of `IMediaSessionService`, usable by any player.
+copy, modified InfLink build or DropSpace fork. Shuffle/repeat UI, interfaces and product
+logic have been removed under D-064. They are not enhancement acceptance requirements.
 
 Installation is not acceptance. Metadata, artwork, playback state, actual nonzero valid
 timeline and observed progress plus control behavior must pass. A complete native player
@@ -45,9 +47,10 @@ Official documented player test ranges do not include this host's NetEase 3.1.40
 Any compatibility claim requires actual acceptance; a successful download cannot establish it.
 Read-only source/PE evidence is in `artifacts/netease-enhancement/research/findings.md`.
 
-## Blocking upstream contract
+## Historical pre-D-064 upstream contract investigation
 
-Complete enhancement acceptance is **not met**. This is not a released success claim.
+The following investigation predates D-064. Its mode findings no longer block release.
+The fresh-session one-click workflow must still pass the core acceptance gate.
 Official InfLink-rs 3.2.11 ignores the requested absolute Shuffle/Repeat values and dispatches
 toggle commands instead ([handlers](https://github.com/apoint123/inflink-rs/blob/v3.2.11/packages/backend/src/smtc_core.rs#L260-L278)).
 Its connection initialization does not publish the current mode; publication depends on a
@@ -137,3 +140,87 @@ skills were synchronized and both passed `quick_validate.py`.
   verification. No fabricated metadata or track changes are used to force a pass.
 - Physical DPI/accessibility/monitor matrices and successful full lifecycle across other player
   versions are not established by this test. Beta26 merge and publication remain paused.
+
+## D-064 closeout (in progress)
+
+The required capabilities are Title, Artist, Album, Artwork, PlaybackState, Play,
+Pause, Previous, Next, Timeline, LiveProgress and Seek. No mode requirements remain.
+The verifier retires the pre-stop session generation, reuses the manager connection,
+and rediscoveries select the most complete fresh candidate. Failed Subscribe, Command,
+Read and Discovery stages log distinct categories and HRESULT without exception payloads.
+A disconnected candidate is discarded immediately; no restore command targets that object.
+Fresh-session verification retries within the existing bounded deadline.
+
+The App suite passed 105 tests before the additional readiness regression; the verifier
+suite now passes 19 tests. New regression
+cases cover old objects still enumerated after restart, disconnection during Play, and
+disconnection on the read after Play. Real acceptance and release results follow below.
+
+### Diagnostic iterations after D-064
+
+Candidate 8 found native `0x80070015` (not ready) and `0x8001010E` (wrong thread)
+on candidate reads after restart. Candidate 9 distinguished the native stages: the
+wrong-thread failure arose in `TryGetMediaPropertiesAsync` and `TryPauseAsync`, not
+from the removed mode commands. Both iterations automatically rolled back.
+The verifier now dispatches its Windows manager/session operation lifetime to the
+existing WinUI dispatcher and preserves that context across asynchronous awaits.
+Download/install work remains in the background. The official Windows contract marks
+sessions and media properties agile, but target-machine behavior required this
+executable check rather than assuming that attribute proved all calls worked.
+See [Microsoft threading guidance](https://learn.microsoft.com/en-us/windows/apps/develop/threading/winrt-objects-multithreaded)
+and [session contract](https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssession).
+
+Candidate 10 eliminated wrong-thread calls and observed automatic playback after
+restart. Candidate 11's command diagnostics measured seek offsets of +786 ms and
++266 ms; the previous undocumented 250 ms threshold falsely rejected real jumps.
+The verifier uses a one-second tolerance consistent with the product's position
+presentation. It still requests a three-second displacement, observes the resulting
+position, and rejects no-op or out-of-tolerance responses. All 12 core capabilities
+remain mandatory. Three new tests cover subsecond offsets, no movement and >1 s errors.
+Current App suite: 109 passed, including 22 verifier tests; no skips or failures.
+
+### First completed one-click run
+
+Candidate 13, 07:46:45–07:48:07 UTC: one application confirmation, native detection,
+official preparation/deployment, automatic player restart, session-generation retirement,
+new-session discovery, active playback verification and restoration. The logger observed
+Play, Pause, Seek, Next and Previous and reported all 12 capabilities true. The initial
+restore seek was overwritten by the track load; a bounded second pass observed Pause and
+Seek successfully before the transaction was committed. Final stage: Enhanced, managed=true.
+No manual plugin/player action occurred after confirmation. The UI displayed its enhanced
+status; the official files and committed receipt remained in place.
+
+A final display integration check found same-source/same-title renderers with primary-only
+versus complete artist credits (8 versus 51 characters), zero versus 226.403-second duration,
+and disabled versus enabled seek. Generic selection now accepts complete ordered artist
+credit prefixes separated by ` / `, retaining strict source/title and album/duration conflict
+checks. It does not use a player-specific branch or arbitrary substring matching. Candidate
+14's actual Music page displayed all artist credits and an enabled full timeline.
+
+Passive inspection retains a committed prior verification only with a healthy live session's
+metadata, artwork, playback state, timeline and controls. It does not play paused music merely
+to reproduce live-clock evidence. An uncommitted receipt, missing session or missing core
+signals cannot use this path; first installation retains full active verification.
+
+### Final local acceptance
+
+Candidate 15 repeated a confirmed reinstall and automatic restart at 07:54 UTC and
+completed all 12 capabilities at 07:55:06 UTC, then committed Enhanced without rollback.
+Passive reopening while paused retained Enhanced after checking the current real session.
+Candidate 16 applies the same apartment discipline to the player-agnostic media service
+so page commands use the same valid Windows context as discovery and subscription.
+Actual page input moved NetEase from about 1:56 to 2:17 with a slider drag; playback then
+advanced to 2:22 and pause succeeded. A reverse drag restored approximately 1:57, paused.
+Apple Music was played in its own app, automatically selected in DropSpace, displayed a
+live timeline, and paused through DropSpace. It was returned to approximately its original
+13-second position in its own UI. Unsupported Apple seek remained disabled in DropSpace.
+Both players remain paused; official enhancement components remain installed and managed.
+
+Final local executable SHA-256:
+`da88d34897161d876ec92340da55214368a16db0af2f605d55e168b70833b9ea`.
+Core 237, Infrastructure 180 and App 114 tests passed (531 total, no skips).
+The App suite includes stale-generation, discovery failure, initialization recovery,
+control/read disconnection, seek/no-op/precision, track-load restoration, passive status
+and generic artist-credit selection regressions. This closes the D-064 NetEase release
+blocker. Hosted CI, protected merge and publication still establish the release artifact;
+local candidate bytes are not a claim of published asset hashes.

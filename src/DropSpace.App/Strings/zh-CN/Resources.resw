@@ -470,26 +470,6 @@
   <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一个灵动岛页面</value></data>
   <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一首</value></data>
   <data name="MediaPauseLabel" xml:space="preserve"><value>暂停</value></data>
-  <data name="MediaShuffleOn" xml:space="preserve"><value>随机播放：开</value></data>
-  <data name="MediaShuffleOff" xml:space="preserve"><value>随机播放：关</value></data>
-  <data name="MediaShuffleUnknown" xml:space="preserve"><value>随机播放：未知</value></data>
-  <data name="MediaShuffleStateOn" xml:space="preserve"><value>开</value></data>
-  <data name="MediaShuffleStateOff" xml:space="preserve"><value>关</value></data>
-  <data name="MediaShuffleStateUnknown" xml:space="preserve"><value>—</value></data>
-  <data name="MediaShuffleUnavailable" xml:space="preserve"><value>此播放器不支持通过 Windows 更改随机播放。</value></data>
-  <data name="MediaShuffleUnknownHelp" xml:space="preserve"><value>此播放器尚未提供随机播放状态。</value></data>
-  <data name="MediaShuffleToggleHelp" xml:space="preserve"><value>开启或关闭随机播放。</value></data>
-  <data name="MediaRepeatOff" xml:space="preserve"><value>循环播放：关</value></data>
-  <data name="MediaRepeatAll" xml:space="preserve"><value>循环播放：列表循环</value></data>
-  <data name="MediaRepeatOne" xml:space="preserve"><value>循环播放：单曲循环</value></data>
-  <data name="MediaRepeatUnknown" xml:space="preserve"><value>循环播放：未知</value></data>
-  <data name="MediaRepeatStateOff" xml:space="preserve"><value>关</value></data>
-  <data name="MediaRepeatStateAll" xml:space="preserve"><value>列表</value></data>
-  <data name="MediaRepeatStateOne" xml:space="preserve"><value>单曲</value></data>
-  <data name="MediaRepeatStateUnknown" xml:space="preserve"><value>—</value></data>
-  <data name="MediaRepeatUnavailable" xml:space="preserve"><value>此播放器不支持通过 Windows 更改循环模式。</value></data>
-  <data name="MediaRepeatUnknownHelp" xml:space="preserve"><value>此播放器尚未提供循环模式。</value></data>
-  <data name="MediaRepeatCycleHelp" xml:space="preserve"><value>依次切换：关闭循环、列表循环、单曲循环。</value></data>
   <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开设置</value></data>
   <data name="WidgetsEmpty.Text" xml:space="preserve"><value>在设置中选择小组件，组成这个页面。</value></data>
   <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>播放进度</value></data>

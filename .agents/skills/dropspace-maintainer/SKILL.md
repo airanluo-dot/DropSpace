@@ -46,8 +46,12 @@ Batch metadata/query spans both Space and Clipboard, and release packaging
 validates artifact identity/version from the current release source; stale
 artifacts must fail.
 
-The user paused Beta 26 publication and added the NetEase enhancement slice.
-Keep the audit checkpoint; do not merge/publish until that pause is lifted.
+The latest user amendment D-064 removes shuffle/repeat expansion and its acceptance
+requirements. Verify the 12 core capabilities in the Native Island reference and
+retire stale sessions across restart, with stage-specific diagnostics. Publication
+is reauthorized after real one-click acceptance and all release gates; the earlier
+pause is superseded. Continue through protected merge and Beta26 publication, then
+live website/API verification. Authorization does not establish a native pass.
 Track new work in `docs/dev/netease-enhancement.md` and audit status in
 `docs/dev/beta26-rc-audit.md`; the lyrics, media and
 native/data sub-audits alongside it retain sample-level evidence and limits.

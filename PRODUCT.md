@@ -6,13 +6,15 @@ The user-authorized next slice adds a Music-page enhancement card with one expli
 confirmation for installing independent third-party components. Preparation, verified
 downloads, deployment, restart and Windows media capability checks then run automatically.
 Successful management exposes update, reinstall and removal. Native complete SMTC support
-skips installation. Installation files alone cannot establish success. Standard shuffle
-and repeat are supported for all capable players. Windows security consent cannot be
-bypassed. Beta26 release publication is paused while this slice is implemented and tested.
+skips installation. Installation files alone cannot establish success. Windows security
+consent cannot be bypassed. The current user amendment removes shuffle/repeat controls
+and their acceptance requirements from this slice. Beta26 publication is authorized again
+after the revised core-capability acceptance and all release gates pass.
 
-Acceptance is currently blocked: official InfLink-rs 3.2.11 does not implement exact
-standard Shuffle/Repeat setters and can expose unknown initial modes. The requested
-complete-enhancement outcome is not shipped or declared supported; see the native report.
+Official InfLink-rs 3.2.11's incomplete shuffle/repeat semantics remain a documented upstream
+limitation, not a gate for the revised scope. Restart verification must rediscover live
+Windows media connections and sessions. See D-064 and the native report for acceptance
+criteria and actual evidence; no success is inferred from deployment alone.
 
 ## Beta 26 full-audit bug-fix amendment
 

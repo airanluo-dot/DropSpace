@@ -2,14 +2,14 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using DropSpace.Core.Media;
 using Microsoft.Extensions.Logging;
-using Windows.Media;
+using Microsoft.UI.Dispatching;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
 
 namespace DropSpace.App.Services.Media;
 
 /// <summary>Owns SMTC subscriptions, a coalescing event consumer, and bounded metadata reads.</summary>
-public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionService> logger, DropSpace.Core.Abstractions.IAppStringLocalizer? strings = null) : IMediaSessionService
+public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionService> logger, DropSpace.Core.Abstractions.IAppStringLocalizer? strings = null, DispatcherQueue? dispatcher = null) : IMediaSessionService
 {
     private const int MaximumArtworkBytes = 4 * 1024 * 1024;
     private const int MaximumMetadataCharacters = 2_048;
@@ -37,19 +37,26 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     public string AvailabilityReason { get; private set; } = "NotInitialized";
     public IReadOnlyList<string> AvailableSources { get; private set; } = [];
 
-    public async Task SetEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    public Task SetEnabledAsync(bool enabled, CancellationToken cancellationToken = default) =>
+        dispatcher is not null && !dispatcher.HasThreadAccess
+            ? dispatcher.EnqueueAsync(() => SetEnabledCoreAsync(enabled, cancellationToken))
+            : SetEnabledCoreAsync(enabled, cancellationToken);
+
+    // Keep native session operations and subscriptions in one apartment while
+    // allowing their asynchronous waits to yield normally.
+    private async Task SetEnabledCoreAsync(bool enabled, CancellationToken cancellationToken)
     {
-        await _lifecycle.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _lifecycle.WaitAsync(cancellationToken);
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (!enabled) { await StopAsync().ConfigureAwait(false); return; }
+            if (!enabled) { await StopAsync(); return; }
             if (_manager is not null) return;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(OperationTimeout);
             try
             {
-                var manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask(timeout.Token).ConfigureAwait(false);
+                var manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask(timeout.Token);
                 cancellationToken.ThrowIfCancellationRequested();
                 _lifetime = new();
                 _refresh = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
@@ -64,7 +71,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             }
             catch (Exception exception) when (IsRecoverable(exception))
             {
-                await StopAsync().ConfigureAwait(false);
+                await StopAsync();
                 AvailabilityReason = exception.GetType().Name;
                 logger.LogWarning("SMTC initialization unavailable ({Category}).", AvailabilityReason);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -84,58 +91,42 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     public Task PlayPauseAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
     {
         if (Current.PlaybackState == MediaPlaybackState.Playing)
-        { EnsureAccepted(Current.CanPause && await session.TryPauseAsync().AsTask(token).ConfigureAwait(false)); }
-        else EnsureAccepted(Current.CanPlay && await session.TryPlayAsync().AsTask(token).ConfigureAwait(false));
+        { EnsureAccepted(Current.CanPause && await session.TryPauseAsync().AsTask(token)); }
+        else EnsureAccepted(Current.CanPlay && await session.TryPlayAsync().AsTask(token));
     }, cancellationToken);
 
     public Task SkipNextAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    { EnsureAccepted(Current.CanSkipNext && await session.TrySkipNextAsync().AsTask(token).ConfigureAwait(false)); }, cancellationToken);
+    { EnsureAccepted(Current.CanSkipNext && await session.TrySkipNextAsync().AsTask(token)); }, cancellationToken);
 
     public Task SkipPreviousAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    { EnsureAccepted(Current.CanSkipPrevious && await session.TrySkipPreviousAsync().AsTask(token).ConfigureAwait(false)); }, cancellationToken);
+    { EnsureAccepted(Current.CanSkipPrevious && await session.TrySkipPreviousAsync().AsTask(token)); }, cancellationToken);
 
     public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
     {
         EnsureAccepted(Current.CanSeek);
         var timeline = Current.Timeline;
         var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
-        EnsureAccepted(await session.TryChangePlaybackPositionAsync(ticks).AsTask(token).ConfigureAwait(false));
+        EnsureAccepted(await session.TryChangePlaybackPositionAsync(ticks).AsTask(token));
     }, cancellationToken);
-
-    public Task SetShuffleAsync(bool enabled, CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    {
-        EnsureAccepted(Current.CanChangeShuffle && await session.TryChangeShuffleActiveAsync(enabled).AsTask(token).ConfigureAwait(false));
-    }, cancellationToken);
-
-    public Task SetRepeatModeAsync(MediaRepeatMode mode, CancellationToken cancellationToken = default)
-    {
-        var nativeMode = mode switch
-        {
-            MediaRepeatMode.None => MediaPlaybackAutoRepeatMode.None,
-            MediaRepeatMode.Track => MediaPlaybackAutoRepeatMode.Track,
-            MediaRepeatMode.List => MediaPlaybackAutoRepeatMode.List,
-            _ => throw new ArgumentOutOfRangeException(nameof(mode)),
-        };
-        return ControlAsync(async (session, token) =>
-        {
-            EnsureAccepted(Current.CanChangeRepeat && await session.TryChangeAutoRepeatModeAsync(nativeMode).AsTask(token).ConfigureAwait(false));
-        }, cancellationToken);
-    }
 
     private static void EnsureAccepted(bool accepted)
     {
         if (!accepted) throw new InvalidOperationException("The media session rejected the requested control.");
     }
 
-    private async Task ControlAsync(Func<GlobalSystemMediaTransportControlsSession, CancellationToken, Task> action, CancellationToken token)
+    private Task ControlAsync(Func<GlobalSystemMediaTransportControlsSession, CancellationToken, Task> action, CancellationToken token) =>
+        dispatcher is not null && !dispatcher.HasThreadAccess
+            ? dispatcher.EnqueueAsync(() => ControlCoreAsync(action, token)) : ControlCoreAsync(action, token);
+
+    private async Task ControlCoreAsync(Func<GlobalSystemMediaTransportControlsSession, CancellationToken, Task> action, CancellationToken token)
     {
-        await _sessionGate.WaitAsync(token).ConfigureAwait(false);
+        await _sessionGate.WaitAsync(token);
         try
         {
             if (_session is null || _lifetime is null) throw new InvalidOperationException("No media session is available.");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
             timeout.CancelAfter(OperationTimeout);
-            await action(_session, timeout.Token).ConfigureAwait(false);
+            await action(_session, timeout.Token);
         }
         finally { _sessionGate.Release(); }
         RequestRefresh();
@@ -145,14 +136,14 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     {
         try
         {
-            await foreach (var _ in reader.ReadAllAsync(token).ConfigureAwait(false))
+            await foreach (var _ in reader.ReadAllAsync(token))
             {
-                await _sessionGate.WaitAsync(token).ConfigureAwait(false);
+                await _sessionGate.WaitAsync(token);
                 try
                 {
                     using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
                     timeout.CancelAfter(OperationTimeout);
-                    var snapshot = await ReadSnapshotAsync(timeout.Token).ConfigureAwait(false);
+                    var snapshot = await ReadSnapshotAsync(timeout.Token);
                     token.ThrowIfCancellationRequested();
                     Publish(snapshot);
                 }
@@ -226,7 +217,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         ObservePreferredSession(candidates[0]);
         // Preserve the OS/player priority. Only replace its renderer with a richer
         // renderer from the same application reporting the same track.
-        var richer = await SelectRicherSessionAsync(candidates, TryReadSource, ReadSelectionAsync, token).ConfigureAwait(false);
+        var richer = await SelectRicherSessionAsync(candidates, TryReadSource, ReadSelectionAsync, token);
         candidates = new[] { richer }.Concat(candidates).Distinct(new SessionReferenceComparer()).ToArray();
         var previous = Current;
         foreach (var candidate in candidates)
@@ -246,7 +237,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                 {
                     var revision = Interlocked.Read(ref _snapshotRevision);
                     var metadataRevision = Interlocked.Read(ref _metadataRevision);
-                    var properties = await candidate.TryGetMediaPropertiesAsync().AsTask(token).ConfigureAwait(false);
+                    var properties = await candidate.TryGetMediaPropertiesAsync().AsTask(token);
                     var playback = candidate.GetPlaybackInfo();
                     var timeline = candidate.GetTimelineProperties();
                     if (revision != Interlocked.Read(ref _snapshotRevision) && attempt == 0) continue;
@@ -281,7 +272,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     // invalidate artwork even when the track key has not changed.
                     var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
                         ? previous.Artwork : await ReadOptionalArtworkAsync(
-                            artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), token).ConfigureAwait(false);
+                            artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), token);
                     if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
                     if (metadataRevision != Interlocked.Read(ref _metadataRevision))
                     {
@@ -299,15 +290,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                         }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
                         playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
                         new(timeline.Position, effectiveStart, effectiveEnd, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt,
-                        albumArtist, trackNumber,
-                        playback.IsShuffleActive,
-                        playback.AutoRepeatMode switch
-                        {
-                            MediaPlaybackAutoRepeatMode.None => MediaRepeatMode.None,
-                            MediaPlaybackAutoRepeatMode.Track => MediaRepeatMode.Track,
-                            MediaPlaybackAutoRepeatMode.List => MediaRepeatMode.List,
-                            _ => null,
-                        }, playback.Controls.IsShuffleEnabled, playback.Controls.IsRepeatEnabled);
+                        albumArtist, trackNumber);
                 }
             }
             catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
@@ -320,7 +303,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     }
 
     internal sealed record SessionSelection(string Title, string Artist, string Album, TimeSpan Duration,
-        bool CanSeek, bool HasArtwork, bool CanShuffle, bool CanRepeat);
+        bool CanSeek, bool HasArtwork);
 
     internal static async Task<T> SelectRicherSessionAsync<T>(IReadOnlyList<T> candidates,
         Func<T, string?> source, Func<T, CancellationToken, Task<SessionSelection?>> read,
@@ -335,12 +318,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         var selected = preferred;
         try
         {
-            var baseline = await read(preferred, budget.Token).ConfigureAwait(false);
+            var baseline = await read(preferred, budget.Token);
             if (baseline is null || string.IsNullOrWhiteSpace(baseline.Title) || string.IsNullOrWhiteSpace(baseline.Artist)) return preferred;
             var best = Score(baseline);
             foreach (var sibling in siblings)
             {
-                var value = await read(sibling, budget.Token).ConfigureAwait(false);
+                var value = await read(sibling, budget.Token);
                 if (value is null || !SameTrack(baseline, value)) continue;
                 var score = Score(value);
                 if (score > best) { best = score; selected = sibling; }
@@ -352,25 +335,33 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         static int Score(SessionSelection value) =>
             (value.CanSeek && value.Duration > TimeSpan.Zero ? 16 : 0) +
             (value.Duration > TimeSpan.Zero ? 8 : 0) + (!string.IsNullOrWhiteSpace(value.Album) ? 4 : 0) +
-            (value.HasArtwork ? 2 : 0) + (value.CanShuffle ? 1 : 0) + (value.CanRepeat ? 1 : 0);
+            (value.HasArtwork ? 2 : 0);
         static bool SameTrack(SessionSelection a, SessionSelection b) =>
             string.Equals(a.Title.Trim(), b.Title.Trim(), StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(a.Artist.Trim(), b.Artist.Trim(), StringComparison.OrdinalIgnoreCase) &&
+            SameArtists(a.Artist, b.Artist) &&
             (string.IsNullOrWhiteSpace(a.Album) || string.IsNullOrWhiteSpace(b.Album) || string.Equals(a.Album.Trim(), b.Album.Trim(), StringComparison.OrdinalIgnoreCase)) &&
             (a.Duration <= TimeSpan.Zero || b.Duration <= TimeSpan.Zero || Math.Abs((a.Duration - b.Duration).TotalSeconds) <= 2);
+        static bool SameArtists(string left, string right)
+        {
+            // Sibling renderers can publish primary-only versus full artist credits.
+            // Require complete ordered credit tokens, never a substring match (AC/DC).
+            var a = left.Split(" / ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            var b = right.Split(" / ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            return a.Length > 0 && b.Length > 0 && a.Take(Math.Min(a.Length, b.Length))
+                .SequenceEqual(b.Take(Math.Min(a.Length, b.Length)), StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     private async Task<SessionSelection?> ReadSelectionAsync(GlobalSystemMediaTransportControlsSession session, CancellationToken token)
     {
         try
         {
-            var properties = await session.TryGetMediaPropertiesAsync().AsTask(token).ConfigureAwait(false);
+            var properties = await session.TryGetMediaPropertiesAsync().AsTask(token);
             var playback = session.GetPlaybackInfo();
             var timeline = session.GetTimelineProperties();
             return new(Bound(properties.Title), Bound(properties.Artist), Bound(properties.AlbumTitle),
                 timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero,
-                playback.Controls.IsPlaybackPositionEnabled, properties.Thumbnail is not null,
-                playback.Controls.IsShuffleEnabled, playback.Controls.IsRepeatEnabled);
+                playback.Controls.IsPlaybackPositionEnabled, properties.Thumbnail is not null);
         }
         catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
         {
@@ -386,7 +377,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         try
         {
             // Optional thumbnail failures must never retain the previous song's metadata.
-            return await read(timeout.Token).ConfigureAwait(false);
+            return await read(timeout.Token);
         }
         catch (Exception exception) when (IsRecoverable(exception))
         {
@@ -399,11 +390,11 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private static async Task<byte[]?> ReadArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
     {
         if (reference is null) return null;
-        using var stream = await reference.OpenReadAsync().AsTask(token).ConfigureAwait(false);
+        using var stream = await reference.OpenReadAsync().AsTask(token);
         if (stream.Size is 0 or > MaximumArtworkBytes) return null;
         var length = checked((uint)stream.Size);
         using var reader = new DataReader(stream);
-        if (await reader.LoadAsync(length).AsTask(token).ConfigureAwait(false) != length) return null;
+        if (await reader.LoadAsync(length).AsTask(token) != length) return null;
         var bytes = new byte[length];
         reader.ReadBytes(bytes);
         return bytes;
@@ -413,8 +404,8 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     {
         _lifetime?.Cancel();
         _refresh?.Writer.TryComplete();
-        await _consumer.ConfigureAwait(false);
-        await _sessionGate.WaitAsync().ConfigureAwait(false);
+        await _consumer;
+        await _sessionGate.WaitAsync();
         try
         {
             ObservePreferredSession(null);
@@ -436,14 +427,17 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         finally { _sessionGate.Release(); }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync() => new(dispatcher is not null && !dispatcher.HasThreadAccess
+        ? dispatcher.EnqueueAsync(DisposeCoreAsync) : DisposeCoreAsync());
+
+    private async Task DisposeCoreAsync()
     {
-        await _lifecycle.WaitAsync().ConfigureAwait(false);
+        await _lifecycle.WaitAsync();
         try
         {
             if (_disposed) return;
             _disposed = true;
-            await StopAsync().ConfigureAwait(false);
+            await StopAsync();
         }
         finally { _lifecycle.Release(); }
     }

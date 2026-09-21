@@ -1,7 +1,6 @@
 using DropSpace.App.Services.NeteaseEnhancement;
 using DropSpace.Core.Media;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Windows.Media;
 using static DropSpace.App.Services.NeteaseEnhancement.NeteaseSmtcVerifier;
 
 namespace DropSpace.App.Tests;
@@ -9,6 +8,141 @@ namespace DropSpace.App.Tests;
 [TestClass]
 public sealed class NeteaseSmtcVerifierTests
 {
+    [TestMethod]
+    public void PassiveInspection_RequiresPriorVerificationAndHealthyCurrentSession()
+    {
+        var paused = Snapshot().Capabilities with { LiveProgress = false, Pause = false };
+        Assert.IsTrue(NeteaseEnhancementService.CanRetainVerifiedState(true, paused));
+        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(false, paused));
+        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, NeteaseMediaCapabilities.Empty));
+        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, paused with { Seek = false }));
+        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, paused with { Play = false }));
+        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, paused with { Artwork = false }));
+    }
+
+    [TestMethod]
+    public async Task RestartDiscoveryFailure_RetiresLastKnownSessionGeneration()
+    {
+        var clock = new Clock();
+        var old = new Session(clock) { Progress = true };
+        var fresh = new Session(clock) { Progress = true };
+        var manager = new Manager(old);
+        using var verifier = Verifier(manager, clock);
+        Assert.IsTrue((await verifier.VerifyAsync(TimeSpan.FromSeconds(1), false)).Complete);
+        var reads = old.Reads;
+        manager.FailDiscovery = true;
+        await verifier.InvalidateBeforeRestartAsync();
+        manager.FailDiscovery = false; manager.Sessions = [old, fresh];
+        Assert.IsTrue((await verifier.VerifyAsync(TimeSpan.FromSeconds(1), false)).Complete);
+        Assert.AreEqual(reads, old.Reads);
+    }
+
+    [TestMethod]
+    public async Task Restore_TrackLoadOverwritesFirstSeek_RetriesBeforeRejectingVerifiedCapabilities()
+    {
+        var clock = new Clock();
+        var session = new Session(clock) { Progress = true, OverwriteFirstRestoreSeek = true,
+            State = Snapshot() with { Playing = false } };
+        Assert.IsTrue((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+        Assert.IsFalse(session.State.Playing);
+        Assert.AreEqual(TimeSpan.FromSeconds(20), session.State.Position);
+        Assert.AreEqual(3, session.Commands.Count(command => command == ProbeCommand.Seek));
+    }
+
+    [TestMethod]
+    public async Task Seek_ObservedSubsecondOffsetStillProvesActualJump()
+    {
+        var clock = new Clock();
+        var session = new Session(clock) { Progress = true, SeekOffset = TimeSpan.FromMilliseconds(786),
+            State = Snapshot() with { Playing = false } };
+        Assert.IsTrue((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+        Assert.IsFalse(session.State.Playing);
+    }
+
+    [TestMethod]
+    public async Task Seek_AcceptedWithoutMovementDoesNotPass()
+    {
+        var clock = new Clock();
+        var session = new Session(clock) { Progress = true, IgnoreSeek = true, State = Snapshot() with { Playing = false } };
+        Assert.IsFalse((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+        Assert.IsFalse(session.Commands.Contains(ProbeCommand.Next));
+    }
+
+    [TestMethod]
+    public async Task Seek_OutsideOneSecondDoesNotPass()
+    {
+        var clock = new Clock();
+        var session = new Session(clock) { Progress = true, SeekOffset = TimeSpan.FromSeconds(2),
+            State = Snapshot() with { Playing = false } };
+        Assert.IsFalse((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+    }
+
+    [TestMethod]
+    public async Task NotReadyRead_IsRediscoveredAfterInitializationEvent()
+    {
+        var clock = new Clock();
+        var session = new Session(clock) { Progress = true, NotReady = true };
+        var manager = new Manager(session);
+        using var verifier = Verifier(manager, clock);
+        var pending = verifier.VerifyAsync(TimeSpan.FromSeconds(2), false);
+        Assert.IsFalse(pending.IsCompleted);
+        Assert.AreEqual(2, session.Reads); // one immediate rediscovery, no busy loop
+        session.NotReady = false;
+        manager.Signal();
+        Assert.IsTrue((await pending).Complete);
+    }
+
+    [TestMethod]
+    public async Task Restart_RetiresOldObjectEvenWhenManagerStillEnumeratesIt()
+    {
+        var clock = new Clock();
+        var old = new Session(clock) { Progress = true };
+        var manager = new Manager(old);
+        using var verifier = Verifier(manager, clock);
+        await verifier.InvalidateBeforeRestartAsync();
+        var fresh = new Session(clock) { Progress = true, State = Snapshot() with { Playing = false } };
+        manager.Sessions = [old, fresh];
+        Assert.IsTrue((await verifier.VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+        Assert.AreEqual(0, old.Reads);
+        Assert.AreEqual(0, old.Commands.Count);
+        Assert.IsTrue(fresh.Commands.Contains(ProbeCommand.Seek));
+    }
+
+    [TestMethod]
+    public async Task DisconnectedCommand_RebindsAndNeverRestoresRetiredObject()
+    {
+        var clock = new Clock();
+        var old = new Session(clock) { Progress = true, State = Snapshot() with { Playing = false } };
+        var fresh = new Session(clock) { Progress = true, State = Snapshot() with { Playing = false } };
+        var manager = new Manager(old);
+        old.OnCommand = () => { manager.Sessions = [old, fresh]; throw new System.Runtime.InteropServices.COMException("private", unchecked((int)0x80010108)); };
+        using var verifier = Verifier(manager, clock);
+        var diagnostics = new List<string>(); verifier.Diagnostic = diagnostics.Add;
+        Assert.IsTrue((await verifier.VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+        Assert.AreEqual(1, old.Commands.Count);
+        Assert.AreEqual(1, old.Reads);
+        Assert.IsFalse(fresh.State.Playing);
+        Assert.IsTrue(diagnostics.Any(value => value.StartsWith("Command.Play;HRESULT=0x80010108", StringComparison.Ordinal)));
+        Assert.IsTrue(diagnostics.Contains("StaleSessionDiscarded"));
+        Assert.IsFalse(diagnostics.Any(value => value.Contains("private", StringComparison.Ordinal)));
+        Assert.AreEqual(0, manager.Subscriptions + old.Subscriptions + fresh.Subscriptions);
+    }
+
+    [TestMethod]
+    public async Task DisconnectedReadAfterCommand_RebindsNewSession()
+    {
+        var clock = new Clock();
+        var old = new Session(clock) { Progress = true, State = Snapshot() with { Playing = false } };
+        var fresh = new Session(clock) { Progress = true, State = Snapshot() with { Playing = false } };
+        var manager = new Manager(old);
+        old.OnCommand = () => { old.FailRead = true; manager.Sessions = [old, fresh]; };
+        using var verifier = Verifier(manager, clock);
+        var diagnostics = new List<string>(); verifier.Diagnostic = diagnostics.Add;
+        Assert.IsTrue((await verifier.VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
+        Assert.AreEqual(1, old.Commands.Count);
+        Assert.IsTrue(diagnostics.Any(value => value.StartsWith("Read.CommandOrRestore;HRESULT=", StringComparison.Ordinal)));
+    }
+
     [TestMethod]
     public async Task Connection_IsReusedAcrossRestartVerification()
     {
@@ -61,7 +195,7 @@ public sealed class NeteaseSmtcVerifierTests
         var pending = verifier.VerifyAsync(TimeSpan.FromSeconds(2), true);
         Assert.IsFalse(pending.IsCompleted);
         Assert.AreEqual(1, session.Commands.Count);
-        Assert.IsTrue(categories.Contains("AutoPlayRejected"));
+        Assert.IsTrue(categories.Any(value => value.StartsWith("AutoPlayRejected;", StringComparison.Ordinal)));
         session.RejectPlay = false;
         manager.Signal();
         Assert.IsTrue((await pending).Complete);
@@ -108,14 +242,14 @@ public sealed class NeteaseSmtcVerifierTests
     }
 
     [TestMethod]
-    public async Task OpenedSession_PlayInitializesStateAndPlaybackModes()
+    public async Task OpenedSession_PlayInitializesState()
     {
         var clock = new Clock();
         var session = new Session(clock)
         {
             Progress = true, StateSpecific = true, InitializeOnPlay = true,
-            State = Snapshot() with { Playing = false, Shuffle = null, Repeat = null,
-                Capabilities = Snapshot().Capabilities with { PlaybackState = false, Shuffle = false, Repeat = false } },
+            State = Snapshot() with { Playing = false,
+                Capabilities = Snapshot().Capabilities with { PlaybackState = false } },
         };
         Assert.IsTrue((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
         Assert.IsFalse(session.State.Playing);
@@ -149,7 +283,7 @@ public sealed class NeteaseSmtcVerifierTests
     }
 
     [TestMethod]
-    public async Task Exercise_RestoresPausedTrackAndPreferences()
+    public async Task Exercise_RestoresPausedTrackAndPosition()
     {
         var clock = new Clock();
         var session = new Session(clock) { Progress = true, State = Snapshot() with { Playing = false } };
@@ -158,8 +292,6 @@ public sealed class NeteaseSmtcVerifierTests
         Assert.IsFalse(session.State.Playing);
         Assert.AreEqual("one", session.State.TrackKey);
         Assert.AreEqual(TimeSpan.FromSeconds(20), session.State.Position);
-        Assert.AreEqual(false, session.State.Shuffle);
-        Assert.AreEqual(MediaPlaybackAutoRepeatMode.None, session.State.Repeat);
         Assert.AreEqual(0, session.Subscriptions);
     }
 
@@ -211,8 +343,8 @@ public sealed class NeteaseSmtcVerifierTests
 
     private static NeteaseSmtcVerifier Verifier(Manager manager, Clock clock) => new(_ => Task.FromResult<IProbeManager>(manager), clock, TimeSpan.FromMilliseconds(80));
     private static ProbeSnapshot Snapshot() => new("one", true, TimeSpan.Zero, TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(20),
-        DateTimeOffset.Parse("2026-09-21T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), false, MediaPlaybackAutoRepeatMode.None,
-        new(true, true, true, true, true, true, true, true, true, true, false, true, true, true));
+        DateTimeOffset.Parse("2026-09-21T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+        new(true, true, true, true, true, true, true, true, true, true, false, true));
     private sealed class Clock : TimeProvider
     {
         private long _ticks;
@@ -223,10 +355,11 @@ public sealed class NeteaseSmtcVerifierTests
     private sealed class Manager(params Session[] sessions) : IProbeManager
     {
         private event Action? Changed;
+        public Session[] Sessions { get; set; } = sessions;
         public bool FailDiscovery { get; set; }
         public void Signal() => Changed?.Invoke();
         public int Subscriptions { get; private set; }
-        public IReadOnlyList<IProbeSession> GetSessions() => FailDiscovery ? throw new System.Runtime.InteropServices.COMException() : sessions;
+        public IReadOnlyList<IProbeSession> GetSessions() => FailDiscovery ? throw new System.Runtime.InteropServices.COMException() : Sessions;
         public IDisposable Subscribe(Action changed) { Subscriptions++; Changed += changed; return new Lease(() => { Subscriptions--; Changed -= changed; }); }
     }
     private sealed class Session(Clock clock) : IProbeSession
@@ -240,9 +373,16 @@ public sealed class NeteaseSmtcVerifierTests
         public bool StateSpecific { get; init; }
         public bool InitializeOnPlay { get; init; }
         public bool RejectPlay { get; set; }
+        public bool FailRead { get; set; }
+        public bool NotReady { get; set; }
+        public Action? OnCommand { get; set; }
         public ProbeSnapshot State { get; set; } = Snapshot();
         public bool Progress { get; init; }
         public bool IgnoreNext { get; init; }
+        public bool IgnoreSeek { get; init; }
+        public bool OverwriteFirstRestoreSeek { get; init; }
+        private bool _restoreLoadPending;
+        public TimeSpan SeekOffset { get; init; }
         public bool IgnorePrevious { get; init; }
         public int Reads { get; private set; }
         public int Subscriptions { get; private set; }
@@ -252,7 +392,9 @@ public sealed class NeteaseSmtcVerifierTests
         public Task<ProbeSnapshot> ReadAsync(CancellationToken token)
         {
             token.ThrowIfCancellationRequested(); Reads++;
-            if (Progress && State.Playing)
+            if (NotReady) throw new System.Runtime.InteropServices.COMException("private", unchecked((int)0x80070015));
+            if (FailRead) throw new System.Runtime.InteropServices.COMException("private", unchecked((int)0x80010108));
+            if (Progress && State.Playing && !_restoreLoadPending)
             {
                 clock.Advance();
                 State = State with { Position = State.Position + TimeSpan.FromSeconds(1), Updated = State.Updated.AddSeconds(1) };
@@ -263,19 +405,25 @@ public sealed class NeteaseSmtcVerifierTests
         public Task<bool> CommandAsync(ProbeCommand command, long value, CancellationToken token)
         {
             token.ThrowIfCancellationRequested(); Commands.Add(command);
+            OnCommand?.Invoke();
+            if (OverwriteFirstRestoreSeek && command == ProbeCommand.Seek && Commands.Count(value => value == ProbeCommand.Seek) == 2)
+            {
+                _restoreLoadPending = true;
+                State = State with { Position = TimeSpan.Zero, Playing = true };
+                Changed?.Invoke();
+                return Task.FromResult(true);
+            }
+            if (command == ProbeCommand.Pause) _restoreLoadPending = false;
             if (RejectPlay && command == ProbeCommand.Play) return Task.FromResult(false);
             if (StateSpecific && ((command == ProbeCommand.Play && State.Playing) || (command == ProbeCommand.Pause && !State.Playing)))
                 return Task.FromResult(false);
             if (InitializeOnPlay && command == ProbeCommand.Play && !State.Capabilities.PlaybackState)
-                State = State with { Shuffle = false, Repeat = MediaPlaybackAutoRepeatMode.None,
-                    Capabilities = State.Capabilities with { PlaybackState = true, Shuffle = true, Repeat = true } };
+                State = State with { Capabilities = State.Capabilities with { PlaybackState = true } };
             State = command switch
             {
                 ProbeCommand.Play => State with { Playing = true },
                 ProbeCommand.Pause => State with { Playing = false },
-                ProbeCommand.Seek => State with { Position = TimeSpan.FromTicks(value) },
-                ProbeCommand.Shuffle => State with { Shuffle = value != 0 },
-                ProbeCommand.Repeat => State with { Repeat = (MediaPlaybackAutoRepeatMode)value },
+                ProbeCommand.Seek when !IgnoreSeek => State with { Position = TimeSpan.FromTicks(value) + SeekOffset },
                 ProbeCommand.Next when !IgnoreNext => State with { TrackKey = "two", Position = TimeSpan.Zero },
                 ProbeCommand.Previous when !IgnorePrevious => State with { TrackKey = "one", Position = TimeSpan.Zero },
                 _ => State,

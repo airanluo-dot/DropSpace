@@ -1,17 +1,17 @@
 # DropSpace Roadmap
 
-## Current user amendment — NetEase enhancement; publication paused
+## Current user amendment — NetEase enhancement; publication reauthorized
 
-Preserve the Beta26 audit checkpoint and PR. Implement the explicitly requested one-confirmation
-NetEase enhancement manager and generic standard SMTC shuffle/repeat support. Verify the complete
-workflow against installed players, including failed deployment recovery, before considering this
-slice complete. The earlier publication authorization is paused by the user's subsequent request;
-do not merge or publish while that pause remains in force.
+Preserve the Beta26 audit checkpoint and PR67. Complete the one-confirmation NetEase enhancement
+manager against the revised core-capability criteria, including real installation/restart and
+failed deployment recovery. Remove shuffle/repeat expansion and its acceptance requirements.
+Fix stale-session rediscovery across player restart and provide separate diagnostic stages.
+The latest user instruction reauthorizes protected merge and Beta26 publication after real
+one-click acceptance and the release gates, followed by official website/API verification.
 
-The complete-capability gate is blocked by official InfLink-rs 3.2.11's mode protocol:
-requested absolute Shuffle/Repeat values are treated as toggles and initial mode values
-can remain unknown. Preserve the original-upstream/SMTC-only constraints and strict gate.
-Do not silently reduce acceptance or use private JavaScript APIs to bypass this limitation.
+Official InfLink-rs 3.2.11's mode limitation remains recorded in the historical audit, but
+does not block the explicitly revised scope. Preserve original upstream artifacts and the
+Windows SMTC-only runtime boundary. See D-064 and the native report; do not infer a live pass.
 
 ## Active authorized slice: v0.3.0-beta.26
 

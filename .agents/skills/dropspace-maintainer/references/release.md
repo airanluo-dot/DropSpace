@@ -4,6 +4,13 @@ Repository: airanluo-dot/DropSpace. Website:
 https://airanluo-dot.github.io/DropSpace/. Canonical assets live in GitHub Releases.
 Website updater feed: /DropSpace/api/v1/releases.json; GitHub Releases is fallback.
 
+Current Beta26 authorization: D-064 resumes PR67 delivery and final publication
+after real one-click NetEase acceptance and all release gates. Shuffle/repeat
+expansion and mode acceptance were explicitly removed; the 12 core-capability
+gate remains mandatory. The earlier pause is superseded. Preserve historical
+audit evidence, then complete protected merge, release publication and live
+website/API checks. Authorization is not evidence of native success.
+
 ## Version contract
 
 All new prereleases use vMAJOR.MINOR.PATCH-beta.N. Stable uses vMAJOR.MINOR.PATCH.

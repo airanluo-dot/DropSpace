@@ -176,3 +176,13 @@ notes reflect the repairs and their verification boundary. The repository
 maintainer skill and installed `dropspace-codex` counterpart are synchronized;
 both entry points and native/release references are validated. Publication of
 the repository skill follows the same protected product change.
+
+## D-064 NetEase closeout
+
+The subsequent PR #67 enhancement scope is documented in [NetEase acceptance](netease-enhancement.md).
+Shuffle/Repeat additions and acceptance requirements were removed. Actual one-confirmation
+install/reinstall, automatic player restart, fresh-session verification of 12 capabilities,
+and real page controls passed. The stale-session/COM-apartment and restoration races were
+fixed without modifying upstream InfLink. Final local suites: Core 237 + Infrastructure 180
++ App 114 = 531 passed, no skips. Earlier audit evidence and physical/device limits above
+remain historical and unchanged; the new NetEase blocker is closed for release delivery.

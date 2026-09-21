@@ -1,8 +1,30 @@
 # DropSpace Architecture and Product Decisions
 
+## D-064 — Revised NetEase core acceptance and resumed Beta26 delivery
+
+- Date: 2026-09-21. Status: Accepted by explicit user amendment; actual native results
+  remain in `docs/dev/netease-enhancement.md`.
+- The acceptance set is exactly 12 capabilities: Title, Artist, Album, Artwork,
+  PlaybackState, Play, Pause, Previous, Next, Timeline, LiveProgress and Seek. Observe
+  actual metadata, advancing playback and control effects; enabled flags or copied
+  component files are insufficient. State-specific Play/Pause flags need not be enabled
+  simultaneously.
+- Remove shuffle/repeat expansion, controls and their acceptance requirements from this
+  slice. InfLink's mode limitations documented under D-063 remain historical evidence,
+  but no longer block the explicitly revised scope. Do not fork upstream or introduce
+  private plugin APIs to bypass the Windows media boundary.
+- Retire concrete sessions before restart. Discard invalid/stale COM candidates immediately
+  and rediscover live sessions; a healthy manager connection may remain. Connection,
+  discovery and capability validation have separate diagnostic stages.
+- The user reauthorized PR67 completion, protected merge and final Beta26 publication
+  after real one-click acceptance and release gates, followed by live website/API
+  verification. This supersedes the earlier pause without asserting a pass. Preserve
+  earlier failed-run and upstream-limit evidence.
+
 ## D-063 — Explicit third-party NetEase enhancement, Windows media protocol only
 
-- Date: 2026-09-21. Status: Architecture accepted by explicit user request; complete native acceptance blocked.
+- Date: 2026-09-21. Status: Architecture accepted. The original acceptance/publication
+  checkpoint below is retained as history and superseded by D-064.
 - Music offers one installation confirmation naming independent InfLink-rs and required
   components, automatic preparation/deployment/restart/Windows verification, and managed
   update/reinstall/removal. Windows elevation, when required, remains an OS-owned prompt.
@@ -591,3 +613,13 @@ The Settings placement editor is a transient no-activate state machine. It captu
 - New prereleases use beta.N, beginning v0.3.0-beta.24. Historical Preview records remain immutable. Readers preserve original tag spelling; ordering compares numeric release components and prerelease number, with Stable last in the same line.
 - UpdateChannel retains numeric identity 1, reads Preview/preview and Beta strings, and writes Beta. Existing settings are rewritten through normal atomic persistence without resetting unrelated preferences. Downloaded update state also accepts the legacy name.
 - Preview.23's published parser cannot recognize Beta. Its users install Beta 24 once manually while retaining data/settings. New-code tests must not be represented as proof that the old binary can detect Beta.
+
+D-064 implementation evidence: target-machine asynchronous Windows calls required keeping
+verifier discovery/subscription/read/command operations on the existing dispatcher context.
+Initialization-not-ready errors wait for real events; disconnected objects are retired.
+Real Seek offsets are checked within one displayed second while no-op seeks still fail.
+Track-load restoration gets one bounded event-observed retry, and rechecks playback state
+after restoring position. Committed prior verification plus healthy current-session evidence
+preserves status on passive reopening while paused; it cannot substitute for first-install
+acceptance. Generic duplicate selection reconciles ordered primary/full artist credit lists,
+with source/title and conflicting album/duration guards; no player-specific media-core branch.

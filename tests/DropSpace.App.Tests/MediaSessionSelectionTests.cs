@@ -10,11 +10,27 @@ public sealed class MediaSessionSelectionTests
         public string Source { get; } = source;
         public Selection Value { get; } = value;
     }
-    private static readonly Selection Weak = new("Track", "Artist", "", TimeSpan.Zero, false, true, false, false);
-    private static readonly Selection Rich = new("Track", "Artist", "Album", TimeSpan.FromSeconds(180), true, true, true, true);
+    private static readonly Selection Weak = new("Track", "Artist", "", TimeSpan.Zero, false, true);
+    private static readonly Selection Rich = new("Track", "Artist", "Album", TimeSpan.FromSeconds(180), true, true);
     private static Task<Candidate> Select(params Candidate[] candidates) => WindowsMediaSessionService.SelectRicherSessionAsync(
         candidates, value => value.Source, (value, _) => Task.FromResult<Selection?>(value.Value), CancellationToken.None);
 
+    [TestMethod]
+    public async Task FullArtistCreditsCanCompletePrimaryArtistOnlySibling()
+    {
+        var weak = new Candidate("player", Weak);
+        var rich = new Candidate("player", Rich with { Artist = "Artist / Guest" });
+        Assert.AreSame(rich, await Select(weak, rich));
+    }
+    [TestMethod]
+    public async Task ConflictingCreditsAndArtistNameSlashesAreNotPrefixes()
+    {
+        foreach (var pair in new[] { ("AC", "AC/DC"), ("Artist", "Artist Two"), ("Artist / One", "Artist / Two") })
+        {
+            var weak = new Candidate("player", Weak with { Artist = pair.Item1 });
+            Assert.AreSame(weak, await Select(weak, new("player", Rich with { Artist = pair.Item2 })));
+        }
+    }
     [TestMethod]
     public async Task SameSourceObjectsRemainDistinctAndRicherObjectOwnsSelection()
     {
