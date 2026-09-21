@@ -6,8 +6,8 @@ Audit the shipped Beta 25 as a release candidate, fix confirmed defects, and
 deliver Beta 26 with regression tests, real provider/Windows evidence and fresh
 version-verified artifacts. The current user authorization includes protected
 merge, official Beta publication and live website/API verification after the
-release gates. See `docs/dev/beta26-rc-audit.md`; prepared artifacts are not yet
-published assets.
+release gates. See `docs/dev/beta26-rc-audit.md` and the linked release workflows
+for executed evidence; local artifacts and public release assets are distinct.
 Runtime baseline is x64 Windows build 20348; settings migrate 11/12/13 to 14.
 No functional phase is complete until its targeted tests, native smoke where required,
 and local Git checkpoint are recorded. Release blockers in the supplied plan are binding.
@@ -16,7 +16,8 @@ The September 12 user amendment sets the island page order to Widgets, Music,
 Files, Clipboard, and the widget editor to 4 rows by 8 columns with eight widget
 types and catalogued size choices. Beta 26 retains the current feature scope;
 the audit evidence distinguishes executed local/hosted checks from unavailable
-physical OS, player, multi-monitor and accessibility acceptance.
+physical OS, multi-monitor and accessibility acceptance. Apple Music and NetEase
+have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 

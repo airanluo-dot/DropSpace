@@ -11,16 +11,17 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.26 is the current release candidate target**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.26 is the current Beta release line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.25](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.25). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.26](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.26). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 Beta 26 audits the shipped Beta 25 and fixes lyrics, media state, native virtual
 files, payload cleanup, ZIP exports and updater/release validation. It requires x64 Windows
 build 20348 or later and keeps the local-first, source-file-safe data boundary.
 Executed evidence and outstanding target-machine checks are in
-[the Beta 26 audit](docs/dev/beta26-rc-audit.md). Official publication and
-website/API synchronization are authorized and remain pending their release gates.
+[the Beta 26 audit](docs/dev/beta26-rc-audit.md). Official downloads are the assets
+on the linked GitHub Release; publication and website/API synchronization follow
+the protected release workflow after validation.
 
 The **v0.3.0-preview.21** settings and action usability line follows Preview.20. Its release notes and [Preview.21 test plan](docs/test-plan/v0.3.0-preview.21.md) record the settings transaction, readable Quick Actions, simpler image presets, and verification evidence; physical Windows, multi-device, deployed Worker/browser, and long-run evidence remain explicitly conditional when unavailable.
 

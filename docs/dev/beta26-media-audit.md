@@ -27,7 +27,7 @@ DropLink authentication/client and Nearby/Internet sharing boundaries.
   position. Continuous presentation does not rewind; a genuinely unobserved long
   interval still avoids inventing elapsed playback. Seven clock tests pass,
   including quantized Apple positions, seeking, pause/resume and missing timelines.
-- **S1 — Real Apple Music resume counted paused time as playback.** During the
+- **S2 — Real Apple Music resume counted paused time as playback.** During the
   13:11:09 resume, native position remained 95 seconds while the next interpolated
   frame jumped to 124.3998 seconds, then returned to 96.8241 on the next native
   position. Apple reused the pre-pause timeline timestamp. Resuming now clamps the
@@ -105,21 +105,29 @@ DropLink authentication/client and Nearby/Internet sharing boundaries.
   updates followed new metadata within approximately 0.15-0.31 s and did not
   restart its lyric lookup. NetEase's native timeline remained zero/1601; its
   continuously observed estimated clock advanced and held correctly on pause.
-- Apple resume and Next testing discovered the two additional S1 defects above;
-  the main audit is rebuilding the candidate for corrective live acceptance.
+- Apple resume and Next testing discovered the additional S2/S1 defects above;
+  the main audit rebuilt the candidate and completed corrective live acceptance.
   `artifacts/media-live-extended.jsonl` preserves the before-fix evidence;
   `artifacts/media-live-fixed.jsonl` includes native timestamp/observation values
   and category-only diagnostic events for the corrected service.
 - **NOT VERIFIED —** exact NetEase lyric synchronization from native position,
   because that player supplies no usable SMTC timeline. Playback estimation is
   explicitly a limitation, not an exact sync claim. Real-player PCM/UI acceptance
-  and post-fix resume/Next results belong in the main audit's final runtime report.
+  and post-fix resume/Next results are recorded in the main audit's final runtime report.
+
+Final fresh-candidate acceptance: Apple pause lasted 36.618 seconds, native 125
+resumed at clock 125.144 and continued 126/127/128 without a paused-time jump.
+Two Next transitions actually produced COMException candidate reads; Empty
+recovered in 46.6/14.8 ms, with a superseded query canceled in 6.7 ms. LRCLIB returned
+42 lines for the following track; an unmatched track reported NotFound. Returning
+to NetEase and Previous returned 46 correct-identity lines in 181/167 ms. Main,
+compact and expanded UI agreed; ShowArtwork-off was verified and restored.
+
 - **NOT VERIFIED —** live multi-device DropLink and remote Worker sharing. Their
   auth/pinning/size/cancellation paths were inspected, without asserting a remote
   deployment or two-machine acceptance run.
-- Shell disposal/privacy and Expanded artwork settings are small targeted source
-  fixes; they still require the final App build/native acceptance reported by the
-  main audit. The five App regression cases passed after its test-host repair.
+- Shell disposal/privacy and Expanded artwork settings passed the final App
+  build and applicable regression/desktop checks reported by the main audit.
 
 ## Documentation and Skill synchronization handoff
 

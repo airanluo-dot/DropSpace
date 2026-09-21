@@ -81,6 +81,21 @@ and Apple Music Color Your Night/Deep Breath Deep Breath -Reload-.
   and `artifacts/media-live-extended.jsonl`; query generations and identity hashes
   distinguish returned results from canceled or superseded queries.
 
+Final rebuilt-candidate UI retest passed. Apple paused for **36.618 seconds** at
+125 seconds and resumed at **125.144 seconds**, then 126/127/128 continuously.
+Two subsequent track changes actually triggered native COMException failures;
+the empty transition recovered in **46.6 ms / 14.8 ms**, instead of getting stuck.
+A superseded query canceled in 6.7 ms. The next track returned 42 LRCLIB lines;
+another accurately reported NotFound. Switching back to NetEase and Previous
+returned the current 46-line lyrics in 181/167 ms with no identity mismatch.
+Final logs are `artifacts/media-live-fixed.jsonl` and
+`artifacts/media-live-final-acceptance.jsonl`; their 42-second handover gap is not
+claimed as observed. Main/compact/expanded lyrics agreed. ShowArtwork was disabled
+and verified on main/expanded, then restored to the user's original enabled value.
+Both players were paused after testing; the final UI showed Play with stopped
+progress and no spectrum bars. The real PCM/volume native tests also passed on
+this machine's render endpoint; no synthetic spectrum data was introduced.
+
 NetEase on this host publishes zero native position/duration and a 1601 timestamp.
 Its progress is explicitly estimated; seeking is disabled. Starting DropSpace
 mid-song cannot recover the elapsed position from this missing data. Apple Music
@@ -101,6 +116,39 @@ brand, symbol-policy, manifest and SHA256 gates; the genuine Beta 25 installer
 was correctly rejected as a Beta 26 artifact. These initial bytes are superseded
 by rebuilding after the additional real-player fixes. Final test counts, smoke,
 CI, upgrade and publication results are recorded below when executed.
+
+Final local gate after the real-player fixes: clean Release solution and locked
+restore passed; Core **235**, Infrastructure **180**, App **52**, with **zero
+failures/skips**. Both `Test-PortableSmoke.ps1 -Language en-US` and `-Language
+zh-CN` passed normal/hidden startup and single-instance redirection. Each language
+ran 1,000 overlay lifecycle cycles, 1,000 geometry transitions, 200 deletion
+cycles and actual clipboard capture/pause/resume/self-write suppression. Region
+failures and unhandled/unobserved exceptions were zero; external sentinels stayed
+intact, and handle/GDI/USER resource checkpoints plateaued.
+
+Fresh final EXE SHA256:
+`1b8c7cea72fb4689c1fcbf2e79dc9483a01d9d74ee42e1effd70f0d623569487`.
+Installer SHA256:
+`498cea039a2ac68ff39ab61f947108a84248676cdb03d67b6f807e5cffbbadba`.
+These identify the locally tested bytes; hosted publication rebuilds its own
+validated bundle and publishes the matching manifest/checksums. Final local logs
+and TRX files are in `artifacts/beta26/final/`. Build-generated lock-file changes
+were excluded, and the original dependency graph passed locked restore again.
+
+Protected delivery is tracked by [PR #67](https://github.com/airanluo-dot/DropSpace/pull/67).
+The PR's Windows and release checks provide the clean-runner upgrade and packaging
+record; the [release workflow](https://github.com/airanluo-dot/DropSpace/actions/workflows/release.yml)
+owns publication, distinct from successful local build artifacts.
+
+The first clean-runner attempt exposed an additional test-host prerequisite:
+SDK bootstrap defaults to an interactive missing-runtime dialog. The job stalled
+before executing tests and was canceled for repair, not accepted as a pass.
+The test host now uses the SDK's None option (HRESULT failure), and both hosted
+lanes install/verify the Microsoft runtime MSIX packages from the exact locked
+NuGet restore using `Install-TestWindowsAppRuntime.ps1`. Both steps have explicit
+10-minute bounds. The corrected host again passed all 52 local App tests; only
+`-InspectOnly` was used on the user's workstation. Production bootstrap remains
+unchanged. Hosted installation is validated by the subsequent PR checks.
 
 Warnings reviewed: PRI257/PRI263 concern MSTest localized satellite resources in
 the test host, not missing app translations; unsigned MSIX symbol generation is

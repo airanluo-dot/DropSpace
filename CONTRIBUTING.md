@@ -22,7 +22,12 @@ Public APIs, documented platform behavior, and high-level interaction ideas may 
 Keep pull requests focused. Add or update tests and documentation when behavior changes, preserve user files and privacy boundaries, and never commit signing keys, tokens, private certificates, or user data.
 
 For Beta 26, keep real provider responses and native execution evidence distinct
-from deterministic fixtures. App tests bootstrap their unpackaged Windows App SDK
+from deterministic fixtures. On clean runners, run
+`./scripts/Install-TestWindowsAppRuntime.ps1` after locked restore; the script
+registers the Microsoft runtime MSIX packages selected by the existing lock file
+and verifies them. Use `-InspectOnly` to check a workstation without installing.
+Missing runtime fails with an HRESULT rather than opening a headless dialog.
+App tests bootstrap their unpackaged Windows App SDK
 host. Release validation checks actual executable versions, and upgrade lifecycle
 tests use the real historical installer in an isolated account, preserving all
 pre-existing user data and installation state. Synchronize the repository

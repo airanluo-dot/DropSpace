@@ -56,6 +56,12 @@ state without reusing the canceled token; failed rollback remains visible.
 Restored update state must agree on version/tag, channel/prerelease, version code,
 minimum Windows contract, official selected asset and integrity metadata.
 App regression tests require their unpackaged Windows App SDK test bootstrap.
+On clean Windows runners, run `scripts/Install-TestWindowsAppRuntime.ps1` after
+locked restore; it uses the runtime MSIX files from that exact locked NuGet
+package and verifies registration. `-InspectOnly` reports without installing.
+Test bootstrap uses the None option so a missing runtime fails with an HRESULT
+instead of opening an invisible download dialog. Keep prerequisite and App-test
+steps bounded; do not skip native tests or change production initialization.
 Native COM/clipboard fixtures, ZIP directory-budget tests, live lyric-provider
 smoke and actual target-machine player behavior cover different release risks;
 record their results separately rather than substituting one for another.

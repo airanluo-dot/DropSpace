@@ -14,6 +14,9 @@
          before loading the App assembly or activating WinRT services. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
+    <!-- Missing CI runtime must fail with an HRESULT, never open the SDK's
+         default download dialog in a headless test worker. -->
+    <WindowsAppSDKBootstrapAutoInitializeOptions_None>true</WindowsAppSDKBootstrapAutoInitializeOptions_None>
     <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
     <DefaultLanguage>en-US</DefaultLanguage>
     <!-- The SDK emits the same internal version types into both assemblies;
