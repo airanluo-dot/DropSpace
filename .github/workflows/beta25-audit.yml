@@ -6,9 +6,9 @@ on:
 permissions:
   contents: read
 jobs:
-  targeted-validation:
+  native-and-recovery:
     runs-on: windows-2025
-    timeout-minutes: 40
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -17,227 +17,243 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
         with:
           dotnet-version: 10.0.401
-      - name: Prepare pinned production source
+      - name: Prepare immutable source
         shell: pwsh
         run: |
           New-Item audit-output -ItemType Directory -Force | Out-Null
           git rev-parse HEAD | Set-Content audit-output/audited-commit.txt
-          dotnet --info | Set-Content audit-output/dotnet-info.txt
           ./scripts/Generate-BrandAssets.ps1 -Verify
           ./scripts/Generate-BrandAssets.ps1
           dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true *> audit-output/restore.log
-          $code = $LASTEXITCODE
-          Get-Content audit-output/restore.log
-          "restore=$code" | Set-Content audit-output/exit-codes.txt
-          exit $code
-      - name: Corrected Debug solution build
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          dotnet build DropSpace.sln -c Debug --no-restore -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false *> audit-output/build-debug.log
-          $code = $LASTEXITCODE
-          Get-Content audit-output/build-debug.log
-          "debug=$code" | Add-Content audit-output/exit-codes.txt
-          exit $code
-      - name: Corrected Release solution build
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          dotnet build DropSpace.sln -c Release --no-restore -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false *> audit-output/build-release.log
-          $code = $LASTEXITCODE
-          Get-Content audit-output/build-release.log
-          "release=$code" | Add-Content audit-output/exit-codes.txt
-          exit $code
-      - name: Add audit-only contract tests to ephemeral runner
+          exit $LASTEXITCODE
+      - name: Inject audit-only native and recovery assertions
         shell: pwsh
         run: |
           @'
-          using System.IO.Compression;
-          using DropSpace.Core.Models;
-          using DropSpace.Core.Policies;
-          using DropSpace.Core.Preview;
-          using DropSpace.Infrastructure.Actions;
-          using DropSpace.Infrastructure.Content;
-          using DropSpace.Infrastructure.Data;
-          using DropSpace.Infrastructure.Preview;
+          using DropSpace.App.Services;
           using DropSpace.Infrastructure.Storage;
-          using Microsoft.Data.Sqlite;
           using Microsoft.Extensions.Logging.Abstractions;
+          using System.Reflection;
+          using System.Runtime.InteropServices;
+          using System.Runtime.InteropServices.ComTypes;
+          using System.Runtime.Versioning;
+          using System.Text;
+          namespace DropSpace.App.Tests;
+          [TestClass]
+          [SupportedOSPlatform("windows")]
+          public sealed class Beta25NativeAuditTests
+          {
+              public TestContext TestContext { get; set; } = null!;
+              [TestMethod]
+              public void CoGetInterfaceAndReleaseStream_MatchesDocumentedNativeAbi()
+              {
+                  // Do NOT invoke the malformed native declaration: inspect its ABI safely.
+                  var method = typeof(VirtualFileMaterializer).GetMethod("CoGetInterfaceAndReleaseStream", BindingFlags.NonPublic | BindingFlags.Static)!;
+                  var parameters = method.GetParameters();
+                  TestContext.WriteLine($"Actual return={method.ReturnType}; parameters={string.Join(", ", parameters.Select(p => p.ParameterType.ToString()))}");
+                  Assert.AreEqual(3, parameters.Length, "Native HRESULT API requires IStream*, REFIID, and void** ppv.");
+                  Assert.AreEqual(typeof(int), method.ReturnType, "Native return value is HRESULT, not the interface pointer.");
+                  Assert.IsTrue(parameters[2].IsOut);
+                  Assert.AreEqual(typeof(nint).MakeByRefType(), parameters[2].ParameterType);
+              }
+              [TestMethod]
+              [DataRow(false, false)]
+              [DataRow(true, true)]
+              [DataRow(false, true)]
+              public async Task VirtualBatch_RetainsTwoItemsWithCollisionSafeNames(bool asyncMode, bool duplicateNames)
+              {
+                  var root = Path.Combine(Path.GetTempPath(), "DropSpace-Beta25-native-audit", Guid.NewGuid().ToString("N"));
+                  try
+                  {
+                      var paths = new AppStoragePaths(root);
+                      var classifier = new OleFileDataClassifier();
+                      var leases = new StagingLeaseStore(paths, NullLogger<StagingLeaseStore>.Instance);
+                      var materializer = new VirtualFileMaterializer(paths, classifier, NullLogger<VirtualFileMaterializer>.Instance, leases);
+                      var batch = await materializer.MaterializeAsync(new Source(classifier, asyncMode, duplicateNames));
+                      TestContext.WriteLine($"async={asyncMode}; duplicates={duplicateNames}; outputs={string.Join(", ", batch.Paths.Select(Path.GetFileName))}");
+                      Assert.AreEqual(2, batch.Paths.Count);
+                      Assert.AreEqual(2, batch.Paths.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+                      foreach (var path in batch.Paths) CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(path));
+                      Assert.IsTrue(await leases.CompleteAsync(batch.Lease));
+                  }
+                  finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+              }
+              private sealed class Source(OleFileDataClassifier classifier, bool asyncMode, bool duplicateNames) : IDataObject, VirtualFileMaterializer.IDataObjectAsyncCapability
+              {
+                  public void GetData(ref FORMATETC format, out STGMEDIUM medium)
+                  {
+                      byte[] bytes;
+                      if (format.cfFormat == classifier.FileGroupDescriptorWClipboardFormat)
+                      {
+                          bytes = new byte[4 + 592 * 2];
+                          BitConverter.GetBytes(2).CopyTo(bytes, 0);
+                          Encoding.Unicode.GetBytes("payload.txt").CopyTo(bytes, 76);
+                          Encoding.Unicode.GetBytes(duplicateNames ? "payload.txt" : "second.txt").CopyTo(bytes, 76 + 592);
+                      }
+                      else bytes = [1, 2, 3];
+                      var handle = GlobalAlloc(0x42, (nuint)bytes.Length);
+                      var pointer = GlobalLock(handle);
+                      Marshal.Copy(bytes, 0, pointer, bytes.Length);
+                      GlobalUnlock(handle);
+                      medium = new STGMEDIUM { tymed = TYMED.TYMED_HGLOBAL, unionmember = handle };
+                  }
+                  public int QueryGetData(ref FORMATETC format) => 0;
+                  public void GetDataHere(ref FORMATETC format, ref STGMEDIUM medium) => throw new NotSupportedException();
+                  public int GetCanonicalFormatEtc(ref FORMATETC input, out FORMATETC output) { output = default; return 1; }
+                  public void SetData(ref FORMATETC format, ref STGMEDIUM medium, bool release) => throw new NotSupportedException();
+                  public IEnumFORMATETC EnumFormatEtc(DATADIR direction) => throw new NotSupportedException();
+                  public int DAdvise(ref FORMATETC format, ADVF advf, IAdviseSink sink, out int connection) { connection = 0; return 1; }
+                  public void DUnadvise(int connection) => throw new NotSupportedException();
+                  public int EnumDAdvise(out IEnumSTATDATA? advise) { advise = null; return 1; }
+                  public int SetAsyncMode(bool mode) => 0;
+                  public int GetAsyncMode(out bool mode) { mode = asyncMode; return 0; }
+                  public int StartOperation(nint context) => 0;
+                  public int InOperation(out bool active) { active = asyncMode; return 0; }
+                  public int EndOperation(int result, nint context, uint effects) => 0;
+                  [DllImport("kernel32.dll")] private static extern nint GlobalAlloc(uint flags, nuint size);
+                  [DllImport("kernel32.dll")] private static extern nint GlobalLock(nint memory);
+                  [DllImport("kernel32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GlobalUnlock(nint memory);
+              }
+          }
+          '@ | Set-Content tests/DropSpace.App.Tests/Beta25NativeAuditTests.cs -Encoding utf8
+          @'
+          using System.Security.Cryptography;
+          using System.Text.Json.Nodes;
+          using DropSpace.Core.Abstractions;
+          using DropSpace.Core.Models;
+          using DropSpace.Core.Updates;
+          using DropSpace.Infrastructure.Storage;
+          using DropSpace.Infrastructure.Updates;
+          using Microsoft.Extensions.Logging.Abstractions;
+          using Microsoft.VisualStudio.TestTools.UnitTesting;
           namespace DropSpace.Infrastructure.Tests;
           [TestClass]
-          public sealed class Beta25AuditRegressionTests
+          public sealed class Beta25RecoveryAuditTests
           {
               private string _root = null!;
               private AppStoragePaths _paths = null!;
-              private SqliteDatabase _database = null!;
-              private SqliteItemRepository _repository = null!;
-              private readonly LocalFileReferenceService _references = new();
+              private UpdateStateStore _store = null!;
               public TestContext TestContext { get; set; } = null!;
               [TestInitialize]
               public void Initialize()
               {
-                  _root = Path.Combine(Path.GetTempPath(), "DropSpace-Beta25-Audit", Guid.NewGuid().ToString("N"));
+                  _root = Path.Combine(Path.GetTempPath(), "DropSpace-Beta25-recovery-audit", Guid.NewGuid().ToString("N"));
                   _paths = new AppStoragePaths(_root);
                   _paths.EnsureCreated();
-                  _database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
-                  _repository = new SqliteItemRepository(_database, NullLogger<SqliteItemRepository>.Instance);
+                  _store = new UpdateStateStore(_paths);
               }
               [TestCleanup]
-              public void Cleanup()
+              public void Cleanup() { if (Directory.Exists(_root)) Directory.Delete(_root, true); }
+              private async Task<DownloadedUpdate> SaveFutureBetaAsync()
               {
-                  SqliteConnection.ClearAllPools();
-                  if (!Directory.Exists(_root)) return;
-                  foreach (var file in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories)) File.SetAttributes(file, FileAttributes.Normal);
-                  Directory.Delete(_root, true);
-              }
-              private async Task<DropItemSnapshot> SnapshotAsync(string path) => DropItemSnapshot.FromItem(await _repository.AddFileAsync(await _references.InspectAsync(path)));
-              [TestMethod]
-              public async Task Zip_PreservesNestedRelativePaths()
-              {
-                  var folder = Path.Combine(_root, "Project");
-                  Directory.CreateDirectory(Path.Combine(folder, "src"));
-                  await File.WriteAllTextAsync(Path.Combine(folder, "src", "main.txt"), "payload");
-                  var result = await new ZipActionService(_paths).ExecuteAsync(new(new([await SnapshotAsync(folder)])));
-                  Assert.IsTrue(result.Succeeded);
-                  using var zip = ZipFile.OpenRead(result.OutputPaths.Single());
-                  var names = zip.Entries.Select(e => e.FullName).ToArray();
-                  TestContext.WriteLine("Actual entries: " + string.Join(", ", names));
-                  CollectionAssert.Contains(names, "Project/src/main.txt", "ZIP must preserve relative directory structure.");
+                  var version = ReleaseVersion.Parse("0.3.0-beta.26");
+                  byte[] bytes = [1, 2, 3];
+                  var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+                  var installer = new UpdateManifestAsset("DropSpaceSetup.exe", bytes.Length, hash);
+                  var portable = new UpdateManifestAsset("DropSpace.exe", bytes.Length, hash);
+                  var asset = new UpdateReleaseAsset(installer.AssetName, installer.Size, new Uri($"https://github.com/airanluo-dot/DropSpace/releases/download/v{version}/DropSpaceSetup.exe"));
+                  var release = new UpdateRelease($"v{version}", false, true, DateTimeOffset.UtcNow, new Uri($"https://github.com/airanluo-dot/DropSpace/releases/tag/v{version}"), [asset]);
+                  var manifest = new UpdateManifest(1, UpdateChannel.Beta, version, version.ToVersionCode(), DateTimeOffset.UtcNow, 20348, false, "audit fixture", installer, portable);
+                  var directory = Path.Combine(_paths.Updates, version.ToString());
+                  Directory.CreateDirectory(directory);
+                  var update = new DownloadedUpdate(new(release, manifest, asset, DeploymentMode.Installer), Path.Combine(directory, installer.AssetName), installer.Size, hash, Path.Combine(directory, "update-install.log"));
+                  await File.WriteAllBytesAsync(update.FilePath, bytes);
+                  await _store.SaveAsync(update, "ReadyToInstall");
+                  return update;
               }
               [TestMethod]
-              public async Task Zip_PreservesEmptyDirectory()
+              public async Task NullHashInCache_IsIgnoredRatherThanAbortingRecovery()
               {
-                  var folder = Path.Combine(_root, "EmptyFolder");
-                  Directory.CreateDirectory(folder);
-                  var result = await new ZipActionService(_paths).ExecuteAsync(new(new([await SnapshotAsync(folder)])));
-                  Assert.IsTrue(result.Succeeded);
-                  using var zip = ZipFile.OpenRead(result.OutputPaths.Single());
-                  TestContext.WriteLine("Actual entry count: " + zip.Entries.Count);
-                  Assert.IsTrue(zip.Entries.Any(e => e.FullName.EndsWith("EmptyFolder/", StringComparison.Ordinal)), "Successful folder archive must retain an empty selected folder.");
+                  var update = await SaveFutureBetaAsync();
+                  Assert.IsNotNull(await _store.LoadHighestAsync(ReleaseVersion.Parse("0.3.0-beta.25"), DeploymentMode.Installer), "Control: valid cache is accepted.");
+                  var statePath = Path.Combine(Path.GetDirectoryName(update.FilePath)!, "update-state.json");
+                  var json = JsonNode.Parse(await File.ReadAllTextAsync(statePath))!;
+                  json["installer"]!["sha256"] = null;
+                  await File.WriteAllTextAsync(statePath, json.ToJsonString());
+                  Assert.IsNull(await _store.LoadHighestAsync(ReleaseVersion.Parse("0.3.0-beta.25"), DeploymentMode.Installer), "Malformed cache must not throw past startup recovery.");
               }
               [TestMethod]
-              public async Task Relink_ClipboardReferenceBecomesAvailable()
+              public async Task StablePreference_RejectsRecoveredBetaWhenAutomaticChecksAreOff()
               {
-                  var missing = await _references.InspectAsync(Path.Combine(_root, "missing.txt"));
-                  var item = await _repository.AddClipboardFileAsync(missing, Guid.NewGuid().ToString("N"), null);
-                  var replacementPath = Path.Combine(_root, "replacement.txt");
-                  await File.WriteAllTextAsync(replacementPath, "replacement");
-                  await _repository.ReplaceFileReferenceAsync(item.Id, await _references.InspectAsync(replacementPath));
-                  var actual = await _repository.GetAsync(item.Id);
-                  Assert.IsNotNull(actual);
-                  TestContext.WriteLine($"status={actual.Status}; title={actual.Title}; path={actual.File?.OriginalPath}");
-                  Assert.AreEqual(ItemStatus.Available, actual.Status, "Relink must update the parent row as well as file_references.");
-                  Assert.AreEqual("replacement.txt", actual.Title);
+                  await SaveFutureBetaAsync();
+                  await using var service = new UpdateService(ReleaseVersion.Parse("0.3.0-beta.25"), new NoNetworkSource(), new UpdateManifestParser(), new NoDownloader(), new UpdateFileVerifier(_paths), new Untrusted(), new NoLauncher(), new Installed(), _store, IdentityAppStringLocalizer.Instance, NullLogger<UpdateService>.Instance);
+                  var recovered = await service.RecoverPendingAsync();
+                  Assert.AreEqual(UpdateState.ReadyToInstall, recovered.State, "Control: valid bytes pass the real integrity verifier.");
+                  var status = await service.CheckAtStartupAsync(new AppSettings { UpdateChannel = UpdateChannel.Stable, AutoCheckForUpdates = false, AutoDownloadUpdates = false });
+                  TestContext.WriteLine($"channel preference=Stable; result state={status.State}; candidate channel={status.Candidate?.Manifest.Channel}; version={status.Candidate?.Manifest.Version}");
+                  Assert.IsFalse(status.State == UpdateState.ReadyToInstall && status.Candidate?.Manifest.Channel == UpdateChannel.Beta, "Stable preference must constrain pending-update recovery, not just release discovery.");
               }
-              [TestMethod]
-              public async Task Relink_OwnedFileUsesReplacementAcrossContentConsumers()
+              private sealed class Installed : IDeploymentModeService { public DeploymentMode Current => DeploymentMode.Installer; }
+              private sealed class NoNetworkSource : IUpdateSource
               {
-                  var payloads = new FilePayloadStore(_paths);
-                  using var input = new MemoryStream("owned"u8.ToArray());
-                  var payload = await payloads.WriteFileAsync("files", ".txt", input, 1024);
-                  var ownedPath = payloads.ResolvePath(payload.RelativePath);
-                  var item = await _repository.AddOwnedSpaceFileAsync(await _references.InspectAsync(ownedPath), payload, null);
-                  File.Delete(ownedPath);
-                  await _repository.UpdateFileStatusAsync(item.Id, ItemStatus.Missing, "deleted");
-                  var replacement = Path.Combine(_root, "replacement.txt");
-                  await File.WriteAllTextAsync(replacement, "replacement");
-                  await _repository.ReplaceFileReferenceAsync(item.Id, await _references.InspectAsync(replacement));
-                  var actual = await _repository.GetAsync(item.Id);
-                  Assert.IsNotNull(actual);
-                  var resolved = new ItemContentResolver(_paths).Resolve(DropItemSnapshot.FromItem(actual));
-                  TestContext.WriteLine($"file={actual.File?.OriginalPath}; payload={actual.Payload?.RelativePath}; readable={resolved.HasReadablePath}; resolved={resolved.ReadablePath}");
-                  Assert.IsTrue(resolved.HasReadablePath, "A successful relink must not remain bound to a missing old owned payload.");
+                  public Task<IReadOnlyList<UpdateRelease>> GetReleasesAsync(CancellationToken cancellationToken = default) => throw new AssertFailedException("No network expected.");
+                  public Task<ReadOnlyMemory<byte>> GetManifestAsync(UpdateRelease release, CancellationToken cancellationToken = default) => throw new AssertFailedException("No manifest request expected.");
               }
-              [TestMethod]
-              [DataRow("😀a")]
-              [DataRow("😀😃")]
-              public async Task Search_TwoUnicodeScalarsFindExistingSubstring(string query)
-              {
-                  await _repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("prefix " + query + " suffix"));
-                  var control = await _repository.QueryAsync(new ItemQuery(Search: "prefix"));
-                  Assert.AreEqual(1, control.Count, "Control: the inserted item and FTS index must exist.");
-                  var actual = await _repository.QueryAsync(new ItemQuery(Search: query));
-                  TestContext.WriteLine($"query={query}; utf16Length={query.Length}; actualCount={actual.Count}");
-                  Assert.AreEqual(1, actual.Count, "FTS trigram eligibility must count Unicode scalars, not UTF-16 code units.");
-              }
-              [TestMethod]
-              public async Task SeparateDrops_DeduplicateUnicodeCaseOfSameWindowsFile()
-              {
-                  var upper = Path.Combine(_root, "Ä.txt");
-                  var lower = Path.Combine(_root, "ä.txt");
-                  await File.WriteAllTextAsync(upper, "same physical file");
-                  Assert.IsTrue(File.Exists(lower), "Fixture requires default case-insensitive Windows filesystem.");
-                  var first = await _repository.AddFileAsync(await _references.InspectAsync(upper));
-                  var second = await _repository.AddFileAsync(await _references.InspectAsync(lower));
-                  TestContext.WriteLine($"first={first.Id}; second={second.Id}; count={await _repository.CountAsync(ItemSource.Space)}");
-                  Assert.AreEqual(first.Id, second.Id, "The repository must match the Unicode case-insensitive identity used by intake.");
-              }
-              [TestMethod]
-              public async Task Pdf_GrowthBelowSafetyLimitDoesNotFailAtStaleImportedSize()
-              {
-                  var path = Path.Combine(_root, "document.pdf");
-                  var original = "%PDF-1.4\n% audit provider fixture\n%%EOF\n";
-                  await File.WriteAllTextAsync(path, original, new System.Text.UTF8Encoding(false));
-                  var snapshot = await SnapshotAsync(path);
-                  var provider = new PdfPreviewProvider(new ItemContentResolver(_paths));
-                  Assert.IsTrue((await provider.LoadAsync(new(snapshot))).HasBytes, "Control: initial bytes load.");
-                  await File.AppendAllTextAsync(path, new string(' ', 200));
-                  TestContext.WriteLine($"known={snapshot.KnownSize}; current={new FileInfo(path).Length}");
-                  var current = await provider.LoadAsync(new(snapshot));
-                  Assert.AreEqual(new FileInfo(path).Length, (long)current.Bytes!.Length, "Bound against a fixed safety ceiling, not stale KnownSize.");
-              }
-              [TestMethod]
-              public async Task Cleanup_FailedOldestBatchDoesNotStarveLaterDeletablePayload()
-              {
-                  await _repository.InitializeAsync();
-                  await using (var connection = await _database.OpenConnectionAsync())
-                  await using (var transaction = await connection.BeginTransactionAsync())
-                  {
-                      for (var i = 0; i < 257; i++)
-                      {
-                          var relative = $"{i:D4}.txt";
-                          var path = Path.Combine(_paths.Payloads, relative);
-                          await File.WriteAllTextAsync(path, "owned payload");
-                          if (i < 256) File.SetAttributes(path, FileAttributes.ReadOnly);
-                          await using var command = connection.CreateCommand();
-                          command.Transaction = (SqliteTransaction)transaction;
-                          command.CommandText = "INSERT INTO payload_delete_outbox(id,relative_path,created_at_utc,attempt_count) VALUES(@id,@path,@time,0)";
-                          command.Parameters.AddWithValue("@id", i.ToString("D4"));
-                          command.Parameters.AddWithValue("@path", relative);
-                          command.Parameters.AddWithValue("@time", DateTimeOffset.UtcNow.AddMinutes(i).ToString("O"));
-                          await command.ExecuteNonQueryAsync();
-                      }
-                      await transaction.CommitAsync();
-                  }
-                  var reconciler = new OwnedPayloadReconciler(_paths, _repository, NullLogger<OwnedPayloadReconciler>.Instance);
-                  var coordinator = new PayloadCleanupCoordinator(_paths, _repository, new FilePayloadStore(_paths), reconciler, NullLogger<PayloadCleanupCoordinator>.Instance);
-                  var first = await coordinator.DrainAsync();
-                  var second = await coordinator.DrainAsync();
-                  TestContext.WriteLine($"completed first={first}; second={second}; newerExists={File.Exists(Path.Combine(_paths.Payloads, "0256.txt"))}");
-                  Assert.IsFalse(File.Exists(Path.Combine(_paths.Payloads, "0256.txt")), "Repeated drains must make fair progress past permanently failing oldest entries.");
-              }
+              private sealed class NoDownloader : IUpdateDownloader { public Task<DownloadedUpdate> DownloadAsync(UpdateCandidate candidate, IProgress<UpdateDownloadProgress>? progress = null, CancellationToken cancellationToken = default) => throw new AssertFailedException("No download expected."); }
+              private sealed class Untrusted : ITrustedUpdateVerifier { public Task<TrustedUpdateVerification> VerifyPublisherAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(new TrustedUpdateVerification(false, "fixture")); }
+              private sealed class NoLauncher : IUpdateInstallerLauncher { public Task<bool> LaunchAsync(DownloadedUpdate update, CancellationToken cancellationToken = default) => throw new AssertFailedException("No executable launch expected."); }
           }
-          '@ | Set-Content tests/DropSpace.Infrastructure.Tests/Beta25AuditRegressionTests.cs -Encoding utf8
-          Copy-Item tests/DropSpace.Infrastructure.Tests/Beta25AuditRegressionTests.cs audit-output/
-      - name: Execute targeted regression assertions
+          '@ | Set-Content tests/DropSpace.Infrastructure.Tests/Beta25RecoveryAuditTests.cs -Encoding utf8
+          Copy-Item tests/DropSpace.App.Tests/Beta25NativeAuditTests.cs audit-output/
+          Copy-Item tests/DropSpace.Infrastructure.Tests/Beta25RecoveryAuditTests.cs audit-output/
+      - name: Native ABI and virtual-file tests
         continue-on-error: true
         shell: pwsh
         run: |
-          dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~Beta25AuditRegressionTests --logger 'trx;LogFileName=targeted-audit.trx' *> audit-output/targeted-tests.log
+          dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --filter FullyQualifiedName~Beta25NativeAuditTests --logger 'trx;LogFileName=native-audit.trx' *> audit-output/native-tests.log
           $code = $LASTEXITCODE
-          Get-Content audit-output/targeted-tests.log
-          "targeted=$code" | Add-Content audit-output/exit-codes.txt
+          Get-Content audit-output/native-tests.log
+          "native=$code" | Add-Content audit-output/exit-codes.txt
           exit $code
-      - name: Preserve audit-only changes
+      - name: Cached update recovery tests
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~Beta25RecoveryAuditTests --logger 'trx;LogFileName=recovery-audit.trx' *> audit-output/recovery-tests.log
+          $code = $LASTEXITCODE
+          Get-Content audit-output/recovery-tests.log
+          "recovery=$code" | Add-Content audit-output/exit-codes.txt
+          exit $code
+      - name: Build self-contained portable application
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/Build-PortableExe.ps1 *> audit-output/portable-build.log
+          $code = $LASTEXITCODE
+          Get-Content audit-output/portable-build.log
+          "portable-build=$code" | Add-Content audit-output/exit-codes.txt
+          exit $code
+      - name: Actual portable launch and lifecycle smoke
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          try { ./scripts/Test-PortableSmoke.ps1 -Language en-US *> audit-output/portable-smoke.log; "portable-smoke=0" | Add-Content audit-output/exit-codes.txt }
+          catch { $_ | Out-String | Add-Content audit-output/portable-smoke.log; "portable-smoke=1" | Add-Content audit-output/exit-codes.txt; throw }
+          finally { Get-Content audit-output/portable-smoke.log }
+      - name: Build installer and exercise isolated runner lifecycle
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          try {
+            ./scripts/Build-Installer.ps1 *> audit-output/installer-build.log
+            if ($LASTEXITCODE) { throw "Installer build native exit $LASTEXITCODE" }
+            ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation *> audit-output/installer-lifecycle.log
+            "installer-lifecycle=0" | Add-Content audit-output/exit-codes.txt
+          } catch { $_ | Out-String | Add-Content audit-output/installer-lifecycle.log; "installer-lifecycle=1" | Add-Content audit-output/exit-codes.txt; throw }
+          finally { Get-Content audit-output/installer-lifecycle.log -ErrorAction SilentlyContinue }
+      - name: Preserve source status and bounded smoke markers
         if: always()
         shell: pwsh
-        run: git status --short | Set-Content audit-output/final-worktree-status.txt
+        run: |
+          git status --short | Set-Content audit-output/final-worktree-status.txt
+          $root = Join-Path $env:LOCALAPPDATA DropSpace
+          if (Test-Path $root) { Get-ChildItem $root -Filter '*smoke*.json' -Recurse | ForEach-Object { Copy-Item $_.FullName (Join-Path audit-output $_.Name) -Force } }
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: always()
         with:
-          name: beta25-audit-targeted-validation
+          name: beta25-audit-native-recovery-smoke
           path: |
             audit-output/
-            **/TestResults/targeted-audit.trx
+            **/TestResults/*audit.trx
           if-no-files-found: error
           retention-days: 7
