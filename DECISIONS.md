@@ -1,5 +1,34 @@
 # DropSpace Architecture and Product Decisions
 
+## D-063 — Explicit third-party NetEase enhancement, Windows media protocol only
+
+- Date: 2026-09-21. Status: Architecture accepted by explicit user request; complete native acceptance blocked.
+- Music offers one installation confirmation naming independent InfLink-rs and required
+  components, automatic preparation/deployment/restart/Windows verification, and managed
+  update/reinstall/removal. Windows elevation, when required, remains an OS-owned prompt.
+- The runtime chain is NetEase → BetterNCM → unchanged official InfLink-rs → Windows SMTC
+  → existing DropSpace GSMTC services. DropSpace never calls `window.InfLinkApi`, vendors
+  InfLink implementation, or maintains a fork. Enhancement deployment has separate services.
+- Downloads are opt-in official GitHub release artifacts, size/time/redirect bounded.
+  InfLink uses the official release asset SHA-256; the last BetterNCM 1.3.4 DLL uses reviewed
+  pinned SHA-256 per architecture because that historical release has no published digest.
+  Microsoft's VC runtime is downloaded only from Microsoft and verified with Authenticode
+  and Microsoft publisher identity before silent installation. No new NuGet dependency.
+- Installation receipts track exact file ownership, hashes and rollback backups. Existing
+  unrelated plugins/configuration are preserved; unrecognized component files block replacement.
+  A file's presence is never proof of enhancement. Complete metadata, actual timeline progress
+  and Windows controls must be observed. Native completeness skips third-party installation.
+- Standard shuffle/repeat state and commands belong to the generic media abstraction and
+  are capability-driven for every player. NetEase compatibility checks stay outside it.
+- BetterNCM 1.3.4 and InfLink 3.2.11 do not officially claim support for this host's NetEase
+  3.1.40; target-machine verification and rollback are release requirements, not assumptions.
+- Native testing confirms metadata/timeline enhancement, but InfLink 3.2.11 leaves initial
+  modes null and its upstream handlers ignore requested Shuffle/Repeat values in favor of
+  toggles. Do not modify upstream or substitute a weaker acceptance definition. Full success
+  requires an upstream protocol fix or a separately authorized change to requirements.
+- Beta26 publication remains paused under the user's latest instruction. See
+  `docs/dev/netease-enhancement.md` for implementation evidence and remaining limits.
+
 ## D-062 — Four island pages and compact widget sizes
 
 - Status: Accepted, user amendment dated 2026-09-12; release implementation in progress.

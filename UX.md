@@ -1,5 +1,16 @@
 # DropSpace UX Specification
 
+## NetEase enhancement card
+
+Music places a concise enhancement card below Now Playing. One confirmation names InfLink-rs,
+independent third-party components, the player restart and brief playback-control verification.
+The operation survives navigation and reports detecting/preparing/installing/restarting/verifying
+states with an indeterminate progress indicator; no fabricated percentage. Only actual complete
+Windows media evidence displays Enhanced. Update/reinstall/remove controls apply to managed
+installations. Errors explain recovery without exposing paths or implementation details by default.
+Shuffle/repeat controls use Windows capability flags and nullable state for every player, with
+accessible names, visible current state, and no optimistic state change before player confirmation.
+
 ## Beta 26 amended island and settings
 
 Use the existing side rails for Widgets → Music → Files → Clipboard. Hide the

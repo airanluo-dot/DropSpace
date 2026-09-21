@@ -48,6 +48,7 @@ public sealed partial class MediaExpandedView : UserControl
             ArtworkColumn.Width = new GridLength(showArtwork ? 100 : 0);
             ArtworkHost.Visibility = showArtwork ? Visibility.Visible : Visibility.Collapsed;
             TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+            RepeatIcon.Symbol = _view.Session.RepeatMode == MediaRepeatMode.Track ? Symbol.RepeatOne : Symbol.RepeatAll;
             LyricsArea.Visibility = empty || !_view.Settings.Lyrics.Enabled ? Visibility.Collapsed : Visibility.Visible;
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? Visibility.Visible : Visibility.Collapsed;

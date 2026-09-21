@@ -1,5 +1,17 @@
 # DropSpace Feature Catalogue
 
+## NetEase enhancement slice (complete capability acceptance blocked)
+
+- Music-page one-confirmation official InfLink-rs/BetterNCM component management,
+  automatic prerequisite handling, player restart, Windows verification and rollback.
+- Managed update, reinstall and removal preserve unrelated existing components.
+- Native complete SMTC capability skips third-party installation.
+- Standard shuffle/repeat controls for every supporting player, including unknown and
+  unsupported states. Beta26 publication remains paused pending this slice's acceptance.
+
+Official InfLink-rs 3.2.11 exposes incomplete Shuffle/Repeat semantics in native testing.
+The manager must reject incomplete verification; this is not a released one-click success claim.
+
 ## Beta 26 amended scope
 
 - Four island pages: Widgets → Music → Files → Clipboard, without wrapping at either end.

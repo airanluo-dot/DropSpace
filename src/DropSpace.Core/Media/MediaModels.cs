@@ -8,6 +8,13 @@ public enum MediaPlaybackState
     Stopped,
 }
 
+public enum MediaRepeatMode
+{
+    None,
+    Track,
+    List,
+}
+
 public sealed record MediaTimelineSnapshot(
     TimeSpan Position,
     TimeSpan Start,
@@ -35,7 +42,11 @@ public sealed record MediaSessionSnapshot(
     MediaTimelineSnapshot Timeline,
     DateTimeOffset LastUpdated,
     string AlbumArtist = "",
-    int TrackNumber = 0)
+    int TrackNumber = 0,
+    bool? ShuffleActive = null,
+    MediaRepeatMode? RepeatMode = null,
+    bool CanChangeShuffle = false,
+    bool CanChangeRepeat = false)
 {
     public bool IsActive => !string.IsNullOrWhiteSpace(TrackTitle) && PlaybackState is not MediaPlaybackState.Stopped;
 
@@ -96,4 +107,8 @@ public interface IMediaSessionService : IAsyncDisposable
     Task SkipPreviousAsync(CancellationToken cancellationToken = default);
 
     Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default);
+
+    Task SetShuffleAsync(bool enabled, CancellationToken cancellationToken = default);
+
+    Task SetRepeatModeAsync(MediaRepeatMode mode, CancellationToken cancellationToken = default);
 }

@@ -46,8 +46,10 @@ Batch metadata/query spans both Space and Clipboard, and release packaging
 validates artifact identity/version from the current release source; stale
 artifacts must fail.
 
-The Beta 26 task includes authorized publication after validation and protected
-merge. Track final status in `docs/dev/beta26-rc-audit.md`; the lyrics, media and
+The user paused Beta 26 publication and added the NetEase enhancement slice.
+Keep the audit checkpoint; do not merge/publish until that pause is lifted.
+Track new work in `docs/dev/netease-enhancement.md` and audit status in
+`docs/dev/beta26-rc-audit.md`; the lyrics, media and
 native/data sub-audits alongside it retain sample-level evidence and limits.
 Do not turn provider HTTP success or native fixtures into claims of unexecuted
 live-player, physical-monitor, accessibility or two-device acceptance.

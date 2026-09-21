@@ -1,5 +1,36 @@
 # Native Island contracts
 
+## NetEase enhancement amendment
+
+- Enhancement is explicit third-party component management, separate from general media.
+  Runtime chain remains NetEase → BetterNCM → unchanged official InfLink-rs → Windows SMTC
+  → DropSpace. Never call the plugin JavaScript API or vendor/fork its implementation.
+- One app confirmation covers download, managed deployment, player restart and bounded
+  playback verification. Windows UAC remains OS-owned. Never bypass elevation/security.
+- Use official upstream artifacts only, bounded downloads, SHA-256 verification, architecture
+  checks, atomic writes and persistent ownership/rollback receipts. Preserve unrelated
+  components and settings. Missing VC runtime requires Microsoft's signed official installer.
+- Presence of DLL/plugin/receipt does not mean Enhanced. Require real Windows metadata,
+  artwork, playback state, actual changing timeline and enabled controls plus command effects.
+  A complete native player skips plugin installation. Failed verification rolls back.
+- Upstream tested versions do not establish support for newer NetEase versions. Revalidate
+  current target-machine installation and rollback before publishing claims.
+- Shuffle/repeat belong to generic IMediaSessionService: nullable unknown states, capability
+  gated commands, state reported by the player, and accessible controls on Music surfaces.
+- Actual InfLink 3.2.11 testing found null initial modes; upstream SMTC handlers ignore
+  requested mode values and toggle instead. Full one-click acceptance is blocked. Never
+  bypass this with a fork, JavaScript API, guessed initial modes, or relaxed success gate.
+- Same-source/same-track duplicate sessions prefer richer standard timeline/seek information,
+  within a two-second comparison budget and preserving cross-player priority. Different
+  tracks remain distinct; dispatch commands to the exact selected session object.
+- Close/re-enumerate exact-path player processes under a total shutdown budget. Retry only
+  actual owned-file access/sharing failures (seven attempts, 3.15s backoff); persistent
+  failures retain receipts and remain visible. Attempt player restart even if rollback fails.
+- Reuse a live verification manager connection across installation restarts; connection
+  failures are infrastructure errors, not evidence that a plugin is missing. Ignore stale
+  candidate COM objects individually, observe new session events, and prove live progress
+  without polling. State-specific Play/Pause flags cannot be required simultaneously.
+
 
 The current Beta 26 audit preserves the Beta 24/25 four-page implementation,
 which originated from Preview.21. Do not transplant Preview.22/23 UI or state

@@ -1,5 +1,16 @@
 # Third-party components and license notices
 
+## Optional, independently downloaded NetEase enhancement components
+
+After explicit confirmation, DropSpace can download unchanged official
+[BetterNCM 1.3.4](https://github.com/std-microblock/chromatic/tree/1.3.4) and
+[InfLink-rs](https://github.com/apoint123/inflink-rs) release artifacts. These
+independent GPL-licensed projects run inside the music player and are not
+included in DropSpace's executable, linked into its assemblies, or copied as
+source. Their upstream source and license notices remain authoritative.
+The required Microsoft Visual C++ Redistributable is downloaded separately
+from Microsoft and retains Microsoft's software license terms.
+
 DropSpace's original source is licensed under Apache-2.0. The components below are dependencies or build services; their source is not incorporated into DropSpace and is not relicensed by the root [LICENSE](LICENSE). Release binaries may contain redistributable object code from the runtime components identified below.
 
 Versions are the versions pinned by `Directory.Packages.props`, `global.json`, the GitHub Actions workflows, and the installer scripts at the time of this notice. Transitive components remain subject to the notices supplied by their upstream packages.

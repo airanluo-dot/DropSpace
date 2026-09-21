@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using DropSpace.Core.Media;
 using Microsoft.Extensions.Logging;
+using Windows.Media;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
 
@@ -100,6 +101,26 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
         EnsureAccepted(await session.TryChangePlaybackPositionAsync(ticks).AsTask(token).ConfigureAwait(false));
     }, cancellationToken);
+
+    public Task SetShuffleAsync(bool enabled, CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
+    {
+        EnsureAccepted(Current.CanChangeShuffle && await session.TryChangeShuffleActiveAsync(enabled).AsTask(token).ConfigureAwait(false));
+    }, cancellationToken);
+
+    public Task SetRepeatModeAsync(MediaRepeatMode mode, CancellationToken cancellationToken = default)
+    {
+        var nativeMode = mode switch
+        {
+            MediaRepeatMode.None => MediaPlaybackAutoRepeatMode.None,
+            MediaRepeatMode.Track => MediaPlaybackAutoRepeatMode.Track,
+            MediaRepeatMode.List => MediaPlaybackAutoRepeatMode.List,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+        };
+        return ControlAsync(async (session, token) =>
+        {
+            EnsureAccepted(Current.CanChangeRepeat && await session.TryChangeAutoRepeatModeAsync(nativeMode).AsTask(token).ConfigureAwait(false));
+        }, cancellationToken);
+    }
 
     private static void EnsureAccepted(bool accepted)
     {
@@ -203,6 +224,10 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         // paused fallback becomes the display/control source. Otherwise only the paused
         // fallback is subscribed and the preferred player's recovery cannot refresh us.
         ObservePreferredSession(candidates[0]);
+        // Preserve the OS/player priority. Only replace its renderer with a richer
+        // renderer from the same application reporting the same track.
+        var richer = await SelectRicherSessionAsync(candidates, TryReadSource, ReadSelectionAsync, token).ConfigureAwait(false);
+        candidates = new[] { richer }.Concat(candidates).Distinct(new SessionReferenceComparer()).ToArray();
         var previous = Current;
         foreach (var candidate in candidates)
         {
@@ -274,7 +299,15 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                         }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
                         playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
                         new(timeline.Position, effectiveStart, effectiveEnd, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt,
-                        albumArtist, trackNumber);
+                        albumArtist, trackNumber,
+                        playback.IsShuffleActive,
+                        playback.AutoRepeatMode switch
+                        {
+                            MediaPlaybackAutoRepeatMode.None => MediaRepeatMode.None,
+                            MediaPlaybackAutoRepeatMode.Track => MediaRepeatMode.Track,
+                            MediaPlaybackAutoRepeatMode.List => MediaRepeatMode.List,
+                            _ => null,
+                        }, playback.Controls.IsShuffleEnabled, playback.Controls.IsRepeatEnabled);
                 }
             }
             catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
@@ -284,6 +317,66 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             }
         }
         return MediaSessionSnapshot.Empty;
+    }
+
+    internal sealed record SessionSelection(string Title, string Artist, string Album, TimeSpan Duration,
+        bool CanSeek, bool HasArtwork, bool CanShuffle, bool CanRepeat);
+
+    internal static async Task<T> SelectRicherSessionAsync<T>(IReadOnlyList<T> candidates,
+        Func<T, string?> source, Func<T, CancellationToken, Task<SessionSelection?>> read,
+        CancellationToken token) where T : class
+    {
+        var preferred = candidates[0];
+        var sourceId = source(preferred);
+        var siblings = candidates.Skip(1).Where(value => string.Equals(source(value), sourceId, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (string.IsNullOrWhiteSpace(sourceId) || siblings.Length == 0) return preferred;
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
+        budget.CancelAfter(TimeSpan.FromSeconds(2));
+        var selected = preferred;
+        try
+        {
+            var baseline = await read(preferred, budget.Token).ConfigureAwait(false);
+            if (baseline is null || string.IsNullOrWhiteSpace(baseline.Title) || string.IsNullOrWhiteSpace(baseline.Artist)) return preferred;
+            var best = Score(baseline);
+            foreach (var sibling in siblings)
+            {
+                var value = await read(sibling, budget.Token).ConfigureAwait(false);
+                if (value is null || !SameTrack(baseline, value)) continue;
+                var score = Score(value);
+                if (score > best) { best = score; selected = sibling; }
+            }
+        }
+        catch (OperationCanceledException) { token.ThrowIfCancellationRequested(); }
+        return selected;
+
+        static int Score(SessionSelection value) =>
+            (value.CanSeek && value.Duration > TimeSpan.Zero ? 16 : 0) +
+            (value.Duration > TimeSpan.Zero ? 8 : 0) + (!string.IsNullOrWhiteSpace(value.Album) ? 4 : 0) +
+            (value.HasArtwork ? 2 : 0) + (value.CanShuffle ? 1 : 0) + (value.CanRepeat ? 1 : 0);
+        static bool SameTrack(SessionSelection a, SessionSelection b) =>
+            string.Equals(a.Title.Trim(), b.Title.Trim(), StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(a.Artist.Trim(), b.Artist.Trim(), StringComparison.OrdinalIgnoreCase) &&
+            (string.IsNullOrWhiteSpace(a.Album) || string.IsNullOrWhiteSpace(b.Album) || string.Equals(a.Album.Trim(), b.Album.Trim(), StringComparison.OrdinalIgnoreCase)) &&
+            (a.Duration <= TimeSpan.Zero || b.Duration <= TimeSpan.Zero || Math.Abs((a.Duration - b.Duration).TotalSeconds) <= 2);
+    }
+
+    private async Task<SessionSelection?> ReadSelectionAsync(GlobalSystemMediaTransportControlsSession session, CancellationToken token)
+    {
+        try
+        {
+            var properties = await session.TryGetMediaPropertiesAsync().AsTask(token).ConfigureAwait(false);
+            var playback = session.GetPlaybackInfo();
+            var timeline = session.GetTimelineProperties();
+            return new(Bound(properties.Title), Bound(properties.Artist), Bound(properties.AlbumTitle),
+                timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero,
+                playback.Controls.IsPlaybackPositionEnabled, properties.Thumbnail is not null,
+                playback.Controls.IsShuffleEnabled, playback.Controls.IsRepeatEnabled);
+        }
+        catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
+        {
+            logger.LogDebug("SMTC duplicate candidate could not be read ({Category}).", exception.GetType().Name);
+            return null;
+        }
     }
 
     internal async Task<byte[]?> ReadOptionalArtworkAsync(Func<CancellationToken, Task<byte[]?>> read, CancellationToken token)

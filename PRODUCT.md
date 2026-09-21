@@ -1,5 +1,19 @@
 # DropSpace Product Specification
 
+## NetEase enhancement amendment — September 21
+
+The user-authorized next slice adds a Music-page enhancement card with one explicit
+confirmation for installing independent third-party components. Preparation, verified
+downloads, deployment, restart and Windows media capability checks then run automatically.
+Successful management exposes update, reinstall and removal. Native complete SMTC support
+skips installation. Installation files alone cannot establish success. Standard shuffle
+and repeat are supported for all capable players. Windows security consent cannot be
+bypassed. Beta26 release publication is paused while this slice is implemented and tested.
+
+Acceptance is currently blocked: official InfLink-rs 3.2.11 does not implement exact
+standard Shuffle/Repeat setters and can expose unknown initial modes. The requested
+complete-enhancement outcome is not shipped or declared supported; see the native report.
+
 ## Beta 26 full-audit bug-fix amendment
 
 The native island has four independent pages, ordered Widgets, Music controls,

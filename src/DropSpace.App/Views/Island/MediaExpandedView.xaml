@@ -34,10 +34,16 @@
    <Slider x:Name="Progress" services:XamlResourceOverride.Uid="MediaSeek" Grid.Column="1" Minimum="0" IsThumbToolTipEnabled="False" ValueChanged="OnSeekChanged"/>
    <TextBlock Grid.Column="2" Text="{Binding RemainingText}" VerticalAlignment="Center"/>
   </Grid>
-  <StackPanel x:Name="ControlsRow" Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
+  <StackPanel x:Name="ControlsRow" Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+   <Button Command="{Binding ToggleShuffleCommand}" Width="48" MinHeight="44" Padding="4" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="{Binding ShuffleHelpText}" AutomationProperties.Name="{Binding ShuffleLabel}" AutomationProperties.HelpText="{Binding ShuffleHelpText}">
+    <StackPanel Spacing="1"><SymbolIcon Symbol="Shuffle"/><TextBlock Text="{Binding ShuffleStateText}" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"/></StackPanel>
+   </Button>
    <Button services:XamlResourceOverride.Uid="MediaPrevious" Command="{Binding PreviousCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE892;"/></Button>
    <Button x:Name="PlayPause" Command="{Binding PlayPauseCommand}" Width="56" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="{Binding PlaybackGlyph}" FontSize="28"/></Button>
    <Button services:XamlResourceOverride.Uid="MediaNext" Command="{Binding NextCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE893;"/></Button>
+   <Button Command="{Binding CycleRepeatCommand}" Width="48" MinHeight="44" Padding="4" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="{Binding RepeatHelpText}" AutomationProperties.Name="{Binding RepeatLabel}" AutomationProperties.HelpText="{Binding RepeatHelpText}">
+    <StackPanel Spacing="1"><SymbolIcon x:Name="RepeatIcon" Symbol="RepeatAll"/><TextBlock Text="{Binding RepeatStateText}" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"/></StackPanel>
+   </Button>
   </StackPanel>
   <StackPanel Grid.Row="4" Spacing="2">
    <TextBlock Text="{Binding TimelineStatus}" FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>

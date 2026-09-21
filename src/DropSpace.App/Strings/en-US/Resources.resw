@@ -470,6 +470,26 @@ Nothing will be opened automatically.</value></data>
   <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Previous island page</value></data>
   <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Next track</value></data>
   <data name="MediaPauseLabel" xml:space="preserve"><value>Pause</value></data>
+  <data name="MediaShuffleOn" xml:space="preserve"><value>Shuffle: on</value></data>
+  <data name="MediaShuffleOff" xml:space="preserve"><value>Shuffle: off</value></data>
+  <data name="MediaShuffleUnknown" xml:space="preserve"><value>Shuffle: unknown</value></data>
+  <data name="MediaShuffleStateOn" xml:space="preserve"><value>On</value></data>
+  <data name="MediaShuffleStateOff" xml:space="preserve"><value>Off</value></data>
+  <data name="MediaShuffleStateUnknown" xml:space="preserve"><value>—</value></data>
+  <data name="MediaShuffleUnavailable" xml:space="preserve"><value>This player does not allow changing shuffle through Windows.</value></data>
+  <data name="MediaShuffleUnknownHelp" xml:space="preserve"><value>This player has not reported its shuffle state.</value></data>
+  <data name="MediaShuffleToggleHelp" xml:space="preserve"><value>Turn shuffle on or off.</value></data>
+  <data name="MediaRepeatOff" xml:space="preserve"><value>Repeat: off</value></data>
+  <data name="MediaRepeatAll" xml:space="preserve"><value>Repeat: all tracks</value></data>
+  <data name="MediaRepeatOne" xml:space="preserve"><value>Repeat: one track</value></data>
+  <data name="MediaRepeatUnknown" xml:space="preserve"><value>Repeat: unknown</value></data>
+  <data name="MediaRepeatStateOff" xml:space="preserve"><value>Off</value></data>
+  <data name="MediaRepeatStateAll" xml:space="preserve"><value>All</value></data>
+  <data name="MediaRepeatStateOne" xml:space="preserve"><value>One</value></data>
+  <data name="MediaRepeatStateUnknown" xml:space="preserve"><value>—</value></data>
+  <data name="MediaRepeatUnavailable" xml:space="preserve"><value>This player does not allow changing repeat mode through Windows.</value></data>
+  <data name="MediaRepeatUnknownHelp" xml:space="preserve"><value>This player has not reported its repeat mode.</value></data>
+  <data name="MediaRepeatCycleHelp" xml:space="preserve"><value>Cycle repeat: off, all tracks, one track.</value></data>
   <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open settings</value></data>
   <data name="WidgetsEmpty.Text" xml:space="preserve"><value>Choose widgets in Settings to build this page.</value></data>
   <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Playback position</value></data>
@@ -570,4 +590,34 @@ Nothing will be opened automatically.</value></data>
   <data name="ActivityMuted" xml:space="preserve"><value>Muted</value></data>
   <data name="ActivityVolume" xml:space="preserve"><value>Volume</value></data>
   <data name="NotificationAccessUnavailable" xml:space="preserve"><value>Notification access is unavailable or was not granted. Enable notification access for the installed DropSpace app in Windows Settings.</value></data>
+  <data name="NeteaseEnhancementTitle" xml:space="preserve"><value>NetEase Music enhancement</value></data>
+  <data name="NeteaseEnhancementDescription" xml:space="preserve"><value>Enable complete media controls, playback progress and related features in DropSpace.</value></data>
+  <data name="NeteaseEnhancementInstall" xml:space="preserve"><value>Enhance NetEase Music</value></data>
+  <data name="NeteaseEnhancementUpdate" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="NeteaseEnhancementReinstall" xml:space="preserve"><value>Reinstall</value></data>
+  <data name="NeteaseEnhancementRemove" xml:space="preserve"><value>Remove enhancement</value></data>
+  <data name="NeteaseEnhancementConfirmTitle" xml:space="preserve"><value>Enhance NetEase Music</value></data>
+  <data name="NeteaseEnhancementConfirmBody" xml:space="preserve"><value>DropSpace will automatically install InfLink-rs and its required runtime components to provide complete Windows media support for NetEase Music. These are independent third-party open-source projects. NetEase Music will restart, and playback will briefly change while controls are verified.</value></data>
+  <data name="NeteaseEnhancementCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="NeteaseEnhancementConfirm" xml:space="preserve"><value>Confirm and install</value></data>
+  <data name="NeteaseEnhancementNotInstalled" xml:space="preserve"><value>Ready to enhance</value></data>
+  <data name="NeteaseEnhancementDetecting" xml:space="preserve"><value>Checking NetEase Music…</value></data>
+  <data name="NeteaseEnhancementPreparing" xml:space="preserve"><value>Preparing enhancement components…</value></data>
+  <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>Installing InfLink-rs…</value></data>
+  <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>Restarting NetEase Music…</value></data>
+  <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>Verifying media controls…</value></data>
+  <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ Enhanced — complete media controls are enabled</value></data>
+  <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>Removing enhancement…</value></data>
+  <data name="NeteaseEnhancementRemoved" xml:space="preserve"><value>Enhancement removed</value></data>
+  <data name="NeteaseEnhancementFailed" xml:space="preserve"><value>Enhancement could not be completed</value></data>
+  <data name="NeteaseEnhancementErrorUnexpected" xml:space="preserve"><value>The operation failed. You can retry; details are available in diagnostics.</value></data>
+  <data name="NeteaseEnhancementErrorNotFound" xml:space="preserve"><value>NetEase Music was not found on this computer.</value></data>
+  <data name="NeteaseEnhancementErrorVerification" xml:space="preserve"><value>Complete media control verification failed. The previous installation state has been restored. The player or enhancement component may lack some capabilities.</value></data>
+  <data name="NeteaseEnhancementErrorPermission" xml:space="preserve"><value>Windows denied access to the player installation. Run DropSpace as administrator and retry.</value></data>
+  <data name="NeteaseEnhancementErrorConflict" xml:space="preserve"><value>An existing component could not be safely replaced. Your existing installation was preserved.</value></data>
+  <data name="NeteaseEnhancementErrorIntegrity" xml:space="preserve"><value>Component integrity verification failed. Nothing from this download was installed.</value></data>
+  <data name="NeteaseEnhancementErrorNetwork" xml:space="preserve"><value>The official component source could not be reached. Please retry later.</value></data>
+  <data name="NeteaseEnhancementErrorRuntime" xml:space="preserve"><value>A required runtime component is unavailable. The enhancement was not installed.</value></data>
+  <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>Automatic recovery could not finish. Use Reinstall or Remove enhancement to recover.</value></data>
+  <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>The operation was canceled.</value></data>
 </root>

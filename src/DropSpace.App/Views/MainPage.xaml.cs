@@ -74,7 +74,8 @@ public sealed partial class MainPage : Page
         MediaViewModel media,
         Services.Media.WindowsMediaSessionService sessions,
         Services.Media.MediaExperienceService mediaExperience,
-        Services.Media.MediaApplicationIconService mediaIcons)
+        Services.Media.MediaApplicationIconService mediaIcons,
+        NeteaseEnhancementViewModel enhancement)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -110,7 +111,7 @@ public sealed partial class MainPage : Page
         KeyboardAccelerators.Add(settingsAccelerator);
 
         DataContext = viewModel;
-        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle);
+        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement);
         BuildSettingsPages(settingsEditor);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;

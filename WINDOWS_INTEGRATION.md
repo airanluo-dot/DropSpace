@@ -1,5 +1,28 @@
 # Windows Integration Feasibility
 
+## NetEase enhancement verification boundary
+
+The new enhancement manager uses official independent BetterNCM/InfLink components
+and verifies their output through Windows GSMTC. Generic shuffle/repeat capabilities,
+nullable state and control calls use standard Windows APIs available below the current
+20348 minimum. Player restart is bounded and scoped to the verified executable path;
+closing to tray is followed by termination of those exact processes when necessary.
+Actual native timeline advances, control effects and restored playback preferences are
+acceptance evidence. File deployment or enabled-control flags alone are insufficient.
+NetEase 3.1.40 is outside upstream documented test ranges; see
+`docs/dev/netease-enhancement.md` for the actual target-machine result. No claim of
+compatibility with every NetEase version or privilege configuration is made.
+
+Native testing found simultaneous weak/native and richer/plugin sessions with the same
+source. The generic selector preserves cross-player priority and prefers the richer session
+only when source and nonempty title/artist match (with album/duration conflict checks).
+Comparison has a two-second budget; commands and subscriptions use the selected object.
+InfLink 3.2.11's initial Shuffle/Repeat state remains null on this host; upstream handlers
+toggle rather than honor the requested absolute mode. Complete enhancement is blocked.
+Windows may temporarily retain DLL mappings after process exit; owned-file replacement and
+removal retry only actual access/sharing failures, at most seven attempts/3.15 seconds of
+backoff. Persistent failures stay visible; no successful stage receives a fixed sleep.
+
 ## Beta.25 runtime and ownership boundary
 
 Beta.25 keeps the x64 Windows build 20348 minimum and treats WinUI native

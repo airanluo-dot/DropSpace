@@ -470,6 +470,26 @@
   <data name="IslandPreviousPage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>上一个灵动岛页面</value></data>
   <data name="MediaNext.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>下一首</value></data>
   <data name="MediaPauseLabel" xml:space="preserve"><value>暂停</value></data>
+  <data name="MediaShuffleOn" xml:space="preserve"><value>随机播放：开</value></data>
+  <data name="MediaShuffleOff" xml:space="preserve"><value>随机播放：关</value></data>
+  <data name="MediaShuffleUnknown" xml:space="preserve"><value>随机播放：未知</value></data>
+  <data name="MediaShuffleStateOn" xml:space="preserve"><value>开</value></data>
+  <data name="MediaShuffleStateOff" xml:space="preserve"><value>关</value></data>
+  <data name="MediaShuffleStateUnknown" xml:space="preserve"><value>—</value></data>
+  <data name="MediaShuffleUnavailable" xml:space="preserve"><value>此播放器不支持通过 Windows 更改随机播放。</value></data>
+  <data name="MediaShuffleUnknownHelp" xml:space="preserve"><value>此播放器尚未提供随机播放状态。</value></data>
+  <data name="MediaShuffleToggleHelp" xml:space="preserve"><value>开启或关闭随机播放。</value></data>
+  <data name="MediaRepeatOff" xml:space="preserve"><value>循环播放：关</value></data>
+  <data name="MediaRepeatAll" xml:space="preserve"><value>循环播放：列表循环</value></data>
+  <data name="MediaRepeatOne" xml:space="preserve"><value>循环播放：单曲循环</value></data>
+  <data name="MediaRepeatUnknown" xml:space="preserve"><value>循环播放：未知</value></data>
+  <data name="MediaRepeatStateOff" xml:space="preserve"><value>关</value></data>
+  <data name="MediaRepeatStateAll" xml:space="preserve"><value>列表</value></data>
+  <data name="MediaRepeatStateOne" xml:space="preserve"><value>单曲</value></data>
+  <data name="MediaRepeatStateUnknown" xml:space="preserve"><value>—</value></data>
+  <data name="MediaRepeatUnavailable" xml:space="preserve"><value>此播放器不支持通过 Windows 更改循环模式。</value></data>
+  <data name="MediaRepeatUnknownHelp" xml:space="preserve"><value>此播放器尚未提供循环模式。</value></data>
+  <data name="MediaRepeatCycleHelp" xml:space="preserve"><value>依次切换：关闭循环、列表循环、单曲循环。</value></data>
   <data name="WidgetSettingsAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开设置</value></data>
   <data name="WidgetsEmpty.Text" xml:space="preserve"><value>在设置中选择小组件，组成这个页面。</value></data>
   <data name="MediaSeek.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>播放进度</value></data>
@@ -570,4 +590,34 @@
   <data name="ActivityMuted" xml:space="preserve"><value>已静音</value></data>
   <data name="ActivityVolume" xml:space="preserve"><value>音量</value></data>
   <data name="NotificationAccessUnavailable" xml:space="preserve"><value>通知访问不可用或未获授权。请在 Windows 设置中为已安装的 DropSpace 开启通知访问权限。</value></data>
+  <data name="NeteaseEnhancementTitle" xml:space="preserve"><value>网易云音乐增强</value></data>
+  <data name="NeteaseEnhancementDescription" xml:space="preserve"><value>让网易云完整支持 DropSpace 的媒体控制、播放进度和相关功能。</value></data>
+  <data name="NeteaseEnhancementInstall" xml:space="preserve"><value>一键增强网易云音乐</value></data>
+  <data name="NeteaseEnhancementUpdate" xml:space="preserve"><value>检查更新</value></data>
+  <data name="NeteaseEnhancementReinstall" xml:space="preserve"><value>重新安装</value></data>
+  <data name="NeteaseEnhancementRemove" xml:space="preserve"><value>移除增强</value></data>
+  <data name="NeteaseEnhancementConfirmTitle" xml:space="preserve"><value>增强网易云音乐</value></data>
+  <data name="NeteaseEnhancementConfirmBody" xml:space="preserve"><value>DropSpace 将自动安装 InfLink-rs 及其必要运行组件，用于为网易云音乐提供完整的 Windows SMTC 支持。这些组件属于独立的第三方开源项目。安装时将重启网易云，并短暂切换播放状态以验证媒体控制。</value></data>
+  <data name="NeteaseEnhancementCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="NeteaseEnhancementConfirm" xml:space="preserve"><value>确认并安装</value></data>
+  <data name="NeteaseEnhancementNotInstalled" xml:space="preserve"><value>尚未增强</value></data>
+  <data name="NeteaseEnhancementDetecting" xml:space="preserve"><value>正在检测网易云……</value></data>
+  <data name="NeteaseEnhancementPreparing" xml:space="preserve"><value>正在准备增强组件……</value></data>
+  <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>正在安装 InfLink-rs……</value></data>
+  <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>正在重新启动网易云……</value></data>
+  <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>正在验证媒体控制……</value></data>
+  <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ 已增强 · 完整媒体控制已启用</value></data>
+  <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>正在移除增强……</value></data>
+  <data name="NeteaseEnhancementRemoved" xml:space="preserve"><value>已移除增强</value></data>
+  <data name="NeteaseEnhancementFailed" xml:space="preserve"><value>未能完成增强</value></data>
+  <data name="NeteaseEnhancementErrorUnexpected" xml:space="preserve"><value>操作失败，可重试。具体原因可在诊断记录中查看。</value></data>
+  <data name="NeteaseEnhancementErrorNotFound" xml:space="preserve"><value>此电脑上未找到网易云音乐。</value></data>
+  <data name="NeteaseEnhancementErrorVerification" xml:space="preserve"><value>未能通过完整媒体控制验证，已恢复安装前状态。播放器或增强组件可能缺少部分能力。</value></data>
+  <data name="NeteaseEnhancementErrorPermission" xml:space="preserve"><value>Windows 拒绝了安装目录访问。请以管理员身份运行 DropSpace 后重试。</value></data>
+  <data name="NeteaseEnhancementErrorConflict" xml:space="preserve"><value>现有组件无法安全替换，已保留原有安装。</value></data>
+  <data name="NeteaseEnhancementErrorIntegrity" xml:space="preserve"><value>增强组件完整性验证失败，本次下载未安装。</value></data>
+  <data name="NeteaseEnhancementErrorNetwork" xml:space="preserve"><value>暂时无法访问官方组件来源，请稍后重试。</value></data>
+  <data name="NeteaseEnhancementErrorRuntime" xml:space="preserve"><value>必要运行组件不可用，尚未安装增强。</value></data>
+  <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>自动恢复未能完成，请使用重新安装或移除增强恢复。</value></data>
+  <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>操作已取消。</value></data>
 </root>

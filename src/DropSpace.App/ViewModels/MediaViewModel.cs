@@ -41,6 +41,25 @@ public sealed class MediaViewModel : ObservableObject
         PreviousCommand = new AsyncRelayCommand(token => Execute(() => media.SkipPreviousAsync(token)), () => Session.CanSkipPrevious);
         NextCommand = new AsyncRelayCommand(token => Execute(() => media.SkipNextAsync(token)), () => Session.CanSkipNext);
         SeekCommand = new AsyncRelayCommand<double?>(value => Execute(async () => { if (value is { } seconds && double.IsFinite(seconds)) await media.SeekAsync(Session.Timeline.Start + TimeSpan.FromSeconds(seconds)); }), _ => Session.CanSeek && !PositionEstimated);
+        ToggleShuffleCommand = new AsyncRelayCommand(token => Execute(async () =>
+        {
+            var session = Session;
+            if (session.CanChangeShuffle && session.ShuffleActive is { } enabled)
+                await media.SetShuffleAsync(!enabled, token);
+        }), () => Session.CanChangeShuffle && Session.ShuffleActive.HasValue);
+        CycleRepeatCommand = new AsyncRelayCommand(token => Execute(async () =>
+        {
+            var session = Session;
+            if (!session.CanChangeRepeat) return;
+            var next = session.RepeatMode switch
+            {
+                MediaRepeatMode.None => MediaRepeatMode.List,
+                MediaRepeatMode.List => MediaRepeatMode.Track,
+                MediaRepeatMode.Track => MediaRepeatMode.None,
+                _ => (MediaRepeatMode?)null,
+            };
+            if (next is { } mode) await media.SetRepeatModeAsync(mode, token);
+        }), () => Session.CanChangeRepeat && Session.RepeatMode is MediaRepeatMode.None or MediaRepeatMode.Track or MediaRepeatMode.List);
         async Task Execute(Func<Task> action)
         {
             try { ControlError = string.Empty; await action(); }
@@ -66,6 +85,10 @@ public sealed class MediaViewModel : ObservableObject
             OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
             OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
             PlayPauseCommand.NotifyCanExecuteChanged(); PreviousCommand.NotifyCanExecuteChanged(); NextCommand.NotifyCanExecuteChanged(); SeekCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(ShuffleLabel)); OnPropertyChanged(nameof(RepeatLabel));
+            OnPropertyChanged(nameof(ShuffleStateText)); OnPropertyChanged(nameof(RepeatStateText));
+            OnPropertyChanged(nameof(ShuffleHelpText)); OnPropertyChanged(nameof(RepeatHelpText));
+            ToggleShuffleCommand.NotifyCanExecuteChanged(); CycleRepeatCommand.NotifyCanExecuteChanged();
         }
     }
     public LyricsHighlightFrame Lyrics
@@ -112,6 +135,9 @@ public sealed class MediaViewModel : ObservableObject
         {
             if (!SetProperty(ref _settings, value)) return;
             OnPropertyChanged(nameof(SecondaryLyricText)); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
+            OnPropertyChanged(nameof(ShuffleLabel)); OnPropertyChanged(nameof(RepeatLabel));
+            OnPropertyChanged(nameof(ShuffleStateText)); OnPropertyChanged(nameof(RepeatStateText));
+            OnPropertyChanged(nameof(ShuffleHelpText)); OnPropertyChanged(nameof(RepeatHelpText));
         }
     }
     public TimeSpan Position
@@ -127,6 +153,36 @@ public sealed class MediaViewModel : ObservableObject
     public string Artist => Session.Artist;
     public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
+    public string ShuffleLabel => _strings.Get(Session.ShuffleActive switch
+    {
+        true => "MediaShuffleOn",
+        false => "MediaShuffleOff",
+        _ => "MediaShuffleUnknown",
+    });
+    public string RepeatLabel => _strings.Get(Session.RepeatMode switch
+    {
+        MediaRepeatMode.None => "MediaRepeatOff",
+        MediaRepeatMode.List => "MediaRepeatAll",
+        MediaRepeatMode.Track => "MediaRepeatOne",
+        _ => "MediaRepeatUnknown",
+    });
+    public string ShuffleHelpText => _strings.Get(!Session.CanChangeShuffle ? "MediaShuffleUnavailable" :
+        !Session.ShuffleActive.HasValue ? "MediaShuffleUnknownHelp" : "MediaShuffleToggleHelp");
+    public string RepeatHelpText => _strings.Get(!Session.CanChangeRepeat ? "MediaRepeatUnavailable" :
+        !Session.RepeatMode.HasValue ? "MediaRepeatUnknownHelp" : "MediaRepeatCycleHelp");
+    public string ShuffleStateText => _strings.Get(Session.ShuffleActive switch
+    {
+        true => "MediaShuffleStateOn",
+        false => "MediaShuffleStateOff",
+        _ => "MediaShuffleStateUnknown",
+    });
+    public string RepeatStateText => _strings.Get(Session.RepeatMode switch
+    {
+        MediaRepeatMode.None => "MediaRepeatStateOff",
+        MediaRepeatMode.List => "MediaRepeatStateAll",
+        MediaRepeatMode.Track => "MediaRepeatStateOne",
+        _ => "MediaRepeatStateUnknown",
+    });
     public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
     public string CurrentLyricText => Settings.Lyrics.Enabled ? Lyrics.Line?.Text ?? Title : Title;
     public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(Lyrics.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
@@ -147,6 +203,8 @@ public sealed class MediaViewModel : ObservableObject
     public IAsyncRelayCommand PreviousCommand { get; }
     public IAsyncRelayCommand NextCommand { get; }
     public IAsyncRelayCommand<double?> SeekCommand { get; }
+    public IAsyncRelayCommand ToggleShuffleCommand { get; }
+    public IAsyncRelayCommand CycleRepeatCommand { get; }
 
     private int FindLyricIndex(LyricsLine? line)
     {

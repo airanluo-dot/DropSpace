@@ -37,12 +37,14 @@ public sealed class MusicPage : UserControl
     private string _renderedLyricsOptions = string.Empty;
     private int _lastCenteredLyric = -1;
     public MusicPage(NativeSettingsEditor editor, MediaViewModel media, WindowsMediaSessionService sessions,
-        MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle)
+        MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle,
+        NeteaseEnhancementViewModel enhancement)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
         var body = new StackPanel { Spacing = 16, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
         _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
         body.Children.Add(_nowPlaying);
+        body.Children.Add(new NeteaseEnhancementCard(enhancement, strings));
         _lyricsScroll = new ScrollViewer
         {
             Content = _lyricsRows,
