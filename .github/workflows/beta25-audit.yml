@@ -1,0 +1,111 @@
+name: Beta25 Isolated Engineering Audit
+
+on:
+  push:
+    branches: [audit/beta25-20260921-engineering]
+    paths: [.github/workflows/beta25-audit.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 53dff85de5b4277f37783fdb3f3f1b4506e028f9
+          fetch-depth: 40
+          persist-credentials: false
+      - name: Preserve immutable audit source and regression evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-output
+          git rev-parse HEAD > audit-output/audited-commit.txt
+          git status --short > audit-output/initial-worktree-status.txt
+          git archive --format=zip --output=audit-output/beta25-source.zip HEAD
+          git log -40 --format='%H %aI %s' > audit-output/recent-commits.txt
+          git diff 9c3498f8174d8b4ed4013066facab535258ed688 HEAD > audit-output/beta24-beta25.patch
+          git ls-tree -r -l HEAD > audit-output/repository-manifest.txt
+          sha256sum audit-output/beta25-source.zip > audit-output/source-sha256.txt
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: beta25-audit-source-evidence
+          path: audit-output/
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-validation:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 53dff85de5b4277f37783fdb3f3f1b4506e028f9
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.401
+      - name: Capture environment and verify clean source
+        shell: pwsh
+        run: |
+          New-Item audit-output -ItemType Directory -Force | Out-Null
+          git rev-parse HEAD | Set-Content audit-output/audited-commit.txt
+          dotnet --info | Set-Content audit-output/dotnet-info.txt
+          ./scripts/Generate-BrandAssets.ps1 -Verify
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ./scripts/Generate-BrandAssets.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Restore locked dependency graph
+        shell: pwsh
+        run: |
+          dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true 2>&1 | Tee-Object audit-output/restore.log
+          exit $LASTEXITCODE
+      - name: Debug build
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet build DropSpace.sln -c Debug --no-restore -p:Platform=x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false 2>&1 | Tee-Object audit-output/build-debug.log
+          exit $LASTEXITCODE
+      - name: Release build
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet build DropSpace.sln -c Release --no-restore -p:Platform=x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false 2>&1 | Tee-Object audit-output/build-release.log
+          exit $LASTEXITCODE
+      - name: Core tests
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger 'trx;LogFileName=core-audit.trx' 2>&1 | Tee-Object audit-output/core-tests.log
+          exit $LASTEXITCODE
+      - name: Infrastructure tests
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger 'trx;LogFileName=infrastructure-audit.trx' 2>&1 | Tee-Object audit-output/infrastructure-tests.log
+          exit $LASTEXITCODE
+      - name: App contract and native-boundary tests
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --logger 'trx;LogFileName=app-audit.trx' 2>&1 | Tee-Object audit-output/app-tests.log
+          exit $LASTEXITCODE
+      - name: Capture dependency audit and working tree
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet list DropSpace.sln package --vulnerable --include-transitive 2>&1 | Tee-Object audit-output/dependency-vulnerabilities.log
+          git status --short | Set-Content audit-output/final-worktree-status.txt
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: beta25-audit-windows-validation
+          path: |
+            audit-output/
+            **/TestResults/*audit.trx
+          if-no-files-found: error
+          retention-days: 7
