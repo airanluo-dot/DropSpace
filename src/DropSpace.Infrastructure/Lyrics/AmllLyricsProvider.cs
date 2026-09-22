@@ -9,13 +9,10 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : ILyricsProvider
     public LyricsProviderKind Kind => LyricsProviderKind.Amll;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
     {
-        // AMLL's native API supports field-specific AND matching. Supplying the available
-        // artist/album metadata reduces same-title candidates before the client-side identity
-        // check, while still allowing incomplete SMTC metadata.
-        var searchUrl = $"https://api.amll.dev/v1/lyrics/search?musicName={Escape(query.Title)}" +
-            (string.IsNullOrWhiteSpace(query.Artist) ? string.Empty : $"&artistName={Escape(query.Artist)}") +
-            (string.IsNullOrWhiteSpace(query.Album) ? string.Empty : $"&albumName={Escape(query.Album)}") +
-            "&pageSize=100";
+        // Player and catalogue credits are not guaranteed to use the same artist/album
+        // semantics. Search broadly by normalized title, then apply the shared multi-signal
+        // identity matcher to the bounded result set.
+        var searchUrl = $"https://api.amll.dev/v1/lyrics/search?musicName={Escape(LyricsMatcher.SearchTitle(query.Title))}&pageSize=100";
         using var search = await http.GetAsync(searchUrl, cancellationToken);
         var best = Array(search.RootElement, "data", "items")
             .Select(item => new

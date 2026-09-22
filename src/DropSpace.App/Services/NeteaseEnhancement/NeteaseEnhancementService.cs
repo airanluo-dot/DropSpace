@@ -48,10 +48,31 @@ public sealed class NeteaseEnhancementService(
             var installation = await installations.FindAsync(lifetime.Token).ConfigureAwait(false);
             if (installation is null) { Publish(new(NeteaseEnhancementStage.NotInstalled)); return; }
             receipt = await deployment.GetManagedReceiptAsync(installation, lifetime.Token).ConfigureAwait(false);
-            // Merely opening Music never downloads, modifies components or starts playback.
+            // Passive inspection is local-only: a committed receipt is revalidated against the
+            // installed bytes, and independently managed BetterNCM/InfLink files are recognized
+            // as installed without conflating installation with a live capability test.
+            if (receipt is { Committed: false })
+            {
+                Publish(new(NeteaseEnhancementStage.Failed, true, receipt.PluginVersion, "Rollback"));
+                return;
+            }
+            if (receipt is { Committed: true })
+            {
+                var intact = await deployment.IsManagedInstallationIntactAsync(receipt, lifetime.Token).ConfigureAwait(false);
+                Publish(new(intact ? NeteaseEnhancementStage.Installed : NeteaseEnhancementStage.Failed,
+                    true, receipt.PluginVersion, intact ? null : "Conflict"));
+                return;
+            }
+            var local = await new BetterNcmProbe().FindAsync(installation, lifetime.Token).ConfigureAwait(false);
+            if (local.LoaderPresent && local.PluginPresent)
+            {
+                Publish(new(NeteaseEnhancementStage.Installed));
+                return;
+            }
+            // Native support is still accepted through the same player-agnostic Windows media
+            // capability check. This does not download or update anything.
             var capabilities = await verifier.VerifyAsync(TimeSpan.FromSeconds(4), false, lifetime.Token).ConfigureAwait(false);
-            Publish(new((capabilities.Complete || CanRetainVerifiedState(receipt is { Committed: true }, capabilities)) ? NeteaseEnhancementStage.Enhanced : NeteaseEnhancementStage.NotInstalled,
-                receipt is not null, receipt?.PluginVersion, receipt is { Committed: false } ? "Rollback" : null));
+            Publish(new(capabilities.Complete ? NeteaseEnhancementStage.Enhanced : NeteaseEnhancementStage.NotInstalled));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

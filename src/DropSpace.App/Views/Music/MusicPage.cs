@@ -9,6 +9,8 @@ using DropSpace.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Text;
 using System.Diagnostics;
 using Windows.Foundation;
@@ -23,13 +25,15 @@ public sealed class MusicPage : UserControl
     private readonly WindowsMediaSessionService _sessions;
     private readonly MediaApplicationIconService _icons;
     private readonly IAppStringLocalizer _strings;
+    private readonly StackPanel _body = new() { Spacing = 16, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly StackPanel _applications = new() { Spacing = 8 };
     private readonly TextBlock _folder = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _source = new() { Opacity = 0.7 };
     private readonly StackPanel _lyricsRows = new() { Spacing = 8 };
     private readonly ScrollViewer _lyricsScroll;
     private readonly TextBlock _lyricsStatus = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly MediaExpandedView _nowPlaying;
+    private readonly NeteaseEnhancementViewModel _enhancement;
+    private readonly NeteaseEnhancementCard _enhancementCard;
     private CancellationTokenSource? _iconStop;
     private Task _iconJob = Task.CompletedTask;
     private string _sourcesKey = string.Empty;
@@ -41,10 +45,11 @@ public sealed class MusicPage : UserControl
         NeteaseEnhancementViewModel enhancement)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
-        var body = new StackPanel { Spacing = 16, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
+        _enhancement = enhancement;
         _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
-        body.Children.Add(_nowPlaying);
-        body.Children.Add(new NeteaseEnhancementCard(enhancement, strings));
+        _body.Children.Add(CreateCard(_nowPlaying, new Thickness(0)));
+        _enhancementCard = new NeteaseEnhancementCard(enhancement, strings);
+        _body.Children.Add(_enhancementCard);
         _lyricsScroll = new ScrollViewer
         {
             Content = _lyricsRows,
@@ -53,6 +58,13 @@ public sealed class MusicPage : UserControl
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             Padding = new(4, 2, 4, 8),
         };
+        // The lyrics viewport is an intentional wheel-input safe zone. Let the
+        // ScrollViewer consume the wheel first, then stop any remaining routed
+        // event from moving the outer page at the same time or at a boundary.
+        _lyricsScroll.AddHandler(
+            UIElement.PointerWheelChangedEvent,
+            new PointerEventHandler(OnLyricsPointerWheelChanged),
+            handledEventsToo: true);
         AutomationProperties.SetName(_lyricsScroll, strings.Get("MusicLyricsSection"));
         var lyricsPanel = new StackPanel { Spacing = 8 };
         lyricsPanel.Children.Add(new TextBlock
@@ -63,9 +75,8 @@ public sealed class MusicPage : UserControl
         });
         lyricsPanel.Children.Add(_lyricsStatus);
         lyricsPanel.Children.Add(_lyricsScroll);
-        body.Children.Add(lyricsPanel);
-        body.Children.Add(_source);
-        var form = new SettingsForm(editor, strings); body.Children.Add(form);
+        _body.Children.Add(CreateCard(lyricsPanel, new Thickness(16)));
+        var form = new SettingsForm(editor, strings); _body.Children.Add(form);
         form.AddHeading("MusicPlaybackSection");
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });
         form.AddToggle("MusicArtwork", s => s.IslandActivity.ShowArtwork, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowArtwork = v } });
@@ -76,7 +87,17 @@ public sealed class MusicPage : UserControl
         form.AddToggle("LyricsEnabled", s => s.Lyrics.Enabled, (s,v) => s with { Lyrics = s.Lyrics with { Enabled = v } });
         form.AddToggle("LyricsCompact", s => s.IslandActivity.ShowLyricsInCompact, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowLyricsInCompact = v } });
         form.AddChoice("LyricsMode", new[] { (LyricsMode.Online, strings.Get("LyricsOnline")), (LyricsMode.LocalLrc, strings.Get("LyricsLocal")) }, s => s.Lyrics.Mode, (s,v) => s with { Lyrics = s.Lyrics with { Mode = v } });
-        form.AddChoice("LyricsProvider", Enum.GetValues<LyricsProviderKind>().Select(value => (value, strings.Get("LyricsProvider" + value))), s => s.Lyrics.Provider, (s,v) => s with { Lyrics = s.Lyrics with { Provider = v } });
+        var onlineProviders = Enum.GetValues<LyricsProviderKind>().Where(value => value != LyricsProviderKind.LocalLrc).ToArray();
+        form.AddChoice("LyricsProvider", onlineProviders.Select(value => (value, strings.Get("LyricsProvider" + value))),
+            s => s.Lyrics.Provider,
+            (s,v) => s with { Lyrics = s.Lyrics with { Provider = v, BackupProvider = s.Lyrics.BackupProvider == v ? null : s.Lyrics.BackupProvider } });
+        var backupChoices = new[] { (new ProviderChoice(null), strings.Get("LyricsBackupProviderNone")) }
+            .Concat(onlineProviders.Select(value => (new ProviderChoice(value), strings.Get("LyricsProvider" + value))));
+        form.AddChoice("LyricsBackupProvider", backupChoices,
+            s => new ProviderChoice(s.Lyrics.BackupProvider),
+            (s,v) => s with { Lyrics = s.Lyrics with { BackupProvider = v.Value == s.Lyrics.Provider ? null : v.Value } });
+        form.AddToggle("LyricsSearchRemainingProviders", s => s.Lyrics.SearchRemainingProviders,
+            (s,v) => s with { Lyrics = s.Lyrics with { SearchRemainingProviders = v } });
         form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsFallbackHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.7 });
         form.AddToggle("LyricsSecondary", s => s.Lyrics.SecondaryLyrics, (s,v) => s with { Lyrics = s.Lyrics with { SecondaryLyrics = v } });
         form.AddToggle("LyricsWords", s => s.Lyrics.WordSyncedHighlighting, (s,v) => s with { Lyrics = s.Lyrics with { WordSyncedHighlighting = v } });
@@ -91,17 +112,24 @@ public sealed class MusicPage : UserControl
         form.AddToggle("MusicAllApplications", s => !s.IslandActivity.UseMediaSourceAllowList && s.IslandActivity.AllowedMediaSourceAppIds.Length == 0,
             (s,v) => s with { IslandActivity = s.IslandActivity with { UseMediaSourceAllowList = !v, AllowedMediaSourceAppIds = v ? [] : sessions.AvailableSources.ToArray() } });
         form.Rows.Children.Add(_applications);
-        var scroll = new ScrollViewer { Content = body, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        scroll.SizeChanged += (_, _) => body.Width = Math.Clamp(scroll.ActualWidth - 48, 0, 780);
+        var scroll = new ScrollViewer { Content = _body, Padding = new(24), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        scroll.SizeChanged += (_, _) => _body.Width = Math.Clamp(scroll.ActualWidth - 48, 0, 780);
         Content = scroll;
         Loaded += OnLoaded; Unloaded += OnUnloaded;
     }
     private void OnLoaded(object sender, RoutedEventArgs args)
-    { _editor.PropertyChanged += OnSettings; _media.PropertyChanged += OnMedia; Refresh(); }
+    {
+        _editor.PropertyChanged += OnSettings;
+        _media.PropertyChanged += OnMedia;
+        _enhancement.PropertyChanged += OnEnhancement;
+        Refresh();
+        UpdateEnhancementPlacement();
+    }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         _editor.PropertyChanged -= OnSettings;
         _media.PropertyChanged -= OnMedia;
+        _enhancement.PropertyChanged -= OnEnhancement;
         var stop = Interlocked.Exchange(ref _iconStop, null);
         stop?.Cancel();
         var job = _iconJob;
@@ -110,6 +138,7 @@ public sealed class MusicPage : UserControl
         _sourcesKey = string.Empty;
     }
     private void OnSettings(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Refresh(); }
+    private void OnEnhancement(object? sender, PropertyChangedEventArgs args) => UpdateEnhancementPlacement();
     private void OnMedia(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName is nameof(MediaViewModel.Session) or nameof(MediaViewModel.LyricsLines) or
@@ -122,7 +151,6 @@ public sealed class MusicPage : UserControl
     {
         _folder.Text = _editor.Settings.Lyrics.LocalLrcDirectory;
         _nowPlaying.Height = string.IsNullOrEmpty(_media.Title) ? 100 : 380;
-        _source.Text = _media.Session.SourceDisplayName;
         RefreshLyrics();
         var settings = _editor.Settings.IslandActivity;
         var sources = _sessions.AvailableSources.Concat(settings.AllowedMediaSourceAppIds).Distinct(StringComparer.OrdinalIgnoreCase).Take(512).ToArray();
@@ -157,6 +185,29 @@ public sealed class MusicPage : UserControl
         var previous = _iconJob; var oldStop = _iconStop; _iconStop = new();
         _iconJob = LoadIconsAsync(previous, oldStop, images, _iconStop.Token);
     }
+
+    private void UpdateEnhancementPlacement()
+    {
+        var current = _body.Children.IndexOf(_enhancementCard);
+        if (current >= 0) _body.Children.RemoveAt(current);
+        if (_enhancement.IsEnhanced) _body.Children.Add(_enhancementCard);
+        else _body.Children.Insert(Math.Min(1, _body.Children.Count), _enhancementCard);
+    }
+
+    private static void OnLyricsPointerWheelChanged(object sender, PointerRoutedEventArgs args) =>
+        args.Handled = true;
+
+    private sealed record ProviderChoice(LyricsProviderKind? Value);
+
+    private static Border CreateCard(UIElement content, Thickness padding) => new()
+    {
+        Padding = padding,
+        CornerRadius = new CornerRadius(8),
+        Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+        BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        BorderThickness = new Thickness(1),
+        Child = content,
+    };
 
     private void RefreshLyrics()
     {

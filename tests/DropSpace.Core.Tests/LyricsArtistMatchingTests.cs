@@ -110,4 +110,44 @@ public sealed class LyricsArtistMatchingTests
         Assert.AreEqual(0, LyricsMatcher.Score(query, "Song (Live)", "Artist", "Album", 180));
         Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", "Album", 240));
     }
+
+    [TestMethod]
+    public void AlbumArtistIsAPlayerAgnosticAlternativeCredit()
+    {
+        var query = new LyricsQuery("Song", "Featured Performer", "Album", TimeSpan.FromSeconds(180),
+            AlbumArtist: "Catalogue Artist");
+
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Song", "Catalogue Artist", "Album", 180));
+        CollectionAssert.Contains(LyricsMatcher.SearchTerms(query).ToArray(), "Song Catalogue Artist");
+    }
+
+    [TestMethod]
+    public void DisplayReadyPublisherCreditAddsAPlainArtistCandidate()
+    {
+        var query = new LyricsQuery(
+            "Never Gonna Give You Up",
+            "Rick Astley — Whenever You Need Somebody",
+            string.Empty,
+            TimeSpan.FromSeconds(213),
+            AlbumArtist: "Rick Astley — Whenever You Need Somebody");
+
+        CollectionAssert.AreEqual(
+            new[] { "Rick Astley — Whenever You Need Somebody", "Rick Astley" },
+            query.ArtistCandidates.ToArray());
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "Never Gonna Give You Up Rick Astley — Whenever You Need Somebody",
+                "Never Gonna Give You Up Rick Astley",
+                "Never Gonna Give You Up",
+            },
+            LyricsMatcher.SearchTerms(query).ToArray());
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(
+            query,
+            "Never Gonna Give You Up",
+            "Rick Astley",
+            "Whenever You Need Somebody",
+            213));
+    }
+
 }

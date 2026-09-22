@@ -39,4 +39,31 @@ public sealed class SettingsAndImageActionPolicyTests
             ImageSizePresetPolicy.Scale(16_384, 16_384, 100));
         Assert.AreEqual((1, 1), ImageSizePresetPolicy.Scale(1, 1, 25));
     }
+
+    [TestMethod]
+    public void LyricsSourcePolicyKeepsOnlyDistinctOnlineProviders()
+    {
+        var duplicate = NativeIslandSettingsPolicy.Normalize(new AppSettings
+        {
+            Lyrics = new()
+            {
+                Provider = LyricsProviderKind.QqMusic,
+                BackupProvider = LyricsProviderKind.QqMusic,
+                SearchRemainingProviders = true,
+            },
+        });
+        Assert.IsNull(duplicate.Lyrics.BackupProvider);
+        Assert.IsTrue(duplicate.Lyrics.SearchRemainingProviders);
+
+        var local = NativeIslandSettingsPolicy.Normalize(new AppSettings
+        {
+            Lyrics = new()
+            {
+                Provider = LyricsProviderKind.LocalLrc,
+                BackupProvider = LyricsProviderKind.LocalLrc,
+            },
+        });
+        Assert.AreEqual(LyricsProviderKind.NetEase, local.Lyrics.Provider);
+        Assert.IsNull(local.Lyrics.BackupProvider);
+    }
 }

@@ -76,6 +76,23 @@ public sealed class NeteaseDeploymentTests
     }
 
     [TestMethod]
+    public async Task PassiveInspectionUsesOnlyCommittedLocalBytes()
+    {
+        using var fixture = new Fixture();
+        using var service = fixture.Service();
+        var prepared = fixture.Prepare("first");
+        var pending = await service.InstallAsync(prepared);
+        Assert.IsFalse(await service.IsManagedInstallationIntactAsync(pending));
+        await service.CommitAsync(pending);
+        var committed = await service.GetManagedReceiptAsync(prepared.Installation);
+        Assert.IsNotNull(committed);
+        Assert.IsTrue(await service.IsManagedInstallationIntactAsync(committed));
+
+        await File.WriteAllTextAsync(Path.Combine(prepared.ProfilePath, "plugins", "InfLink-rs.plugin"), "changed");
+        Assert.IsFalse(await service.IsManagedInstallationIntactAsync(committed));
+    }
+
+    [TestMethod]
     public async Task ExistingIdenticalLoaderIsBorrowedAndPreserved()
     {
         using var fixture = new Fixture();

@@ -2,9 +2,18 @@ using DropSpace.Core.Models;
 
 namespace DropSpace.Core.Lyrics;
 
-public sealed record LyricsQuery(string Title, string Artist, string Album, TimeSpan Duration, string TrackIdentity = "")
+public sealed record LyricsQuery(
+    string Title,
+    string Artist,
+    string Album,
+    TimeSpan Duration,
+    string TrackIdentity = "",
+    string AlbumArtist = "")
 {
-    public bool HasDisambiguatingMetadata => !string.IsNullOrWhiteSpace(Artist) || !string.IsNullOrWhiteSpace(Album) || Duration > TimeSpan.Zero;
+    public IReadOnlyList<string> ArtistCandidates => LyricsMatcher.ExpandArtistCandidates(Artist, AlbumArtist);
+
+    public bool HasDisambiguatingMetadata => ArtistCandidates.Count > 0 ||
+        !string.IsNullOrWhiteSpace(Album) || Duration > TimeSpan.Zero;
 }
 public enum LyricsQueryStatus
 {

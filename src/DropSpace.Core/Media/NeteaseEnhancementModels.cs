@@ -3,7 +3,7 @@ namespace DropSpace.Core.Media;
 public enum NeteaseEnhancementStage
 {
     NotInstalled, Detecting, Preparing, Installing, Restarting, Verifying,
-    Enhanced, Removing, Removed, Failed,
+    Installed, Enhanced, Removing, Removed, Failed,
 }
 
 public sealed record NeteaseEnhancementState(

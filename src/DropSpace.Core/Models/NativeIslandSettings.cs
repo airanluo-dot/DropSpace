@@ -20,6 +20,8 @@ public sealed record LyricsSettings
     public bool Enabled { get; init; } = true;
     public LyricsMode Mode { get; init; }
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.NetEase;
+    public LyricsProviderKind? BackupProvider { get; init; }
+    public bool SearchRemainingProviders { get; init; }
     public bool SecondaryLyrics { get; init; }
     public bool WordSyncedHighlighting { get; init; } = true;
     public int DelayMilliseconds { get; init; }

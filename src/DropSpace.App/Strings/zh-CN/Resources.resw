@@ -494,7 +494,10 @@
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>播放音乐后会在这里显示媒体应用。</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>中间</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>首选歌词来源</value></data>
-  <data name="LyricsFallbackHelp" xml:space="preserve"><value>默认使用网易云音乐。在线来源没有歌词时，自动尝试其余四个在线来源；本地模式不会联网。</value></data>
+  <data name="LyricsFallbackHelp" xml:space="preserve"><value>按“首选源 → 可选备用源 → 已启用时的其余来源”依次匹配。未选择备用源且未开启其余来源搜索时，只使用首选源；本地模式不会联网。</value></data>
+  <data name="LyricsBackupProvider" xml:space="preserve"><value>备用歌词来源</value></data>
+  <data name="LyricsBackupProviderNone" xml:space="preserve"><value>不使用</value></data>
+  <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>搜索其余未选来源</value></data>
   <data name="WidgetSelected" xml:space="preserve"><value>已选中</value></data>
   <data name="WidgetNoRoom" xml:space="preserve"><value>没有足够的空白位置。请先缩小或移除其他组件。</value></data>
   <data name="LyricsDelay" xml:space="preserve"><value>歌词偏移（毫秒）</value></data>
@@ -586,6 +589,7 @@
   <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>正在安装 InfLink-rs……</value></data>
   <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>正在重新启动网易云……</value></data>
   <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>正在验证媒体控制……</value></data>
+  <data name="NeteaseEnhancementInstalled" xml:space="preserve"><value>✓ 增强组件已安装</value></data>
   <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ 已增强 · 完整媒体控制已启用</value></data>
   <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>正在移除增强……</value></data>
   <data name="NeteaseEnhancementRemoved" xml:space="preserve"><value>已移除增强</value></data>

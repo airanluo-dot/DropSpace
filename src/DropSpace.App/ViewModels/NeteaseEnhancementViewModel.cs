@@ -21,7 +21,7 @@ public sealed class NeteaseEnhancementViewModel : ObservableObject, IDisposable
     }
 
     public bool IsBusy => _state.IsBusy;
-    public bool IsEnhanced => _state.Stage == NeteaseEnhancementStage.Enhanced;
+    public bool IsEnhanced => _state.Stage is NeteaseEnhancementStage.Installed or NeteaseEnhancementStage.Enhanced;
     public bool IsManaged => _state.IsManaged;
     public string Status => _strings.Get(_state.Stage switch
     {
@@ -30,6 +30,7 @@ public sealed class NeteaseEnhancementViewModel : ObservableObject, IDisposable
         NeteaseEnhancementStage.Installing => "NeteaseEnhancementInstalling",
         NeteaseEnhancementStage.Restarting => "NeteaseEnhancementRestarting",
         NeteaseEnhancementStage.Verifying => "NeteaseEnhancementVerifying",
+        NeteaseEnhancementStage.Installed => "NeteaseEnhancementInstalled",
         NeteaseEnhancementStage.Enhanced => "NeteaseEnhancementEnhanced",
         NeteaseEnhancementStage.Removing => "NeteaseEnhancementRemoving",
         NeteaseEnhancementStage.Removed => "NeteaseEnhancementRemoved",

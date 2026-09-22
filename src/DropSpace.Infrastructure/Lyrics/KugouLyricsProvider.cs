@@ -14,13 +14,17 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : ILyricsProvider
         var best = Choose(search.RootElement, query);
         if (best is null)
         {
-            using var songs = await http.GetAsync($"https://songsearch.kugou.com/song_search_v2?keyword={Escape(query.Title + " " + query.Artist)}&page=1&pagesize=20&platform=WebFilter&filter=2&iscorrection=1&privilege_filter=0", cancellationToken);
-            var song = Array(songs.RootElement, "data", "lists").Select(item => new
-            { Item = item, Score = LyricsMatcher.Score(query, Text(item, "SongName"), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
-                .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
-            if (song is null || song.Score < 4 || string.IsNullOrWhiteSpace(Text(song.Item, "FileHash"))) return LyricsDocument.Empty;
-            using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(Text(song.Item, "FileHash"))}", cancellationToken);
-            best = Choose(hashed.RootElement, query, Text(song.Item, "AlbumName"));
+            foreach (var terms in LyricsMatcher.SearchTerms(query))
+            {
+                using var songs = await http.GetAsync($"https://songsearch.kugou.com/song_search_v2?keyword={Escape(terms)}&page=1&pagesize=20&platform=WebFilter&filter=2&iscorrection=1&privilege_filter=0", cancellationToken);
+                var song = Array(songs.RootElement, "data", "lists").Select(item => new
+                { Item = item, Score = LyricsMatcher.Score(query, Text(item, "SongName"), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
+                    .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
+                if (song is null || song.Score < 4 || string.IsNullOrWhiteSpace(Text(song.Item, "FileHash"))) continue;
+                using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(Text(song.Item, "FileHash"))}", cancellationToken);
+                best = Choose(hashed.RootElement, query, Text(song.Item, "AlbumName"));
+                if (best is not null) break;
+            }
         }
         if (best is null) return LyricsDocument.Empty;
         using var lyric = await http.GetAsync($"https://lyrics.kugou.com/download?ver=1&client=pc&id={Escape(best.Id)}&accesskey={Escape(best.Key)}&fmt=lrc&charset=utf8", cancellationToken);

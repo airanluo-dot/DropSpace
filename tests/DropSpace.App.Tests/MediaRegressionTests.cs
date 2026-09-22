@@ -75,4 +75,23 @@ public sealed class MediaRegressionTests
         Assert.IsTrue(notifications.Contains(nameof(MediaViewModel.ElapsedText)));
         Assert.IsTrue(notifications.Contains(nameof(MediaViewModel.RemainingText)));
     }
+
+    [TestMethod]
+    public void LyricsRetryWhenSameTrackGainsDurationEvidence()
+    {
+        var timeline = new MediaTimelineSnapshot(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero, 1, DateTimeOffset.UtcNow);
+        var previous = MediaSessionSnapshot.Empty with
+        {
+            SessionId = "session",
+            SourceAppUserModelId = "player",
+            TrackTitle = "Song",
+            Artist = "Artist",
+            Timeline = timeline,
+        };
+        var current = previous with { Timeline = timeline with { End = TimeSpan.FromSeconds(180) } };
+
+        Assert.IsTrue(MediaExperienceService.ShouldRetryLyricsWithImprovedEvidence(previous, current, false));
+        Assert.IsFalse(MediaExperienceService.ShouldRetryLyricsWithImprovedEvidence(previous, current, true));
+        Assert.IsFalse(MediaExperienceService.ShouldRetryLyricsWithImprovedEvidence(current, current, false));
+    }
 }

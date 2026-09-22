@@ -1,5 +1,12 @@
 # DropSpace Roadmap
 
+## Delivered slice: v0.3.0-beta.28
+
+Restore player-agnostic lyric recall across generic Windows media publishers; make passive
+NetEase enhancement detection offline and installation-focused; clarify Music scroll ownership
+and move installed enhancement management out of the primary flow. Executed evidence belongs in
+`docs/dev/beta28-media-ui-audit.md`.
+
 ## Delivered slice: v0.3.0-beta.27
 
 Improve lyric recall while preserving provider identity and version-conflict safeguards;
@@ -41,7 +48,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.27
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.28
 is the current Beta release.
 Hosted Windows checks are
 the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer,
@@ -704,7 +711,7 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta release is `v0.3.0-beta.27` (Beta 27). All new prereleases use
+The current Beta release is `v0.3.0-beta.28` (Beta 28). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. Beta 26 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to

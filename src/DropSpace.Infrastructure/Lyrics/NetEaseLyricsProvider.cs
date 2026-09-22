@@ -12,9 +12,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
 
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
     {
-        var title = LyricsMatcher.SearchTitle(query.Title);
-        var searches = new[] { string.Join(' ', new[] { title, query.Artist }.Where(value => !string.IsNullOrWhiteSpace(value))), title }
-            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase);
+        var searches = LyricsMatcher.SearchTerms(query);
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var remaining = MaximumLyricCandidates;
 

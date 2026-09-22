@@ -1,5 +1,25 @@
 # DropSpace Product Specification
 
+## Beta 28 player-agnostic media and Music layout amendment
+
+Lyric lookup consumes the Windows media contract rather than player identity. Track artist and
+album artist are compatible source credits, every online provider uses bounded artist-qualified
+then title-only discovery, and the same track is retried if a late timeline supplies duration.
+Title, provider identity, conflicting artist/version rejection, cancellation and current-track
+binding remain mandatory.
+
+Online source order is explicit: preferred provider, optional backup provider, then the remaining
+unselected providers only when their independent switch is enabled. With no backup and that switch
+off, only the preferred provider is contacted. The remaining-provider switch works without a backup.
+
+Passive NetEase enhancement inspection is an offline installation check. A DropSpace-managed
+receipt must be committed and its two installed files must still match their recorded hashes;
+an independently installed BetterNCM loader plus InfLink plugin is reported as installed without
+claiming a fresh runtime capability test. Only the explicit update/install path accesses release
+sources. Installed enhancement management is secondary and moves below the normal Music content.
+Now Playing and the bounded lyric viewport use separate native cards. The lyric viewport consumes
+mouse-wheel input so its inner offset and the outer page cannot move together.
+
 ## Beta 27 lyric matching and NetEase compatibility amendment
 
 Beta 27 makes lyric identity validation tolerant of real catalogue differences without
@@ -54,7 +74,7 @@ The authorized Beta 26 task continues through validated official publication
 and website/API synchronization. Local source, fixture and provider checks are
 reported separately from actual player/display acceptance and published assets.
 
-Status: v0.3.0-beta.27 product contract
+Status: v0.3.0-beta.28 product contract
 Target: 64-bit Windows build 20348 or later desktop, including Windows 11; local-first
 Last reviewed: 2026-09-22
 
@@ -238,7 +258,7 @@ row has already passed.
 
 ## Beta release naming
 
-The current Beta release is `v0.3.0-beta.27` (Beta 27). All new prereleases use
+The current Beta release is `v0.3.0-beta.28` (Beta 28). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. Beta 26 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to

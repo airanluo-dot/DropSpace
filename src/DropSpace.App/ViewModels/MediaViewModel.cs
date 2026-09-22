@@ -62,6 +62,7 @@ public sealed class MediaViewModel : ObservableObject
         {
             if (!SetProperty(ref _session, value)) return;
             OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
+            OnPropertyChanged(nameof(SourceDisplayName));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
             OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
             OnPropertyChanged(nameof(ArtistAlbum)); OnPropertyChanged(nameof(PlayPauseLabel)); OnPropertyChanged(nameof(TimelineStatus)); OnPropertyChanged(nameof(LyricsStatusText));
@@ -125,6 +126,7 @@ public sealed class MediaViewModel : ObservableObject
     }
     public string Title => Session.TrackTitle;
     public string Artist => Session.Artist;
+    public string SourceDisplayName => Session.SourceDisplayName;
     public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
     public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;

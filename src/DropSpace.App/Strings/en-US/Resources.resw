@@ -494,7 +494,10 @@ Nothing will be opened automatically.</value></data>
   <data name="MusicApplicationsEmpty" xml:space="preserve"><value>Play music to discover media applications.</value></data>
   <data name="WidgetCenter" xml:space="preserve"><value>Center</value></data>
   <data name="LyricsProvider" xml:space="preserve"><value>Preferred lyrics provider</value></data>
-  <data name="LyricsFallbackHelp" xml:space="preserve"><value>NetEase is the default. If the preferred online provider has no lyrics, try the other four online providers automatically. Local mode stays offline.</value></data>
+  <data name="LyricsFallbackHelp" xml:space="preserve"><value>Lookup follows preferred provider → optional backup → remaining providers when enabled. Without a backup or remaining-provider search, only the preferred provider is used. Local mode stays offline.</value></data>
+  <data name="LyricsBackupProvider" xml:space="preserve"><value>Backup lyrics provider</value></data>
+  <data name="LyricsBackupProviderNone" xml:space="preserve"><value>None</value></data>
+  <data name="LyricsSearchRemainingProviders" xml:space="preserve"><value>Search remaining providers</value></data>
   <data name="WidgetSelected" xml:space="preserve"><value>Selected</value></data>
   <data name="WidgetNoRoom" xml:space="preserve"><value>There is not enough empty space. Resize or remove another widget first.</value></data>
   <data name="LyricsDelay" xml:space="preserve"><value>Lyrics offset (ms)</value></data>
@@ -586,6 +589,7 @@ Nothing will be opened automatically.</value></data>
   <data name="NeteaseEnhancementInstalling" xml:space="preserve"><value>Installing InfLink-rs…</value></data>
   <data name="NeteaseEnhancementRestarting" xml:space="preserve"><value>Restarting NetEase Music…</value></data>
   <data name="NeteaseEnhancementVerifying" xml:space="preserve"><value>Verifying media controls…</value></data>
+  <data name="NeteaseEnhancementInstalled" xml:space="preserve"><value>✓ Enhancement components are installed</value></data>
   <data name="NeteaseEnhancementEnhanced" xml:space="preserve"><value>✓ Enhanced — complete media controls are enabled</value></data>
   <data name="NeteaseEnhancementRemoving" xml:space="preserve"><value>Removing enhancement…</value></data>
   <data name="NeteaseEnhancementRemoved" xml:space="preserve"><value>Enhancement removed</value></data>

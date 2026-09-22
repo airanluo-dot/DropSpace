@@ -1,5 +1,11 @@
 # DropSpace Privacy and Threat Model
 
+Beta 28 passive NetEase enhancement inspection is offline: it reads the local player path,
+DropSpace receipt and installed component files only. Network access occurs only after an
+explicit install, reinstall or update action. Generic online lyric fallback still transmits only
+the current public music metadata already listed below, and only to sources selected by the
+preferred/backup/remaining-provider policy.
+
 ## Explicit NetEase enhancement boundary
 
 Only a user-confirmed enhancement/update/reinstall downloads independent third-party components.
@@ -26,10 +32,10 @@ logging raw payloads, or changing source-file ownership.
 
 When enabled in online mode, lyrics lookup sends only the current music title,
 artist, album and duration to the user-selected NetEase, QQ Music, Kugou, LRCLIB
-or AMLL provider. Per the September 13 user amendment, an empty or unavailable
-primary result automatically queries the other four online providers, with at
-most four concurrent requests and an eight-second per-provider budget. A valid
-result cancels and drains the remaining work. It does not send clipboard text,
+or AMLL provider. Beta 28 queries the preferred source, then an optional backup;
+only the explicit remaining-provider switch can query the other unselected online
+sources, with a bounded concurrent quality window and an eight-second per-provider
+budget. A valid result cancels and drains the remaining work. It does not send clipboard text,
 staged filenames or file bytes.
 Lyrics cache is process memory only (32 entries, bounded text size, two-hour age).
 Local LRC mode reads only a selected folder with a bounded, nonrecursive scan.

@@ -1,5 +1,31 @@
 # DropSpace Architecture and Product Decisions
 
+## D-067 — User-owned online lyric source order
+
+- Date: 2026-09-22. Status: Accepted for v0.3.0-beta.28; supersedes the automatic-fallback
+  amendment in D-062 for current behavior.
+- Online lookup executes the preferred provider first, then an optional distinct backup. It
+  queries the remaining unselected online providers only when the independent switch is enabled.
+  The switch is valid without a backup; with neither configured, lookup is preferred-only.
+- Backup completion precedes the bounded remaining-provider race. Local LRC never enters the
+  online chain, and the full source strategy is part of the process-memory cache key.
+- The lyrics card owns mouse-wheel input. Its inner viewport and the outer Music page must not
+  advance from the same wheel event, including at an inner boundary.
+
+## D-066 — Player-agnostic lyric evidence and offline enhancement presence
+
+- Date: 2026-09-22. Status: Accepted for v0.3.0-beta.28.
+- Lyrics consume generic Windows media fields, not app identities. Track artist and album artist
+  are alternative credits; every online adapter uses bounded qualified/title-only discovery and
+  the shared matcher retains wrong-artist, version, provider-ID and stale-track safeguards.
+- A no-result lookup may retry once when the same media identity later gains duration. This fixes
+  publisher event ordering without polling or app-specific branches.
+- Passive NetEase inspection performs no release request. Locally hash-valid managed bytes or an
+  existing loader/plugin pair establish Installed only; active post-install SMTC evidence remains
+  the authority for Enhanced. Update/install remains explicit and networked.
+- Music card order reflects task priority: setup is near Now Playing before installation and
+  moves below normal content afterward; bounded lyric scrolling has a visible card boundary.
+
 ## D-064 — Revised NetEase core acceptance and resumed Beta26 delivery
 
 - Date: 2026-09-21. Status: Accepted by explicit user amendment; actual native results
