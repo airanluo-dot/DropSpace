@@ -24,7 +24,8 @@ public sealed class LyricsService(LyricsProviderRegistry providers)
         // replacement (for example an edit/live file with the same displayed title) must not
         // inherit a document fetched for a nearby duration merely because both durations were
         // truncated to the same whole second.
-        var key = $"{kind}|{query.TrackIdentity}|{LyricsMatcher.Normalize(query.Title)}|{LyricsMatcher.Normalize(query.Artist)}|{LyricsMatcher.Normalize(query.Album)}|{query.Duration.Ticks}";
+        var backup = OnlineBackup(settings, kind);
+        var key = $"{kind}|{backup?.ToString() ?? "none"}|{settings.SearchRemainingProviders}|{query.TrackIdentity}|{LyricsMatcher.Normalize(query.Title)}|{LyricsMatcher.Normalize(query.Artist)}|{LyricsMatcher.Normalize(query.Album)}|{query.Duration.Ticks}";
         if (kind != LyricsProviderKind.LocalLrc && _cache.TryGet(key, out var cached)) return new(cached, LyricsQueryStatus.Found);
         var generation = Interlocked.Read(ref _cacheGeneration);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -34,11 +35,18 @@ public sealed class LyricsService(LyricsProviderRegistry providers)
             var primary = await QueryProviderAsync(kind, query, deadline.Token).ConfigureAwait(false);
             var document = Validate(primary.Document, query);
             var fallbackFailed = false;
-            if (document.Lines.Count == 0 && kind != LyricsProviderKind.LocalLrc)
+            if (document.Lines.Count == 0 && backup is { } backupKind)
             {
-                var fallback = await QueryFallbacksAsync(kind, query, deadline.Token).ConfigureAwait(false);
+                var backupResult = await QueryProviderAsync(backupKind, query, deadline.Token).ConfigureAwait(false);
+                document = backupResult.Document;
+                fallbackFailed |= backupResult.Failed;
+            }
+            if (document.Lines.Count == 0 && kind != LyricsProviderKind.LocalLrc && settings.SearchRemainingProviders)
+            {
+                var excluded = backup is { } selectedBackup ? new HashSet<LyricsProviderKind> { kind, selectedBackup } : [kind];
+                var fallback = await QueryFallbacksAsync(excluded, query, deadline.Token).ConfigureAwait(false);
                 document = fallback.Document;
-                fallbackFailed = fallback.Failed;
+                fallbackFailed |= fallback.Failed;
             }
             cancellationToken.ThrowIfCancellationRequested();
             lock (_cacheGate)
@@ -60,14 +68,14 @@ public sealed class LyricsService(LyricsProviderRegistry providers)
         catch (Exception exception) when (exception is not OutOfMemoryException)
         { return new(LyricsDocument.Empty, true); }
     }
-    private async Task<(LyricsDocument Document, bool Failed)> QueryFallbacksAsync(LyricsProviderKind primary, LyricsQuery query, CancellationToken token)
+    private async Task<(LyricsDocument Document, bool Failed)> QueryFallbacksAsync(IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         using var stage = CancellationTokenSource.CreateLinkedTokenSource(token);
         // At most four provider requests are active. Allow a short quality window
         // after the first usable result so a slower, stronger verified match can
         // win, then cancel and drain the rest.
-        var pending = OnlineProviders.Where(kind => kind != primary).Select(kind => QueryProviderAsync(kind, query, stage.Token)).ToList();
+        var pending = OnlineProviders.Where(kind => !excluded.Contains(kind)).Select(kind => QueryProviderAsync(kind, query, stage.Token)).ToList();
         var all = pending.ToArray();
         var candidates = new List<(LyricsDocument Document, int Index)>();
         var failed = false;
@@ -106,6 +114,11 @@ public sealed class LyricsService(LyricsProviderRegistry providers)
             catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException or OperationCanceledException) { }
         }
     }
+
+    private static LyricsProviderKind? OnlineBackup(LyricsSettings settings, LyricsProviderKind primary) =>
+        primary != LyricsProviderKind.LocalLrc && settings.BackupProvider is { } backup &&
+        backup != primary && backup != LyricsProviderKind.LocalLrc && OnlineProviders.Contains(backup)
+            ? backup : null;
 
     private static LyricsDocument Validate(LyricsDocument document, LyricsQuery query)
     {

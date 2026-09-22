@@ -17,6 +17,10 @@ public static class NativeIslandSettingsPolicy
         var lyrics = settings.Lyrics ?? new();
         var appearance = settings.IslandAppearance ?? new();
         var widgets = settings.Widgets ?? new();
+        var provider = Enum.IsDefined(lyrics.Provider) && lyrics.Provider != LyricsProviderKind.LocalLrc
+            ? lyrics.Provider : LyricsProviderKind.NetEase;
+        LyricsProviderKind? backupProvider = lyrics.BackupProvider is { } backup && Enum.IsDefined(backup) &&
+            backup != LyricsProviderKind.LocalLrc && backup != provider ? backup : null;
         var sources = (activity.AllowedMediaSourceAppIds ?? [])
             .Where(id => !string.IsNullOrWhiteSpace(id) && id.Length <= MaximumSourceLength)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(MaximumSources).ToArray();
@@ -30,7 +34,8 @@ public static class NativeIslandSettingsPolicy
             Lyrics = lyrics with
             {
                 Mode = Enum.IsDefined(lyrics.Mode) ? lyrics.Mode : LyricsMode.Online,
-                Provider = Enum.IsDefined(lyrics.Provider) ? lyrics.Provider : LyricsProviderKind.NetEase,
+                Provider = provider,
+                BackupProvider = backupProvider,
                 DelayMilliseconds = Math.Clamp(lyrics.DelayMilliseconds, -MaximumDelayMilliseconds, MaximumDelayMilliseconds),
                 ScrollingMaxWidth = Math.Clamp(lyrics.ScrollingMaxWidth, MinimumWidth, MaximumWidth),
                 LocalLrcDirectory = lyrics.LocalLrcDirectory is { Length: <= 32767 } ? lyrics.LocalLrcDirectory : string.Empty,

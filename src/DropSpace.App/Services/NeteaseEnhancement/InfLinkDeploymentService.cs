@@ -80,6 +80,26 @@ public sealed partial class InfLinkDeploymentService : IDisposable
         return receipt;
     }
 
+    /// <summary>
+    /// Verifies the locally recorded deployment without contacting an update source or
+    /// requiring a live media session.
+    /// </summary>
+    public async Task<bool> IsManagedInstallationIntactAsync(
+        InfLinkDeploymentReceipt receipt,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateReceipt(receipt, receipt.Installation);
+        if (!receipt.Committed) return false;
+        foreach (var file in receipt.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!File.Exists(file.TargetPath) ||
+                !HashEquals(await HashAsync(file.TargetPath, cancellationToken).ConfigureAwait(false), file.InstalledHash))
+                return false;
+        }
+        return true;
+    }
+
     public async Task<InfLinkDeploymentReceipt> InstallAsync(PreparedInfLinkDeployment prepared, CancellationToken cancellationToken = default)
     {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);

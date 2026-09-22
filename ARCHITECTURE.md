@@ -1,5 +1,16 @@
 # DropSpace Architecture
 
+## Beta 28 media identity and passive installation inspection
+
+`LyricsQuery` carries generic Windows media evidence, including track and album artist; provider
+adapters share bounded search terms and the Core matcher remains the only acceptance authority.
+The media experience may retry when the same track gains duration but never branches on a player
+name. `LyricsService` executes preferred → optional backup sequentially, then starts the bounded
+remaining-provider quality race only when enabled; the strategy is part of the cache key. Local
+mode never enters the online chain. NetEase passive inspection is separate from update preparation and live capability
+verification: committed managed files are hash-checked locally, while independent loader/plugin
+presence can project an Installed state without projecting Enhanced capability.
+
 ## NetEase enhancement boundary
 
 `NeteaseEnhancementService` orchestrates separate installation/profile probes, official artifact

@@ -39,7 +39,9 @@ public sealed class NeteaseEnhancementCard : UserControl
         actions.Children.Add(_install); actions.Children.Add(_update); actions.Children.Add(_reinstall); actions.Children.Add(_remove);
         content.Children.Add(actions);
         Content = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(8),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"], Child = content };
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1), Child = content };
         Loaded += OnLoaded; Unloaded += OnUnloaded;
         Refresh();
     }

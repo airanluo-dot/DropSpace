@@ -1,5 +1,22 @@
 # DropSpace UX Specification
 
+## Beta 28 Music hierarchy and generic lyrics
+
+Music presents Now Playing and the bounded lyric viewport as separate Windows 11 card surfaces.
+The card boundary is the pointer-wheel safety boundary: page scrolling continues outside it and
+lyric scrolling is intentionally local inside it without also moving the page. The media source is playback metadata, not an
+unlabeled line between sections. Before enhancement, the NetEase card remains near Now Playing;
+after local installation is recognized, it moves below playback, lyric and application settings.
+
+Lyric loading is player-agnostic. Track and album artists are alternative credits, every online
+provider can recover from an overly narrow artist-qualified search with a bounded title-only
+search, and a late duration causes one stronger retry when no lyrics were found. Wrong artists,
+conflicting versions and stale results remain rejected.
+
+Online source settings read in execution order: preferred source, optional backup source, then a
+separate “search remaining providers” switch. No backup plus switch off means preferred-only;
+the remaining-provider switch stays available when no backup is selected.
+
 ## Beta 27 lyrics and NetEase compatibility
 
 Lyrics should recover from harmless metadata differences instead of showing Not found:

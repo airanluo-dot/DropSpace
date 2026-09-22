@@ -56,6 +56,28 @@ public sealed class LyricsProviderTransportTests
     }
 
     [TestMethod]
+    public async Task LrclibFallsBackAcrossPublisherArtistSemantics()
+    {
+        var searches = new List<string>();
+        using var handler = new FixtureHandler(request =>
+        {
+            var query = Uri.UnescapeDataString(request.RequestUri!.Query);
+            searches.Add(query);
+            return query.Contains("Catalogue Artist", StringComparison.Ordinal)
+                ? Json("""[{"id":2,"trackName":"Song","artistName":"Catalogue Artist","syncedLyrics":"[00:01]correct"}]""")
+                : Json("[]");
+        });
+        using var client = new HttpClient(handler);
+        var result = await new LrclibLyricsProvider(new(client)).QueryAsync(
+            new("Song", "Displayed Performer", "", TimeSpan.Zero, AlbumArtist: "Catalogue Artist"), default);
+
+        Assert.AreEqual("correct", result.Lines.Single().Text);
+        Assert.HasCount(2, searches);
+        Assert.IsTrue(searches[0].Contains("Displayed Performer", StringComparison.Ordinal));
+        Assert.IsTrue(searches[1].Contains("Catalogue Artist", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task KugouHashSearchKeepsSecondsAndVerifiedAlbumIdentity()
     {
         using var handler = new FixtureHandler(request => request.RequestUri!.Host == "songsearch.kugou.com"

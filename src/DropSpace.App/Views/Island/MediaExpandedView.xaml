@@ -12,6 +12,7 @@
    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
     <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
     <TextBlock Text="{Binding ArtistAlbum}" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding SourceDisplayName}" FontSize="12" Opacity="0.55" TextTrimming="CharacterEllipsis"/>
     <TextBlock x:Name="EmptyText" services:XamlResourceOverride.Uid="MediaNoSession" TextWrapping="Wrap"/>
    </StackPanel>
    <StackPanel x:Name="Spectrum" Grid.Column="2" Orientation="Horizontal" Spacing="3" Height="24" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw">

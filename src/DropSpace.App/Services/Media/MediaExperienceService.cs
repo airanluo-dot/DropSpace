@@ -109,7 +109,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     var session = Volatile.Read(ref _latest);
                     var playing = session.PlaybackState == MediaPlaybackState.Playing && !string.IsNullOrWhiteSpace(session.TrackTitle);
                     var trackChanged = previousMedia is null || !previousMedia.IsSameTrack(session);
-                    var reload = trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
+                    var improvedLyricsEvidence = ShouldRetryLyricsWithImprovedEvidence(previousMedia, session, _document.Lines.Count > 0);
+                    var reload = trackChanged || improvedLyricsEvidence || previousSettings?.Lyrics != settings.Lyrics || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
                         previousReloadRequest != reloadRequest;
                     var reloadArtwork = trackChanged || !ReferenceEquals(previousMedia?.Artwork, session.Artwork);
                     // Invalidate before publishing the new track so a queued old result
@@ -122,7 +123,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     {
                         if (_disposed) return Task.CompletedTask;
                         _clock.Update(session);
-                        var resetLyrics = trackChanged || previousSettings?.Lyrics != settings.Lyrics || previousReloadRequest != reloadRequest;
+                        var resetLyrics = trackChanged || improvedLyricsEvidence || previousSettings?.Lyrics != settings.Lyrics || previousReloadRequest != reloadRequest;
                         // Clear the old frame before publishing the new session. Property
                         // subscribers render synchronously, so assigning Session first would
                         // briefly display the previous song's lyric under the new title.
@@ -185,7 +186,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
         try
         {
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
-                ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle, session.Timeline.Duration, session.TrackIdentity), settings.Lyrics, token).ConfigureAwait(false)
+                ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
+                    session.Timeline.Duration, session.TrackIdentity, session.AlbumArtist), settings.Lyrics, token).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
             await _dispatcher.EnqueueAsync(() =>
             {
@@ -223,6 +225,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
             }
         }
     }
+
+    internal static bool ShouldRetryLyricsWithImprovedEvidence(
+        MediaSessionSnapshot? previous,
+        MediaSessionSnapshot current,
+        bool alreadyFound) =>
+        !alreadyFound && previous is not null && previous.IsSameTrack(current) &&
+        previous.Timeline.Duration <= TimeSpan.Zero && current.Timeline.Duration > TimeSpan.Zero;
     private async Task LoadArtworkAsync(MediaSessionSnapshot session, long generation, CancellationToken token)
     {
         try

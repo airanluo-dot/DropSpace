@@ -18,6 +18,14 @@ public static class LyricsMatcher
     private static readonly Regex ArtistCreditSeparator = new(
         @"\s*(?:;|；|,|，|、|&|＆)\s*|\s+[/／]\s+|(?<=[^\u0000-\u007F])[/／]|[/／](?=[^\u0000-\u007F])|\s+(?:feat(?:uring)?|ft|with|x)\.?\s+",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    // Some SMTC publishers expose display-ready metadata such as
+    // "Artist — Album" in the artist field while leaving AlbumTitle empty.
+    // Preserve the original credit, but also expose the leading segment as an
+    // alternative candidate. This is a publisher-agnostic recovery rule, not
+    // an app identity check.
+    private static readonly Regex PublisherMetadataSeparator = new(
+        @"\s+(?:—|–|•|·)\s+|[\r\n]+",
+        RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly string[] DisambiguatingVersionTokens =
     [
         "live", "remix", "acoustic", "instrumental", "karaoke", "radio", "extended",
@@ -39,6 +47,40 @@ public static class LyricsMatcher
         return title.Trim();
     }
 
+    public static IReadOnlyList<string> SearchTerms(LyricsQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var title = SearchTitle(query.Title);
+        return query.ArtistCandidates
+            .Take(2)
+            .Select(artist => $"{title} {artist}".Trim())
+            .Append(title)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(3)
+            .ToArray();
+    }
+
+    public static IReadOnlyList<string> ExpandArtistCandidates(params string[] values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        var candidates = new List<string>();
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            var limited = Limit(value).Trim();
+            candidates.Add(limited);
+            var separator = PublisherMetadataSeparator.Match(limited);
+            if (separator.Success && separator.Index > 0)
+            {
+                var leadingCredit = limited[..separator.Index].Trim();
+                if (leadingCredit.Length > 0) candidates.Add(leadingCredit);
+            }
+        }
+
+        return candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
     public static bool AreTitlesEquivalent(string left, string right) =>
         !HasVersionConflict(left, right) && !HasVersionConflict(right, left) &&
         ComparableTitle(left) is { Length: > 0 } title && title == ComparableTitle(right);
@@ -49,29 +91,33 @@ public static class LyricsMatcher
     {
         var titleScore = TitleSimilarity(query.Title, title);
         // Some media publishers reverse title and artist fields.
-        if (titleScore < 0.4 && TitleSimilarity(query.Title, artist) > 0.8 && ArtistSimilarity(query.Artist, title) > 0.8)
+        if (titleScore < 0.4 && TitleSimilarity(query.Title, artist) > 0.8 && ArtistSimilarity(query.ArtistCandidates, title) > 0.8)
         { (title, artist) = (artist, title); titleScore = TitleSimilarity(query.Title, title); }
         if (titleScore < 0.45) return 0;
         if (!query.HasDisambiguatingMetadata) return 0;
         if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album) &&
             (!double.IsFinite(durationSeconds) || durationSeconds <= 0)) return 0;
         if (HasVersionConflict(query.Title, title)) return 0;
-        var artistScore = ArtistSimilarity(query.Artist, artist);
+        var artistScore = ArtistSimilarity(query.ArtistCandidates, artist);
         var albumScore = Similarity(query.Album, album);
         var candidateDuration = double.IsFinite(durationSeconds) ? Math.Max(0, durationSeconds) : 0;
         var durationDelta = Math.Abs(query.Duration.TotalSeconds - candidateDuration);
         var durationKnown = candidateDuration > 0 && query.Duration.TotalSeconds > 0;
         var durationMatches = durationKnown && durationDelta <= DurationTolerance(query.Duration.TotalSeconds, candidateDuration);
-        var artistMatches = !string.IsNullOrWhiteSpace(query.Artist) && !string.IsNullOrWhiteSpace(artist) && artistScore >= 0.6;
+        var artistKnown = query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(artist);
+        var artistMatches = artistKnown && artistScore >= 0.6;
         var albumMatches = !string.IsNullOrWhiteSpace(query.Album) && !string.IsNullOrWhiteSpace(album) && albumScore >= 0.6;
 
         // Provider catalogues often omit an album, use a compilation/deluxe album, or
         // round duration differently. Keep title mandatory, but let independent artist,
         // album and duration evidence corroborate one another instead of requiring every
         // optional field to be present and identical.
-        if (!string.IsNullOrWhiteSpace(query.Artist))
+        if (query.ArtistCandidates.Count > 0)
         {
-            if (!string.IsNullOrWhiteSpace(artist) && !artistMatches) return 0;
+            // A known conflicting artist remains a hard rejection. Cross-publisher performer
+            // versus album-artist differences are handled by ArtistCandidates rather than by
+            // weakening this wrong-song safeguard.
+            if (artistKnown && !artistMatches) return 0;
             if (string.IsNullOrWhiteSpace(artist) && !albumMatches && !durationMatches) return 0;
         }
         if (!string.IsNullOrWhiteSpace(query.Album) && !artistMatches)
@@ -83,6 +129,9 @@ public static class LyricsMatcher
         return titleScore * 6 + artistScore * 4 + albumScore
             + (durationMatches ? 2 : 0);
     }
+
+    private static double ArtistSimilarity(IReadOnlyList<string> requested, string candidate) =>
+        requested.Count == 0 ? 0 : requested.Max(value => ArtistSimilarity(value, candidate));
 
     private static double ArtistSimilarity(string left, string right)
     {

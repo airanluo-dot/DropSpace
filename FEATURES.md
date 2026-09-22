@@ -1,5 +1,19 @@
 # DropSpace Feature Catalogue
 
+## Beta 28 media interoperability and Music hierarchy
+
+- Player-agnostic lyric identity uses track artist and album artist as alternative credits,
+  plus album and duration corroboration, while retaining hard wrong-artist and version rejection.
+- NetEase, QQ Music, Kugou, LRCLIB and AMLL all use bounded title normalization and title-only
+  recovery; a failed early query is retried when the same Windows session later gains duration.
+- Online lookup follows a configured preferred source, optional backup source, then—only when
+  enabled—the remaining unselected sources. The remaining-source switch works without a backup.
+- Passive NetEase enhancement inspection performs no update request. Managed files are locally
+  hash-checked; an existing BetterNCM loader and InfLink plugin can be recognized as installed.
+- Now Playing and lyrics are distinct native cards. The bounded lyric scroll area consumes wheel
+  input independently from page scrolling, the media source belongs to Now Playing, and an installed
+  enhancement card moves to the bottom of Music.
+
 ## NetEase enhancement slice (revised core capability acceptance)
 
 - Music-page one-confirmation official InfLink-rs/BetterNCM component management,
@@ -21,12 +35,13 @@ results remain in `docs/dev/netease-enhancement.md`; this catalogue does not est
 - Real clock, calendar, CPU/memory, battery/AC and uptime data; stopwatch start/pause/reset; settings and clipboard recording controls.
 - Clipboard page: most recent 20 canonical records with copy, pin/unpin, remove from DropSpace, pause/resume, and full-history navigation.
 - Music settings retain provider, translation, timing, artwork, spectrum and explicit player allowlist choices. No valid native timeline means estimated position and unavailable seeking, not a fabricated seek capability.
-- Beta 27 validates lyric candidates against provider identity and multiple metadata signals before display. It tolerates harmless title decorations, primary/full artist-credit lists, reissue or missing albums and bounded duration drift while rejecting wrong artists, conflicting live/remix variants and large duration differences. Stale asynchronous results cannot replace the current track, and Loading/Not found/Failed states are visible in expanded Music. NetEase remains preferred, with bounded recovery search, online fallback and offline-only Local LRC.
+- Beta 27 validates lyric candidates against provider identity and multiple metadata signals before display. It tolerates harmless title decorations, primary/full artist-credit lists, reissue or missing albums and bounded duration drift while rejecting wrong artists, conflicting live/remix variants and large duration differences. Stale asynchronous results cannot replace the current track, and Loading/Not found/Failed states are visible in expanded Music. NetEase remains preferred; Beta 28 makes backup and remaining-provider recovery explicit, while Local LRC remains offline-only.
 - Incomplete LRCLIB metadata uses search; Kugou preserves duration units and hash-verified album identity. Optional artwork failure cannot suppress a new song's metadata, and explicit lyric end times survive instrumental gaps.
 - Beta 26 bounds clipboard, manual file drops, virtual OLE materialization, batch persistence, native-window recovery, updater cancellation and integrity failures without changing the local-first or source-file-safe boundary. Virtual-file batches reserve distinct names, payload operations reject linked-directory escapes, and failed cleanup obligations cannot starve later work.
 - ZIP exports retain hierarchy and empty folders. Installer/update artifacts must match RELEASE_VERSION; cancellation before installer launch restores a retryable state or exposes a rollback failure.
 
-Beta 27 is the current Beta release; its validation evidence is recorded in
+Beta 28 is the current Beta release; its validation evidence is recorded in
+`docs/dev/beta28-media-ui-audit.md`. Beta 27 evidence remains in
 `docs/dev/beta27-lyrics-netease-audit.md`. Beta 26 publication and native acceptance remain
 in `docs/dev/beta26-rc-audit.md`. Feature contracts do not imply that
 every physical display, music player, source application or network is verified.
