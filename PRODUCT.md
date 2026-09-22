@@ -1,5 +1,26 @@
 # DropSpace Product Specification
 
+## Beta 27 lyric matching and NetEase compatibility amendment
+
+Beta 27 makes lyric identity validation tolerant of real catalogue differences without
+accepting title-only guesses. Title remains mandatory and live/remix/acoustic conflicts
+remain hard failures. Artist credits, album and duration are independent corroborating
+signals: primary/full artist lists may differ, album may be missing or name a reissue, and
+small duration offsets are allowed. A conflicting known artist or clearly incompatible
+duration still rejects the candidate, and every online result still requires a provider ID.
+
+NetEase lookup tries a bounded title-plus-artist search followed by title-only recovery,
+understands both legacy and current search fields and provider title aliases, and can skip
+an empty top candidate. Same-source duplicate Windows media sessions accept common credit
+delimiters and publisher suffixes. Their bounded candidate set remains event-observed while
+weak/native and rich/plugin metadata arrive out of order, so repeated track changes recover
+the rich control session; a transient empty preferred renderer retains the live selected
+session. Timeline dragging is preview-only until release: playback-clock updates cannot pull
+the thumb backward, and one final seek is sent after release. Event-observed advancing position
+proves live progress even when a compatible
+publisher leaves its otherwise valid timeline timestamp unchanged.
+Evidence and remaining external limits are in `docs/dev/beta27-lyrics-netease-audit.md`.
+
 ## NetEase enhancement amendment — September 21
 
 The user-authorized next slice adds a Music-page enhancement card with one explicit
@@ -33,9 +54,9 @@ The authorized Beta 26 task continues through validated official publication
 and website/API synchronization. Local source, fixture and provider checks are
 reported separately from actual player/display acceptance and published assets.
 
-Status: v0.3.0-beta.26 product contract
+Status: v0.3.0-beta.27 product contract
 Target: 64-bit Windows build 20348 or later desktop, including Windows 11; local-first
-Last reviewed: 2026-09-21
+Last reviewed: 2026-09-22
 
 ## One-sentence definition
 
@@ -217,9 +238,9 @@ row has already passed.
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
+The current Beta release is `v0.3.0-beta.27` (Beta 27). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 25 is the immediate upgrade baseline and
+releases remain immutable. Beta 26 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

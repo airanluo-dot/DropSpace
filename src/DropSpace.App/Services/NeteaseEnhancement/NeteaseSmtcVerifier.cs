@@ -73,7 +73,7 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         var token = deadline.Token;
         var evidence = NeteaseMediaCapabilities.Empty;
         var changes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
-            { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
+        { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
         void Signal() => changes.Writer.TryWrite(true);
         var samples = new Dictionary<object, ProgressSample>(ReferenceEqualityComparer.Instance);
         var playAttempts = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
@@ -319,8 +319,7 @@ public sealed class NeteaseSmtcVerifier : IDisposable
         var elapsed = _time.GetElapsedTime(previous.Observed, now);
         var advance = snapshot.Position - previous.Snapshot.Position;
         var live = snapshot.Playing && previous.Snapshot.Playing && advance > TimeSpan.Zero &&
-            elapsed >= TimeSpan.FromMilliseconds(100) && advance.TotalSeconds <= elapsed.TotalSeconds * 2 + 0.25 &&
-            snapshot.Updated > previous.Snapshot.Updated;
+            elapsed >= TimeSpan.FromMilliseconds(100) && advance.TotalSeconds <= elapsed.TotalSeconds * 2 + 0.25;
         if (live || snapshot.Position != previous.Snapshot.Position || snapshot.Playing != previous.Snapshot.Playing)
             samples[identity] = new(snapshot, now, live);
         return live;

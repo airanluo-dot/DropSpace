@@ -75,13 +75,81 @@ public sealed class LyricsProviderTransportTests
     [TestMethod]
     public async Task NetEaseSearchIncludesArtistToAvoidPopularCoverCrowding()
     {
+        var queries = new List<string>();
         using var handler = new FixtureHandler(request =>
         {
-            Assert.IsTrue(Uri.UnescapeDataString(request.RequestUri!.Query).Contains("Song Artist", StringComparison.Ordinal));
+            queries.Add(Uri.UnescapeDataString(request.RequestUri!.Query));
+            Assert.IsTrue(request.RequestUri.Query.Contains("limit=30", StringComparison.Ordinal));
             return Json("""{"result":{"songs":[]}}""");
         });
         using var client = new HttpClient(handler);
         await new NetEaseLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
+        Assert.IsTrue(queries[0].Contains("Song Artist", StringComparison.Ordinal));
+        Assert.IsTrue(queries[1].Contains("s=Song", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task NetEaseApplicationErrorIsNotMisclassifiedAsCatalogMiss()
+    {
+        var calls = 0;
+        using var handler = new FixtureHandler(_ =>
+        {
+            calls++;
+            return Json("""{"code":405,"message":"bounded upstream error"}""");
+        });
+        using var client = new HttpClient(handler);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => new NetEaseLyricsProvider(new(client))
+            .QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default));
+        Assert.AreEqual(1, calls);
+    }
+
+    [TestMethod]
+    public async Task NetEaseFallsBackToTitleSearchAndReadsModernAliasSchema()
+    {
+        var searches = new List<string>();
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            {
+                var terms = Uri.UnescapeDataString(request.RequestUri.Query);
+                searches.Add(terms);
+                return terms.Contains("Song Artist", StringComparison.Ordinal)
+                    ? Json("""{"result":{"songs":[]}}""")
+                    : Json("""{"songs":[{"id":7,"name":"歌曲","tns":["Song"],"ar":[{"name":"Artist"}],"al":{"name":"Album"},"dt":181000}]}""");
+            }
+            return Json("""{"lrc":{"lyric":"[00:01]correct"}}""");
+        });
+        using var client = new HttpClient(handler);
+        var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(
+            new("Song", "Artist", "Different release", TimeSpan.FromSeconds(180)), default);
+
+        Assert.AreEqual("correct", result.Lines.Single().Text);
+        Assert.AreEqual("Song", result.Match!.Title);
+        Assert.AreEqual("7", result.Match.CandidateId);
+        Assert.AreEqual(2, searches.Count);
+    }
+
+    [TestMethod]
+    public async Task NetEaseSkipsEmptyBestCandidateWithinBoundedAlternatives()
+    {
+        var lyricIds = new List<string>();
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}],"album":{"name":"Album"},"duration":180000},{"id":2,"name":"Song (2024 Remastered)","artists":[{"name":"Artist"}],"album":{"name":"Album Deluxe"},"duration":181000}]}}""");
+            lyricIds.Add(request.RequestUri.Query);
+            return request.RequestUri.Query.Contains("id=1", StringComparison.Ordinal)
+                ? Json("""{"lrc":{"lyric":""}}""")
+                : Json("""{"lrc":{"lyric":"[00:01]usable"}}""");
+        });
+        using var client = new HttpClient(handler);
+        var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(
+            new("Song", "Artist", "Album", TimeSpan.FromSeconds(180)), default);
+
+        Assert.AreEqual("usable", result.Lines.Single().Text);
+        Assert.AreEqual("2", result.Match!.CandidateId);
+        Assert.AreEqual(2, lyricIds.Count);
     }
 
     [TestMethod]

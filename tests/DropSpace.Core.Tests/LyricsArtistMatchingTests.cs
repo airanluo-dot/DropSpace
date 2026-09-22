@@ -25,6 +25,35 @@ public sealed class LyricsArtistMatchingTests
     }
 
     [TestMethod]
+    public void FeaturedArtistAndRemasterDecorationsDoNotHideTheSameSong()
+    {
+        var query = new LyricsQuery("Midnight Drive (feat. Guest)", "Artist feat. Guest", "Original Album", TimeSpan.FromSeconds(240));
+
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Midnight Drive - 2024 Remastered", "Artist; Guest", "Deluxe Reissue", 258));
+        Assert.AreEqual("Midnight Drive", LyricsMatcher.SearchTitle("Midnight Drive (feat. Guest) - 网易云音乐"));
+        Assert.AreEqual("With Arms Wide Open", LyricsMatcher.SearchTitle("With Arms Wide Open"));
+        Assert.AreEqual("Clean", LyricsMatcher.SearchTitle("Clean"));
+    }
+
+    [TestMethod]
+    public void MinorTitleTypoCanUseStrongArtistAndDurationEvidence()
+    {
+        var query = new LyricsQuery("Beautiful Night", "Artist", string.Empty, TimeSpan.FromSeconds(200));
+
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Beautful Night", "Artist", string.Empty, 201));
+    }
+
+    [TestMethod]
+    public void ArtistCreditSeparatorsAreCompatibleWithoutSubstringMatching()
+    {
+        foreach (var artist in new[] { "Artist / Guest", "Artist; Guest", "Artist、Guest", "Artist feat. Guest", "Artist x Guest" })
+            Assert.IsTrue(LyricsMatcher.AreArtistCreditsCompatible("Artist", artist), artist);
+        Assert.IsTrue(LyricsMatcher.AreArtistCreditsCompatible("周杰伦", "周杰伦/温岚"));
+        Assert.IsFalse(LyricsMatcher.AreArtistCreditsCompatible("AC", "AC/DC"));
+        Assert.IsFalse(LyricsMatcher.AreArtistCreditsCompatible("Artist / One", "Artist / Two"));
+    }
+
+    [TestMethod]
     public void TitleOnlyMetadataCannotAuthorizeALyricsCandidate()
     {
         var query = new LyricsQuery("Song", string.Empty, string.Empty, TimeSpan.Zero);
@@ -57,18 +86,28 @@ public sealed class LyricsArtistMatchingTests
     }
 
     [TestMethod]
-    public void CandidateWithAConflictingKnownAlbumIsRejected()
+    public void ConflictingReleaseAlbumIsSoftWhenTitleAndArtistAreStrong()
     {
         var query = new LyricsQuery("Song", "Artist", "Album A", TimeSpan.Zero);
 
-        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", "Album B", 0));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Song", "Artist", "Album B", 0));
     }
 
     [TestMethod]
-    public void CandidateWithoutAlbumIdentityCannotAuthorizeAnAlbumDisambiguatedQuery()
+    public void MissingProviderAlbumIsSoftWhenArtistAndDurationAreStrong()
     {
         var query = new LyricsQuery("Song", "Artist", "Album A", TimeSpan.FromSeconds(180));
 
-        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", string.Empty, 180));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Song", "Artist", string.Empty, 180));
+    }
+
+    [TestMethod]
+    public void AlbumOrDurationCannotRescueAConflictingArtistOrVersion()
+    {
+        var query = new LyricsQuery("Song", "Artist", "Album", TimeSpan.FromSeconds(180));
+
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Other", "Album", 180));
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song (Live)", "Artist", "Album", 180));
+        Assert.AreEqual(0, LyricsMatcher.Score(query, "Song", "Artist", "Album", 240));
     }
 }

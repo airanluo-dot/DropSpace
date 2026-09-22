@@ -11,9 +11,15 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.26 is the current Beta release line**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.27 is the current Beta release**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.26](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.26). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.27](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.27). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+
+Beta 27 improves lyric matching across featured/remaster title decorations,
+primary/full artist credits, reissue albums and bounded duration differences. NetEase adds
+bounded fallback search, legacy/current response compatibility, alias titles and empty-result
+recovery; SMTC duplicate-session and live-progress edge cases have dedicated regressions.
+See [the Beta 27 audit](docs/dev/beta27-lyrics-netease-audit.md).
 
 Beta 26 audits the shipped Beta 25 and fixes lyrics, media state, native virtual
 files, payload cleanup, ZIP exports and updater/release validation. It requires x64 Windows
@@ -176,9 +182,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
+The current Beta release is `v0.3.0-beta.27` (Beta 27). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 25 is the immediate upgrade baseline and
+releases remain immutable. Beta 26 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

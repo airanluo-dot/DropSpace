@@ -104,6 +104,9 @@ $current = Assert-DropSpaceNewReleaseVersion ((Get-Content (Join-Path $PSScriptR
 $beta26 = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.26"
 Assert-Equal $beta26.PackageVersion "0.3.0.26" "Beta.26 package version"
 Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $beta26) "0.3.0-beta.25" "Beta.26 genuine upgrade baseline"
+$beta27 = Assert-DropSpaceNewReleaseVersion "v0.3.0-beta.27"
+Assert-Equal $beta27.PackageVersion "0.3.0.27" "Beta.27 package version"
+Assert-Equal (Get-DropSpaceLifecycleBaselineVersion $beta27) "0.3.0-beta.26" "Beta.27 genuine upgrade baseline"
 if (-not (Test-Path (Join-Path $PSScriptRoot "../.github/release-notes/$($current.Tag).md"))) { throw "Missing current release notes." }
 
 $appProject = Get-Content (Join-Path $PSScriptRoot "../src/DropSpace.App/DropSpace.App.csproj") -Raw -Encoding UTF8
