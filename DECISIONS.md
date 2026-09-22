@@ -623,3 +623,22 @@ after restoring position. Committed prior verification plus healthy current-sess
 preserves status on passive reopening while paused; it cannot substitute for first-install
 acceptance. Generic duplicate selection reconciles ordered primary/full artist credit lists,
 with source/title and conflicting album/duration guards; no player-specific media-core branch.
+
+## D-065 — Beta 27 lyric identity uses corroborating evidence, not optional-field unanimity
+
+- Date: 2026-09-22
+- Status: Accepted for v0.3.0-beta.27
+- Decision: Keep provider-owned candidate ID and a compatible title mandatory. Treat artist
+  credits, album and duration as corroborating signals: exact credit subsets support
+  primary/full lists, a strong artist can tolerate a missing or reissue album, and known
+  durations use a bounded relative tolerance. Conflicting known artists, semantic version
+  labels such as live/remix/acoustic, and duration differences beyond that bound remain hard
+  failures. NetEase performs at most two search queries and three lyric fetches, parses both
+  legacy and current result fields, treats non-success application codes as provider failures,
+  and never fills missing identity from the request.
+- Rationale: SMTC and provider catalogues describe the same recording with different optional
+  fields. Requiring every optional field caused false Not found results; accepting title alone
+  would allow covers or versions. Independent evidence improves recall without weakening the
+  provider-identity, current-track and stale-result boundaries.
+- Constraints: External catalogue coverage and future schemas remain best effort. Live network
+  samples demonstrate selected cases, not every song or geography.

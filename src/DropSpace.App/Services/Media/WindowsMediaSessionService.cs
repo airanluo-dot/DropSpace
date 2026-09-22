@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
@@ -13,12 +14,13 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 {
     private const int MaximumArtworkBytes = 4 * 1024 * 1024;
     private const int MaximumMetadataCharacters = 2_048;
+    private const int MaximumRecoverySessions = 8;
     private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(5);
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private readonly SemaphoreSlim _sessionGate = new(1, 1);
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
-    private GlobalSystemMediaTransportControlsSession? _preferredSession;
+    private GlobalSystemMediaTransportControlsSession[] _recoverySessions = [];
     private CancellationTokenSource? _lifetime;
     private Channel<bool>? _refresh;
     private Task _consumer = Task.CompletedTask;
@@ -207,17 +209,19 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             .ToArray();
         if (candidates.Length == 0)
         {
-            ObservePreferredSession(null);
+            ObserveRecoverySessions([]);
             DetachSession();
             return MediaSessionSnapshot.Empty;
         }
-        // A temporarily unreadable preferred player must remain observed even if a
-        // paused fallback becomes the display/control source. Otherwise only the paused
-        // fallback is subscribed and the preferred player's recovery cannot refresh us.
-        ObservePreferredSession(candidates[0]);
+        // NetEase can publish a weak native renderer and a richer InfLink renderer whose
+        // track changes arrive in either order. Keep the bounded same-source candidate set
+        // observed so a temporarily divergent richer renderer can announce that it caught up.
+        // Otherwise we can switch to the weak renderer, unsubscribe from InfLink and never
+        // regain its controls until the OS happens to raise a manager-level event.
+        ObserveRecoverySessions(SelectRecoverySessions(candidates, TryReadSource, MaximumRecoverySessions));
         // Preserve the OS/player priority. Only replace its renderer with a richer
         // renderer from the same application reporting the same track.
-        var richer = await SelectRicherSessionAsync(candidates, TryReadSource, ReadSelectionAsync, token);
+        var richer = await SelectRicherSessionAsync(candidates, TryReadSource, ReadSelectionAsync, token, _session);
         candidates = new[] { richer }.Concat(candidates).Distinct(new SessionReferenceComparer()).ToArray();
         var previous = Current;
         foreach (var candidate in candidates)
@@ -307,7 +311,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     internal static async Task<T> SelectRicherSessionAsync<T>(IReadOnlyList<T> candidates,
         Func<T, string?> source, Func<T, CancellationToken, Task<SessionSelection?>> read,
-        CancellationToken token) where T : class
+        CancellationToken token, T? retained = null) where T : class
     {
         var preferred = candidates[0];
         var sourceId = source(preferred);
@@ -319,7 +323,21 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         try
         {
             var baseline = await read(preferred, budget.Token);
-            if (baseline is null || string.IsNullOrWhiteSpace(baseline.Title) || string.IsNullOrWhiteSpace(baseline.Artist)) return preferred;
+            if (baseline is null || string.IsNullOrWhiteSpace(baseline.Title) || string.IsNullOrWhiteSpace(baseline.Artist))
+            {
+                // Some publishers clear the preferred renderer between songs. Preserve the
+                // still-live selected object during that short transition instead of replacing
+                // it with an empty, uncontrollable snapshot. Its recovery events remain watched.
+                if (retained is not null && !ReferenceEquals(retained, preferred) &&
+                    candidates.Any(value => ReferenceEquals(value, retained)) &&
+                    string.Equals(source(retained), sourceId, StringComparison.OrdinalIgnoreCase))
+                {
+                    var retainedValue = await read(retained, budget.Token);
+                    if (retainedValue is not null && !string.IsNullOrWhiteSpace(retainedValue.Title) &&
+                        !string.IsNullOrWhiteSpace(retainedValue.Artist)) return retained;
+                }
+                return preferred;
+            }
             var best = Score(baseline);
             foreach (var sibling in siblings)
             {
@@ -337,19 +355,27 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             (value.Duration > TimeSpan.Zero ? 8 : 0) + (!string.IsNullOrWhiteSpace(value.Album) ? 4 : 0) +
             (value.HasArtwork ? 2 : 0);
         static bool SameTrack(SessionSelection a, SessionSelection b) =>
-            string.Equals(a.Title.Trim(), b.Title.Trim(), StringComparison.OrdinalIgnoreCase) &&
-            SameArtists(a.Artist, b.Artist) &&
+            LyricsMatcher.AreTitlesEquivalent(a.Title, b.Title) &&
+            LyricsMatcher.AreArtistCreditsCompatible(a.Artist, b.Artist) &&
             (string.IsNullOrWhiteSpace(a.Album) || string.IsNullOrWhiteSpace(b.Album) || string.Equals(a.Album.Trim(), b.Album.Trim(), StringComparison.OrdinalIgnoreCase)) &&
             (a.Duration <= TimeSpan.Zero || b.Duration <= TimeSpan.Zero || Math.Abs((a.Duration - b.Duration).TotalSeconds) <= 2);
-        static bool SameArtists(string left, string right)
+    }
+
+    internal static IReadOnlyList<T> SelectRecoverySessions<T>(IReadOnlyList<T> candidates,
+        Func<T, string?> source, int maximum) where T : class
+    {
+        if (candidates.Count == 0 || maximum <= 0) return [];
+        var sourceId = source(candidates[0]);
+        if (string.IsNullOrWhiteSpace(sourceId)) return [];
+        var selected = new List<T>(Math.Min(maximum, candidates.Count));
+        foreach (var candidate in candidates)
         {
-            // Sibling renderers can publish primary-only versus full artist credits.
-            // Require complete ordered credit tokens, never a substring match (AC/DC).
-            var a = left.Split(" / ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            var b = right.Split(" / ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            return a.Length > 0 && b.Length > 0 && a.Take(Math.Min(a.Length, b.Length))
-                .SequenceEqual(b.Take(Math.Min(a.Length, b.Length)), StringComparer.OrdinalIgnoreCase);
+            if (!string.Equals(source(candidate), sourceId, StringComparison.OrdinalIgnoreCase) ||
+                selected.Any(value => ReferenceEquals(value, candidate))) continue;
+            selected.Add(candidate);
+            if (selected.Count == maximum) break;
         }
+        return selected;
     }
 
     private async Task<SessionSelection?> ReadSelectionAsync(GlobalSystemMediaTransportControlsSession session, CancellationToken token)
@@ -408,7 +434,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         await _sessionGate.WaitAsync();
         try
         {
-            ObservePreferredSession(null);
+            ObserveRecoverySessions([]);
             DetachSession();
             if (_manager is not null)
             {
@@ -454,30 +480,38 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         _sessionIdentity = string.Empty;
     }
 
-    private void ObservePreferredSession(GlobalSystemMediaTransportControlsSession? session)
+    private void ObserveRecoverySessions(IReadOnlyList<GlobalSystemMediaTransportControlsSession> sessions)
     {
-        if (ReferenceEquals(session, _preferredSession)) return;
-        if (_preferredSession is { } previous)
+        var previousSessions = Volatile.Read(ref _recoverySessions);
+        var nextSessions = sessions.ToArray();
+        // Publish immutable membership before changing handlers so callbacks racing with
+        // removal are ignored and callbacks after a new subscription see their membership.
+        Volatile.Write(ref _recoverySessions, nextSessions);
+        foreach (var previous in previousSessions)
         {
-            previous.MediaPropertiesChanged -= OnPreferredMediaPropertiesChanged;
-            previous.PlaybackInfoChanged -= OnPreferredPlaybackInfoChanged;
-            previous.TimelinePropertiesChanged -= OnPreferredTimelinePropertiesChanged;
+            if (nextSessions.Any(value => ReferenceEquals(value, previous))) continue;
+            previous.MediaPropertiesChanged -= OnRecoveryMediaPropertiesChanged;
+            previous.PlaybackInfoChanged -= OnRecoveryPlaybackInfoChanged;
+            previous.TimelinePropertiesChanged -= OnRecoveryTimelinePropertiesChanged;
         }
-        _preferredSession = session;
-        if (session is not null)
+        foreach (var session in nextSessions)
         {
-            session.MediaPropertiesChanged += OnPreferredMediaPropertiesChanged;
-            session.PlaybackInfoChanged += OnPreferredPlaybackInfoChanged;
-            session.TimelinePropertiesChanged += OnPreferredTimelinePropertiesChanged;
+            if (previousSessions.Any(value => ReferenceEquals(value, session))) continue;
+            session.MediaPropertiesChanged += OnRecoveryMediaPropertiesChanged;
+            session.PlaybackInfoChanged += OnRecoveryPlaybackInfoChanged;
+            session.TimelinePropertiesChanged += OnRecoveryTimelinePropertiesChanged;
         }
     }
 
-    private void OnPreferredMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
-    { if (ReferenceEquals(sender, _preferredSession) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
-    private void OnPreferredPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
-    { if (ReferenceEquals(sender, _preferredSession) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
-    private void OnPreferredTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
-    { if (ReferenceEquals(sender, _preferredSession) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    private void OnRecoveryMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
+    { if (IsRecoverySession(sender) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    private void OnRecoveryPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
+    { if (IsRecoverySession(sender) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    private void OnRecoveryTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
+    { if (IsRecoverySession(sender) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+
+    private bool IsRecoverySession(GlobalSystemMediaTransportControlsSession session) =>
+        Volatile.Read(ref _recoverySessions).Any(value => ReferenceEquals(value, session));
 
     private void RequestRefresh() => _refresh?.Writer.TryWrite(true);
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) => RequestRefresh();

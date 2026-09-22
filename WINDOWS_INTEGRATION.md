@@ -2,6 +2,19 @@
 
 ## NetEase enhancement verification boundary
 
+Beta 27 keeps discovery and verification event-driven. A valid timeline whose position
+advances plausibly across subscribed events establishes LiveProgress even when the publisher
+does not advance LastUpdatedTime; a frozen position still fails. Same-source duplicate
+sessions compare normalized publisher-suffix-free titles and complete artist-credit tokens
+across common separators, without substring matching. Up to eight same-source candidates
+remain subscribed while weak/native and rich/plugin renderers report a track change in
+different orders. A late rich-renderer event therefore triggers reselection instead of leaving
+controls stuck on the weak renderer; a briefly empty preferred renderer does not evict the
+still-live selected control session. Slider dragging is local UI state: 33 ms playback-clock
+frames never overwrite the thumb and do not issue native seek calls. Release sends one bounded
+seek and temporarily holds the target until the Windows session acknowledges it or the two-second
+deadline expires; playback itself is never paused for dragging.
+
 The new enhancement manager uses official independent BetterNCM/InfLink components
 and verifies their output through Windows GSMTC. Shuffle/repeat expansion and its acceptance
 requirements are removed by D-064. Player restart is bounded and scoped to the verified executable path;

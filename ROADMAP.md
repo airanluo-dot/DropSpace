@@ -1,5 +1,12 @@
 # DropSpace Roadmap
 
+## Delivered slice: v0.3.0-beta.27
+
+Improve lyric recall while preserving provider identity and version-conflict safeguards;
+expand NetEase catalogue/schema recovery and complex duplicate-session/progress coverage,
+and publish the repository Skill refresh with the same release. Executed evidence belongs in
+`docs/dev/beta27-lyrics-netease-audit.md`.
+
 ## Current user amendment — NetEase enhancement; publication reauthorized
 
 Preserve the Beta26 audit checkpoint and PR67. Complete the one-confirmation NetEase enhancement
@@ -13,7 +20,7 @@ Official InfLink-rs 3.2.11's mode limitation remains recorded in the historical 
 does not block the explicitly revised scope. Preserve original upstream artifacts and the
 Windows SMTC-only runtime boundary. See D-064 and the native report; do not infer a live pass.
 
-## Active authorized slice: v0.3.0-beta.26
+## Historical delivered slice: v0.3.0-beta.26
 
 Audit the shipped Beta 25 as a release candidate, fix confirmed defects, and
 deliver Beta 26 with regression tests, real provider/Windows evidence and fresh
@@ -34,8 +41,9 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.26
-is the current Beta bug-fix target following Beta 25. Hosted Windows checks are
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.27
+is the current Beta release.
+Hosted Windows checks are
 the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer,
 Apple Music/provider, and Worker/browser evidence remain explicit operational
 gates. Beta signing remains optional; Stable publication is signing-gated.
@@ -696,9 +704,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
+The current Beta release is `v0.3.0-beta.27` (Beta 27). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 25 is the immediate upgrade baseline and
+releases remain immutable. Beta 26 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

@@ -41,8 +41,12 @@ public sealed class NeteaseSmtcVerifierTests
     public async Task Restore_TrackLoadOverwritesFirstSeek_RetriesBeforeRejectingVerifiedCapabilities()
     {
         var clock = new Clock();
-        var session = new Session(clock) { Progress = true, OverwriteFirstRestoreSeek = true,
-            State = Snapshot() with { Playing = false } };
+        var session = new Session(clock)
+        {
+            Progress = true,
+            OverwriteFirstRestoreSeek = true,
+            State = Snapshot() with { Playing = false }
+        };
         Assert.IsTrue((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
         Assert.IsFalse(session.State.Playing);
         Assert.AreEqual(TimeSpan.FromSeconds(20), session.State.Position);
@@ -53,8 +57,12 @@ public sealed class NeteaseSmtcVerifierTests
     public async Task Seek_ObservedSubsecondOffsetStillProvesActualJump()
     {
         var clock = new Clock();
-        var session = new Session(clock) { Progress = true, SeekOffset = TimeSpan.FromMilliseconds(786),
-            State = Snapshot() with { Playing = false } };
+        var session = new Session(clock)
+        {
+            Progress = true,
+            SeekOffset = TimeSpan.FromMilliseconds(786),
+            State = Snapshot() with { Playing = false }
+        };
         Assert.IsTrue((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
         Assert.IsFalse(session.State.Playing);
     }
@@ -72,8 +80,12 @@ public sealed class NeteaseSmtcVerifierTests
     public async Task Seek_OutsideOneSecondDoesNotPass()
     {
         var clock = new Clock();
-        var session = new Session(clock) { Progress = true, SeekOffset = TimeSpan.FromSeconds(2),
-            State = Snapshot() with { Playing = false } };
+        var session = new Session(clock)
+        {
+            Progress = true,
+            SeekOffset = TimeSpan.FromSeconds(2),
+            State = Snapshot() with { Playing = false }
+        };
         Assert.IsFalse((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
     }
 
@@ -167,7 +179,8 @@ public sealed class NeteaseSmtcVerifierTests
     {
         var categories = new List<string>();
         using var verifier = new NeteaseSmtcVerifier(_ => throw new System.Runtime.InteropServices.COMException("private"),
-            new Clock(), TimeSpan.FromMilliseconds(80)) { Diagnostic = categories.Add };
+            new Clock(), TimeSpan.FromMilliseconds(80))
+        { Diagnostic = categories.Add };
         try { await verifier.VerifyAsync(TimeSpan.FromSeconds(1), false); Assert.Fail("Connection failure must propagate"); }
         catch (InvalidOperationException exception) { Assert.AreEqual("MediaVerificationConnectionUnavailable", exception.Message); }
         Assert.IsTrue(categories.Single().StartsWith("ManagerConnectionUnavailable;HRESULT=", StringComparison.Ordinal));
@@ -177,8 +190,14 @@ public sealed class NeteaseSmtcVerifierTests
     public async Task WeakPausedSession_IsNotAutomaticallyPlayed()
     {
         var clock = new Clock();
-        var session = new Session(clock) { State = Snapshot() with { Playing = false,
-            Capabilities = Snapshot().Capabilities with { Timeline = false, Seek = false } } };
+        var session = new Session(clock)
+        {
+            State = Snapshot() with
+            {
+                Playing = false,
+                Capabilities = Snapshot().Capabilities with { Timeline = false, Seek = false }
+            }
+        };
         Assert.IsFalse((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromMilliseconds(80), true)).Complete);
         Assert.AreEqual(0, session.Commands.Count);
     }
@@ -247,9 +266,14 @@ public sealed class NeteaseSmtcVerifierTests
         var clock = new Clock();
         var session = new Session(clock)
         {
-            Progress = true, StateSpecific = true, InitializeOnPlay = true,
-            State = Snapshot() with { Playing = false,
-                Capabilities = Snapshot().Capabilities with { PlaybackState = false } },
+            Progress = true,
+            StateSpecific = true,
+            InitializeOnPlay = true,
+            State = Snapshot() with
+            {
+                Playing = false,
+                Capabilities = Snapshot().Capabilities with { PlaybackState = false }
+            },
         };
         Assert.IsTrue((await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(2), true)).Complete);
         Assert.IsFalse(session.State.Playing);
@@ -280,6 +304,18 @@ public sealed class NeteaseSmtcVerifierTests
         Assert.IsFalse(result.Complete);
         Assert.IsFalse(result.LiveProgress);
         Assert.AreEqual(0, session.Subscriptions + manager.Subscriptions);
+    }
+
+    [TestMethod]
+    public async Task AdvancingPositionWithStablePublisherTimestampProvesLiveProgress()
+    {
+        var clock = new Clock();
+        var session = new Session(clock) { Progress = true, KeepUpdatedTimestamp = true };
+
+        var result = await Verifier(new Manager(session), clock).VerifyAsync(TimeSpan.FromSeconds(1), false);
+
+        Assert.IsTrue(result.Complete);
+        Assert.IsTrue(result.LiveProgress);
     }
 
     [TestMethod]
@@ -378,6 +414,7 @@ public sealed class NeteaseSmtcVerifierTests
         public Action? OnCommand { get; set; }
         public ProbeSnapshot State { get; set; } = Snapshot();
         public bool Progress { get; init; }
+        public bool KeepUpdatedTimestamp { get; init; }
         public bool IgnoreNext { get; init; }
         public bool IgnoreSeek { get; init; }
         public bool OverwriteFirstRestoreSeek { get; init; }
@@ -397,7 +434,11 @@ public sealed class NeteaseSmtcVerifierTests
             if (Progress && State.Playing && !_restoreLoadPending)
             {
                 clock.Advance();
-                State = State with { Position = State.Position + TimeSpan.FromSeconds(1), Updated = State.Updated.AddSeconds(1) };
+                State = State with
+                {
+                    Position = State.Position + TimeSpan.FromSeconds(1),
+                    Updated = KeepUpdatedTimestamp ? State.Updated : State.Updated.AddSeconds(1),
+                };
                 Changed?.Invoke();
             }
             return Task.FromResult(StateSpecific ? State with { Capabilities = State.Capabilities with { Play = !State.Playing, Pause = State.Playing } } : State);

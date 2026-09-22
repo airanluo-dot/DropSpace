@@ -1,5 +1,21 @@
 # DropSpace UX Specification
 
+## Beta 27 lyrics and NetEase compatibility
+
+Lyrics should recover from harmless metadata differences instead of showing Not found:
+featured-artist/remaster decorations, a primary versus complete artist list, a missing or
+reissue album and a small duration offset are acceptable when the remaining identity is
+strong. Wrong artists, incompatible live/remix variants and large duration conflicts remain
+rejected. The UI state model is unchanged: Loading, Found, Not found and Failed still refer
+only to the current media identity, and fallback never displays a stale track's document.
+
+When NetEase exposes duplicate weak/rich SMTC sessions, common artist delimiters and a
+publisher title suffix do not prevent selection of the richer timeline/seek session. A real
+event-driven position advance counts as live progress even if LastUpdatedTime stays stable.
+The progress slider owns its thumb while it is being dragged: playback continues, frame updates
+do not overwrite the preview position, and no seek is sent until release. Release submits one
+final target and holds it briefly until the player acknowledges it, preventing snap-back flicker.
+
 ## NetEase enhancement card
 
 Music places a concise enhancement card below Now Playing. One confirmation names InfLink-rs,

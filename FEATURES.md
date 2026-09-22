@@ -7,7 +7,8 @@
 - Managed update, reinstall and removal preserve unrelated existing components.
 - Native complete SMTC capability skips third-party installation.
 - Restart verification rediscovers live Windows sessions and distinguishes connection,
-  discovery and capability failures. Beta26 publication is authorized after acceptance.
+  discovery and capability failures. Beta 26 acceptance/publication remains historical evidence;
+  Beta 27 adds the compatibility fixes described below.
 
 Shuffle/repeat controls and their acceptance requirements are removed by the latest user
 amendment. Their upstream limitations no longer block the revised scope. Actual one-click
@@ -20,13 +21,14 @@ results remain in `docs/dev/netease-enhancement.md`; this catalogue does not est
 - Real clock, calendar, CPU/memory, battery/AC and uptime data; stopwatch start/pause/reset; settings and clipboard recording controls.
 - Clipboard page: most recent 20 canonical records with copy, pin/unpin, remove from DropSpace, pause/resume, and full-history navigation.
 - Music settings retain provider, translation, timing, artwork, spectrum and explicit player allowlist choices. No valid native timeline means estimated position and unavailable seeking, not a fabricated seek capability.
-- Beta 26 validates lyric candidates against track identity, metadata and duration before display; stale asynchronous results cannot replace the current track, and Loading/Not found/Failed states are visible in expanded Music. NetEase remains preferred, with online fallback and offline-only Local LRC.
+- Beta 27 validates lyric candidates against provider identity and multiple metadata signals before display. It tolerates harmless title decorations, primary/full artist-credit lists, reissue or missing albums and bounded duration drift while rejecting wrong artists, conflicting live/remix variants and large duration differences. Stale asynchronous results cannot replace the current track, and Loading/Not found/Failed states are visible in expanded Music. NetEase remains preferred, with bounded recovery search, online fallback and offline-only Local LRC.
 - Incomplete LRCLIB metadata uses search; Kugou preserves duration units and hash-verified album identity. Optional artwork failure cannot suppress a new song's metadata, and explicit lyric end times survive instrumental gaps.
 - Beta 26 bounds clipboard, manual file drops, virtual OLE materialization, batch persistence, native-window recovery, updater cancellation and integrity failures without changing the local-first or source-file-safe boundary. Virtual-file batches reserve distinct names, payload operations reject linked-directory escapes, and failed cleanup obligations cannot starve later work.
 - ZIP exports retain hierarchy and empty folders. Installer/update artifacts must match RELEASE_VERSION; cancellation before installer launch restores a retryable state or exposes a rollback failure.
 
-Beta 26 is the current release target; publication and native acceptance status
-are recorded in `docs/dev/beta26-rc-audit.md`. Feature contracts do not imply that
+Beta 27 is the current Beta release; its validation evidence is recorded in
+`docs/dev/beta27-lyrics-netease-audit.md`. Beta 26 publication and native acceptance remain
+in `docs/dev/beta26-rc-audit.md`. Feature contracts do not imply that
 every physical display, music player, source application or network is verified.
 
 This document is the behavior contract. MVP and V1.1 boundaries come from `PRODUCT.md`.
