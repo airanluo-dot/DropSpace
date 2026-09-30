@@ -118,6 +118,9 @@ async function putObject(request, env, shareId, objectName) {
   if (!Number.isSafeInteger(length) || length < 1) throw new HttpError("object-length-invalid", 400);
   if (!request.body) throw new HttpError("body-missing", 400);
   const descriptor = describeUploadObject(objectName, length);
+  // Object sizes are capped at 6 MiB. Validate the actual bytes before reserving
+  // quota or persisting them; Content-Length alone is not the byte count.
+  const bytes = await readBody(request, length, length);
   const reservation = await coordinatorRequest(env, shareId, "reserve", descriptor);
   const key = objectKey(shareId, objectName);
   let putStarted = false;
@@ -125,7 +128,7 @@ async function putObject(request, env, shareId, objectName) {
     const existing = await env.SHARES.head(key);
     if (existing) throw new HttpError("object-exists", 409);
     putStarted = true;
-    await env.SHARES.put(key, request.body, {
+    await env.SHARES.put(key, bytes, {
       httpMetadata: { contentType: request.headers.get("content-type") || "application/octet-stream", cacheControl: "no-store" },
       customMetadata: { expiresAt: String(meta.expiresAt), shareId },
     });
@@ -156,6 +159,7 @@ async function getObject(request, env, shareId, objectName) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+  await coordinatorRequest(env, shareId, "status");
   const object = await env.SHARES.get(objectKey(shareId, objectName));
   if (!object) throw new HttpError("not-found", 404);
   const headers = new Headers({ "Cache-Control": "no-store", "Content-Type": object.httpMetadata?.contentType || "application/octet-stream", "X-Content-Type-Options": "nosniff" });
@@ -171,7 +175,7 @@ async function revokeShare(request, env, shareId) {
   let cursor;
   do {
     const listed = await env.SHARES.list({ prefix: "shares/" + shareId + "/", limit: 1000, ...(cursor ? { cursor } : {}) });
-    await Promise.all(listed.objects.map(object => env.SHARES.delete(object.key)));
+    await Promise.all(listed.objects.filter(object => object.key !== metaKey(shareId)).map(object => env.SHARES.delete(object.key)));
     if (listed.truncated && !listed.cursor) throw new HttpError("listing-incomplete", 503);
     cursor = listed.truncated ? listed.cursor : undefined;
   } while (cursor);
@@ -184,6 +188,7 @@ async function receiverPage(env, shareId, request) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+  await coordinatorRequest(env, shareId, "status");
   const origin = publicOrigin(env, request);
   const nonce = toB64(crypto.getRandomValues(new Uint8Array(16)));
   const script = receiverScript(origin, shareId);
@@ -396,6 +401,10 @@ async function hmac(secret, text) {
   return toB64(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text))));
 }
 
+function fromB64(value) {
+  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - value.length % 4) % 4);
+  return Uint8Array.from(atob(padded), character => character.charCodeAt(0));
+}
 function constantTime(a, b) { try { const x = fromB64(a), y = fromB64(b); if (x.length !== y.length) return false; let d = 0; for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i]; return d === 0; } catch { return false; } }
 function toB64(bytes) { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", ""); }
 function metaKey(id) { return `shares/${id}/meta.json`; }
@@ -408,7 +417,7 @@ function publicOrigin(env, request) {
   if (origin.protocol !== "https:" || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/") throw new HttpError("origin-invalid", 500);
   return origin.origin;
 }
-async function readJson(request, maximum) {
+async function readBody(request, maximum, expectedLength = null) {
   const declared = request.headers.get("content-length");
   if (declared !== null) {
     const length = Number(declared);
@@ -426,16 +435,21 @@ async function readJson(request, maximum) {
       total += value.byteLength;
       if (total > maximum) {
         await reader.cancel("body-too-large").catch(() => {});
-        throw new HttpError("body-too-large", 413);
+        throw new HttpError(expectedLength === null ? "body-too-large" : "object-length-mismatch", expectedLength === null ? 413 : 400);
       }
       chunks.push(value);
     }
   } finally {
     reader.releaseLock();
   }
+  if (expectedLength !== null && total !== expectedLength) throw new HttpError("object-length-mismatch", 400);
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
+async function readJson(request, maximum) {
+  const bytes = await readBody(request, maximum);
   let text;
   try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
   catch { throw new HttpError("json-invalid", 400); }
@@ -563,6 +577,10 @@ export class ShareUsageCoordinator {
 
         if (!current || current.shareId !== body.shareId) throw new HttpError("coordinator-not-found", 404);
         current = cleanupCoordinatorState(current);
+        if (body.operation === "status") {
+          if (current.revoked || current.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+          return coordinatorJson({ ok: true });
+        }
         if (body.operation === "reserve") return await this.reserve(current, body);
         if (body.operation === "commit") return await this.commit(current, body);
         if (body.operation === "rollback") return await this.rollback(current, body);

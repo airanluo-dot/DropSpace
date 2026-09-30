@@ -169,6 +169,7 @@ test("receiver page uses nonce CSP and bounded streaming download fallback", asy
     new Request("https://share.example.invalid/s/" + shareId),
     {
       PUBLIC_ORIGIN: "https://share.example.invalid",
+      SHARE_COORDINATOR: { idFromName: name => name, get: () => ({ fetch: async () => new Response("{}") }) },
       SHARES: {
         async get(key) {
           if (key === "shares/" + shareId + "/meta.json") {
@@ -258,7 +259,7 @@ test("receiver decrypts and downloads a real encrypted file", async () => {
   const manifestNonce = crypto.getRandomValues(new Uint8Array(12));
   const encryptedManifest = await crypto.subtle.encrypt({ name: "AES-GCM", iv: manifestNonce, additionalData: enc(`DropSpaceShare:v1\n${shareId}`) }, await derive("manifest"), enc(JSON.stringify({ shareId, items: [item] })));
   const packedManifest = new Uint8Array(12 + encryptedManifest.byteLength); packedManifest.set(manifestNonce); packedManifest.set(new Uint8Array(encryptedManifest), 12);
-  const page = await worker.fetch(new Request("https://share.invalid/s/" + shareId), { SHARES: { async get() { return new Response(JSON.stringify({ shareId, expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: bytes.length })); } } });
+  const page = await worker.fetch(new Request("https://share.invalid/s/" + shareId), { SHARE_COORDINATOR: { idFromName: name => name, get: () => ({ fetch: async () => new Response("{}") }) }, SHARES: { async get() { return new Response(JSON.stringify({ shareId, expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: bytes.length })); } } });
   const script = (await page.text()).match(/<script nonce="[^"]+">([\s\S]*)<\/script>/)[1];
   const buttons = [], alerts = [], fetched = [];
   let downloaded;
@@ -285,4 +286,74 @@ test("concurrent initialization grants ownership to exactly one creator", async 
   const metadata = { expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: 5 };
   const results = await Promise.all([invoke(coordinator, "init", metadata), invoke(coordinator, "init", metadata)]);
   assert.deepEqual(results.map(result => result.status).sort(), [200, 409]);
+});
+
+async function createWorkerShare() {
+  const coordinator = createCoordinator();
+  const objects = new Map();
+  const env = {
+    UPLOAD_TOKEN_SECRET: "test-secret-".repeat(4),
+    SHARE_CREATION_LIMITER: { idFromName: name => name, get: () => ({ fetch: async () => new Response("{}") }) },
+    SHARE_COORDINATOR: { idFromName: name => name, get: () => ({ fetch: (url, init) => coordinator.fetch(new Request(url, init)) }) },
+    SHARES: {
+      async get(key) {
+        const value = objects.get(key);
+        return value === undefined ? null : { text: async () => value, body: value };
+      },
+      async head(key) { return objects.has(key) ? {} : null; },
+      async put(key, value) {
+        objects.set(key, value instanceof ReadableStream ? new Uint8Array(await new Response(value).arrayBuffer()) : value);
+      },
+      async delete(key) { objects.delete(key); },
+      async list() { return { objects: [...objects.keys()].map(key => ({ key })), truncated: false }; },
+    },
+  };
+  const response = await worker.fetch(new Request("https://share.invalid/v1/shares", {
+    method: "POST", body: JSON.stringify({ shareId, expiresAtUtc: new Date(Date.now() + 3600000).toISOString(), itemCount: 1, totalBytes: 5 }),
+  }), env);
+  assert.equal(response.status, 200);
+  return { env, objects, session: await response.json() };
+}
+
+test("upload verifies actual length before consuming the quota", async () => {
+  for (const actualLength of [20, 22]) {
+    const { env, objects, session } = await createWorkerShare();
+    const request = bytes => new Request(session.uploadBaseUrl + fileOne + ".0.bin", {
+      method: "PUT", headers: { authorization: session.uploadAuthorization, "content-length": "21" }, body: new Uint8Array(bytes),
+    });
+    const invalid = await worker.fetch(request(actualLength), env);
+    assert.equal(invalid.status, 400);
+    assert.equal((await invalid.json()).error, "object-length-mismatch");
+    assert.equal(objects.size, 1);
+    assert.equal((await worker.fetch(request(21), env)).status, 201);
+  }
+});
+
+test("partial revocation fails closed and retains metadata for retry", async () => {
+  const { env, objects, session } = await createWorkerShare();
+  const objectName = fileOne + ".0.bin";
+  const key = "shares/" + shareId + "/" + objectName;
+  objects.set(key, new Uint8Array(21));
+  const originalDelete = env.SHARES.delete;
+  env.SHARES.delete = async candidate => {
+    if (candidate === key) throw new Error("temporary storage failure");
+    return originalDelete(candidate);
+  };
+  const revoke = () => worker.fetch(new Request(session.revokeUrl, { method: "DELETE", headers: { authorization: session.uploadAuthorization } }), env);
+  assert.equal((await revoke()).status, 500);
+  assert.equal(objects.has("shares/" + shareId + "/meta.json"), true);
+  assert.equal((await worker.fetch(new Request(session.uploadBaseUrl + objectName), env)).status, 410);
+  assert.equal((await worker.fetch(new Request("https://share.invalid/s/" + shareId), env)).status, 410);
+  env.SHARES.delete = originalDelete;
+  assert.equal((await revoke()).status, 204);
+  assert.equal(objects.size, 0);
+});
+
+test("freshly created upload authorization authenticates and rejects tampering", async () => {
+  const { env, session } = await createWorkerShare();
+  const upload = authorization => worker.fetch(new Request(session.uploadBaseUrl + "manifest.bin", {
+    method: "PUT", headers: { authorization, "content-length": "32" }, body: new Uint8Array(32),
+  }), env);
+  assert.equal((await upload(session.uploadAuthorization + "x")).status, 401);
+  assert.equal((await upload(session.uploadAuthorization)).status, 201);
 });
