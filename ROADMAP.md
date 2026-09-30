@@ -7,8 +7,11 @@ transfer, sharing, storage and update fixes without changing existing data owner
 The source checkpoint and portable evidence are recorded in
 `docs/audit/2026-09-30/full-project-three-round-audit.md`. Publish only after the exact
 release commit passes real Windows CI in both languages, DPAPI/App tests, WinUI build,
-Portable/Inno/MSIX/identity packaging, lifecycle smoke and final artifact/manifest gates,
-and has the critical manual candidate evidence required by `TEST_PLAN.md`.
+Portable/Inno/MSIX/identity packaging, lifecycle smoke, security and final
+artifact/manifest gates. Under the current Beta-only authorization, missing critical
+manual, two-real-Windows-device and deployed Worker live acceptance evidence is
+recommended follow-up rather than a publication blocker. Missing or unexecuted
+evidence remains unverified; this does not claim a pass or relax Stable criteria.
 The audit's Linux checks are not Windows acceptance evidence.
 
 ## Delivered slice: v0.3.0-beta.28
@@ -62,9 +65,10 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.29
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
-the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer,
-Apple Music/provider, and Worker/browser evidence remain explicit operational
-gates. Beta signing remains optional; Stable publication is signing-gated.
+the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
+two-device transfer, Apple Music/provider, and deployed Worker/browser evidence
+remain recommended Beta follow-up and are unverified where absent. Beta signing
+remains optional; Stable publication is signing-gated.
 
 Phase 0 boundary adapters are implemented rather than left as throwaway spikes. Automated Windows lifecycle, drag, projection, DPI, update, and packaging coverage remains paired with real-target desktop evidence for Explorer/Desktop drag-in, Overlay drag-out, mixed-DPI geometry, fullscreen behavior, animation feel, and tray recreation after Explorer restart.
 

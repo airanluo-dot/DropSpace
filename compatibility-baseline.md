@@ -73,12 +73,18 @@ release workflow before restore/build. It rejects target/minimum drift, direct
 Mica XAML parsing, unguarded modern DWM attributes, updater-policy drift, and
 missing baseline documentation.
 
-## Required evidence matrix
+## Physical evidence matrix
 
 The following is the acceptance matrix, not a claim that every row has already
 been run. A row is complete only when its OS build, display scale, monitor
 topology, deployment mode, application version, and result are recorded from a
 real Windows environment.
+
+Under the current Beta publication policy in [TEST_PLAN.md](TEST_PLAN.md), missing
+physical/manual matrix evidence is recommended follow-up rather than a Beta
+publication blocker. Unexecuted rows remain unverified. Exact-candidate Windows
+automated build, tests including actual DPAPI, native smoke, packaging/lifecycle,
+security and final artifact checks remain required; Stable criteria are unchanged.
 
 | OS baseline | Build | Required focus |
 | --- | ---: | --- |

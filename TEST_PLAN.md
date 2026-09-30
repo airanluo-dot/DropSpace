@@ -24,8 +24,21 @@ matrix row remains conditional until recorded on the target machine.
 - Unit and integration suites pass.
 - Schema migration fixtures pass from every supported prior version.
 - No high-severity privacy/security finding remains unexplained.
-- Critical manual matrix has evidence for the release candidate.
+- Stable release candidates retain the critical manual evidence requirement; Beta manual acceptance follows the policy below.
 - `en-US` and `zh-CN` `.resw` key sets are identical; every XAML resource identifier uses the app-owned override or an explicit `Window` application path, every imperative localizer key and package-manifest string resolves in the English base resource file, and source `.cs` and `.xaml` files contain no CJK hardcoded UI text. Portable publishing regenerates and explicitly bundles its packaging-free `DropSpace.resources.pri` before the runtime smoke without replacing WinUI's default resource index.
+
+For Beta publication, the current user authorization makes missing critical manual
+matrix, two-real-Windows-device, and operator-deployed Worker live acceptance
+evidence recommended follow-up rather than publication blockers. This exception
+covers missing evidence only; actual test failures or demonstrated unresolved
+regressions remain publication blockers. Record unavailable,
+failed, skipped, and unexecuted checks honestly; this exception does not mark them
+passed or establish physical/provider/deployed-service behavior. The exact candidate
+must still pass both language Windows CI jobs, complete Core/Infrastructure/App tests
+including actual DPAPI, WinUI Release, Portable EXE, Inno installer/lifecycle,
+MSIX/identity packaging, security checks, and final version/SHA-256/update-manifest
+validation. Stable signing and release criteria are unchanged. No automated test or
+safety check is removed or made optional by this Beta policy.
 
 ## Unit tests
 
@@ -126,13 +139,17 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 
 ## Manual test matrix
 
+For Beta, the physical/manual cases below are recommended follow-up under the
+publication policy above. Missing evidence alone does not block Beta publication;
+the rows remain unverified until executed and recorded.
+
 ### Localization (English and Simplified Chinese Windows 10/11)
 
 - Run the complete critical flow on English and Simplified Chinese display-language installations across the supported Windows 10/11 matrix; record OS build, display-language setting, application build, and result.
 - In each installation, choose **System default**, allow dispatcher refresh, and verify the main window, Dynamic Island, tray tooltip/menu, newly generated states/dialogs/errors, and accessibility names use the expected resource set. Restart and verify that the saved preference is retained.
 - In each installation, explicitly choose **English** and then **Simplified Chinese** without restarting and verify the same refreshed surfaces. Generate fresh status/error text; record existing transient messages that retain their previous language until replaced. Restart and verify persistence. This verifies the app-owned XAML override as well as imperative and native surfaces.
 - Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; verify refreshed control names and newly generated messages use the selected language and do not announce raw exception text.
-- CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real Windows 10 and Windows 11 installations remain required release evidence.
+- CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real supported Windows installations remain recommended Beta follow-up for that behavior, without marking absent evidence passed.
 
 ### Windows compatibility baseline (Beta.25)
 
@@ -140,7 +157,7 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 - Exercise the supported build 20348 baseline and Windows 11 21H2/22H2/23H2/24H2 (22000/22621/22631/26100). Windows 10 1909/20H2/22H2 (18363/19042/19045) are below the minimum: verify portable launch diagnostics and installer/MSIX rejection on those systems.
 - At each supported OS, cover 100%, 125%, 150%, 175%, and 200% scaling, one-to-three monitors, primary/non-primary placement, topology refresh, normal launch, `--startup`, clipboard, Smart/Classic drag, visible direct drops, preview fallback, updater, and the relevant packaging path.
 - Treat Mica, modern DWM attributes, Windows Share identity, and optional PDF/media APIs as capability outcomes. Supported builds below Windows 11 must retain the base visual and local drop/clipboard paths without probing failures or stale overlay hit regions.
-- Do not mark this gate complete from source inspection, Linux checks, or Windows 11 CI alone; attach executable OS/build/DPI/monitor evidence.
+- Do not mark physical matrix rows complete from source inspection, Linux checks, or Windows 11 CI alone; attach executable OS/build/DPI/monitor evidence when the recommended Beta follow-up is performed.
 
 ### Clipboard
 
@@ -245,7 +262,7 @@ The portable smoke harness must prove that the published single `DropSpace.exe` 
 
 The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
 
-Automation does not claim visual quality or real Explorer/UIA/third-party provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags remain invisible without lasting obstruction; Explorer/Desktop file/folder/multi-select left/right drags and available WeChat/QQ/Feishu/Electron/Office sources are recorded; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; the probe creates no visible flash/focus/taskbar/Alt+Tab entry or unacceptable cursor feedback; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct.
+Automation does not claim visual quality or real Explorer/UIA/third-party provider coverage. Recommended Beta follow-up on a real Windows 11 desktop verifies ordinary clicks/text selection/window drags remain invisible without lasting obstruction; Explorer/Desktop file/folder/multi-select left/right drags and available WeChat/QQ/Feishu/Electron/Office sources are recorded; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; the probe creates no visible flash/focus/taskbar/Alt+Tab entry or unacceptable cursor feedback; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct. Missing this evidence alone does not block Beta publication and does not establish a pass.
 
 ## v0.1.0 Stable automated gates
 
@@ -267,6 +284,6 @@ Automation does not claim visual quality or real Explorer/UIA/third-party provid
 
 Manual Windows 11 gates remain real Explorer/Desktop pointer delivery, Drop Tray on/off Shell ownership and direct suggestion ranking, Share UI activation with a trusted signed identity, visible Compact/Expanded feedback, last-item dismissal, mixed-DPI/multi-monitor input, animation feel and zero-pixel Hidden appearance.
 
-The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); the Preview.6 plan remains as historical scope. It is a release gate: CI proves policy, protocol, and crypto contracts; two real Windows devices plus an operator-deployed Worker are still required for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance.
+The v0.3.0-preview.7 network/preview matrix is maintained in [docs/test-plan/v0.3.0-preview.7.md](docs/test-plan/v0.3.0-preview.7.md); historical Preview plans retain their recorded scope and results. Automated policy, protocol, crypto, Worker and browser checks remain required. For current Beta publication, two real Windows devices plus an operator-deployed Worker are recommended follow-up for pairing, firewall, reconnect/resume, clipboard modes, browser decryption, and Internet Share acceptance. Missing live evidence alone does not block Beta publication; those behaviors remain unverified and an unconfigured backend remains unavailable.
 
 Current prerelease naming and compatibility are defined in [Beta migration](docs/dev/beta-migration.md). New releases use Beta; historical Preview identities remain unchanged.

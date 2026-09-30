@@ -19,8 +19,12 @@ Beta 29 incorporates three fresh full-project audit rounds covering shutdown and
 native callback/OLE ownership, clipboard capture, batch actions, transfer and share lifecycle,
 storage confinement, update verification and release contracts. The [three-round audit](docs/audit/2026-09-30/full-project-three-round-audit.md)
 records executed portable checks and their Windows limitations. Publication requires the exact
-release commit's real Windows CI, DPAPI tests, WinUI build, complete release-packaging gates
-and the critical manual candidate evidence required by [the test plan](TEST_PLAN.md).
+release commit's real Windows CI, DPAPI tests, WinUI build, complete release-packaging,
+lifecycle, security and final artifact gates in [the test plan](TEST_PLAN.md).
+For Beta publication, missing critical manual, two-real-Windows-device and deployed
+Worker live acceptance evidence is recommended follow-up rather than a blocker.
+Those unexecuted behaviors remain unverified; no passing result is claimed. Stable
+signing and release criteria remain unchanged.
 
 Beta 28 restores player-agnostic lyric lookup across track/album artist metadata and every
 online provider, retries when a media session gains stronger duration evidence, and keeps
