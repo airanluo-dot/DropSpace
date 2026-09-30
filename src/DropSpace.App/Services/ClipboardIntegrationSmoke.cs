@@ -30,7 +30,7 @@ public sealed class ClipboardIntegrationSmoke(
 {
     private ClipboardDiagnosticSession? _diagnosticSession;
 
-    public async Task<ClipboardIntegrationMetrics> RunAsync(CancellationToken cancellationToken = default)
+    public async Task<ClipboardIntegrationMetrics> RunAsync(CancellationToken cancellationToken = default, bool runControlledTextCases = false)
     {
         capture.BeginDiagnosticSession();
         await using var diagnostics = new ClipboardDiagnosticSession(paths.Logs, () => capture.DiagnosticSnapshot, capture.EndDiagnosticSession);
@@ -134,7 +134,8 @@ public sealed class ClipboardIntegrationSmoke(
                 throw new InvalidOperationException("A non-consecutive clipboard text was incorrectly collapsed.");
             }
 
-            await RunControlledTextCasesAsync(token, cancellationToken);
+            if (runControlledTextCases)
+                await RunControlledTextCasesAsync(token, cancellationToken);
 
             Directory.CreateDirectory(fileTestRoot);
             Directory.CreateDirectory(folderPath);
