@@ -26,11 +26,9 @@ public static class LyricsMatcher
     private static readonly Regex PublisherMetadataSeparator = new(
         @"\s+(?:—|–|•|·)\s+|[\r\n]+",
         RegexOptions.None, TimeSpan.FromMilliseconds(100));
-    private static readonly string[] DisambiguatingVersionTokens =
-    [
-        "live", "remix", "acoustic", "instrumental", "karaoke", "radio", "extended",
-        "edit", "demo", "concert", "cover", "spedup", "slowed",
-    ];
+    private static readonly Regex DisambiguatingVersionWords = new(
+        @"\b(?:live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|concert|cover|sped\s*up|slowed)\b",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     public static string Normalize(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
@@ -222,13 +220,13 @@ public static class LyricsMatcher
     private static HashSet<string> Labels(string value)
     {
         var labels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (Match match in VersionLabels.Matches(Limit(value)))
+        foreach (Match match in VersionLabels.Matches(FeaturedArtistDecoration.Replace(Limit(value), string.Empty)))
         {
-            var label = Normalize(match.Groups[1].Success ? match.Groups[1].Value : match.Value);
-            foreach (var token in DisambiguatingVersionTokens)
-            {
-                if (label.Contains(token, StringComparison.OrdinalIgnoreCase)) labels.Add(token);
-            }
+            var label = match.Groups[1].Success ? match.Groups[1].Value : match.Value;
+            // Compare whole version words before removing punctuation. Otherwise names
+            // such as Oliver in a featured credit contain "live" and reject the studio song.
+            foreach (Match word in DisambiguatingVersionWords.Matches(label))
+                labels.Add(Normalize(word.Value));
         }
         return labels;
     }

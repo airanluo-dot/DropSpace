@@ -7,6 +7,22 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsArtistMatchingTests
 {
     [TestMethod]
+    public void FeaturedArtistNameDoesNotBecomeAVersionLabel()
+    {
+        var query = new LyricsQuery("Night Drive (feat. Oliver)", "Artist", "", TimeSpan.FromSeconds(200));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "Night Drive", "Artist", "", 200));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent(query.Title, "Night Drive"));
+    }
+
+    [TestMethod]
+    public void VersionWordsStillRejectActualLiveAndRemixRecordings()
+    {
+        var query = new LyricsQuery("Night Drive", "Artist", "", TimeSpan.FromSeconds(200));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "Night Drive (Live at Wembley)", "Artist", "", 200));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "Night Drive (Extended Remix)", "Artist", "", 200));
+    }
+
+    [TestMethod]
     public void FirstArtistFromSmtcPrefersOriginalOverShorterLiveCredits()
     {
         var query = new LyricsQuery("Color Your Night", "Lotus Juice", string.Empty, TimeSpan.Zero);

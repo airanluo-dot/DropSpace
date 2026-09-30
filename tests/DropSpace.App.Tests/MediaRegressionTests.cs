@@ -11,6 +11,54 @@ namespace DropSpace.App.Tests;
 public sealed class MediaRegressionTests
 {
     [TestMethod]
+    public async Task FrequentTimelineUpdatesDoNotStarveNewMetadata()
+    {
+        long metadataRevision = 1;
+        var timelineUpdates = 0;
+        var reads = 0;
+        var (value, revision) = await WindowsMediaSessionService.ReadStableMetadataAsync(async _ =>
+        {
+            reads++;
+            for (var i = 0; i < 20; i++) { timelineUpdates++; await Task.Yield(); }
+            return "New track";
+        }, () => metadataRevision, CancellationToken.None);
+        Assert.AreEqual("New track", value);
+        Assert.AreEqual(1L, revision);
+        Assert.AreEqual(1, reads);
+        Assert.AreEqual(20, timelineUpdates);
+    }
+
+    [TestMethod]
+    public async Task TrackChangeDuringReadRetriesAndPublishesNewMetadata()
+    {
+        long revision = 0;
+        var reads = 0;
+        var result = await WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
+        {
+            reads++;
+            if (reads == 1) { revision++; return Task.FromResult("Old track"); }
+            return Task.FromResult("New track");
+        }, () => revision, CancellationToken.None);
+        Assert.AreEqual("New track", result.Value);
+        Assert.AreEqual(2, reads);
+    }
+
+    [TestMethod]
+    public async Task RepeatedTrackChangesRemainBoundedAndDoNotPublishStaleMetadata()
+    {
+        long revision = 0;
+        var reads = 0;
+        var result = await WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
+        {
+            reads++;
+            revision++;
+            return Task.FromResult("Stale track");
+        }, () => revision, CancellationToken.None);
+        Assert.IsNull(result.Value);
+        Assert.AreEqual(2, reads);
+    }
+
+    [TestMethod]
     public async Task OptionalArtworkFailureDoesNotDiscardReadableMetadata()
     {
         await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);

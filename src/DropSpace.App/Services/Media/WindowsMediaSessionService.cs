@@ -28,7 +28,6 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private MediaSessionSnapshot _current = MediaSessionSnapshot.Empty;
     private string[] _allowedSources = [];
     private long _metadataRevision;
-    private long _snapshotRevision;
     private long _artworkRevision = -1;
     private bool _restrictSources;
     private string _sessionIdentity = string.Empty;
@@ -136,10 +135,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     private async Task ConsumeAsync(ChannelReader<bool> reader, CancellationToken token)
     {
+        var consecutiveFailures = 0;
         try
         {
             await foreach (var _ in reader.ReadAllAsync(token))
             {
+                var retry = false;
                 await _sessionGate.WaitAsync(token);
                 try
                 {
@@ -148,15 +149,25 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     var snapshot = await ReadSnapshotAsync(timeout.Token);
                     token.ThrowIfCancellationRequested();
                     Publish(snapshot);
+                    consecutiveFailures = 0;
                 }
                 catch (Exception exception) when (IsRecoverable(exception))
                 {
                     if (token.IsCancellationRequested) break;
                     logger.LogDebug("SMTC refresh failed ({Category}).", exception.GetType().Name);
+                    retry = ++consecutiveFailures <= 3;
                     var current = Current;
                     Publish(_session is not null && current.SessionId == _sessionIdentity && current.IsActive ? current : MediaSessionSnapshot.Empty);
                 }
                 finally { _sessionGate.Release(); }
+                if (retry)
+                {
+                    // The last track-change notification may coincide with a transient
+                    // native failure. Recover without waiting indefinitely for another event,
+                    // but stop after three retries instead of polling a broken publisher.
+                    await Task.Delay(TimeSpan.FromMilliseconds(250 * consecutiveFailures), token);
+                    RequestRefresh();
+                }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -237,65 +248,61 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             }
             try
             {
-                for (var attempt = 0; attempt < 2; attempt++)
+                var (properties, metadataRevision) = await ReadStableMetadataAsync(
+                    readToken => candidate.TryGetMediaPropertiesAsync().AsTask(readToken),
+                    () => Interlocked.Read(ref _metadataRevision), token);
+                if (properties is null)
                 {
-                    var revision = Interlocked.Read(ref _snapshotRevision);
-                    var metadataRevision = Interlocked.Read(ref _metadataRevision);
-                    var properties = await candidate.TryGetMediaPropertiesAsync().AsTask(token);
-                    var playback = candidate.GetPlaybackInfo();
-                    var timeline = candidate.GetTimelineProperties();
-                    if (revision != Interlocked.Read(ref _snapshotRevision) && attempt == 0) continue;
-                    if (revision != Interlocked.Read(ref _snapshotRevision))
-                    {
-                        RequestRefresh();
-                        return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
-                    }
-                    var source = Bound(candidate.SourceAppUserModelId);
-                    var title = Bound(properties.Title);
-                    var artist = Bound(properties.Artist);
-                    var albumArtist = Bound(properties.AlbumArtist);
-                    var album = Bound(properties.AlbumTitle);
-                    var trackNumber = properties.TrackNumber;
-                    var duration = timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero;
-                    var durationConsistent = previous.Timeline.Duration <= TimeSpan.Zero || duration <= TimeSpan.Zero ||
-                        Math.Abs((previous.Timeline.Duration - duration).TotalSeconds) <= 2;
-                    var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
-                        previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
-                        previous.TrackNumber == trackNumber && durationConsistent;
-                    var effectiveStart = timeline.StartTime;
-                    var effectiveEnd = timeline.EndTime;
-                    if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
-                    {
-                        // A short-lived zero timeline is an Apple Music metadata refresh, not a new
-                        // track. Keep the last known bounds so the UI and lyric clock do not collapse
-                        // to a one-second duration while the native session catches up.
-                        effectiveStart = previous.Timeline.Start;
-                        effectiveEnd = previous.Timeline.End;
-                    }
-                    // Players can deliver the new title before its thumbnail. Metadata events
-                    // invalidate artwork even when the track key has not changed.
-                    var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
-                        ? previous.Artwork : await ReadOptionalArtworkAsync(
-                            artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), token);
-                    if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
-                    if (metadataRevision != Interlocked.Read(ref _metadataRevision))
-                    {
-                        RequestRefresh();
-                        return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
-                    }
-                    _artworkRevision = metadataRevision;
-                    return new(_sessionIdentity, source, FriendlyName(source, strings), title, artist, album, artwork,
-                        playback.PlaybackStatus switch
-                        {
-                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
-                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => MediaPlaybackState.Paused,
-                            GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => MediaPlaybackState.Stopped,
-                            _ => MediaPlaybackState.Unknown,
-                        }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
-                        playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
-                        new(timeline.Position, effectiveStart, effectiveEnd, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt,
-                        albumArtist, trackNumber);
+                    RequestRefresh();
+                    return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
                 }
+                var playback = candidate.GetPlaybackInfo();
+                var timeline = candidate.GetTimelineProperties();
+                var source = Bound(candidate.SourceAppUserModelId);
+                var title = Bound(properties.Title);
+                var artist = Bound(properties.Artist);
+                var albumArtist = Bound(properties.AlbumArtist);
+                var album = Bound(properties.AlbumTitle);
+                var trackNumber = properties.TrackNumber;
+                var duration = timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero;
+                var durationConsistent = previous.Timeline.Duration <= TimeSpan.Zero || duration <= TimeSpan.Zero ||
+                    Math.Abs((previous.Timeline.Duration - duration).TotalSeconds) <= 2;
+                var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
+                    previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
+                    previous.TrackNumber == trackNumber && durationConsistent;
+                var effectiveStart = timeline.StartTime;
+                var effectiveEnd = timeline.EndTime;
+                if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
+                {
+                    // A short-lived zero timeline is an Apple Music metadata refresh, not a new
+                    // track. Keep the last known bounds so the UI and lyric clock do not collapse
+                    // to a one-second duration while the native session catches up.
+                    effectiveStart = previous.Timeline.Start;
+                    effectiveEnd = previous.Timeline.End;
+                }
+                // Players can deliver the new title before its thumbnail. Metadata events
+                // invalidate artwork even when the track key has not changed.
+                var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
+                    ? previous.Artwork : await ReadOptionalArtworkAsync(
+                        artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), token);
+                if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
+                if (metadataRevision != Interlocked.Read(ref _metadataRevision))
+                {
+                    RequestRefresh();
+                    return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                }
+                _artworkRevision = metadataRevision;
+                return new(_sessionIdentity, source, FriendlyName(source, strings), title, artist, album, artwork,
+                    playback.PlaybackStatus switch
+                    {
+                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
+                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => MediaPlaybackState.Paused,
+                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => MediaPlaybackState.Stopped,
+                        _ => MediaPlaybackState.Unknown,
+                    }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
+                    playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
+                    new(timeline.Position, effectiveStart, effectiveEnd, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt,
+                    albumArtist, trackNumber);
             }
             catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
             {
@@ -304,6 +311,22 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             }
         }
         return MediaSessionSnapshot.Empty;
+    }
+
+    // Only metadata notifications invalidate an in-flight metadata read. Continuous
+    // playback/timeline events must not starve title and artwork updates.
+    internal static async Task<(T? Value, long Revision)> ReadStableMetadataAsync<T>(
+        Func<CancellationToken, Task<T>> read, Func<long> metadataRevision, CancellationToken token) where T : class
+    {
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            token.ThrowIfCancellationRequested();
+            var revision = metadataRevision();
+            var value = await read(token);
+            token.ThrowIfCancellationRequested();
+            if (revision == metadataRevision()) return (value, revision);
+        }
+        return (null, metadataRevision());
     }
 
     internal sealed record SessionSelection(string Title, string Artist, string Album, TimeSpan Duration,
@@ -520,19 +543,16 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     {
         if (!ReferenceEquals(sender, _session)) return;
         Interlocked.Increment(ref _metadataRevision);
-        Interlocked.Increment(ref _snapshotRevision);
         RequestRefresh();
     }
     private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
     {
         if (!ReferenceEquals(sender, _session)) return;
-        Interlocked.Increment(ref _snapshotRevision);
         RequestRefresh();
     }
     private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
     {
         if (!ReferenceEquals(sender, _session)) return;
-        Interlocked.Increment(ref _snapshotRevision);
         RequestRefresh();
     }
     private static bool IsPlaying(GlobalSystemMediaTransportControlsSession value)

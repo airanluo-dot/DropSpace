@@ -61,3 +61,28 @@ Manual multi-device/provider/deployed-Worker checks are not established by this
 review. Worker fixes ship as source and require backend deployment separately.
 Existing previously stripped URL metadata is not migrated. Both peers should
 update before using fragment-preserving explicit URL handoff.
+
+## Media/lyrics priority follow-up (14:50 UTC)
+
+User reports persistent Apple Music recognition failure since an earlier algorithm
+change, and more frequent NetEase tracking loss after beta29. These runtime causes
+are not yet proven on the user's device. Beta28-to-beta29 did not change the main
+SMTC selection/experience or matcher implementation; this does not invalidate the
+reported regression or rule out indirect changes.
+
+- SMTC metadata reads previously compared a revision incremented by every timeline
+  and playback event. Frequent events could exhaust both attempts and repeatedly
+  retain the previous track. Reads now validate metadata changes only. Three focused
+  App tests cover continuous unrelated updates, one actual track change, and bounded
+  rejection of repeatedly stale reads. Windows execution is pending.
+- A transient refresh exception now requests at most three delayed retries, instead
+  of depending entirely on a later publisher event. It does not start continuous
+  polling; cancellation terminates the delayed retry with the consumer.
+- Lyric version parsing previously found `live` inside `Oliver` in a featured credit.
+  A deterministic regression returned score 0 before the fix. Whole-word version
+  matching and removal of featured credits pass that regression while keeping actual
+  live/remix rejection. All 284 Core tests pass locally after the changes.
+
+Prior Windows checks passed for 9215e79; they do not validate these newer changes.
+Real Apple Music / NetEase runtime reproduction remains unverified. Do not describe
+synthetic tests as proof that either player is fully fixed.
