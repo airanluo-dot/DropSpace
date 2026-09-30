@@ -1,5 +1,16 @@
 # DropSpace Roadmap
 
+## Release target: v0.3.0-beta.29
+
+Deliver the three full-project audit rounds' lifecycle, cancellation, OLE, clipboard,
+transfer, sharing, storage and update fixes without changing existing data ownership.
+The source checkpoint and portable evidence are recorded in
+`docs/audit/2026-09-30/full-project-three-round-audit.md`. Publish only after the exact
+release commit passes real Windows CI in both languages, DPAPI/App tests, WinUI build,
+Portable/Inno/MSIX/identity packaging, lifecycle smoke and final artifact/manifest gates,
+and has the critical manual candidate evidence required by `TEST_PLAN.md`.
+The audit's Linux checks are not Windows acceptance evidence.
+
 ## Delivered slice: v0.3.0-beta.28
 
 Restore player-agnostic lyric recall across generic Windows media publishers; make passive
@@ -48,8 +59,8 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.28
-is the current Beta release.
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.29
+is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build and packaging gate; real OS/DPI/OLE/accessibility, two-device transfer,
 Apple Music/provider, and Worker/browser evidence remain explicit operational
@@ -711,9 +722,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta release is `v0.3.0-beta.28` (Beta 28). All new prereleases use
+The current Beta target is `v0.3.0-beta.29` (Beta 29). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 27 is the immediate upgrade baseline and
+releases remain immutable. Beta 28 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

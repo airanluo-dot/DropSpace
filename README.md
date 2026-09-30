@@ -11,9 +11,16 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the current Stable release and v0.3.0-beta.28 is the current Beta release**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and this repository targets v0.3.0-beta.29**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Latest Stable: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta release: [v0.3.0-beta.28](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.28). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target: [v0.3.0-beta.29](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.29); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+
+Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
+native callback/OLE ownership, clipboard capture, batch actions, transfer and share lifecycle,
+storage confinement, update verification and release contracts. The [three-round audit](docs/audit/2026-09-30/full-project-three-round-audit.md)
+records executed portable checks and their Windows limitations. Publication requires the exact
+release commit's real Windows CI, DPAPI tests, WinUI build, complete release-packaging gates
+and the critical manual candidate evidence required by [the test plan](TEST_PLAN.md).
 
 Beta 28 restores player-agnostic lyric lookup across track/album artist metadata and every
 online provider, retries when a media session gains stronger duration evidence, and keeps
@@ -189,9 +196,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta release is `v0.3.0-beta.28` (Beta 28). All new prereleases use
+The current Beta target is `v0.3.0-beta.29` (Beta 29). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 27 is the immediate upgrade baseline and
+releases remain immutable. Beta 28 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
