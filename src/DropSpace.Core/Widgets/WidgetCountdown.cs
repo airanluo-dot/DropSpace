@@ -5,7 +5,14 @@ public sealed class WidgetCountdown(TimeSpan duration)
 {
     private readonly System.Diagnostics.Stopwatch _elapsed = new();
     public bool IsRunning => _elapsed.IsRunning && Remaining > TimeSpan.Zero;
-    public TimeSpan Remaining => duration > _elapsed.Elapsed ? duration - _elapsed.Elapsed : TimeSpan.Zero;
+    public TimeSpan Remaining
+    {
+        get
+        {
+            var elapsed = _elapsed.Elapsed;
+            return duration > elapsed ? duration - elapsed : TimeSpan.Zero;
+        }
+    }
     public void Toggle()
     {
         if (Remaining == TimeSpan.Zero) _elapsed.Restart();
