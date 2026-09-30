@@ -66,7 +66,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         AppTitleBar.Loaded += (_, _) => XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
         XamlResourceOverride.Apply(this, "MainWindow");
 
-        if (capabilities.IsAvailable(WindowsCapability.DesktopAcrylic))
+        if (capabilities.IsAvailable(WindowsCapability.ModernWindowAppearance) &&
+            capabilities.IsAvailable(WindowsCapability.DesktopAcrylic))
         {
             try
             {
