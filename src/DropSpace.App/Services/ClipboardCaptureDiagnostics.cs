@@ -18,7 +18,7 @@ internal enum ClipboardDiagnosticDecision
     StageStarted, WaitStarted, WaitProgress, WaitCompleted, SmokeCompleted, SmokeFailed,
     Notification, SignalQueued, SignalDropped, SignalDequeued, PausedSignal,
     DuplicateSequence, SequenceConsumed, ReadAttempt, DispatcherQueued, ClipboardViewReadStarted, ClipboardViewRead,
-    TextReadStarted, TextReadCompleted, StorageItemsRead, BitmapRead,
+    TextReadStarted, TextOperationCreated, TextReadCompleted, StorageItemsRead, BitmapRead,
     EmptyText, UnsupportedFormat, ReadCompleted, ReadFailed, RetrySequenceAdvanced,
     SnapshotUnavailable, StaleSequence, SelfWriteSuppressed, CommitGateWaiting,
     CommitGateAcquired, RepositoryCommitStarted, RepositoryCommitCompleted,
@@ -56,7 +56,8 @@ internal sealed record ClipboardDiagnosticDocument(
 /// <summary>Smoke-only bounded metadata. No payload, path, fingerprint or exception message is accepted.</summary>
 internal sealed class ClipboardDiagnosticTrace
 {
-    internal const int EventCapacity = 1_024;
+    // Retain the complete fixed smoke plan while staying below the 4 MiB retention bound.
+    internal const int EventCapacity = 2_048;
     private readonly object _gate = new();
     private readonly Queue<ClipboardDiagnosticEvent> _events = new();
     private readonly List<ClipboardDiagnosticStep> _steps = [];

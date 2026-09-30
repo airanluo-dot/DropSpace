@@ -1111,7 +1111,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         if (view.Contains(StandardDataFormats.Text))
         {
             RecordDiagnostic(ClipboardDiagnosticDecision.TextReadStarted, signal);
-            var text = await view.GetTextAsync();
+            var operation = view.GetTextAsync();
+            RecordDiagnostic(ClipboardDiagnosticDecision.TextOperationCreated, signal);
+            var text = await operation;
             RecordDiagnostic(ClipboardDiagnosticDecision.TextReadCompleted, signal);
             if (string.IsNullOrWhiteSpace(text))
             {
