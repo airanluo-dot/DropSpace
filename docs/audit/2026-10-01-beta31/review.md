@@ -20,9 +20,15 @@ Historical audit JSON is evidence, not application source.
 - Found URL user-info credentials surviving log redaction. Added a regression that fails on the old code, then redacted URL user-info before query/fragment cleanup. Host/path diagnostics remain useful.
 - Final local Core: 298 passed. Worker: 21 passed. Website: 34 passed. All inventoried JSON/XML/JavaScript parsed successfully; C# syntax checked for all 415 original files. Windows native checks remain a release gate, not represented as locally passed.
 
-## Round 2 — state, concurrency and boundary review (in progress)
+## Round 2 — state, concurrency and boundary review (review complete; final Windows gate outstanding)
 
-## Round 3 — pending
+- Repeated repository-wide C# syntax and state/lifetime/process/TLS boundary scans after Round 1 fixes. 417 C# files parsed; source/config inventory remains covered mechanically.
+- Traced clipboard queue cancellation, media worker/session teardown, bounded metadata calls, settings write serialization and recovery, database transaction durable tails, shell argument construction, peer-certificate pinning, update manifest validation and staged encrypted uploads. No speculative broad refactors were made.
+- Found repeated enhanced-LRC lines reusing the first occurrence's absolute word timestamps. Reproduced with a failing test; shift word start/end timestamps for each repeated line while preserving inferred end timing. Correct word highlighting now starts at each occurrence.
+- Core: 299 passed; Worker: 21 passed; website: 34 passed. The earlier Windows candidate reached installer packaging after App/native-boundary and WinUI compile steps passed; these are not yet evidence for the final post-audit commit.
+
+
+## Round 3 — regression and delivery-chain review (in progress)
 
 ## Release hold
 
