@@ -204,7 +204,7 @@ public sealed class WidgetEditorView : UserControl
             var desired = size with { Column = column, Row = row };
             var valid = inside && (old is null
                 ? WidgetLayoutPolicy.TryAdd(_editor.Settings.Widgets.Layout, id, column, row, out var added) && added.Expanded.Any(p => p.Id == id && p.Column == column && p.Row == row)
-                : WidgetLayoutPolicy.TryMoveOrResize(_editor.Settings.Widgets.Layout, desired, out _));
+                : WidgetLayoutPolicy.TryMoveOrResize(_editor.Settings.Widgets.Layout, desired, out var previewLayout));
             _dropPreview.Visibility = valid ? Visibility.Visible : Visibility.Collapsed;
             if (valid) { Grid.SetColumn(_dropPreview, column); Grid.SetRow(_dropPreview, row); Grid.SetColumnSpan(_dropPreview, size.ColumnSpan); Grid.SetRowSpan(_dropPreview, size.RowSpan); }
         }), true);
