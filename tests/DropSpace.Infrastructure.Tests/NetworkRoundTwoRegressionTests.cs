@@ -197,6 +197,33 @@ public sealed class NetworkRoundTwoRegressionTests
         finally { await service.DisposeAsync(); }
     }
 
+    [TestMethod]
+    public async Task ReceiveAssemblyPreservesPreviouslyCommittedTemporaryLookingFilename()
+    {
+        await using var fixture = new HostFixture();
+        var first = "report.txt." + fixture.SessionId.ToString("N") + ".tmp";
+        var receive = await fixture.SeedAsync(first, "report.txt");
+        Assert.IsTrue(await fixture.Host.ApproveIncomingTransferAsync(fixture.SessionId, true));
+        var result = await fixture.CompleteAsync(receive);
+        Assert.AreEqual(TransferSessionState.Completed, result.State);
+        Assert.IsTrue(File.Exists(Path.Combine(fixture.Destination, first)));
+        Assert.IsTrue(File.Exists(Path.Combine(fixture.Destination, "report.txt")));
+        Assert.AreEqual(2, result.CompletedRelativePaths.Count);
+    }
+
+    [TestMethod]
+    public async Task ReceiveAssemblyDoesNotTruncatePreexistingTemporaryLookingFile()
+    {
+        await using var fixture = new HostFixture();
+        var receive = await fixture.SeedAsync();
+        Directory.CreateDirectory(fixture.Destination);
+        var existing = Path.Combine(fixture.Destination, "empty.txt." + fixture.SessionId.ToString("N") + ".tmp");
+        await File.WriteAllTextAsync(existing, "existing user content");
+        Assert.IsTrue(await fixture.Host.ApproveIncomingTransferAsync(fixture.SessionId, true));
+        Assert.AreEqual(TransferSessionState.Completed, (await fixture.CompleteAsync(receive)).State);
+        Assert.AreEqual("existing user content", await File.ReadAllTextAsync(existing));
+    }
+
     private sealed class HostFixture : IAsyncDisposable
     {
         private readonly DropLinkPairingService _pairing;
@@ -217,12 +244,13 @@ public sealed class NetworkRoundTwoRegressionTests
             Leases = new(Paths, NullLogger<StagingLeaseStore>.Instance);
             Host = new(identities, secrets, _pairing, Repository, NullLogger<DropLinkHost>.Instance, new(), Leases);
         }
-        public async Task<object> SeedAsync()
+        public async Task<object> SeedAsync(params string[] relativePaths)
         {
+            if (relativePaths.Length == 0) relativePaths = ["empty.txt"];
             var session = new TransferSession(SessionId, TransferDirection.Receive, TransferMode.Handoff, Guid.NewGuid(),
-                TransferSessionState.AwaitingApproval, DateTimeOffset.UtcNow, null, 1, 0, 0, null);
+                TransferSessionState.AwaitingApproval, DateTimeOffset.UtcNow, null, relativePaths.Length, 0, 0, null);
             var manifest = TransferManifestPolicy.Create(SessionId,
-                [new(Guid.NewGuid(), TransferItemKind.File, "empty.txt", "empty.txt", 0, Convert.ToHexString(SHA256.HashData([])), "text/plain", 0)]);
+                relativePaths.Select(path => new TransferItemManifest(Guid.NewGuid(), TransferItemKind.File, path, path, 0, Convert.ToHexString(SHA256.HashData([])), "text/plain", 0)).ToArray());
             await Repository.CreateSessionAsync(session);
             var lease = await Leases.AcquireAsync("droplink-receive", "transfers/fixture", sensitivePlaintext: false);
             var type = typeof(DropLinkHost).GetNestedType("ReceiveTransfer", BindingFlags.NonPublic)!;

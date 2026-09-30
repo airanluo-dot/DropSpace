@@ -1148,11 +1148,14 @@ public sealed class DropLinkHost(
 
         var relative = TransferManifestPolicy.NormalizeRelativePath(item.RelativePath);
         var destination = ReparseSafePathPolicy.PrepareContainedFileDestination(receive.DestinationRoot, relative);
-        var temporary = string.Concat(destination, ".", receive.Session.Id.ToString("N"), ".tmp");
+        // Keep assembly names independent of sender-controlled manifest names.
+        var temporary = Path.Combine(Path.GetDirectoryName(destination)!, ".dropspace-" + Guid.NewGuid().ToString("N") + ".tmp");
+        var ownsTemporary = false;
         try
         {
-            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None, 81_920, FileOptions.Asynchronous | FileOptions.WriteThrough))
+            await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81_920, FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
+                ownsTemporary = true;
                 for (var index = 0; index < item.ChunkCount.Value; index++)
                 {
                     var part = Path.Combine(receive.StagingRoot, string.Concat(item.Id.ToString("N"), ".", index, ".part"));
@@ -1168,12 +1171,13 @@ public sealed class DropLinkHost(
             }
             ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
             File.Move(temporary, destination, overwrite: false);
+            ownsTemporary = false;
             ReparseSafePathPolicy.RevalidatePreparedDestination(receive.DestinationRoot, destination);
             receive.CompletedPaths.Enqueue(relative);
         }
         catch
         {
-            TryDelete(temporary);
+            if (ownsTemporary) TryDelete(temporary);
             throw;
         }
     }

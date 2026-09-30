@@ -56,8 +56,9 @@ async function requireCreateAdmission(request, env) {
   const address = request.headers.get("cf-connecting-ip") || "unknown";
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(address)));
   const sourceKey = [...digest.subarray(0, 16)].map(value => value.toString(16).padStart(2, "0")).join("");
-  await admitCreation(binding, "global", CREATE_GLOBAL_LIMIT);
+  // Reject a noisy source before charging the shared creation budget.
   await admitCreation(binding, "source-" + sourceKey, CREATE_SOURCE_LIMIT);
+  await admitCreation(binding, "global", CREATE_GLOBAL_LIMIT);
 }
 
 async function admitCreation(binding, key, limit) {
