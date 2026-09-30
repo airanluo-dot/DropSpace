@@ -432,7 +432,7 @@
   <data name="QuickActionSlot" xml:space="preserve"><value>主操作槽位 {0}</value></data>
   <data name="ResetQuickActions" xml:space="preserve"><value>重置此配置</value></data>
   <data name="ResetAllQuickActions" xml:space="preserve"><value>重置所有快捷操作</value></data>
-  <data name="UndoButton.Text" xml:space="preserve"><value>撤销</value></data>
+  <data name="UndoButton.Content" xml:space="preserve"><value>撤销</value></data>
   <data name="UndoRemovedItem" xml:space="preserve"><value>项目已移除，可在 8 秒内撤销。</value></data>
   <data name="UndoRemovedItems" xml:space="preserve"><value>已移除 {0} 项，可在 8 秒内撤销。</value></data>
   <data name="UndoClearedItems" xml:space="preserve"><value>已清除 {0} 项剪贴板内容，可在 8 秒内撤销。</value></data>

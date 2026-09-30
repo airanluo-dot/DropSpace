@@ -234,7 +234,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
                 Content = _strings.Get("StartupRecoveryContent"),
                 CloseButtonText = _strings.Get("CommonClose"),
             };
-            await dialog.ShowAsync();
+            await Views.ContentDialogLifetime.ShowAsync(dialog, cancellationToken);
             return true;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -317,7 +317,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
                 Content = _strings.Get("CloseToTrayContent"),
                 PrimaryButtonText = _strings.Get("CommonAcknowledge"),
             };
-            await dialog.ShowAsync();
+            await Views.ContentDialogLifetime.ShowAsync(dialog, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             await _viewModel.UpdateSettingsAsync(
                 _viewModel.Settings with { CloseExplanationShown = true },

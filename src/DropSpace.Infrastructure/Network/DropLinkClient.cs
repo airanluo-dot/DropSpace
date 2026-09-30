@@ -52,7 +52,6 @@ public sealed class DropLinkClient(
             throw new InvalidDataException("A device cannot pair with itself.");
         }
         var secret = DropLinkPairingService.DeriveSecret(handshake, offer.LocalHello);
-        var saved = false;
         try
         {
             var sas = DropLinkPairingService.ComputeSas(secret, handshake.Hello, offer.LocalHello);
@@ -99,7 +98,6 @@ public sealed class DropLinkClient(
             }
 
             await secrets.SaveAsync(offer.LocalHello.DeviceId, secret, cancellationToken).ConfigureAwait(false);
-            saved = true;
             var peer = new PeerDevice(
                 offer.LocalHello.DeviceId,
                 offer.LocalHello.DisplayName,
@@ -114,7 +112,7 @@ public sealed class DropLinkClient(
         }
         finally
         {
-            if (!saved) CryptographicOperations.ZeroMemory(secret);
+            CryptographicOperations.ZeroMemory(secret);
         }
     }
 
@@ -348,8 +346,16 @@ public sealed class DropLinkClient(
 
         var secret = await secrets.GetAsync(peer.Id, cancellationToken).ConfigureAwait(false)
             ?? throw new UnauthorizedAccessException("The peer secret is unavailable; pair the device again.");
-        var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return new AuthenticatedClient(CreateClient(endpoint, peer.IdentityFingerprint), peer.Id, identity.DeviceId, secret);
+        try
+        {
+            var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            return new AuthenticatedClient(CreateClient(endpoint, peer.IdentityFingerprint), peer.Id, identity.DeviceId, secret);
+        }
+        catch
+        {
+            CryptographicOperations.ZeroMemory(secret);
+            throw;
+        }
     }
 
     private async Task SendAuthenticatedBytesAsync(AuthenticatedClient authenticated, string path, byte[] bytes, string chunkHash, CancellationToken cancellationToken)

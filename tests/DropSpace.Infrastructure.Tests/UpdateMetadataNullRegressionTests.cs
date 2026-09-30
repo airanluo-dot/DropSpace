@@ -17,6 +17,9 @@ public sealed class UpdateMetadataNullRegressionTests
     [DataRow("github", "[null]")]
     [DataRow("github", "[{\"tag_name\":\"v0.3.0\",\"html_url\":\"https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0\",\"assets\":null}]")]
     [DataRow("github", "[{\"tag_name\":\"v0.3.0\",\"html_url\":\"https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0\",\"assets\":[null]}]")]
+    [DataRow("github", "[{\"tag_name\":null,\"html_url\":\"https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0\",\"assets\":[]}]")]
+    [DataRow("github", "[{\"tag_name\":\"v0.3.0\",\"html_url\":\"https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0\",\"assets\":[{\"name\":null,\"browser_download_url\":\"https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.0/DropSpace.exe\"}]}]")]
+    [DataRow("github", "[{\"tag_name\":\"v0.3.0\",\"html_url\":\"https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0\",\"assets\":[{\"name\":\" \",\"browser_download_url\":\"https://github.com/airanluo-dot/DropSpace/releases/download/v0.3.0/DropSpace.exe\"}]}]")]
     public async Task NullReleaseMetadataIsRejectedAndTheNextOfficialReplicaRemainsUsable(string sourceKind, string json)
     {
         using var client = new HttpClient(new ResponseHandler(json));

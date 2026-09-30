@@ -10,8 +10,15 @@ public sealed class LocalStorageMetrics(AppStoragePaths paths) : ILocalStorageMe
     {
         try
         {
+            if (File.GetAttributes(paths.Root).HasFlag(FileAttributes.ReparsePoint)) return null;
+            var enumeration = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+                IgnoreInaccessible = false,
+            };
             long total = 0;
-            foreach (var path in Directory.EnumerateFiles(paths.Root, "*", SearchOption.AllDirectories))
+            foreach (var path in Directory.EnumerateFiles(paths.Root, "*", enumeration))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 try

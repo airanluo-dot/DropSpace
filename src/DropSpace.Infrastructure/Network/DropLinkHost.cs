@@ -35,6 +35,7 @@ public sealed record IncomingHandoffOffer(
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkHost(
     DeviceIdentityStore identities,
+    DeviceSecretStore secrets,
     DropLinkPairingService pairing,
     TransferRepository transfers,
     ILogger<DropLinkHost> logger,
@@ -129,7 +130,7 @@ public sealed class DropLinkHost(
         });
         builder.Logging.ClearProviders();
         var app = builder.Build();
-        app.UseMiddleware<DropLinkAuthenticationMiddleware>();
+        ConfigureAuthenticationPipeline(app);
         MapRoutes(app);
         _app = app;
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -147,7 +148,10 @@ public sealed class DropLinkHost(
         return _endpoint!;
     }
 
-    private void MapRoutes(WebApplication app)
+    internal void ConfigureAuthenticationPipeline(IApplicationBuilder app) =>
+        app.UseMiddleware<DropLinkAuthenticationMiddleware>(secrets, transfers, _usedNonces);
+
+    internal void MapRoutes(WebApplication app)
     {
         app.MapGet(DropLinkProtocolRoutes.Device, () => Results.Json(new DeviceDescriptor(
             DropLinkProtocolVersion.V1,
@@ -473,6 +477,12 @@ public sealed class DropLinkHost(
 
         app.MapPost(DropLinkProtocolRoutes.TransferAcceptTemplate, async (HttpContext context, Guid sessionId, TransferAcceptRequest request, CancellationToken cancellationToken) =>
         {
+            if (request?.Accepted == true)
+            {
+                // Only the local receiver's approval flow can authorize writes. The
+                // authenticated remote peer is the sender and cannot consent for us.
+                return Results.Json(new { error = "receiver-local-approval-required" }, statusCode: StatusCodes.Status403Forbidden);
+            }
             if (request is null || !_sessions.TryGetValue(sessionId, out var receive))
             {
                 return request is null ? Results.BadRequest(new { error = "accept-invalid" }) : Results.NotFound();
@@ -493,8 +503,8 @@ public sealed class DropLinkHost(
 
                 receive.Session = receive.Session with
                 {
-                    State = request.Accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
-                    ErrorCategory = request.Accepted ? null : "rejected",
+                    State = TransferSessionState.Rejected,
+                    ErrorCategory = "rejected",
                 };
                 receive.Touch();
                 await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);

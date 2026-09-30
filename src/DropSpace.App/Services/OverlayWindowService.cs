@@ -119,7 +119,7 @@ public sealed class OverlayWindowService : IDisposable
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
-        _displayTopologyWatcher = new DisplayTopologyWatcher();
+        _displayTopologyWatcher = new DisplayTopologyWatcher(_loggerFactory.CreateLogger<DisplayTopologyWatcher>());
         _displayTopologyWatcher.Changed += OnDisplayTopologyChanged;
         _dragSessionDetector.CandidateStarted += OnSmartDragCandidateStarted;
         _dragSessionDetector.VerifiedFileDragStarted += OnSmartVerifiedFileDragStarted;

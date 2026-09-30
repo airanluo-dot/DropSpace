@@ -162,15 +162,18 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task PauseAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         // Serialize the transition with repository commits. Taking commitGate first
         // means a pause request either precedes a remote import or waits for that
         // already-started import; no later import can pass the check while paused.
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
+                ThrowIfDisposing();
                 if (_paused)
                 {
                     return;
@@ -195,12 +198,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task ResumeAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
+                ThrowIfDisposing();
                 if (!_paused)
                 {
                     return;
@@ -231,11 +237,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         ArgumentNullException.ThrowIfNull(settings);
         settings.Validate();
         await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             _settings = settings;
         }
         finally
@@ -244,11 +252,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    public Task ResetCaptureSequenceAsync(CancellationToken cancellationToken = default) =>
-        _consecutiveCaptures.ResetAsync(cancellationToken);
+    public Task ResetCaptureSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposing();
+        return _consecutiveCaptures.ResetAsync(cancellationToken);
+    }
 
     public async Task CopyTextAsync(string text, CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         cancellationToken.ThrowIfCancellationRequested();
         var fingerprint = FingerprintService.ForText(text.Replace("\r\n", "\n", StringComparison.Ordinal));
@@ -256,8 +268,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         SelfWriteMarker? selfWrite = null;
         try
         {
+            ThrowIfDisposing();
             await _dispatcher.EnqueueAsync(() =>
             {
+                ThrowIfDisposing();
                 // Mark immediately before the native mutation. A busy dispatcher must not
                 // consume the short-lived self-write window before Clipboard.SetContent runs.
                 selfWrite = MarkSelfWrite(fingerprint);
@@ -284,12 +298,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         CancellationToken cancellationToken = default,
         bool publishCaptured = true)
     {
+        ThrowIfDisposing();
         if (_paused) throw new ClipboardPausedException();
         ClipboardEnvelopePolicy.Validate(envelope);
         DropItem item;
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             // Pause wins over a remote request even when the request raced with the
             // notification event. The check is inside the same gate as the repository
             // write, so a paused import can never create a history row.
@@ -392,6 +408,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task CopyImageAsync(string relativePath, CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         var absolutePath = _payloadStore.ResolvePath(relativePath);
         var fileInfo = new FileInfo(absolutePath);
         if (!fileInfo.Exists || fileInfo.Length is <= 0 or > int.MaxValue || fileInfo.Length > _settings.MaxImageBytes)
@@ -404,8 +421,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         SelfWriteMarker? selfWrite = null;
         try
         {
+            ThrowIfDisposing();
             await _dispatcher.EnqueueAsync(async () =>
             {
+                ThrowIfDisposing();
                 selfWrite = MarkSelfWrite(fingerprint);
                 var file = await StorageFile.GetFileFromPathAsync(absolutePath);
                 var package = new DataPackage
@@ -430,6 +449,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         IEnumerable<string> paths,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         ArgumentNullException.ThrowIfNull(paths);
         var distinctPaths = paths
             .Where(path => !string.IsNullOrWhiteSpace(path))
@@ -453,8 +473,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         SelfWriteMarker? selfWrite = null;
         try
         {
+            ThrowIfDisposing();
             await _dispatcher.EnqueueAsync(async () =>
             {
+                ThrowIfDisposing();
                 selfWrite = MarkSelfWrite(fingerprint);
                 var storageItems = new List<IStorageItem>(distinctPaths.Length);
                 foreach (var path in distinctPaths)
@@ -600,11 +622,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
 
         _shutdown.Dispose();
-        _stateGate.Dispose();
-        _commitGate.Dispose();
-        _clipboardWriteGate.Dispose();
-        _retentionGate.Dispose();
-        _consecutiveCaptures.Dispose();
+        // Public operations may already own or await these managed gates while
+        // their UI/COM work finishes. Keep them usable for final Release and for
+        // queued callers to observe shutdown after acquiring ownership. None of
+        // these semaphores creates a native wait handle in this service.
     }
 
     private void OnClipboardChanged(object? sender, ClipboardNotification notification)

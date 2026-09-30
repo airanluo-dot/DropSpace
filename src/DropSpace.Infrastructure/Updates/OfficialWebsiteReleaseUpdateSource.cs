@@ -35,7 +35,7 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        var bytes = await ReadBoundedAsync(response.Content, MaximumReleaseMetadataBytes, cancellationToken)
+        var bytes = await UpdateMetadataReader.ReadBoundedAsync(response.Content, MaximumReleaseMetadataBytes, cancellationToken)
             .ConfigureAwait(false);
         ReleaseApiDto payload;
         try
@@ -75,7 +75,7 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await ReadBoundedAsync(response.Content, UpdateManifestParser.MaximumManifestBytes, cancellationToken)
+        return await UpdateMetadataReader.ReadBoundedAsync(response.Content, UpdateManifestParser.MaximumManifestBytes, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -131,33 +131,6 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         return new UpdateRelease(dto.TagName, dto.IsDraft, dto.IsPrerelease, dto.PublishedAt, htmlUri, assets);
     }
 
-    private static async Task<ReadOnlyMemory<byte>> ReadBoundedAsync(
-        HttpContent content,
-        int maximumBytes,
-        CancellationToken cancellationToken)
-    {
-        if (content.Headers.ContentLength is long contentLength && contentLength > maximumBytes)
-        {
-            throw new InvalidDataException("The update metadata response exceeds the supported size limit.");
-        }
-
-        await using var input = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        using var output = new MemoryStream(Math.Min(maximumBytes, 64 * 1024));
-        var buffer = new byte[16 * 1024];
-        while (true)
-        {
-            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            if (output.Length + read > maximumBytes)
-            {
-                throw new InvalidDataException("The update metadata response exceeds the supported size limit.");
-            }
-
-            output.Write(buffer, 0, read);
-        }
-
-        return output.ToArray();
-    }
 
     private sealed record ReleaseApiDto
     {

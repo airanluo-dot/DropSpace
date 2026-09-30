@@ -467,24 +467,8 @@ internal sealed class EphemeralOleDragProbe : IDisposable
 
     private bool RequestOwnerThreadMessage(uint message)
     {
-        if (IsOwnerThread)
-        {
-            if (message == WindowMessageProbeComplete)
-            {
-                CompleteOnOwnerThread();
-            }
-            else if (message == WindowMessageProbeCleanup)
-            {
-                DisposeOnOwnerThread();
-            }
-            else
-            {
-                DisposeOnOwnerThread();
-            }
-
-            return true;
-        }
-
+        // DragEnter runs on the owner apartment too. Always queue completion so
+        // RevokeDragDrop/DestroyWindow cannot run inside the supplying OLE callback.
         if (Interlocked.Exchange(ref _ownerMessagePending, 1) != 0)
         {
             return true;
@@ -509,7 +493,7 @@ internal sealed class EphemeralOleDragProbe : IDisposable
                 return true;
             }
 
-            if (SendMessageTimeout(
+            if (!IsOwnerThread && SendMessageTimeout(
                     WindowHandle,
                     message,
                     nint.Zero,

@@ -12,8 +12,6 @@ namespace DropSpace.Core.DragDrop;
 public sealed class DragSignalQueue<T>
 {
     private readonly Channel<T> _channel;
-    private readonly object _writeGate = new();
-    private readonly bool _lossy;
     private long _replacedWrites;
     private long _writeFailures;
 
@@ -24,7 +22,6 @@ public sealed class DragSignalQueue<T>
             throw new ArgumentOutOfRangeException(nameof(lossyCapacity));
         }
 
-        _lossy = !reliable;
         _channel = reliable
             ? Channel.CreateUnbounded<T>(new UnboundedChannelOptions
             {
@@ -38,7 +35,7 @@ public sealed class DragSignalQueue<T>
                 SingleReader = true,
                 SingleWriter = false,
                 AllowSynchronousContinuations = false,
-            });
+            }, _ => Interlocked.Increment(ref _replacedWrites));
     }
 
     public long ReplacedWriteCount => Interlocked.Read(ref _replacedWrites);
@@ -47,21 +44,13 @@ public sealed class DragSignalQueue<T>
 
     public bool TryWrite(T value)
     {
-        lock (_writeGate)
+        if (_channel.Writer.TryWrite(value))
         {
-            if (_lossy && _channel.Reader.TryPeek(out _))
-            {
-                Interlocked.Increment(ref _replacedWrites);
-            }
-
-            if (_channel.Writer.TryWrite(value))
-            {
-                return true;
-            }
-
-            Interlocked.Increment(ref _writeFailures);
-            return false;
+            return true;
         }
+
+        Interlocked.Increment(ref _writeFailures);
+        return false;
     }
 
     public bool TryPeek([MaybeNullWhen(false)] out T value) => _channel.Reader.TryPeek(out value);

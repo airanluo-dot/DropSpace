@@ -486,15 +486,23 @@ public sealed class DragActivationHost : IDisposable
                         CollapseAfterDrag();
                     }
                 });
-        _dropTarget = new OleDropTargetRegistration(
-            WindowHandle,
-            monitor.Id,
-            ownedCallbacks,
-            logger,
-            fileDataClassifier,
-            virtualFileMaterializer,
-            IsDropReady,
-            "activation-host");
+        try
+        {
+            _dropTarget = new OleDropTargetRegistration(
+                WindowHandle,
+                monitor.Id,
+                ownedCallbacks,
+                logger,
+                fileDataClassifier,
+                virtualFileMaterializer,
+                IsDropReady,
+                "activation-host");
+        }
+        catch
+        {
+            DestroyHostWindow();
+            throw;
+        }
         _logger.LogInformation(
             "Drag activation host created on monitor {MonitorId}: HWND {WindowHandle}, DPI {Dpi}, idle bounds {Left},{Top},{Width},{Height}, active bounds {ActiveLeft},{ActiveTop},{ActiveWidth},{ActiveHeight}; uniform-alpha=1/255, mouse-hit-test=client, ownership=activation-through-drop, activation-band=12-physical-pixels.",
             monitor.Id,
@@ -600,6 +608,10 @@ public sealed class DragActivationHost : IDisposable
         if (_enabled)
         {
             PositionWindow(_idleBounds);
+        }
+        else
+        {
+            ShowWindow(WindowHandle, HideWindow);
         }
 
         _logger.LogInformation(

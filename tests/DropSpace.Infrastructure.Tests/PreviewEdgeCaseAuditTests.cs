@@ -112,6 +112,22 @@ public sealed class PreviewEdgeCaseAuditTests
         CollectionAssert.AreEqual(expectedBytes, descriptor.Bytes);
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Utf32BomPreservesNonAsciiAndSupplementaryText(bool bigEndian)
+    {
+        Directory.CreateDirectory(_root);
+        var path = Path.Combine(_root, "unicode.txt");
+        const string expected = "Music 中文 🎵";
+        await File.WriteAllTextAsync(path, expected, new UTF32Encoding(bigEndian, byteOrderMark: true));
+        var provider = new TextPreviewProvider(new ItemContentResolver(new AppStoragePaths(_root)));
+
+        var descriptor = await provider.LoadAsync(new PreviewRequest(FileSnapshot(path, ".txt", new FileInfo(path).Length)));
+
+        Assert.AreEqual(expected, descriptor.Text);
+    }
+
     private static DropItemSnapshot FileSnapshot(string path, string extension, long knownBytes) =>
         new(Guid.NewGuid(), ItemKind.File, ItemStatus.Available, Path.GetFileName(path),
             path, extension, knownBytes, null, null, null, 1);

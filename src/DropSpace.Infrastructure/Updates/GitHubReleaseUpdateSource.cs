@@ -24,7 +24,7 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        var bytes = await ReadBoundedAsync(response.Content, MaximumReleaseMetadataBytes, cancellationToken)
+        var bytes = await UpdateMetadataReader.ReadBoundedAsync(response.Content, MaximumReleaseMetadataBytes, cancellationToken)
             .ConfigureAwait(false);
         ReleaseDto?[] releases;
         try
@@ -58,7 +58,7 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await ReadBoundedAsync(response.Content, UpdateManifestParser.MaximumManifestBytes, cancellationToken)
+        return await UpdateMetadataReader.ReadBoundedAsync(response.Content, UpdateManifestParser.MaximumManifestBytes, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -73,9 +73,9 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
 
     private static UpdateRelease MapRelease(ReleaseDto? dto)
     {
-        if (dto is null || dto.Assets is null)
+        if (dto is null || string.IsNullOrWhiteSpace(dto.TagName) || dto.Assets is null)
         {
-            throw new InvalidDataException("GitHub release metadata contains a null release or asset collection.");
+            throw new InvalidDataException("GitHub release metadata contains an invalid release identity or asset collection.");
         }
 
         if (!Uri.TryCreate(dto.HtmlUrl, UriKind.Absolute, out var htmlUri))
@@ -85,9 +85,10 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
 
         var assets = dto.Assets.Select(asset =>
         {
-            if (asset is null || !Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri))
+            if (asset is null || string.IsNullOrWhiteSpace(asset.Name) ||
+                !Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri))
             {
-                throw new InvalidDataException("GitHub release metadata contains an invalid asset URL.");
+                throw new InvalidDataException("GitHub release metadata contains an invalid asset identity or URL.");
             }
 
             return new UpdateReleaseAsset(asset.Name, asset.Size, downloadUri);
@@ -95,33 +96,6 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
         return new UpdateRelease(dto.TagName, dto.Draft, dto.Prerelease, dto.PublishedAt, htmlUri, assets);
     }
 
-    private static async Task<ReadOnlyMemory<byte>> ReadBoundedAsync(
-        HttpContent content,
-        int maximumBytes,
-        CancellationToken cancellationToken)
-    {
-        if (content.Headers.ContentLength is long contentLength && contentLength > maximumBytes)
-        {
-            throw new InvalidDataException("The update metadata response exceeds the supported size limit.");
-        }
-
-        await using var input = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        using var output = new MemoryStream(Math.Min(maximumBytes, 64 * 1024));
-        var buffer = new byte[16 * 1024];
-        while (true)
-        {
-            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            if (output.Length + read > maximumBytes)
-            {
-                throw new InvalidDataException("The update metadata response exceeds the supported size limit.");
-            }
-
-            output.Write(buffer, 0, read);
-        }
-
-        return output.ToArray();
-    }
 
     private sealed record ReleaseDto
     {

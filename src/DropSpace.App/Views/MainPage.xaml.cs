@@ -306,33 +306,38 @@ public sealed partial class MainPage : Page
     private async void OnDrop(object sender, DragEventArgs args)
     {
         DropHint.Visibility = Visibility.Collapsed;
-        await RunAsync(async () =>
+        var deferral = args.GetDeferral();
+        try
         {
-            if (args.DataView.Contains(StandardDataFormats.StorageItems))
+            await RunAsync(async () =>
             {
-                var storageItems = await args.DataView.GetStorageItemsAsync();
-                await _viewModel.AddPathsBatchAsync(
-                    storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path))
-                        .Take(MainViewModel.MaximumManualBatchItems + 1)
-                        .Select(item => item.Path),
-                    null,
-                    "main-window-drop");
-                return;
-            }
+                if (args.DataView.Contains(StandardDataFormats.StorageItems))
+                {
+                    var storageItems = await args.DataView.GetStorageItemsAsync();
+                    await _viewModel.AddPathsBatchAsync(
+                        storageItems.Where(item => !string.IsNullOrWhiteSpace(item.Path))
+                            .Take(MainViewModel.MaximumManualBatchItems + 1)
+                            .Select(item => item.Path),
+                        null,
+                        "main-window-drop");
+                    return;
+                }
 
-            if (args.DataView.Contains(StandardDataFormats.WebLink))
-            {
-                await _viewModel.AddTextToSpaceAsync(
-                    (await args.DataView.GetWebLinkAsync()).AbsoluteUri,
-                    "main-window-url-drop");
-            }
-            else if (args.DataView.Contains(StandardDataFormats.Text))
-            {
-                await _viewModel.AddTextToSpaceAsync(
-                    await args.DataView.GetTextAsync(),
-                    "main-window-text-drop");
-            }
-        });
+                if (args.DataView.Contains(StandardDataFormats.WebLink))
+                {
+                    await _viewModel.AddTextToSpaceAsync(
+                        (await args.DataView.GetWebLinkAsync()).AbsoluteUri,
+                        "main-window-url-drop");
+                }
+                else if (args.DataView.Contains(StandardDataFormats.Text))
+                {
+                    await _viewModel.AddTextToSpaceAsync(
+                        await args.DataView.GetTextAsync(),
+                        "main-window-text-drop");
+                }
+            });
+        }
+        finally { deferral.Complete(); }
     }
 
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs args)
@@ -563,7 +568,7 @@ public sealed partial class MainPage : Page
             CloseButtonText = _strings.Get("CommonCancel"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await ContentDialogLifetime.ShowAsync(dialog, cancellationToken) == ContentDialogResult.Primary;
     }
 
     private async Task<bool> OnHandoffOfferedAsync(IncomingHandoffOffer offer, CancellationToken cancellationToken)
@@ -591,7 +596,7 @@ public sealed partial class MainPage : Page
                 CloseButtonText = _strings.Get("IncomingTransferReject"),
                 DefaultButton = ContentDialogButton.Primary,
             };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return false;
+            if (await ContentDialogLifetime.ShowAsync(dialog, cancellationToken) != ContentDialogResult.Primary) return false;
 
             // Explicit handoff is committed to Temporary Space only. It deliberately
             // does not call ClipboardCaptureService or mutate the Windows clipboard.
@@ -605,8 +610,12 @@ public sealed partial class MainPage : Page
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!DispatcherQueue.TryEnqueue(async () =>
             {
-                try { completion.TrySetResult(await callback().ConfigureAwait(true)); }
-                catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or UnauthorizedAccessException or OperationCanceledException)
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    completion.TrySetResult(await callback().ConfigureAwait(true));
+                }
+                catch (Exception exception)
                 { completion.TrySetException(exception); }
             }))
         {
@@ -624,7 +633,7 @@ public sealed partial class MainPage : Page
                 try
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var accepted = await ShowIncomingTransferDialogAsync(offer);
+                    var accepted = await ShowIncomingTransferDialogAsync(offer, cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
                     await _deviceHandoff.ApproveIncomingTransferAsync(offer.SessionId, accepted);
                 }
@@ -659,10 +668,10 @@ public sealed partial class MainPage : Page
             completion.TrySetException(new InvalidOperationException("The DropSpace UI dispatcher is unavailable."));
         }
 
-        return completion.Task;
+        return completion.Task.WaitAsync(cancellationToken);
     }
 
-    private async Task<bool> ShowIncomingTransferDialogAsync(IncomingTransferOffer offer)
+    private async Task<bool> ShowIncomingTransferDialogAsync(IncomingTransferOffer offer, CancellationToken cancellationToken)
     {
         var dialog = new ContentDialog
         {
@@ -673,7 +682,7 @@ public sealed partial class MainPage : Page
             CloseButtonText = _strings.Get("IncomingTransferReject"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await ContentDialogLifetime.ShowAsync(dialog, cancellationToken) == ContentDialogResult.Primary;
     }
 
     private async void OnPreviewItemClicked(object sender, RoutedEventArgs args)

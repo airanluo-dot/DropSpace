@@ -8,6 +8,7 @@ public sealed class PreviewProviderRegistry(
     IPreviewCache cache,
     ILogger<PreviewProviderRegistry> logger) : IPreviewProviderRegistry
 {
+    private readonly SemaphoreSlim _operationGate = new(2, 2);
     private readonly IReadOnlyList<IPreviewProvider> _providers = providers
         .OrderByDescending(provider => provider.Priority)
         .ThenBy(provider => provider.Id, StringComparer.Ordinal)
@@ -15,11 +16,18 @@ public sealed class PreviewProviderRegistry(
 
     public IReadOnlyList<IPreviewProvider> Providers => _providers;
 
-    public async Task<PreviewCapability> ProbeAsync(
+    public Task<PreviewCapability> ProbeAsync(
         DropItemSnapshot item,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
+        return RunBoundedAsync(() => ProbeCoreAsync(item, cancellationToken), cancellationToken);
+    }
+
+    private async Task<PreviewCapability> ProbeCoreAsync(
+        DropItemSnapshot item,
+        CancellationToken cancellationToken)
+    {
         foreach (var provider in _providers)
         {
             try
@@ -52,13 +60,20 @@ public sealed class PreviewProviderRegistry(
             null);
     }
 
-    public async Task<PreviewDescriptor> LoadAsync(
+    public Task<PreviewDescriptor> LoadAsync(
         PreviewRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return RunBoundedAsync(() => LoadCoreAsync(request, cancellationToken), cancellationToken);
+    }
+
+    private async Task<PreviewDescriptor> LoadCoreAsync(
+        PreviewRequest request,
+        CancellationToken cancellationToken)
+    {
         var generation = cache.Generation;
-        var capability = await ProbeAsync(request.Item, cancellationToken).ConfigureAwait(false);
+        var capability = await ProbeCoreAsync(request.Item, cancellationToken).ConfigureAwait(false);
         if (!capability.CanPreview)
         {
             return UnknownPreviewProvider.CreateFallback(request.Item);
@@ -107,5 +122,29 @@ public sealed class PreviewProviderRegistry(
             logger.LogWarning(exception, "Preview provider {ProviderId} failed while loading an item.", provider.Id);
             return UnknownPreviewProvider.CreateFallback(request.Item);
         }
+    }
+
+    private async Task<T> RunBoundedAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken)
+    {
+        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var work = Task.Run(operation, CancellationToken.None);
+        try
+        {
+            return await work.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // A cancelled caller cannot interrupt synchronous filesystem/provider IO.
+            // Keep its capacity occupied until that work actually exits.
+            if (work.IsCompleted) _operationGate.Release();
+            else _ = ReleaseGateAfterAsync(work);
+        }
+    }
+
+    private async Task ReleaseGateAfterAsync(Task work)
+    {
+        try { await work.ConfigureAwait(false); }
+        catch (Exception) { }
+        finally { _operationGate.Release(); }
     }
 }

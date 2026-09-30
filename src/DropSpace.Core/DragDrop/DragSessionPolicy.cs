@@ -244,20 +244,7 @@ public sealed class DragSessionPolicy
             ? Finish(point, DragSessionTransitionKind.TimedOut, DragSessionState.TimedOut)
             : DragSessionTransition.None;
 
-    public void Reset()
-    {
-        _pointerDown = false;
-        _active = false;
-        _source = DragSourceKind.Unknown;
-        _state = DragSessionState.Idle;
-        _evidenceLevel = DragEvidenceLevel.None;
-        _evidence = DragEvidenceFlags.None;
-        _exactFileItem = false;
-        _requiresOleVerification = false;
-        _intentConfidence = DragIntentConfidence.None;
-        _payloadConfidence = PayloadConfidence.Unknown;
-        _activeSessionId = 0;
-    }
+    public void Reset() => ClearActiveState();
 
     private DragSessionTransition Start(
         DragScreenPoint point,

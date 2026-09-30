@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DropSpace.App.Services;
 
@@ -19,10 +21,12 @@ public sealed class DisplayTopologyWatcher : IDisposable
     private static readonly Dictionary<nint, DisplayTopologyWatcher> Watchers = [];
     private static readonly WindowProcedureCallback WindowProcedure = StaticWindowProcedure;
     private static ushort _windowClass;
+    private readonly ILogger _logger;
     private bool _disposed;
 
-    public DisplayTopologyWatcher()
+    public DisplayTopologyWatcher(ILogger<DisplayTopologyWatcher>? logger = null)
     {
+        _logger = logger ?? NullLogger<DisplayTopologyWatcher>.Instance;
         EnsureWindowClass();
         WindowHandle = CreateWindowEx(
             ExtendedStyleToolWindow | ExtendedStyleNoActivate,
@@ -102,7 +106,8 @@ public sealed class DisplayTopologyWatcher : IDisposable
                 Watchers.TryGetValue(window, out watcher);
             }
 
-            watcher?.Changed?.Invoke(watcher, EventArgs.Empty);
+            if (watcher is not null)
+                NativeSubscriberNotification.Invoke(watcher.Changed, watcher, watcher._logger);
         }
 
         return DefWindowProc(window, message, wParam, lParam);

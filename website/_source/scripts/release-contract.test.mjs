@@ -120,3 +120,10 @@ test("Beta classification and numeric migration ordering preserve historical ide
     assert.equal(createLatestChangeApi(api).release.channel, "beta");
   }
 });
+
+test("Stable outranks every same-version prerelease and large components retain precision", async () => {
+  const { compareReleaseTags } = await import("./release-contract.mjs");
+  assert.ok(compareReleaseTags("v1.0.0", "v1.0.0-beta.10000") > 0);
+  assert.ok(compareReleaseTags("v1.0.0", "v1.0.0-preview.9999") > 0);
+  assert.ok(compareReleaseTags("v9007199254740993.0.0", "v9007199254740992.0.0") > 0);
+});

@@ -96,14 +96,14 @@ Root: HKCU64; Subkey: "Software\Classes\AllFileSystemObjects\shell\DropSpace.Sen
 
 [Run]
 #ifdef IdentityPackage
-Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;&quot;{app}\DropSpace.Identity.ps1&quot;&quot; -Action Register -PackagePath &quot;&quot;{app}\DropSpace.Identity.msix&quot;&quot; -ExternalLocation &quot;&quot;{app}&quot;&quot;"; StatusMsg: "Registering the signed DropSpace Windows Share identity..."; Flags: runhidden waituntilterminated
+Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\DropSpace.Identity.ps1"" -Action Register -PackagePath ""{app}\DropSpace.Identity.msix"" -ExternalLocation ""{app}"""; StatusMsg: "Registering the signed DropSpace Windows Share identity..."; Flags: runhidden waituntilterminated
 #endif
 Filename: "{app}\DropSpace.exe"; Description: "{cm:LaunchProgram,DropSpace}"; Flags: nowait postinstall skipifsilent; Check: not IsUpdateMode
 Filename: "{app}\DropSpace.exe"; Parameters: "--startup --updated {#AppVersion}"; WorkingDir: "{app}"; Flags: nowait; Check: IsUpdateMode
 
 #ifdef IdentityPackage
 [UninstallRun]
-Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;&quot;{app}\DropSpace.Identity.ps1&quot;&quot; -Action Unregister"; RunOnceId: "RemoveDropSpaceIdentity"; Flags: runhidden waituntilterminated
+Filename: "{sysnative}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\DropSpace.Identity.ps1"" -Action Unregister"; RunOnceId: "RemoveDropSpaceIdentity"; Flags: runhidden waituntilterminated
 #endif
 
 [UninstallDelete]

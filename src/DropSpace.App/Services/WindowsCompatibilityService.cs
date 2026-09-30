@@ -411,7 +411,7 @@ internal static class WindowsCompatibilityErrorDialog
         }
     }
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    [DllImport("user32.dll", EntryPoint = "MessageBoxW", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern int MessageBox(nint window, string text, string caption, uint type);
 
     [DllImport("user32.dll")]

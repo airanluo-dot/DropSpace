@@ -303,6 +303,13 @@ public sealed class StagingLeaseStore(
             throw new InvalidDataException("A staging lease cannot own the staging root itself.");
         }
 
+        var leaseRecordsRoot = Path.GetFullPath(paths.StagingLeases);
+        if (string.Equals(candidate, leaseRecordsRoot, StringComparison.OrdinalIgnoreCase) ||
+            candidate.StartsWith(string.Concat(leaseRecordsRoot, Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("A staging lease cannot own its lease-record directory.");
+        }
+
         return candidate;
     }
 

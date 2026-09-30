@@ -185,7 +185,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
             context.Response.StatusCode = partial ? StatusCodes.Status206PartialContent : StatusCodes.Status200OK;
             context.Response.ContentType = item.MimeType;
             context.Response.ContentLength = end - start + 1;
-            context.Response.Headers["Content-Disposition"] = string.Concat("attachment; filename=\"", EscapeHeader(item.DisplayName), "\"");
+            context.Response.Headers["Content-Disposition"] = CreateDownloadDisposition(item.DisplayName);
             context.Response.Headers["Cache-Control"] = "no-store";
             context.Response.Headers["Referrer-Policy"] = "no-referrer";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -311,6 +311,9 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     }
     private static string EscapeHtml(string value) => value.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal).Replace("\"", "&quot;", StringComparison.Ordinal);
     private static string EscapeHeader(string value) => new(value.Where(character => character is >= ' ' and <= '~' && character is not '"' and not '\\').ToArray());
+    internal static string CreateDownloadDisposition(string displayName) =>
+        string.Concat("attachment; filename=\"", EscapeHeader(displayName),
+            "\"; filename*=UTF-8''", Uri.EscapeDataString(displayName));
 
     public async ValueTask DisposeAsync()
     {

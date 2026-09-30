@@ -12,6 +12,7 @@ public sealed class SqliteItemRepository(
     SqliteDatabase database,
     ILogger<SqliteItemRepository> logger) : IItemRepository, IPayloadCleanupRepository
 {
+    private const int MaximumIdsPerCommand = 1_000;
 
     public Task InitializeAsync(CancellationToken cancellationToken = default) => database.InitializeAsync(cancellationToken);
 
@@ -526,20 +527,23 @@ public sealed class SqliteItemRepository(
                 .ToDictionary(entry => entry.Key, entry => entry.Value);
             if (previousStates.Count > 0)
             {
-                await using var update = connection.CreateCommand();
-                update.Transaction = (SqliteTransaction)transaction;
-                update.CommandText = string.Concat(
-                    "UPDATE items SET is_pinned = @value, revision = revision + 1 ",
-                    "WHERE pending_delete_token IS NULL AND is_pinned <> @value AND id IN (",
-                    string.Join(",", distinctIds.Select((_, index) => string.Concat("@id", index))),
-                    ");");
-                update.Parameters.AddWithValue("@value", isPinned ? 1 : 0);
-                for (var index = 0; index < distinctIds.Length; index++)
+                foreach (var batch in previousStates.Keys.Chunk(MaximumIdsPerCommand))
                 {
-                    update.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(distinctIds[index]));
-                }
+                    await using var update = connection.CreateCommand();
+                    update.Transaction = (SqliteTransaction)transaction;
+                    update.CommandText = string.Concat(
+                        "UPDATE items SET is_pinned = @value, revision = revision + 1 ",
+                        "WHERE pending_delete_token IS NULL AND is_pinned <> @value AND id IN (",
+                        string.Join(",", batch.Select((_, index) => string.Concat("@id", index))),
+                        ");");
+                    update.Parameters.AddWithValue("@value", isPinned ? 1 : 0);
+                    for (var index = 0; index < batch.Length; index++)
+                    {
+                        update.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(batch[index]));
+                    }
 
-                await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    await update.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -1216,22 +1220,25 @@ public sealed class SqliteItemRepository(
         IReadOnlyList<Guid> ids,
         CancellationToken cancellationToken)
     {
-        await using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = string.Concat(
-            "SELECT id, is_pinned FROM items WHERE pending_delete_token IS NULL AND id IN (",
-            string.Join(",", ids.Select((_, index) => string.Concat("@id", index))),
-            ");");
-        for (var index = 0; index < ids.Count; index++)
-        {
-            command.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(ids[index]));
-        }
-
         var result = new Dictionary<Guid, bool>();
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        foreach (var batch in ids.Chunk(MaximumIdsPerCommand))
         {
-            result[new Guid((byte[])reader[0])] = reader.GetInt32(1) != 0;
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = string.Concat(
+                "SELECT id, is_pinned FROM items WHERE pending_delete_token IS NULL AND id IN (",
+                string.Join(",", batch.Select((_, index) => string.Concat("@id", index))),
+                ");");
+            for (var index = 0; index < batch.Length; index++)
+            {
+                command.Parameters.AddWithValue(string.Concat("@id", index), ToBytes(batch[index]));
+            }
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                result[new Guid((byte[])reader[0])] = reader.GetInt32(1) != 0;
+            }
         }
 
         return result;

@@ -83,20 +83,22 @@ real Windows environment.
 | OS baseline | Build | Required focus |
 | --- | ---: | --- |
 | Windows build 20348 | 20348 | minimum launch, portable guard, installer/MSIX minimum, base visuals |
-| Windows 10 1909 | 18363 | normal launch, clipboard, drag/drop, updater, DPI |
-| Windows 10 20H2 | 19042 | normal launch, clipboard, drag/drop, updater, DPI |
-| Windows 10 22H2 | 19045 | full Windows 10 regression and multi-monitor matrix |
+| Windows 10 1909 (below minimum) | 18363 | portable launch diagnostic and installer/MSIX rejection |
+| Windows 10 20H2 (below minimum) | 19042 | portable launch diagnostic and installer/MSIX rejection |
+| Windows 10 22H2 (below minimum) | 19045 | portable launch diagnostic and installer/MSIX rejection |
 | Windows 11 21H2 | 22000 | Mica/DWM capability boundary and Drop Tray coexistence |
 | Windows 11 22H2 | 22621 | full feature and share-contract regression |
 | Windows 11 23H2 | 22631 | full feature and share-contract regression |
 | Windows 11 24H2 | 26100 | release runner baseline, full feature and packaging regression |
 
-For every supported row, exercise 100%, 125%, 150%, 175%, and 200% display
+Rows below build 20348 are negative compatibility tests: verify graceful launch
+and installation rejection, rather than claiming support for runtime features.
+For every supported row at build 20348 or later, exercise 100%, 125%, 150%, 175%, and 200% display
 scales where the OS can configure them; one, two, and three monitor layouts;
 primary and non-primary placement; monitor reconnect/topology refresh; and
 both x64 Installer and Portable deployments. On Windows 11, include the
 packaged/identity Share Target path when a trusted identity package is
-available. On Windows 10, verify that the same content path remains usable
+available. On supported builds below Windows 11, verify that the same content path remains usable
 through the main window and visible Overlay even though Mica, modern DWM
 attributes, and Drop Tray-specific behavior are unavailable.
 

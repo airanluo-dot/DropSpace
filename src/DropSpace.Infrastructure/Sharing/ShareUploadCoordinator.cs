@@ -310,14 +310,6 @@ public sealed class InternetShareClient(
         uri.IsAbsoluteUri && uri.Scheme == Uri.UriSchemeHttps &&
         string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
 
-    private static void ValidateObjectName(string objectName)
-    {
-        if (string.IsNullOrWhiteSpace(objectName) || objectName.Length > ShareLimits.InternetMaxObjectNameLength ||
-            objectName is "." or ".." || objectName.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '.' or '-' or '_')))
-        {
-            throw new InvalidDataException("The secure share object name is invalid.");
-        }
-    }
 }
 
 public sealed record ShareFileSource(

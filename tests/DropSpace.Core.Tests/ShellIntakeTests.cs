@@ -75,4 +75,16 @@ public sealed class ShellIntakeTests
         Assert.IsFalse(result.IsShellIntake);
         Assert.IsFalse(result.Succeeded);
     }
+
+    [TestMethod]
+    [DataRow("C:\\Temp\\first.txt")]
+    [DataRow("--unexpected")]
+    public void ParserRejectsMisplacedDelimiterWithoutDiscardingEarlierArguments(string preceding)
+    {
+        var result = ShellIntakeCommandLineParser.Parse(
+            ["DropSpace.exe", "--shell-add", "--source", "sendto", preceding, "--", "C:\\Temp\\second.txt"]);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.AreEqual("unexpected-option", result.ErrorCategory);
+    }
 }

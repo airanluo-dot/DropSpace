@@ -44,5 +44,30 @@ foreach ($requiredPattern in @(
     }
 }
 
-Write-Host "Release consistency passed for $($releaseInfo.Tag)."
+$installerScript = Get-Content (Join-Path $repositoryRoot "installer/DropSpace.iss") -Raw -Encoding UTF8
+$identityCommands = @($installerScript -split '\r?\n' | Where-Object {
+    $_ -match '^Filename:' -and $_ -match 'DropSpace\.Identity\.ps1'
+})
+if ($identityCommands.Count -ne 2) { throw "The installer must define both identity lifecycle commands." }
+$installPathFixture = 'C:\Users\Test Account\App Data\DropSpace'
+foreach ($line in $identityCommands)
+{
+    $parameterMatch = [regex]::Match($line, 'Parameters:\s*"(?<command>(?:""|[^"])*)"(?:;|$)')
+    if (-not $parameterMatch.Success -or $line -match '&quot;')
+    {
+        throw "Identity lifecycle parameters must use Inno quoted-string syntax."
+    }
+    $command = $parameterMatch.Groups['command'].Value.Replace('""', '"').Replace('{app}', $installPathFixture)
+    $arguments = @([regex]::Matches($command, '"[^"]*"|[^\s"]+') | ForEach-Object { $_.Value.Trim('"') })
+    $register = $line -match '-Action Register'
+    $expected = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', "$installPathFixture\DropSpace.Identity.ps1", '-Action', $(if ($register) { 'Register' } else { 'Unregister' }))
+    if ($register) { $expected += @('-PackagePath', "$installPathFixture\DropSpace.Identity.msix", '-ExternalLocation', $installPathFixture) }
+    if (($arguments -join [char]0) -cne ($expected -join [char]0))
+    {
+        throw "Identity lifecycle command splits paths containing spaces or has unexpected parameters."
+    }
+}
+
+Write-Host "Release consistency passed for $($releaseInfo.Tag); identity lifecycle command paths remain quoted."
 Write-Host "Manifest summary: $summary"
