@@ -1,6 +1,14 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.0-beta.29
+## Release target: v0.3.0-beta.30
+
+Fix receiver assembly-file ownership, isolate per-source share admission from the
+shared quota, preserve functional URL fragments, and redact fragment secrets in
+logs. Keep this a bounded corrective release, not an unrelated refactor. The
+existing automated Windows and publication gates remain required. See
+`docs/audit/2026-09-30-beta30/review.md` for executed evidence and review limitations.
+
+## Delivered slice: v0.3.0-beta.29
 
 Deliver the three full-project audit rounds' lifecycle, cancellation, OLE, clipboard,
 transfer, sharing, storage and update fixes without changing existing data ownership.
