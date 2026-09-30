@@ -38,7 +38,7 @@ public sealed class HttpUpdateDownloader(
         var versionDirectory = GetContainedVersionDirectory(candidate.Manifest.Version);
         Directory.CreateDirectory(versionDirectory);
         var finalPath = GetContainedChildPath(versionDirectory, descriptor.AssetName);
-        var partialPath = string.Concat(finalPath, ".download");
+        var partialPath = GetContainedChildPath(versionDirectory, string.Concat(descriptor.AssetName, ".download"));
         var logPath = GetContainedChildPath(versionDirectory, "update-install.log");
         if (File.Exists(finalPath))
         {
@@ -301,6 +301,6 @@ public sealed class HttpUpdateDownloader(
             throw new InvalidDataException("The update cache path escaped the DropSpace-owned root.");
         }
 
-        return candidate;
+        return ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(fullRoot, name);
     }
 }

@@ -343,9 +343,25 @@ public sealed partial class MainPage : Page
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs args)
     {
         var cards = args.Items.OfType<ItemCardViewModel>().ToArray();
-        if (cards.Length == 1 && cards[0].DropBatchId is { } batchId)
+        if (cards.Length == 1 && cards[0].IsGrouped && cards[0].DropBatchId is { } batchId)
         {
-            cards = _viewModel.Items.Where(card => card.DropBatchId == batchId).ToArray();
+            args.Data.SetDataProvider(StandardDataFormats.StorageItems, async request =>
+            {
+                var deferral = request.GetDeferral();
+                try
+                {
+                    var batchItems = await _viewModel.GetBatchDragStorageItemsAsync(batchId);
+                    if (batchItems.Count > 0) request.SetData(batchItems);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception exception)
+                {
+                    _logger.LogInformation(exception, "Batch drag preparation failed.");
+                }
+                finally { deferral.Complete(); }
+            });
+            args.Data.RequestedOperation = DataPackageOperation.Copy;
+            return;
         }
         var storageItems = cards
             .Select(card => card.DragStorageItem)
@@ -1096,8 +1112,11 @@ public sealed partial class MainPage : Page
         if (peer is null) return;
         if (item.File?.OriginalPath is { } path)
         {
-            await _deviceHandoff.SendFilesAsync(peer.Peer, peer.Endpoint, [path]);
-            await ShowMessageAsync(_strings.Get("TransferSentTitle"), _strings.Get("TransferSentContent"));
+            var response = await _deviceHandoff.SendFilesAsync(peer.Peer, peer.Endpoint, [path]);
+            var completed = response.State == TransferSessionState.Completed;
+            await ShowMessageAsync(
+                completed ? _strings.Get("TransferSentTitle") : _strings.Get("TransferUnavailableTitle"),
+                completed ? _strings.Get("TransferSentContent") : response.ErrorCategory ?? _strings.Get("ActionUnavailable"));
             return;
         }
 

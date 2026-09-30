@@ -991,6 +991,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         if (CurrentSection == "Pinned" && !card.IsPinned)
         {
             ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
+            ApplyBatchProjectionState();
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
@@ -1069,36 +1070,40 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
     }
 
+    public Task<IReadOnlyList<Windows.Storage.IStorageItem>> GetBatchDragStorageItemsAsync(Guid batchId)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var task = ResolveBatchDragStorageItemsAsync(batchId, _lifetimeCancellation.Token);
+        TrackBackgroundTask(task, "batch drag preparation");
+        return task;
+    }
+
+    private async Task<IReadOnlyList<Windows.Storage.IStorageItem>> ResolveBatchDragStorageItemsAsync(
+        Guid batchId, CancellationToken cancellationToken)
+    {
+        var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
+        // The resolver already limits concurrent native file lookups. Query the persisted
+        // batch rather than the current filtered or partially loaded UI projection.
+        var storageItems = await Task.WhenAll(members.Select(item =>
+            _dragStorageItems.ResolveAsync(item, cancellationToken)));
+        return storageItems.Where(item => item is not null).Cast<Windows.Storage.IStorageItem>().ToArray();
+    }
+
     private void ApplyBatchProjectionState()
     {
         foreach (var group in Items.Where(item => item.IsGrouped && item.DropBatchId is not null)
                      .GroupBy(item => item.DropBatchId))
         {
             var ordered = group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue).ToArray();
-            var hasIndexedMetadata = ordered.Any(item => item.BatchMetadata is not null);
-            var hasHeaderOnThisPage = ordered.Any(item => item.BatchMetadata?.ItemIndex == 0);
-            var isSearchProjection = !string.IsNullOrWhiteSpace(SearchText);
+            // Filters, removal, and paging can omit ItemIndex=0. Keep one loaded member
+            // actionable until the persisted header is available in this projection.
+            // Reevaluate the complete loaded group so later pages never add a second header.
+            var header = ordered.FirstOrDefault(item => item.BatchMetadata?.ItemIndex == 0) ?? ordered[0];
             var expanded = _batchExpansion.TryGetValue(group.Key!.Value, out var value) && value;
             for (var index = 0; index < ordered.Length; index++)
             {
                 var card = ordered[index];
-                // Keyset paging can start in the middle of a batch. Only the persisted
-                // ItemIndex=0 record is the header; a page-local first member must not
-                // become a second header that is visible while the batch is collapsed.
-                var isHeader = hasIndexedMetadata
-                    ? card.BatchMetadata?.ItemIndex == 0
-                    : index == 0;
-                if (hasIndexedMetadata && !hasHeaderOnThisPage && !isSearchProjection)
-                {
-                    isHeader = false;
-                }
-                else if (hasIndexedMetadata && !hasHeaderOnThisPage && isSearchProjection)
-                {
-                    // A search page may contain only a matching member. Keep that result
-                    // actionable by presenting the first matched member as the local group
-                    // representative; ordinary keyset pages still wait for ItemIndex=0.
-                    isHeader = index == 0;
-                }
+                var isHeader = ReferenceEquals(card, header);
 
                 card.IsBatchHeader = isHeader;
                 card.IsBatchExpanded = expanded;
@@ -1117,6 +1122,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             cancellationToken);
 
         ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
+        ApplyBatchProjectionState();
         ItemCount = Items.Count;
         IsEmpty = Items.Count == 0;
         if (card.Item.Source == ItemSource.Space)

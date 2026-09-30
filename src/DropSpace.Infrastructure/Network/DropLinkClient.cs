@@ -195,11 +195,12 @@ public sealed class DropLinkClient(
         var manifest = TransferManifestPolicy.Create(sessionId, items, limits);
         using var authenticated = await CreateAuthenticatedClientAsync(peer, endpoint, cancellationToken).ConfigureAwait(false);
         var offer = await SendAuthenticatedJsonAsync<TransferOfferRequest, TransferOfferResponse>(authenticated, DropLinkProtocolRoutes.TransferOffers, new TransferOfferRequest(authenticated.LocalDeviceId, manifest), HttpMethod.Post, cancellationToken).ConfigureAwait(false);
-        var accepted = await WaitForAcceptanceAsync(authenticated, offer.SessionId, cancellationToken).ConfigureAwait(false);
-        if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(offer.SessionId, accepted.State, [], accepted.ErrorCategory);
 
         try
         {
+            var accepted = await WaitForAcceptanceAsync(authenticated, offer.SessionId, cancellationToken).ConfigureAwait(false);
+            if (accepted.State != TransferSessionState.Accepted) return new TransferCompleteResponse(offer.SessionId, accepted.State, [], accepted.ErrorCategory);
+
             var transferred = 0L;
             foreach (var pair in files.Zip(items))
             {

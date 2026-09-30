@@ -90,6 +90,42 @@ public sealed class ItemContentResolverTests
         Assert.IsNull(escapingResult.ReadablePath);
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task ResolverAndPreview_RejectPayloadLinksToExternalContent(bool directoryLink)
+    {
+        var paths = new AppStoragePaths(_root);
+        paths.EnsureCreated();
+        var external = Path.Combine(_root, "external");
+        Directory.CreateDirectory(external);
+        var sentinel = Path.Combine(external, "private.txt");
+        await File.WriteAllTextAsync(sentinel, "external private content");
+        var link = Path.Combine(paths.Payloads, directoryLink ? "linked" : "linked.txt");
+        try
+        {
+            if (directoryLink) Directory.CreateSymbolicLink(link, external);
+            else File.CreateSymbolicLink(link, sentinel);
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+        {
+            Assert.Inconclusive($"Symbolic links are unavailable: {exception.GetType().Name}");
+        }
+
+        var relativePath = directoryLink ? "linked/private.txt" : "linked.txt";
+        var payload = new PayloadRecord(Guid.NewGuid(), "files", relativePath, 24, "hash", DateTimeOffset.UtcNow, 1);
+        var item = Snapshot(ItemKind.File, null, ".txt", payload, "text/plain");
+        var resolver = new ItemContentResolver(paths);
+
+        var content = resolver.Resolve(item);
+        var capability = await new TextPreviewProvider(resolver).ProbeAsync(item);
+
+        Assert.IsFalse(content.IsAvailable);
+        Assert.IsNull(content.ReadablePath);
+        Assert.IsFalse(capability.CanPreview);
+        Assert.AreEqual("external private content", await File.ReadAllTextAsync(sentinel));
+    }
+
     private static DropItemSnapshot Snapshot(
         ItemKind kind,
         string? originalPath,

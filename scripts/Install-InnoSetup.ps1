@@ -90,7 +90,7 @@ $process = Start-Process -FilePath $downloadPath -ArgumentList @(
     "/SUPPRESSMSGBOXES",
     "/NORESTART",
     "/CURRENTUSER",
-    "/DIR=$resolvedInstallDirectory"
+    "/DIR=`"$resolvedInstallDirectory`""
 ) -Wait -PassThru
 if ($process.ExitCode -ne 0 -or -not (Test-Path $compiler -PathType Leaf))
 {

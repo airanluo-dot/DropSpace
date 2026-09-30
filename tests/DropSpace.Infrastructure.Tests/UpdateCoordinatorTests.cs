@@ -269,6 +269,55 @@ public sealed class UpdateCoordinatorTests
     }
 
     [TestMethod]
+    public async Task LinkedCacheCannotBeRecoveredVerifiedOrRewrittenAsOwnedUpdateState()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-update-coordinator", Guid.NewGuid().ToString("N"));
+        _roots.Add(root);
+        var paths = new AppStoragePaths(root);
+        var store = new UpdateStateStore(paths);
+        var update = CreateInstallerUpdate(paths);
+        Directory.CreateDirectory(Path.GetDirectoryName(update.FilePath)!);
+        byte[] bytes = [1];
+        await File.WriteAllBytesAsync(update.FilePath, bytes);
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+        update = update with
+        {
+            Sha256 = hash,
+            Candidate = update.Candidate with
+            {
+                Manifest = update.Candidate.Manifest with
+                {
+                    Installer = update.Candidate.Manifest.Installer with { Sha256 = hash },
+                },
+            },
+        };
+        await store.SaveAsync(update, "ReadyToInstall");
+        Assert.IsTrue(await new UpdateFileVerifier(paths).VerifyIntegrityAsync(update));
+        var versionRoot = Path.GetDirectoryName(update.FilePath)!;
+        var external = Path.Combine(paths.Root, "external-source");
+        Directory.Move(versionRoot, external);
+        var originalState = await File.ReadAllBytesAsync(Path.Combine(external, "update-state.json"));
+        try
+        {
+            try { Directory.CreateSymbolicLink(versionRoot, external); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            {
+                Assert.Inconclusive($"Directory links are unavailable: {exception.GetType().Name}");
+            }
+
+            Assert.IsNull(await store.LoadHighestAsync(ReleaseVersion.Parse("0.1.0"), DeploymentMode.Installer));
+            Assert.IsFalse(await new UpdateFileVerifier(paths).VerifyIntegrityAsync(update));
+            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => store.SaveAsync(update, "Installing"));
+            CollectionAssert.AreEqual(originalState, await File.ReadAllBytesAsync(Path.Combine(external, "update-state.json")));
+            CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(Path.Combine(external, "DropSpaceSetup.exe")));
+        }
+        finally
+        {
+            if (Directory.Exists(versionRoot)) Directory.Delete(versionRoot);
+        }
+    }
+
+    [TestMethod]
     [DataRow("nullHash")]
     [DataRow("wrongTag")]
     [DataRow("wrongChannel")]

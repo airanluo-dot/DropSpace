@@ -69,5 +69,36 @@ foreach ($line in $identityCommands)
     }
 }
 
-Write-Host "Release consistency passed for $($releaseInfo.Tag); identity lifecycle command paths remain quoted."
+# Start-Process joins ArgumentList into one native command line. Exercise the
+# actual install command's argument expression with a spaced directory so the
+# compiler bootstrap keeps the /DIR value intact on a spaced checkout path.
+$tokens = $null
+$parseErrors = $null
+$innoAst = [System.Management.Automation.Language.Parser]::ParseFile(
+    (Join-Path $repositoryRoot "scripts/Install-InnoSetup.ps1"), [ref]$tokens, [ref]$parseErrors)
+if ($parseErrors.Count -ne 0) { throw "The Inno bootstrap script has parser errors." }
+$installCommand = $innoAst.Find({ param($node)
+    $node -is [System.Management.Automation.Language.CommandAst] -and
+    $node.GetCommandName() -eq "Start-Process"
+}, $true)
+if ($null -eq $installCommand) { throw "The Inno bootstrap install command is missing." }
+$argumentIndex = -1
+for ($index = 0; $index -lt $installCommand.CommandElements.Count; $index++) {
+    $element = $installCommand.CommandElements[$index]
+    if ($element -is [System.Management.Automation.Language.CommandParameterAst] -and
+        $element.ParameterName -eq "ArgumentList") { $argumentIndex = $index + 1; break }
+}
+if ($argumentIndex -lt 0 -or $argumentIndex -ge $installCommand.CommandElements.Count) {
+    throw "The Inno bootstrap argument list is missing."
+}
+$resolvedInstallDirectory = $installPathFixture
+$installerArguments = @(& ([scriptblock]::Create($installCommand.CommandElements[$argumentIndex].Extent.Text)))
+$nativeArguments = @([regex]::Matches(($installerArguments -join ' '), '"[^"]*"|[^\s"]+') |
+    ForEach-Object { $_.Value.Trim('"') })
+$expectedArguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', "/DIR=$installPathFixture")
+if (($nativeArguments -join [char]0) -cne ($expectedArguments -join [char]0)) {
+    throw "The Inno bootstrap splits a directory path containing spaces."
+}
+
+Write-Host "Release consistency passed for $($releaseInfo.Tag); identity lifecycle and Inno bootstrap command paths remain quoted."
 Write-Host "Manifest summary: $summary"

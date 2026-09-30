@@ -128,15 +128,22 @@ async function putObject(request, env, shareId, objectName) {
     const existing = await env.SHARES.head(key);
     if (existing) throw new HttpError("object-exists", 409);
     putStarted = true;
-    await env.SHARES.put(key, bytes, {
+    const stored = await env.SHARES.put(key, bytes, {
+      // A reservation may expire while R2 is still accepting the request. An
+      // older upload must never overwrite the same object's successful retry.
+      onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: "application/octet-stream", cacheControl: "no-store" },
-      customMetadata: { expiresAt: String(meta.expiresAt), shareId },
+      customMetadata: { expiresAt: String(meta.expiresAt), shareId, uploadReservationId: reservation.reservationId },
     });
+    if (stored === null) throw new HttpError("object-exists", 409);
     await coordinatorRequest(env, shareId, "commit", { reservationId: reservation.reservationId });
     return cors(new Response(null, { status: 201 }));
   } catch (error) {
-    await coordinatorRequest(env, shareId, "rollback", { reservationId: reservation.reservationId }).catch(() => {});
-    if (putStarted) await env.SHARES.delete(key).catch(() => {});
+    // Rollback and storage cleanup share the coordinator's reservation lock.
+    // Otherwise lifecycle expiry can allow a retry between head and delete.
+    await coordinatorRequest(env, shareId, "rollback", {
+      reservationId: reservation.reservationId, objectName, cleanupStoredObject: putStarted,
+    }).catch(() => {});
     throw error;
   }
 }
@@ -538,8 +545,9 @@ export class ShareCreationLimiter {
 }
 
 export class ShareUsageCoordinator {
-  constructor(state) {
+  constructor(state, env) {
     this.state = state;
+    this.env = env;
   }
 
   async fetch(request) {
@@ -686,6 +694,19 @@ export class ShareUsageCoordinator {
     const reservationId = String(body.reservationId || "");
     if (current.pending[reservationId]) delete current.pending[reservationId];
     await this.state.storage.put("state", current);
+    const objectName = String(body.objectName || "");
+    // An already-reserved retry can be writing to R2 outside this lock. Its
+    // pending ownership must protect the object as well as committed ownership.
+    const ownedByRetry = current.objects[objectName] ||
+      Object.values(current.pending).some(item => item?.objectName === objectName);
+    if (body.cleanupStoredObject === true && !ownedByRetry &&
+        (objectName === MANIFEST_OBJECT_NAME || /^[0-9a-f]{32}\.[0-9]+\.bin$/.test(objectName))) {
+      try {
+        const key = objectKey(current.shareId, objectName);
+        const stored = await this.env.SHARES.head(key);
+        if (stored?.customMetadata?.uploadReservationId === reservationId) await this.env.SHARES.delete(key);
+      } catch { /* Storage cleanup remains best effort after rollback. */ }
+    }
     return coordinatorJson({ ok: true });
   }
 

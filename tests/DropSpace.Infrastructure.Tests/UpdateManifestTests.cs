@@ -39,6 +39,16 @@ public sealed class UpdateManifestTests
     }
 
     [TestMethod]
+    [DataRow("https://github.com:8443/airanluo-dot/DropSpace/releases/download/v0.1.1/DropSpace.exe")]
+    [DataRow("https://username@github.com/airanluo-dot/DropSpace/releases/download/v0.1.1/DropSpace.exe")]
+    [DataRow("https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.1/DropSpace.exe?redirect=external")]
+    [DataRow("https://github.com/airanluo-dot/DropSpace/releases/download/v0.1.1/DropSpace.exe#unexpected")]
+    public void OfficialDownloadIdentityRejectsNonCanonicalAuthorityAndSuffix(string url)
+    {
+        Assert.IsFalse(UpdateManifestParser.IsOfficialDownloadUri(new Uri(url), "v0.1.1", "DropSpace.exe"));
+    }
+
+    [TestMethod]
     [DataRow("schemaVersion", "2")]
     [DataRow("version", "\"invalid\"")]
     [DataRow("channel", "\"preview\"")]

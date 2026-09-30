@@ -11,11 +11,12 @@ The release-specific Preview.14 motion and Acrylic matrix is in the
 The historical release-specific Preview.21 settings and action usability matrix is in the
 [Preview.21 settings and action usability test plan](docs/test-plan/v0.3.0-preview.21.md).
 
-The current Beta.25 release gate and the complete 52-item audit mapping are in
-[the Beta.25 bug-fix ledger](docs/dev/beta25-bugfix-ledger.md) and
-[compatibility-baseline.md](compatibility-baseline.md). Beta.25 requires x64
-Windows build 20348 or later; real Windows/OLE/DPI/Apple Music and packaging
-evidence remains conditional until recorded on the target machine.
+The current Beta 28 evidence is in
+[the Beta 28 audit](docs/dev/beta28-media-ui-audit.md). The historical 52-item
+audit mapping remains in [the Beta.25 bug-fix ledger](docs/dev/beta25-bugfix-ledger.md).
+[compatibility-baseline.md](compatibility-baseline.md) defines the x64 Windows
+build 20348 minimum and the real Windows/OLE/DPI/packaging matrix; each physical
+matrix row remains conditional until recorded on the target machine.
 
 ## Quality gates
 

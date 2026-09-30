@@ -425,13 +425,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             await _dispatcher.EnqueueAsync(async () =>
             {
                 ThrowIfDisposing();
-                selfWrite = MarkSelfWrite(fingerprint);
                 var file = await StorageFile.GetFileFromPathAsync(absolutePath);
                 var package = new DataPackage
                 {
                     RequestedOperation = DataPackageOperation.Copy,
                 };
                 package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
+                selfWrite = MarkSelfWrite(fingerprint);
                 await ClipboardAccessPolicy.SetContentAsync(
                     () => Clipboard.SetContent(package),
                     cancellationToken);
@@ -477,7 +477,6 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             await _dispatcher.EnqueueAsync(async () =>
             {
                 ThrowIfDisposing();
-                selfWrite = MarkSelfWrite(fingerprint);
                 var storageItems = new List<IStorageItem>(distinctPaths.Length);
                 foreach (var path in distinctPaths)
                 {
@@ -492,6 +491,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     RequestedOperation = DataPackageOperation.Copy,
                 };
                 package.SetStorageItems(storageItems, readOnly: true);
+                // Resolving network paths can outlast the short self-write window.
+                // Start that window only when the prepared package is ready to write.
+                selfWrite = MarkSelfWrite(fingerprint);
                 await ClipboardAccessPolicy.SetContentAsync(
                     () => Clipboard.SetContent(package),
                     cancellationToken);

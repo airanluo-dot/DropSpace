@@ -45,10 +45,10 @@ The workflows call the following external actions. They execute in CI and are no
 
 | Action | License |
 |---|---|
-| `actions/checkout@v4` | MIT |
-| `actions/setup-dotnet@v4` | MIT |
-| `actions/upload-artifact@v4` | MIT |
-| `actions/download-artifact@v4` | MIT |
+| `actions/checkout@v6` | MIT |
+| `actions/setup-dotnet@v6` | MIT |
+| `actions/upload-artifact@v6` | MIT |
+| `actions/download-artifact@v7` | MIT |
 | `azure/login@v3` | MIT |
 | `azure/artifact-signing-action@v2` | MIT |
 | `softprops/action-gh-release@v2` | MIT |

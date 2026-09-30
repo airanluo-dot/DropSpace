@@ -41,8 +41,8 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
             Path.GetFileName(update.FilePath),
             Path.GetFileName(update.InstallLogPath),
             DateTimeOffset.UtcNow);
-        var statePath = Path.Combine(Path.GetDirectoryName(update.FilePath)!, "update-state.json");
-        var temporaryPath = string.Concat(statePath, ".tmp");
+        var statePath = ResolveOwnedPath(Path.Combine(Path.GetDirectoryName(update.FilePath)!, "update-state.json"));
+        var temporaryPath = ResolveOwnedPath(string.Concat(statePath, ".tmp"));
         try
         {
             await using (var stream = new FileStream(
@@ -70,8 +70,8 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
         CancellationToken cancellationToken = default)
     {
         paths.EnsureCreated();
-        var markerPath = Path.Combine(paths.Updates, "last-update.json");
-        var temporaryPath = string.Concat(markerPath, ".tmp");
+        var markerPath = ResolveOwnedPath(Path.Combine(paths.Updates, "last-update.json"));
+        var temporaryPath = ResolveOwnedPath(string.Concat(markerPath, ".tmp"));
         var marker = new UpdatedLaunchState(1, version.ToString(), DateTimeOffset.UtcNow);
         try
         {
@@ -101,15 +101,23 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
         CancellationToken cancellationToken = default)
     {
         if (!Directory.Exists(paths.Updates)) return null;
+        if (File.GetAttributes(paths.Updates).HasFlag(FileAttributes.ReparsePoint)) return null;
         var candidates = new List<(DownloadedUpdate Update, string State)>();
         // Do not truncate enumeration before parsing. Filesystem enumeration order is not
         // version order, so an invalid/old first twenty entries could hide the highest valid
         // downloaded update.
-        foreach (var statePath in Directory.EnumerateFiles(paths.Updates, "update-state.json", SearchOption.AllDirectories))
+        var enumeration = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            AttributesToSkip = FileAttributes.ReparsePoint,
+            IgnoreInaccessible = false,
+        };
+        foreach (var statePath in Directory.EnumerateFiles(paths.Updates, "update-state.json", enumeration))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
+                _ = ResolveOwnedPath(statePath);
                 if (new FileInfo(statePath).Length > 64 * 1024) continue;
                 await using var stream = File.OpenRead(statePath);
                 var state = await JsonSerializer.DeserializeAsync<PersistedUpdateState>(stream, Options, cancellationToken)
@@ -154,8 +162,8 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
                     [selected]);
                 var candidate = new UpdateCandidate(release, manifest, selected, mode);
                 var directory = Path.GetDirectoryName(statePath)!;
-                var filePath = GetContainedPath(directory, state.FileName);
-                var logPath = GetContainedPath(directory, state.LogFileName);
+                var filePath = ResolveOwnedPath(GetContainedPath(directory, state.FileName));
+                var logPath = ResolveOwnedPath(GetContainedPath(directory, state.LogFileName));
                 var expected = mode == DeploymentMode.Installer ? manifest.Installer : manifest.Portable;
                 if (!string.Equals(expected.AssetName, state.SelectedAssetName, StringComparison.Ordinal) ||
                     expected.Size != state.SelectedAssetSize || expected.Size <= 0 ||
@@ -179,6 +187,9 @@ public sealed class UpdateStateStore(AppStoragePaths paths)
             ? null
             : candidates.OrderByDescending(candidate => candidate.Update.Candidate.Manifest.Version).First();
     }
+
+    private string ResolveOwnedPath(string path) =>
+        ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(paths.Updates, Path.GetRelativePath(paths.Updates, Path.GetFullPath(path)));
 
     private static void TryDeleteTemporary(string path)
     {

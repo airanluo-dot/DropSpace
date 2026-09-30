@@ -159,26 +159,8 @@ public sealed class SqliteItemRepository(
                     metadataJson)
                 .ConfigureAwait(false);
 
-            await using var command = connection.CreateCommand();
-            command.Transaction = (SqliteTransaction)transaction;
-            command.CommandText = """
-                INSERT INTO file_references (
-                    item_id, original_path, normalized_path, entry_kind, extension, known_size,
-                    known_modified_at_utc, volume_hint, last_checked_at_utc, availability_reason)
-                VALUES (
-                    @item_id, @original_path, @normalized_path, @entry_kind, @extension, @known_size,
-                    @known_modified_at_utc, NULL, @last_checked_at_utc, @availability_reason);
-                """;
-            command.Parameters.AddWithValue("@item_id", ToBytes(itemId));
-            command.Parameters.AddWithValue("@original_path", candidate.OriginalPath);
-            command.Parameters.AddWithValue("@normalized_path", candidate.NormalizedPath);
-            command.Parameters.AddWithValue("@entry_kind", (int)candidate.EntryKind);
-            command.Parameters.AddWithValue("@extension", DbValue(candidate.Extension));
-            command.Parameters.AddWithValue("@known_size", DbValue(candidate.KnownSize));
-            command.Parameters.AddWithValue("@known_modified_at_utc", DbTimestamp(candidate.KnownModifiedAtUtc));
-            command.Parameters.AddWithValue("@last_checked_at_utc", ToTimestamp(now));
-            command.Parameters.AddWithValue("@availability_reason", DbValue(candidate.AvailabilityReason));
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await InsertFileReferenceAsync(connection, transaction, itemId, candidate, now, cancellationToken)
+                .ConfigureAwait(false);
             await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
             return (await GetWithConnectionAsync(connection, itemId, CancellationToken.None).ConfigureAwait(false))!;
         }
@@ -355,7 +337,8 @@ public sealed class SqliteItemRepository(
         var normalizedSearch = string.IsNullOrWhiteSpace(query.Search)
             ? null
             : SearchNormalizer.Normalize(query.Search);
-        var useTrigramIndex = normalizedSearch is { Length: >= 3 };
+        // SQLite's trigram tokenizer counts Unicode characters, not UTF-16 code units.
+        var useTrigramIndex = normalizedSearch is not null && normalizedSearch.EnumerateRunes().Take(3).Count() == 3;
         var selectSql = useTrigramIndex
             ? SelectSql.Replace(
                 "FROM items i",

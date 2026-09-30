@@ -189,6 +189,10 @@ public sealed class MusicPage : UserControl
     private void UpdateEnhancementPlacement()
     {
         var current = _body.Children.IndexOf(_enhancementCard);
+        var remainingCount = _body.Children.Count - (current >= 0 ? 1 : 0);
+        var target = _enhancement.IsEnhanced ? remainingCount : Math.Min(1, remainingCount);
+        // Unchanged placement must retain Loaded ownership and its passive inspection.
+        if (current == target) return;
         if (current >= 0) _body.Children.RemoveAt(current);
         if (_enhancement.IsEnhanced) _body.Children.Add(_enhancementCard);
         else _body.Children.Insert(Math.Min(1, _body.Children.Count), _enhancementCard);

@@ -73,6 +73,24 @@ public sealed class QueryPagingTests
         Assert.IsTrue(results.Any(item => item.Id == expected.Id));
     }
 
+    [TestMethod]
+    [DataRow("🎵")]
+    [DataRow("🎵a")]
+    [DataRow("🔔🎵")]
+    [DataRow("🔔🎵a")]
+    public async Task Search_FindsSupplementaryUnicodeSubstringsAtTheTrigramBoundary(string search)
+    {
+        var repository = CreateRepository();
+        var expected = await repository.AddTextAsync(
+            ContentClassifier.CreateTextCandidate($"prefix {search} suffix"));
+        await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("unrelated clipboard value"));
+
+        var page = await repository.QueryPageAsync(new ItemQuery(Search: search, Limit: 1));
+
+        Assert.AreEqual(expected.Id, page.Items.Single().Id);
+        Assert.IsFalse(page.HasMore);
+    }
+
     private SqliteItemRepository CreateRepository()
     {
         var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);

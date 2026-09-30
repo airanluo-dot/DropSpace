@@ -27,6 +27,7 @@ public sealed class ConsecutiveClipboardCaptureCoordinator : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
             var suppress = string.Equals(fingerprint, _lastObservedFingerprint, StringComparison.Ordinal) &&
                 string.Equals(fingerprint, _lastPersistedFingerprint, StringComparison.Ordinal);
             _lastObservedFingerprint = fingerprint;
@@ -58,6 +59,7 @@ public sealed class ConsecutiveClipboardCaptureCoordinator : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
             _lastObservedFingerprint = null;
             _lastPersistedFingerprint = null;
         }
@@ -69,9 +71,8 @@ public sealed class ConsecutiveClipboardCaptureCoordinator : IDisposable
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) == 0)
-        {
-            _gate.Dispose();
-        }
+        Interlocked.Exchange(ref _disposed, 1);
+        // Waiters and an in-flight durable commit still need to acquire/release this gate.
+        // No native wait handle is allocated; leave the managed semaphore for collection.
     }
 }

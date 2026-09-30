@@ -1,6 +1,5 @@
 using DropSpace.Core.Content;
 using DropSpace.Core.Models;
-using DropSpace.Core.Policies;
 using DropSpace.Core.Preview;
 using DropSpace.Infrastructure.Storage;
 
@@ -40,7 +39,7 @@ public sealed class ItemContentResolver(AppStoragePaths paths) : IItemContentRes
 
             try
             {
-                var path = PayloadPathPolicy.ResolveContainedPath(paths.Payloads, payload.RelativePath);
+                var path = ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(paths.Payloads, payload.RelativePath);
                 var exists = File.Exists(path);
                 return new ResolvedItemContent(
                     type,
@@ -54,7 +53,7 @@ public sealed class ItemContentResolver(AppStoragePaths paths) : IItemContentRes
                         ? "The item is not marked available."
                         : exists ? null : "The app payload is missing.");
             }
-            catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException or IOException)
+            catch (Exception exception) when (exception is ArgumentException or InvalidDataException or NotSupportedException or IOException or UnauthorizedAccessException)
             {
                 return new ResolvedItemContent(
                     type,

@@ -112,8 +112,9 @@ public static class TransferManifestPolicy
 
     private static string ValidateItem(TransferItemManifest item, TransferLimits limits)
     {
-        if (item.Id == Guid.Empty || item.Size < 0 || item.RelativePath.Length > limits.MaxRelativePathLength ||
-            item.Sha256.Length != 64 || item.Sha256.Any(value => !Uri.IsHexDigit(value)))
+        if (item is null || !Enum.IsDefined(item.Kind) || item.Id == Guid.Empty || item.Size < 0 ||
+            string.IsNullOrWhiteSpace(item.RelativePath) || item.RelativePath.Length > limits.MaxRelativePathLength ||
+            string.IsNullOrWhiteSpace(item.Sha256) || item.Sha256.Length != 64 || item.Sha256.Any(value => !Uri.IsHexDigit(value)))
         {
             throw new InvalidDataException("A transfer item manifest is invalid.");
         }

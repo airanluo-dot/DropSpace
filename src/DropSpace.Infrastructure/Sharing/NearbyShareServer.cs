@@ -205,7 +205,7 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     {
         error = StatusCodes.Status404NotFound;
         share = null!;
-        if (remoteAddress is null || !IsPrivate(remoteAddress))
+        if (remoteAddress is null || !DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.IsPrivate(remoteAddress))
         {
             error = StatusCodes.Status403Forbidden;
             return false;
@@ -284,18 +284,6 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
     private static string GetPrivateAddress() =>
         DropSpace.Infrastructure.Network.LocalNetworkInterfaceResolver.Resolve().ToString();
 
-    private static bool IsPrivate(IPAddress address)
-    {
-        if (address.AddressFamily != AddressFamily.InterNetwork)
-        {
-            return false;
-        }
-
-        var bytes = address.GetAddressBytes();
-        return bytes[0] == 10 ||
-            bytes[0] == 192 && bytes[1] == 168 ||
-            bytes[0] == 172 && bytes[1] is >= 16 and <= 31;
-    }
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     private static void ValidateItem(NearbyShareItem item)

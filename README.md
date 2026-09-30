@@ -191,7 +191,7 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 The current Beta release is `v0.3.0-beta.28` (Beta 28). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 26 is the immediate upgrade baseline and
+releases remain immutable. Beta 27 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

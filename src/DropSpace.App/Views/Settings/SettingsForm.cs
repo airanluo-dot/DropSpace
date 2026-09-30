@@ -28,11 +28,15 @@ public sealed class SettingsForm : UserControl
     {
         var toggle = new ToggleSwitch(); AddRow(key, toggle);
         _refresh.Add(() => toggle.IsOn = read(_editor.Settings)); Refresh();
+        var revision = 0L;
         toggle.Toggled += async (_, _) =>
         {
             if (_syncing) return;
+            var changeRevision = ++revision;
             var value = toggle.IsOn;
-            if (beforeChange is not null && !await beforeChange(value)) { Refresh(); return; }
+            var allowed = beforeChange is null || await beforeChange(value);
+            if (changeRevision != revision) return;
+            if (!allowed) { Refresh(); return; }
             await _editor.UpdateAsync(settings => write(settings, value));
         };
         return toggle;

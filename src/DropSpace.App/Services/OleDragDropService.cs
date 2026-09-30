@@ -711,7 +711,8 @@ public sealed class DragActivationHost : IDisposable
                 Hosts.TryGetValue(window, out host);
             }
 
-            host?.DisplayTopologyChanged?.Invoke(host, EventArgs.Empty);
+            if (host is not null)
+                NativeSubscriberNotification.Invoke(host.DisplayTopologyChanged, host, host._logger);
         }
 
         return DefWindowProc(window, message, wParam, lParam);
@@ -889,6 +890,17 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int DragEnter(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
+        try { return DragEnterCore(dataObject, keyState, point, ref effect); }
+        catch (Exception exception)
+        {
+            effect = DropEffectNone;
+            RejectCallbackFailure(exception, "DragEnter");
+            return Success;
+        }
+    }
+
+    private int DragEnterCore(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
+    {
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
         try
@@ -930,6 +942,17 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int DragOver(uint keyState, NativePoint point, ref uint effect)
     {
+        try { return DragOverCore(keyState, point, ref effect); }
+        catch (Exception exception)
+        {
+            effect = DropEffectNone;
+            RejectCallbackFailure(exception, "DragOver");
+            return Success;
+        }
+    }
+
+    private int DragOverCore(uint keyState, NativePoint point, ref uint effect)
+    {
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         if (_canAccept)
         {
@@ -953,6 +976,16 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int DragLeave()
     {
+        try { return DragLeaveCore(); }
+        catch (Exception exception)
+        {
+            RejectCallbackFailure(exception, "DragLeave");
+            return Success;
+        }
+    }
+
+    private int DragLeaveCore()
+    {
         _logger.LogInformation(
             "OLE DragLeave received by {SurfaceKind} on monitor {MonitorId} after {DragOverCount} DragOver events.",
             _surfaceKind,
@@ -961,7 +994,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         _currentDataObject = null;
         _canAccept = false;
         _classification = OleFileDataClassification.None;
-        _callbacks.DragLeft(_monitorId);
+        NotifyDragLeft();
         return Success;
     }
 
@@ -980,7 +1013,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                     : null;
                 if (effect != DropEffectCopy)
                 {
-                    _callbacks.DragLeft(_monitorId);
+                    NotifyDragLeft();
                 }
                 return Success;
             }
@@ -1005,14 +1038,13 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             }
             else
             {
-                _callbacks.DragLeft(_monitorId);
+                NotifyDragLeft();
             }
         }
         catch (Exception exception)
         {
             effect = DropEffectNone;
-            _logger.LogWarning(exception, "OLE drop data could not be accepted.");
-            _callbacks.DragLeft(_monitorId);
+            RejectCallbackFailure(exception, "Drop");
         }
         finally
         {
@@ -1022,6 +1054,30 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         }
 
         return Success;
+    }
+
+    private void RejectCallbackFailure(Exception exception, string operation)
+    {
+        // Native callbacks must fail closed even when both the visual callback and its
+        // cleanup fail. Clear ownership before reporting or attempting that cleanup.
+        _currentDataObject = null;
+        _canAccept = false;
+        _classification = OleFileDataClassification.None;
+        _lastReady = false;
+        ReportCallbackFailure(exception, operation);
+        NotifyDragLeft();
+    }
+
+    private void NotifyDragLeft()
+    {
+        try { _callbacks.DragLeft(_monitorId); }
+        catch (Exception exception) { ReportCallbackFailure(exception, "DragLeft cleanup"); }
+    }
+
+    private void ReportCallbackFailure(Exception exception, string operation)
+    {
+        try { _logger.LogWarning(exception, "OLE {Operation} failed for {SurfaceKind}; native ownership was rejected.", operation, _surfaceKind); }
+        catch { /* A logger failure cannot escape a native callback either. */ }
     }
 
     internal async Task RunSyntheticCfHDropAsync(
@@ -1087,12 +1143,12 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _callbacks.DragLeft(_monitorId);
+            NotifyDragLeft();
         }
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "Virtual-file materialization failed after the OLE callback returned.");
-            _callbacks.DragLeft(_monitorId);
+            NotifyDragLeft();
         }
         finally
         {
@@ -1122,7 +1178,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "The shared Temporary Space drop pipeline failed.");
-            _callbacks.DragLeft(_monitorId);
+            NotifyDragLeft();
         }
     }
 
