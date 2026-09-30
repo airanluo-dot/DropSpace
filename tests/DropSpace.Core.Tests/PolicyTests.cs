@@ -9,7 +9,7 @@ namespace DropSpace.Core.Tests;
 public sealed class PolicyTests
 {
     [TestMethod]
-    public void Classifier_RecognizesHttpUrlAndRemovesFragment()
+    public void Classifier_RecognizesHttpUrlAndPreservesNavigationFragment()
     {
         var candidate = ContentClassifier.CreateTextCandidate("https://example.com/path?q=1#private");
 
@@ -17,7 +17,18 @@ public sealed class PolicyTests
         Assert.AreEqual(DetectedSubtype.Url, candidate.Subtype);
         Assert.AreEqual("example.com", candidate.Title);
         Assert.IsNotNull(candidate.Url);
-        Assert.AreEqual("https://example.com/path?q=1", candidate.Url.NormalizedUrl);
+        Assert.AreEqual("https://example.com/path?q=1#private", candidate.Url.NormalizedUrl);
+        Assert.IsFalse(candidate.Url.DisplayUrl.Contains("#private", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    [DataRow("https://share.example/s/00112233445566778899aabbccddeeff#k=test-key")]
+    [DataRow("https://example.com/#/settings")]
+    public void Classifier_PreservesShareKeysAndHashRoutes(string url)
+    {
+        var candidate = ContentClassifier.CreateTextCandidate(url);
+        Assert.IsNotNull(candidate.Url);
+        Assert.AreEqual(url, candidate.Url.NormalizedUrl);
     }
 
     [TestMethod]

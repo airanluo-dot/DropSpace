@@ -100,8 +100,8 @@ public static class HandoffMessagePolicy
             throw new InvalidDataException("The handoff URL must be an absolute HTTP(S) URL.");
         }
 
-        var builder = new UriBuilder(uri) { Fragment = string.Empty };
-        return builder.Uri.AbsoluteUri;
+        // Preserve hash routes and encryption keys when handing a URL to another device.
+        return uri.AbsoluteUri;
     }
 
     private static string SafeDisplayName(string value)

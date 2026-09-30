@@ -17,6 +17,31 @@ public sealed class MediaSessionSelectionTests
         candidates, value => value.Source, (value, _) => Task.FromResult<Selection?>(value.Value), CancellationToken.None);
 
     [TestMethod]
+    public async Task EmptyPreferredFindsSinglePlayingSameAppRendererAtStartup()
+    {
+        var wrapper = new Candidate("player", Weak with { Title = "", Artist = "" });
+        var renderer = new Candidate("player", Rich with { IsPlaying = true });
+        Assert.AreSame(renderer, await Select(wrapper, renderer));
+    }
+
+    [TestMethod]
+    public async Task EmptyPreferredDoesNotSelectPausedOrOtherApplicationRenderer()
+    {
+        var wrapper = new Candidate("player", Weak with { Title = "", Artist = "" });
+        Assert.AreSame(wrapper, await Select(wrapper, new("player", Rich),
+            new("other", Rich with { IsPlaying = true })));
+    }
+
+    [TestMethod]
+    public async Task EmptyPreferredKeepsPriorityWhenPlayingRenderersAreAmbiguous()
+    {
+        var wrapper = new Candidate("player", Weak with { Title = "", Artist = "" });
+        Assert.AreSame(wrapper, await Select(wrapper,
+            new("player", Rich with { IsPlaying = true }),
+            new("player", Rich with { Title = "Different track", IsPlaying = true })));
+    }
+
+    [TestMethod]
     public async Task FullArtistCreditsCanCompletePrimaryArtistOnlySibling()
     {
         var weak = new Candidate("player", Weak);

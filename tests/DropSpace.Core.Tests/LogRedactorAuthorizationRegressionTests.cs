@@ -6,6 +6,17 @@ namespace DropSpace.Core.Tests;
 public sealed class LogRedactorAuthorizationRegressionTests
 {
     [TestMethod]
+    [DataRow("https://share.example/s/id#k=confidential-share-key")]
+    [DataRow("https://share.example/s/id?q=search#k=confidential-share-key")]
+    public void UrlFragmentKeysAreNotWrittenToLogs(string url)
+    {
+        var redacted = LogRedactor.Redact("Failed to open " + url);
+        Assert.IsFalse(redacted.Contains("confidential-share-key", StringComparison.Ordinal));
+        Assert.IsFalse(redacted.Contains("#k=", StringComparison.Ordinal));
+        Assert.IsTrue(redacted.Contains("share.example", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     [DataRow("Authorization: Bearer ")]
     [DataRow("Authorization=Bearer ")]
     [DataRow("authorization : bearer ")]

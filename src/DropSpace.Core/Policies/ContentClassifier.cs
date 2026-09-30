@@ -99,12 +99,9 @@ public static partial class ContentClassifier
             return false;
         }
 
-        var builder = new UriBuilder(uri)
-        {
-            Fragment = string.Empty,
-        };
-
-        var normalized = builder.Uri.AbsoluteUri;
+        // Fragments carry navigation state and encrypted-share keys. Keep them in
+        // the actionable URL; the display metadata below still omits them.
+        var normalized = uri.AbsoluteUri;
         metadata = new UrlMetadata(
             normalized,
             uri.GetComponents(UriComponents.SchemeAndServer | UriComponents.PathAndQuery, UriFormat.Unescaped),

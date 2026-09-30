@@ -17,7 +17,7 @@ public sealed class HandoffMessagePolicyTests
         HandoffMessagePolicy.Validate(text);
 
         var url = HandoffMessagePolicy.Create(sender, "Windows A", HandoffMessageKind.Url, "https://example.test/path#fragment");
-        Assert.AreEqual("https://example.test/path", url.Utf8Payload);
+        Assert.AreEqual("https://example.test/path#fragment", url.Utf8Payload);
         HandoffMessagePolicy.Validate(url);
 
         Assert.ThrowsExactly<InvalidDataException>(() => HandoffMessagePolicy.Validate(text with { Sha256 = "not-a-hash" }));

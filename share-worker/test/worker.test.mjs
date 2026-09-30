@@ -57,6 +57,29 @@ test("share creation limiter enforces a bounded window", async () => {
   assert.equal((await limited.json()).error, "creation-rate-limited");
 });
 
+test("source-rejected creation does not consume global admission", async () => {
+  const admitted = [];
+  const env = {
+    SHARE_CREATION_LIMITER: {
+      idFromName: name => name,
+      get: key => ({ fetch: async () => {
+        admitted.push(key);
+        return key.startsWith("source-")
+          ? new Response(JSON.stringify({ error: "creation-rate-limited" }), { status: 429 })
+          : new Response("{}");
+      } }),
+    },
+  };
+  const response = await worker.fetch(new Request("https://share.invalid/v1/shares", {
+    method: "POST",
+    headers: { "cf-connecting-ip": "192.0.2.1", "content-type": "application/json" },
+    body: "{}",
+  }), env);
+  assert.equal(response.status, 429);
+  assert.equal(admitted.length, 1);
+  assert.ok(admitted[0].startsWith("source-"));
+});
+
 test("the coordinator reserves concurrent plaintext byte usage atomically", async () => {
   const coordinator = createCoordinator();
   const expiresAt = Date.now() + 60 * 60 * 1000;
