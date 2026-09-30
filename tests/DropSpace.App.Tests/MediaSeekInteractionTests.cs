@@ -65,4 +65,27 @@ public sealed class MediaSeekInteractionTests
         Assert.IsTrue(interaction.ShouldApplyPlayback(3, Now, canSeek: true));
         Assert.IsFalse(interaction.IsPendingTarget(55));
     }
+    [TestMethod]
+    public void TrackClickPreviewSuppressesPlaybackBeforeCommitTimer()
+    {
+        var interaction = new MediaSeekInteraction(TimeSpan.FromSeconds(2));
+        interaction.Preview(80);
+        Assert.IsFalse(interaction.ShouldApplyPlayback(10, Now, canSeek: true));
+        Assert.AreEqual(80d, interaction.HeldSeconds);
+        interaction.Commit(80, Now);
+        Assert.IsFalse(interaction.IsPreviewing);
+        Assert.IsTrue(interaction.ShouldApplyPlayback(80, Now.AddMilliseconds(200), canSeek: true));
+        Assert.IsNull(interaction.HeldSeconds);
+    }
+
+    [TestMethod]
+    public void TransientCapabilityLossDoesNotRestoreStalePosition()
+    {
+        var interaction = new MediaSeekInteraction(TimeSpan.FromSeconds(2));
+        interaction.Commit(80, Now);
+        Assert.IsFalse(interaction.ShouldApplyPlayback(10, Now.AddMilliseconds(100), canSeek: false));
+        Assert.AreEqual(80d, interaction.HeldSeconds);
+        interaction.Reset();
+        Assert.IsTrue(interaction.ShouldApplyPlayback(0, Now, canSeek: false));
+    }
 }

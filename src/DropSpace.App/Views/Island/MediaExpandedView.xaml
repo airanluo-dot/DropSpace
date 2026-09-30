@@ -31,9 +31,9 @@
   </StackPanel>
   <Grid x:Name="TimelineRow" Grid.Row="2" ColumnSpacing="12">
    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-   <TextBlock Text="{Binding ElapsedText}" VerticalAlignment="Center"/>
+   <TextBlock x:Name="ElapsedLabel" MinWidth="48" VerticalAlignment="Center"/>
    <Slider x:Name="Progress" services:XamlResourceOverride.Uid="MediaSeek" Grid.Column="1" Minimum="0" IsThumbToolTipEnabled="False" ValueChanged="OnSeekChanged"/>
-   <TextBlock Grid.Column="2" Text="{Binding RemainingText}" VerticalAlignment="Center"/>
+   <TextBlock x:Name="RemainingLabel" Grid.Column="2" MinWidth="48" VerticalAlignment="Center"/>
   </Grid>
   <StackPanel x:Name="ControlsRow" Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
    <Button services:XamlResourceOverride.Uid="MediaPrevious" Command="{Binding PreviousCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE892;"/></Button>

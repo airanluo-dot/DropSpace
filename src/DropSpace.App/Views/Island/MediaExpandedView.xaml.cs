@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 
@@ -15,7 +16,7 @@ public sealed partial class MediaExpandedView : UserControl
     private MediaViewModel? _view;
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekCommitTimer;
-    private Thumb? _progressThumb;
+    private uint? _activePointerId;
     private double? _queuedSeekSeconds;
     private string _trackIdentity = string.Empty;
     private bool _updating;
@@ -26,6 +27,12 @@ public sealed partial class MediaExpandedView : UserControl
         _seekCommitTimer.Interval = TimeSpan.FromMilliseconds(120);
         _seekCommitTimer.IsRepeating = false;
         _seekCommitTimer.Tick += OnSeekCommitTimer;
+        // Observe the whole slider, including track presses, even when its template
+        // handles pointer events. Never depend on finding a Thumb before layout.
+        Progress.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSeekPointerPressed), true);
+        Progress.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnSeekPointerReleased), true);
+        Progress.AddHandler(PointerCanceledEvent, new PointerEventHandler(OnSeekPointerCanceled), true);
+        Progress.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnSeekPointerCaptureLost), true);
         Loaded += OnLoaded; Unloaded += OnUnloaded;
     }
     public MediaViewModel? ViewModel
@@ -42,13 +49,11 @@ public sealed partial class MediaExpandedView : UserControl
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
         if (_view is not null) _view.PropertyChanged += OnChanged;
-        HookProgressThumb();
         Render();
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         if (_view is not null) _view.PropertyChanged -= OnChanged;
-        UnhookProgressThumb();
         CancelSeekInteraction();
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args) => Render();
@@ -64,11 +69,15 @@ public sealed partial class MediaExpandedView : UserControl
                 _trackIdentity = trackIdentity;
                 CancelSeekInteraction();
             }
-            Progress.Maximum = _view.DurationSeconds;
-            Progress.IsEnabled = _view.Session.CanSeek && !_view.PositionEstimated;
+            if (!_seekInteraction.IsDragging && !_seekInteraction.IsPreviewing)
+            {
+                Progress.Maximum = _view.DurationSeconds;
+                Progress.IsEnabled = _view.Session.CanSeek && !_view.PositionEstimated;
+            }
             var playbackSeconds = _view.PositionEstimated ? 0 : Math.Clamp(_view.PositionSeconds, 0, Progress.Maximum);
             if (_seekInteraction.ShouldApplyPlayback(playbackSeconds, DateTimeOffset.UtcNow, Progress.IsEnabled))
                 Progress.Value = playbackSeconds;
+            UpdateTimelineLabels();
             Progress.Visibility = _view.Settings.IslandActivity.ShowProgress ? Visibility.Visible : Visibility.Collapsed;
             var empty = string.IsNullOrEmpty(_view.Title);
             EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
@@ -84,56 +93,83 @@ public sealed partial class MediaExpandedView : UserControl
         }
         finally { _updating = false; }
     }
+    private void UpdateTimelineLabels()
+    {
+        if (_view is null) return;
+        if (_seekInteraction.HeldSeconds is { } seconds)
+        {
+            ElapsedLabel.Text = FormatSeconds(seconds);
+            RemainingLabel.Text = "-" + FormatSeconds(Math.Max(0, Progress.Maximum - seconds));
+        }
+        else
+        {
+            ElapsedLabel.Text = _view.ElapsedText;
+            RemainingLabel.Text = _view.RemainingText;
+        }
+    }
+
+    private static string FormatSeconds(double seconds)
+    {
+        var time = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        return time.TotalHours >= 1 ? $"{(int)time.TotalHours}:{time.Minutes:00}:{time.Seconds:00}" : $"{(int)time.TotalMinutes}:{time.Seconds:00}";
+    }
+
     private void OnSeekChanged(object sender, RangeBaseValueChangedEventArgs args)
     {
         if (_updating || !double.IsFinite(args.NewValue)) return;
         var value = Math.Clamp(args.NewValue, Progress.Minimum, Progress.Maximum);
+        if (_seekInteraction.IsPendingTarget(value)) return;
         _seekInteraction.Preview(value);
-        if (_seekInteraction.IsDragging || _seekInteraction.IsPendingTarget(value)) return;
+        UpdateTimelineLabels();
+        if (_seekInteraction.IsDragging) return;
 
         // Track clicks and keyboard adjustments are committed after a short quiet period.
-        // If this ValueChanged starts a thumb drag, DragStarted cancels the timer before it
+        // If this ValueChanged starts a pointer gesture, PointerPressed cancels the timer before it
         // can send a premature seek.
         _queuedSeekSeconds = value;
         _seekCommitTimer.Stop();
         _seekCommitTimer.Start();
     }
 
-    private void HookProgressThumb()
+    private void OnSeekPointerPressed(object sender, PointerRoutedEventArgs args)
     {
-        Progress.ApplyTemplate();
-        var thumb = FindDescendant<Thumb>(Progress);
-        if (ReferenceEquals(thumb, _progressThumb)) return;
-        UnhookProgressThumb();
-        _progressThumb = thumb;
-        if (_progressThumb is null) return;
-        _progressThumb.DragStarted += OnSeekDragStarted;
-        _progressThumb.DragCompleted += OnSeekDragCompleted;
-    }
-
-    private void UnhookProgressThumb()
-    {
-        if (_progressThumb is null) return;
-        _progressThumb.DragStarted -= OnSeekDragStarted;
-        _progressThumb.DragCompleted -= OnSeekDragCompleted;
-        _progressThumb = null;
-    }
-
-    private void OnSeekDragStarted(object sender, DragStartedEventArgs args)
-    {
-        if (!Progress.IsEnabled) return;
+        var point = args.GetCurrentPoint(Progress);
+        if (!Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
+        if (_activePointerId is not null) return;
+        _activePointerId = args.Pointer.PointerId;
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _seekInteraction.Begin(Progress.Value);
     }
 
-    private void OnSeekDragCompleted(object sender, DragCompletedEventArgs args)
+    private void OnSeekPointerReleased(object sender, PointerRoutedEventArgs args)
     {
+        if (_activePointerId == args.Pointer.PointerId) FinishPointerSeek(canceled: false);
+    }
+
+    private void OnSeekPointerCanceled(object sender, PointerRoutedEventArgs args)
+    {
+        if (_activePointerId == args.Pointer.PointerId) FinishPointerSeek(canceled: true);
+    }
+
+    private void OnSeekPointerCaptureLost(object sender, PointerRoutedEventArgs args)
+    {
+        if (_activePointerId != args.Pointer.PointerId) return;
+        var point = args.GetCurrentPoint(Progress);
+        // Normal release may drop capture before the parent receives PointerReleased.
+        // Complete it once; an interruption while still pressed cancels without seeking.
+        FinishPointerSeek(point.IsInContact || point.Properties.IsLeftButtonPressed);
+    }
+
+    private void FinishPointerSeek(bool canceled)
+    {
+        _activePointerId = null;
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _seekInteraction.Preview(Progress.Value);
-        var target = _seekInteraction.Complete(args.Canceled, DateTimeOffset.UtcNow);
+        var target = _seekInteraction.Complete(canceled, DateTimeOffset.UtcNow);
         if (target is { } seconds) ExecuteSeek(seconds);
+        else Render();
     }
 
     private void OnSeekCommitTimer(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
@@ -159,19 +195,11 @@ public sealed partial class MediaExpandedView : UserControl
     {
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
+        _activePointerId = null;
         _seekInteraction.Reset();
     }
 
-    private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, index);
-            if (child is T match) return match;
-            if (FindDescendant<T>(child) is { } descendant) return descendant;
-        }
-        return null;
-    }
+
 }
 
 internal sealed class MediaSeekInteraction(TimeSpan acknowledgementTimeout)
@@ -182,21 +210,29 @@ internal sealed class MediaSeekInteraction(TimeSpan acknowledgementTimeout)
     private DateTimeOffset _pendingUntil;
 
     public bool IsDragging { get; private set; }
+    public bool IsPreviewing { get; private set; }
     public double PreviewSeconds { get; private set; }
+    public double? HeldSeconds => IsDragging || IsPreviewing ? PreviewSeconds : _pendingSeconds;
 
     public void Begin(double seconds)
     {
         IsDragging = true;
+        IsPreviewing = true;
         PreviewSeconds = Normalize(seconds);
         _pendingSeconds = null;
     }
 
-    public void Preview(double seconds) => PreviewSeconds = Normalize(seconds);
+    public void Preview(double seconds)
+    {
+        PreviewSeconds = Normalize(seconds);
+        IsPreviewing = true;
+    }
 
     public double? Complete(bool canceled, DateTimeOffset now)
     {
         if (!IsDragging) return null;
         IsDragging = false;
+        IsPreviewing = false;
         if (canceled)
         {
             _pendingSeconds = null;
@@ -208,6 +244,7 @@ internal sealed class MediaSeekInteraction(TimeSpan acknowledgementTimeout)
     public double Commit(double seconds, DateTimeOffset now)
     {
         IsDragging = false;
+        IsPreviewing = false;
         PreviewSeconds = Normalize(seconds);
         _pendingSeconds = PreviewSeconds;
         _pendingUntil = now + acknowledgementTimeout;
@@ -216,9 +253,9 @@ internal sealed class MediaSeekInteraction(TimeSpan acknowledgementTimeout)
 
     public bool ShouldApplyPlayback(double seconds, DateTimeOffset now, bool canSeek)
     {
-        if (IsDragging) return false;
+        if (IsDragging || IsPreviewing) return false;
         if (_pendingSeconds is not { } pending) return true;
-        if (canSeek && now < _pendingUntil && Math.Abs(Normalize(seconds) - pending) > AcknowledgementToleranceSeconds)
+        if (now < _pendingUntil && Math.Abs(Normalize(seconds) - pending) > AcknowledgementToleranceSeconds)
             return false;
         _pendingSeconds = null;
         return true;
@@ -227,11 +264,12 @@ internal sealed class MediaSeekInteraction(TimeSpan acknowledgementTimeout)
     public bool IsPendingTarget(double seconds) =>
         _pendingSeconds is { } pending && Math.Abs(Normalize(seconds) - pending) <= InputEqualityToleranceSeconds;
 
-    public void RejectPending() => _pendingSeconds = null;
+    public void RejectPending() { _pendingSeconds = null; IsPreviewing = false; }
 
     public void Reset()
     {
         IsDragging = false;
+        IsPreviewing = false;
         PreviewSeconds = 0;
         _pendingSeconds = null;
     }
