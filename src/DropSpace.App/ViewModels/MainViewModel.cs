@@ -1698,7 +1698,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var updated = await _settingsCoordinator.UpdateLastCheckAsync(Settings, checkedAt, cancellationToken);
         Task ApplyAsync()
         {
-            Settings = updated;
+            // Preferences may have changed while persistence or this dispatcher callback
+            // was queued. An update check owns only its monotonic timestamp.
+            Settings = SettingsChangePolicy.ApplyLastUpdateCheck(Settings, updated.LastUpdateCheckUtc ?? checkedAt);
             return Task.CompletedTask;
         }
 

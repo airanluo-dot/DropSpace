@@ -206,11 +206,8 @@ public sealed class SettingsApplicationCoordinator(
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            var updated = await settingsService.UpdateAsync(settings =>
-                settings.LastUpdateCheckUtc is { } previous && previous >= checkedAt
-                    ? settings
-                    : settings with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() }, cancellationToken);
-            return current with { LastUpdateCheckUtc = updated.LastUpdateCheckUtc };
+            return await settingsService.UpdateAsync(
+                settings => SettingsChangePolicy.ApplyLastUpdateCheck(settings, checkedAt), cancellationToken);
         }
         finally
         {

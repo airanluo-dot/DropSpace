@@ -1,6 +1,13 @@
 const header = document.querySelector("[data-header]");
 const demo = document.querySelector("[data-demo]");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+const releaseArtifacts = Object.freeze({
+  installer: "DropSpaceSetup.exe",
+  portable: "DropSpace.exe",
+  msix: "DropSpace-x64.msix",
+  checksums: "SHA256SUMS.txt",
+  manifest: "update-manifest.json"
+});
 
 addEventListener("scroll", () => header?.classList.toggle("scrolled", scrollY > 18), { passive: true });
 
@@ -62,7 +69,9 @@ async function refreshReleaseData() {
       });
       if (!response.ok) return [];
       const payload = await response.json();
-      if (payload?.schemaVersion !== 1 || !Array.isArray(payload.releases) || payload.releases.length > 20) return [];
+      if (payload?.schemaVersion !== 1 || payload.source !== "github-releases" ||
+          typeof payload.generatedAt !== "string" || !Number.isFinite(Date.parse(payload.generatedAt)) ||
+          !Array.isArray(payload.releases) || payload.releases.length > 20) return [];
       const releases = payload.releases.filter(isValidRelease);
       return releases.length === payload.releases.length ? releases : [];
     } catch {
@@ -74,10 +83,8 @@ async function refreshReleaseData() {
     if (result.status !== "fulfilled") continue;
     for (const release of result.value) merged.set(release.tagName, release);
   }
-  const releases = [...merged.values()].sort((left, right) =>
-    String(right.publishedAt ?? "").localeCompare(String(left.publishedAt ?? "")));
-  if (releases.length > 0) {
-    applyCurrentReleases(releases);
+  const releases = [...merged.values()].sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt));
+  if (releases.length > 0 && applyCurrentReleases(releases)) {
     document.documentElement.dataset.releaseApi = "current";
     return;
   }
@@ -86,18 +93,35 @@ async function refreshReleaseData() {
 }
 
 function isValidRelease(release) {
-  if (!/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release?.tagName ?? "")) return false;
+  if (typeof release?.tagName !== "string" ||
+      !/^v\d+\.\d+\.\d+(?:-(?:preview|beta)\.\d+)?$/.test(release.tagName) ||
+      typeof release.name !== "string" || typeof release.body !== "string" || release.isDraft !== false ||
+      typeof release.isPrerelease !== "boolean" ||
+      typeof release.publishedAt !== "string" || !Number.isFinite(Date.parse(release.publishedAt))) return false;
   if (release.htmlUrl !== `https://github.com/airanluo-dot/DropSpace/releases/tag/${release.tagName}`) return false;
   const names = new Set();
-  const kinds = new Set();
   return Array.isArray(release.assets) && release.assets.every((asset) =>
+    typeof asset?.name === "string" && asset.name.length > 0 &&
     Number.isSafeInteger(asset.size) && asset.size > 0 &&
     (asset.kind === null || asset.kind === undefined ||
-      ["installer", "portable", "msix", "checksums", "manifest"].includes(asset.kind)) &&
-    (asset.kind === null || asset.kind === undefined ||
-      (!kinds.has(asset.kind) && kinds.add(asset.kind))) &&
+      (Object.hasOwn(releaseArtifacts, asset.kind) && releaseArtifacts[asset.kind] === asset.name)) &&
     !names.has(asset.name) && names.add(asset.name) &&
     asset.downloadUrl === `https://github.com/airanluo-dot/DropSpace/releases/download/${release.tagName}/${asset.name}`);
+}
+
+function compareReleaseVersions(leftTag, rightTag) {
+  const pattern = /^v(\d+)\.(\d+)\.(\d+)(?:-(?:preview|beta)\.(\d+))?$/;
+  const left = pattern.exec(leftTag);
+  const right = pattern.exec(rightTag);
+  for (let index = 1; index <= 3; index++) {
+    const a = BigInt(left[index]), b = BigInt(right[index]);
+    if (a !== b) return a > b ? 1 : -1;
+  }
+  if (left[4] === undefined || right[4] === undefined) {
+    return left[4] === right[4] ? 0 : left[4] === undefined ? 1 : -1;
+  }
+  const a = BigInt(left[4]), b = BigInt(right[4]);
+  return a === b ? 0 : a > b ? 1 : -1;
 }
 
 async function refreshLatestChangeData() {
@@ -163,12 +187,13 @@ function applyLatestChange(release) {
 }
 
 function applyCurrentReleases(releases) {
-  const stable = releases.find((release) => !release.isDraft && !release.isPrerelease);
-  if (!stable) return;
+  const stable = releases.filter((release) => !release.isDraft && !release.isPrerelease)
+    .sort((left, right) => compareReleaseVersions(right.tagName, left.tagName))[0];
+  if (!stable) return false;
   const assets = Object.fromEntries(
-    stable.assets
-      .filter((asset) => typeof asset.kind === "string")
-      .map((asset) => [asset.kind, asset.downloadUrl]));
+    Object.entries(releaseArtifacts).map(([kind, name]) =>
+      [kind, stable.assets.find((asset) => asset.name === name)?.downloadUrl]));
+  if (Object.values(assets).some((url) => !url)) return false;
   for (const kind of ["installer", "portable", "msix", "checksums"]) {
     for (const link of document.querySelectorAll(`[data-download="${kind}"]`)) {
       if (assets[kind]) link.href = assets[kind];
@@ -183,6 +208,7 @@ function applyCurrentReleases(releases) {
 
   const container = document.querySelector("[data-release-entries]");
   if (container) renderReleaseEntries(container, releases.filter((release) => !release.isDraft), zh);
+  return true;
 }
 
 function renderReleaseEntries(container, releases, zh) {
@@ -209,7 +235,7 @@ function renderReleaseEntries(container, releases, zh) {
     });
     const actions = document.createElement("div");
     actions.className = "actions";
-    const installer = release.assets.find((asset) => asset.kind === "installer");
+    const installer = release.assets.find((asset) => asset.name === releaseArtifacts.installer);
     for (const [label, href, className] of [
       [zh ? "下载版本" : "Download release", installer?.downloadUrl ?? release.htmlUrl, "button button-primary"],
       [zh ? "完整发布说明" : "Full release notes", release.htmlUrl, "button button-ghost"]

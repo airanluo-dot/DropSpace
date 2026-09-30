@@ -5,6 +5,15 @@ namespace DropSpace.Core.Models;
 /// <summary>Applies only the fields edited by a form to the latest persisted snapshot.</summary>
 public static class SettingsChangePolicy
 {
+    /// <summary>Applies update-check metadata to the current snapshot without replacing preferences.</summary>
+    public static AppSettings ApplyLastUpdateCheck(AppSettings latest, DateTimeOffset checkedAt)
+    {
+        ArgumentNullException.ThrowIfNull(latest);
+        return latest.LastUpdateCheckUtc is { } previous && previous >= checkedAt
+            ? latest
+            : latest with { LastUpdateCheckUtc = checkedAt.ToUniversalTime() };
+    }
+
     public static AppSettings Merge(AppSettings baseline, AppSettings requested, AppSettings latest) => latest with
     {
         IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
