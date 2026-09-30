@@ -1,5 +1,6 @@
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
+using DropSpace.Infrastructure.Storage;
 using Microsoft.UI.Dispatching;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -24,14 +25,25 @@ public sealed record ClipboardIntegrationMetrics(
 public sealed class ClipboardIntegrationSmoke(
     ClipboardCaptureService capture,
     IItemRepository repository,
-    DispatcherQueue dispatcher)
+    DispatcherQueue dispatcher,
+    AppStoragePaths paths)
 {
+    private ClipboardDiagnosticSession? _diagnosticSession;
+
     public async Task<ClipboardIntegrationMetrics> RunAsync(CancellationToken cancellationToken = default)
     {
+        capture.BeginDiagnosticSession();
+        await using var diagnostics = new ClipboardDiagnosticSession(paths.Logs, () => capture.DiagnosticSnapshot, capture.EndDiagnosticSession);
+        _diagnosticSession = diagnostics;
+        BeginStage(ClipboardSmokeStage.Initial);
+        WriteDiagnostics();
         var initial = capture.Status;
         if (!initial.ListenerRegistered)
         {
-            throw new InvalidOperationException("The Win32 clipboard listener was not registered.");
+            var exception = new InvalidOperationException("The Win32 clipboard listener was not registered.");
+            capture.RecordSmokeDiagnostic(ClipboardDiagnosticDecision.SmokeFailed, exception);
+            await diagnostics.FlushAsync();
+            throw exception;
         }
 
         var wasPaused = initial.State == ClipboardRecordingState.Paused;
@@ -53,11 +65,14 @@ public sealed class ClipboardIntegrationSmoke(
             }
 
             var baseline = capture.Status;
+            BeginStage(ClipboardSmokeStage.FirstTextWrite);
             await SetClipboardTextAsync(first);
+            BeginStage(ClipboardSmokeStage.FirstTextNotification);
             await WaitForAsync(
                 () => capture.Status.ObservedEvents > baseline.ObservedEvents,
                 "WM_CLIPBOARDUPDATE for first test text",
                 cancellationToken);
+            BeginStage(ClipboardSmokeStage.FirstTextCapture);
             await WaitForAsync(
                 () => capture.Status.CapturedItems > baseline.CapturedItems,
                 "repository capture for first test text",
@@ -69,11 +84,14 @@ public sealed class ClipboardIntegrationSmoke(
             }
 
             var beforeConsecutiveDuplicate = capture.Status;
+            BeginStage(ClipboardSmokeStage.ConsecutiveTextWrite);
             await SetClipboardTextAsync(first);
+            BeginStage(ClipboardSmokeStage.ConsecutiveTextNotification);
             await WaitForAsync(
                 () => capture.Status.ObservedEvents > beforeConsecutiveDuplicate.ObservedEvents,
                 "WM_CLIPBOARDUPDATE for consecutive duplicate text",
                 cancellationToken);
+            BeginStage(ClipboardSmokeStage.ConsecutiveSuppression);
             await WaitForAsync(
                 () => capture.Status.SuppressedConsecutiveDuplicates > beforeConsecutiveDuplicate.SuppressedConsecutiveDuplicates,
                 "consecutive duplicate suppression",
@@ -87,7 +105,9 @@ public sealed class ClipboardIntegrationSmoke(
             }
 
             var afterFirst = capture.Status;
+            BeginStage(ClipboardSmokeStage.SecondTextWrite);
             await SetClipboardTextAsync(second);
+            BeginStage(ClipboardSmokeStage.SecondTextCapture);
             await WaitForAsync(
                 () => capture.Status.CapturedItems > afterFirst.CapturedItems,
                 "repository capture for second test text",
@@ -97,9 +117,13 @@ public sealed class ClipboardIntegrationSmoke(
             {
                 throw new InvalidOperationException("The second clipboard text did not reach the repository.");
             }
+            if (capture.Status.ObservedEvents <= afterFirst.ObservedEvents)
+                throw new InvalidOperationException("The second clipboard text did not produce an observed update.");
 
             var beforeNonConsecutiveRepeat = capture.Status;
+            BeginStage(ClipboardSmokeStage.NonConsecutiveTextWrite);
             await SetClipboardTextAsync(first);
+            BeginStage(ClipboardSmokeStage.NonConsecutiveTextCapture);
             await WaitForAsync(
                 () => capture.Status.CapturedItems > beforeNonConsecutiveRepeat.CapturedItems,
                 "repository capture for non-consecutive repeated text",
@@ -110,12 +134,16 @@ public sealed class ClipboardIntegrationSmoke(
                 throw new InvalidOperationException("A non-consecutive clipboard text was incorrectly collapsed.");
             }
 
+            await RunControlledTextCasesAsync(token, cancellationToken);
+
             Directory.CreateDirectory(fileTestRoot);
             Directory.CreateDirectory(folderPath);
             await File.WriteAllTextAsync(filePath, "clipboard file reference smoke", cancellationToken);
             await File.WriteAllBytesAsync(secondFilePath, [1, 2, 3, 4], cancellationToken);
             var beforeFile = capture.Status;
+            BeginStage(ClipboardSmokeStage.FileWrite);
             await SetClipboardItemsAsync(filePath, secondFilePath, folderPath);
+            BeginStage(ClipboardSmokeStage.FileCapture);
             await WaitForAsync(
                 () => capture.Status.CapturedItems >= beforeFile.CapturedItems + 3,
                 "repository capture for mixed clipboard file/folder references",
@@ -128,13 +156,17 @@ public sealed class ClipboardIntegrationSmoke(
                 throw new InvalidOperationException("The mixed clipboard file/folder references did not reach the repository.");
             }
 
+            BeginStage(ClipboardSmokeStage.Pause);
             await capture.PauseAsync(cancellationToken);
             var beforePausedWrite = capture.Status;
+            BeginStage(ClipboardSmokeStage.PausedTextWrite);
             await SetClipboardTextAsync(paused);
+            BeginStage(ClipboardSmokeStage.PausedTextNotification);
             await WaitForAsync(
                 () => capture.Status.ObservedEvents > beforePausedWrite.ObservedEvents,
                 "clipboard notification while paused",
                 cancellationToken);
+            BeginStage(ClipboardSmokeStage.PauseVerification);
             await Task.Delay(300, cancellationToken);
             var pauseVerified = capture.Status.CapturedItems == beforePausedWrite.CapturedItems &&
                                 !await ContainsTextAsync(paused, cancellationToken);
@@ -143,9 +175,12 @@ public sealed class ClipboardIntegrationSmoke(
                 throw new InvalidOperationException("Clipboard pause did not block repository capture.");
             }
 
+            BeginStage(ClipboardSmokeStage.Resume);
             await capture.ResumeAsync(cancellationToken);
             var beforeResumeWrite = capture.Status;
+            BeginStage(ClipboardSmokeStage.ResumedTextWrite);
             await SetClipboardTextAsync(resumed);
+            BeginStage(ClipboardSmokeStage.ResumedTextCapture);
             await WaitForAsync(
                 () => capture.Status.CapturedItems > beforeResumeWrite.CapturedItems,
                 "clipboard capture after resume",
@@ -157,11 +192,14 @@ public sealed class ClipboardIntegrationSmoke(
             }
 
             var beforeSelfWrite = capture.Status;
+            BeginStage(ClipboardSmokeStage.SelfWrite);
             await capture.CopyTextAsync(selfWrite, cancellationToken);
+            BeginStage(ClipboardSmokeStage.SelfWriteNotification);
             await WaitForAsync(
                 () => capture.Status.ObservedEvents > beforeSelfWrite.ObservedEvents,
                 "clipboard notification for a DropSpace self-write",
                 cancellationToken);
+            BeginStage(ClipboardSmokeStage.SelfWriteVerification);
             await Task.Delay(350, cancellationToken);
             var selfWriteVerified = capture.Status.CapturedItems == beforeSelfWrite.CapturedItems &&
                                     !await ContainsTextAsync(selfWrite, cancellationToken);
@@ -171,6 +209,9 @@ public sealed class ClipboardIntegrationSmoke(
             }
 
             var final = capture.Status;
+            BeginStage(ClipboardSmokeStage.Complete);
+            capture.RecordSmokeDiagnostic(ClipboardDiagnosticDecision.SmokeCompleted);
+            await diagnostics.FlushAsync();
             return new ClipboardIntegrationMetrics(
                 final.ListenerRegistered,
                 final.ObservedEvents - baseline.ObservedEvents,
@@ -185,6 +226,13 @@ public sealed class ClipboardIntegrationSmoke(
                 pauseVerified,
                 resumeVerified,
                 selfWriteVerified);
+        }
+        catch (Exception exception)
+        {
+            // Preserve failure state before smoke rows/clipboard are cleared in finally.
+            capture.RecordSmokeDiagnostic(ClipboardDiagnosticDecision.SmokeFailed, exception);
+            await diagnostics.FlushAsync();
+            throw;
         }
         finally
         {
@@ -210,19 +258,83 @@ public sealed class ClipboardIntegrationSmoke(
         }
     }
 
-    private Task SetClipboardTextAsync(string text) => dispatcher.EnqueueAsync(() =>
+    private async Task RunControlledTextCasesAsync(string token, CancellationToken cancellationToken)
     {
-        var package = new DataPackage
+        foreach (var profile in new[] { ClipboardSmokeProfile.Immediate, ClipboardSmokeProfile.DispatcherYield, ClipboardSmokeProfile.FixedDelay })
         {
-            RequestedOperation = DataPackageOperation.Copy,
-        };
-        package.SetText(text);
-        return ClipboardAccessPolicy.SetContentAsync(() =>
+            for (var cycle = 1; cycle <= 4; cycle++)
+            {
+                var first = $"{token}-controlled-{profile}-{cycle}-first";
+                var second = $"{token}-controlled-{profile}-{cycle}-second";
+                var baseline = capture.Status;
+                BeginStage(ClipboardSmokeStage.FirstTextWrite, profile, cycle);
+                await SetClipboardTextAsync(first);
+                BeginStage(ClipboardSmokeStage.FirstTextCapture, profile, cycle);
+                await WaitForAsync(() => capture.Status.CapturedItems > baseline.CapturedItems,
+                    "controlled first-text capture", cancellationToken);
+                if (capture.Status.ObservedEvents <= baseline.ObservedEvents || await CountTextAsync(first, cancellationToken) != 1)
+                    throw new InvalidOperationException("Controlled first text was not persisted exactly once.");
+
+                var beforeDuplicate = capture.Status;
+                BeginStage(ClipboardSmokeStage.ConsecutiveTextWrite, profile, cycle);
+                await SetClipboardTextAsync(first);
+                BeginStage(ClipboardSmokeStage.ConsecutiveSuppression, profile, cycle);
+                await WaitForAsync(() => capture.Status.SuppressedConsecutiveDuplicates > beforeDuplicate.SuppressedConsecutiveDuplicates,
+                    "controlled consecutive suppression", cancellationToken);
+                if (capture.Status.ObservedEvents <= beforeDuplicate.ObservedEvents ||
+                    capture.Status.CapturedItems != beforeDuplicate.CapturedItems || await CountTextAsync(first, cancellationToken) != 1)
+                    throw new InvalidOperationException("Controlled consecutive duplicate created another history item.");
+
+                if (profile == ClipboardSmokeProfile.DispatcherYield)
+                    await dispatcher.EnqueueAsync(() => Task.CompletedTask);
+                else if (profile == ClipboardSmokeProfile.FixedDelay)
+                    await Task.Delay(200, cancellationToken);
+
+                var beforeSecond = capture.Status;
+                BeginStage(ClipboardSmokeStage.SecondTextWrite, profile, cycle);
+                await SetClipboardTextAsync(second);
+                BeginStage(ClipboardSmokeStage.SecondTextCapture, profile, cycle);
+                await WaitForAsync(() => capture.Status.CapturedItems > beforeSecond.CapturedItems,
+                    "controlled second-text capture", cancellationToken);
+                if (capture.Status.ObservedEvents <= beforeSecond.ObservedEvents || !await ContainsTextAsync(second, cancellationToken))
+                    throw new InvalidOperationException("Controlled second text lacked notification or repository persistence.");
+
+                var beforeRepeat = capture.Status;
+                BeginStage(ClipboardSmokeStage.NonConsecutiveTextWrite, profile, cycle);
+                await SetClipboardTextAsync(first);
+                BeginStage(ClipboardSmokeStage.NonConsecutiveTextCapture, profile, cycle);
+                await WaitForAsync(() => capture.Status.CapturedItems > beforeRepeat.CapturedItems,
+                    "controlled non-consecutive capture", cancellationToken);
+                if (capture.Status.ObservedEvents <= beforeRepeat.ObservedEvents || await CountTextAsync(first, cancellationToken) != 2)
+                    throw new InvalidOperationException("Controlled non-consecutive text lacked notification or its second history row.");
+                WriteDiagnostics();
+            }
+        }
+    }
+
+    private void BeginStage(ClipboardSmokeStage stage, ClipboardSmokeProfile profile = ClipboardSmokeProfile.Baseline, int cycle = 0)
+    {
+        capture.BeginDiagnosticStage(stage, profile, cycle);
+    }
+
+    private void WriteDiagnostics() => _diagnosticSession?.RequestFlush();
+
+    private Task SetClipboardTextAsync(string text)
+    {
+        return dispatcher.EnqueueAsync(() =>
         {
-            Clipboard.SetContent(package);
-            Clipboard.Flush();
+            var package = new DataPackage
+            {
+                RequestedOperation = DataPackageOperation.Copy,
+            };
+            package.SetText(text);
+            return ClipboardAccessPolicy.SetContentAsync(() =>
+            {
+                Clipboard.SetContent(package);
+                Clipboard.Flush();
+            });
         });
-    });
+    }
 
     private Task SetClipboardItemsAsync(params string[] paths) => dispatcher.EnqueueAsync(async () =>
     {
@@ -284,12 +396,14 @@ public sealed class ClipboardIntegrationSmoke(
         }
     }
 
-    private static async Task WaitForAsync(
+    private async Task WaitForAsync(
         Func<bool> predicate,
         string operation,
         CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(8);
+        capture.RecordSmokeDiagnostic(ClipboardDiagnosticDecision.WaitStarted);
+        var previous = capture.DiagnosticCurrentState;
         while (!predicate())
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -299,6 +413,11 @@ public sealed class ClipboardIntegrationSmoke(
             }
 
             await Task.Delay(40, cancellationToken);
+            var current = capture.DiagnosticCurrentState;
+            if (current.Counters != previous.Counters || current.NativeSequence != previous.NativeSequence || current.WorkerStatus != previous.WorkerStatus)
+                capture.RecordSmokeDiagnostic(ClipboardDiagnosticDecision.WaitProgress);
+            previous = current;
         }
+        capture.RecordSmokeDiagnostic(ClipboardDiagnosticDecision.WaitCompleted);
     }
 }

@@ -4,13 +4,17 @@ param(
     [ValidateSet("en-US", "zh-CN")]
     [string]$Language = "en-US",
 
-    [int]$StartupTimeoutSeconds = 120
+    [int]$StartupTimeoutSeconds = 120,
+
+    [ValidateSet("portable", "installed")]
+    [string]$DiagnosticPhase = "portable"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+. (Join-Path $PSScriptRoot "TestDiagnostics.ps1")
 . (Join-Path $PSScriptRoot "WindowsCompatibility.ps1")
 $windowsCompatibility = Get-DropSpaceWindowsCompatibility
 $resolvedExecutable = if ([System.IO.Path]::IsPathRooted($ExecutablePath))
@@ -43,6 +47,8 @@ $startup = $null
 $startupSecond = $null
 $markerPath = $null
 $startupMarkerPath = $null
+$diagnosticDirectory = $null
+$firstDiagnosticsSaved = $false
 
 Add-Type @"
 using System;
@@ -91,6 +97,7 @@ public static class DropSpaceWindowVisibility
 try
 {
     $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $repositoryRoot "artifacts/smoke/$([Guid]::NewGuid().ToString('N'))"
+    $diagnosticDirectory = New-DropSpaceTestDiagnosticDirectory -RepositoryRoot $repositoryRoot -Category $DiagnosticPhase
     $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -WindowStyle Hidden -PassThru
     $markerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($first.Id).json"
     $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
@@ -217,6 +224,12 @@ try
         throw "The primary DropSpace smoke process exited with code $($first.ExitCode)."
     }
 
+    if ($null -ne $diagnosticDirectory)
+    {
+        Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'primary' -Language $Language -ProcessId $first.Id -MarkerPath $markerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
+        $firstDiagnosticsSaved = $true
+    }
+
     $startup = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--startup", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -WindowStyle Hidden -PassThru
     $startupMarkerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($startup.Id).json"
     $startupDeadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
@@ -318,6 +331,25 @@ finally
         if ($null -ne $process -and -not $process.HasExited)
         {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+    }
+    if ($null -ne $diagnosticDirectory)
+    {
+        if ($null -ne $first -and -not $firstDiagnosticsSaved)
+        {
+            Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'primary' -Language $Language -ProcessId $first.Id -MarkerPath $markerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
+        }
+        if ($null -ne $startup)
+        {
+            Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'startup-activation' -Language $Language -ProcessId $startup.Id -MarkerPath $startupMarkerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
+        }
+        foreach ($activation in @(@{ Phase = 'redirect'; Process = $second }, @{ Phase = 'startup-redirect'; Process = $startupSecond }))
+        {
+            if ($null -ne $activation.Process)
+            {
+                $activationMarker = Join-Path ([IO.Path]::GetTempPath()) "DropSpace-smoke-$($activation.Process.Id).json"
+                Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase $activation.Phase -Language $Language -ProcessId $activation.Process.Id -MarkerPath $activationMarker
+            }
         }
     }
     $env:DROPSPACE_TEST_DATA_ROOT = $previousTestRoot
