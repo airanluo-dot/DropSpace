@@ -19,7 +19,7 @@ public static partial class LogRedactor
         return value.Length <= 4_096 ? value : string.Concat(value.AsSpan(0, 4_095), "…");
     }
 
-    [GeneratedRegex("(https?://[^\\s?#]+)(?:\\?[^\\s#]*)?", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("(https?://[^\\s?#]+)(?:\\?[^\\s#]*)?(?:#[^\\s]*)?", RegexOptions.IgnoreCase)]
     private static partial Regex UrlQueryRegex();
 
     [GeneratedRegex("(?<![A-Za-z0-9])(?:[A-Za-z]:\\\\|\\\\\\\\)[^\\r\\n<>|\"']+")]
