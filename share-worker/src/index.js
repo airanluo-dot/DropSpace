@@ -26,14 +26,14 @@ export default {
     if (request.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
 
     try {
-      if (request.method === "POST" && url.pathname === API_PREFIX + "/shares") return createShare(request, env);
+      if (request.method === "POST" && url.pathname === API_PREFIX + "/shares") return await createShare(request, env);
       const objectMatch = url.pathname.match(new RegExp("^" + API_PREFIX + "/shares/([0-9a-f]{32})/objects/([A-Za-z0-9._-]{1," + MAX_OBJECT_NAME_LENGTH + "})$"));
-      if (objectMatch && request.method === "PUT") return putObject(request, env, objectMatch[1], objectMatch[2]);
-      if (objectMatch && request.method === "GET") return getObject(request, env, objectMatch[1], objectMatch[2]);
+      if (objectMatch && request.method === "PUT") return await putObject(request, env, objectMatch[1], objectMatch[2]);
+      if (objectMatch && request.method === "GET") return await getObject(request, env, objectMatch[1], objectMatch[2]);
       const shareMatch = url.pathname.match(new RegExp("^" + API_PREFIX + "/shares/([0-9a-f]{32})$"));
-      if (shareMatch && request.method === "DELETE") return revokeShare(request, env, shareMatch[1]);
+      if (shareMatch && request.method === "DELETE") return await revokeShare(request, env, shareMatch[1]);
       const receiverMatch = url.pathname.match(/^\/s\/([0-9a-f]{32})$/);
-      if (receiverMatch && request.method === "GET") return receiverPage(env, receiverMatch[1], request);
+      if (receiverMatch && request.method === "GET") return await receiverPage(env, receiverMatch[1], request);
       return json({ error: "not-found" }, 404);
     } catch (error) {
       // Do not log request URLs: the key is carried in a fragment in normal use, but never put
@@ -89,9 +89,11 @@ async function createShare(request, env) {
   if (!Number.isInteger(itemCount) || itemCount < 1 || itemCount > MAX_ITEMS || !Number.isSafeInteger(totalBytes) || totalBytes < 1 || totalBytes > MAX_BYTES) throw new HttpError("limits-invalid", 400);
   const token = await sign({ shareId, expiresAt, itemCount, totalBytes }, env.UPLOAD_TOKEN_SECRET);
   const meta = { shareId, expiresAt, itemCount, totalBytes };
+  // Claim the ID atomically before writing metadata or issuing an upload token.
+  // A duplicate request must never overwrite or revoke an existing share.
+  await coordinatorRequest(env, shareId, "init", meta);
   try {
     await env.SHARES.put(metaKey(shareId), JSON.stringify(meta), { httpMetadata: { contentType: "application/json", cacheControl: "no-store" } });
-    await coordinatorRequest(env, shareId, "init", meta);
   } catch (error) {
     await env.SHARES.delete(metaKey(shareId)).catch(() => {});
     await coordinatorRequest(env, shareId, "revoke").catch(() => {});
@@ -191,7 +193,8 @@ async function receiverPage(env, shareId, request) {
 
 
 function receiverScript(origin, shareId) {
-  return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('${API_PREFIX}/shares/${shareId}/objects/${MANIFEST_OBJECT_NAME}'),nonce=manifestBin.slice(0,${MANIFEST_NONCE_BYTES}),tag=manifestBin.slice(-${AUTH_TAG_BYTES}),cipher=manifestBin.slice(${MANIFEST_NONCE_BYTES},-${AUTH_TAG_BYTES}),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('${SHARE_AAD_PREFIX}\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
+  return `const API_PREFIX = ${JSON.stringify(API_PREFIX)};
+(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('${API_PREFIX}/shares/${shareId}/objects/${MANIFEST_OBJECT_NAME}'),nonce=manifestBin.slice(0,${MANIFEST_NONCE_BYTES}),tag=manifestBin.slice(-${AUTH_TAG_BYTES}),cipher=manifestBin.slice(${MANIFEST_NONCE_BYTES},-${AUTH_TAG_BYTES}),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('${SHARE_AAD_PREFIX}\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
 const SHA256_K = new Uint32Array([
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
@@ -541,15 +544,7 @@ export class ShareUsageCoordinator {
               !Number.isSafeInteger(body.totalBytes) || body.totalBytes < 1 || body.totalBytes > MAX_BYTES) {
             throw new HttpError("coordinator-metadata-invalid", 400);
           }
-          if (current) {
-            if (current.shareId !== body.shareId ||
-                current.expiresAt !== body.expiresAt ||
-                current.itemCount !== body.itemCount ||
-                current.totalBytes !== body.totalBytes) {
-              throw new HttpError("coordinator-conflict", 409);
-            }
-            return coordinatorJson({ ok: true });
-          }
+          if (current) throw new HttpError("coordinator-conflict", 409);
           current = {
             shareId: body.shareId,
             expiresAt: body.expiresAt,
@@ -568,10 +563,10 @@ export class ShareUsageCoordinator {
 
         if (!current || current.shareId !== body.shareId) throw new HttpError("coordinator-not-found", 404);
         current = cleanupCoordinatorState(current);
-        if (body.operation === "reserve") return this.reserve(current, body);
-        if (body.operation === "commit") return this.commit(current, body);
-        if (body.operation === "rollback") return this.rollback(current, body);
-        if (body.operation === "revoke") return this.revoke(current);
+        if (body.operation === "reserve") return await this.reserve(current, body);
+        if (body.operation === "commit") return await this.commit(current, body);
+        if (body.operation === "rollback") return await this.rollback(current, body);
+        if (body.operation === "revoke") return await this.revoke(current);
         throw new HttpError("coordinator-operation-invalid", 400);
       });
     } catch (error) {

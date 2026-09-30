@@ -259,18 +259,25 @@ public sealed class NearbyShareServer(ShareLimits? limits = null) : IAsyncDispos
         }
     }
 
-    private static bool ParseRange(string value, long total, out long start, out long end)
+    internal static bool ParseRange(string value, long total, out long start, out long end)
     {
         start = 0;
         end = total - 1;
+        if (total <= 0) return false;
         var parts = value.Split('-', 2);
         if (parts.Length != 2) return false;
-        if (!long.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out start))
+        if (parts[0].Length == 0)
         {
             if (!long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var suffix) || suffix <= 0) return false;
             start = Math.Max(0, total - suffix);
+            return true;
         }
-        if (!string.IsNullOrWhiteSpace(parts[1]) && long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var requestedEnd)) end = Math.Min(requestedEnd, total - 1);
+        if (!long.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out start)) return false;
+        if (parts[1].Length > 0)
+        {
+            if (!long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var requestedEnd)) return false;
+            end = Math.Min(requestedEnd, total - 1);
+        }
         return start >= 0 && start < total && end >= start && end < total;
     }
 

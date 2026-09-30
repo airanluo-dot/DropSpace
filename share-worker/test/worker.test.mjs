@@ -8,17 +8,20 @@ const fileTwo = "9999aaaabbbbccccddddeeeeffff0000";
 
 function createCoordinator() {
   const values = new Map();
+  let running = Promise.resolve();
   const state = {
     storage: {
       async get(key) {
-        return values.get(key);
+        return structuredClone(values.get(key));
       },
       async put(key, value) {
-        values.set(key, value);
+        values.set(key, structuredClone(value));
       },
     },
-    async blockConcurrencyWhile(callback) {
-      return callback();
+    blockConcurrencyWhile(callback) {
+      const result = running.then(callback);
+      running = result.catch(() => {});
+      return result;
     },
   };
   return new ShareUsageCoordinator(state);
@@ -194,4 +197,92 @@ test("receiver page uses nonce CSP and bounded streaming download fallback", asy
   assert.match(html, /URL\.revokeObjectURL\(url\)/);
   assert.match(html, /button.disabled=true/);
   assert.match(html, /256 \* 1024 \* 1024/);
+});
+
+test("worker translates asynchronous route failures into JSON with CORS", async () => {
+  for (const [method, path] of [["POST", "/v1/shares"], ["PUT", "/v1/shares/" + shareId + "/objects/manifest.bin"], ["GET", "/v1/shares/" + shareId + "/objects/manifest.bin"], ["DELETE", "/v1/shares/" + shareId], ["GET", "/s/" + shareId]]) {
+    const response = await worker.fetch(new Request("http://share.invalid" + path, { method }), {});
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, "https-required");
+    assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  }
+});
+
+test("asynchronous coordinator errors retain their policy status", async () => {
+  const coordinator = createCoordinator();
+  await invoke(coordinator, "init", { expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: 5 });
+  const result = await invoke(coordinator, "reserve", { objectName: "../bad", kind: "chunk", plainBytes: 1 });
+  assert.equal(result.status, 400);
+  assert.equal(result.body.error, "coordinator-object-invalid");
+});
+
+test("duplicate creation cannot mint a token, overwrite metadata or revoke the original", async () => {
+  const coordinator = createCoordinator();
+  const objects = new Map();
+  const mutations = [];
+  const env = {
+    UPLOAD_TOKEN_SECRET: "test-secret-".repeat(4),
+    SHARE_CREATION_LIMITER: { idFromName: name => name, get: () => ({ fetch: async () => new Response("{}") }) },
+    SHARE_COORDINATOR: { idFromName: name => name, get: () => ({ fetch: (url, init) => coordinator.fetch(new Request(url, init)) }) },
+    SHARES: {
+      async put(key, value) { mutations.push(["put", key]); objects.set(key, value); },
+      async delete(key) { mutations.push(["delete", key]); objects.delete(key); },
+    },
+  };
+  const body = { shareId, expiresAtUtc: new Date(Date.now() + 3600000).toISOString(), itemCount: 1, totalBytes: 5 };
+  const request = data => new Request("https://share.invalid/v1/shares", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+  assert.equal((await worker.fetch(request(body), env)).status, 200);
+  const original = objects.get("shares/" + shareId + "/meta.json");
+  for (const data of [body, { ...body, totalBytes: 10 }]) {
+    const duplicate = await worker.fetch(request(data), env);
+    assert.equal(duplicate.status, 409);
+    assert.equal((await duplicate.json()).error, "coordinator-conflict");
+  }
+  assert.equal(objects.get("shares/" + shareId + "/meta.json"), original);
+  assert.equal(mutations.length, 1);
+  assert.equal((await invoke(coordinator, "reserve", { objectName: "manifest.bin", kind: "manifest", plainBytes: 0 })).status, 200);
+});
+
+test("receiver decrypts and downloads a real encrypted file", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const { createHash } = await import("node:crypto");
+  const master = crypto.getRandomValues(new Uint8Array(32));
+  const salt = Uint8Array.from([0x33,0x22,0x11,0,0x55,0x44,0x77,0x66,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff]);
+  const enc = text => new TextEncoder().encode(text);
+  const derive = async info => crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: enc(info) }, await crypto.subtle.importKey("raw", master, "HKDF", false, ["deriveKey"]), { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+  const bytes = enc("DropSpace encrypted download regression");
+  const prefix = crypto.getRandomValues(new Uint8Array(8));
+  const nonce = new Uint8Array(12); nonce.set(prefix);
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce, additionalData: enc(`DropSpaceShare:v1\n${shareId}\n${fileOne}\n0\n${bytes.length}`) }, await derive("file:" + fileOne), bytes);
+  const item = { fileId: fileOne, displayName: "regression.txt", mimeType: "text/plain", plainLength: bytes.length, chunkCount: 1, noncePrefix: Buffer.from(prefix).toString("base64"), sha256: createHash("sha256").update(bytes).digest("hex") };
+  const manifestNonce = crypto.getRandomValues(new Uint8Array(12));
+  const encryptedManifest = await crypto.subtle.encrypt({ name: "AES-GCM", iv: manifestNonce, additionalData: enc(`DropSpaceShare:v1\n${shareId}`) }, await derive("manifest"), enc(JSON.stringify({ shareId, items: [item] })));
+  const packedManifest = new Uint8Array(12 + encryptedManifest.byteLength); packedManifest.set(manifestNonce); packedManifest.set(new Uint8Array(encryptedManifest), 12);
+  const page = await worker.fetch(new Request("https://share.invalid/s/" + shareId), { SHARES: { async get() { return new Response(JSON.stringify({ shareId, expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: bytes.length })); } } });
+  const script = (await page.text()).match(/<script nonce="[^"]+">([\s\S]*)<\/script>/)[1];
+  const buttons = [], alerts = [], fetched = [];
+  let downloaded;
+  const status = {};
+  const context = {
+    crypto, TextEncoder, TextDecoder, Uint8Array, Uint32Array, DataView, Blob, atob, btoa,
+    location: { hash: "#k=" + Buffer.from(master).toString("base64url") }, window: {},
+    document: { getElementById: id => id === "status" ? status : { appendChild() {} }, createElement: kind => kind === "button" ? (buttons.push({}), buttons.at(-1)) : { appendChild() {}, click() {} } },
+    fetch: async path => { fetched.push(path); return new Response(path.endsWith("manifest.bin") ? packedManifest : ciphertext); },
+    URL: { createObjectURL(blob) { downloaded = blob; return "blob:download"; }, revokeObjectURL() {} },
+    alert: error => alerts.push(error), setTimeout: callback => callback(),
+  };
+  await runInNewContext(script, context);
+  assert.equal(buttons.length, 1);
+  await buttons[0].onclick();
+  assert.deepEqual(alerts, []);
+  assert.equal(fetched[1], "/v1/shares/" + shareId + "/objects/" + fileOne + ".0.bin");
+  assert.equal(await downloaded.text(), new TextDecoder().decode(bytes));
+});
+
+
+test("concurrent initialization grants ownership to exactly one creator", async () => {
+  const coordinator = createCoordinator();
+  const metadata = { expiresAt: Date.now() + 3600000, itemCount: 1, totalBytes: 5 };
+  const results = await Promise.all([invoke(coordinator, "init", metadata), invoke(coordinator, "init", metadata)]);
+  assert.deepEqual(results.map(result => result.status).sort(), [200, 409]);
 });
