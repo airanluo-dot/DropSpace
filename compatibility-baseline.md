@@ -49,8 +49,8 @@ The following product contracts are unchanged:
 
 - Dynamic Island/Overlay behavior, direct visible drops, and Smart Drag v2
   remain the same business path.
-- Placement persistence remains schema 9 and continues to use the existing
-  per-monitor/DPI policy.
+- Current settings schema 14 retains the per-monitor placement model introduced
+  in schema 9 and continues to use the existing per-monitor/DPI policy.
 - Clipboard capture remains event-driven, bounded, local, and pause-aware.
 - Updates remain official-source, size/hash-verified, publisher-gated, and
   deployment-mode aware; lowering the OS baseline does not weaken update
@@ -122,14 +122,15 @@ The critical flows are:
 ## Current evidence boundary
 
 The source-level compatibility gate, pure policy tests, updater tests, and
-Windows workflow definitions are part of this implementation. The current
-Linux development environment does not contain `dotnet`, PowerShell, WinUI,
-or a Windows display stack, so it cannot produce honest Windows executable,
-installer, DPI, OLE, clipboard, or multi-monitor evidence. The first Windows
-CI/release run must be inspected after publication, and the rows above remain
-conditional until real Windows machines or equivalent dedicated test fixtures
-record them. Hosted Windows CI is useful for build/smoke coverage but does not
-replace the historical OS/DPI/monitor/provider matrix.
+Windows workflow definitions are part of this implementation. A Linux
+development environment can run platform-neutral tests and read-only script
+checks when .NET and PowerShell are available, but it lacks WinUI and a Windows
+display stack. Those checks cannot establish Windows executable, installer,
+DPI, OLE, clipboard, or multi-monitor behavior. Inspect the relevant Windows
+CI/release results; the rows above remain conditional until real Windows
+machines or equivalent dedicated test fixtures record them. Hosted Windows CI
+is useful for build/smoke coverage but does not replace the historical
+OS/DPI/monitor/provider matrix.
 
 ## Preview.19 execution record
 

@@ -177,12 +177,8 @@ public sealed class ShareTargetActivationService
                 }
             }
 
-            var file = await StorageFile.GetFileFromPathAsync(path);
-            using (var encoded = await file.OpenReadAsync())
-            {
-                await ImageDecoderPreflight.ValidateAsync(encoded, _mainViewModel.Settings.MaxImageBytes,
-                    _mainViewModel.Settings.MaxImagePixels, cancellationToken);
-            }
+            path = await ValidateSharedBitmapFileAsync(path, _mainViewModel.Settings.MaxImageBytes,
+                _mainViewModel.Settings.MaxImagePixels, cancellationToken);
             return await OnDispatcherAsync(() => _mainViewModel.AddOwnedPathsBatchAsync(
                 [path],
                 null,
@@ -199,6 +195,32 @@ public sealed class ShareTargetActivationService
             }
             throw;
         }
+    }
+
+    internal static async Task<string> ValidateSharedBitmapFileAsync(
+        string path,
+        long maximumBytes,
+        long maximumPixels,
+        CancellationToken cancellationToken = default)
+    {
+        string extension;
+        var file = await StorageFile.GetFileFromPathAsync(path);
+        using (var encoded = await file.OpenReadAsync())
+        {
+            var decoder = await ImageDecoderPreflight.ValidateAsync(encoded, maximumBytes,
+                maximumPixels, cancellationToken);
+            extension = decoder.DecoderInformation.FileExtensions.FirstOrDefault()
+                ?? throw new InvalidDataException("The shared bitmap decoder did not identify its file format.");
+        }
+
+        // Bitmap references can contain JPEG, BMP, or another registered encoded format.
+        // Preserve the original bytes and name them after the validated decoder.
+        var validatedPath = Path.ChangeExtension(path, extension);
+        if (!string.Equals(path, validatedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            File.Move(path, validatedPath);
+        }
+        return validatedPath;
     }
 
     private Task<T> OnDispatcherAsync<T>(Func<Task<T>> action)

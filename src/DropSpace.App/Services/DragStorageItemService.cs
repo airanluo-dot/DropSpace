@@ -25,13 +25,13 @@ public sealed class DragStorageItemService(IPayloadStore payloadStore)
             if (item.File is { } file)
             {
                 return file.EntryKind == FileEntryKind.Folder
-                    ? await StorageFolder.GetFolderFromPathAsync(file.OriginalPath)
-                    : await StorageFile.GetFileFromPathAsync(file.OriginalPath);
+                    ? await StorageFolder.GetFolderFromPathAsync(file.OriginalPath).AsTask(cancellationToken)
+                    : await StorageFile.GetFileFromPathAsync(file.OriginalPath).AsTask(cancellationToken);
             }
 
             if (item.Kind == ItemKind.Image && item.Payload is { } payload)
             {
-                return await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(payload.RelativePath));
+                return await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(payload.RelativePath)).AsTask(cancellationToken);
             }
 
             return null;

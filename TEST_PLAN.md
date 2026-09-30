@@ -34,7 +34,7 @@ matrix row remains conditional until recorded on the target machine.
 - Item capabilities by source/kind/status.
 - URL, color, JSON/code/path hints with false-positive cases.
 - Search normalization and ranking.
-- Duplicate-window/fingerprint policy.
+- Consecutive-only capture fingerprints, intervening observations, and retry after failed persistence.
 - Retention age/count/pin ordering.
 - File availability state transitions.
 - Clear-range date/time-zone boundaries.
@@ -105,7 +105,7 @@ matrix row remains conditional until recorded on the target machine.
 - Virtual-file descriptor bounds, indexed stream materialization, cancellation, duplicate-safe names, staging containment, and whole-batch rollback.
 - Outgoing package advertises storage items and copy operation.
 - Missing/permission/network errors map to correct domain state.
-- Query-only OLE classification for `CF_HDROP`, Shell IDList, `FileGroupDescriptorW` + indexed `FileContents`, plain text, and unsupported formats; no content read during verification.
+- OLE format queries for `CF_HDROP`, Shell IDList, `FileGroupDescriptorW` + indexed `FileContents`, plain text, and unsupported formats; bounded path-metadata resolution for file-system/Shell acceptance; no file-content reads or virtual materialization during verification.
 - Ephemeral probe HWND creation with real hollow Region, physical monitor coordinates, `NOACTIVATE|TOOLWINDOW|TOPMOST`, one active instance, `DROPEFFECT_NONE`, 60 ms timeout, callback-posted revoke/destroy, double-dispose, mode-switch/shutdown cleanup, and stale-session isolation.
 
 ## UI automation
@@ -120,7 +120,7 @@ Automate only stable critical flows:
 6. Missing-item Locate/Replace with controlled picker abstraction where automation allows.
 7. Theme change and core automation properties.
 8. Legacy settings containing the removed Overlay display-mode field migrate safely to the single Dynamic Island surface.
-9. Settings persists System/English/Simplified Chinese display-language selection and emits the localized restart-required status without changing the live process resource context.
+9. Settings persists System/English/Simplified Chinese display-language selection, updates the live resource context, and refreshes the main window and Dynamic Island after dispatcher work completes. Existing transient messages may retain their prior language until replaced.
 
 External drag-out remains a manual/adapter-assisted compatibility test because end-to-end pointer automation across processes can be brittle.
 
@@ -129,9 +129,9 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 ### Localization (English and Simplified Chinese Windows 10/11)
 
 - Run the complete critical flow on English and Simplified Chinese display-language installations across the supported Windows 10/11 matrix; record OS build, display-language setting, application build, and result.
-- In each installation, choose **System default**, restart DropSpace, and verify that the main window, Dynamic Island, tray tooltip/menu, update states, dialogs/errors, and accessibility names resolve to the expected resource set.
-- In each installation, explicitly choose **English**, restart, and verify the same surfaces are English; explicitly choose **Simplified Chinese**, restart, and verify the same surfaces are Simplified Chinese. This verifies the app-owned XAML override as well as imperative and native surfaces.
-- Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; ensure no stale language or raw exception message is announced.
+- In each installation, choose **System default**, allow dispatcher refresh, and verify the main window, Dynamic Island, tray tooltip/menu, newly generated states/dialogs/errors, and accessibility names use the expected resource set. Restart and verify that the saved preference is retained.
+- In each installation, explicitly choose **English** and then **Simplified Chinese** without restarting and verify the same refreshed surfaces. Generate fresh status/error text; record existing transient messages that retain their previous language until replaced. Restart and verify persistence. This verifies the app-owned XAML override as well as imperative and native surfaces.
+- Use Narrator/UI Automation on the display-language selector, navigation, item actions, and Dynamic Island controls; verify refreshed control names and newly generated messages use the selected language and do not announce raw exception text.
 - CI runs the full Windows workload in `en-US` and `zh-CN` resource contexts and checks a resolved-resource smoke marker. GitHub-hosted runners do not constitute a claim that the Windows operating-system display language itself was changed; real Windows 10 and Windows 11 installations remain required release evidence.
 
 ### Windows compatibility baseline (Beta.25)
@@ -153,7 +153,7 @@ External drag-out remains a manual/adapter-assisted compatibility test because e
 - In from Explorer/Desktop/network/OneDrive/removable drive plus WeChat, QQ, Feishu/Electron, Office/Outlook attachment, and at least one custom-drawn/Qt source where safely available.
 - Out to Explorer/Desktop, browser upload, Office, VS Code, Photoshop/available editor.
 - Single/multiple, file/folder, resolvable Shell item, virtual-only attachment, file/image/text/URL drag-out and Share, missing during drag, cancellation, right-button drag, elevated boundary.
-- For every source, start away from the top edge and record threshold-to-Reveal latency, whether the probe verified/timed out, cursor feedback/flicker, source focus, taskbar/Alt+Tab presence, accepted item count, false reveal, cleanup, and final result. Confirm non-file text/window selection reverses speculative reveal and Classic is never enabled implicitly.
+- For every source, start away from the top edge and record threshold-to-Reveal latency, whether the probe verified/timed out, cursor feedback/flicker, source focus, taskbar/Alt+Tab presence, accepted item count, false reveal, cleanup, and final result. Confirm non-file text/window selection remains invisible and Classic is never enabled implicitly.
 - Race matrix: timeout vs DragEnter, DragEnter vs release, rejection vs new session, monitor switch vs probe creation, Smart → Classic, shutdown while active, OLE callback during cleanup, and accessibility completion before/after pointer release.
 - Record Windows build, source application/version, DropSpace build, display/DPI and result; Preview automation alone is not provider compatibility evidence.
 
@@ -245,7 +245,7 @@ The portable smoke harness must prove that the published single `DropSpace.exe` 
 
 The installer lifecycle harness runs only in an isolated Windows account/runner and must: compile a baseline and current Setup from the same AppId; silently install to a custom path; verify x64 EXE metadata, shortcuts and Installed Apps registration; start DropSpace and upgrade it through graceful maintenance shutdown without `/DIR`; preserve an AppData marker and chosen path; run the installed smoke; verify the default startup command; normally uninstall while preserving data and removing startup; reinstall and complete-uninstall while removing only `%LOCALAPPDATA%\DropSpace`; and prove an external sentinel representing an original referenced file remains. The script refuses to run when a pre-existing DropSpace data root exists.
 
-Automation does not claim visual quality or real Explorer/UIA/third-party provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags reverse speculative reveal without lasting obstruction; Explorer/Desktop file/folder/multi-select left/right drags and available WeChat/QQ/Feishu/Electron/Office sources are recorded; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; the probe creates no visible flash/focus/taskbar/Alt+Tab entry or unacceptable cursor feedback; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct.
+Automation does not claim visual quality or real Explorer/UIA/third-party provider coverage. Before Preview sign-off, a real Windows 11 desktop must verify ordinary clicks/text selection/window drags remain invisible without lasting obstruction; Explorer/Desktop file/folder/multi-select left/right drags and available WeChat/QQ/Feishu/Electron/Office sources are recorded; Escape/high-speed/cancel recover; the idle top edge resolves to the underlying app; the probe creates no visible flash/focus/taskbar/Alt+Tab entry or unacceptable cursor feedback; Drop Tray can coexist with the offset target; Compact/Expanded direct Drop still works; Classic mode switches live; Dynamic Island motion, mixed-DPI monitors and full-screen behavior remain correct.
 
 ## v0.1.0 Stable automated gates
 

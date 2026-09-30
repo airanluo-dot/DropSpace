@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
@@ -116,6 +117,70 @@ public sealed class NetworkRoundTwoRegressionTests
     }
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task RejectionRecordsItsTerminalTime(bool remote)
+    {
+        await using var fixture = new HostFixture();
+        var receive = await fixture.SeedAsync();
+        if (remote)
+        {
+            var builder = WebApplication.CreateSlimBuilder();
+            builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0));
+            await using var app = builder.Build();
+            app.Use((context, next) =>
+            {
+                context.Items[DropLinkAuthenticationMiddleware.AuthenticatedPeerContextKey] =
+                    HostFixture.SessionOf(receive).PeerId;
+                return next(context);
+            });
+            fixture.Host.MapRoutes(app);
+            await app.StartAsync();
+            using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+            using var response = await client.PostAsJsonAsync(
+                DropLinkProtocolRoutes.TransferAccept(fixture.SessionId), new TransferAcceptRequest(false));
+            response.EnsureSuccessStatusCode();
+        }
+        else
+        {
+            Assert.IsTrue(await fixture.Host.ApproveIncomingTransferAsync(fixture.SessionId, false));
+        }
+
+        var session = HostFixture.SessionOf(receive);
+        Assert.AreEqual(TransferSessionState.Rejected, session.State);
+        Assert.IsNotNull(session.CompletedAtUtc, "Rejected transfers need a fixed retention origin.");
+        await using var connection = await fixture.Database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT completed_at_utc FROM transfer_sessions WHERE id = @id;";
+        command.Parameters.AddWithValue("@id", fixture.SessionId.ToString("D"));
+        Assert.IsInstanceOfType<string>(await command.ExecuteScalarAsync(), "The terminal time must also be persisted.");
+    }
+
+    [TestMethod]
+    public async Task PollingLegacyRejectedSessionDoesNotPreventStagingRetirement()
+    {
+        await using var fixture = new HostFixture();
+        var receive = await fixture.SeedAsync();
+        Assert.IsTrue(await fixture.Host.ApproveIncomingTransferAsync(fixture.SessionId, false));
+        var type = receive.GetType();
+        type.GetProperty("Session")!.SetValue(receive, HostFixture.SessionOf(receive) with { CompletedAtUtc = null });
+        type.GetProperty("LastActivityUtc")!.SetValue(receive, DateTimeOffset.UtcNow - TimeSpan.FromMinutes(3));
+        var root = (string)type.GetProperty("StagingRoot")!.GetValue(receive)!;
+        Assert.IsTrue(Directory.Exists(root));
+
+        var snapshot = (Task<TransferStatusResponse>)typeof(DropLinkHost)
+            .GetMethod("SnapshotAsync", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, [receive, CancellationToken.None])!;
+        Assert.AreEqual(TransferSessionState.Rejected, (await snapshot).State);
+        await (Task)typeof(DropLinkHost).GetMethod("SweepSessionsAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(fixture.Host, [CancellationToken.None])!;
+
+        var sessions = typeof(DropLinkHost).GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(fixture.Host)!;
+        Assert.AreEqual(0, (int)sessions.GetType().GetProperty("Count")!.GetValue(sessions)!, "The expired session must leave admission capacity.");
+        Assert.IsFalse(Directory.Exists(root), "Polling must not retain expired rejected staging.");
+    }
+
+    [TestMethod]
     public async Task InactiveDiscoveryRegistrationIsNotReturnedForAnotherDescriptor()
     {
         var descriptor = new DeviceDescriptor(DropLinkProtocolVersion.V1, Guid.NewGuid(), "fixture", DevicePlatform.Windows,
@@ -170,6 +235,8 @@ public sealed class NetworkRoundTwoRegressionTests
         public Task<TransferCompleteResponse> CompleteAsync(object receive) =>
             (Task<TransferCompleteResponse>)typeof(DropLinkHost).GetMethod("GetOrStartFinalizationTask", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .Invoke(Host, [receive])!;
+        public static TransferSession SessionOf(object receive) =>
+            (TransferSession)receive.GetType().GetProperty("Session")!.GetValue(receive)!;
         public void DetachReceive()
         {
             var sessions = typeof(DropLinkHost).GetField("_sessions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Host)!;

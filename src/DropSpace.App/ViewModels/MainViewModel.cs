@@ -1503,53 +1503,76 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     private void OnItemCaptured(object? sender, DropItem item)
     {
-        _dispatcher.TryEnqueue(() =>
-        {
-            if (CurrentSection == "Clipboard" && string.IsNullOrWhiteSpace(SearchText))
-            {
-                var existing = Items.FirstOrDefault(card => card.Id == item.Id);
-                if (existing is not null)
-                {
-                    existing.Update(item);
-                    RefreshPrimaryQuickActions(existing);
-                    Items.Move(Items.IndexOf(existing), 0);
-                }
-                else
-                {
-                    var card = new ItemCardViewModel(item, _strings);
-                    RefreshPrimaryQuickActions(card);
-                    Items.Insert(0, card);
-                    TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
-                    while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
-                }
+        _dispatcher.TryEnqueue(() => ApplyCapturedItem(item));
+    }
 
-                ItemCount = Items.Count;
-                IsEmpty = Items.Count == 0;
+    private void ApplyCapturedItem(DropItem item)
+    {
+        // Unsubscribing cannot revoke a callback already accepted by the dispatcher.
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (CurrentSection == "Clipboard" && string.IsNullOrWhiteSpace(SearchText))
+        {
+            var existing = Items.FirstOrDefault(card => card.Id == item.Id);
+            if (existing is not null)
+            {
+                existing.Update(item);
+                RefreshPrimaryQuickActions(existing);
+                Items.Move(Items.IndexOf(existing), 0);
             }
-        });
+            else
+            {
+                var card = new ItemCardViewModel(item, _strings);
+                RefreshPrimaryQuickActions(card);
+                Items.Insert(0, card);
+                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
+                while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
+            }
+
+            ItemCount = Items.Count;
+            IsEmpty = Items.Count == 0;
+        }
     }
 
     private void OnClipboardStatusChanged(object? sender, ClipboardCaptureStatus status)
     {
-        _dispatcher.TryEnqueue(() =>
+        _dispatcher.TryEnqueue(() => ApplyClipboardStatus(status));
+    }
+
+    private void ApplyClipboardStatus(ClipboardCaptureStatus status)
+    {
+        if (_disposed)
         {
-            ClipboardStatusText = FormatClipboardStatus(status);
-            if (!string.IsNullOrWhiteSpace(status.Message))
-            {
-                StatusMessage = status.Message;
-            }
-        });
+            return;
+        }
+
+        ClipboardStatusText = FormatClipboardStatus(status);
+        if (!string.IsNullOrWhiteSpace(status.Message))
+        {
+            StatusMessage = status.Message;
+        }
     }
 
     private void OnUpdateStatusChanged(object? sender, UpdateStatusSnapshot status)
     {
         if (_dispatcher.HasThreadAccess)
         {
-            UpdateStatus = status;
+            ApplyUpdateStatus(status);
         }
         else
         {
-            _dispatcher.TryEnqueue(() => UpdateStatus = status);
+            _dispatcher.TryEnqueue(() => ApplyUpdateStatus(status));
+        }
+    }
+
+    private void ApplyUpdateStatus(UpdateStatusSnapshot status)
+    {
+        if (!_disposed)
+        {
+            UpdateStatus = status;
         }
     }
 
@@ -1560,24 +1583,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             UndoOperationKind.RemoveBatch or UndoOperationKind.ClearClipboard;
         _lastUndoKind = state?.Kind;
 
-        void Apply()
-        {
-            OnPropertyChanged(nameof(UndoState));
-            OnPropertyChanged(nameof(HasUndo));
-            OnPropertyChanged(nameof(UndoMessage));
-            if (state is null && wasRemoval && !_undoRequested)
-            {
-                TrackBackgroundTask(RefreshAfterUndoFinalizationAsync(_lifetimeCancellation.Token), "undo projection refresh");
-            }
-        }
-
         if (_dispatcher.HasThreadAccess)
         {
-            Apply();
+            ApplyUndoState(state is null && wasRemoval);
         }
         else
         {
-            _dispatcher.TryEnqueue(Apply);
+            _dispatcher.TryEnqueue(() => ApplyUndoState(state is null && wasRemoval));
+        }
+    }
+
+    private void ApplyUndoState(bool removalFinished)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        OnPropertyChanged(nameof(UndoState));
+        OnPropertyChanged(nameof(HasUndo));
+        OnPropertyChanged(nameof(UndoMessage));
+        if (removalFinished && !_undoRequested)
+        {
+            TrackBackgroundTask(RefreshAfterUndoFinalizationAsync(_lifetimeCancellation.Token), "undo projection refresh");
         }
     }
 

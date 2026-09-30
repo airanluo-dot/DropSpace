@@ -1,6 +1,3 @@
-using Microsoft.Win32;
-using System.Runtime.InteropServices;
-
 namespace DropSpace.App.Services.NeteaseEnhancement;
 
 public sealed record BetterNcmInstallation(string ProfilePath, bool LoaderPresent, bool PluginPresent, bool VcRuntimeAvailable);

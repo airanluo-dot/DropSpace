@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Net;
+using System.Text;
 using DropSpace.Core.Transfer;
 using DropSpace.Infrastructure.Network;
 
@@ -62,6 +63,20 @@ public sealed class WindowsDnsSdDiscoveryTests
         Assert.IsEmpty(WindowsDnsSdDiscoveryService.ParseAnnouncement(packet[..^1]));
         packet[2] = 0;
         packet[3] = 0;
+        Assert.IsEmpty(WindowsDnsSdDiscoveryService.ParseAnnouncement(packet));
+    }
+
+    [TestMethod]
+    public void UndefinedNumericPlatformAnnouncementsFailClosed()
+    {
+        var descriptor = new DeviceDescriptor(DropLinkProtocolVersion.V1, Guid.NewGuid(), "fixture",
+            DevicePlatform.Windows, PeerCapability.HandoffFiles, new string('a', 64), new Uri("https://10.0.0.4:47831/"));
+        var packet = WindowsDnsSdDiscoveryService.BuildAnnouncement(descriptor, "fixture", IPAddress.Parse("10.0.0.4"));
+        var platform = Encoding.UTF8.GetBytes("platform=windows");
+        var offset = packet.AsSpan().IndexOf(platform);
+        Assert.IsGreaterThanOrEqualTo(0, offset);
+        Encoding.UTF8.GetBytes("platform=9999999").CopyTo(packet, offset);
+
         Assert.IsEmpty(WindowsDnsSdDiscoveryService.ParseAnnouncement(packet));
     }
 }

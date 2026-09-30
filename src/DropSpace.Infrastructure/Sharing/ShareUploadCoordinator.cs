@@ -88,7 +88,7 @@ public sealed class InternetShareClient(
             }
             var encryptedManifest = crypto.EncryptManifest(masterKey, shareId, manifestItems);
             var session = await backend.CreateAsync(shareId, expires, sources.Count, totalBytes, cancellationToken).ConfigureAwait(false);
-            ValidateSession(session);
+            ShareBackendSessionPolicy.Validate(session);
             createdSession = session;
             await backend.UploadAsync(session, "manifest.bin", ShareCryptoService.PackManifestWire(encryptedManifest.Nonce, encryptedManifest.Ciphertext, encryptedManifest.Tag), "application/octet-stream", cancellationToken).ConfigureAwait(false);
 
@@ -292,24 +292,6 @@ public sealed class InternetShareClient(
         }
         ArgumentNullException.ThrowIfNull(source.OpenReadAsync);
     }
-
-    private static void ValidateSession(ShareBackendUploadSession session)
-    {
-        if (session is null || session.UploadBaseUrl is null || session.DownloadBaseUrl is null || session.RevokeUrl is null ||
-            !IsSafeHttpsUrl(session.UploadBaseUrl) || !IsSafeHttpsUrl(session.DownloadBaseUrl) || !IsSafeHttpsUrl(session.RevokeUrl) ||
-            string.IsNullOrWhiteSpace(session.UploadAuthorization) ||
-            !session.UploadAuthorization.StartsWith("Bearer ", StringComparison.Ordinal) ||
-            session.UploadAuthorization.Length <= "Bearer ".Length ||
-            session.UploadAuthorization.Any(character => character is '\r' or '\n'))
-        {
-            throw new InvalidDataException("The secure share backend returned an unsafe upload session.");
-        }
-    }
-
-    private static bool IsSafeHttpsUrl(Uri uri) =>
-        uri.IsAbsoluteUri && uri.Scheme == Uri.UriSchemeHttps &&
-        string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
-
 }
 
 public sealed record ShareFileSource(
@@ -333,7 +315,7 @@ public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri)
         response.EnsureSuccessStatusCode();
         var session = await response.Content.ReadFromJsonAsync<ShareBackendUploadSession>(cancellationToken: cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("Secure share backend returned an empty session.");
-        ValidateSession(session);
+        ShareBackendSessionPolicy.Validate(session);
         if (!SameOrigin(session.UploadBaseUrl, baseUri) || !SameOrigin(session.DownloadBaseUrl, baseUri) || !SameOrigin(session.RevokeUrl, baseUri))
         {
             throw new InvalidDataException("The secure share backend returned URLs outside the configured origin.");
@@ -343,7 +325,7 @@ public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri)
 
     public async Task UploadAsync(ShareBackendUploadSession session, string objectName, ReadOnlyMemory<byte> ciphertext, string contentType, CancellationToken cancellationToken = default)
     {
-        ValidateSession(session);
+        ShareBackendSessionPolicy.Validate(session);
         ValidateObjectName(objectName);
         using var content = new ByteArrayContent(ciphertext.ToArray());
         content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
@@ -357,7 +339,7 @@ public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri)
     {
         if (shareId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(shareId));
         ValidateBaseUri(baseUri);
-        ValidateSession(session);
+        ShareBackendSessionPolicy.Validate(session);
         var revokeUri = new Uri(baseUri, string.Concat("/v1/shares/", shareId.ToString("N")));
         if (session.RevokeUrl.Scheme != Uri.UriSchemeHttps || !string.Equals(session.RevokeUrl.Host, revokeUri.Host, StringComparison.OrdinalIgnoreCase) || session.RevokeUrl.Port != revokeUri.Port)
         {
@@ -381,7 +363,24 @@ public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri)
         }
     }
 
-    private static void ValidateSession(ShareBackendUploadSession session)
+    private static void ValidateObjectName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName) || objectName.Length > 180 ||
+            objectName is "." or ".." || objectName.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '.' or '-' or '_')))
+        {
+            throw new InvalidDataException("The secure share object name is invalid.");
+        }
+    }
+
+    private static bool SameOrigin(Uri candidate, Uri expected) =>
+        candidate.Scheme == expected.Scheme &&
+        string.Equals(candidate.Host, expected.Host, StringComparison.OrdinalIgnoreCase) &&
+        candidate.Port == expected.Port;
+}
+
+internal static class ShareBackendSessionPolicy
+{
+    public static void Validate(ShareBackendUploadSession session)
     {
         if (session is null || session.UploadBaseUrl is null || session.DownloadBaseUrl is null || session.RevokeUrl is null ||
             !IsSafeHttpsUrl(session.UploadBaseUrl) || !IsSafeHttpsUrl(session.DownloadBaseUrl) || !IsSafeHttpsUrl(session.RevokeUrl) ||
@@ -397,18 +396,4 @@ public sealed class CloudflareWorkerShareBackend(HttpClient client, Uri baseUri)
     private static bool IsSafeHttpsUrl(Uri uri) =>
         uri.IsAbsoluteUri && uri.Scheme == Uri.UriSchemeHttps &&
         string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
-
-    private static void ValidateObjectName(string objectName)
-    {
-        if (string.IsNullOrWhiteSpace(objectName) || objectName.Length > 180 ||
-            objectName is "." or ".." || objectName.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '.' or '-' or '_')))
-        {
-            throw new InvalidDataException("The secure share object name is invalid.");
-        }
-    }
-
-    private static bool SameOrigin(Uri candidate, Uri expected) =>
-        candidate.Scheme == expected.Scheme &&
-        string.Equals(candidate.Host, expected.Host, StringComparison.OrdinalIgnoreCase) &&
-        candidate.Port == expected.Port;
 }

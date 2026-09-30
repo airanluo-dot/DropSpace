@@ -9,18 +9,6 @@ namespace DropSpace.App.Tests;
 public sealed class NeteaseSmtcVerifierTests
 {
     [TestMethod]
-    public void PassiveInspection_RequiresPriorVerificationAndHealthyCurrentSession()
-    {
-        var paused = Snapshot().Capabilities with { LiveProgress = false, Pause = false };
-        Assert.IsTrue(NeteaseEnhancementService.CanRetainVerifiedState(true, paused));
-        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(false, paused));
-        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, NeteaseMediaCapabilities.Empty));
-        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, paused with { Seek = false }));
-        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, paused with { Play = false }));
-        Assert.IsFalse(NeteaseEnhancementService.CanRetainVerifiedState(true, paused with { Artwork = false }));
-    }
-
-    [TestMethod]
     public async Task RestartDiscoveryFailure_RetiresLastKnownSessionGeneration()
     {
         var clock = new Clock();

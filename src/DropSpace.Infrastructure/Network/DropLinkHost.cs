@@ -505,6 +505,7 @@ public sealed class DropLinkHost(
                 receive.Session = receive.Session with
                 {
                     State = TransferSessionState.Rejected,
+                    CompletedAtUtc = DateTimeOffset.UtcNow,
                     ErrorCategory = "rejected",
                 };
                 receive.Touch();
@@ -737,6 +738,7 @@ public sealed class DropLinkHost(
             receive.Session = receive.Session with
             {
                 State = accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
+                CompletedAtUtc = accepted ? null : DateTimeOffset.UtcNow,
                 ErrorCategory = accepted ? null : "rejected",
             };
             receive.Touch();
@@ -884,7 +886,7 @@ public sealed class DropLinkHost(
         await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            receive.Touch();
+            if (!DropLinkSessionPolicy.IsTerminal(receive.Session.State)) receive.Touch();
             return SnapshotUnsafe(receive);
         }
         finally

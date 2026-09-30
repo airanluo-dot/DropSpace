@@ -47,15 +47,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<ClipboardCaptureService> _logger;
-    private readonly Channel<CaptureSignal> _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
-    {
-        SingleReader = true,
-        SingleWriter = false,
-        // Clipboard notifications are level-triggered: only the newest sequence is
-        // actionable. Dropping the oldest queued signal keeps a burst from losing the
-        // final clipboard state or stalling the notification thread.
-        FullMode = BoundedChannelFullMode.DropOldest,
-    });
+    private readonly Channel<CaptureSignal> _signals;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _stateGate = new(1, 1);
     private readonly SemaphoreSlim _commitGate = new(1, 1);
@@ -106,6 +98,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _dispatcher = dispatcher;
         _strings = strings;
         _logger = logger;
+        _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            // Notifications are level-triggered; keep the latest sequence without
+            // blocking the listener, while counting every evicted older signal.
+            FullMode = BoundedChannelFullMode.DropOldest,
+        }, _ => Interlocked.Increment(ref _droppedEvents));
     }
 
     public event EventHandler<ClipboardCaptureStatus>? StatusChanged;

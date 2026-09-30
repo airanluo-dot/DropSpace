@@ -144,7 +144,9 @@ internal sealed class VirtualFileMaterializer
             {
                 try
                 {
-                    if (!await _stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false))
+                    // EndOperation in finally belongs to the supplying OLE apartment even
+                    // when rollback has to await another staging operation.
+                    if (!await _stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(asyncOperationStarted))
                     {
                         _logger.LogWarning("Virtual-file staging rollback was deferred; its lease remains durable.");
                     }

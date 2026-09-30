@@ -24,8 +24,8 @@ public sealed class ThumbnailService(
             {
                 if (item.Kind == ItemKind.Image && item.Payload is not null)
                 {
-                    var file = await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(item.Payload.RelativePath));
-                    using var stream = await file.OpenReadAsync();
+                    var file = await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(item.Payload.RelativePath)).AsTask(cancellationToken);
+                    using var stream = await file.OpenReadAsync().AsTask(cancellationToken);
                     var settings = await settingsService.LoadAsync(cancellationToken);
                     await ImageDecoderPreflight.ValidateAsync(stream, settings.MaxImageBytes, settings.MaxImagePixels, cancellationToken);
                     stream.Seek(0);
@@ -33,7 +33,8 @@ public sealed class ThumbnailService(
                     {
                         DecodePixelWidth = checked((int)size),
                     };
-                    await image.SetSourceAsync(stream);
+                    await image.SetSourceAsync(stream).AsTask(cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
                     return image;
                 }
 
@@ -42,13 +43,13 @@ public sealed class ThumbnailService(
                     StorageItemThumbnail? thumbnail;
                     if (item.File.EntryKind == FileEntryKind.Folder)
                     {
-                        var folder = await StorageFolder.GetFolderFromPathAsync(item.File.OriginalPath);
-                        thumbnail = await folder.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale);
+                        var folder = await StorageFolder.GetFolderFromPathAsync(item.File.OriginalPath).AsTask(cancellationToken);
+                        thumbnail = await folder.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale).AsTask(cancellationToken);
                     }
                     else
                     {
-                        var file = await StorageFile.GetFileFromPathAsync(item.File.OriginalPath);
-                        thumbnail = await file.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale);
+                        var file = await StorageFile.GetFileFromPathAsync(item.File.OriginalPath).AsTask(cancellationToken);
+                        thumbnail = await file.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale).AsTask(cancellationToken);
                     }
 
                     if (thumbnail is null)
@@ -62,7 +63,8 @@ public sealed class ThumbnailService(
                         {
                             DecodePixelWidth = checked((int)size),
                         };
-                        await image.SetSourceAsync(thumbnail);
+                        await image.SetSourceAsync(thumbnail).AsTask(cancellationToken);
+                        cancellationToken.ThrowIfCancellationRequested();
                         return image;
                     }
                 }

@@ -30,9 +30,10 @@ Missing runtime fails with an HRESULT rather than opening a headless dialog.
 App tests bootstrap their unpackaged Windows App SDK
 host. Release validation checks actual executable versions, and upgrade lifecycle
 tests use the real historical installer in an isolated account, preserving all
-pre-existing user data and installation state. Synchronize the repository
-maintainer Skill and the installed `dropspace-codex` counterpart when contracts
-or validation procedures change.
+pre-existing user data and installation state. Use the repository
+[maintainer Skill](.agents/skills/dropspace-maintainer/SKILL.md) as the only
+canonical project guide. Update it when its durable navigation or interface map
+changes; ordinary product changes do not require a Skill update or personal copy.
 
 For v0.3 network/preview changes, read the DropSpace maintainer skill and the contracts under `docs/protocol`, `docs/architecture`, and `docs/security`. Do not add a new platform client, public backend, firewall rule, telemetry field, or release claim without an explicit documented boundary and a fail-closed unavailable state.
 

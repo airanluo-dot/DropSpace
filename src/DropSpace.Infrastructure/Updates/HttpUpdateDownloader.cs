@@ -12,6 +12,8 @@ public sealed class HttpUpdateDownloader(
     AppStoragePaths paths,
     UpdateStateStore stateStore) : IUpdateDownloader
 {
+    private readonly UpdateFileVerifier _fileVerifier = new(paths);
+
     public async Task<DownloadedUpdate> DownloadAsync(
         UpdateCandidate candidate,
         IProgress<UpdateDownloadProgress>? progress = null,
@@ -43,7 +45,7 @@ public sealed class HttpUpdateDownloader(
         if (File.Exists(finalPath))
         {
             var existing = new DownloadedUpdate(candidate, finalPath, descriptor.Size, descriptor.Sha256, logPath);
-            if (await VerifyFileAsync(existing, cancellationToken).ConfigureAwait(false))
+            if (await _fileVerifier.VerifyIntegrityAsync(existing, cancellationToken).ConfigureAwait(false))
             {
                 await stateStore.SaveAsync(existing, "ReadyToInstall", cancellationToken).ConfigureAwait(false);
                 return existing;
@@ -265,22 +267,6 @@ public sealed class HttpUpdateDownloader(
             System.Diagnostics.Debug.WriteLine(
                 $"Update partial cleanup deferred: {exception.GetType().Name}");
         }
-    }
-
-    internal async Task<bool> VerifyFileAsync(DownloadedUpdate update, CancellationToken cancellationToken)
-    {
-        if (!File.Exists(update.FilePath)) return false;
-        var info = new FileInfo(update.FilePath);
-        if (info.Length != update.Size) return false;
-        await using var stream = new FileStream(
-            update.FilePath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            64 * 1024,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        var hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
-        return CryptographicOperations.FixedTimeEquals(hash, Convert.FromHexString(update.Sha256));
     }
 
     private string GetContainedVersionDirectory(ReleaseVersion version) =>

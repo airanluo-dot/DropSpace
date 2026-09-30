@@ -161,7 +161,8 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
             if (!Guid.TryParse(values.GetValueOrDefault("id"), out var id) || id == Guid.Empty) continue;
             var name = values.GetValueOrDefault("name");
             if (string.IsNullOrWhiteSpace(name) || name.Length > 64 || name.Any(char.IsControl)) continue;
-            if (!Enum.TryParse<DevicePlatform>(values.GetValueOrDefault("platform"), true, out var platform) || platform == DevicePlatform.Unknown) continue;
+            if (!Enum.TryParse<DevicePlatform>(values.GetValueOrDefault("platform"), true, out var platform) ||
+                !Enum.IsDefined(platform) || platform == DevicePlatform.Unknown) continue;
             if (!int.TryParse(values.GetValueOrDefault("caps"), out var caps) || caps < 0) continue;
             var fingerprint = values.GetValueOrDefault("fp");
             if (fingerprint is null || fingerprint.Length != 64 || fingerprint.Any(character => !Uri.IsHexDigit(character))) continue;

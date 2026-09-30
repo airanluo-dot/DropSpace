@@ -303,32 +303,42 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
             }
         }
 
-        await DispatchAsync(() =>
-        {
-            _shellAcknowledgementCancellation?.Cancel();
-            _shellAcknowledgementCancellation = acknowledgementCancellation;
-            _shellAcknowledgement = message;
-            OnPropertyChanged(nameof(CompactTitle));
-            return Task.CompletedTask;
-        }).ConfigureAwait(false);
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(2), acknowledgementCancellation.Token).ConfigureAwait(false);
             await DispatchAsync(() =>
             {
-                if (ReferenceEquals(_shellAcknowledgementCancellation, acknowledgementCancellation))
-                {
-                    _shellAcknowledgement = null;
-                    _shellAcknowledgementCancellation = null;
-                    OnPropertyChanged(nameof(CompactTitle));
-                }
-
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                cancellationToken.ThrowIfCancellationRequested();
+                _shellAcknowledgementCancellation?.Cancel();
+                _shellAcknowledgementCancellation = acknowledgementCancellation;
+                _shellAcknowledgement = message;
+                OnPropertyChanged(nameof(CompactTitle));
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(2), acknowledgementCancellation.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             // A newer shell invocation replaced this acknowledgement.
+        }
+        finally
+        {
+            // Clear the owning field before the using scope disposes its cancellation
+            // source, including caller cancellation. A replacement owns its own message.
+            if (ReferenceEquals(_shellAcknowledgementCancellation, acknowledgementCancellation))
+            {
+                await DispatchAsync(() =>
+                {
+                    if (ReferenceEquals(_shellAcknowledgementCancellation, acknowledgementCancellation))
+                    {
+                        _shellAcknowledgement = null;
+                        _shellAcknowledgementCancellation = null;
+                        if (!_disposed) OnPropertyChanged(nameof(CompactTitle));
+                    }
+
+                    return Task.CompletedTask;
+                }).ConfigureAwait(false);
+            }
         }
     }
 
