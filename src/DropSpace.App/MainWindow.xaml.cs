@@ -66,19 +66,20 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         AppTitleBar.Loaded += (_, _) => XamlResourceOverride.Apply(AppTitleBar, "MainTitleBar");
         XamlResourceOverride.Apply(this, "MainWindow");
 
-        if (capabilities.IsAvailable(WindowsCapability.ModernWindowAppearance))
+        if (capabilities.IsAvailable(WindowsCapability.ModernWindowAppearance) &&
+            capabilities.IsAvailable(WindowsCapability.DesktopAcrylic))
         {
             try
             {
-                SystemBackdrop = new MicaBackdrop();
-                // The Win10 base brush keeps the window opaque when Mica is unavailable.
+                SystemBackdrop = new IslandAcrylicBackdrop();
+                // The Win10 base brush keeps the window opaque when Desktop Acrylic is unavailable.
                 // Remove it only after the optional Windows 11 backdrop has been installed so
                 // the material can show through on supported builds.
                 RootSurface.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             }
             catch (Exception exception)
             {
-                logger.LogInformation(exception, "Mica is unavailable at runtime; using the base window visual.");
+                logger.LogInformation(exception, "Desktop Acrylic is unavailable at runtime; using the base window visual.");
             }
         }
 

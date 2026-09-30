@@ -112,7 +112,7 @@ public sealed class MediaViewModel : ObservableObject
         internal set
         {
             if (!SetProperty(ref _settings, value)) return;
-            OnPropertyChanged(nameof(SecondaryLyricText)); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
+            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText)); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
         }
     }
     public TimeSpan Position
@@ -130,8 +130,11 @@ public sealed class MediaViewModel : ObservableObject
     public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
     public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
-    public string CurrentLyricText => Settings.Lyrics.Enabled ? Lyrics.Line?.Text ?? Title : Title;
-    public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(Lyrics.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
+    public LyricsPresentation LyricPresentation => LyricsDisplayPolicy.Presentation(LyricsLines, Lyrics,
+        Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds);
+    public string CurrentLyricText => Settings.Lyrics.Enabled && LyricPresentation.HasLyrics
+        ? LyricPresentation.Line?.Text ?? string.Empty : Title;
+    public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(LyricPresentation.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
     public string LyricsStatusText => string.IsNullOrEmpty(Title) || !Settings.Lyrics.Enabled ? string.Empty : LyricsStatus switch
     {
         LyricsQueryStatus.Loading => _strings.Get("LyricsLoading"),

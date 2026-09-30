@@ -34,6 +34,9 @@ public sealed class NativeWidgetDataService(ILogger<NativeWidgetDataService> log
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         (ulong Idle, ulong Kernel, ulong User)? previous = null;
+        long? diskFree = null;
+        bool? networkAvailable = null;
+        var sampleCount = 0;
         try
         {
             do
@@ -54,10 +57,18 @@ public sealed class NativeWidgetDataService(ILogger<NativeWidgetDataService> log
                 var memory = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
                 double? memoryPercent = GlobalMemoryStatusEx(ref memory) ? memory.Load : null;
                 var hasPower = GetSystemPowerStatus(out var power);
+                // Slow system facts are cached; do not enumerate drives on each animation tick.
+                if (sampleCount++ % 30 == 0)
+                {
+                    try { diskFree = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory)!).AvailableFreeSpace; }
+                    catch (Exception) { diskFree = null; }
+                    try { networkAvailable = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable(); }
+                    catch (Exception) { networkAvailable = null; }
+                }
                 var snapshot = new WidgetDataSnapshot(DateTimeOffset.Now, cpu, memoryPercent,
                     hasPower && power.BatteryPercent <= 100 && (power.BatteryFlag & 128) == 0 ? power.BatteryPercent : null,
                     hasPower && power.AcLineStatus <= 1 ? power.AcLineStatus == 1 : null,
-                    TimeSpan.FromMilliseconds(Environment.TickCount64));
+                    TimeSpan.FromMilliseconds(Environment.TickCount64), diskFree, networkAvailable);
                 Current = snapshot;
                 if (Changed is { } handlers)
                     foreach (EventHandler<WidgetDataSnapshot> handler in handlers.GetInvocationList())

@@ -123,7 +123,13 @@ public static class LyricsParser
                 var start = Timestamp(stamp.Groups[1].Value);
                 // LRC has no declared line end; infer it from the next timestamp.
                 // YRC and TTML do declare ends, which must survive instrumental gaps.
-                output.Add(new(start, start, plain, null, timedWords));
+                var shift = start - Timestamp(times[0].Groups[1].Value);
+                var wordsForOccurrence = shift == TimeSpan.Zero ? timedWords : timedWords.Select(word => word with
+                {
+                    Start = word.Start + shift,
+                    End = word.End > word.Start ? word.End + shift : TimeSpan.Zero,
+                }).ToList();
+                output.Add(new(start, start, plain, null, wordsForOccurrence));
             }
             if (output.Count >= MaximumLines) break;
         }

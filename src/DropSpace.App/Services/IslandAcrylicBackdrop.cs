@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Services;
 
-/// <summary>One bounded SystemBackdropElement target; never attached to the host Window.</summary>
+/// <summary>Focus-independent Acrylic. Each window or bounded island owns its own instance.</summary>
 internal sealed class IslandAcrylicBackdrop : SystemBackdrop
 {
     private DesktopAcrylicController? _controller;
@@ -15,7 +15,7 @@ internal sealed class IslandAcrylicBackdrop : SystemBackdrop
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop target, XamlRoot xamlRoot)
     {
         base.OnTargetConnected(target, xamlRoot);
-        if (_controller is not null) throw new InvalidOperationException("Island material instances cannot be shared.");
+        if (_controller is not null) throw new InvalidOperationException("Acrylic material instances cannot be shared.");
         // The no-activate island is interactive while another application has focus.
         // Its material focus policy is independent of the transparent host HWND.
         _configuration = new SystemBackdropConfiguration { IsInputActive = true };

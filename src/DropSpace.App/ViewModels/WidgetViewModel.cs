@@ -24,6 +24,22 @@ public sealed class WidgetViewModel : ObservableObject, IAsyncDisposable
     private bool _disposed;
     private readonly System.Diagnostics.Stopwatch _stopwatch = new();
     private readonly IAppStringLocalizer _strings;
+    public WidgetCountdown FocusTimer { get; } = new(TimeSpan.FromMinutes(25));
+    public WidgetCountdown Countdown { get; } = new(TimeSpan.FromMinutes(5));
+    public void ToggleTimer(NativeWidgetId id)
+    {
+        (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).Toggle();
+        OnPropertyChanged(nameof(StopwatchText));
+    }
+    public void ResetTimer(NativeWidgetId id)
+    {
+        (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).Reset();
+        OnPropertyChanged(nameof(StopwatchText));
+    }
+    public string TimerActionLabel(NativeWidgetId id) => _strings.Get(
+        (id == NativeWidgetId.FocusTimer ? FocusTimer : Countdown).IsRunning ? "StopwatchPause" : "StopwatchStart");
+    public string Text(string key) => _strings.Get(key);
+    public Task OpenPinnedAsync() => _main.NavigateAsync("Pinned");
     public System.Globalization.CultureInfo Culture => _strings.Culture;
     public WidgetViewModel(MainViewModel main, NativeWidgetDataService data, DispatcherQueue dispatcher, IAppStringLocalizer strings, ILogger<WidgetViewModel> logger)
     {

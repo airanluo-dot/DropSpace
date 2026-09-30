@@ -7,6 +7,26 @@ namespace DropSpace.Core.Tests;
 public sealed class OverlayPlacementPolicyTests
 {
     [TestMethod]
+    public void DefaultAnchorAndContentFitAcrossAspectRatiosDpiAndWorkAreaOrigins()
+    {
+        foreach (var screen in new[] { (1920,1080), (2560,1440), (3840,2160), (1080,1920), (3440,1440), (800,480) })
+        foreach (var dpi in new[] { 1d, 1.25, 1.5, 2, 3 })
+        foreach (var origin in new[] { (0,0), (-3840,0), (1920,48) })
+        {
+            var request = new OverlayPlacementRequest(origin.Item1, origin.Item2, screen.Item1, screen.Item2, dpi, FileDragWakeMode.SmartExperimental);
+            var resolved = OverlayPlacementPolicy.Resolve(request, OverlayPlacementMode.Automatic, null);
+            var center = resolved.HostLeftPixels + OverlayPlacementPolicy.HostWidthDips * dpi / 2;
+            Assert.AreEqual(origin.Item1 + screen.Item1 / 2d, center, 0.51);
+            Assert.AreEqual(origin.Item2, resolved.HostTopPixels);
+            Assert.AreEqual(8d, resolved.SurfaceTopOffsetDips);
+            var scale = OverlayPlacementPolicy.FitContentScale(screen.Item1, screen.Item2, dpi, 560, 340, 2);
+            Assert.IsTrue(scale > 0);
+            Assert.IsTrue(560 * scale * dpi <= screen.Item1);
+            Assert.IsTrue((340 * scale + 8) * dpi <= screen.Item2);
+        }
+    }
+
+    [TestMethod]
     public void DoubleSizedContentKeepsCustomCenterAndBoundsAcrossDpi()
     {
         foreach (var dpi in new[] { 1d, 1.25d, 2d })
@@ -25,7 +45,7 @@ public sealed class OverlayPlacementPolicyTests
     }
 
     [TestMethod]
-    public void SmartPlacementUsesOnePhysicalOffsetAcrossDpiScales()
+    public void SmartPlacementKeepsSmallVisualGapAcrossDpiScales()
     {
         foreach (var scale in new[] { 1d, 1.25d, 1.5d, 1.75d, 2d })
         {
@@ -33,7 +53,6 @@ public sealed class OverlayPlacementPolicyTests
                 FileDragWakeMode.SmartExperimental,
                 scale);
             Assert.AreEqual(
-                OverlayPlacementPolicy.SmartTopOffsetPhysicalPixels +
                 OverlayPlacementPolicy.DynamicIslandTopGapDips * scale,
                 island * scale,
                 0.001);

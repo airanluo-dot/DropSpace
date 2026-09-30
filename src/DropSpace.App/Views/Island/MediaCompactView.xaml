@@ -21,6 +21,11 @@
           <TextBlock.Clip><RectangleGeometry x:Name="HighlightClip" /></TextBlock.Clip>
         </TextBlock>
       </Grid>
+      <StackPanel x:Name="InterludeDots" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
+        <Ellipse x:Name="InterludeDot0" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+        <Ellipse x:Name="InterludeDot1" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+        <Ellipse x:Name="InterludeDot2" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
+      </StackPanel>
     </Grid>
     <TextBlock x:Name="SecondaryLine" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed" />
     </StackPanel>

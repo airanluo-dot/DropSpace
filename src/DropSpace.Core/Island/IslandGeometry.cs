@@ -7,7 +7,7 @@ public sealed record IslandGeometry(double Width, double Height, double Radius)
 {
     public static IslandGeometry ForMusicCompact(double measuredWidth, double measuredHeight, double scale)
     {
-        scale = Math.Clamp(scale, 0.5, 2);
+        scale = Math.Clamp(scale, 0.001, 2);
         var height = Math.Clamp(measuredHeight, 40, 100) * scale;
         return new(Math.Clamp(measuredWidth, 180, 460) * scale, height, height / 2);
     }

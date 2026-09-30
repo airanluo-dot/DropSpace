@@ -19,7 +19,7 @@ internal sealed class OverlayCompositionAnimator : IDisposable
     private readonly Visual _expanded;
     private readonly Visual _content;
     private readonly Visual _interactionTint;
-    private readonly Vector3 _contentBaseOffset;
+    private bool _reducedMotion;
     private double _contentIncomingOffsetDip;
     private float _hoverOpacity;
     private float _pressScale = 1;
@@ -39,7 +39,9 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         _expanded = ElementCompositionPreview.GetElementVisual(expanded);
         _content = ElementCompositionPreview.GetElementVisual(content);
         _interactionTint = ElementCompositionPreview.GetElementVisual(interactionTint);
-        _contentBaseOffset = _content.Offset;
+        ElementCompositionPreview.SetIsTranslationEnabled(compact, true);
+        ElementCompositionPreview.SetIsTranslationEnabled(drag, true);
+        ElementCompositionPreview.SetIsTranslationEnabled(expanded, true);
     }
 
     public void AnimateTo(
@@ -49,12 +51,8 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         bool reducedMotion)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _contentIncomingOffsetDip = reducedMotion ||
-                                    target.CompactContent <= current.CompactContent &&
-                                    target.DragContent <= current.DragContent &&
-                                    target.ExpandedContent <= current.ExpandedContent
-            ? 0
-            : profile.IncomingOffsetDip;
+        _reducedMotion = reducedMotion;
+        _contentIncomingOffsetDip = profile.IncomingOffsetDip;
     }
 
     public void ApplyMotion(OverlayMotionValues values)
@@ -64,16 +62,19 @@ internal sealed class OverlayCompositionAnimator : IDisposable
         _compact.Opacity = (float)Math.Clamp(values.CompactContent, 0, 1);
         _drag.Opacity = (float)Math.Clamp(values.DragContent, 0, 1);
         _expanded.Opacity = (float)Math.Clamp(values.ExpandedContent, 0, 1);
-        var contentProgress = Math.Clamp(
-            Math.Max(values.CompactContent, Math.Max(values.DragContent, values.ExpandedContent)),
-            0,
-            1);
-        _content.Offset = _contentBaseOffset + new Vector3(
-            0,
-            (float)(_contentIncomingOffsetDip * (1 - contentProgress)),
-            0);
+        ApplyContentPose(_compact, values.CompactContent);
+        ApplyContentPose(_drag, values.DragContent);
+        ApplyContentPose(_expanded, values.ExpandedContent);
         _content.Scale = new Vector3(_pressScale, _pressScale, 1);
         _interactionTint.Opacity = _hoverOpacity;
+    }
+
+    private void ApplyContentPose(Visual visual, double progress)
+    {
+        var pose = OverlayContentPose.FromProgress(progress, _reducedMotion, _contentIncomingOffsetDip);
+        visual.CenterPoint = new Vector3(visual.Size.X / 2, 0, 0);
+        visual.Properties.InsertVector3("Translation", new Vector3(0, (float)pose.OffsetY, 0));
+        visual.Scale = new Vector3((float)pose.Scale, (float)pose.Scale, 1);
     }
 
     public void SnapTo(OverlayMotionValues values)

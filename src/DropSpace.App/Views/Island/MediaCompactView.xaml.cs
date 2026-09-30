@@ -13,6 +13,8 @@ public sealed partial class MediaCompactView : UserControl
     private bool _subscribed;
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
     private double _textWidth;
+    private double _interludeOpacity;
+    private long _lastPresentationTick;
     private double _primaryHeight = 28;
     private string? _measuredFontFamily;
     private double _measuredFontSize;
@@ -135,6 +137,27 @@ public sealed partial class MediaCompactView : UserControl
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)
         { IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();
+        RefreshInterlude();
+    }
+    private void RefreshInterlude()
+    {
+        if (_view is null) return;
+        var presentation = _view.LyricPresentation;
+        var enabled = _view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact;
+        var target = enabled && presentation.IsInterlude ? 1d : 0d;
+        var now = System.Diagnostics.Stopwatch.GetTimestamp();
+        var elapsed = _lastPresentationTick == 0 ? 1 : System.Diagnostics.Stopwatch.GetElapsedTime(_lastPresentationTick, now).TotalSeconds;
+        _lastPresentationTick = now;
+        var amount = !_view.IsPlaying || _view.IsReducedMotion ? 1 : Math.Clamp(elapsed / 0.167, 0, 1);
+        _interludeOpacity += Math.Clamp(target - _interludeOpacity, -amount, amount);
+        InterludeDots.Visibility = _interludeOpacity > 0 ? Visibility.Visible : Visibility.Collapsed;
+        InterludeDots.Opacity = _interludeOpacity;
+        LyricCanvas.Opacity = 1 - _interludeOpacity;
+        SecondaryLine.Opacity = 1 - _interludeOpacity;
+        var phase = _view.Position.TotalSeconds * Math.PI;
+        InterludeDot0.Opacity = _view.IsReducedMotion ? 0.65 : 0.55 + 0.35 * Math.Sin(phase);
+        InterludeDot1.Opacity = _view.IsReducedMotion ? 0.65 : 0.55 + 0.35 * Math.Sin(phase - 0.5);
+        InterludeDot2.Opacity = _view.IsReducedMotion ? 0.65 : 0.55 + 0.35 * Math.Sin(phase - 1);
     }
     private void InvalidateTextMeasure()
     {
@@ -147,6 +170,11 @@ public sealed partial class MediaCompactView : UserControl
         if (_view is null) return;
         var frame = _view.Lyrics;
         var highlight = _textWidth;
+        var presentation = _view.LyricPresentation;
+        var effectivePosition = (_view.Position - _view.Session.Timeline.Start).TotalMilliseconds +
+            Math.Clamp(_view.Settings.Lyrics.DelayMilliseconds, -30_000, 30_000);
+        if (presentation.IsWaiting && presentation.Line is { } waiting && effectivePosition < waiting.Start.TotalMilliseconds)
+            highlight = 0;
         if (_view.Settings.Lyrics.Enabled && _view.Settings.Lyrics.WordSyncedHighlighting && frame.Line is { Words.Count: > 0 } line && _view.Settings.IslandActivity.ShowLyricsInCompact)
         {
             highlight = 0;

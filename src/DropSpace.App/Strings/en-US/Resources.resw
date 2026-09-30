@@ -549,7 +549,7 @@ Nothing will be opened automatically.</value></data>
   <data name="IslandCompactScale" xml:space="preserve"><value>Compact scale</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>Widget library</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>Devices / Sharing</value></data>
-  <data name="WidgetsEditorHelp" xml:space="preserve"><value>Drag to an empty space, or onto a widget of the same size to swap. Select a widget to change its position or size; other widgets stay in place.</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>Drag to a highlighted slot; same-size widgets can swap. Select a widget and use arrows to nudge it, or edit position and size then Apply layout. Undo restores your last change.</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>Expanded · 4 rows × 8 columns</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>Show secondary lyrics</value></data>
   <data name="WidgetSettingsName" xml:space="preserve"><value>Settings shortcut</value></data>
@@ -604,4 +604,18 @@ Nothing will be opened automatically.</value></data>
   <data name="NeteaseEnhancementErrorRuntime" xml:space="preserve"><value>A required runtime component is unavailable. The enhancement was not installed.</value></data>
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>Automatic recovery could not finish. Use Reinstall or Remove enhancement to recover.</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>The operation was canceled.</value></data>
+  <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC clock</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>Focus · 25 min</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>Timer · 5 min</value></data>
+  <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>System disk free</value></data>
+  <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>Network adapter</value></data>
+  <data name="WidgetCalculator.Text" xml:space="preserve"><value>Calculator</value></data>
+  <data name="WidgetPinnedItems.Text" xml:space="preserve"><value>Pinned items</value></data>
+  <data name="WidgetWeekProgress.Text" xml:space="preserve"><value>ISO week · progress</value></data>
+  <data name="WidgetNetworkConnected" xml:space="preserve"><value>Connected</value></data>
+  <data name="WidgetNetworkDisconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="WidgetLaunchFailed" xml:space="preserve"><value>Unable to open</value></data>
+  <data name="WidgetApplyLayout" xml:space="preserve"><value>Apply layout</value></data>
+  <data name="WidgetUndo" xml:space="preserve"><value>Undo</value></data>
+  <data name="WidgetMove" xml:space="preserve"><value>Move</value></data>
 </root>
