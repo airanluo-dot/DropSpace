@@ -28,7 +28,14 @@ Historical audit JSON is evidence, not application source.
 - Core: 299 passed; Worker: 21 passed; website: 34 passed. The earlier Windows candidate reached installer packaging after App/native-boundary and WinUI compile steps passed; these are not yet evidence for the final post-audit commit.
 
 
-## Round 3 — regression and delivery-chain review (in progress)
+## Round 3 — regression and delivery-chain review (review complete; Windows release validation pending)
+
+- Repeated the full tracked source/configuration structural scan and C# syntax parse after fixes, plus all local Core, Worker and website suites. Verified localized resource keys remain unique and changes pass whitespace checks.
+- Reviewed installer identity, in-place update parameters, version comparison, downgrade protection, manifest asset matching, hash verification, official asset URL restrictions, publish bridge commit binding, and data-preserving uninstall defaults.
+- Added deterministic tests for Beta30 → Beta31 → Beta32 upgrade ordering and 200 malformed widget-layout inputs, verifying bounded non-overlapping layouts and normalization idempotence.
+- Core: 301 passed; Worker: 21 passed; website: 34 passed; C# syntax: 418 files, zero syntax errors. No additional reproducible production defect was found in this pass. No claim of zero bugs or exhaustive manual reading is made.
+- Final Windows checks must run on the exact post-audit commit. Earlier successful build/package steps cannot substitute for them.
+
 
 ## Release hold
 
