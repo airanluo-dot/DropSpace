@@ -35,6 +35,9 @@ public sealed class ConsecutiveClipboardCaptureCoordinator : IDisposable
                 return new ConsecutiveClipboardCaptureResult<T>(true, default!);
             }
 
+            // A new run must earn its own successful commit. An older occurrence of
+            // this fingerprint cannot suppress retries if the current commit fails.
+            _lastPersistedFingerprint = null;
             var value = await commit(cancellationToken).ConfigureAwait(false);
             if (wasPersisted(value))
             {

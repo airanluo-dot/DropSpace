@@ -105,7 +105,13 @@ public sealed class ImagePreviewProvider(IItemContentResolver contentResolver, P
 
         if (extension == ".bmp" && bytes.Length >= 26 && bytes[..2].SequenceEqual(new byte[] { (byte)'B', (byte)'M' }))
         {
-            return (BitConverter.ToInt32(bytes[18..22]), Math.Abs(BitConverter.ToInt32(bytes[22..26])));
+            var height = BitConverter.ToInt32(bytes[22..26]);
+            if (height == int.MinValue)
+            {
+                throw new InvalidDataException("The BMP height is invalid.");
+            }
+
+            return (BitConverter.ToInt32(bytes[18..22]), Math.Abs(height));
         }
 
         if ((extension is ".jpg" or ".jpeg") && bytes.Length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xD8)
