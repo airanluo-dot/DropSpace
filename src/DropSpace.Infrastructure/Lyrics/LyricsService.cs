@@ -25,7 +25,7 @@ public sealed class LyricsService(LyricsProviderRegistry providers)
         // inherit a document fetched for a nearby duration merely because both durations were
         // truncated to the same whole second.
         var backup = OnlineBackup(settings, kind);
-        var key = $"{kind}|{backup?.ToString() ?? "none"}|{settings.SearchRemainingProviders}|{query.TrackIdentity}|{LyricsMatcher.Normalize(query.Title)}|{LyricsMatcher.Normalize(query.Artist)}|{LyricsMatcher.Normalize(query.Album)}|{query.Duration.Ticks}";
+        var key = $"{kind}|{backup?.ToString() ?? "none"}|{settings.SearchRemainingProviders}|{query.TrackIdentity}|{LyricsMatcher.Normalize(query.Title)}|{LyricsMatcher.Normalize(query.Artist)}|{LyricsMatcher.Normalize(query.AlbumArtist)}|{LyricsMatcher.Normalize(query.Album)}|{query.Duration.Ticks}";
         if (kind != LyricsProviderKind.LocalLrc && _cache.TryGet(key, out var cached)) return new(cached, LyricsQueryStatus.Found);
         var generation = Interlocked.Read(ref _cacheGeneration);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

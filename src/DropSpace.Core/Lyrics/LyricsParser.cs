@@ -202,7 +202,7 @@ public static class LyricsParser
             .Any(IsTranslationRole);
         if (isTranslation) { translation.Append(element.Value); return; }
         var start = ResolveNestedTime(element.Attribute("begin")?.Value, parentStart);
-        var end = ResolveNestedEnd(element, start, parentEnd);
+        var end = ResolveNestedEnd(element, start, parentStart, parentEnd);
         var children = element.Nodes().ToArray();
         if (children.All(child => child is XText))
         {
@@ -250,12 +250,13 @@ public static class LyricsParser
         return parentStart > TimeSpan.Zero && parsed < parentStart ? parentStart + parsed : parsed;
     }
 
-    private static TimeSpan ResolveNestedEnd(XElement element, TimeSpan start, TimeSpan parentEnd)
+    private static TimeSpan ResolveNestedEnd(XElement element, TimeSpan start, TimeSpan parentStart, TimeSpan parentEnd)
     {
         if (element.Attribute("end") is { } end)
         {
-            var parsed = Timestamp(end.Value);
-            var resolved = start > TimeSpan.Zero && parsed < start ? start + parsed : parsed;
+            // Relative begin/end values share their parent's origin; only dur
+            // is added to the child start. Apple-style absolute times still pass through.
+            var resolved = ResolveNestedTime(end.Value, parentStart);
             return resolved > start ? resolved : start;
         }
         if (element.Attribute("dur") is { } duration) return start + Timestamp(duration.Value);

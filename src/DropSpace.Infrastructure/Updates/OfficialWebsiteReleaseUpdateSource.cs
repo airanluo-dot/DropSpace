@@ -96,9 +96,9 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         return request;
     }
 
-    private static UpdateRelease MapRelease(ReleaseDto dto)
+    private static UpdateRelease MapRelease(ReleaseDto? dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.TagName) ||
+        if (dto is null || string.IsNullOrWhiteSpace(dto.TagName) ||
             !ReleaseVersion.TryParse(dto.TagName, out _) ||
             !Uri.TryCreate(dto.HtmlUrl, UriKind.Absolute, out var htmlUri) ||
             htmlUri.Scheme != Uri.UriSchemeHttps ||
@@ -114,7 +114,7 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
 
         var assets = dto.Assets?.Select(asset =>
         {
-            if (string.IsNullOrWhiteSpace(asset.Name) || asset.Size <= 0 ||
+            if (asset is null || string.IsNullOrWhiteSpace(asset.Name) || asset.Size <= 0 ||
                 !Uri.TryCreate(asset.DownloadUrl, UriKind.Absolute, out var downloadUri) ||
                 !UpdateManifestParser.IsOfficialDownloadUri(downloadUri, dto.TagName, asset.Name))
             {
@@ -165,7 +165,7 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         public int SchemaVersion { get; init; }
 
         [JsonPropertyName("releases")]
-        public ReleaseDto[]? Releases { get; init; }
+        public ReleaseDto?[]? Releases { get; init; }
     }
 
     private sealed record ReleaseDto
@@ -186,7 +186,7 @@ public sealed class OfficialWebsiteReleaseUpdateSource(
         public string HtmlUrl { get; init; } = string.Empty;
 
         [JsonPropertyName("assets")]
-        public ReleaseAssetDto[]? Assets { get; init; }
+        public ReleaseAssetDto?[]? Assets { get; init; }
     }
 
     private sealed record ReleaseAssetDto

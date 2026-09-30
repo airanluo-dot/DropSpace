@@ -26,10 +26,10 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
         response.EnsureSuccessStatusCode();
         var bytes = await ReadBoundedAsync(response.Content, MaximumReleaseMetadataBytes, cancellationToken)
             .ConfigureAwait(false);
-        ReleaseDto[] releases;
+        ReleaseDto?[] releases;
         try
         {
-            releases = JsonSerializer.Deserialize<ReleaseDto[]>(bytes.Span, JsonOptions) ?? [];
+            releases = JsonSerializer.Deserialize<ReleaseDto?[]>(bytes.Span, JsonOptions) ?? [];
         }
         catch (JsonException exception)
         {
@@ -71,8 +71,13 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
         return request;
     }
 
-    private static UpdateRelease MapRelease(ReleaseDto dto)
+    private static UpdateRelease MapRelease(ReleaseDto? dto)
     {
+        if (dto is null || dto.Assets is null)
+        {
+            throw new InvalidDataException("GitHub release metadata contains a null release or asset collection.");
+        }
+
         if (!Uri.TryCreate(dto.HtmlUrl, UriKind.Absolute, out var htmlUri))
         {
             throw new InvalidDataException("GitHub release metadata contains an invalid HTML URL.");
@@ -80,7 +85,7 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
 
         var assets = dto.Assets.Select(asset =>
         {
-            if (!Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri))
+            if (asset is null || !Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out var downloadUri))
             {
                 throw new InvalidDataException("GitHub release metadata contains an invalid asset URL.");
             }
@@ -136,7 +141,7 @@ public sealed class GitHubReleaseUpdateSource(HttpClient client, ReleaseVersion 
         public string HtmlUrl { get; init; } = string.Empty;
 
         [JsonPropertyName("assets")]
-        public ReleaseAssetDto[] Assets { get; init; } = [];
+        public ReleaseAssetDto?[]? Assets { get; init; } = [];
     }
 
     private sealed record ReleaseAssetDto
