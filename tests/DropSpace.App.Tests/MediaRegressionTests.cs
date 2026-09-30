@@ -11,6 +11,24 @@ namespace DropSpace.App.Tests;
 public sealed class MediaRegressionTests
 {
     [TestMethod]
+    public async Task MatchedLyricsGapNeverFallsBackToSongTitle()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        var view = new MediaViewModel(service, IdentityAppStringLocalizer.Instance, NullLogger<MediaViewModel>.Instance);
+        view.Session = MediaSessionSnapshot.Empty with { TrackTitle = "Song title" };
+        var line = new DropSpace.Core.Lyrics.LyricsLine(TimeSpan.Zero, TimeSpan.FromSeconds(2), "Lyric text", null, []);
+        view.SetLyricsDocument(new([line], DropSpace.Core.Models.LyricsProviderKind.LocalLrc));
+        view.Position = TimeSpan.FromSeconds(2.5);
+        Assert.AreEqual("Lyric text", view.CurrentLyricText);
+        Assert.IsFalse(view.LyricPresentation.IsInterlude);
+        view.Position = TimeSpan.FromSeconds(7);
+        Assert.IsTrue(view.LyricPresentation.IsInterlude);
+        Assert.AreEqual("Lyric text", view.CurrentLyricText);
+        view.SetLyricsDocument(DropSpace.Core.Lyrics.LyricsDocument.Empty);
+        Assert.AreEqual("Song title", view.CurrentLyricText);
+    }
+
+    [TestMethod]
     public async Task FrequentTimelineUpdatesDoNotStarveNewMetadata()
     {
         long metadataRevision = 1;

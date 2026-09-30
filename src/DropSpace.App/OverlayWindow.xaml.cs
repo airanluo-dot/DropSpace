@@ -27,9 +27,10 @@ namespace DropSpace.App;
 
 public sealed partial class OverlayWindow : Window
 {
-    private double ExpandedScale => Math.Min(_mediaViewModel.Settings.IslandAppearance.ExpandedScale,
-        Math.Min(_monitor.EffectiveWorkWidth / _monitor.Scale / OverlayPlacementPolicy.MaximumSurfaceWidthDips,
-            Math.Max(0.5, (_monitor.EffectiveWorkHeight / _monitor.Scale - OverlayPlacementPolicy.GetTopOffsetDips(_viewModel.FileDragWakeMode, _monitor.Scale)) / OverlayPlacementPolicy.MaximumSurfaceHeightDips)));
+    private double ExpandedScale => OverlayPlacementPolicy.FitContentScale(
+        _monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight, _monitor.Scale,
+        OverlayPlacementPolicy.MaximumSurfaceWidthDips, OverlayPlacementPolicy.MaximumSurfaceHeightDips,
+        _mediaViewModel.Settings.IslandAppearance.ExpandedScale);
     private double HostContentScale => Math.Max(1, Math.Max(ExpandedScale, _mediaViewModel.Settings.IslandAppearance.CompactScale));
     private double HostWidth => OverlayPlacementPolicy.HostWidthDips * HostContentScale;
     private static readonly TimeSpan AnimationTimerInterval = TimeSpan.FromMilliseconds(16);
@@ -419,7 +420,10 @@ public sealed partial class OverlayWindow : Window
         ActivityCompact.Visibility = activityCompact ? Visibility.Visible : Visibility.Collapsed;
         MusicCompact.Visibility = mediaCompact ? Visibility.Visible : Visibility.Collapsed;
         FileCompactContent.Visibility = mediaCompact || activityCompact ? Visibility.Collapsed : Visibility.Visible;
-        var mediaScale = _mediaViewModel.Settings.IslandAppearance.CompactScale;
+        var mediaScale = OverlayPlacementPolicy.FitContentScale(
+            _monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight, _monitor.Scale,
+            MusicCompact.IdealIslandWidth, MusicCompact.IdealIslandHeight,
+            _mediaViewModel.Settings.IslandAppearance.CompactScale);
         CompactPanel.Padding = new Thickness(mediaCompact ? 14 * mediaScale : 18, 0, mediaCompact ? 14 * mediaScale : 18, 0);
         MusicCompact.Width = MusicCompact.IdealIslandWidth - 28;
         MusicCompact.Height = MusicCompact.IdealIslandHeight;
@@ -984,14 +988,17 @@ public sealed partial class OverlayWindow : Window
             values.TopOffset,
             0,
             Math.Max(0, HostHeight - marginDips));
+        var availableWidth = Math.Min(HostWidth, _monitor.EffectiveWorkWidth / _monitor.Scale);
+        var availableHeight = Math.Min(HostHeight,
+            (_monitor.EffectiveWorkTop + _monitor.EffectiveWorkHeight - _resolvedPlacement.HostTopPixels) / _monitor.Scale);
         var width = Math.Min(
             values.Width,
-            Math.Max(OverlayMotionValues.MinimumDimension, (HostWidth - marginDips * 2) / scale));
+            Math.Max(OverlayMotionValues.MinimumDimension, (availableWidth - marginDips * 2) / scale));
         var height = Math.Min(
             values.Height,
             Math.Max(
                 OverlayMotionValues.MinimumDimension,
-                2 * (HostHeight - topOffset - marginDips) / (1 + scale)));
+                2 * (availableHeight - topOffset - marginDips) / (1 + scale)));
 
         return (values with
         {

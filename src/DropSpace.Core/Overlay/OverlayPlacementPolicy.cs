@@ -3,20 +3,18 @@ using DropSpace.Core.Models;
 namespace DropSpace.Core.Overlay;
 
 /// <summary>
-/// Defines the single visual anchor used by every state in one Overlay lifecycle. Smart drag
-/// mode is intentionally displaced below the Windows 11 Drop Tray area; that displacement must
-/// not disappear when DragReady transitions to Compact, Expanded, or Dismissing.
+/// Defines one DPI-aware visual anchor for every overlay state. The default leaves
+/// a small gap within the monitor work area; no system share-tray offset is reserved.
 /// </summary>
 public static class OverlayPlacementPolicy
 {
     public const double HostWidthDips = 600;
     public const double MaximumSurfaceWidthDips = 560;
-    public const double SmartTopOffsetPhysicalPixels = 76;
     public const double DynamicIslandTopGapDips = 8;
     public const double MaximumSurfaceHeightDips = 340;
     public const double HostBottomMarginDips = 16;
     public const double MinimumHostHeightDips =
-        SmartTopOffsetPhysicalPixels + DynamicIslandTopGapDips +
+        DynamicIslandTopGapDips +
         MaximumSurfaceHeightDips + HostBottomMarginDips;
 
     public static double GetMinimumHostHeightDips(double monitorScale, double contentScale = 1)
@@ -26,11 +24,7 @@ public static class OverlayPlacementPolicy
             throw new ArgumentOutOfRangeException(nameof(monitorScale));
         }
 
-        // The Dynamic Island compatibility offset is a physical-pixel requirement, while the
-        // remaining host dimensions are DIPs. Convert only that fixed physical segment back to
-        // DIPs so the native client surface remains large enough at every display scale.
-        return SmartTopOffsetPhysicalPixels / monitorScale +
-               DynamicIslandTopGapDips +
+        return DynamicIslandTopGapDips +
                MaximumSurfaceHeightDips * NormalizeContentScale(contentScale) +
                HostBottomMarginDips;
     }
@@ -44,10 +38,19 @@ public static class OverlayPlacementPolicy
             throw new ArgumentOutOfRangeException(nameof(monitorScale));
         }
 
-        var compatibilityOffset = wakeMode == FileDragWakeMode.SmartExperimental
-            ? SmartTopOffsetPhysicalPixels / monitorScale
-            : 0;
-        return DynamicIslandTopGapDips + compatibilityOffset;
+        return DynamicIslandTopGapDips;
+    }
+
+    public static double FitContentScale(int workWidthPixels, int workHeightPixels,
+        double monitorScale, double widthDips, double heightDips, double requestedScale)
+    {
+        if (workWidthPixels <= 0 || workHeightPixels <= 0 || !double.IsFinite(monitorScale) || monitorScale <= 0 ||
+            !double.IsFinite(widthDips) || widthDips <= 0 || !double.IsFinite(heightDips) || heightDips <= 0)
+            throw new ArgumentOutOfRangeException(nameof(workWidthPixels));
+        var requested = double.IsFinite(requestedScale) ? Math.Clamp(requestedScale, 0.01, 2) : 1;
+        var availableWidth = Math.Max(1, workWidthPixels / monitorScale - DynamicIslandTopGapDips * 2);
+        var availableHeight = Math.Max(1, workHeightPixels / monitorScale - DynamicIslandTopGapDips - HostBottomMarginDips);
+        return Math.Min(requested, Math.Min(availableWidth / widthDips, availableHeight / heightDips));
     }
 
     public static OverlayResolvedPlacement Resolve(
