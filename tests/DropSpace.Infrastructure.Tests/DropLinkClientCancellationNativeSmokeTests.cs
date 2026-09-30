@@ -96,7 +96,12 @@ public sealed class DropLinkClientCancellationNativeSmokeTests
                 PeerCapability.HandoffFiles, PeerTrustState.Trusted, DateTimeOffset.UtcNow, null);
             var client = new DropLinkClient(identities, secrets, null!, null!);
             var send = client.SendFilesAsync(peer, endpoint, [source], cancellationToken: cancellation.Token);
-            await approvalSeen.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            var first = await Task.WhenAny(approvalSeen.Task, send).WaitAsync(TimeSpan.FromSeconds(10));
+            if (first == send)
+            {
+                var earlyResult = await send;
+                Assert.Fail($"The send completed with {earlyResult.State} before the approval poll.");
+            }
 
             cancellation.Cancel();
 
