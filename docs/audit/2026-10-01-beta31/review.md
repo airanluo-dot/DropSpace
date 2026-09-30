@@ -43,3 +43,20 @@ Do not merge or publish until all three passes have completed and necessary Wind
 installer, upgrade and final artifact validation has passed. User requested Beta 31 and
 preserved update identity. Physical multi-monitor and actual music-player visual testing
 remain distinct from automated validation.
+
+## Post-review user feedback: expanded seek slider
+
+Before publication, the user reported slider jitter during dragging and required a single
+seek on release. Publication run 36750978920 was cancelled before publishing.
+The prior UI depended on locating a template Thumb during Loaded, leaving track presses
+and missing/delayed Thumb templates without reliable gesture ownership. Uncommitted
+track/keyboard previews also accepted fresh playback frames before the quiet-period
+commit, and transient CanSeek=false could clear pending-target protection.
+
+The follow-up observes handled pointer events on the whole Slider, keeps user ownership
+through the gesture, commits once on release, cancels interrupted gestures, freezes
+range/enabled updates while previewing, and keeps time labels on the preview target.
+Pending stale playback is ignored until acknowledgment or the bounded timeout. Track
+changes reset ownership. The production pure interaction class plus repository tests
+were exercised in a local harness: 25 tests passed including prior metadata tests;
+Windows integration and final release checks must rerun on this follow-up commit.
