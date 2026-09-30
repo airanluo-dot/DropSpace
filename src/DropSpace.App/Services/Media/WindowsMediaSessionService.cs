@@ -330,7 +330,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     }
 
     internal sealed record SessionSelection(string Title, string Artist, string Album, TimeSpan Duration,
-        bool CanSeek, bool HasArtwork);
+        bool CanSeek, bool HasArtwork, bool IsPlaying = false);
 
     internal static async Task<T> SelectRicherSessionAsync<T>(IReadOnlyList<T> candidates,
         Func<T, string?> source, Func<T, CancellationToken, Task<SessionSelection?>> read,
@@ -358,6 +358,21 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     var retainedValue = await read(retained, budget.Token);
                     if (retainedValue is not null && !string.IsNullOrWhiteSpace(retainedValue.Title) &&
                         !string.IsNullOrWhiteSpace(retainedValue.Artist)) return retained;
+                }
+                // At startup there may be no retained renderer. An empty OS-selected
+                // wrapper must not hide the single playing, readable renderer from the
+                // same app. Keep the preferred choice when multiple tracks are ambiguous.
+                if (baseline is null || string.IsNullOrWhiteSpace(baseline.Title))
+                {
+                    T? readable = null;
+                    foreach (var sibling in siblings.Take(MaximumRecoverySessions))
+                    {
+                        var value = await read(sibling, budget.Token);
+                        if (value is null || !value.IsPlaying || string.IsNullOrWhiteSpace(value.Title)) continue;
+                        if (readable is not null) return preferred;
+                        readable = sibling;
+                    }
+                    if (readable is not null) return readable;
                 }
                 return preferred;
             }
@@ -410,7 +425,8 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             var timeline = session.GetTimelineProperties();
             return new(Bound(properties.Title), Bound(properties.Artist), Bound(properties.AlbumTitle),
                 timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero,
-                playback.Controls.IsPlaybackPositionEnabled, properties.Thumbnail is not null);
+                playback.Controls.IsPlaybackPositionEnabled, properties.Thumbnail is not null,
+                playback.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing);
         }
         catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
         {

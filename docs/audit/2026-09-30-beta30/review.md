@@ -86,3 +86,11 @@ reported regression or rule out indirect changes.
 Prior Windows checks passed for 9215e79; they do not validate these newer changes.
 Real Apple Music / NetEase runtime reproduction remains unverified. Do not describe
 synthetic tests as proof that either player is fully fixed.
+
+- Empty-wrapper selection at startup previously ignored a readable playing sibling
+  from the same application unless a renderer had already been retained. Selection
+  now recovers only a unique playing same-source sibling when the preferred title
+  is empty/unreadable. Paused, cross-app and ambiguous candidates are not substituted.
+  The startup regression fails with the previous selection method. An isolated
+  Linux harness compiled the exact pure selection/revision methods and ran the
+  19 corresponding tests successfully; it does not validate WinRT integration.
