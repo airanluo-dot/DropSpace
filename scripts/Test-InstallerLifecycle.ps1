@@ -17,6 +17,7 @@ if (-not $AllowUserDataMutation)
 }
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+. (Join-Path $PSScriptRoot "TestDiagnostics.ps1")
 $currentInstallerPath = if ([System.IO.Path]::IsPathRooted($CurrentInstaller))
 {
     [System.IO.Path]::GetFullPath($CurrentInstaller)
@@ -61,6 +62,7 @@ $startupRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $runningProcess = $null
 $restartProcess = $null
 $maintenanceShutdownWaitSeconds = 30
+$diagnosticDirectory = $null
 
 function Invoke-CheckedProcess
 {
@@ -83,6 +85,11 @@ function Invoke-CheckedProcess
     $start.CreateNoWindow = $true
     $start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
     foreach ($argument in $effectiveArguments) { $start.ArgumentList.Add($argument) }
+    if ($null -ne $diagnosticDirectory)
+    {
+        $phase = ($Description -replace '[^A-Za-z0-9-]', '-')
+        Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase "$phase-before" -ExecutableName ([IO.Path]::GetFileName($FilePath)) -DataRoot $dataRoot
+    }
     $process = [Diagnostics.Process]::Start($start)
     try
     {
@@ -110,7 +117,16 @@ function Invoke-CheckedProcess
         throw "$Description failed with exit code $($process.ExitCode)."
     }
     }
-    finally { $process.Dispose() }
+    finally
+    {
+        if ($null -ne $diagnosticDirectory)
+        {
+            $phase = ($Description -replace '[^A-Za-z0-9-]', '-')
+            $logs = if ([string]::IsNullOrWhiteSpace($LogPath)) { @() } else { @($LogPath) }
+            Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase "$phase-after" -ExecutableName ([IO.Path]::GetFileName($FilePath)) -ProcessId $process.Id -DataRoot $dataRoot -LifecycleLogs $logs
+        }
+        $process.Dispose()
+    }
 }
 
 function Get-UninstallEntry
@@ -253,6 +269,7 @@ $previousTestMode = $env:DROPSPACE_TEST_MODE
 try
 {
     $env:DROPSPACE_TEST_MODE = "1"
+    $diagnosticDirectory = New-DropSpaceTestDiagnosticDirectory -RepositoryRoot $repositoryRoot -Category 'installer-lifecycle'
     # A relabelled current binary cannot prove an upgrade from a shipped version.
     if ([string]::IsNullOrWhiteSpace($BaselineInstaller))
     {
@@ -406,7 +423,7 @@ try
     }
     $restartProcess = $null
 
-    & (Join-Path $PSScriptRoot "Test-PortableSmoke.ps1") -ExecutablePath $installedExe
+    & (Join-Path $PSScriptRoot "Test-PortableSmoke.ps1") -ExecutablePath $installedExe -DiagnosticPhase installed
 
     $startupCommand = (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction Stop).DropSpace
     if ($startupCommand -notlike "*$installedExe*--startup*")
@@ -476,6 +493,11 @@ finally
         {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         }
+    }
+    if ($null -ne $diagnosticDirectory)
+    {
+        $logs = @('baseline-install.log', 'upgrade.log', 'normal-uninstall.log', 'reinstall.log', 'complete-uninstall.log') | ForEach-Object { Join-Path $testRoot $_ }
+        Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'final-cleanup' -ExecutableName ([IO.Path]::GetFileName($currentInstallerPath)) -DataRoot $dataRoot -LifecycleLogs $logs
     }
     if (Test-Path $testRoot)
     {

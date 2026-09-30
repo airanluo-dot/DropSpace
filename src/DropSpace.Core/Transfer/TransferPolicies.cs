@@ -29,8 +29,8 @@ public static class TransferManifestPolicy
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in items)
         {
-            ValidateItem(item, limits);
-            if (!ids.Add(item.Id) || !paths.Add(item.RelativePath))
+            var destination = ValidateItem(item, limits);
+            if (!ids.Add(item.Id) || !paths.Add(destination))
             {
                 throw new InvalidDataException("Transfer item identifiers and relative paths must be unique.");
             }
@@ -72,9 +72,17 @@ public static class TransferManifestPolicy
     public static string NormalizeRelativePath(string path, int maxLength = TransferLimits.DefaultMaxRelativePathLength)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var normalized = path.Replace('\\', '/').Trim('/');
-        if (normalized.Length == 0 || normalized.Length > maxLength || normalized.StartsWith('/') ||
-            Path.IsPathRooted(normalized))
+        var normalized = path.Replace('\\', '/');
+        // Check the wire path before trimming separators. Otherwise absolute and UNC
+        // paths become relative, and Windows drive prefixes pass on non-Windows hosts.
+        if (normalized.StartsWith('/') || Path.IsPathRooted(normalized) ||
+            normalized.Length >= 2 && char.IsAsciiLetter(normalized[0]) && normalized[1] == ':')
+        {
+            throw new InvalidDataException("A transfer path must be relative and bounded.");
+        }
+
+        normalized = normalized.TrimEnd('/');
+        if (normalized.Length == 0 || normalized.Length > maxLength)
         {
             throw new InvalidDataException("A transfer path must be relative and bounded.");
         }
@@ -102,10 +110,11 @@ public static class TransferManifestPolicy
         return value;
     }
 
-    private static void ValidateItem(TransferItemManifest item, TransferLimits limits)
+    private static string ValidateItem(TransferItemManifest item, TransferLimits limits)
     {
-        if (item.Id == Guid.Empty || item.Size < 0 || item.RelativePath.Length > limits.MaxRelativePathLength ||
-            item.Sha256.Length != 64 || item.Sha256.Any(value => !Uri.IsHexDigit(value)))
+        if (item is null || !Enum.IsDefined(item.Kind) || item.Id == Guid.Empty || item.Size < 0 ||
+            string.IsNullOrWhiteSpace(item.RelativePath) || item.RelativePath.Length > limits.MaxRelativePathLength ||
+            string.IsNullOrWhiteSpace(item.Sha256) || item.Sha256.Length != 64 || item.Sha256.Any(value => !Uri.IsHexDigit(value)))
         {
             throw new InvalidDataException("A transfer item manifest is invalid.");
         }
@@ -116,7 +125,7 @@ public static class TransferManifestPolicy
         }
 
         _ = SafeDisplayName(item.DisplayName);
-        _ = NormalizeRelativePath(item.RelativePath, limits.MaxRelativePathLength);
+        var destination = NormalizeRelativePath(item.RelativePath, limits.MaxRelativePathLength);
         if (item.ChunkCount is < 0)
         {
             throw new InvalidDataException("A transfer chunk count cannot be negative.");
@@ -127,6 +136,8 @@ public static class TransferManifestPolicy
         {
             throw new InvalidDataException("The transfer chunk count does not match the item size.");
         }
+
+        return destination;
     }
 }
 

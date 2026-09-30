@@ -159,7 +159,6 @@ public sealed class UndoCoordinator(
                 return false;
             }
 
-            CancelExpiration();
             if (active.Removal is not null)
             {
                 await repository.UndoPendingRemovalAsync(active.State.Token, cancellationToken).ConfigureAwait(false);
@@ -170,6 +169,7 @@ public sealed class UndoCoordinator(
                 await repository.RestorePinnedStatesAsync(active.PreviousPinStates, cancellationToken).ConfigureAwait(false);
             }
 
+            CancelExpiration();
             _active = null;
             PublishState(null);
             return true;
@@ -368,7 +368,7 @@ public sealed class UndoCoordinator(
     private void PublishState(UndoState? state)
     {
         State = state;
-        StateChanged?.Invoke(this, EventArgs.Empty);
+        NativeSubscriberNotification.Invoke(StateChanged, this, logger);
     }
 
     private void ThrowIfDisposed()

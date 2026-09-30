@@ -1,5 +1,6 @@
 using DropSpace.Infrastructure.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.Json;
 
 namespace DropSpace.Infrastructure.Tests;
 
@@ -61,6 +62,46 @@ public sealed class StagingLeaseStoreTests
         Assert.IsTrue(File.Exists(Path.Combine(unknownRoot, "keep.txt")));
         Assert.IsFalse(File.Exists(Path.Combine(_paths.StagingLeases, "bad.json")));
         Assert.IsTrue(Directory.Exists(Path.Combine(_paths.Quarantine, "staging-leases")));
+    }
+
+    [TestMethod]
+    [DataRow("leases")]
+    [DataRow("leases/nested")]
+    [DataRow("LEASES")]
+    public async Task LeaseCannotOwnItsBookkeepingDirectory(string relativeRoot)
+    {
+        var store = CreateStore();
+        var retained = await store.AcquireAsync("test", "shares/retained", sensitivePlaintext: true);
+
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() =>
+            store.AcquireAsync("test", relativeRoot, sensitivePlaintext: false));
+
+        Assert.AreEqual(1, Directory.GetFiles(_paths.StagingLeases, "*.json").Length);
+        Assert.IsTrue(Directory.Exists(retained.RootPath));
+        Assert.IsTrue(await store.CompleteAsync(retained));
+    }
+
+    [TestMethod]
+    public async Task RecoveryQuarantinesBookkeepingRootWithoutDeletingActiveLeases()
+    {
+        var store = CreateStore();
+        var active = await store.AcquireAsync("test", "shares/active", sensitivePlaintext: true);
+        var invalid = active with
+        {
+            LeaseId = Guid.NewGuid().ToString("N"),
+            OwnerId = "abandoned-owner",
+            RelativeRoot = "leases",
+        };
+        var invalidPath = Path.Combine(_paths.StagingLeases, invalid.LeaseId + ".json");
+        await File.WriteAllTextAsync(invalidPath, JsonSerializer.Serialize(invalid,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+
+        Assert.AreEqual(0, await store.RecoverAbandonedAsync());
+
+        Assert.IsFalse(File.Exists(invalidPath));
+        Assert.IsTrue(File.Exists(Path.Combine(_paths.StagingLeases, active.LeaseId + ".json")));
+        Assert.IsTrue(Directory.Exists(active.RootPath));
+        Assert.IsTrue(await store.CompleteAsync(active));
     }
 
     private StagingLeaseStore CreateStore() =>

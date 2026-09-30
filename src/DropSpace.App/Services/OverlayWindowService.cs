@@ -119,7 +119,7 @@ public sealed class OverlayWindowService : IDisposable
         _foregroundWindowMonitor.ForegroundChanged += OnForegroundChanged;
         _foregroundWindowMonitor.Start();
         await _viewModel.InitializeAsync(primaryMonitor.Id, cancellationToken);
-        _displayTopologyWatcher = new DisplayTopologyWatcher();
+        _displayTopologyWatcher = new DisplayTopologyWatcher(_loggerFactory.CreateLogger<DisplayTopologyWatcher>());
         _displayTopologyWatcher.Changed += OnDisplayTopologyChanged;
         _dragSessionDetector.CandidateStarted += OnSmartDragCandidateStarted;
         _dragSessionDetector.VerifiedFileDragStarted += OnSmartVerifiedFileDragStarted;
@@ -933,10 +933,13 @@ public sealed class OverlayWindowService : IDisposable
         _activationHosts.Clear();
         _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
         _activeSmartSessionId = 0;
-        if (_activeDragOwner == DragTargetOwner.SmartDetector)
+        // Rebuilt surfaces retire every native target. An ordinary wake-mode
+        // change retires the Classic host and Smart session, while a visible
+        // target continues owning its OLE drag until Drop/Leave.
+        if (force || _activeDragOwner is DragTargetOwner.ActivationHost or DragTargetOwner.SmartDetector)
         {
-            _viewModel.CancelDrag();
             _activeDragOwner = DragTargetOwner.None;
+            _viewModel.CancelDrag();
         }
 
         _dragSessionDetector.SetMode(mode);

@@ -61,6 +61,21 @@ test("build emits independent English and Simplified Chinese pages", () => {
   assert.doesNotMatch(zh, /translatePage|createTreeWalker/);
 });
 
+test("download guidance and FAQs use the Chinese locale and current release requirements", () => {
+  const document = new JSDOM(zh).window.document;
+  assert.match(document.querySelector(".download-intro > p:last-of-type").textContent, /系统要求请查看发布说明/);
+  assert.match(document.querySelector(".download-intro > p:last-of-type").textContent, /20348/);
+  assert.match(document.querySelector(".release-readiness article > h2 + p").textContent, /最低系统要求随版本而定/);
+  assert.match(document.querySelector("[data-system-check]").dataset.windows, /已检测到 Windows/);
+  assert.match(document.querySelector("[data-system-check]").dataset.other, /此设备未报告 Windows 系统/);
+  assert.match(document.querySelector("#known-limitations > h2 + p").textContent, /未签名的安装包可能触发/);
+  const answers = [...document.querySelectorAll(".faq-list details > p")].map((answer) => answer.textContent);
+  assert.ok(answers.some((answer) => answer.includes("支持的 Windows 版本随发布版本而定")));
+  assert.ok(answers.some((answer) => answer.includes("剪贴板历史保存在本地")));
+  assert.ok(answers.some((answer) => answer.includes("安装方式取决于所选安装包")));
+  assert.doesNotMatch(en, /Beta 25/);
+});
+
 test("localized metadata, canonical, hreflang, OG and structured data are complete", () => {
   for (const [html, route, title] of [[en, "en", "DropSpace — A Temporary Space for Windows"], [zh, "zh-cn", "DropSpace — Windows 临时空间"]]) {
     const document = new JSDOM(html).window.document;

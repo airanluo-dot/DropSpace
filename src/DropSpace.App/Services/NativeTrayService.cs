@@ -162,6 +162,19 @@ public sealed class NativeTrayService : IDisposable
         UIntPtr subclassId,
         UIntPtr referenceData)
     {
+        try { return WindowSubclassProcCore(window, message, wParam, lParam); }
+        catch (Exception exception)
+        {
+            // Resource lookup and shell re-registration can fail as well as subscribers.
+            // No managed failure may escape this Win32 callback, including logging.
+            try { _logger.LogWarning("Tray callback failed ({Category}).", exception.GetType().Name); }
+            catch { }
+            return IntPtr.Zero;
+        }
+    }
+
+    private IntPtr WindowSubclassProcCore(IntPtr window, uint message, IntPtr wParam, IntPtr lParam)
+    {
         if (message == _taskbarCreatedMessage)
         {
             _added = false;
@@ -174,7 +187,7 @@ public sealed class NativeTrayService : IDisposable
             var eventCode = unchecked((uint)lParam.ToInt64());
             if (eventCode is WmLButtonUp or NinSelect or NinKeySelect)
             {
-                OpenRequested?.Invoke(this, EventArgs.Empty);
+                NativeSubscriberNotification.Invoke(OpenRequested, this, _logger);
                 return IntPtr.Zero;
             }
 
@@ -210,16 +223,16 @@ public sealed class NativeTrayService : IDisposable
             switch (selected)
             {
                 case MenuOpen:
-                    OpenRequested?.Invoke(this, EventArgs.Empty);
+                    NativeSubscriberNotification.Invoke(OpenRequested, this, _logger);
                     break;
                 case MenuPause:
-                    TogglePauseRequested?.Invoke(this, EventArgs.Empty);
+                    NativeSubscriberNotification.Invoke(TogglePauseRequested, this, _logger);
                     break;
                 case MenuClear:
-                    ClearRequested?.Invoke(this, EventArgs.Empty);
+                    NativeSubscriberNotification.Invoke(ClearRequested, this, _logger);
                     break;
                 case MenuExit:
-                    ExitRequested?.Invoke(this, EventArgs.Empty);
+                    NativeSubscriberNotification.Invoke(ExitRequested, this, _logger);
                     break;
             }
         }

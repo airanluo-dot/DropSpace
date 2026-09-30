@@ -1,5 +1,6 @@
 using DropSpace.Infrastructure.Logging;
 using DropSpace.Infrastructure.Storage;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DropSpace.Infrastructure.Tests;
@@ -54,5 +55,28 @@ public sealed class LoggingDiagnosticsTests
         Assert.IsFalse(provider.TryEnqueueForTests("second"));
 
         await provider.DisposeAsync();
+    }
+
+    [TestMethod]
+    public async Task NoneLevelIsDisabledAndNeverConsumesQueueCapacity()
+    {
+        await using var provider = new RedactingFileLoggerProvider(
+            new AppStoragePaths(_root), queueCapacity: 1, startWriter: false);
+        var logger = provider.CreateLogger("test");
+        var formatted = false;
+
+        logger.Log(LogLevel.None, new EventId(0), "ignored", null, (state, _) =>
+        {
+            formatted = true;
+            return state;
+        });
+
+        Assert.IsFalse(logger.IsEnabled(LogLevel.None));
+        Assert.IsFalse(formatted);
+        Assert.IsTrue(provider.TryEnqueueForTests("retained diagnostic"));
+        Assert.AreEqual(0, provider.DroppedMessageCount);
+        Assert.IsFalse(logger.IsEnabled(LogLevel.Debug));
+        Assert.IsTrue(logger.IsEnabled(LogLevel.Information));
+        Assert.IsTrue(logger.IsEnabled(LogLevel.Critical));
     }
 }

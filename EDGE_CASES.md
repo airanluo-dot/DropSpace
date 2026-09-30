@@ -25,7 +25,7 @@ Each case defines the expected safe behavior. “Skip” means no durable normal
 | File changed in place | Refresh metadata/thumbnail by revision; reference remains valid. |
 | Huge folder | Do not enumerate contents; store only the folder reference. |
 | Mixed drop batch | Add supported items; summarize rejected/unavailable entries. |
-| Virtual file from mail/browser | Accept only if a stable storage item/path is supplied; otherwise explain unsupported virtual item. |
+| Virtual file from mail/browser | Accept supported native descriptor/content data by bounded materialization after real Drop; roll back the staging batch on failure/cancel. Unsupported formats fail safely. |
 | Elevated target/source | Drag/open can be blocked by integrity boundary; show failure, do not retry with elevation automatically. |
 | Source removed during drag | Drag may fail/cancel; retain record and refresh status. |
 | Target reports move | Do not proactively delete the Space record; validate reference afterward. |
@@ -43,9 +43,9 @@ Each case defines the expected safe behavior. “Skip” means no durable normal
 | Unsupported format | Ignore unless a safe text/storage fallback exists. |
 | Multiple formats | Select by explicit precedence; avoid creating multiple records for one event. |
 | Empty content | Ignore. |
-| Duplicate item | Coalesce within duplicate window; never overwrite pinned item silently. |
+| Duplicate item | Suppress only an adjacent repeat that was successfully persisted; preserve `A,B,A` regardless of elapsed time and never overwrite a pinned item silently. |
 | DropSpace copies an item | Self-write guard prevents a new history loop. |
-| Another app rewrites same item | Fingerprint/time coalescing reduces noise without assuming authorship. |
+| Another app rewrites same item | Apply the same consecutive fingerprint policy without assuming authorship; an intervening observation ends the duplicate run. |
 | Delayed rendering | Await with cancellation/timeout; skip if source exits or fails. |
 | App exits mid-capture | Complete only bounded committed transaction; temporary files are recovered/cleaned on next launch. |
 | Windows restarts | Capture resumes only when app starts; no claim to recover events while absent. |
@@ -118,6 +118,6 @@ Each case defines the expected safe behavior. “Skip” means no durable normal
 - Pairing SAS mismatch, expired hello, duplicate nonce, blocked peer, unsupported platform, or missing certificate pin: fail closed.
 - Transfer cancellation/reconnect: receiver reports accepted chunks; sender resumes only those chunks and final whole-file hash remains mandatory.
 - Traversal, reparse point, duplicate path, source mutation, empty file, destination collision, or disk-full receive: stage/rollback and return a coarse failure.
-- Clipboard stale reconnect or echo: per-peer mode and 10,000-entry/24-hour content guard prevent stale overwrites/loops.
+- Clipboard reconnect or echo: per-peer mode and the 10,000-entry/24-hour original-event guard suppress retransmissions without treating separate intentional copies of identical content as loops.
 - Nearby private address missing, token expired, receiver cap reached, invalid range, or revoke: do not fall back to a public interface.
 - Internet Worker missing, expired, wrong object, browser key absent, AES-GCM failure, or SHA-256 mismatch: show unavailable/integrity failure, never success.

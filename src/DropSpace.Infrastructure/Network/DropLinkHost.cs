@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using System.Collections.Concurrent;
+using System.Data.Common;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
@@ -35,6 +36,7 @@ public sealed record IncomingHandoffOffer(
 [SupportedOSPlatform("windows")]
 public sealed class DropLinkHost(
     DeviceIdentityStore identities,
+    DeviceSecretStore secrets,
     DropLinkPairingService pairing,
     TransferRepository transfers,
     ILogger<DropLinkHost> logger,
@@ -129,7 +131,7 @@ public sealed class DropLinkHost(
         });
         builder.Logging.ClearProviders();
         var app = builder.Build();
-        app.UseMiddleware<DropLinkAuthenticationMiddleware>();
+        ConfigureAuthenticationPipeline(app);
         MapRoutes(app);
         _app = app;
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -147,7 +149,10 @@ public sealed class DropLinkHost(
         return _endpoint!;
     }
 
-    private void MapRoutes(WebApplication app)
+    internal void ConfigureAuthenticationPipeline(IApplicationBuilder app) =>
+        app.UseMiddleware<DropLinkAuthenticationMiddleware>(secrets, transfers, _usedNonces);
+
+    internal void MapRoutes(WebApplication app)
     {
         app.MapGet(DropLinkProtocolRoutes.Device, () => Results.Json(new DeviceDescriptor(
             DropLinkProtocolVersion.V1,
@@ -473,6 +478,12 @@ public sealed class DropLinkHost(
 
         app.MapPost(DropLinkProtocolRoutes.TransferAcceptTemplate, async (HttpContext context, Guid sessionId, TransferAcceptRequest request, CancellationToken cancellationToken) =>
         {
+            if (request?.Accepted == true)
+            {
+                // Only the local receiver's approval flow can authorize writes. The
+                // authenticated remote peer is the sender and cannot consent for us.
+                return Results.Json(new { error = "receiver-local-approval-required" }, statusCode: StatusCodes.Status403Forbidden);
+            }
             if (request is null || !_sessions.TryGetValue(sessionId, out var receive))
             {
                 return request is null ? Results.BadRequest(new { error = "accept-invalid" }) : Results.NotFound();
@@ -493,8 +504,9 @@ public sealed class DropLinkHost(
 
                 receive.Session = receive.Session with
                 {
-                    State = request.Accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
-                    ErrorCategory = request.Accepted ? null : "rejected",
+                    State = TransferSessionState.Rejected,
+                    CompletedAtUtc = DateTimeOffset.UtcNow,
+                    ErrorCategory = "rejected",
                 };
                 receive.Touch();
                 await transfers.UpdateSessionAsync(receive.Session, cancellationToken).ConfigureAwait(false);
@@ -726,6 +738,7 @@ public sealed class DropLinkHost(
             receive.Session = receive.Session with
             {
                 State = accepted ? TransferSessionState.Accepted : TransferSessionState.Rejected,
+                CompletedAtUtc = accepted ? null : DateTimeOffset.UtcNow,
                 ErrorCategory = accepted ? null : "rejected",
             };
             receive.Touch();
@@ -873,7 +886,7 @@ public sealed class DropLinkHost(
         await receive.MutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            receive.Touch();
+            if (!DropLinkSessionPolicy.IsTerminal(receive.Session.State)) receive.Touch();
             return SnapshotUnsafe(receive);
         }
         finally
@@ -889,8 +902,25 @@ public sealed class DropLinkHost(
             receive.CompletedPaths.ToArray(),
             receive.Session.ErrorCategory);
 
-    private Task<TransferCompleteResponse> GetOrStartFinalizationTask(ReceiveTransfer receive) =>
-        receive.Finalization.GetOrStart(() => FinalizeTransferAsync(receive));
+    private async Task<TransferCompleteResponse> GetOrStartFinalizationTask(ReceiveTransfer receive)
+    {
+        Task<TransferCompleteResponse> operation;
+        await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            if (receive.Finalization.CurrentTask is null &&
+                receive.Session.State is not (TransferSessionState.Accepted or TransferSessionState.Transferring))
+            {
+                var snapshot = CompleteSnapshotUnsafe(receive);
+                return DropLinkSessionPolicy.IsTerminal(receive.Session.State)
+                    ? snapshot
+                    : snapshot with { ErrorCategory = "transfer-not-accepted" };
+            }
+            operation = receive.Finalization.GetOrStart(() => FinalizeTransferAsync(receive));
+        }
+        finally { receive.MutationGate.Release(); }
+        return await operation.ConfigureAwait(false);
+    }
 
     private async Task<TransferCompleteResponse> FinalizeTransferAsync(ReceiveTransfer receive)
     {
@@ -940,14 +970,15 @@ public sealed class DropLinkHost(
             await receive.MutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                receive.Session = receive.Session with
+                var completed = receive.Session with
                 {
                     State = TransferSessionState.Completed,
                     CompletedAtUtc = DateTimeOffset.UtcNow,
                     ErrorCategory = null,
                 };
+                await transfers.UpdateSessionAsync(completed, CancellationToken.None).ConfigureAwait(false);
+                receive.Session = completed;
                 receive.Touch();
-                await transfers.UpdateSessionAsync(receive.Session, CancellationToken.None).ConfigureAwait(false);
                 return CompleteSnapshotUnsafe(receive);
             }
             finally
@@ -955,7 +986,7 @@ public sealed class DropLinkHost(
                 receive.MutationGate.Release();
             }
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or OperationCanceledException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or OperationCanceledException or DbException)
         {
             RollbackCompletedItems(receive);
             logger.LogWarning(
@@ -988,7 +1019,7 @@ public sealed class DropLinkHost(
                     await transfers.UpdateSessionAsync(receive.Session, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception persistenceException) when (
-                    persistenceException is IOException or UnauthorizedAccessException or InvalidOperationException)
+                    persistenceException is IOException or UnauthorizedAccessException or InvalidOperationException or DbException)
                 {
                     logger.LogWarning(
                         persistenceException,
@@ -1081,7 +1112,7 @@ public sealed class DropLinkHost(
                     await transfers.UpdateSessionAsync(persistedFailure, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception exception) when (
-                    exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+                    exception is IOException or UnauthorizedAccessException or InvalidOperationException or DbException)
                 {
                     logger.LogWarning(
                         exception,
@@ -1320,8 +1351,15 @@ public sealed class DropLinkHost(
         }
     }
 
-    private Task QueueSessionRetirement(ReceiveTransfer session) =>
-        _sessionRetirementTasks.GetOrAdd(session.Session.Id, _ => RetireSessionAfterShutdownAsync(session));
+    private Task QueueSessionRetirement(ReceiveTransfer session)
+    {
+        var task = _sessionRetirementTasks.GetOrAdd(session.Session.Id, _ => RetireSessionAfterShutdownAsync(session));
+        // The factory can finish synchronously, before GetOrAdd publishes its
+        // result. Its finally could not remove that entry yet; release it here.
+        if (task.IsCompleted)
+            _sessionRetirementTasks.TryRemove(new KeyValuePair<Guid, Task>(session.Session.Id, task));
+        return task;
+    }
 
     private async Task RetireSessionAfterShutdownAsync(ReceiveTransfer session)
     {
@@ -1349,7 +1387,7 @@ public sealed class DropLinkHost(
                         ErrorCategory = "shutdown",
                     };
                     try { await transfers.UpdateSessionAsync(session.Session, CancellationToken.None).ConfigureAwait(false); }
-                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or DbException)
                     {
                         logger.LogWarning(exception, "DropLink shutdown failure state could not be persisted for session {SessionId}.", session.Session.Id);
                     }
@@ -1430,9 +1468,9 @@ public sealed class DropLinkHost(
         {
             if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
             LifetimeCancellation.Cancel();
-            LifetimeCancellation.Dispose();
-            MutationGate.Dispose();
-            FinalizationGate.Dispose();
+            // Requests may already own or await the managed gates after this
+            // receive leaves the session map. Keep their final releases and
+            // cancellation checks valid; no native wait handles are allocated.
         }
     }
 }

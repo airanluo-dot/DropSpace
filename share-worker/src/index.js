@@ -26,14 +26,14 @@ export default {
     if (request.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
 
     try {
-      if (request.method === "POST" && url.pathname === API_PREFIX + "/shares") return createShare(request, env);
+      if (request.method === "POST" && url.pathname === API_PREFIX + "/shares") return await createShare(request, env);
       const objectMatch = url.pathname.match(new RegExp("^" + API_PREFIX + "/shares/([0-9a-f]{32})/objects/([A-Za-z0-9._-]{1," + MAX_OBJECT_NAME_LENGTH + "})$"));
-      if (objectMatch && request.method === "PUT") return putObject(request, env, objectMatch[1], objectMatch[2]);
-      if (objectMatch && request.method === "GET") return getObject(request, env, objectMatch[1], objectMatch[2]);
+      if (objectMatch && request.method === "PUT") return await putObject(request, env, objectMatch[1], objectMatch[2]);
+      if (objectMatch && request.method === "GET") return await getObject(request, env, objectMatch[1], objectMatch[2]);
       const shareMatch = url.pathname.match(new RegExp("^" + API_PREFIX + "/shares/([0-9a-f]{32})$"));
-      if (shareMatch && request.method === "DELETE") return revokeShare(request, env, shareMatch[1]);
+      if (shareMatch && request.method === "DELETE") return await revokeShare(request, env, shareMatch[1]);
       const receiverMatch = url.pathname.match(/^\/s\/([0-9a-f]{32})$/);
-      if (receiverMatch && request.method === "GET") return receiverPage(env, receiverMatch[1], request);
+      if (receiverMatch && request.method === "GET") return await receiverPage(env, receiverMatch[1], request);
       return json({ error: "not-found" }, 404);
     } catch (error) {
       // Do not log request URLs: the key is carried in a fragment in normal use, but never put
@@ -87,17 +87,19 @@ async function createShare(request, env) {
   const itemCount = Number(body.itemCount);
   const totalBytes = Number(body.totalBytes);
   if (!Number.isInteger(itemCount) || itemCount < 1 || itemCount > MAX_ITEMS || !Number.isSafeInteger(totalBytes) || totalBytes < 1 || totalBytes > MAX_BYTES) throw new HttpError("limits-invalid", 400);
+  const origin = publicOrigin(env, request);
   const token = await sign({ shareId, expiresAt, itemCount, totalBytes }, env.UPLOAD_TOKEN_SECRET);
   const meta = { shareId, expiresAt, itemCount, totalBytes };
+  // Claim the ID atomically before writing metadata or issuing an upload token.
+  // A duplicate request must never overwrite or revoke an existing share.
+  await coordinatorRequest(env, shareId, "init", meta);
   try {
     await env.SHARES.put(metaKey(shareId), JSON.stringify(meta), { httpMetadata: { contentType: "application/json", cacheControl: "no-store" } });
-    await coordinatorRequest(env, shareId, "init", meta);
   } catch (error) {
     await env.SHARES.delete(metaKey(shareId)).catch(() => {});
     await coordinatorRequest(env, shareId, "revoke").catch(() => {});
     throw error;
   }
-  const origin = publicOrigin(env, request);
   return json({
     uploadBaseUrl: origin + API_PREFIX + "/shares/" + shareId + "/objects/",
     downloadBaseUrl: origin,
@@ -116,6 +118,9 @@ async function putObject(request, env, shareId, objectName) {
   if (!Number.isSafeInteger(length) || length < 1) throw new HttpError("object-length-invalid", 400);
   if (!request.body) throw new HttpError("body-missing", 400);
   const descriptor = describeUploadObject(objectName, length);
+  // Object sizes are capped at 6 MiB. Validate the actual bytes before reserving
+  // quota or persisting them; Content-Length alone is not the byte count.
+  const bytes = await readBody(request, length, length);
   const reservation = await coordinatorRequest(env, shareId, "reserve", descriptor);
   const key = objectKey(shareId, objectName);
   let putStarted = false;
@@ -123,15 +128,22 @@ async function putObject(request, env, shareId, objectName) {
     const existing = await env.SHARES.head(key);
     if (existing) throw new HttpError("object-exists", 409);
     putStarted = true;
-    await env.SHARES.put(key, request.body, {
-      httpMetadata: { contentType: request.headers.get("content-type") || "application/octet-stream", cacheControl: "no-store" },
-      customMetadata: { expiresAt: String(meta.expiresAt), shareId },
+    const stored = await env.SHARES.put(key, bytes, {
+      // A reservation may expire while R2 is still accepting the request. An
+      // older upload must never overwrite the same object's successful retry.
+      onlyIf: { etagDoesNotMatch: "*" },
+      httpMetadata: { contentType: "application/octet-stream", cacheControl: "no-store" },
+      customMetadata: { expiresAt: String(meta.expiresAt), shareId, uploadReservationId: reservation.reservationId },
     });
+    if (stored === null) throw new HttpError("object-exists", 409);
     await coordinatorRequest(env, shareId, "commit", { reservationId: reservation.reservationId });
     return cors(new Response(null, { status: 201 }));
   } catch (error) {
-    await coordinatorRequest(env, shareId, "rollback", { reservationId: reservation.reservationId }).catch(() => {});
-    if (putStarted) await env.SHARES.delete(key).catch(() => {});
+    // Rollback and storage cleanup share the coordinator's reservation lock.
+    // Otherwise lifecycle expiry can allow a retry between head and delete.
+    await coordinatorRequest(env, shareId, "rollback", {
+      reservationId: reservation.reservationId, objectName, cleanupStoredObject: putStarted,
+    }).catch(() => {});
     throw error;
   }
 }
@@ -154,9 +166,10 @@ async function getObject(request, env, shareId, objectName) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+  await coordinatorRequest(env, shareId, "status");
   const object = await env.SHARES.get(objectKey(shareId, objectName));
   if (!object) throw new HttpError("not-found", 404);
-  const headers = new Headers({ "Cache-Control": "no-store", "Content-Type": object.httpMetadata?.contentType || "application/octet-stream", "X-Content-Type-Options": "nosniff" });
+  const headers = new Headers({ "Cache-Control": "no-store", "Content-Type": "application/octet-stream", "X-Content-Type-Options": "nosniff" });
   return cors(new Response(object.body, { headers }));
 }
 
@@ -169,7 +182,7 @@ async function revokeShare(request, env, shareId) {
   let cursor;
   do {
     const listed = await env.SHARES.list({ prefix: "shares/" + shareId + "/", limit: 1000, ...(cursor ? { cursor } : {}) });
-    await Promise.all(listed.objects.map(object => env.SHARES.delete(object.key)));
+    await Promise.all(listed.objects.filter(object => object.key !== metaKey(shareId)).map(object => env.SHARES.delete(object.key)));
     if (listed.truncated && !listed.cursor) throw new HttpError("listing-incomplete", 503);
     cursor = listed.truncated ? listed.cursor : undefined;
   } while (cursor);
@@ -182,6 +195,7 @@ async function receiverPage(env, shareId, request) {
   requireHttps(request);
   const meta = await loadMeta(env, shareId);
   if (meta.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+  await coordinatorRequest(env, shareId, "status");
   const origin = publicOrigin(env, request);
   const nonce = toB64(crypto.getRandomValues(new Uint8Array(16)));
   const script = receiverScript(origin, shareId);
@@ -191,7 +205,8 @@ async function receiverPage(env, shareId, request) {
 
 
 function receiverScript(origin, shareId) {
-  return `(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('${API_PREFIX}/shares/${shareId}/objects/${MANIFEST_OBJECT_NAME}'),nonce=manifestBin.slice(0,${MANIFEST_NONCE_BYTES}),tag=manifestBin.slice(-${AUTH_TAG_BYTES}),cipher=manifestBin.slice(${MANIFEST_NONCE_BYTES},-${AUTH_TAG_BYTES}),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('${SHARE_AAD_PREFIX}\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
+  return `const API_PREFIX = ${JSON.stringify(API_PREFIX)};
+(async()=>{const status=document.getElementById('status'),list=document.getElementById('files');const keyText=location.hash.startsWith('#k=')?location.hash.slice(3):'';if(!keyText){status.textContent='The decryption key is missing from the URL fragment.';return;}try{const key=fromB64(keyText),manifestBin=await get('${API_PREFIX}/shares/${shareId}/objects/${MANIFEST_OBJECT_NAME}'),nonce=manifestBin.slice(0,${MANIFEST_NONCE_BYTES}),tag=manifestBin.slice(-${AUTH_TAG_BYTES}),cipher=manifestBin.slice(${MANIFEST_NONCE_BYTES},-${AUTH_TAG_BYTES}),manifestKey=await hkdf(key,uuidBytes('${shareId}'),'manifest'),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:enc('${SHARE_AAD_PREFIX}\\n${shareId}')},manifestKey,concat(cipher,tag)),manifest=JSON.parse(new TextDecoder().decode(plain));if(manifest.shareId.replaceAll('-','')!=='${shareId}')throw Error('share mismatch');for(const item of manifest.items){const li=document.createElement('li'),button=document.createElement('button');button.textContent='Download '+item.displayName+' ('+item.plainLength+' bytes)';button.onclick=async()=>{button.disabled=true;try{await download('${shareId}',key,item)}catch(e){alert(e.message)}finally{button.disabled=false}};li.appendChild(button);list.appendChild(li)}status.textContent='The manifest was decrypted in this browser. Files remain encrypted until download.';}catch(e){status.textContent='Unable to decrypt or validate this share: '+e.message;}})();
 const SHA256_K = new Uint32Array([
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
   0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
@@ -393,6 +408,10 @@ async function hmac(secret, text) {
   return toB64(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text))));
 }
 
+function fromB64(value) {
+  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - value.length % 4) % 4);
+  return Uint8Array.from(atob(padded), character => character.charCodeAt(0));
+}
 function constantTime(a, b) { try { const x = fromB64(a), y = fromB64(b); if (x.length !== y.length) return false; let d = 0; for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i]; return d === 0; } catch { return false; } }
 function toB64(bytes) { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", ""); }
 function metaKey(id) { return `shares/${id}/meta.json`; }
@@ -405,7 +424,7 @@ function publicOrigin(env, request) {
   if (origin.protocol !== "https:" || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/") throw new HttpError("origin-invalid", 500);
   return origin.origin;
 }
-async function readJson(request, maximum) {
+async function readBody(request, maximum, expectedLength = null) {
   const declared = request.headers.get("content-length");
   if (declared !== null) {
     const length = Number(declared);
@@ -423,16 +442,21 @@ async function readJson(request, maximum) {
       total += value.byteLength;
       if (total > maximum) {
         await reader.cancel("body-too-large").catch(() => {});
-        throw new HttpError("body-too-large", 413);
+        throw new HttpError(expectedLength === null ? "body-too-large" : "object-length-mismatch", expectedLength === null ? 413 : 400);
       }
       chunks.push(value);
     }
   } finally {
     reader.releaseLock();
   }
+  if (expectedLength !== null && total !== expectedLength) throw new HttpError("object-length-mismatch", 400);
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
+async function readJson(request, maximum) {
+  const bytes = await readBody(request, maximum);
   let text;
   try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
   catch { throw new HttpError("json-invalid", 400); }
@@ -521,8 +545,9 @@ export class ShareCreationLimiter {
 }
 
 export class ShareUsageCoordinator {
-  constructor(state) {
+  constructor(state, env) {
     this.state = state;
+    this.env = env;
   }
 
   async fetch(request) {
@@ -541,15 +566,7 @@ export class ShareUsageCoordinator {
               !Number.isSafeInteger(body.totalBytes) || body.totalBytes < 1 || body.totalBytes > MAX_BYTES) {
             throw new HttpError("coordinator-metadata-invalid", 400);
           }
-          if (current) {
-            if (current.shareId !== body.shareId ||
-                current.expiresAt !== body.expiresAt ||
-                current.itemCount !== body.itemCount ||
-                current.totalBytes !== body.totalBytes) {
-              throw new HttpError("coordinator-conflict", 409);
-            }
-            return coordinatorJson({ ok: true });
-          }
+          if (current) throw new HttpError("coordinator-conflict", 409);
           current = {
             shareId: body.shareId,
             expiresAt: body.expiresAt,
@@ -568,10 +585,14 @@ export class ShareUsageCoordinator {
 
         if (!current || current.shareId !== body.shareId) throw new HttpError("coordinator-not-found", 404);
         current = cleanupCoordinatorState(current);
-        if (body.operation === "reserve") return this.reserve(current, body);
-        if (body.operation === "commit") return this.commit(current, body);
-        if (body.operation === "rollback") return this.rollback(current, body);
-        if (body.operation === "revoke") return this.revoke(current);
+        if (body.operation === "status") {
+          if (current.revoked || current.expiresAt <= Date.now()) throw new HttpError("share-expired", 410);
+          return coordinatorJson({ ok: true });
+        }
+        if (body.operation === "reserve") return await this.reserve(current, body);
+        if (body.operation === "commit") return await this.commit(current, body);
+        if (body.operation === "rollback") return await this.rollback(current, body);
+        if (body.operation === "revoke") return await this.revoke(current);
         throw new HttpError("coordinator-operation-invalid", 400);
       });
     } catch (error) {
@@ -673,6 +694,19 @@ export class ShareUsageCoordinator {
     const reservationId = String(body.reservationId || "");
     if (current.pending[reservationId]) delete current.pending[reservationId];
     await this.state.storage.put("state", current);
+    const objectName = String(body.objectName || "");
+    // An already-reserved retry can be writing to R2 outside this lock. Its
+    // pending ownership must protect the object as well as committed ownership.
+    const ownedByRetry = current.objects[objectName] ||
+      Object.values(current.pending).some(item => item?.objectName === objectName);
+    if (body.cleanupStoredObject === true && !ownedByRetry &&
+        (objectName === MANIFEST_OBJECT_NAME || /^[0-9a-f]{32}\.[0-9]+\.bin$/.test(objectName))) {
+      try {
+        const key = objectKey(current.shareId, objectName);
+        const stored = await this.env.SHARES.head(key);
+        if (stored?.customMetadata?.uploadReservationId === reservationId) await this.env.SHARES.delete(key);
+      } catch { /* Storage cleanup remains best effort after rollback. */ }
+    }
     return coordinatorJson({ ok: true });
   }
 

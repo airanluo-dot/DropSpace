@@ -204,7 +204,7 @@ Unicode, case folding, paths, punctuation, very long text, stale index after mig
 
 ### User behavior
 
-In Smart mode, an exact Explorer/Desktop item, a strong accessibility drag signal, or an OLE-verified generic threshold candidate reveals a temporary Dynamic Island below the top edge without a permanent activation window. Generic candidates use one 60 ms hollow local verification probe while reveal begins in parallel. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge compatibility and disabled automatic-wake modes remain available.
+In Smart mode, an exact Explorer/Desktop item, a strong accessibility drag signal, or a generic threshold crossing creates an invisible candidate. Every candidate uses at most one 60 ms hollow local OLE probe. The temporary Dynamic Island reveals below the top edge only after file-system or Shell data resolves to bounded paths, or virtual-file data supports materialization on Drop. Drop into Temporary Space or click Compact to expand recent items. Traditional top-edge compatibility and disabled automatic-wake modes remain available.
 
 ### App behavior
 
@@ -226,7 +226,7 @@ Master toggle, retention age/count, image/file capture, size limits, duplicate p
 
 ### Appearance
 
-Display language: System default, English, or Simplified Chinese. System maps a Chinese Windows display language to Simplified Chinese and all other Windows display languages to English. The choice applies on the next DropSpace start. Appearance also includes System/light/dark, System/Full/Reduced Dynamic Island motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
+Display language: System default, English, or Simplified Chinese. System maps a Chinese Windows display language to Simplified Chinese and all other Windows display languages to English. Saving the choice refreshes the main window and Dynamic Island in the running process and persists it for later starts. Appearance also includes System/light/dark, System/Full/Reduced Dynamic Island motion, Automatic/Primary monitor, and material fallback. Mica is automatic preference, not a user performance promise.
 
 ### Privacy
 
@@ -234,7 +234,7 @@ Current recording state, pause/resume, data location, clear ranges, exclusion li
 
 ### States
 
-Settings save immediately after validation. Failed saves revert the control and show an inline error. Display-language changes persist immediately and explicitly request an app restart before their resource set changes.
+Settings save immediately after validation. Failed saves revert the control and show an inline error. Display-language changes refresh the main and Dynamic Island surfaces after saving; existing transient status/error messages and in-flight operation text can retain the previous language until replaced.
 
 ## Tray
 

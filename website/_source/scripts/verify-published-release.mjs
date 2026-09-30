@@ -69,11 +69,16 @@ if (manifest.installer?.assetName !== "DropSpaceSetup.exe" || manifest.portable?
   throw new Error("Published manifest uses unexpected executable asset names.");
 }
 const checksums = await (await fetchOk(assets.get("SHA256SUMS.txt").browser_download_url)).text();
-const checksumMap = new Map(checksums.trim().split(/\r?\n/).map((line) => {
+const expectedChecksumAssets = new Set(["DropSpaceSetup.exe", "DropSpace.exe", "DropSpace-x64.msix"]);
+const checksumMap = new Map();
+for (const line of checksums.trim().split(/\r?\n/)) {
   const match = line.match(/^([0-9a-f]{64})\s{2}(.+)$/i);
   if (!match) throw new Error("SHA256SUMS.txt contains an invalid line.");
-  return [match[2], match[1].toLowerCase()];
-}));
+  if (!expectedChecksumAssets.has(match[2]) || checksumMap.has(match[2])) {
+    throw new Error("SHA256SUMS.txt contains an unexpected or duplicate download.");
+  }
+  checksumMap.set(match[2], match[1].toLowerCase());
+}
 if (checksumMap.size !== 3 || checksumMap.get("DropSpaceSetup.exe") !== manifest.installer.sha256 || checksumMap.get("DropSpace.exe") !== manifest.portable.sha256) {
   throw new Error("Published checksums and update manifest disagree.");
 }

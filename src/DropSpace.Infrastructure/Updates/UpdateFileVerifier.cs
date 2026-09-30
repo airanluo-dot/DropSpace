@@ -27,13 +27,16 @@ public sealed class UpdateFileVerifier(AppStoragePaths paths) : IUpdateVerifier
             return false;
         }
 
-        await using var stream = new FileStream(
-            filePath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            64 * 1024,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        try
+        {
+            _ = ReparseSafePathPolicy.ResolveExistingContainedPath(updatesRoot, filePath);
+        }
+        catch (InvalidDataException)
+        {
+            return false;
+        }
+
+        await using var stream = ReparseSafeFileOpen.OpenRead(filePath);
         var actual = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
         return CryptographicOperations.FixedTimeEquals(actual, Convert.FromHexString(update.Sha256));
     }

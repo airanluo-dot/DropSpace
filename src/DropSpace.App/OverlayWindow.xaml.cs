@@ -1586,6 +1586,7 @@ public sealed partial class OverlayWindow : Window
         }
 
         args.Handled = true;
+        var deferral = args.GetDeferral();
         try
         {
             // StorageItems are the authoritative payload when a producer exposes both a
@@ -1646,6 +1647,7 @@ public sealed partial class OverlayWindow : Window
             _logger.LogWarning(exception, "Visible Overlay StorageItems drop failed.");
             ResetVisualDrag();
         }
+        finally { deferral.Complete(); }
     }
 
     private void ResetVisualDrag()

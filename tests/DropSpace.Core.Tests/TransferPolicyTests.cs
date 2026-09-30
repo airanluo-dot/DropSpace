@@ -49,4 +49,36 @@ public sealed class TransferPolicyTests
         var envelope = ClipboardEnvelopePolicy.CreateText(Guid.NewGuid(), 1, "hello", nowUtc: DateTimeOffset.UtcNow);
         Assert.ThrowsExactly<InvalidDataException>(() => ClipboardEnvelopePolicy.Validate(envelope with { ByteLength = 1 }));
     }
+
+    [TestMethod]
+    [DataRow("folder\\file.txt")]
+    [DataRow("folder//file.txt")]
+    [DataRow("folder/file.txt/")]
+    public void ManifestRejectsPathsThatNormalizeToTheSameDestination(string alias)
+    {
+        var first = new TransferItemManifest(Guid.NewGuid(), TransferItemKind.File, "file.txt",
+            "folder/file.txt", 1, new string('a', 64), "text/plain", 1);
+        var second = first with { Id = Guid.NewGuid(), RelativePath = alias };
+
+        Assert.ThrowsExactly<InvalidDataException>(() => TransferManifestPolicy.Create(Guid.NewGuid(), [first, second]));
+    }
+
+    [TestMethod]
+    [DataRow("/file.txt")]
+    [DataRow("\\file.txt")]
+    [DataRow("\\\\server\\share\\file.txt")]
+    [DataRow("C:\\file.txt")]
+    [DataRow("C:file.txt")]
+    public void TransferPathsRejectAbsoluteAndDriveQualifiedInputs(string path)
+    {
+        Assert.ThrowsExactly<InvalidDataException>(() => TransferManifestPolicy.NormalizeRelativePath(path));
+    }
+
+    [TestMethod]
+    [DataRow("folder/file.txt")]
+    [DataRow("folder\\file.txt")]
+    public void TransferPathsKeepPortableRelativeSeparators(string path)
+    {
+        Assert.AreEqual("folder/file.txt", TransferManifestPolicy.NormalizeRelativePath(path));
+    }
 }

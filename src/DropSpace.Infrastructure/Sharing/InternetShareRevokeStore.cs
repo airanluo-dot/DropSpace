@@ -89,7 +89,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                 throw new InvalidOperationException("The secure share revoke-handle capacity is full.");
             }
 
-            PendingReservations[ReservationKey] = pendingReservations + 1;
+            PendingReservations.AddOrUpdate(ReservationKey, 1, static (_, current) => current + 1);
             return new ShareCapacityReservation(ReservationKey, ReleaseReservation);
         }
         finally { StoreGate.Release(); }

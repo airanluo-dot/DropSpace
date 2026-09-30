@@ -30,18 +30,19 @@ Missing runtime fails with an HRESULT rather than opening a headless dialog.
 App tests bootstrap their unpackaged Windows App SDK
 host. Release validation checks actual executable versions, and upgrade lifecycle
 tests use the real historical installer in an isolated account, preserving all
-pre-existing user data and installation state. Synchronize the repository
-maintainer Skill and the installed `dropspace-codex` counterpart when contracts
-or validation procedures change.
+pre-existing user data and installation state. Use the repository
+[maintainer Skill](.agents/skills/dropspace-maintainer/SKILL.md) as the only
+canonical project guide. Update it when its durable navigation or interface map
+changes; ordinary product changes do not require a Skill update or personal copy.
 
 For v0.3 network/preview changes, read the DropSpace maintainer skill and the contracts under `docs/protocol`, `docs/architecture`, and `docs/security`. Do not add a new platform client, public backend, firewall rule, telemetry field, or release claim without an explicit documented boundary and a fail-closed unavailable state.
 
 ## Beta release naming
 
-The current target is `v0.3.0-beta.26` (Beta 26). All new prereleases use
+The current target is `v0.3.0-beta.29` (Beta 29). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. Preview.23 requires one manual installation of
 Beta 24, preserving data/settings, because its shipped parser rejects Beta
-tags. Beta 26 is the Beta 25 release-candidate audit remediation; subsequent Beta
+tags. Beta 26 remains the historical Beta 25 audit remediation; subsequent Beta
 updates are automatic according to user settings.
 See [migration contract](docs/dev/beta-migration.md).

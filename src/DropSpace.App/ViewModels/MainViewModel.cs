@@ -991,6 +991,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         if (CurrentSection == "Pinned" && !card.IsPinned)
         {
             ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
+            ApplyBatchProjectionState();
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
@@ -1069,36 +1070,40 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         }
     }
 
+    public Task<IReadOnlyList<Windows.Storage.IStorageItem>> GetBatchDragStorageItemsAsync(Guid batchId)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var task = ResolveBatchDragStorageItemsAsync(batchId, _lifetimeCancellation.Token);
+        TrackBackgroundTask(task, "batch drag preparation");
+        return task;
+    }
+
+    private async Task<IReadOnlyList<Windows.Storage.IStorageItem>> ResolveBatchDragStorageItemsAsync(
+        Guid batchId, CancellationToken cancellationToken)
+    {
+        var members = await _repository.QueryDropBatchAsync(batchId, cancellationToken);
+        // The resolver already limits concurrent native file lookups. Query the persisted
+        // batch rather than the current filtered or partially loaded UI projection.
+        var storageItems = await Task.WhenAll(members.Select(item =>
+            _dragStorageItems.ResolveAsync(item, cancellationToken)));
+        return storageItems.Where(item => item is not null).Cast<Windows.Storage.IStorageItem>().ToArray();
+    }
+
     private void ApplyBatchProjectionState()
     {
         foreach (var group in Items.Where(item => item.IsGrouped && item.DropBatchId is not null)
                      .GroupBy(item => item.DropBatchId))
         {
             var ordered = group.OrderBy(item => item.BatchMetadata?.ItemIndex ?? int.MaxValue).ToArray();
-            var hasIndexedMetadata = ordered.Any(item => item.BatchMetadata is not null);
-            var hasHeaderOnThisPage = ordered.Any(item => item.BatchMetadata?.ItemIndex == 0);
-            var isSearchProjection = !string.IsNullOrWhiteSpace(SearchText);
+            // Filters, removal, and paging can omit ItemIndex=0. Keep one loaded member
+            // actionable until the persisted header is available in this projection.
+            // Reevaluate the complete loaded group so later pages never add a second header.
+            var header = ordered.FirstOrDefault(item => item.BatchMetadata?.ItemIndex == 0) ?? ordered[0];
             var expanded = _batchExpansion.TryGetValue(group.Key!.Value, out var value) && value;
             for (var index = 0; index < ordered.Length; index++)
             {
                 var card = ordered[index];
-                // Keyset paging can start in the middle of a batch. Only the persisted
-                // ItemIndex=0 record is the header; a page-local first member must not
-                // become a second header that is visible while the batch is collapsed.
-                var isHeader = hasIndexedMetadata
-                    ? card.BatchMetadata?.ItemIndex == 0
-                    : index == 0;
-                if (hasIndexedMetadata && !hasHeaderOnThisPage && !isSearchProjection)
-                {
-                    isHeader = false;
-                }
-                else if (hasIndexedMetadata && !hasHeaderOnThisPage && isSearchProjection)
-                {
-                    // A search page may contain only a matching member. Keep that result
-                    // actionable by presenting the first matched member as the local group
-                    // representative; ordinary keyset pages still wait for ItemIndex=0.
-                    isHeader = index == 0;
-                }
+                var isHeader = ReferenceEquals(card, header);
 
                 card.IsBatchHeader = isHeader;
                 card.IsBatchExpanded = expanded;
@@ -1117,6 +1122,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             cancellationToken);
 
         ProjectionCollection.RemoveById(Items, item => item.Id, card.Id);
+        ApplyBatchProjectionState();
         ItemCount = Items.Count;
         IsEmpty = Items.Count == 0;
         if (card.Item.Source == ItemSource.Space)
@@ -1497,53 +1503,76 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     private void OnItemCaptured(object? sender, DropItem item)
     {
-        _dispatcher.TryEnqueue(() =>
-        {
-            if (CurrentSection == "Clipboard" && string.IsNullOrWhiteSpace(SearchText))
-            {
-                var existing = Items.FirstOrDefault(card => card.Id == item.Id);
-                if (existing is not null)
-                {
-                    existing.Update(item);
-                    RefreshPrimaryQuickActions(existing);
-                    Items.Move(Items.IndexOf(existing), 0);
-                }
-                else
-                {
-                    var card = new ItemCardViewModel(item, _strings);
-                    RefreshPrimaryQuickActions(card);
-                    Items.Insert(0, card);
-                    TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
-                    while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
-                }
+        _dispatcher.TryEnqueue(() => ApplyCapturedItem(item));
+    }
 
-                ItemCount = Items.Count;
-                IsEmpty = Items.Count == 0;
+    private void ApplyCapturedItem(DropItem item)
+    {
+        // Unsubscribing cannot revoke a callback already accepted by the dispatcher.
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (CurrentSection == "Clipboard" && string.IsNullOrWhiteSpace(SearchText))
+        {
+            var existing = Items.FirstOrDefault(card => card.Id == item.Id);
+            if (existing is not null)
+            {
+                existing.Update(item);
+                RefreshPrimaryQuickActions(existing);
+                Items.Move(Items.IndexOf(existing), 0);
             }
-        });
+            else
+            {
+                var card = new ItemCardViewModel(item, _strings);
+                RefreshPrimaryQuickActions(card);
+                Items.Insert(0, card);
+                TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
+                while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
+            }
+
+            ItemCount = Items.Count;
+            IsEmpty = Items.Count == 0;
+        }
     }
 
     private void OnClipboardStatusChanged(object? sender, ClipboardCaptureStatus status)
     {
-        _dispatcher.TryEnqueue(() =>
+        _dispatcher.TryEnqueue(() => ApplyClipboardStatus(status));
+    }
+
+    private void ApplyClipboardStatus(ClipboardCaptureStatus status)
+    {
+        if (_disposed)
         {
-            ClipboardStatusText = FormatClipboardStatus(status);
-            if (!string.IsNullOrWhiteSpace(status.Message))
-            {
-                StatusMessage = status.Message;
-            }
-        });
+            return;
+        }
+
+        ClipboardStatusText = FormatClipboardStatus(status);
+        if (!string.IsNullOrWhiteSpace(status.Message))
+        {
+            StatusMessage = status.Message;
+        }
     }
 
     private void OnUpdateStatusChanged(object? sender, UpdateStatusSnapshot status)
     {
         if (_dispatcher.HasThreadAccess)
         {
-            UpdateStatus = status;
+            ApplyUpdateStatus(status);
         }
         else
         {
-            _dispatcher.TryEnqueue(() => UpdateStatus = status);
+            _dispatcher.TryEnqueue(() => ApplyUpdateStatus(status));
+        }
+    }
+
+    private void ApplyUpdateStatus(UpdateStatusSnapshot status)
+    {
+        if (!_disposed)
+        {
+            UpdateStatus = status;
         }
     }
 
@@ -1554,24 +1583,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             UndoOperationKind.RemoveBatch or UndoOperationKind.ClearClipboard;
         _lastUndoKind = state?.Kind;
 
-        void Apply()
-        {
-            OnPropertyChanged(nameof(UndoState));
-            OnPropertyChanged(nameof(HasUndo));
-            OnPropertyChanged(nameof(UndoMessage));
-            if (state is null && wasRemoval && !_undoRequested)
-            {
-                TrackBackgroundTask(RefreshAfterUndoFinalizationAsync(_lifetimeCancellation.Token), "undo projection refresh");
-            }
-        }
-
         if (_dispatcher.HasThreadAccess)
         {
-            Apply();
+            ApplyUndoState(state is null && wasRemoval);
         }
         else
         {
-            _dispatcher.TryEnqueue(Apply);
+            _dispatcher.TryEnqueue(() => ApplyUndoState(state is null && wasRemoval));
+        }
+    }
+
+    private void ApplyUndoState(bool removalFinished)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        OnPropertyChanged(nameof(UndoState));
+        OnPropertyChanged(nameof(HasUndo));
+        OnPropertyChanged(nameof(UndoMessage));
+        if (removalFinished && !_undoRequested)
+        {
+            TrackBackgroundTask(RefreshAfterUndoFinalizationAsync(_lifetimeCancellation.Token), "undo projection refresh");
         }
     }
 
@@ -1698,7 +1732,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         var updated = await _settingsCoordinator.UpdateLastCheckAsync(Settings, checkedAt, cancellationToken);
         Task ApplyAsync()
         {
-            Settings = updated;
+            // Preferences may have changed while persistence or this dispatcher callback
+            // was queued. An update check owns only its monotonic timestamp.
+            Settings = SettingsChangePolicy.ApplyLastUpdateCheck(Settings, updated.LastUpdateCheckUtc ?? checkedAt);
             return Task.CompletedTask;
         }
 

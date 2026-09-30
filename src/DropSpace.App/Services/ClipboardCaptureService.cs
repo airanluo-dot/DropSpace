@@ -1,5 +1,6 @@
 using DropSpace.Core.Preview;
 using System.Threading.Channels;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using DropSpace.Core.Abstractions;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
+using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
@@ -47,21 +49,18 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly DispatcherQueue _dispatcher;
     private readonly IAppStringLocalizer _strings;
     private readonly ILogger<ClipboardCaptureService> _logger;
-    private readonly Channel<CaptureSignal> _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
-    {
-        SingleReader = true,
-        SingleWriter = false,
-        // Clipboard notifications are level-triggered: only the newest sequence is
-        // actionable. Dropping the oldest queued signal keeps a burst from losing the
-        // final clipboard state or stalling the notification thread.
-        FullMode = BoundedChannelFullMode.DropOldest,
-    });
+    private readonly Channel<CaptureSignal> _signals;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _stateGate = new(1, 1);
     private readonly SemaphoreSlim _commitGate = new(1, 1);
     private readonly SemaphoreSlim _clipboardWriteGate = new(1, 1);
     private readonly SemaphoreSlim _retentionGate = new(1, 1);
     private readonly ConsecutiveClipboardCaptureCoordinator _consecutiveCaptures = new();
+    private readonly TextReadCoordinator _textReads = new();
+    // Count active and retired native operations through Cancel and Close.
+    private readonly SemaphoreSlim _textReadSlots = new(8, 8);
+    private readonly ConcurrentDictionary<long, Task> _retiredTextReads = new();
+    private long _retiredTextReadId;
     private Task? _worker;
     private Task? _retentionTask;
     private AppSettings _settings = new();
@@ -83,6 +82,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private Task? _disposeTask;
     private Task? _lateWorkerCleanupTask;
     private int _managedResourcesDisposed;
+    private readonly ClipboardDiagnosticTrace _diagnostics = new();
+    private long _diagnosticReadAttempts;
+    private long _diagnosticEnqueuedSignals;
+    private long _diagnosticDequeuedSignals;
+    private uint _lastDiagnosticNotificationSequence;
 
     public ClipboardCaptureService(
         IItemRepository repository,
@@ -106,6 +110,18 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         _dispatcher = dispatcher;
         _strings = strings;
         _logger = logger;
+        _signals = Channel.CreateBounded<CaptureSignal>(new BoundedChannelOptions(128)
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            // Notifications are level-triggered; keep the latest sequence without
+            // blocking the listener, while counting every evicted older signal.
+            FullMode = BoundedChannelFullMode.DropOldest,
+        }, signal =>
+        {
+            Interlocked.Increment(ref _droppedEvents);
+            RecordDiagnostic(ClipboardDiagnosticDecision.SignalDropped, signal);
+        });
     }
 
     public event EventHandler<ClipboardCaptureStatus>? StatusChanged;
@@ -122,6 +138,62 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     public ClipboardCaptureStatus Status => CreateStatus(null);
 
     public bool IsPaused => _paused;
+
+    internal void BeginDiagnosticSession()
+    {
+        Interlocked.Exchange(ref _diagnosticReadAttempts, 0);
+        Interlocked.Exchange(ref _diagnosticEnqueuedSignals, 0);
+        Interlocked.Exchange(ref _diagnosticDequeuedSignals, 0);
+        Volatile.Write(ref _lastDiagnosticNotificationSequence, 0);
+        _diagnostics.Enable();
+    }
+
+    internal void EndDiagnosticSession() => _diagnostics.Disable();
+
+    internal void BeginDiagnosticStage(ClipboardSmokeStage stage,
+        ClipboardSmokeProfile profile = ClipboardSmokeProfile.Baseline, int cycle = 0) =>
+        _diagnostics.BeginStage(stage, CreateDiagnosticState(), profile, cycle);
+
+    internal ClipboardDiagnosticState DiagnosticCurrentState => CreateDiagnosticState();
+
+    internal ClipboardDiagnosticDocument DiagnosticSnapshot => _diagnostics.Snapshot(CreateDiagnosticState());
+
+    internal void RecordSmokeDiagnostic(ClipboardDiagnosticDecision decision, Exception? exception = null) =>
+        _diagnostics.Record(decision, CreateDiagnosticState(), failure: ClipboardDiagnosticTrace.Classify(exception), hResult: exception?.HResult);
+
+    private ClipboardDiagnosticState CreateDiagnosticState()
+    {
+        uint? nativeSequence = null;
+        try { nativeSequence = GetClipboardSequenceNumber(); }
+        catch (Exception exception) when (exception is not OutOfMemoryException) { }
+        return new(DateTimeOffset.UtcNow, nativeSequence,
+            Volatile.Read(ref _lastDiagnosticNotificationSequence), Volatile.Read(ref _lastProcessedClipboardSequence),
+            new(Interlocked.Read(ref _observedEvents), Interlocked.Read(ref _diagnosticReadAttempts),
+                Interlocked.Read(ref _capturedItems), Interlocked.Read(ref _suppressedConsecutiveDuplicates),
+                Interlocked.Read(ref _failedReads), Interlocked.Read(ref _droppedEvents),
+                Interlocked.Read(ref _diagnosticEnqueuedSignals), Interlocked.Read(ref _diagnosticDequeuedSignals),
+                8 - _textReadSlots.CurrentCount, _retiredTextReads.Count),
+            _notifications?.Status.IsRegistered ?? false, _paused, Volatile.Read(ref _pauseGeneration),
+            _initialized, Volatile.Read(ref _disposeStarted) != 0, _worker?.Status);
+    }
+
+    private void RecordDiagnostic(ClipboardDiagnosticDecision decision, CaptureSignal? signal = null, Exception? exception = null, int? readAttempt = null)
+    {
+        if (!_diagnostics.IsEnabled) return;
+        _diagnostics.Record(decision, CreateDiagnosticState(), signal?.ClipboardSequenceNumber, signal?.Attempt,
+            readAttempt, ClipboardDiagnosticTrace.Classify(exception), exception?.HResult);
+    }
+
+    private bool TryQueueSignal(CaptureSignal signal)
+    {
+        var accepted = _signals.Writer.TryWrite(signal);
+        if (_diagnostics.IsEnabled)
+        {
+            if (accepted) Interlocked.Increment(ref _diagnosticEnqueuedSignals);
+            RecordDiagnostic(accepted ? ClipboardDiagnosticDecision.SignalQueued : ClipboardDiagnosticDecision.SignalDropped, signal);
+        }
+        return accepted;
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -162,15 +234,18 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task PauseAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         // Serialize the transition with repository commits. Taking commitGate first
         // means a pause request either precedes a remote import or waits for that
         // already-started import; no later import can pass the check while paused.
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
+                ThrowIfDisposing();
                 if (_paused)
                 {
                     return;
@@ -195,12 +270,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task ResumeAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
+                ThrowIfDisposing();
                 if (!_paused)
                 {
                     return;
@@ -231,11 +309,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task UpdateSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         ArgumentNullException.ThrowIfNull(settings);
         settings.Validate();
         await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             _settings = settings;
         }
         finally
@@ -244,11 +324,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    public Task ResetCaptureSequenceAsync(CancellationToken cancellationToken = default) =>
-        _consecutiveCaptures.ResetAsync(cancellationToken);
+    public Task ResetCaptureSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposing();
+        return _consecutiveCaptures.ResetAsync(cancellationToken);
+    }
 
     public async Task CopyTextAsync(string text, CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         cancellationToken.ThrowIfCancellationRequested();
         var fingerprint = FingerprintService.ForText(text.Replace("\r\n", "\n", StringComparison.Ordinal));
@@ -256,8 +340,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         SelfWriteMarker? selfWrite = null;
         try
         {
+            ThrowIfDisposing();
             await _dispatcher.EnqueueAsync(() =>
             {
+                ThrowIfDisposing();
                 // Mark immediately before the native mutation. A busy dispatcher must not
                 // consume the short-lived self-write window before Clipboard.SetContent runs.
                 selfWrite = MarkSelfWrite(fingerprint);
@@ -284,12 +370,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         CancellationToken cancellationToken = default,
         bool publishCaptured = true)
     {
+        ThrowIfDisposing();
         if (_paused) throw new ClipboardPausedException();
         ClipboardEnvelopePolicy.Validate(envelope);
         DropItem item;
         await _commitGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ThrowIfDisposing();
             // Pause wins over a remote request even when the request raced with the
             // notification event. The check is inside the same gate as the repository
             // write, so a paused import can never create a history row.
@@ -392,6 +480,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     public async Task CopyImageAsync(string relativePath, CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         var absolutePath = _payloadStore.ResolvePath(relativePath);
         var fileInfo = new FileInfo(absolutePath);
         if (!fileInfo.Exists || fileInfo.Length is <= 0 or > int.MaxValue || fileInfo.Length > _settings.MaxImageBytes)
@@ -404,15 +493,17 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         SelfWriteMarker? selfWrite = null;
         try
         {
+            ThrowIfDisposing();
             await _dispatcher.EnqueueAsync(async () =>
             {
-                selfWrite = MarkSelfWrite(fingerprint);
+                ThrowIfDisposing();
                 var file = await StorageFile.GetFileFromPathAsync(absolutePath);
                 var package = new DataPackage
                 {
                     RequestedOperation = DataPackageOperation.Copy,
                 };
                 package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
+                selfWrite = MarkSelfWrite(fingerprint);
                 await ClipboardAccessPolicy.SetContentAsync(
                     () => Clipboard.SetContent(package),
                     cancellationToken);
@@ -430,6 +521,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         IEnumerable<string> paths,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposing();
         ArgumentNullException.ThrowIfNull(paths);
         var distinctPaths = paths
             .Where(path => !string.IsNullOrWhiteSpace(path))
@@ -453,9 +545,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         SelfWriteMarker? selfWrite = null;
         try
         {
+            ThrowIfDisposing();
             await _dispatcher.EnqueueAsync(async () =>
             {
-                selfWrite = MarkSelfWrite(fingerprint);
+                ThrowIfDisposing();
                 var storageItems = new List<IStorageItem>(distinctPaths.Length);
                 foreach (var path in distinctPaths)
                 {
@@ -470,6 +563,9 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     RequestedOperation = DataPackageOperation.Copy,
                 };
                 package.SetStorageItems(storageItems, readOnly: true);
+                // Resolving network paths can outlast the short self-write window.
+                // Start that window only when the prepared package is ready to write.
+                selfWrite = MarkSelfWrite(fingerprint);
                 await ClipboardAccessPolicy.SetContentAsync(
                     () => Clipboard.SetContent(package),
                     cancellationToken);
@@ -600,11 +696,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
 
         _shutdown.Dispose();
-        _stateGate.Dispose();
-        _commitGate.Dispose();
-        _clipboardWriteGate.Dispose();
-        _retentionGate.Dispose();
-        _consecutiveCaptures.Dispose();
+        // Public operations may already own or await these managed gates while
+        // their UI/COM work finishes. Keep them usable for final Release and for
+        // queued callers to observe shutdown after acquiring ownership. None of
+        // these semaphores creates a native wait handle in this service.
     }
 
     private void OnClipboardChanged(object? sender, ClipboardNotification notification)
@@ -615,8 +710,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
 
         var observed = Interlocked.Increment(ref _observedEvents);
+        if (_diagnostics.IsEnabled) Volatile.Write(ref _lastDiagnosticNotificationSequence, notification.SequenceNumber);
+        RecordDiagnostic(ClipboardDiagnosticDecision.Notification);
         if (_paused)
         {
+            RecordDiagnostic(ClipboardDiagnosticDecision.PausedSignal);
             PublishStatus(null);
             return;
         }
@@ -626,12 +724,21 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             observed,
             Volatile.Read(ref _pauseGeneration),
             notification.ObservedAtUtc);
-        if (!_signals.Writer.TryWrite(signal))
+        if (!TryQueueSignal(signal))
         {
             Interlocked.Increment(ref _droppedEvents);
             PublishStatus(_strings.Get("ClipboardEventDropped"));
         }
+        else if (_textReads.HasActiveRead)
+        {
+            // Admit the notification before releasing an older text waiter. The
+            // actual sequence can already be newer than the sampled notification.
+            _textReads.Notify(GetClipboardSequenceNumber(), signal.ClipboardSequenceNumber, QueueTextSequence);
+        }
     }
+
+    private bool QueueTextSequence(uint sequence) => TryQueueSignal(new CaptureSignal(
+        sequence, Interlocked.Read(ref _observedEvents), Volatile.Read(ref _pauseGeneration), DateTimeOffset.UtcNow));
 
     private bool IsSignalStillCurrent(CaptureSignal signal)
     {
@@ -644,7 +751,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         var current = GetClipboardSequenceNumber();
         if (current == 0 || current == signal.ClipboardSequenceNumber) return;
-        _signals.Writer.TryWrite(new CaptureSignal(
+        TryQueueSignal(new CaptureSignal(
             current,
             Interlocked.Read(ref _observedEvents),
             Volatile.Read(ref _pauseGeneration),
@@ -661,18 +768,23 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private async Task ProcessSignalsAsync()
     {
+        RecordDiagnostic(ClipboardDiagnosticDecision.WorkerStarted);
         try
         {
             await foreach (var signal in _signals.Reader.ReadAllAsync(_shutdown.Token).ConfigureAwait(false))
             {
+                if (_diagnostics.IsEnabled) Interlocked.Increment(ref _diagnosticDequeuedSignals);
+                RecordDiagnostic(ClipboardDiagnosticDecision.SignalDequeued, signal);
                 if (_paused || signal.PauseGeneration != Volatile.Read(ref _pauseGeneration))
                 {
+                    RecordDiagnostic(ClipboardDiagnosticDecision.PausedSignal, signal);
                     continue;
                 }
 
                 if (signal.ClipboardSequenceNumber != 0 &&
                     signal.ClipboardSequenceNumber == _lastProcessedClipboardSequence)
                 {
+                    RecordDiagnostic(ClipboardDiagnosticDecision.DuplicateSequence, signal);
                     _logger.LogInformation(
                         "Duplicate WM_CLIPBOARDUPDATE skipped for sequence {SequenceNumber}.",
                         signal.ClipboardSequenceNumber);
@@ -684,11 +796,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     var snapshot = await ReadSnapshotWithRetryAsync(signal, _shutdown.Token).ConfigureAwait(false);
                     if (snapshot is null)
                     {
+                        RecordDiagnostic(ClipboardDiagnosticDecision.SnapshotUnavailable, signal);
                         // A retry can discover that a newer clipboard sequence replaced the
                         // signal while the read was in flight. Do not consume the old signal
                         // without giving the newer sequence a chance to be processed.
                         QueueCurrentClipboardSignal(signal);
                         _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                        RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
                         continue;
                     }
 
@@ -702,14 +816,18 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     // latest sequence is queued again below and will be read as its own event.
                     if (!IsSignalStillCurrent(signal))
                     {
+                        RecordDiagnostic(ClipboardDiagnosticDecision.StaleSequence, signal);
                         QueueCurrentClipboardSignal(signal);
                         _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                        RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
                         continue;
                     }
 
                     if (IsSelfWrite(snapshot.Fingerprint))
                     {
+                        RecordDiagnostic(ClipboardDiagnosticDecision.SelfWriteSuppressed, signal);
                         _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                        RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
                         _logger.LogInformation(
                             "Clipboard self-write suppressed for sequence {SequenceNumber}.",
                             signal.ClipboardSequenceNumber);
@@ -717,9 +835,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     }
 
                     IReadOnlyList<DropItem> items;
+                    RecordDiagnostic(ClipboardDiagnosticDecision.CommitGateWaiting, signal);
                     await _commitGate.WaitAsync(_shutdown.Token).ConfigureAwait(false);
                     try
                     {
+                        RecordDiagnostic(ClipboardDiagnosticDecision.CommitGateAcquired, signal);
                         if (_paused || signal.PauseGeneration != Volatile.Read(ref _pauseGeneration))
                         {
                             continue;
@@ -727,14 +847,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
                         if (!IsSignalStillCurrent(signal))
                         {
+                            RecordDiagnostic(ClipboardDiagnosticDecision.StaleSequence, signal);
                             QueueCurrentClipboardSignal(signal);
                             _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                            RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
                             continue;
                         }
 
                         var capture = await _consecutiveCaptures.ExecuteAsync(
                                 snapshot.Fingerprint,
-                                token => CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, token),
+                                token => CommitSnapshotWithDiagnosticsAsync(snapshot, signal, token),
                                 committedItems => committedItems.Count > 0,
                                 _shutdown.Token)
                             .ConfigureAwait(false);
@@ -742,6 +864,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         {
                             Interlocked.Increment(ref _suppressedConsecutiveDuplicates);
                             _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                            RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
+                            RecordDiagnostic(ClipboardDiagnosticDecision.ConsecutiveSuppressed, signal);
                             _logger.LogInformation(
                                 "Consecutive clipboard snapshot suppressed for sequence {SequenceNumber}.",
                                 signal.ClipboardSequenceNumber);
@@ -753,6 +877,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                         if (items.Count == 0)
                         {
                             _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                            RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
+                            RecordDiagnostic(ClipboardDiagnosticDecision.NoItemsCommitted, signal);
                             continue;
                         }
                     }
@@ -762,11 +888,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     }
 
                     Interlocked.Add(ref _capturedItems, items.Count);
+                    RecordDiagnostic(ClipboardDiagnosticDecision.ItemsCaptured, signal);
                     foreach (var item in items)
                     {
                         PublishItemCaptured(item);
                     }
                     _lastProcessedClipboardSequence = signal.ClipboardSequenceNumber;
+                    RecordDiagnostic(ClipboardDiagnosticDecision.SequenceConsumed, signal);
                     PublishStatus(null);
                     try
                     {
@@ -790,6 +918,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 }
                 catch (Exception exception)
                 {
+                    RecordDiagnostic(ClipboardDiagnosticDecision.CaptureFailed, signal, exception);
                     _logger.LogWarning(exception, "Clipboard event could not be captured.");
                     if (!_shutdown.IsCancellationRequested && signal.Attempt < 2)
                     {
@@ -798,7 +927,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                             currentSequence == 0 ||
                             currentSequence == signal.ClipboardSequenceNumber)
                         {
-                            if (_signals.Writer.TryWrite(signal with { Attempt = signal.Attempt + 1 }))
+                            if (TryQueueSignal(signal with { Attempt = signal.Attempt + 1 }))
                             {
                                 PublishStatus(_strings.Get("ClipboardBusyRetrying"));
                                 continue;
@@ -814,13 +943,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+            RecordDiagnostic(ClipboardDiagnosticDecision.WorkerCancelled);
             return;
         }
         catch (Exception exception)
         {
+            RecordDiagnostic(ClipboardDiagnosticDecision.WorkerFailed, exception: exception);
             _logger.LogError(exception, "Clipboard capture worker stopped unexpectedly.");
             PublishStatus(_strings.Get("ClipboardCaptureStopped"), ClipboardRecordingState.Error);
         }
+        finally { RecordDiagnostic(ClipboardDiagnosticDecision.WorkerCompleted); }
     }
 
     private async Task<ClipboardSnapshot?> ReadSnapshotWithRetryAsync(
@@ -850,6 +982,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     currentSequence != 0 &&
                     currentSequence != signal.ClipboardSequenceNumber)
                 {
+                    RecordDiagnostic(ClipboardDiagnosticDecision.RetrySequenceAdvanced, signal);
                     _logger.LogInformation(
                         "Clipboard retry abandoned because sequence advanced from {OriginalSequence} to {CurrentSequence}.",
                         signal.ClipboardSequenceNumber,
@@ -860,11 +993,14 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
             try
             {
+                if (_diagnostics.IsEnabled) Interlocked.Increment(ref _diagnosticReadAttempts);
+                RecordDiagnostic(ClipboardDiagnosticDecision.ReadAttempt, signal, readAttempt: attempt + 1);
                 _logger.LogInformation(
                     "Clipboard snapshot read started for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,
                     attempt + 1);
                 var snapshot = await ReadSnapshotAsync(signal, cancellationToken).ConfigureAwait(false);
+                RecordDiagnostic(ClipboardDiagnosticDecision.ReadCompleted, signal);
                 _logger.LogInformation(
                     "Clipboard snapshot read completed for sequence {SequenceNumber}; format {Format}.",
                     signal.ClipboardSequenceNumber,
@@ -875,6 +1011,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             {
                 lastException = exception;
                 Interlocked.Increment(ref _failedReads);
+                RecordDiagnostic(ClipboardDiagnosticDecision.ReadFailed, signal, exception, attempt + 1);
                 PublishStatus(_strings.Get("ClipboardBusyRetrying"));
                 _logger.LogWarning(
                     exception,
@@ -893,6 +1030,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         CaptureSignal signal,
         CancellationToken cancellationToken)
     {
+        RecordDiagnostic(ClipboardDiagnosticDecision.DispatcherQueued, signal);
         var source = await _dispatcher.EnqueueAsync(
                 () => ReadClipboardSnapshotSourceAsync(signal, cancellationToken))
             .ConfigureAwait(false);
@@ -929,10 +1067,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewReadStarted, signal);
         var view = Clipboard.GetContent();
+        RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewRead, signal);
 
         if (view.Contains(StandardDataFormats.StorageItems))
         {
+            RecordDiagnostic(ClipboardDiagnosticDecision.StorageItemsRead, signal);
             var storageItems = await view.GetStorageItemsAsync();
             var paths = storageItems
                 .Select(item => item.Path)
@@ -965,6 +1106,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
         if (view.Contains(StandardDataFormats.Bitmap))
         {
+            RecordDiagnostic(ClipboardDiagnosticDecision.BitmapRead, signal);
             var reference = await view.GetBitmapAsync();
             using var stream = await reference.OpenReadAsync();
             if (stream.Size == 0 ||
@@ -985,9 +1127,41 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
         if (view.Contains(StandardDataFormats.Text))
         {
-            var text = await view.GetTextAsync();
+            await _textReadSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
+            IAsyncOperation<string>? operation = null;
+            Task<string>? nativeRead = null;
+            TextReadLease? read = null;
+            string text;
+            try
+            {
+                // A dedicated queue may have no managed synchronization context.
+                // Return explicitly to the owner after a pending slot acquisition.
+                if (_dispatcher.HasThreadAccess) await StartReadAsync();
+                else await _dispatcher.EnqueueAsync(StartReadAsync).ConfigureAwait(false);
+                if (nativeRead is null || read is null) return new ClipboardReadResult(null, null);
+                using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, read.SupersededToken);
+                try
+                {
+                    text = await nativeRead.WaitAsync(stop.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (read.IsSuperseded && !cancellationToken.IsCancellationRequested)
+                {
+                    RecordDiagnostic(ClipboardDiagnosticDecision.StaleSequence, signal);
+                    return new ClipboardReadResult(null, null);
+                }
+            }
+            finally
+            {
+                if (read is not null) _textReads.Release(read);
+                if (operation is not null)
+                    RetireTextRead(nativeRead ?? ObserveUnbridgedTextReadAsync(() => operation.Status, operation.GetResults),
+                        operation.Cancel, operation.Close, nativeRead is null || !nativeRead.IsCompleted);
+                else _textReadSlots.Release();
+            }
+            RecordDiagnostic(ClipboardDiagnosticDecision.TextReadCompleted, signal);
             if (string.IsNullOrWhiteSpace(text))
             {
+                RecordDiagnostic(ClipboardDiagnosticDecision.EmptyText, signal);
                 return new ClipboardReadResult(
                     CreateRejectedSnapshot(signal, "empty-text"),
                     null);
@@ -1005,11 +1179,168 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     null,
                     null),
                 null);
+
+            Task StartReadAsync()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!IsSignalStillCurrent(signal)) return Task.CompletedTask;
+                RecordDiagnostic(ClipboardDiagnosticDecision.TextReadStarted, signal);
+                operation = view.GetTextAsync();
+                RecordDiagnostic(ClipboardDiagnosticDecision.TextOperationCreated, signal);
+                // Retain the original task for eventual native completion/GetResults.
+                nativeRead = operation.AsTask();
+                read = _textReads.Register(signal.ClipboardSequenceNumber, GetClipboardSequenceNumber, QueueTextSequence);
+                return Task.CompletedTask;
+            }
         }
 
+        RecordDiagnostic(ClipboardDiagnosticDecision.UnsupportedFormat, signal);
         return new ClipboardReadResult(
             CreateRejectedSnapshot(signal, "unsupported-format"),
             null);
+    }
+
+    private void RetireTextRead(Task<string> nativeRead, Action cancel, Action close, bool requestCancellation)
+    {
+        var id = Interlocked.Increment(ref _retiredTextReadId);
+        var cleanup = ObserveTextReadCompletionAsync(nativeRead, cancel, close, requestCancellation,
+            exception => _logger.LogDebug("Clipboard text operation cleanup failed ({Category}, {HResult}).",
+                exception.GetType().Name, exception.HResult), () => _textReadSlots.Release());
+        _retiredTextReads[id] = cleanup;
+        _ = cleanup.ContinueWith(completed =>
+        {
+            _ = completed.Exception;
+            _retiredTextReads.TryRemove(id, out _);
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
+    internal static Task ObserveTextReadCompletionAsync(Task<string> nativeRead, Action cancel, Action close,
+        bool requestCancellation, Action<Exception>? onFailure = null, Action? onClosed = null) => Task.Run(async () =>
+    {
+        var cancellation = requestCancellation ? Task.Run(() => TryNativeAction(cancel)) : Task.CompletedTask;
+        try
+        {
+            try { await nativeRead.ConfigureAwait(false); }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { Report(exception); }
+        }
+        finally
+        {
+            try { await cancellation.ConfigureAwait(false); }
+            finally
+            {
+                // Both the ordinary bridge and a setup-failure observer have
+                // established terminal state before native Close and slot release.
+                try
+                {
+                    while (true)
+                    {
+                        try { close(); break; }
+                        catch (Exception exception) when (exception.HResult == unchecked((int)0x80000013)) { break; }
+                        catch (Exception exception) when (exception is not OutOfMemoryException) { Report(exception); }
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                    }
+                }
+                finally { onClosed?.Invoke(); }
+            }
+        }
+
+        void TryNativeAction(Action action)
+        {
+            try { action(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { Report(exception); }
+        }
+
+        void Report(Exception exception)
+        {
+            try { onFailure?.Invoke(exception); }
+            catch (Exception callbackFailure) when (callbackFailure is not OutOfMemoryException) { }
+        }
+    });
+
+    internal static Task<string> ObserveUnbridgedTextReadAsync(Func<AsyncStatus> readStatus, Func<string> getResults) => Task.Run(async () =>
+    {
+        // AsTask can fail during bridge setup. A created operation still owns its
+        // slot until terminal state is known; Cancel alone is not that evidence.
+        while (true)
+        {
+            AsyncStatus? status = null;
+            try { status = readStatus(); }
+            catch (Exception exception) when (exception.HResult == unchecked((int)0x80000013))
+            {
+                return string.Empty; // RO_E_CLOSED proves native ownership ended.
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { }
+            if (status is AsyncStatus.Completed or AsyncStatus.Error or AsyncStatus.Canceled)
+                return getResults();
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+        }
+    });
+
+    internal sealed class TextReadCoordinator
+    {
+        private readonly object _gate = new();
+        private TextReadLease? _active;
+
+        internal bool HasActiveRead { get { lock (_gate) return _active is not null; } }
+
+        internal TextReadLease Register(uint sequence, Func<uint> readCurrentSequence, Func<uint, bool> queue)
+        {
+            var read = new TextReadLease(sequence);
+            lock (_gate) _active = read;
+            // The notification may have arrived before this lease was published.
+            // Read native state after publication rather than reuse its snapshot.
+            try { Notify(readCurrentSequence(), null, queue); }
+            catch { Release(read); throw; }
+            return read;
+        }
+
+        internal void Notify(uint currentSequence, uint? admittedSequence, Func<uint, bool> queue)
+        {
+            TextReadLease? read;
+            lock (_gate) read = _active;
+            if (read is null || read.Sequence == 0 || currentSequence == 0 || read.Sequence == currentSequence) return;
+            if (admittedSequence != currentSequence && !queue(currentSequence)) return;
+            read.Supersede();
+        }
+
+        internal void Release(TextReadLease read)
+        {
+            lock (_gate) { if (ReferenceEquals(_active, read)) _active = null; }
+            read.Dispose();
+        }
+    }
+
+    internal sealed class TextReadLease(uint sequence) : IDisposable
+    {
+        private readonly object _gate = new();
+        private readonly CancellationTokenSource _superseded = new();
+        private bool _disposed;
+        private int _isSuperseded;
+        internal uint Sequence { get; } = sequence;
+        internal CancellationToken SupersededToken => _superseded.Token;
+        internal bool IsSuperseded => Volatile.Read(ref _isSuperseded) != 0;
+
+        internal void Supersede()
+        {
+            lock (_gate)
+            {
+                if (_disposed || IsSuperseded) return;
+                Volatile.Write(ref _isSuperseded, 1);
+                // This private token is used only by the managed WaitAsync waiter;
+                // native cancellation is never a token callback on the listener.
+                _superseded.Cancel();
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_gate)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                _superseded.Dispose();
+            }
+        }
     }
 
     private async Task<ClipboardSnapshot> EncodeClipboardImageAsync(
@@ -1234,6 +1565,22 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         FingerprintService.ForText(string.Join(
             '\n',
             paths.Select(Path.GetFullPath).Order(StringComparer.OrdinalIgnoreCase)));
+
+    private Task<IReadOnlyList<DropItem>> CommitSnapshotWithDiagnosticsAsync(
+        ClipboardSnapshot snapshot, CaptureSignal signal, CancellationToken cancellationToken)
+    {
+        // Normal capture retains the original task/continuation path.
+        if (!_diagnostics.IsEnabled) return CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, cancellationToken);
+        return TraceCommitAsync();
+
+        async Task<IReadOnlyList<DropItem>> TraceCommitAsync()
+        {
+            RecordDiagnostic(ClipboardDiagnosticDecision.RepositoryCommitStarted, signal);
+            var committed = await CommitSnapshotAsync(snapshot, signal.ClipboardSequenceNumber, cancellationToken).ConfigureAwait(false);
+            RecordDiagnostic(ClipboardDiagnosticDecision.RepositoryCommitCompleted, signal);
+            return committed;
+        }
+    }
 
     private async Task ApplyRetentionIfDueAsync(CancellationToken cancellationToken)
     {

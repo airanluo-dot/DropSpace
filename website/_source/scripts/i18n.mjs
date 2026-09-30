@@ -236,6 +236,7 @@ Object.assign(zh, {
   "Supported Windows versions depend on the release. Check the system requirements in its release notes before downloading.": "支持的 Windows 版本随发布版本而定，下载前请查看对应发布说明中的系统要求。",
   "Stable receives Stable releases. Beta can receive Stable and Beta releases. DropSpace verifies download size and SHA-256. Installation options depend on the package; release notes explain any manual upgrade steps.": "稳定通道只接收稳定版，Beta 通道可接收稳定版和 Beta 版。DropSpace 会校验下载大小与 SHA-256。安装方式取决于所选安装包；需要手动升级时，请按发布说明操作。",
   "64-bit Windows · See release notes for system requirements": "64 位 Windows · 系统要求请查看发布说明",
+  "64-bit Windows build 20348 or later · See release notes for system requirements": "64 位 Windows Build 20348 或更高版本 · 系统要求请查看发布说明",
   "Windows app package": "Windows 应用安装包",
   "Clipboard history is stored locally. Update checks use public release metadata and official download endpoints. Sharing uses the connections you explicitly enable.": "剪贴板历史保存在本地。更新检查使用公开的版本信息与官方下载接口；分享功能使用你明确启用的连接。"
 });

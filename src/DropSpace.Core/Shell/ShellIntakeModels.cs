@@ -51,11 +51,11 @@ public static class ShellIntakeCommandLineParser
         }
 
         var pathStart = sourceIndex + 1;
-        var delimiterIndex = IndexOf(arguments, "--", pathStart);
-        var hasDelimiter = delimiterIndex >= 0;
+        var hasDelimiter = pathStart < arguments.Count &&
+            string.Equals(arguments[pathStart], "--", StringComparison.Ordinal);
         if (hasDelimiter)
         {
-            pathStart = delimiterIndex + 1;
+            pathStart++;
         }
 
         if (pathStart >= arguments.Count)

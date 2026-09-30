@@ -489,6 +489,49 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
+    public async Task Repository_BatchPinSupportsSelectionsBeyondSqliteParameterLimit()
+    {
+        var repository = CreateRepository();
+        var item = await repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("large selection"));
+        var ids = Enumerable.Range(0, 32_767).Select(_ => Guid.NewGuid()).Append(item.Id).ToArray();
+
+        var result = await repository.SetPinnedManyAsync(ids, true);
+
+        Assert.AreEqual(1, result.AffectedCount);
+        Assert.IsTrue((await repository.GetAsync(item.Id))!.IsPinned);
+        Assert.AreEqual(1, await repository.RestorePinnedStatesAsync(result.PreviousStates));
+        Assert.IsFalse((await repository.GetAsync(item.Id))!.IsPinned);
+    }
+
+    [TestMethod]
+    public async Task Repository_BatchPinFailureInLaterCommandRollsBackEarlierChanges()
+    {
+        var database = new SqliteDatabase(_paths, NullLogger<SqliteDatabase>.Instance);
+        var repository = new SqliteItemRepository(database, NullLogger<SqliteItemRepository>.Instance);
+        var ids = new List<Guid>();
+        for (var index = 0; index < 1_001; index++)
+        {
+            ids.Add((await repository.AddSpaceTextAsync(ContentClassifier.CreateTextCandidate("atomic selection"))).Id);
+        }
+        await using (var connection = await database.OpenConnectionAsync())
+        await using (var command = connection.CreateCommand())
+        {
+            var rejectedId = Convert.ToHexString(ids[^1].ToByteArray());
+            command.CommandText = $"""
+                CREATE TRIGGER reject_late_pin BEFORE UPDATE OF is_pinned ON items
+                WHEN NEW.id = X'{rejectedId}'
+                BEGIN SELECT RAISE(ABORT, 'late pin failure'); END;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await Assert.ThrowsExactlyAsync<SqliteException>(() => repository.SetPinnedManyAsync(ids, true));
+
+        Assert.AreEqual(0, await repository.CountAsync(ItemSource.Space, pinnedOnly: true));
+        Assert.AreEqual(1, (await repository.GetAsync(ids[0]))!.Revision);
+    }
+
+    [TestMethod]
     public async Task Repository_PreservesNonConsecutiveClipboardTextAndSupportsSearch()
     {
         var repository = CreateRepository();

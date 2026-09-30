@@ -13,7 +13,7 @@ Clipboard text/images, selected source files, peer identity keys, pairing secret
 | Replay | Single-use nonces and bounded session expiry |
 | Path traversal / overwrite | Relative-path normalization, staging, destination containment, atomic move, no source mutation |
 | Malicious oversized input | Manifest, chunk, preview, clipboard, receiver, and object limits |
-| Clipboard echo loop | 10,000-entry/24-hour content-hash LRU plus existing self-write suppression |
+| Clipboard echo loop | 10,000-entry/24-hour guard keyed by original device, sequence, event ID, content hash and byte length, plus existing self-write suppression; separate intentional copies remain distinct |
 | Clipboard pause bypass | Persisted pause state and commit barrier checked before remote envelope validation/import and automatic system-clipboard mutation |
 | Share backend sees plaintext/key | AES-256-GCM client-side encryption; key only in URL fragment |
 | Leaked nearby link | 192-bit token, short TTL, receiver cap, revoke, private-address binding |

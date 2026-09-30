@@ -70,6 +70,7 @@ public sealed class DropLinkPairingService(
     {
         ThrowIfDisposed();
         var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        ThrowIfDisposed();
         var ephemeral = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
         var hello = new PairingHello(
             DropLinkProtocolVersion.V1,
@@ -100,6 +101,7 @@ public sealed class DropLinkPairingService(
             Task expirationTask;
             lock (_admissionGate)
             {
+                ThrowIfDisposed();
                 var now = DateTimeOffset.UtcNow;
                 PruneExpiredPendingLocked(now);
                 EnsureAdmissionAvailableLocked(remote, address);
@@ -352,16 +354,19 @@ public sealed class DropLinkPairingService(
 
     private async Task DisposeCoreAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-        {
-            return;
-        }
-
-        _shutdown.Cancel();
         lock (_admissionGate)
         {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
             _rateWindows.Clear();
         }
+
+        // Admission holds the same gate until its expiration task has been registered.
+        // Once disposal is marked, no later admission can outlive this cleanup snapshot.
+        _shutdown.Cancel();
 
         foreach (var entry in _pending.ToArray())
         {
@@ -464,6 +469,7 @@ public sealed class DropLinkPairingService(
     {
         lock (_admissionGate)
         {
+            ThrowIfDisposed();
             var now = DateTimeOffset.UtcNow;
             foreach (var key in _rateWindows
                          .Where(entry => now - entry.Value.WindowStartedAtUtc > DropLinkPairingPolicy.RateWindow)

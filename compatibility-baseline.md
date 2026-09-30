@@ -49,8 +49,8 @@ The following product contracts are unchanged:
 
 - Dynamic Island/Overlay behavior, direct visible drops, and Smart Drag v2
   remain the same business path.
-- Placement persistence remains schema 9 and continues to use the existing
-  per-monitor/DPI policy.
+- Current settings schema 14 retains the per-monitor placement model introduced
+  in schema 9 and continues to use the existing per-monitor/DPI policy.
 - Clipboard capture remains event-driven, bounded, local, and pause-aware.
 - Updates remain official-source, size/hash-verified, publisher-gated, and
   deployment-mode aware; lowering the OS baseline does not weaken update
@@ -73,30 +73,38 @@ release workflow before restore/build. It rejects target/minimum drift, direct
 Mica XAML parsing, unguarded modern DWM attributes, updater-policy drift, and
 missing baseline documentation.
 
-## Required evidence matrix
+## Physical evidence matrix
 
 The following is the acceptance matrix, not a claim that every row has already
 been run. A row is complete only when its OS build, display scale, monitor
 topology, deployment mode, application version, and result are recorded from a
 real Windows environment.
 
+Under the current Beta publication policy in [TEST_PLAN.md](TEST_PLAN.md), missing
+physical/manual matrix evidence is recommended follow-up rather than a Beta
+publication blocker. Unexecuted rows remain unverified. Exact-candidate Windows
+automated build, tests including actual DPAPI, native smoke, packaging/lifecycle,
+security and final artifact checks remain required; Stable criteria are unchanged.
+
 | OS baseline | Build | Required focus |
 | --- | ---: | --- |
 | Windows build 20348 | 20348 | minimum launch, portable guard, installer/MSIX minimum, base visuals |
-| Windows 10 1909 | 18363 | normal launch, clipboard, drag/drop, updater, DPI |
-| Windows 10 20H2 | 19042 | normal launch, clipboard, drag/drop, updater, DPI |
-| Windows 10 22H2 | 19045 | full Windows 10 regression and multi-monitor matrix |
+| Windows 10 1909 (below minimum) | 18363 | portable launch diagnostic and installer/MSIX rejection |
+| Windows 10 20H2 (below minimum) | 19042 | portable launch diagnostic and installer/MSIX rejection |
+| Windows 10 22H2 (below minimum) | 19045 | portable launch diagnostic and installer/MSIX rejection |
 | Windows 11 21H2 | 22000 | Mica/DWM capability boundary and Drop Tray coexistence |
 | Windows 11 22H2 | 22621 | full feature and share-contract regression |
 | Windows 11 23H2 | 22631 | full feature and share-contract regression |
 | Windows 11 24H2 | 26100 | release runner baseline, full feature and packaging regression |
 
-For every supported row, exercise 100%, 125%, 150%, 175%, and 200% display
+Rows below build 20348 are negative compatibility tests: verify graceful launch
+and installation rejection, rather than claiming support for runtime features.
+For every supported row at build 20348 or later, exercise 100%, 125%, 150%, 175%, and 200% display
 scales where the OS can configure them; one, two, and three monitor layouts;
 primary and non-primary placement; monitor reconnect/topology refresh; and
 both x64 Installer and Portable deployments. On Windows 11, include the
 packaged/identity Share Target path when a trusted identity package is
-available. On Windows 10, verify that the same content path remains usable
+available. On supported builds below Windows 11, verify that the same content path remains usable
 through the main window and visible Overlay even though Mica, modern DWM
 attributes, and Drop Tray-specific behavior are unavailable.
 
@@ -120,14 +128,15 @@ The critical flows are:
 ## Current evidence boundary
 
 The source-level compatibility gate, pure policy tests, updater tests, and
-Windows workflow definitions are part of this implementation. The current
-Linux development environment does not contain `dotnet`, PowerShell, WinUI,
-or a Windows display stack, so it cannot produce honest Windows executable,
-installer, DPI, OLE, clipboard, or multi-monitor evidence. The first Windows
-CI/release run must be inspected after publication, and the rows above remain
-conditional until real Windows machines or equivalent dedicated test fixtures
-record them. Hosted Windows CI is useful for build/smoke coverage but does not
-replace the historical OS/DPI/monitor/provider matrix.
+Windows workflow definitions are part of this implementation. A Linux
+development environment can run platform-neutral tests and read-only script
+checks when .NET and PowerShell are available, but it lacks WinUI and a Windows
+display stack. Those checks cannot establish Windows executable, installer,
+DPI, OLE, clipboard, or multi-monitor behavior. Inspect the relevant Windows
+CI/release results; the rows above remain conditional until real Windows
+machines or equivalent dedicated test fixtures record them. Hosted Windows CI
+is useful for build/smoke coverage but does not replace the historical
+OS/DPI/monitor/provider matrix.
 
 ## Preview.19 execution record
 

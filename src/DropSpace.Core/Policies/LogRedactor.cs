@@ -13,8 +13,9 @@ public static partial class LogRedactor
 
         var value = UrlQueryRegex().Replace(message, "$1?[redacted]");
         value = WindowsPathRegex().Replace(value, "[path]");
-        value = TokenRegex().Replace(value, "$1=[secret]");
         value = BearerRegex().Replace(value, "Bearer [secret]");
+        // Redact the credential before a key/value match can consume its Bearer label.
+        value = TokenRegex().Replace(value, "$1=[secret]");
         return value.Length <= 4_096 ? value : string.Concat(value.AsSpan(0, 4_095), "…");
     }
 

@@ -22,7 +22,10 @@ public sealed partial class PdfPreviewProvider(IItemContentResolver contentResol
     public async Task<PreviewDescriptor> LoadAsync(PreviewRequest request, CancellationToken cancellationToken = default)
     {
         await using var source = OpenFile(request.Item);
-        var bytes = await ReadBoundedAsync(source, Math.Min(request.Item.KnownSize ?? 16L * 1024 * 1024, 64L * 1024 * 1024), cancellationToken).ConfigureAwait(false);
+        // External sources may have grown since their metadata was captured.
+        // Enforce the preview budget against the bytes read, not a stale known size.
+        const long maximumBytes = 64L * 1024 * 1024;
+        var bytes = await ReadBoundedAsync(source, maximumBytes, cancellationToken).ConfigureAwait(false);
         if (!bytes.AsSpan().StartsWith("%PDF-"u8))
         {
             throw new InvalidDataException("The PDF signature is invalid.");

@@ -59,6 +59,18 @@ public abstract class FilePreviewProviderBase(PreviewLimits limits, IItemContent
 
     protected static string DecodeText(byte[] bytes)
     {
+        // UTF-32 little endian shares UTF-16's leading BOM bytes. Recognize the
+        // full four-byte BOM first so supplementary characters stay intact.
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE, 0x00, 0x00 }))
+        {
+            return Encoding.UTF32.GetString(bytes, 4, bytes.Length - 4);
+        }
+
+        if (bytes.AsSpan().StartsWith(new byte[] { 0x00, 0x00, 0xFE, 0xFF }))
+        {
+            return new UTF32Encoding(bigEndian: true, byteOrderMark: false).GetString(bytes, 4, bytes.Length - 4);
+        }
+
         if (bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE }))
         {
             return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);

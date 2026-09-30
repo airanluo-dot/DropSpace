@@ -555,6 +555,11 @@ public sealed class UpdateService : IUpdateService, IAsyncDisposable
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // CancelAsync marks the lifetime token before propagating cancellation
+            // through linked callbacks. A queued operation can acquire the gate
+            // during that interval, so observe the owner directly before starting it.
+            _lifetime.Token.ThrowIfCancellationRequested();
+            callerToken.ThrowIfCancellationRequested();
             return await operation(cancellationToken).ConfigureAwait(false);
         }
         finally

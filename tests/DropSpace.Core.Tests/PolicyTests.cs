@@ -40,6 +40,18 @@ public sealed class PolicyTests
     }
 
     [TestMethod]
+    [DataRow(0xd800)]
+    [DataRow(0xdc00)]
+    public void SearchNormalizer_ReplacesMalformedClipboardUnicode(int surrogate)
+    {
+        var text = string.Concat("A", ((char)surrogate).ToString(), "CAFÉ");
+        var candidate = ContentClassifier.CreateTextCandidate(text);
+
+        Assert.AreEqual("a\ufffdcafe", SearchNormalizer.Normalize(candidate.Text));
+        Assert.AreEqual("clipboard a\ufffdcafe", ContentClassifier.BuildSearchText("clipboard", candidate.Text));
+    }
+
+    [TestMethod]
     public void PayloadPathPolicy_RejectsDirectoryTraversal()
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-tests", "payloads");

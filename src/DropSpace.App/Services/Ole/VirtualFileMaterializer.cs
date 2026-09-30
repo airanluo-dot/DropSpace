@@ -144,7 +144,9 @@ internal sealed class VirtualFileMaterializer
             {
                 try
                 {
-                    if (!await _stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(false))
+                    // EndOperation in finally belongs to the supplying OLE apartment even
+                    // when rollback has to await another staging operation.
+                    if (!await _stagingLeases.CompleteAsync(lease, CancellationToken.None).ConfigureAwait(asyncOperationStarted))
                     {
                         _logger.LogWarning("Virtual-file staging rollback was deferred; its lease remains durable.");
                     }
@@ -205,6 +207,8 @@ internal sealed class VirtualFileMaterializer
             }
 
             var size = checked((long)GlobalSize(medium.unionmember).ToUInt64());
+            if (size < sizeof(uint))
+                throw new InvalidDataException("The virtual-file descriptor header is incomplete.");
             var pointer = GlobalLock(medium.unionmember);
             if (pointer == nint.Zero)
             {
@@ -213,27 +217,7 @@ internal sealed class VirtualFileMaterializer
 
             try
             {
-                var count = Marshal.ReadInt32(pointer);
-                var descriptorSize = Marshal.SizeOf<FileDescriptorW>();
-                if (count is < 1 or > MaximumItems || sizeof(uint) + (long)count * descriptorSize > size)
-                {
-                    throw new InvalidDataException("The virtual-file descriptor count or size is invalid.");
-                }
-
-                var descriptors = new List<VirtualFileDescriptor>(count);
-                for (var index = 0; index < count; index++)
-                {
-                    var native = Marshal.PtrToStructure<FileDescriptorW>(
-                        pointer + sizeof(uint) + index * descriptorSize);
-                    var safeName = ValidateLeafName(native.FileName);
-                    var announcedSize = ((long)native.FileSizeHigh << 32) | native.FileSizeLow;
-                    if (announcedSize < 0 || announcedSize > MaximumFileBytes)
-                    {
-                        throw new InvalidDataException("A virtual file announced an unsupported size.");
-                    }
-                    descriptors.Add(new VirtualFileDescriptor(safeName, announcedSize));
-                }
-                return descriptors;
+                return ReadDescriptorsFromMemory(pointer, size);
             }
             finally
             {
@@ -244,6 +228,31 @@ internal sealed class VirtualFileMaterializer
         {
             ReleaseStgMedium(ref medium);
         }
+    }
+
+    internal static IReadOnlyList<VirtualFileDescriptor> ReadDescriptorsFromMemory(nint pointer, long size)
+    {
+        if (pointer == nint.Zero || size < sizeof(uint))
+            throw new InvalidDataException("The virtual-file descriptor header is incomplete.");
+        var count = Marshal.ReadInt32(pointer);
+        var descriptorSize = Marshal.SizeOf<FileDescriptorW>();
+        if (count is < 1 or > MaximumItems || sizeof(uint) + (long)count * descriptorSize > size)
+            throw new InvalidDataException("The virtual-file descriptor count or size is invalid.");
+
+        var descriptors = new List<VirtualFileDescriptor>(count);
+        for (var index = 0; index < count; index++)
+        {
+            var native = Marshal.PtrToStructure<FileDescriptorW>(pointer + sizeof(uint) + index * descriptorSize);
+            var safeName = ValidateLeafName(native.FileName);
+            // FILEDESCRIPTOR fields are valid only when their corresponding flag
+            // is set. Providers may leave unannounced size bytes unspecified.
+            var announcedSize = (native.Flags & 0x40) != 0
+                ? ((long)native.FileSizeHigh << 32) | native.FileSizeLow : 0;
+            if (announcedSize < 0 || announcedSize > MaximumFileBytes)
+                throw new InvalidDataException("A virtual file announced an unsupported size.");
+            descriptors.Add(new VirtualFileDescriptor(safeName, announcedSize));
+        }
+        return descriptors;
     }
 
     private async Task<long> WriteContentsAsync(
@@ -532,7 +541,7 @@ internal sealed class VirtualFileMaterializer
         tymed = medium,
     };
 
-    private readonly record struct VirtualFileDescriptor(string FileName, long AnnouncedSize);
+    internal readonly record struct VirtualFileDescriptor(string FileName, long AnnouncedSize);
 
     private sealed class OwnedVirtualMedium(string destination, STGMEDIUM medium) : IDisposable
     {

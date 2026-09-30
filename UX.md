@@ -96,9 +96,9 @@ Pinned is not a store and the Overlay is not a second product or page. Clipboard
 
 ## Updates
 
-Settings exposes automatic check/download toggles, Stable/Preview channel, current version, last check, state, manual check, download, install/open-location, and release-notes actions. Automatic checking belongs to the process lifetime and runs at most once after normal Tray/Clipboard/Overlay/database startup; reopening a window never checks again. A failed startup check is quiet and visible only as status. Manual checks can repeat and share an in-flight request.
+Settings exposes automatic check/download toggles, Stable/Beta channel, current version, last check, state, manual check, download, install/open-location, and release-notes actions. Automatic checking belongs to the process lifetime and runs at most once after normal Tray/Clipboard/Overlay/database startup; reopening a window never checks again. A failed startup check is quiet and visible only as status. Manual checks can repeat and share an in-flight request.
 
-Stable accepts only final releases. Preview accepts both release kinds and chooses the highest SemVer above the running build, so a Preview user receives a newer Stable and never downgrades after switching channels. Unsigned builds disable unattended installation. Portable shows a verified-download workflow; Package/MSIX says Windows manages updates.
+Stable accepts only final releases. Beta accepts prereleases and final releases and chooses the highest SemVer above the running build, so a Beta user receives a newer Stable and never downgrades after switching channels. Historical Preview tags and settings remain readable for compatibility. Unsigned builds disable unattended installation. Portable shows a verified-download workflow; Package/MSIX says Windows manages updates.
 
 ## Main window
 
@@ -166,7 +166,7 @@ Settings keeps the precise X/Y editor and adds **Adjust Island Position…** for
 - Dangerous clear actions live in Privacy, separated from ordinary toggles.
 - “Exclude apps” (V1.1) includes the copy: “Best effort. Some clipboard changes cannot be attributed to an app.”
 - Changes apply immediately unless a restart is technically required; required restart is stated before saving.
-- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, Automatic/Primary monitor, and display language: System default, English, or Simplified Chinese. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`; System language uses the Windows display language, maps Chinese to Simplified Chinese, and falls back to English for the other shipped-language cases. The language selection is announced to assistive technology and takes effect after restart.
+- Top interface settings provide Smart/Traditional/Disabled file-drag wake, System/Full/Reduced motion, Automatic/Primary monitor, and display language: System default, English, or Simplified Chinese. The visual surface is always Dynamic Island. System motion follows Windows `UISettings.AnimationsEnabled`; System language uses the Windows display language, maps Chinese to Simplified Chinese, and falls back to English for the other shipped-language cases. Saving the language preference refreshes the main window and Dynamic Island live, including control accessibility names. Existing transient status/error messages and in-flight operation text can retain the previous language until replaced.
 
 ## System tray
 

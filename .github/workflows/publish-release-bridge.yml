@@ -4,6 +4,7 @@ on:
   create:
   # Allow a failed publication dispatch to be retried by advancing the
   # exact-name publication branch to the new main commit.
+  # A new branch also emits push(created=true); create already handles it.
   push:
     branches:
       - 'publish/**'
@@ -16,7 +17,9 @@ jobs:
     if: >-
       github.ref_type == 'branch' &&
       startsWith(github.ref_name, 'publish/') &&
-      github.actor == github.repository_owner
+      github.actor == github.repository_owner &&
+      (github.event_name == 'create' ||
+       (github.event_name == 'push' && github.event.created != true))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

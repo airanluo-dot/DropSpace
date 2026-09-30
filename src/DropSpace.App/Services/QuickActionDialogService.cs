@@ -87,7 +87,7 @@ public sealed class QuickActionDialogService(
                 SecondaryButtonText = result.OutputPaths.Count == 0 ? string.Empty : strings.Get("OpenOutputFolder"),
                 CloseButtonText = strings.Get("CommonAcknowledge"),
             };
-            var response = await dialog.ShowAsync();
+            var response = await Views.ContentDialogLifetime.ShowAsync(dialog, cancellationToken);
             if (response == ContentDialogResult.Primary && result.ResultText is { } text)
                 await clipboard.CopyTextAsync(text, cancellationToken);
             else if (response == ContentDialogResult.Secondary && result.OutputPaths.Count > 0)
@@ -272,7 +272,7 @@ public sealed class QuickActionDialogService(
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            if (await Views.ContentDialogLifetime.ShowAsync(dialog, cancellationToken) != ContentDialogResult.Primary)
             {
                 return null;
             }
@@ -320,27 +320,13 @@ public sealed class QuickActionDialogService(
         return ImageSizePresetPolicy.Scale(checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight), 100);
     }
 
-    private ComboBox? CreateFormatSelector(DropItemSnapshot item, ItemActionId actionId)
+    private ComboBox CreateFormatSelector(DropItemSnapshot item, ItemActionId actionId)
     {
-        if (actionId is not (ItemActionId.ResizeImage or ItemActionId.ConvertImage or ItemActionId.StripMetadata))
-        {
-            return null;
-        }
-
         var selector = new ComboBox
         {
             Header = strings.Get("QuickActionOutputFormat"),
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        if (actionId == ItemActionId.StripMetadata)
-        {
-            selector.Items.Add(new ComboBoxItem
-            {
-                Content = strings.Get("QuickActionKeepOriginalFormat"),
-                Tag = null,
-            });
-        }
-
         selector.Items.Add(CreateFormatItem(".png", "QuickActionFormatPng"));
         selector.Items.Add(CreateFormatItem(".jpg", "QuickActionFormatJpeg"));
         selector.Items.Add(CreateFormatItem(".bmp", "QuickActionFormatBmp"));

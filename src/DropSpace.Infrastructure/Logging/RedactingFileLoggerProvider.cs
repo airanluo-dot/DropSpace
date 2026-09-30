@@ -309,7 +309,7 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
+        public bool IsEnabled(LogLevel logLevel) => logLevel is >= LogLevel.Information and < LogLevel.None;
 
         public void Log<TState>(
             LogLevel logLevel,

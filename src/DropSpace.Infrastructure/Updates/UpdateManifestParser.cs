@@ -129,7 +129,8 @@ public sealed class UpdateManifestParser
 
     public static bool IsOfficialDownloadUri(Uri uri, string tagName, string assetName)
     {
-        if (!uri.IsAbsoluteUri || uri.Scheme != Uri.UriSchemeHttps ||
+        if (!uri.IsAbsoluteUri || uri.Scheme != Uri.UriSchemeHttps || !uri.IsDefaultPort ||
+            !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment) ||
             !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
         {
             return false;

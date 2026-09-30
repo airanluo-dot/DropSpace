@@ -168,10 +168,12 @@ public sealed class GlobalQuickPanelHotkeyService : IDisposable, IAsyncDisposabl
 
     private void MessageThreadMain()
     {
-        Volatile.Write(ref _threadId, GetCurrentThreadId());
         try
         {
             _ = PeekMessage(out _, nint.Zero, 0, 0, 0);
+            // Publishing a thread ID permits StopCoreAsync to post WM_QUIT. The
+            // message queue must already exist or that first stop can be lost.
+            Volatile.Write(ref _threadId, GetCurrentThreadId());
             if (!RegisterHotKey(
                 nint.Zero,
                 HotkeyId,

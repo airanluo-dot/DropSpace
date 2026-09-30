@@ -14,16 +14,21 @@ public sealed class EnhancementDeploymentException(string code) : Exception(code
 
 public sealed class NeteaseInstallationProbe
 {
-    public Task<NeteaseInstallation?> FindAsync(CancellationToken cancellationToken = default) => Task.Run(() =>
+    public Task<NeteaseInstallation?> FindAsync(CancellationToken cancellationToken = default) =>
+        Task.Run(() => FindCandidates(Candidates(), cancellationToken), cancellationToken);
+
+    internal static NeteaseInstallation? FindCandidates(
+        IEnumerable<string> candidates,
+        CancellationToken cancellationToken = default)
     {
-        foreach (string candidate in Candidates().Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (string candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try { if (Inspect(candidate) is { } installation) return installation; }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or EnhancementDeploymentException) { }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or BadImageFormatException or EnhancementDeploymentException) { }
         }
         return null;
-    }, cancellationToken);
+    }
 
     internal static NeteaseInstallation? Inspect(string path)
     {

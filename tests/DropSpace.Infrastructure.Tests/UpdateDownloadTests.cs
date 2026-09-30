@@ -194,6 +194,35 @@ public sealed class UpdateDownloadTests
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => downloader.DownloadAsync(malicious));
     }
 
+    [TestMethod]
+    public async Task LinkedVersionDirectoryCannotReplaceAnExternalExecutable()
+    {
+        byte[] bytes = [1, 2, 3];
+        var (downloader, candidate, paths) = Create(bytes, bytes.Length, Hash(bytes));
+        paths.EnsureCreated();
+        var external = Path.Combine(paths.Root, "external-source");
+        Directory.CreateDirectory(external);
+        var sentinel = Path.Combine(external, "DropSpace.exe");
+        await File.WriteAllTextAsync(sentinel, "preserve external executable");
+        var linkedVersion = Path.Combine(paths.Updates, candidate.Manifest.Version.ToString());
+        try
+        {
+            try { Directory.CreateSymbolicLink(linkedVersion, external); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            {
+                Assert.Inconclusive($"Directory links are unavailable: {exception.GetType().Name}");
+            }
+
+            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => downloader.DownloadAsync(candidate));
+            Assert.AreEqual("preserve external executable", await File.ReadAllTextAsync(sentinel));
+            Assert.AreEqual(1, Directory.GetFiles(external).Length);
+        }
+        finally
+        {
+            if (Directory.Exists(linkedVersion)) Directory.Delete(linkedVersion);
+        }
+    }
+
     private (HttpUpdateDownloader Downloader, UpdateCandidate Candidate, AppStoragePaths Paths) Create(
         byte[] bytes,
         long expectedSize,

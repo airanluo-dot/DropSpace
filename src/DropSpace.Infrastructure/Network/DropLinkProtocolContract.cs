@@ -44,13 +44,16 @@ public static class DropLinkProtocolRoutes
             index.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
     public static bool IsPairing(string path) =>
-        string.Equals(path, PairingHello, StringComparison.Ordinal) ||
-        string.Equals(path, PairingConfirm, StringComparison.Ordinal);
+        MatchesRoute(path, PairingHello) || MatchesRoute(path, PairingConfirm);
 
     public static bool RequiresAuthentication(string path) =>
-        string.Equals(path, Clipboard, StringComparison.Ordinal) ||
-        string.Equals(path, HandoffText, StringComparison.Ordinal) ||
-        path.StartsWith(VersionPrefix + "/transfers/", StringComparison.Ordinal);
+        MatchesRoute(path, Clipboard) || MatchesRoute(path, HandoffText) ||
+        path.StartsWith(VersionPrefix + "/transfers/", StringComparison.OrdinalIgnoreCase);
+
+    // ASP.NET routing accepts casing aliases and trailing separators. The body
+    // and authentication boundary must classify the same paths before binding.
+    private static bool MatchesRoute(string path, string route) =>
+        string.Equals(path.TrimEnd('/'), route, StringComparison.OrdinalIgnoreCase);
 }
 
 public static class DropLinkProtocolHeaders

@@ -21,11 +21,13 @@ export function compareReleaseTags(left, right) {
   const parse = (tag) => {
     const match = /^v(\d+)\.(\d+)\.(\d+)(?:-(?:preview|beta)\.(\d+))?$/.exec(tag);
     if (!match) throw new TypeError("Invalid release tag.");
-    return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] ? Number(match[4]) : 9999];
+    return [BigInt(match[1]), BigInt(match[2]), BigInt(match[3]), match[4] === undefined ? null : BigInt(match[4])];
   };
   const a = parse(left), b = parse(right);
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i];
-  return 0;
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+  if (a[3] === b[3]) return 0;
+  if (a[3] === null || b[3] === null) return a[3] === null ? 1 : -1;
+  return a[3] > b[3] ? 1 : -1;
 }
 
 function releaseArtifactKind(name) {

@@ -1,6 +1,5 @@
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Models;
-using DropSpace.Core.Policies;
 using Microsoft.Extensions.Logging;
 
 namespace DropSpace.Infrastructure.Storage;
@@ -21,18 +20,7 @@ public sealed class PayloadCleanupCoordinator(
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var entries = await repository.GetPendingPayloadDeletesAsync(BatchSize, cancellationToken).ConfigureAwait(false);
-            var completed = 0;
-            foreach (var entry in entries)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (await TryDeleteAsync(entry, cancellationToken).ConfigureAwait(false))
-                {
-                    completed++;
-                }
-            }
-
-            return completed;
+            return await DrainCoreAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -45,17 +33,7 @@ public sealed class PayloadCleanupCoordinator(
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var entries = await repository.GetPendingPayloadDeletesAsync(BatchSize, cancellationToken).ConfigureAwait(false);
-            var completed = 0;
-            foreach (var entry in entries)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (await TryDeleteAsync(entry, cancellationToken).ConfigureAwait(false))
-                {
-                    completed++;
-                }
-            }
-
+            var completed = await DrainCoreAsync(cancellationToken).ConfigureAwait(false);
             var reconciled = await reconciler.ReconcileAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             return completed + reconciled;
         }
@@ -63,6 +41,22 @@ public sealed class PayloadCleanupCoordinator(
         {
             _gate.Release();
         }
+    }
+
+    private async Task<int> DrainCoreAsync(CancellationToken cancellationToken)
+    {
+        var entries = await repository.GetPendingPayloadDeletesAsync(BatchSize, cancellationToken).ConfigureAwait(false);
+        var completed = 0;
+        foreach (var entry in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (await TryDeleteAsync(entry, cancellationToken).ConfigureAwait(false))
+            {
+                completed++;
+            }
+        }
+
+        return completed;
     }
 
     private async Task<bool> TryDeleteAsync(

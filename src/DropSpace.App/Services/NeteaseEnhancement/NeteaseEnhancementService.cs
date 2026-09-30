@@ -83,13 +83,6 @@ public sealed class NeteaseEnhancementService(
         }
     }
 
-    internal static bool CanRetainVerifiedState(bool committed, NeteaseMediaCapabilities current) =>
-        // A committed, hash-checked receipt records a completed active verification.
-        // Passive inspection must not start music merely to re-prove a paused clock.
-        // Still require a real current session with metadata, timeline and controls.
-        committed && (current.Play || current.Pause) &&
-        (current with { Play = true, Pause = true, LiveProgress = true }).Complete;
-
     private async Task RunAsync(bool remove, bool reinstall, CancellationToken token)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);

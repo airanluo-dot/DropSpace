@@ -9,7 +9,18 @@ public static class SearchNormalizer
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        var decomposed = value.Normalize(NormalizationForm.FormKD);
+        string decomposed;
+        try
+        {
+            decomposed = value.Normalize(NormalizationForm.FormKD);
+        }
+        catch (ArgumentException)
+        {
+            // Windows clipboard strings can contain unpaired UTF-16 surrogates. Match
+            // UTF-8 persistence's replacement behavior instead of rejecting the item or query.
+            var repaired = string.Concat(value.EnumerateRunes().Select(rune => rune.ToString()));
+            decomposed = repaired.Normalize(NormalizationForm.FormKD);
+        }
         var builder = new StringBuilder(decomposed.Length);
         var previousWhitespace = false;
 

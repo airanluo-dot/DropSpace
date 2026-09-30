@@ -20,7 +20,7 @@ foreach ($pattern in @(".env", ".env.*", "*.pem", "*.key", "*.private", "secrets
     }
 }
 
-$tracked = & git -c core.quotepath=false -C $root ls-files
+$candidates = & git -c core.quotepath=false -C $root ls-files --cached --others --exclude-standard --deduplicate
 $textExtensions = @(
     ".c", ".cc", ".cpp", ".cs", ".csproj", ".css", ".fs", ".fsx", ".go", ".h", ".hpp",
     ".html", ".ini", ".js", ".json", ".jsx", ".md", ".props", ".ps1", ".psm1", ".py",
@@ -69,7 +69,7 @@ foreach ($fixture in $fixtures) {
 }
 
 $findings = [System.Collections.Generic.List[object]]::new()
-foreach ($path in $tracked) {
+foreach ($path in $candidates) {
     if ($path -match '(?i)(^|/)(?:\.env(?:\.|$)|secrets?\.|.*\.(?:pem|key|private)$)') {
         throw "A credential-like file is tracked: $path"
     }
@@ -80,7 +80,13 @@ foreach ($path in $tracked) {
     }
 
     $fullPath = Join-Path $root $path
-    $fileInfo = Get-Item $fullPath -ErrorAction Stop
+    # Deleted index entries have no working-tree content to scan. Keep the
+    # filename check above so deletion cannot hide a credential-like index path.
+    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+        continue
+    }
+
+    $fileInfo = Get-Item -LiteralPath $fullPath -ErrorAction Stop
     if ($fileInfo.Length -gt 4MB) {
         continue
     }

@@ -28,7 +28,12 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_registration is not null) return _registration;
+            if (_registration is { IsActive: true }) return _registration;
+            if (_registration is not null)
+            {
+                await _registration.DisposeAsync().ConfigureAwait(false);
+                _registration = null;
+            }
             var address = IPAddress.Parse(descriptor.Endpoint.Host);
             if (!LocalNetworkInterfaceResolver.IsPrivate(address)) throw new InvalidDataException("Discovery needs a private endpoint.");
             var socket = CreateMulticastSocket();
@@ -149,14 +154,15 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
 
             var hostAddress = records.FirstOrDefault(record => record.Type == 1 &&
                 string.Equals(record.Name, srv.Target, StringComparison.OrdinalIgnoreCase))?.Address;
-            if (hostAddress is null || hostAddress.AddressFamily != AddressFamily.InterNetwork || !IsPrivate(hostAddress)) continue;
+            if (hostAddress is null || !LocalNetworkInterfaceResolver.IsPrivate(hostAddress)) continue;
 
             var values = txt.Txt;
             if (!string.Equals(values.GetValueOrDefault("v"), DropLinkProtocolVersion.V1.ToString(), StringComparison.Ordinal)) continue;
             if (!Guid.TryParse(values.GetValueOrDefault("id"), out var id) || id == Guid.Empty) continue;
             var name = values.GetValueOrDefault("name");
             if (string.IsNullOrWhiteSpace(name) || name.Length > 64 || name.Any(char.IsControl)) continue;
-            if (!Enum.TryParse<DevicePlatform>(values.GetValueOrDefault("platform"), true, out var platform) || platform == DevicePlatform.Unknown) continue;
+            if (!Enum.TryParse<DevicePlatform>(values.GetValueOrDefault("platform"), true, out var platform) ||
+                !Enum.IsDefined(platform) || platform == DevicePlatform.Unknown) continue;
             if (!int.TryParse(values.GetValueOrDefault("caps"), out var caps) || caps < 0) continue;
             var fingerprint = values.GetValueOrDefault("fp");
             if (fingerprint is null || fingerprint.Length != 64 || fingerprint.Any(character => !Uri.IsHexDigit(character))) continue;
@@ -188,7 +194,7 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         {
             throw new InvalidDataException("The DNS-SD device descriptor is invalid.");
         }
-        if (address.AddressFamily != AddressFamily.InterNetwork || !IsPrivate(address)) throw new InvalidDataException("DNS-SD requires a private IPv4 address.");
+        if (!LocalNetworkInterfaceResolver.IsPrivate(address)) throw new InvalidDataException("DNS-SD requires a private IPv4 address.");
         var label = SafeLabel(descriptor.DisplayName);
         var instance = string.Concat(label, "-", descriptor.DeviceId.ToString("N")[..8], ".", ServiceType);
         var host = string.Concat(hostName.TrimEnd('.'), ".local");
@@ -353,11 +359,6 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
         return string.IsNullOrWhiteSpace(label) ? "dropspace" : label;
     }
     private static string GetLocalHostName(Guid id) => string.Concat("dropspace-", id.ToString("N"));
-    private static bool IsPrivate(IPAddress address)
-    {
-        var bytes = address.GetAddressBytes();
-        return bytes.Length == 4 && (bytes[0] == 10 || bytes[0] == 192 && bytes[1] == 168 || bytes[0] == 172 && bytes[1] is >= 16 and <= 31);
-    }
     private static void WriteUInt16(Stream stream, ushort value) { Span<byte> bytes = stackalloc byte[2]; BinaryPrimitives.WriteUInt16BigEndian(bytes, value); stream.Write(bytes); }
     private static void WriteUInt32(Stream stream, uint value) { Span<byte> bytes = stackalloc byte[4]; BinaryPrimitives.WriteUInt32BigEndian(bytes, value); stream.Write(bytes); }
 
@@ -478,6 +479,8 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
     {
         private readonly CancellationTokenSource _cancellation = new();
         private Task? _loop;
+        private readonly object _disposeGate = new();
+        private Task? _disposeTask;
 
         public bool IsActive => _loop is { IsCompleted: false } && !_cancellation.IsCancellationRequested;
 
@@ -505,7 +508,12 @@ public sealed class WindowsDnsSdDiscoveryService : IAsyncDisposable
             }, CancellationToken.None);
         }
 
-        public async ValueTask DisposeAsync()
+        public ValueTask DisposeAsync()
+        {
+            lock (_disposeGate) return new ValueTask(_disposeTask ??= DisposeCoreAsync());
+        }
+
+        private async Task DisposeCoreAsync()
         {
             _cancellation.Cancel(); socket.Dispose();
             if (_loop is not null)

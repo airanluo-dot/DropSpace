@@ -290,6 +290,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload release smoke and installer diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: release-diagnostics-${{ github.run_id }}
+          path: artifacts/diagnostics/**
+          if-no-files-found: ignore
+          retention-days: 14
+
   sign-release:
     name: Sign stable release bundle
     if: >-
@@ -445,6 +454,15 @@ jobs:
             artifacts/release/update-manifest.json
           if-no-files-found: error
           retention-days: 2
+
+      - name: Upload signed smoke and installer diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: signed-release-diagnostics-${{ github.run_id }}
+          path: artifacts/diagnostics/**
+          if-no-files-found: ignore
+          retention-days: 14
 
   publish-release:
     name: Publish GitHub Release

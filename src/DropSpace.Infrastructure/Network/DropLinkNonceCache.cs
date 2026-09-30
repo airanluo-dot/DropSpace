@@ -3,8 +3,10 @@ namespace DropSpace.Infrastructure.Network;
 /// <summary>Bounded replay protection for already-known DropLink peers.</summary>
 public sealed class DropLinkNonceCache
 {
-    public const int MaximumEntries = 4_096;
-    public const int MaximumEntriesPerPeer = 256;
+    public const int MaximumEntries = 16_384;
+    // One default transfer can need 2,048 chunk requests plus up to 600 approval
+    // polls. Retain every nonce for the replay window without rejecting that flow.
+    public const int MaximumEntriesPerPeer = 4_096;
     public static readonly TimeSpan Retention = TimeSpan.FromMinutes(10);
 
     private readonly object _gate = new();
