@@ -1,6 +1,13 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.0-beta.30
+## Release target: v0.3.0-beta.31
+
+Stabilize lyric gaps, adapt island position to screen work areas, unify focus-independent
+Acrylic, and improve interruptible page transitions. Expand the widget catalog to 16
+and simplify the layout editor. Preserve upgrade identity and validate native Windows
+builds and installer lifecycle before publication.
+
+## Delivered slice: v0.3.0-beta.30
 
 Fix receiver assembly-file ownership, isolate per-source share admission from the
 shared quota, preserve functional URL fragments, and redact fragment secrets in
