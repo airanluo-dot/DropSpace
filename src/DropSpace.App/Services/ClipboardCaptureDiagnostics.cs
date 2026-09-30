@@ -31,7 +31,8 @@ internal enum ClipboardSmokeProfile { Baseline, Immediate, DispatcherYield, Fixe
 
 internal sealed record ClipboardDiagnosticCounters(
     long Observed, long ReadAttempts, long Captured, long ConsecutiveSuppressed,
-    long FailedReads, long DroppedSignals, long EnqueuedSignals, long DequeuedSignals);
+    long FailedReads, long DroppedSignals, long EnqueuedSignals, long DequeuedSignals,
+    int OutstandingNativeTextReads = 0, int RetiredNativeTextReads = 0);
 
 internal sealed record ClipboardDiagnosticState(
     DateTimeOffset AtUtc, uint? NativeSequence, uint LastNotificationSequence,

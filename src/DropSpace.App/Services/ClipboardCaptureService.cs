@@ -1,5 +1,6 @@
 using DropSpace.Core.Preview;
 using System.Threading.Channels;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using DropSpace.Core.Abstractions;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
+using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
@@ -54,6 +56,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly SemaphoreSlim _clipboardWriteGate = new(1, 1);
     private readonly SemaphoreSlim _retentionGate = new(1, 1);
     private readonly ConsecutiveClipboardCaptureCoordinator _consecutiveCaptures = new();
+    private readonly TextReadCoordinator _textReads = new();
+    // Count active and retired native operations through Cancel and Close.
+    private readonly SemaphoreSlim _textReadSlots = new(8, 8);
+    private readonly ConcurrentDictionary<long, Task> _retiredTextReads = new();
+    private long _retiredTextReadId;
     private Task? _worker;
     private Task? _retentionTask;
     private AppSettings _settings = new();
@@ -164,7 +171,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             new(Interlocked.Read(ref _observedEvents), Interlocked.Read(ref _diagnosticReadAttempts),
                 Interlocked.Read(ref _capturedItems), Interlocked.Read(ref _suppressedConsecutiveDuplicates),
                 Interlocked.Read(ref _failedReads), Interlocked.Read(ref _droppedEvents),
-                Interlocked.Read(ref _diagnosticEnqueuedSignals), Interlocked.Read(ref _diagnosticDequeuedSignals)),
+                Interlocked.Read(ref _diagnosticEnqueuedSignals), Interlocked.Read(ref _diagnosticDequeuedSignals),
+                8 - _textReadSlots.CurrentCount, _retiredTextReads.Count),
             _notifications?.Status.IsRegistered ?? false, _paused, Volatile.Read(ref _pauseGeneration),
             _initialized, Volatile.Read(ref _disposeStarted) != 0, _worker?.Status);
     }
@@ -721,7 +729,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             Interlocked.Increment(ref _droppedEvents);
             PublishStatus(_strings.Get("ClipboardEventDropped"));
         }
+        else if (_textReads.HasActiveRead)
+        {
+            // Admit the notification before releasing an older text waiter. The
+            // actual sequence can already be newer than the sampled notification.
+            _textReads.Notify(GetClipboardSequenceNumber(), signal.ClipboardSequenceNumber, QueueTextSequence);
+        }
     }
+
+    private bool QueueTextSequence(uint sequence) => TryQueueSignal(new CaptureSignal(
+        sequence, Interlocked.Read(ref _observedEvents), Volatile.Read(ref _pauseGeneration), DateTimeOffset.UtcNow));
 
     private bool IsSignalStillCurrent(CaptureSignal signal)
     {
@@ -1110,10 +1127,37 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
         if (view.Contains(StandardDataFormats.Text))
         {
-            RecordDiagnostic(ClipboardDiagnosticDecision.TextReadStarted, signal);
-            var operation = view.GetTextAsync();
-            RecordDiagnostic(ClipboardDiagnosticDecision.TextOperationCreated, signal);
-            var text = await operation;
+            await _textReadSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
+            IAsyncOperation<string>? operation = null;
+            Task<string>? nativeRead = null;
+            TextReadLease? read = null;
+            string text;
+            try
+            {
+                // A dedicated queue may have no managed synchronization context.
+                // Return explicitly to the owner after a pending slot acquisition.
+                if (_dispatcher.HasThreadAccess) await StartReadAsync();
+                else await _dispatcher.EnqueueAsync(StartReadAsync).ConfigureAwait(false);
+                if (nativeRead is null || read is null) return new ClipboardReadResult(null, null);
+                using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, read.SupersededToken);
+                try
+                {
+                    text = await nativeRead.WaitAsync(stop.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (read.IsSuperseded && !cancellationToken.IsCancellationRequested)
+                {
+                    RecordDiagnostic(ClipboardDiagnosticDecision.StaleSequence, signal);
+                    return new ClipboardReadResult(null, null);
+                }
+            }
+            finally
+            {
+                if (read is not null) _textReads.Release(read);
+                if (operation is not null)
+                    RetireTextRead(nativeRead ?? ObserveUnbridgedTextReadAsync(() => operation.Status, operation.GetResults),
+                        operation.Cancel, operation.Close, nativeRead is null || !nativeRead.IsCompleted);
+                else _textReadSlots.Release();
+            }
             RecordDiagnostic(ClipboardDiagnosticDecision.TextReadCompleted, signal);
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -1135,12 +1179,168 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     null,
                     null),
                 null);
+
+            Task StartReadAsync()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!IsSignalStillCurrent(signal)) return Task.CompletedTask;
+                RecordDiagnostic(ClipboardDiagnosticDecision.TextReadStarted, signal);
+                operation = view.GetTextAsync();
+                RecordDiagnostic(ClipboardDiagnosticDecision.TextOperationCreated, signal);
+                // Retain the original task for eventual native completion/GetResults.
+                nativeRead = operation.AsTask();
+                read = _textReads.Register(signal.ClipboardSequenceNumber, GetClipboardSequenceNumber, QueueTextSequence);
+                return Task.CompletedTask;
+            }
         }
 
         RecordDiagnostic(ClipboardDiagnosticDecision.UnsupportedFormat, signal);
         return new ClipboardReadResult(
             CreateRejectedSnapshot(signal, "unsupported-format"),
             null);
+    }
+
+    private void RetireTextRead(Task<string> nativeRead, Action cancel, Action close, bool requestCancellation)
+    {
+        var id = Interlocked.Increment(ref _retiredTextReadId);
+        var cleanup = ObserveTextReadCompletionAsync(nativeRead, cancel, close, requestCancellation,
+            exception => _logger.LogDebug("Clipboard text operation cleanup failed ({Category}, {HResult}).",
+                exception.GetType().Name, exception.HResult), () => _textReadSlots.Release());
+        _retiredTextReads[id] = cleanup;
+        _ = cleanup.ContinueWith(completed =>
+        {
+            _ = completed.Exception;
+            _retiredTextReads.TryRemove(id, out _);
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
+    internal static Task ObserveTextReadCompletionAsync(Task<string> nativeRead, Action cancel, Action close,
+        bool requestCancellation, Action<Exception>? onFailure = null, Action? onClosed = null) => Task.Run(async () =>
+    {
+        var cancellation = requestCancellation ? Task.Run(() => TryNativeAction(cancel)) : Task.CompletedTask;
+        try
+        {
+            try { await nativeRead.ConfigureAwait(false); }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { Report(exception); }
+        }
+        finally
+        {
+            try { await cancellation.ConfigureAwait(false); }
+            finally
+            {
+                // Both the ordinary bridge and a setup-failure observer have
+                // established terminal state before native Close and slot release.
+                try
+                {
+                    while (true)
+                    {
+                        try { close(); break; }
+                        catch (Exception exception) when (exception.HResult == unchecked((int)0x80000013)) { break; }
+                        catch (Exception exception) when (exception is not OutOfMemoryException) { Report(exception); }
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                    }
+                }
+                finally { onClosed?.Invoke(); }
+            }
+        }
+
+        void TryNativeAction(Action action)
+        {
+            try { action(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { Report(exception); }
+        }
+
+        void Report(Exception exception)
+        {
+            try { onFailure?.Invoke(exception); }
+            catch (Exception callbackFailure) when (callbackFailure is not OutOfMemoryException) { }
+        }
+    });
+
+    internal static Task<string> ObserveUnbridgedTextReadAsync(Func<AsyncStatus> readStatus, Func<string> getResults) => Task.Run(async () =>
+    {
+        // AsTask can fail during bridge setup. A created operation still owns its
+        // slot until terminal state is known; Cancel alone is not that evidence.
+        while (true)
+        {
+            AsyncStatus? status = null;
+            try { status = readStatus(); }
+            catch (Exception exception) when (exception.HResult == unchecked((int)0x80000013))
+            {
+                return string.Empty; // RO_E_CLOSED proves native ownership ended.
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { }
+            if (status is AsyncStatus.Completed or AsyncStatus.Error or AsyncStatus.Canceled)
+                return getResults();
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+        }
+    });
+
+    internal sealed class TextReadCoordinator
+    {
+        private readonly object _gate = new();
+        private TextReadLease? _active;
+
+        internal bool HasActiveRead { get { lock (_gate) return _active is not null; } }
+
+        internal TextReadLease Register(uint sequence, Func<uint> readCurrentSequence, Func<uint, bool> queue)
+        {
+            var read = new TextReadLease(sequence);
+            lock (_gate) _active = read;
+            // The notification may have arrived before this lease was published.
+            // Read native state after publication rather than reuse its snapshot.
+            try { Notify(readCurrentSequence(), null, queue); }
+            catch { Release(read); throw; }
+            return read;
+        }
+
+        internal void Notify(uint currentSequence, uint? admittedSequence, Func<uint, bool> queue)
+        {
+            TextReadLease? read;
+            lock (_gate) read = _active;
+            if (read is null || read.Sequence == 0 || currentSequence == 0 || read.Sequence == currentSequence) return;
+            if (admittedSequence != currentSequence && !queue(currentSequence)) return;
+            read.Supersede();
+        }
+
+        internal void Release(TextReadLease read)
+        {
+            lock (_gate) { if (ReferenceEquals(_active, read)) _active = null; }
+            read.Dispose();
+        }
+    }
+
+    internal sealed class TextReadLease(uint sequence) : IDisposable
+    {
+        private readonly object _gate = new();
+        private readonly CancellationTokenSource _superseded = new();
+        private bool _disposed;
+        private int _isSuperseded;
+        internal uint Sequence { get; } = sequence;
+        internal CancellationToken SupersededToken => _superseded.Token;
+        internal bool IsSuperseded => Volatile.Read(ref _isSuperseded) != 0;
+
+        internal void Supersede()
+        {
+            lock (_gate)
+            {
+                if (_disposed || IsSuperseded) return;
+                Volatile.Write(ref _isSuperseded, 1);
+                // This private token is used only by the managed WaitAsync waiter;
+                // native cancellation is never a token callback on the listener.
+                _superseded.Cancel();
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_gate)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                _superseded.Dispose();
+            }
+        }
     }
 
     private async Task<ClipboardSnapshot> EncodeClipboardImageAsync(
