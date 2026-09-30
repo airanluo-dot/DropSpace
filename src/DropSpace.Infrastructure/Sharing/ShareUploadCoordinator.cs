@@ -128,16 +128,21 @@ public sealed class InternetShareClient(
         }
         finally
         {
-            if (stagingLease is not null && _stagingLeases is not null)
+            try
             {
-                await _stagingLeases.CompleteAsync(stagingLease, CancellationToken.None).ConfigureAwait(false);
+                if (stagingLease is not null && _stagingLeases is not null)
+                {
+                    await _stagingLeases.CompleteAsync(stagingLease, CancellationToken.None).ConfigureAwait(false);
+                }
+                else if (stagedSourcesRoot is not null)
+                {
+                    TryDeleteDirectory(stagedSourcesRoot);
+                }
             }
-            else if (stagedSourcesRoot is not null)
+            finally
             {
-                TryDeleteDirectory(stagedSourcesRoot);
+                CryptographicOperations.ZeroMemory(masterKey);
             }
-
-            CryptographicOperations.ZeroMemory(masterKey);
         }
     }
 

@@ -4,6 +4,10 @@ Base: `airanluo-dot/DropSpace` main at `1f238dd8ffe88929b95bab6bff6eb902789095de
 (Beta 28). The remote main SHA was rechecked after the work and was unchanged.
 No branch was pushed, PR opened, deployment made, or release published.
 
+Five subsequent repair rounds and their cumulative validation are documented in
+[five-round-audit.md](five-round-audit.md). The findings and test counts below
+describe this initial audit snapshot.
+
 ## Scope and method
 
 `scripts/audit-repository.py` read every tracked blob: 687 entries, 103 binary

@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using DropSpace.Core.Policies;
 using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Data;
@@ -15,6 +16,9 @@ public sealed class SqliteDatabase(
 
     // One database owns the write boundary across item and transfer repositories.
     internal SemaphoreSlim WriteGate { get; } = new(1, 1);
+
+    internal string ResolvePayloadPath(string relativePath) =>
+        PayloadPathPolicy.ResolveContainedPath(paths.Payloads, relativePath);
 
     private static readonly TableDescriptor[] RequiredTables =
     [

@@ -105,6 +105,19 @@ public sealed class ImagePreviewProvider(IItemContentResolver contentResolver, P
 
         if (extension == ".bmp" && bytes.Length >= 26 && bytes[..2].SequenceEqual(new byte[] { (byte)'B', (byte)'M' }))
         {
+            var headerSize = BitConverter.ToUInt32(bytes[14..18]);
+            if (headerSize == 12)
+            {
+                // BITMAPCOREHEADER stores unsigned 16-bit dimensions; its next
+                // fields are planes and bit depth, not part of the image height.
+                return (BitConverter.ToUInt16(bytes[18..20]), BitConverter.ToUInt16(bytes[20..22]));
+            }
+
+            if (headerSize < 40)
+            {
+                return (null, null);
+            }
+
             var height = BitConverter.ToInt32(bytes[22..26]);
             if (height == int.MinValue)
             {

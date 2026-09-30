@@ -87,6 +87,7 @@ async function createShare(request, env) {
   const itemCount = Number(body.itemCount);
   const totalBytes = Number(body.totalBytes);
   if (!Number.isInteger(itemCount) || itemCount < 1 || itemCount > MAX_ITEMS || !Number.isSafeInteger(totalBytes) || totalBytes < 1 || totalBytes > MAX_BYTES) throw new HttpError("limits-invalid", 400);
+  const origin = publicOrigin(env, request);
   const token = await sign({ shareId, expiresAt, itemCount, totalBytes }, env.UPLOAD_TOKEN_SECRET);
   const meta = { shareId, expiresAt, itemCount, totalBytes };
   // Claim the ID atomically before writing metadata or issuing an upload token.
@@ -99,7 +100,6 @@ async function createShare(request, env) {
     await coordinatorRequest(env, shareId, "revoke").catch(() => {});
     throw error;
   }
-  const origin = publicOrigin(env, request);
   return json({
     uploadBaseUrl: origin + API_PREFIX + "/shares/" + shareId + "/objects/",
     downloadBaseUrl: origin,
@@ -129,7 +129,7 @@ async function putObject(request, env, shareId, objectName) {
     if (existing) throw new HttpError("object-exists", 409);
     putStarted = true;
     await env.SHARES.put(key, bytes, {
-      httpMetadata: { contentType: request.headers.get("content-type") || "application/octet-stream", cacheControl: "no-store" },
+      httpMetadata: { contentType: "application/octet-stream", cacheControl: "no-store" },
       customMetadata: { expiresAt: String(meta.expiresAt), shareId },
     });
     await coordinatorRequest(env, shareId, "commit", { reservationId: reservation.reservationId });
@@ -162,7 +162,7 @@ async function getObject(request, env, shareId, objectName) {
   await coordinatorRequest(env, shareId, "status");
   const object = await env.SHARES.get(objectKey(shareId, objectName));
   if (!object) throw new HttpError("not-found", 404);
-  const headers = new Headers({ "Cache-Control": "no-store", "Content-Type": object.httpMetadata?.contentType || "application/octet-stream", "X-Content-Type-Options": "nosniff" });
+  const headers = new Headers({ "Cache-Control": "no-store", "Content-Type": "application/octet-stream", "X-Content-Type-Options": "nosniff" });
   return cors(new Response(object.body, { headers }));
 }
 

@@ -150,9 +150,9 @@ public sealed class StagingLeaseStore(
                 return false;
             }
 
-            var leasePath = GetLeasePath(lease.LeaseId);
             try
             {
+                var leasePath = GetLeasePath(lease.LeaseId);
                 if (File.Exists(leasePath))
                 {
                     File.Delete(leasePath);
@@ -160,7 +160,7 @@ public sealed class StagingLeaseStore(
 
                 return true;
             }
-            catch (Exception exception) when (IsFileFailure(exception))
+            catch (Exception exception) when ((exception is IOException or UnauthorizedAccessException) && exception is not InvalidDataException)
             {
                 logger.LogWarning(exception, "Staging root was removed but the lease record could not be removed; recovery will retry it.");
                 return false;

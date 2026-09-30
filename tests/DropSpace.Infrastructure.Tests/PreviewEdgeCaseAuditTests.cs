@@ -64,6 +64,34 @@ public sealed class PreviewEdgeCaseAuditTests
     }
 
     [TestMethod]
+    public async Task ValidCoreHeaderBmpUsesItsActualDimensionsInsteadOfExceedingThePixelBudget()
+    {
+        Directory.CreateDirectory(_root);
+        var path = Path.Combine(_root, "core-header.bmp");
+        // Complete one-pixel, 24-bit OS/2 1.x BMP: 14-byte file header,
+        // 12-byte BITMAPCOREHEADER and one four-byte aligned BGR scanline.
+        var bytes = new byte[30];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(2), bytes.Length);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(10), 26);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(14), 12);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(18), 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(20), 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(22), 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(24), 24);
+        bytes[28] = 255;
+        await File.WriteAllBytesAsync(path, bytes);
+        var provider = new ImagePreviewProvider(new ItemContentResolver(new AppStoragePaths(_root)));
+
+        var capability = await provider.ProbeAsync(FileSnapshot(path, ".bmp", bytes.Length));
+
+        Assert.IsTrue(capability.CanPreview);
+        Assert.AreEqual(1, capability.PixelWidth);
+        Assert.AreEqual(1, capability.PixelHeight);
+    }
+
+    [TestMethod]
     public async Task PdfGrowthAfterCaptureDoesNotTurnAReadableExternalPdfIntoAnUnknownPreview()
     {
         Directory.CreateDirectory(_root);

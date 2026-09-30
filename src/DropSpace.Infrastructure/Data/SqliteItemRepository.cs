@@ -669,20 +669,54 @@ public sealed class SqliteItemRepository(
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            (Guid Id, string Path)? formerPayload = null;
+            await using (var select = connection.CreateCommand())
+            {
+                select.Transaction = (SqliteTransaction)transaction;
+                select.CommandText = """
+                    SELECT p.id, p.relative_path
+                    FROM items i
+                    JOIN file_references f ON f.item_id = i.id
+                    LEFT JOIN payloads p ON p.id = i.payload_id
+                    WHERE i.id = @id AND i.pending_delete_token IS NULL;
+                    """;
+                select.Parameters.AddWithValue("@id", ToBytes(id));
+                await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    return;
+                }
+
+                if (!reader.IsDBNull(0))
+                {
+                    formerPayload = (ReadGuid(reader, 0), reader.GetString(1));
+                }
+            }
+
+            // Locating a restored managed file must not turn the chosen file into
+            // an obsolete payload scheduled for deletion. Older relinks could leave
+            // the file reference inconsistent with its payload, so compare the
+            // selected file with the authoritative payload location.
+            var detachPayload = formerPayload is { } ownedPayload &&
+                !string.Equals(database.ResolvePayloadPath(ownedPayload.Path),
+                    Path.GetFullPath(replacement.OriginalPath), StringComparison.OrdinalIgnoreCase);
             await using (var itemCommand = connection.CreateCommand())
             {
                 itemCommand.Transaction = (SqliteTransaction)transaction;
                 itemCommand.CommandText = """
                     UPDATE items
-                    SET title = @title, kind = @kind, status = @status, search_text = @search_text, revision = revision + 1
-                    WHERE id = @id AND source = @source AND pending_delete_token IS NULL;
+                    SET title = @title, kind = @kind, status = @status, search_text = @search_text,
+                        payload_id = CASE WHEN @detach_payload = 1 THEN NULL ELSE payload_id END,
+                        revision = revision + 1
+                    WHERE id = @id AND pending_delete_token IS NULL
+                      AND EXISTS (SELECT 1 FROM file_references WHERE item_id = @id);
                     """;
                 itemCommand.Parameters.AddWithValue("@title", replacement.Title);
                 itemCommand.Parameters.AddWithValue("@kind", replacement.EntryKind == FileEntryKind.Folder ? (int)ItemKind.Folder : (int)ItemKind.File);
                 itemCommand.Parameters.AddWithValue("@status", (int)replacement.Status);
                 itemCommand.Parameters.AddWithValue("@search_text", ContentClassifier.BuildSearchText(replacement.Title, replacement.OriginalPath));
                 itemCommand.Parameters.AddWithValue("@id", ToBytes(id));
-                itemCommand.Parameters.AddWithValue("@source", (int)ItemSource.Space);
+                itemCommand.Parameters.AddWithValue("@detach_payload", detachPayload ? 1 : 0);
                 await itemCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -699,7 +733,8 @@ public sealed class SqliteItemRepository(
                         known_modified_at_utc = @known_modified_at_utc,
                         last_checked_at_utc = @last_checked_at_utc,
                         availability_reason = @availability_reason
-                    WHERE item_id = @id;
+                    WHERE item_id = @id
+                      AND EXISTS (SELECT 1 FROM items WHERE id = @id AND pending_delete_token IS NULL);
                     """;
                 referenceCommand.Parameters.AddWithValue("@original_path", replacement.OriginalPath);
                 referenceCommand.Parameters.AddWithValue("@normalized_path", replacement.NormalizedPath);
@@ -711,6 +746,19 @@ public sealed class SqliteItemRepository(
                 referenceCommand.Parameters.AddWithValue("@availability_reason", DbValue(replacement.AvailabilityReason));
                 referenceCommand.Parameters.AddWithValue("@id", ToBytes(id));
                 await referenceCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            if (detachPayload && formerPayload is { } obsoletePayload)
+            {
+                // Publish the cleanup obligation in the same transaction that removes
+                // ownership. The helpers retain payloads still referenced by another item.
+                await QueuePayloadDeleteAsync(connection, (SqliteTransaction)transaction, obsoletePayload, cancellationToken)
+                    .ConfigureAwait(false);
+                await using var deletePayload = connection.CreateCommand();
+                deletePayload.Transaction = (SqliteTransaction)transaction;
+                deletePayload.CommandText = "DELETE FROM payloads WHERE id = @id AND NOT EXISTS (SELECT 1 FROM items WHERE payload_id = @id);";
+                deletePayload.Parameters.AddWithValue("@id", ToBytes(obsoletePayload.Id));
+                await deletePayload.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
