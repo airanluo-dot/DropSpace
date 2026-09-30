@@ -41,7 +41,19 @@ public sealed class DropLinkClientCancellationNativeSmokeTests
         var secret = RandomNumberGenerator.GetBytes(32);
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest("CN=localhost", key, HashAlgorithmName.SHA256);
-        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddDays(1));
+        using var generated = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddDays(1));
+        var exportedPfx = generated.Export(X509ContentType.Pfx);
+        X509Certificate2 imported;
+        try
+        {
+            // Schannel needs a persisted private key. Default PFX import removes it on disposal.
+            imported = X509CertificateLoader.LoadPkcs12(exportedPfx, null, X509KeyStorageFlags.Exportable);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(exportedPfx);
+        }
+        using var certificate = imported;
         var fingerprint = Convert.ToHexString(SHA256.HashData(certificate.RawData)).ToLowerInvariant();
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
