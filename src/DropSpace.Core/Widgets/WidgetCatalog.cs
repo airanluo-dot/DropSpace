@@ -10,7 +10,7 @@ public static class WidgetCatalog
         NativeWidgetId.Calendar => [new(1, 1), new(2, 2)],
         NativeWidgetId.ResourceUsage or NativeWidgetId.Stopwatch => [new(2, 1), new(2, 2)],
         NativeWidgetId.Battery or NativeWidgetId.ClipboardPause => [new(1, 1), new(2, 1)],
-        NativeWidgetId.Uptime => [new(2, 1)],
+        NativeWidgetId.UtcClock or NativeWidgetId.FocusTimer or NativeWidgetId.Countdown or NativeWidgetId.DiskSpace or NativeWidgetId.NetworkStatus or NativeWidgetId.WeekProgress or NativeWidgetId.Uptime => [new(2, 1)],
         _ => [new(1, 1)],
     };
     public static WidgetSize NormalizeSize(NativeWidgetId id, int columns, int rows) => Sizes(id)

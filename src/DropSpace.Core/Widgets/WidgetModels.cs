@@ -10,6 +10,14 @@ public enum NativeWidgetId
     Uptime,
     Stopwatch,
     ClipboardPause,
+    UtcClock,
+    FocusTimer,
+    Countdown,
+    DiskSpace,
+    NetworkStatus,
+    Calculator,
+    PinnedItems,
+    WeekProgress,
 }
 
 public sealed record WidgetPlacement(NativeWidgetId Id, int Column, int Row, int ColumnSpan, int RowSpan);

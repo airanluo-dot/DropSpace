@@ -30,6 +30,16 @@ publish until the user asks. The user is collecting more issues and requests.
   behavior have not been run on this Linux workspace. They remain required before
   a future published version. No remote CI was triggered for this local-only work.
 
+## Additional local work — October 1, 2026 (Asia/Shanghai)
+
+- Main window now requests its own focus-independent Acrylic instance, matching the island's activation policy. Windows may still enforce opaque fallback for accessibility, disabled transparency, remote sessions or unsupported composition. This does not change Windows settings or other applications.
+- Expanded page changes crossfade with a continuous, retargetable frame-driven state. Only the new target accepts input; previous pages remain drawn until faded. Expanded/compact/drag content uses independent translation and subtle scale driven by existing spring progress, so interruption does not restart the pose. Reduced motion removes spatial effects.
+- Widget inventory grows from 8 to 16, appending enum values without renumbering saved layouts: UTC clock, 25-minute focus timer, 5-minute countdown, system-disk free space, network-adapter connectivity, calculator shortcut, pinned-items shortcut, ISO week/progress. These are local widgets; connectivity is not an Internet reachability test. Timers are session-only, with start/pause and context-menu reset, and do not promise background notifications or persistence across restart.
+- Widget editor adds valid drag landing preview, directional nudge buttons, two-column inventory, explicit position/size application and one-step undo. Existing supported sizes and collision-safe swaps remain. Errors appear next to the preview.
+- New widgets are available in the library, not forcibly inserted into existing layouts. A finite 8×4 dashboard need not show every library widget at once.
+- Validation: 297 Core tests passed; changed/new C# parses successfully; localized resources have unique keys. Linux checks do not establish Windows XAML compilation, native launch, Acrylic behavior or animation visual quality. Windows verification remains required before any future release.
+- Still local-only: no push, CI dispatch, version bump or release authorization.
+
 ## Release scope update
 
-The user subsequently authorized publication as v0.3.0-beta.31 and requested the installer through WeChat. The earlier local-only hold is superseded for this release, subject to successful Windows build and necessary release validation. Preserve normal upgrade identity and ordering.
+The user subsequently authorized v0.3.0-beta.31 publication and installer delivery. The earlier local-only hold is superseded, subject to Windows validation and preserved upgrade compatibility.

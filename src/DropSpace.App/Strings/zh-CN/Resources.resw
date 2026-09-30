@@ -549,7 +549,7 @@
   <data name="IslandCompactScale" xml:space="preserve"><value>紧凑界面缩放</value></data>
   <data name="WidgetLibrary" xml:space="preserve"><value>小组件库</value></data>
   <data name="SettingsPageDevices" xml:space="preserve"><value>设备与共享</value></data>
-  <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖到空位即可放置；拖到同尺寸组件可交换位置。选中后可调整位置和大小，其他组件不会被挤走。</value></data>
+  <data name="WidgetsEditorHelp" xml:space="preserve"><value>拖动组件到亮框落点；同尺寸组件可交换。也可选中后用方向按钮微调，修改位置和尺寸后点“应用位置与尺寸”。不满意可撤销上一步。</value></data>
   <data name="WidgetsExpandedMode" xml:space="preserve"><value>展开 · 4 行 × 8 列</value></data>
   <data name="LyricsSecondary" xml:space="preserve"><value>显示附加歌词</value></data>
   <data name="WidgetSettingsName" xml:space="preserve"><value>设置快捷方式</value></data>
@@ -604,4 +604,18 @@
   <data name="NeteaseEnhancementErrorRuntime" xml:space="preserve"><value>必要运行组件不可用，尚未安装增强。</value></data>
   <data name="NeteaseEnhancementErrorRollback" xml:space="preserve"><value>自动恢复未能完成，请使用重新安装或移除增强恢复。</value></data>
   <data name="NeteaseEnhancementErrorCanceled" xml:space="preserve"><value>操作已取消。</value></data>
+  <data name="WidgetUtcClock.Text" xml:space="preserve"><value>UTC 时钟</value></data>
+  <data name="WidgetFocusTimer.Text" xml:space="preserve"><value>专注 · 25 分钟</value></data>
+  <data name="WidgetCountdown.Text" xml:space="preserve"><value>倒计时 · 5 分钟</value></data>
+  <data name="WidgetDiskSpace.Text" xml:space="preserve"><value>系统盘可用空间</value></data>
+  <data name="WidgetNetworkStatus.Text" xml:space="preserve"><value>网络连接</value></data>
+  <data name="WidgetCalculator.Text" xml:space="preserve"><value>计算器</value></data>
+  <data name="WidgetPinnedItems.Text" xml:space="preserve"><value>置顶项目</value></data>
+  <data name="WidgetWeekProgress.Text" xml:space="preserve"><value>本周周数与进度</value></data>
+  <data name="WidgetNetworkConnected" xml:space="preserve"><value>已连接</value></data>
+  <data name="WidgetNetworkDisconnected" xml:space="preserve"><value>未连接</value></data>
+  <data name="WidgetLaunchFailed" xml:space="preserve"><value>无法打开</value></data>
+  <data name="WidgetApplyLayout" xml:space="preserve"><value>应用位置与尺寸</value></data>
+  <data name="WidgetUndo" xml:space="preserve"><value>撤销上一步</value></data>
+  <data name="WidgetMove" xml:space="preserve"><value>移动</value></data>
 </root>

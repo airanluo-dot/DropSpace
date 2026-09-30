@@ -91,11 +91,11 @@ Use platform tokens where available.
 
 ### Mica
 
-Default primary-window backdrop. Page roots remain transparent enough for the material to read. Opaque content surfaces provide legibility.
+Legacy primary-window backdrop. The current local design uses focus-independent Desktop Acrylic for the main window as well as the island.
 
 ### Acrylic
 
-Only for transient surfaces such as flyouts where the system applies it appropriately. Do not use desktop acrylic as the main window by default.
+Use a dedicated focus-independent Acrylic instance for the main window and the bounded island. Losing activation must not deliberately select a solid material. Keep page roots transparent; content cards may retain legibility surfaces. System accessibility and unsupported-composition fallbacks still apply.
 
 ### Fallback
 

@@ -4,6 +4,7 @@ using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
+using DropSpace.Core.Island;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
@@ -27,6 +28,9 @@ namespace DropSpace.App;
 
 public sealed partial class OverlayWindow : Window
 {
+    private bool _pageReducedMotion;
+    private readonly IslandPageTransition _pageTransition = new();
+    private readonly Dictionary<FrameworkElement, TranslateTransform> _pageOffsets = [];
     private double ExpandedScale => OverlayPlacementPolicy.FitContentScale(
         _monitor.EffectiveWorkWidth, _monitor.EffectiveWorkHeight, _monitor.Scale,
         OverlayPlacementPolicy.MaximumSurfaceWidthDips, OverlayPlacementPolicy.MaximumSurfaceHeightDips,
@@ -152,6 +156,7 @@ public sealed partial class OverlayWindow : Window
         MusicCompact.ViewModel = mediaViewModel;
         MusicExpanded.ViewModel = mediaViewModel;
         WidgetsExpanded.ViewModel = widgetViewModel;
+        WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
         ClipboardExpanded.ViewModel = clipboardViewModel;
         ActivityCompact.DataContext = systemActivityViewModel;
         MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
@@ -408,10 +413,9 @@ public sealed partial class OverlayWindow : Window
     {
         _presentationSnapshot = snapshot;
         var page = _experience.Current.Page;
-        FilesExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Visible : Visibility.Collapsed;
-        MusicExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Music ? Visibility.Visible : Visibility.Collapsed;
-        WidgetsExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Visible : Visibility.Collapsed;
-        ClipboardExpanded.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Visible : Visibility.Collapsed;
+        _pageReducedMotion = IsReducedMotion();
+        _pageTransition.Select(page, _pageReducedMotion || snapshot.State != OverlayState.Expanded || _motion.Current.ExpandedContent < 0.01);
+        ApplyPageTransition();
         PreviousPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Widgets ? Visibility.Collapsed : Visibility.Visible;
         NextPageRail.Visibility = page == DropSpace.Core.Island.IslandPage.Clipboard ? Visibility.Collapsed : Visibility.Visible;
         OtherPageCollapse.Visibility = page == DropSpace.Core.Island.IslandPage.Files ? Visibility.Collapsed : Visibility.Visible;
@@ -808,7 +812,7 @@ public sealed partial class OverlayWindow : Window
 
     internal Task WaitForMotionSettledAsync(CancellationToken cancellationToken = default)
     {
-        if (!_hasFrameSubscription && !_motion.IsAnimating)
+        if (!_hasFrameSubscription && !_motion.IsAnimating && !_pageTransition.IsAnimating)
         {
             return Task.CompletedTask;
         }
@@ -829,13 +833,15 @@ public sealed partial class OverlayWindow : Window
         var elapsed = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now);
         _lastFrameTimestamp = now;
         _motion.Step(elapsed);
+        _pageTransition.Step(elapsed);
+        ApplyPageTransition();
 
         if (!ApplyMotionFrame(_motion.Current))
         {
             return;
         }
 
-        if (_motion.IsAnimating)
+        if (_motion.IsAnimating || _pageTransition.IsAnimating)
         {
             return;
         }
@@ -895,6 +901,28 @@ public sealed partial class OverlayWindow : Window
                 _viewModel.FileDragWakeMode,
                 _viewModel.GetOverlayPlacement(_monitor.Id));
         }
+    }
+
+    private void ApplyPageTransition()
+    {
+        ApplyPage(FilesExpanded, IslandPage.Files);
+        ApplyPage(MusicExpanded, IslandPage.Music);
+        ApplyPage(WidgetsExpanded, IslandPage.Widgets);
+        ApplyPage(ClipboardExpanded, IslandPage.Clipboard);
+    }
+
+    private void ApplyPage(FrameworkElement element, IslandPage page)
+    {
+        var progress = _pageTransition.Progress(page);
+        element.Opacity = progress;
+        element.Visibility = progress > 0 || page == _pageTransition.Target ? Visibility.Visible : Visibility.Collapsed;
+        element.IsHitTestVisible = page == _pageTransition.Target;
+        if (!_pageOffsets.TryGetValue(element, out var offset))
+        {
+            offset = new TranslateTransform(); _pageOffsets[element] = offset;
+            element.RenderTransform = offset;
+        }
+        offset.Y = _pageReducedMotion ? 0 : 4 * (1 - progress);
     }
 
     private bool ApplyMotionFrame(OverlayMotionValues values)
