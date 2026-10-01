@@ -40,6 +40,7 @@ public sealed class OverlayWindowService : IDisposable
     private readonly List<DragActivationHost> _activationHosts = [];
     private DisplayTopologyWatcher? _displayTopologyWatcher;
     private MonitorDescriptor? _primaryMonitor;
+    private IReadOnlyList<MonitorDescriptor> _surfaceMonitors = [];
     private AppLanguagePreference _displayLanguage;
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
@@ -884,9 +885,9 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private void CreateMonitorSurfaces()
+    private void CreateMonitorSurfaces(IReadOnlyList<MonitorDescriptor>? snapshot = null)
     {
-        var monitors = _monitorLayout.GetMonitors();
+        var monitors = snapshot ?? _monitorLayout.GetMonitors();
         _primaryMonitor = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
         var visualCallbacks = new DragActivationCallbacks(
             OnVisibleDragApproaching,
@@ -919,7 +920,12 @@ public sealed class OverlayWindowService : IDisposable
             window.PlacementCancelled += OnPlacementCancelled;
             _windows.Add(window);
         }
+        _surfaceMonitors = monitors.ToArray();
     }
+
+    internal static bool SameMonitorTopology(IReadOnlyList<MonitorDescriptor> left, IReadOnlyList<MonitorDescriptor> right) =>
+        left.Count == right.Count && left.OrderBy(monitor => monitor.Id, StringComparer.Ordinal)
+            .SequenceEqual(right.OrderBy(monitor => monitor.Id, StringComparer.Ordinal));
 
     private void ConfigureWakeMode(FileDragWakeMode mode, bool force = false)
     {
@@ -1269,7 +1275,16 @@ public sealed class OverlayWindowService : IDisposable
 
             try
             {
+                var monitors = _monitorLayout.GetMonitors();
+                // WM_SETTINGCHANGE is also broadcast for unrelated settings and theme changes.
+                // Preserve existing WinUI input/content sites unless their monitor geometry changed.
+                if (_windows.Count == _surfaceMonitors.Count && SameMonitorTopology(_surfaceMonitors, monitors))
+                {
+                    _logger.LogDebug("Display broadcast did not change monitor topology; existing island surfaces retained.");
+                    return;
+                }
                 _rebuildingSurfaces = true;
+                _logger.LogInformation("Rebuilding island surfaces for a changed monitor topology; old count {OldCount}, new count {NewCount}.", _surfaceMonitors.Count, monitors.Count);
                 if (_placementEditingWindow is not null)
                 {
                     _placementEditingWindow.CancelPlacementEdit();
@@ -1294,7 +1309,7 @@ public sealed class OverlayWindowService : IDisposable
                 }
 
                 _activationHosts.Clear();
-                CreateMonitorSurfaces();
+                CreateMonitorSurfaces(monitors);
                 ConfigureWakeMode(_viewModel.FileDragWakeMode, force: true);
                 if (_primaryMonitor is not null &&
                     !_windows.Any(window => string.Equals(
