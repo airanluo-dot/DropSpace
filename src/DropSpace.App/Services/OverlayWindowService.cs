@@ -50,6 +50,7 @@ public sealed class OverlayWindowService : IDisposable
     private FileDragWakeMode? _placementInputRestoreMode;
     private bool _topologyRefreshPending;
     private bool _disposed;
+    private bool _rebuildingSurfaces;
 
     public OverlayWindowService(
         OverlayViewModel viewModel,
@@ -534,6 +535,8 @@ public sealed class OverlayWindowService : IDisposable
             return;
         }
 
+        // Retire before cleanup can synchronously publish media/input changes.
+        _disposed = true;
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _experience.Changed -= OnExperienceChanged;
         _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
@@ -845,6 +848,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void ApplySnapshot(OverlaySnapshot snapshot)
     {
+        if (_disposed || _rebuildingSurfaces) return;
         snapshot = snapshot with { State = _experience.Current.State };
         if (_primaryMonitor is null)
         {
@@ -1265,6 +1269,7 @@ public sealed class OverlayWindowService : IDisposable
 
             try
             {
+                _rebuildingSurfaces = true;
                 if (_placementEditingWindow is not null)
                 {
                     _placementEditingWindow.CancelPlacementEdit();
@@ -1300,6 +1305,7 @@ public sealed class OverlayWindowService : IDisposable
                     _viewModel.SetActiveMonitor(_primaryMonitor.Id);
                 }
 
+                _rebuildingSurfaces = false;
                 ApplySnapshot(_viewModel.Snapshot);
                 _logger.LogInformation(
                     "Overlay surfaces rebuilt after a display-topology change; window count {WindowCount}, classic activation host count {HostCount}.",
@@ -1309,6 +1315,10 @@ public sealed class OverlayWindowService : IDisposable
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Display-topology refresh failed.");
+            }
+            finally
+            {
+                _rebuildingSurfaces = false;
             }
         }))
         {

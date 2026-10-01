@@ -411,6 +411,7 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
+        if (_closing) return;
         _presentationSnapshot = snapshot;
         var page = _experience.Current.Page;
         _pageReducedMotion = IsReducedMotion();
@@ -529,8 +530,13 @@ public sealed partial class OverlayWindow : Window
         _previousState = snapshot.State;
     }
 
+    private bool _closing;
+
     public void CloseForShutdown()
     {
+        if (_closing) return;
+        _closing = true;
+        _presentationSnapshot = null;
         _rightHoldTimer.Stop();
         _rightHoldPointer = null;
         if (_placementEditActive)
@@ -555,7 +561,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
     {
-        if (_mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+        if (_closing || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
         _mediaGeometryRefreshPending = true;
         DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
         {
@@ -891,6 +897,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
     {
+        if (_closing) return;
         _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
         if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
         {
