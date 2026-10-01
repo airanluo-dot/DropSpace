@@ -141,3 +141,18 @@ html[lang="zh-CN"] .section-copy h2,html[lang="zh-CN"] .section-heading h2,html[
 main section > *, .download-card > div, .file-row > div, .native-file > div { min-width:0; }
 .download-card strong,.download-card span,.native-file strong { overflow-wrap:anywhere; }
 @media(max-width:680px) { .download-card { grid-template-columns:50px minmax(0,1fr) 36px; } .download-card>b { width:36px; height:36px; } .split-heading,.drag .section-heading { min-width:0; } }
+
+.clip-row { grid-template-columns:39px minmax(0,1fr) auto; }
+.clip-row>div { min-width:0; }
+.clip-row strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.duplicate-rule small { white-space:normal; min-width:0; }
+@media(max-width:680px) { .duplicate-rule { grid-template-columns:minmax(0,1fr); } }
+
+.hero-copy>p { text-wrap:pretty; }
+.desktop-demo[data-state="expanded"] .desktop-file,.desktop-demo[data-state="expanded"] .drop-trail { visibility:hidden; }
+@media(max-width:680px) {
+ .hero-copy::before { margin-inline:auto; }
+ .desktop-demo { min-height:380px; aspect-ratio:auto; }
+ .space-popover { top:50px; }
+ .hero-copy>p { font-size:15px; }
+}
