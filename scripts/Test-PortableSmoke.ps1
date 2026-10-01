@@ -144,7 +144,11 @@ try
 
         if ($first.HasExited)
         {
-            throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode))."
+            try {
+                $events = @(Get-WinEvent -FilterHashtable @{ LogName='Application'; Id=1000; StartTime=(Get-Date).AddMinutes(-5) } -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'DropSpace\.exe' } | Select-Object -First 5 | ForEach-Object { $_.ToXml() })
+                if ($null -ne $diagnosticDirectory) { $events | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $diagnosticDirectory "native-crash-events.json") -Encoding utf8 }
+            } catch { Write-Warning "Native crash event capture unavailable: $($_.Exception.Message)" }
+            throw "DropSpace.exe exited before reporting startup readiness (exit $($first.ExitCode), last stage '$lastStage')."
         }
 
         if ([DateTime]::UtcNow -ge $deadline)

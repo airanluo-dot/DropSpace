@@ -263,6 +263,8 @@ public partial class App : Application
                     WriteSmokeProgressMarker("clipboard-integration");
                     var clipboardMetrics = await _services.GetRequiredService<ClipboardIntegrationSmoke>()
                         .RunAsync();
+                    WriteSmokeProgressMarker("hidden-backdrop-gc-lifecycle");
+                    await BackdropLifetimeSmoke.RunAsync(WriteSmokeProgressMarker);
                     WriteSmokeProgressMarker("overlay-lifecycle");
                     var metrics = await _overlayWindows.RunLifecycleSmokeAsync(1_000);
                     WriteSmokeProgressMarker("visible-overlay-cf-hdrop");

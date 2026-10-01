@@ -201,7 +201,7 @@ function rewriteLinks(document, route, kind) {
   if (switchLink) {
     const suffix = kind === "changelog" ? "changelog/" : "";
     switchLink.href = `${basePath}${site[route].switchRoute}/${suffix}`;
-    switchLink.textContent = site[route].switchLabel;
+    switchLink.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span class="locale-choice ${route === "zh-cn" ? "is-current" : ""}">中</span><span class="locale-divider" aria-hidden="true">/</span><span class="locale-choice ${route === "en" ? "is-current" : ""}">EN</span>`;
     switchLink.setAttribute("aria-label", site[route].switchAria);
   }
 }

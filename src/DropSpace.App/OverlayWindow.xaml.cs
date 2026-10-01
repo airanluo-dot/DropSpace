@@ -411,6 +411,7 @@ public sealed partial class OverlayWindow : Window
         FileDragWakeMode wakeMode,
         OverlayMonitorPlacement placement)
     {
+        if (_closing) return;
         _presentationSnapshot = snapshot;
         var page = _experience.Current.Page;
         _pageReducedMotion = IsReducedMotion();
@@ -529,8 +530,13 @@ public sealed partial class OverlayWindow : Window
         _previousState = snapshot.State;
     }
 
+    private bool _closing;
+
     public void CloseForShutdown()
     {
+        if (_closing) return;
+        _closing = true;
+        _presentationSnapshot = null;
         _rightHoldTimer.Stop();
         _rightHoldPointer = null;
         if (_placementEditActive)
@@ -555,7 +561,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
     {
-        if (_mediaGeometryRefreshPending || _presentationSnapshot is null) return;
+        if (_closing || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
         _mediaGeometryRefreshPending = true;
         DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
         {
@@ -891,6 +897,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
     {
+        if (_closing) return;
         _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
         if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
         {
@@ -1351,10 +1358,13 @@ public sealed partial class OverlayWindow : Window
 
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {
+        if (_closing) return;
         try
         {
             if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music) _experience.Open(DropSpace.Core.Island.IslandPage.Music);
             else await _viewModel.ExpandAsync();
+            // The await can span a display rebuild or shutdown that retires this HWND.
+            if (_closing) return;
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
             {
                 LogNativeFailure(noActivateFailure);
@@ -1388,12 +1398,12 @@ public sealed partial class OverlayWindow : Window
     }
     private async void OnWidgetSettingsRequested(object? sender, EventArgs args)
     {
-        try { await _widgetViewModel.OpenSettingsAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        try { if (_closing) return; await _widgetViewModel.OpenSettingsAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
         catch (Exception exception) { _logger.LogWarning("Widget settings navigation failed ({Category}).", exception.GetType().Name); }
     }
     private async void OnClipboardOpenMainRequested(object? sender, EventArgs args)
     {
-        try { if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        try { if (_closing) return; if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
         catch (Exception exception) { _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name); }
     }
 
@@ -1457,6 +1467,7 @@ public sealed partial class OverlayWindow : Window
 
     private async void OnPrimaryQuickActionClicked(object sender, RoutedEventArgs args)
     {
+        if (_closing) return;
         if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction })
         {
             return;
@@ -1475,12 +1486,13 @@ public sealed partial class OverlayWindow : Window
                 quickAction.ActionId,
                 xamlRoot,
                 _windowHandle);
-            if (context is null)
+            if (_closing || context is null)
             {
                 return;
             }
 
             var result = await _viewModel.ExecuteQuickActionAsync(quickAction, context);
+            if (_closing) return;
             await _quickActionDialog.ShowResultAsync(result, xamlRoot);
         }
         catch (Exception exception)

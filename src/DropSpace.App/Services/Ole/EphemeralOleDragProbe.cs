@@ -71,6 +71,9 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private bool _registered;
     private int _disposeState;
     private int _ownerMessagePending;
+    // Owner-thread only. Foreign IDataObject calls may run a nested message pump.
+    private int _oleCallbackDepth;
+    private uint _deferredOwnerMessage;
 
     public EphemeralOleDragProbe(
         long sessionId,
@@ -252,6 +255,12 @@ internal sealed class EphemeralOleDragProbe : IDisposable
             _logger.LogError(
                 "Smart OLE probe native cleanup was requested from the wrong thread for session {SessionId}; cleanup remains deferred.",
                 _sessionId);
+            return;
+        }
+
+        if (_oleCallbackDepth != 0)
+        {
+            _deferredOwnerMessage = WindowMessageProbeCleanup;
             return;
         }
 
@@ -520,6 +529,12 @@ internal sealed class EphemeralOleDragProbe : IDisposable
     private void HandleOwnerThreadMessage(uint message)
     {
         Interlocked.Exchange(ref _ownerMessagePending, 0);
+        if (_oleCallbackDepth != 0)
+        {
+            if (_deferredOwnerMessage != WindowMessageProbeCleanup)
+                _deferredOwnerMessage = message;
+            return;
+        }
         if (message == WindowMessageProbeComplete)
         {
             CompleteOnOwnerThread();
@@ -528,6 +543,19 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         {
             DisposeOnOwnerThread();
         }
+    }
+
+    private void BeginOleCallback() => _oleCallbackDepth++;
+
+    private void EndOleCallback()
+    {
+        if (--_oleCallbackDepth != 0 || _deferredOwnerMessage == 0) return;
+        var message = _deferredOwnerMessage;
+        _deferredOwnerMessage = 0;
+        // Queue again; do not destroy the HWND on the tail of DragEnter itself.
+        Interlocked.Exchange(ref _ownerMessagePending, 0);
+        if (!RequestOwnerThreadMessage(message))
+            _logger.LogError("Smart OLE probe deferred cleanup could not be queued for session {SessionId}.", _sessionId);
     }
 
     private readonly record struct ProbeOwnerMessage(EphemeralOleDragProbe Probe, uint Message);
@@ -641,6 +669,8 @@ internal sealed class EphemeralOleDragProbe : IDisposable
         public int DragEnter(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
         {
             effect = DropEffectNone;
+            if (_owner.IsDisposed) return Success;
+            _owner.BeginOleCallback();
             try
             {
                 var classification = _classifier.Classify(dataObject);
@@ -665,6 +695,11 @@ internal sealed class EphemeralOleDragProbe : IDisposable
                     OleDragProbeOutcome.Rejected,
                     OleFileDataClassification.None,
                     new DragScreenPoint(point.X, point.Y));
+            }
+
+            finally
+            {
+                _owner.EndOleCallback();
             }
 
             return Success;
