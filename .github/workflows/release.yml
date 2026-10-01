@@ -146,6 +146,10 @@ jobs:
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
+      - name: Build verified offline AI inference runtime
+        shell: pwsh
+        run: ./scripts/Build-AiLyricsRuntime.ps1
+
       - name: Test core policies, versions, and update selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core-release.trx"
 
@@ -212,6 +216,14 @@ jobs:
       - name: Smoke test portable EXE (zh-CN resource context) without public network access
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+
+      - name: Download pinned models for native AI smoke
+        shell: pwsh
+        run: ./scripts/Get-AiLyricsSmokeModel.ps1
+
+      - name: Validate native offline inference and cancellation
+        shell: pwsh
+        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
 
       - name: Freeze unsigned bytes and generate release metadata
         shell: pwsh

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
@@ -14,7 +15,15 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
     {
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
-        var indices = Enumerable.Range(0, source.Lines.Count).Where(index => !string.IsNullOrWhiteSpace(source.Lines[index].Text)).ToArray();
+        var target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage);
+        var indices = Enumerable.Range(0, source.Lines.Count).Where(index =>
+        {
+            var line = source.Lines[index];
+            var matchingProvider = line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+                !string.IsNullOrWhiteSpace(line.Secondary) && !string.IsNullOrWhiteSpace(line.TranslationLanguage) &&
+                LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) == target;
+            return !string.IsNullOrWhiteSpace(line.Text) && !matchingProvider;
+        }).ToArray();
         if (indices.Length is 0 or > 500) return source;
         var key = LyricsTranslationPrompt.CacheKey(query, source, targetLanguage, modelSha256);
         var saved = await cache.ReadAsync(key, token).ConfigureAwait(false);
@@ -47,9 +56,15 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
             id = index,
             text = translated.Lines[index].Secondary ?? translated.Lines[index].Text,
         }), CacheJson);
-        try { await cache.WriteAsync(key, json, budget.Token).ConfigureAwait(false); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        // Every batch is bounded independently. A valid complete song can exceed the
+        // per-entry cache budget, but optional persistence must not discard its result.
+        if (Encoding.UTF8.GetByteCount(json) <= LyricsTranslationOutput.MaximumOutputBytes)
+        {
+            try { await cache.WriteAsync(key, json, budget.Token).ConfigureAwait(false); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (InvalidDataException) { }
+        }
         token.ThrowIfCancellationRequested();
         return translated;
     }

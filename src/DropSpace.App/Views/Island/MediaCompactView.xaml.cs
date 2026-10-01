@@ -24,6 +24,12 @@ public sealed partial class MediaCompactView : UserControl
     private XamlRoot? _xamlRoot;
     public double IdealIslandWidth { get; private set; } = 280;
     public double IdealIslandHeight { get; private set; } = 40;
+    // The glow asks the rendered text surface, not only whether a translation exists.
+    internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+        SecondaryLine.Visibility == Visibility.Visible && SecondaryLine.Opacity > 0.01 &&
+        SecondaryLine.ActualWidth > 0 && SecondaryLine.ActualHeight > 0 &&
+        !string.IsNullOrWhiteSpace(SecondaryLine.Text) &&
+        string.Equals(SecondaryLine.Text, _view?.SecondaryLyricText, StringComparison.Ordinal);
     public event EventHandler? IdealWidthChanged;
     public MediaCompactView()
     {

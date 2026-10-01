@@ -623,4 +623,49 @@
   <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>静夜里，歌声仍在继续。</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>恢复默认歌词字号</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为 App 当前语言，优先使用语言匹配的歌词源译文。AI 可能误译；不会为 AI 翻译上传歌词。</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译</value></data>
+  <data name="AiLyricsModel" xml:space="preserve"><value>翻译模型</value></data>
+  <data name="AiLyricsStandardModel" xml:space="preserve"><value>标准模型</value></data>
+  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>精简版（实验性）</value></data>
+  <data name="AiLyricsModelSize" xml:space="preserve"><value>{0} GB（{1} 字节）</value></data>
+  <data name="AiLyricsModelDetails" xml:space="preserve"><value>{0}
+下载大小：{1}
+来源：{2}</value></data>
+  <data name="AiLyricsDownloadProgress" xml:space="preserve"><value>翻译模型下载进度</value></data>
+  <data name="AiLyricsModelProgress" xml:space="preserve"><value>{0}下载进度</value></data>
+  <data name="AiLyricsDownload" xml:space="preserve"><value>下载模型</value></data>
+  <data name="AiLyricsCancelDownload" xml:space="preserve"><value>取消下载</value></data>
+  <data name="AiLyricsResumeDownload" xml:space="preserve"><value>重试 / 继续下载</value></data>
+  <data name="AiLyricsDownloadHelp" xml:space="preserve"><value>关闭 AI 时也可下载模型，两个模型可同时保留，只会使用当前选中的一个。下载中断后，重试时会尽可能继续。</value></data>
+  <data name="AiLyricsConfirmTitle" xml:space="preserve"><value>下载翻译模型？</value></data>
+  <data name="AiLyricsConfirmBody" xml:space="preserve"><value>{0}
+{1}
+{2}
+来源：{3}
+
+此操作会将模型下载到本机，仅本次下载需要联网，不会向模型来源发送歌词。之后的翻译在本机完成。你可以取消并稍后继续下载。</value></data>
+  <data name="AiLyricsConfirmDownload" xml:space="preserve"><value>下载</value></data>
+  <data name="AiLyricsNotNow" xml:space="preserve"><value>暂不下载</value></data>
+  <data name="AiLyricsChecking" xml:space="preserve"><value>正在检查已下载的模型…</value></data>
+  <data name="AiLyricsReady" xml:space="preserve"><value>已下载 · 可以使用</value></data>
+  <data name="AiLyricsNeedsDownload" xml:space="preserve"><value>启用 AI 翻译前，请先下载此模型。</value></data>
+  <data name="AiLyricsDownloading" xml:space="preserve"><value>正在下载模型… 如有已下载的部分，将继续下载。</value></data>
+  <data name="AiLyricsVerifying" xml:space="preserve"><value>下载已接收，正在校验模型…</value></data>
+  <data name="AiLyricsDownloadComplete" xml:space="preserve"><value>模型已下载并通过校验，可以使用。</value></data>
+  <data name="AiLyricsDownloadCanceled" xml:space="preserve"><value>下载已取消。重试可继续已保存的进度。</value></data>
+  <data name="AiLyricsDownloadFailed" xml:space="preserve"><value>下载未能完成。请检查网络连接和可用磁盘空间后重试。会尽可能继续已保存的进度；校验未通过的模型将重新下载。</value></data>
+  <data name="AiLyricsInspectFailed" xml:space="preserve"><value>无法检查已下载的模型。请确认可访问应用的数据文件夹，然后重新打开此页面。</value></data>
+  <data name="AiLyricsOperationFailed" xml:space="preserve"><value>未能完成此操作，请重试。</value></data>
+  <data name="LyricsGlowTitle" xml:space="preserve"><value>灵动岛辉光</value></data>
+  <data name="LyricsGlowOff" xml:space="preserve"><value>关闭</value></data>
+  <data name="LyricsGlowAi" xml:space="preserve"><value>AI 歌词</value></data>
+  <data name="LyricsGlowMusic" xml:space="preserve"><value>音乐</value></data>
+  <data name="LyricsGlowDescription" xml:space="preserve"><value>“AI 歌词”在显示 AI 译文时发光；“音乐”在播放音乐时发光，关闭 AI 也可使用。启用 AI 会选择“AI 歌词”，关闭 AI 会选择“关闭”。你可以在这里手动更改。</value></data>
+  <data name="LyricsGlowKeyboardHelp" xml:space="preserve"><value>使用方向键选择关闭、AI 歌词或音乐。Home 键选择关闭，End 键选择音乐。</value></data>
+  <data name="LyricsGlowAccessibleValue" xml:space="preserve"><value>灵动岛辉光：{0}</value></data>
+  <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>关闭 AI 时也可下载模型。下载中断后，重试时会尽可能继续。</value></data>
+  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>腾讯官方 Q4 模型，默认选项；译文仍可能出现错误。</value></data>
+  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>同一个 1.8B 模型的第三方 IQ3 量化版，下载体积约小 23%，内存占用较低，但不一定更快。复杂歌词可能误译。</value></data>
 </root>

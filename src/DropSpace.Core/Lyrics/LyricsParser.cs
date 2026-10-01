@@ -40,7 +40,15 @@ public static class LyricsParser
             {
                 End = word.End > word.Start ? (word.End > end ? end : word.End) : end,
             }).Where(word => word.End > word.Start).ToArray();
-            ordered[index] = line with { End = end, Secondary = translation, Words = words };
+            ordered[index] = line with
+            {
+                End = end, Secondary = translation, Words = words,
+                TranslationOrigin = translationIndex >= 0 && !string.IsNullOrWhiteSpace(translation)
+                    ? LyricsTranslationOrigin.Provider : line.TranslationOrigin,
+                // External LRC has no reliable translation language identity. In particular,
+                // Latin or Han script alone must not suppress translation to the App language.
+                TranslationLanguage = translationIndex >= 0 ? null : line.TranslationLanguage,
+            };
         }
         return new(ordered, provider);
     }
@@ -176,16 +184,24 @@ public static class LyricsParser
             var end = ResolveEnd(paragraph, start, TimeSpan.FromSeconds(5));
             var words = new List<LyricsWord>();
             var primary = new StringBuilder();
-            var translation = new StringBuilder();
-            foreach (var node in paragraph.Nodes()) ReadTtmlNode(node, start, end, primary, translation, words);
+            var translations = new List<(string Text, string? Language)>();
+            var romanization = new StringBuilder();
+            foreach (var node in paragraph.Nodes()) ReadTtmlNode(node, start, end, primary, translations, romanization, words);
             var textValue = primary.ToString().Trim();
-            if (textValue.Length > 0) output.Add(new(start, end, textValue, translation.Length == 0 ? null : translation.ToString().Trim(), words));
+            var translation = string.Concat(translations.Select(value => value.Text)).Trim();
+            var secondary = translation.Length > 0 ? translation : romanization.ToString().Trim();
+            var languages = translations.Select(value => value.Language).Distinct(StringComparer.Ordinal).ToArray();
+            if (textValue.Length > 0) output.Add(new(start, end, textValue, secondary.Length == 0 ? null : secondary, words)
+            {
+                TranslationOrigin = translation.Length > 0 ? LyricsTranslationOrigin.Provider : LyricsTranslationOrigin.None,
+                TranslationLanguage = translation.Length > 0 && languages.Length == 1 ? languages[0] : null,
+            });
         }
         return output;
     }
 
     private static void ReadTtmlNode(XNode node, TimeSpan parentStart, TimeSpan parentEnd, StringBuilder primary,
-        StringBuilder translation, List<LyricsWord> words)
+        List<(string Text, string? Language)> translations, StringBuilder romanization, List<LyricsWord> words)
     {
         if (node is XText literal) { primary.Append(literal.Value); return; }
         if (node is not XElement element) return;
@@ -204,9 +220,14 @@ public static class LyricsParser
         if (ruby is not null &&
             (ruby.Equals("text", StringComparison.OrdinalIgnoreCase) ||
              ruby.Equals("textContainer", StringComparison.OrdinalIgnoreCase))) return;
-        var isTranslation = role.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Any(IsTranslationRole);
-        if (isTranslation) { translation.Append(element.Value); return; }
+        var roles = role.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        if (roles.Any(IsRomanizationRole)) { romanization.Append(element.Value); return; }
+        if (roles.Any(IsTranslationRole))
+        {
+            if (!string.IsNullOrWhiteSpace(element.Value))
+                translations.Add((element.Value, ExplicitTranslationLanguage(element)));
+            return;
+        }
         var start = ResolveNestedTime(element.Attribute("begin")?.Value, parentStart);
         var end = ResolveNestedEnd(element, start, parentStart, parentEnd);
         var children = element.Nodes().ToArray();
@@ -218,24 +239,48 @@ public static class LyricsParser
                 words.Add(new(value.Trim(), start, end));
             return;
         }
-        foreach (var child in children) ReadTtmlNode(child, start, end, primary, translation, words);
+        foreach (var child in children) ReadTtmlNode(child, start, end, primary, translations, romanization, words);
     }
 
     private static bool IsTranslationRole(string value)
     {
-        if (value.Equals("x-translation", StringComparison.OrdinalIgnoreCase) ||
-            value.Equals("x-roman", StringComparison.OrdinalIgnoreCase) ||
-            value.Equals("x-transliteration", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
         var normalized = value.Replace("-", string.Empty, StringComparison.Ordinal)
             .Replace("_", string.Empty, StringComparison.Ordinal);
-        return normalized.Contains("translation", StringComparison.OrdinalIgnoreCase) ||
+        return normalized.Contains("translation", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsRomanizationRole(string value)
+    {
+        var normalized = value.Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace("_", string.Empty, StringComparison.Ordinal);
+        return normalized.Equals("xroman", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("transliteration", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("romanization", StringComparison.OrdinalIgnoreCase) ||
             normalized.Equals("pinyin", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? ExplicitTranslationLanguage(XElement translation)
+    {
+        string? language = null;
+        foreach (var text in translation.DescendantNodes().OfType<XText>().Where(text => !string.IsNullOrWhiteSpace(text.Value)))
+        {
+            string? declared = null;
+            for (var current = text.Parent; current is not null; current = current.Parent)
+            {
+                if (current.Attribute(XNamespace.Xml + "lang") is { } attribute)
+                {
+                    declared = attribute.Value;
+                    break;
+                }
+                // A language on the source paragraph/document does not identify an
+                // unlabelled translation. Only declarations within its span count.
+                if (current == translation) break;
+            }
+            var normalized = LyricsTranslationPolicy.NormalizeLanguage(declared);
+            if (normalized.Length == 0 || (language is not null && language != normalized)) return null;
+            language = normalized;
+        }
+        return language;
     }
 
     private static TimeSpan ResolveEnd(XElement element, TimeSpan start, TimeSpan defaultDuration)

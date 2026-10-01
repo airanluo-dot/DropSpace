@@ -51,6 +51,18 @@
     <Content Include="Assets\AppIcon.ico" />
     <DropSpaceStringResource Include="Strings\**\*.resw" />
   </ItemGroup>
+  <PropertyGroup>
+    <AiLyricsRuntimeRoot>$(MSBuildProjectDirectory)\..\..\artifacts\ai-runtime\win-x64</AiLyricsRuntimeRoot>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(AiLyricsRuntimeRoot)\runtime-manifest.json')">
+    <EmbeddedResource Include="$(AiLyricsRuntimeRoot)\runtime-manifest.json" LogicalName="DropSpace.AiLyricsRuntime.runtime-manifest.json" />
+    <EmbeddedResource Include="$(AiLyricsRuntimeRoot)\llama-completion.exe" LogicalName="DropSpace.AiLyricsRuntime.llama-completion.exe" />
+    <EmbeddedResource Include="$(AiLyricsRuntimeRoot)\llama-completion-avx2.exe" LogicalName="DropSpace.AiLyricsRuntime.llama-completion-avx2.exe" />
+    <EmbeddedResource Include="$(AiLyricsRuntimeRoot)\LICENSE-llama.cpp" LogicalName="DropSpace.AiLyricsRuntime.LICENSE-llama.cpp" />
+  </ItemGroup>
+  <Target Name="RequireAiLyricsRuntimeForRelease" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
+    <Error Condition="!Exists('$(AiLyricsRuntimeRoot)\runtime-manifest.json') or !Exists('$(AiLyricsRuntimeRoot)\llama-completion.exe') or !Exists('$(AiLyricsRuntimeRoot)\llama-completion-avx2.exe')" Text="Build and verify the pinned local AI runtime with scripts/Build-AiLyricsRuntime.ps1 before a Release build." />
+  </Target>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
     <ProjectCapability Include="Msix" Condition="'$(DropSpaceDeployment)' == 'Packaged'" />

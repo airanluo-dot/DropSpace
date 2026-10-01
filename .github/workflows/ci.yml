@@ -78,6 +78,10 @@ jobs:
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
+      - name: Build verified offline AI inference runtime
+        shell: pwsh
+        run: ./scripts/Build-AiLyricsRuntime.ps1
+
       - name: Test core policies, SemVer, and channel selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
 

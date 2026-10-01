@@ -78,6 +78,7 @@ public sealed class MusicPage : UserControl
         lyricsPanel.Children.Add(_lyricsStatus);
         lyricsPanel.Children.Add(_lyricsScroll);
         _body.Children.Add(CreateCard(lyricsPanel, new Thickness(16)));
+        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings));
         var form = new SettingsForm(editor, strings); _body.Children.Add(form);
         form.AddHeading("MusicPlaybackSection");
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });

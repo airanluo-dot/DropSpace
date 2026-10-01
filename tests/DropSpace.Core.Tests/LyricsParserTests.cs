@@ -135,4 +135,57 @@ public sealed class LyricsParserTests
         Assert.AreEqual(TimeSpan.FromSeconds(3723.5), line.Start);
         Assert.AreEqual(TimeSpan.FromSeconds(3724.5), line.Words[0].End);
     }
+
+    [TestMethod]
+    [DataRow("Bonjour")]
+    [DataRow("東京")]
+    public void ExternalProviderTranslationDoesNotGuessLanguageFromScript(string translation)
+    {
+        var line = LyricsParser.Parse("[00:01]Original", LyricsProviderKind.NetEase, "[00:01]" + translation).Lines.Single();
+        Assert.AreEqual(translation, line.Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, line.TranslationOrigin);
+        Assert.IsNull(line.TranslationLanguage);
+    }
+
+    [TestMethod]
+    public void TtmlKeepsExplicitTranslationLanguageWithoutMixingRomanization()
+    {
+        const string ttml = """
+            <tt xmlns:ttm="http://www.w3.org/ns/ttml#metadata" xml:lang="ja"><body>
+              <p begin="1s" end="3s"><span>原文</span><span ttm:role="x-roman" xml:lang="en">genbun</span><span ttm:role="x-translation" xml:lang="en-US"><span>Original text</span></span></p>
+            </body></tt>
+            """;
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        Assert.AreEqual("原文", line.Text);
+        Assert.AreEqual("Original text", line.Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, line.TranslationOrigin);
+        Assert.AreEqual("en", line.TranslationLanguage);
+    }
+
+    [TestMethod]
+    [DataRow("x-roman")]
+    [DataRow("x-transliteration")]
+    [DataRow("x-romanization")]
+    [DataRow("pinyin")]
+    public void TtmlRomanizationIsNotATargetLanguageTranslation(string role)
+    {
+        var ttml = "<tt><body><p begin=\"1s\" end=\"3s\">原文<span role=\"" + role + "\" xml:lang=\"en\">genbun</span></p></body></tt>";
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        Assert.AreEqual("原文", line.Text);
+        Assert.AreEqual("genbun", line.Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.None, line.TranslationOrigin);
+        Assert.IsNull(line.TranslationLanguage);
+    }
+
+    [TestMethod]
+    [DataRow("<span role=\"x-translation\">Hello</span>")]
+    [DataRow("<span role=\"x-translation\" xml:lang=\"en\">Hello<span xml:lang=\"fr\">bonjour</span></span>")]
+    [DataRow("<span role=\"x-translation\" xml:lang=\"en\">Hello</span><span role=\"x-translation\">bonjour</span>")]
+    public void TtmlUnlabelledOrMixedTranslationKeepsLanguageUnknown(string spans)
+    {
+        var ttml = "<tt xml:lang=\"en\"><body><p begin=\"1s\" end=\"3s\">原文" + spans + "</p></body></tt>";
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, line.TranslationOrigin);
+        Assert.IsNull(line.TranslationLanguage);
+    }
 }

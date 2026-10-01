@@ -26,6 +26,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly SystemVisualPreferenceService _visualPreferences;
     private readonly HttpClient _http;
     private readonly LyricsService _lyrics;
+    public AiLyricsService AiLyrics { get; }
     private readonly LyricsTimelineEngine _timeline = new();
     private readonly MediaPlaybackClock _clock = new();
     private readonly Channel<bool> _changes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
@@ -44,11 +45,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
     public MediaExperienceService(MainViewModel main, MediaViewModel view, WindowsMediaSessionService media,
         WindowsProcessLoopbackService audio, MediaProcessResolver processes, MediaArtworkService artwork,
         IslandExperienceCoordinator experience, DispatcherQueue dispatcher, ILogger<MediaExperienceService> logger,
-        SystemVisualPreferenceService visualPreferences)
+        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics)
     {
         _main = main; _view = view; _media = media; _audio = audio; _processes = processes; _artwork = artwork;
         _experience = experience; _dispatcher = dispatcher; _logger = logger;
-        _visualPreferences = visualPreferences;
+        _visualPreferences = visualPreferences; AiLyrics = aiLyrics;
+        AiLyrics.ModelDownloaded += OnModelDownloaded;
         _http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
         _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory));
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
@@ -74,6 +76,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
     {
         _lyrics.ClearCache(); Interlocked.Increment(ref _generation); Interlocked.Increment(ref _reloadRequest);
         _document = LyricsDocument.Empty; _view.SetLyricsDocument(LyricsDocument.Empty); _view.Lyrics = LyricsHighlightFrame.Empty; _changes.Writer.TryWrite(true);
+    }
+    private void OnModelDownloaded(object? sender, EventArgs args)
+    {
+        Interlocked.Increment(ref _generation);
+        Interlocked.Increment(ref _reloadRequest);
+        _changes.Writer.TryWrite(true);
     }
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -156,7 +164,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         _artworkStop?.Dispose(); _artworkStop = CancellationTokenSource.CreateLinkedTokenSource(token);
                         _artworkJob = LoadArtworkAsync(session, artworkGeneration, _artworkStop.Token);
                     }
-                    var sourceKey = playing && settings.IslandActivity.ShowSpectrum && _view.IsPresentationVisible ? session.SourceAppUserModelId : string.Empty;
+                    var sourceKey = playing && ((settings.IslandActivity.ShowSpectrum && _view.IsPresentationVisible) || _view.IsIslandGlowActive) ? session.SourceAppUserModelId : string.Empty;
                     if (audioKey != sourceKey || trackChanged)
                     {
                         var resolved = true;
@@ -201,6 +209,24 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 }
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
+            if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation))
+            {
+                var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
+                var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
+                    session.Timeline.Duration, session.TrackIdentity, session.AlbumArtist);
+                var translated = await AiLyrics.TranslateIfAvailableAsync(query, result.Document, settings.Lyrics, targetLanguage, token).ConfigureAwait(false);
+                if (!ReferenceEquals(translated, result.Document))
+                    await _dispatcher.EnqueueAsync(() =>
+                    {
+                        if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed)
+                        {
+                            _document = translated;
+                            _view.SetLyricsDocument(translated);
+                            RenderFrame();
+                        }
+                        return Task.CompletedTask;
+                    }).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -272,12 +298,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
     }
     private void UpdateFrameTimer()
     {
-        if (_view.IsPlaying && _view.IsPresentationVisible) _frames.Start();
+        if (_view.IsPlaying && (_view.IsPresentationVisible || _view.IsIslandGlowActive)) _frames.Start();
         else _frames.Stop();
     }
     private void OnPresentationChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName != nameof(MediaViewModel.IsPresentationVisible)) return;
+        if (args.PropertyName is not (nameof(MediaViewModel.IsPresentationVisible) or nameof(MediaViewModel.IsIslandGlowActive))) return;
         UpdateFrameTimer(); _changes.Writer.TryWrite(true);
     }
     private void OnExpiry(DispatcherQueueTimer sender, object args) => _experience.Reconcile();
@@ -289,6 +315,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _frames.Tick -= OnFrame; _expiry.Tick -= OnExpiry; _experience.Changed -= OnExperienceChanged;
         _visualPreferences.Changed -= OnVisualPreferencesChanged;
         _view.PropertyChanged -= OnPresentationChanged;
+        AiLyrics.ModelDownloaded -= OnModelDownloaded;
         _main.PropertyChanged -= OnSettingsChanged; _media.Changed -= OnMediaChanged; _audio.Changed -= OnSpectrumChanged;
         _stop.Cancel(); _changes.Writer.TryComplete();
         await _worker.ConfigureAwait(false); await Task.WhenAll(_lyricsJob, _artworkJob).ConfigureAwait(false);

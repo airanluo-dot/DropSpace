@@ -35,6 +35,7 @@ public sealed class AiLyricsCache(string root)
         }
         catch (IOException) { return null; }
         catch (UnauthorizedAccessException) { return null; }
+        catch (InvalidDataException) { return null; }
     }
 
     public async Task WriteAsync(string key, string validatedJson, CancellationToken token)
@@ -56,9 +57,11 @@ public sealed class AiLyricsCache(string root)
 
     private void Trim()
     {
+        // Account for all owned entries. A truncated directory sample can remain
+        // below budget forever while files outside that sample grow without bound.
         var files = Directory.EnumerateFiles(root, "*.json", new EnumerationOptions { RecurseSubdirectories = false, AttributesToSkip = FileAttributes.ReparsePoint })
             .Where(path => Path.GetFileNameWithoutExtension(path) is { Length: 64 } name && name.All(Uri.IsHexDigit))
-            .Take(10_000).Select(path => new FileInfo(path)).OrderBy(file => file.LastWriteTimeUtc).ToArray();
+            .Select(path => new FileInfo(path)).OrderBy(file => file.LastWriteTimeUtc).ToArray();
         var size = files.Sum(file => file.Length);
         foreach (var file in files)
         {

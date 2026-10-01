@@ -26,6 +26,18 @@ public sealed class MediaViewModel : ObservableObject
     private readonly IAppStringLocalizer _strings;
     private readonly HashSet<object> _visibleOwners = [];
     private bool _presentationVisible;
+    // Only an actual island may request glow audio. Main-window Music presentation
+    // visibility must not accidentally light an off-screen island or start its capture.
+    private readonly HashSet<object> _islandGlowOwners = [];
+    private bool _islandGlowActive;
+    public bool IsIslandGlowActive => Volatile.Read(ref _islandGlowActive);
+    public void SetIslandGlowActive(object owner, bool active)
+    {
+        var wasActive = IsIslandGlowActive;
+        if (active) _islandGlowOwners.Add(owner); else _islandGlowOwners.Remove(owner);
+        Volatile.Write(ref _islandGlowActive, _islandGlowOwners.Count > 0);
+        if (wasActive != IsIslandGlowActive) OnPropertyChanged(nameof(IsIslandGlowActive));
+    }
     public bool IsPresentationVisible => Volatile.Read(ref _presentationVisible);
     public void SetPresentationVisible(object owner, bool visible)
     {

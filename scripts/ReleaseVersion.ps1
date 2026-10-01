@@ -41,7 +41,10 @@ function Get-DropSpaceReleaseInfo
 
 function Get-DropSpaceLifecycleBaselineVersion
 {
-    param([Parameter(Mandatory = $true)]$ReleaseInfo)
+    param(
+        [Parameter(Mandatory = $true)]$ReleaseInfo,
+        [string]$NotesRoot = (Join-Path (Split-Path $PSScriptRoot -Parent) ".github/release-notes")
+    )
 
     if ($ReleaseInfo.IsPrerelease -and $ReleaseInfo.PrereleaseNumber -gt 1)
     {
@@ -51,7 +54,6 @@ function Get-DropSpaceLifecycleBaselineVersion
 
     if (-not $ReleaseInfo.IsPrerelease)
     {
-        $notesRoot = Join-Path (Split-Path $PSScriptRoot -Parent) ".github/release-notes"
         $prefix = "v$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch)-"
         $latestPrerelease = Get-ChildItem $notesRoot -File -Filter "$prefix*.md" |
             ForEach-Object {
@@ -69,22 +71,16 @@ function Get-DropSpaceLifecycleBaselineVersion
         return $latestPrerelease.Version
     }
 
-    # A first prerelease has no same-line predecessor. Use the nearest lower
-    # stable release so the lifecycle fixture exercises a real upgrade and
-    # never trips the installer's downgrade guard (for example 0.1.0 ->
-    # 0.2.0-preview.1).
-    if ($ReleaseInfo.Patch -gt 0)
-    {
-        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor).$($ReleaseInfo.Patch - 1)"
-    }
-    if ($ReleaseInfo.Minor -gt 0)
-    {
-        return "$($ReleaseInfo.Major).$($ReleaseInfo.Minor - 1).0"
-    }
-    if ($ReleaseInfo.Major -gt 0)
-    {
-        return "$($ReleaseInfo.Major - 1).0.0"
-    }
+    # A first prerelease may follow a prerelease-only series. Select a real,
+    # documented predecessor instead of inventing an unpublished stable version.
+    $previous = Get-ChildItem $NotesRoot -File -Filter 'v*.md' |
+        ForEach-Object {
+            try { Get-DropSpaceReleaseInfo $_.BaseName } catch { }
+        } |
+        Where-Object { $_.VersionCode -lt $ReleaseInfo.VersionCode } |
+        Sort-Object VersionCode -Descending |
+        Select-Object -First 1
+    if ($null -ne $previous) { return $previous.SemanticVersion }
 
     throw "Release $($ReleaseInfo.Tag) has no representable lower lifecycle baseline."
 }

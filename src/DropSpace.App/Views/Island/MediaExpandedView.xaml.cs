@@ -13,6 +13,12 @@ namespace DropSpace.App.Views.Island;
 
 public sealed partial class MediaExpandedView : UserControl
 {
+    internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+        LyricsArea.Visibility == Visibility.Visible && TranslatedLyric.Visibility == Visibility.Visible &&
+        TranslatedLyric.Opacity > 0.01 && TranslatedLyric.ActualWidth > 0 && TranslatedLyric.ActualHeight > 0 &&
+        !string.IsNullOrWhiteSpace(TranslatedLyric.Text) &&
+        string.Equals(TranslatedLyric.Text, _view?.SecondaryLyricText, StringComparison.Ordinal);
+
     private MediaViewModel? _view;
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekCommitTimer;

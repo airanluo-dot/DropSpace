@@ -574,6 +574,7 @@ public partial class App : Application
         services.AddSingleton<Services.Widgets.NativeWidgetDataService>();
         services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<ClipboardIslandViewModel>();
+        services.AddSingleton<Services.Media.AiLyricsService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();

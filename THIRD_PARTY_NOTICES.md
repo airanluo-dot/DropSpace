@@ -62,3 +62,9 @@ The workflows call the following external actions. They execute in CI and are no
 If a future change incorporates third-party source or assets rather than merely depending on a package, its exact provenance, license text, required notices, and compatibility with Apache-2.0 must be reviewed before merge.
 
 Preview.7 continues to use the QRCoder NuGet package for local QR PNG generation and `System.Security.Cryptography.ProtectedData` for Windows DPAPI-backed identity/peer secrets. Both remain replaceable infrastructure dependencies; neither receives clipboard content or network credentials. Windows.Data.Pdf, Windows.Media.Playback, and Windows.Graphics.Imaging are platform APIs supplied by the target Windows SDK, not vendored third-party code. The reference Cloudflare Worker is first-party repository code and has no runtime dependency in the Windows build.
+
+## Optional local AI lyric translation
+
+- **llama.cpp v0.5.0**, source commit `7fe450e19305b828c199d602c23a8337aaa1f03b`: MIT license. DropSpace builds fixed CPU-only Windows runtime variants from [the official source](https://github.com/ggml-org/llama.cpp/tree/7fe450e19305b828c199d602c23a8337aaa1f03b). Upstream and bundled vendor notices are embedded with the runtime payload in `LICENSE-llama.cpp`.
+- **Tencent Hy-MT2-1.8B**: Apache-2.0. Model weights are optional, downloaded only with user consent and are not bundled in the app. [Upstream license](https://huggingface.co/tencent/Hy-MT2-1.8B/blob/9a341cd1b679d3efd23b46e847b01745a71ed792/LICENSE.txt).
+- **mradermacher Hy-MT2-1.8B IQ3_S**: third-party quantization of those Tencent weights, offered as the experimental compact download under Apache-2.0. [Pinned model repository](https://huggingface.co/mradermacher/Hy-MT2-1.8B-i1-GGUF/tree/9f5c7d98d8b625800775e6197e55c7ed38f2f33a). The app uses a hash-specific runtime EOS correction; it does not modify or rehost the downloaded weights.

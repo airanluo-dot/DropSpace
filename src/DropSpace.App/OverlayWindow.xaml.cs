@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DropSpace.App.Services;
@@ -5,6 +6,8 @@ using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Island;
+using DropSpace.Core.Lyrics;
+using DropSpace.Core.Media;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
@@ -53,6 +56,8 @@ public sealed partial class OverlayWindow : Window
     private readonly OverlayMaterialController _materialController;
     private readonly OverlayCompositionAnimator _compositionAnimator;
     private readonly OverlayNativeRegionController _nativeRegionController;
+    private readonly IslandGlowController _glow;
+    private bool _glowRefreshPending;
     private readonly OverlayMotionOrchestrator _motion;
     private OleDropTargetRegistration? _nativeDropTarget;
     private OverlayState _previousState = OverlayState.Hidden;
@@ -185,6 +190,8 @@ public sealed partial class OverlayWindow : Window
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
         _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
+        _glow = new IslandGlowController(_windowHandle, _monitor.Scale, DispatcherQueue.GetForCurrentThread(), logger);
+        _mediaViewModel.PropertyChanged += OnGlowMediaChanged;
         var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
             capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
@@ -528,6 +535,7 @@ public sealed partial class OverlayWindow : Window
         _motion.SetTarget(target, IsReducedMotion());
         StartAnimationFrames();
         _previousState = snapshot.State;
+        UpdateGlowTarget();
     }
 
     private bool _closing;
@@ -536,6 +544,9 @@ public sealed partial class OverlayWindow : Window
     {
         if (_closing) return;
         _closing = true;
+        _mediaViewModel.PropertyChanged -= OnGlowMediaChanged;
+        _mediaViewModel.SetIslandGlowActive(this, false);
+        _glow.Dispose();
         _presentationSnapshot = null;
         _rightHoldTimer.Stop();
         _rightHoldPointer = null;
@@ -557,6 +568,65 @@ public sealed partial class OverlayWindow : Window
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         Close();
+    }
+
+    private void OnGlowMediaChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (_closing || args.PropertyName == nameof(MediaViewModel.IsIslandGlowActive) || _glowRefreshPending) return;
+        _glowRefreshPending = true;
+        if (!DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+        {
+            _glowRefreshPending = false;
+            if (!_closing) UpdateGlowTarget();
+        })) _glowRefreshPending = false;
+    }
+
+    private void UpdateGlowTarget()
+    {
+        if (_closing) return;
+        var preferences = _visualPreferences.Current;
+        var visible = _isVisible && _isActiveWindow && _nativeWindowSafeToShow &&
+            !_suppressedForPlacementEdit && !_placementEditActive;
+        var eligibleSurface = visible && !_suppressedForFullscreen &&
+            _presentationSnapshot?.State is OverlayState.Compact or OverlayState.Expanded;
+        if (!visible || preferences.HighContrast || !preferences.AdvancedEffectsEnabled)
+        {
+            _mediaViewModel.SetIslandGlowActive(this, false);
+            _glow.HideImmediately();
+            return;
+        }
+
+        var values = _motion.Current.ProjectToSafeRange();
+        var settings = _mediaViewModel.Settings;
+        var presentation = _mediaViewModel.LyricPresentation;
+        var compactLyricsVisible = MusicCompact.IsTranslationActuallyVisible &&
+            CompactPanel.Visibility == Visibility.Visible && values.CompactContent > 0.01 &&
+            settings.IslandActivity.ShowLyricsInCompact;
+        var expandedLyricsVisible = MusicExpanded.IsTranslationActuallyVisible &&
+            ExpandedPanel.Visibility == Visibility.Visible && values.ExpandedContent > 0.01 &&
+            _pageTransition.Progress(IslandPage.Music) > 0.01;
+        var secondary = _mediaViewModel.SecondaryLyricText;
+        var translationVisible = (compactLyricsVisible || expandedLyricsVisible) &&
+            settings.Lyrics.Enabled && settings.Lyrics.SecondaryLyrics &&
+            !presentation.IsWaiting && !presentation.IsInterlude &&
+            !string.IsNullOrWhiteSpace(secondary);
+        var eligible = _glow.IsAvailable && LyricsGlowPolicy.IsEligible(settings.Lyrics.GlowMode,
+            _mediaViewModel.IsPlaying && !string.IsNullOrWhiteSpace(_mediaViewModel.Title),
+            eligibleSurface && values.Opacity > 0.01, translationVisible,
+            presentation.Line?.TranslationOrigin ?? LyricsTranslationOrigin.None, secondary);
+        _mediaViewModel.SetIslandGlowActive(this, eligible);
+
+        // Consume the existing selected-player loopback spectrum, never a microphone
+        // or an endpoint meter. Unavailable capture leaves only the quiet baseline.
+        var spectrum = _mediaViewModel.Spectrum;
+        var energy = 0d;
+        if (spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0)
+        {
+            foreach (var band in spectrum.Bands)
+                energy += double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
+            energy /= spectrum.Bands.Count;
+        }
+        _glow.SetTarget(eligible, energy, _mediaViewModel.IsReducedMotion || preferences.ReducedMotion);
     }
 
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
@@ -635,6 +705,8 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        _mediaViewModel.SetIslandGlowActive(this, false);
+        _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
@@ -659,6 +731,8 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        _mediaViewModel.SetIslandGlowActive(this, false);
+        _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
@@ -769,6 +843,7 @@ public sealed partial class OverlayWindow : Window
             _positionedHostHeightPixels = height;
             _positionedHostLeftPixels = left;
             _positionedHostTopPixels = top;
+            _glow.RefreshPosition();
         }
 
         return matches;
@@ -899,6 +974,7 @@ public sealed partial class OverlayWindow : Window
     {
         if (_closing) return;
         _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
+        UpdateGlowTarget();
         if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
         {
             ApplySnapshot(
@@ -977,6 +1053,10 @@ public sealed partial class OverlayWindow : Window
                 _monitor.Id);
             return false;
         }
+
+        _glow.SetGeometry(left, top, width, height,
+            ToPixels(values.TopRadius), ToPixels(values.BottomRadius), values.Opacity);
+        UpdateGlowTarget();
 
         if (values.Opacity <= 0.001)
         {

@@ -36,3 +36,14 @@ The earlier validation and compilation status above is superseded by this checkp
 - Official Hy-MT2 1.25-bit candidate failed to load in this runtime and remains excluded.
 - Release metadata corrections and 12 regression checks are committed as 9b21674 on the development branch for inclusion in 0.3.1 Beta 1. No remote push or release is implied.
 - Still required: eligible lightweight model, Windows runtime packaging/hard limits, App inference/model-management integration, actual outward glow renderer and three-position control, native Windows tests, complete review/fix/retest rounds, final version metadata and release gates.
+
+## Integration checkpoint 2026-10-01 18:49 UTC
+
+- App translation service and guarded media-generation publication are wired to verified model/runtime services.
+- Native AI model settings, consent/download/resume/cancel, model selection, three-detent glow control, and font controls are implemented.
+- Outward layered-window glow and renderer are implemented; software raster/compositing checks pass, actual native behavior awaits the next Windows run.
+- Runtime has baseline/AVX2 embedded payload selection, atomic Windows job assignment, committed-memory/child-count/close limits, fixed-source build and integrity checks. Real Linux runner smoke and cancellation pass; Windows release lane now explicitly tests both model variants using pinned development-only downloads.
+- Compact IQ3_S is now an opt-in experimental catalog item with a hash-specific EOS correction, explicit third-party attribution, smaller-size/lower-memory caveat and no faster/fewer-parameters claim. See model evaluation document.
+- Current local checks: Core343 passed; focused lyrics/runtime infrastructure44 passed with6 Windows-only skips; metadata12 passed; XML/YAML syntax and654 bilingual keys agree.
+- Initial PR76 batch at remote5664ea2 passed both Windows CI and release-bundle validation. This does not validate the current new integration. One prior clipboard smoke timeout passed on rerun and remains tracked.
+- User additionally requires completion of all features, full first-time-user/code/data/flow review, separate critical product review, a structured issue file, and item-by-item fixes before publication. These full review gates have not been completed. Website work proceeds separately and its preview is informational, not a release approval gate.
