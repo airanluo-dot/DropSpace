@@ -12,7 +12,7 @@ namespace DropSpace.App.Tests;
 [TestClass]
 public sealed class ProbeReentrancyRegressionTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
     public void NestedSourceMessageCannotRetireProbeInsideDragEnter(bool directDispose)
