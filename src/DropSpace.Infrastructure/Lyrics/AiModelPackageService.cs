@@ -36,10 +36,39 @@ public sealed class AiModelPackageService : IDisposable
         return await VerifyAsync(path, model, token).ConfigureAwait(false) ? path : null;
     }
 
-    public async Task<string> DownloadAsync(string modelId, bool consent, IProgress<double>? progress, CancellationToken token)
+    public bool HasArtifacts(string modelId)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var model = _resolve(modelId);
+        if (model is null || !Directory.Exists(_root)) return false;
+        return new[] { ".gguf", ".partial" }.Any(suffix =>
+            File.Exists(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + suffix)));
+    }
+
+    public async Task DeleteAsync(string modelId, CancellationToken token)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var model = _resolve(modelId) ?? throw new ArgumentException("Unknown model.", nameof(modelId));
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
+        await _gate.WaitAsync(stop.Token).ConfigureAwait(false);
+        try
+        {
+            stop.Token.ThrowIfCancellationRequested();
+            if (!Directory.Exists(_root)) return;
+            foreach (var suffix in new[] { ".gguf", ".partial" })
+            {
+                var path = ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + suffix);
+                File.Delete(path);
+            }
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async Task<string> DownloadAsync(string modelId, bool consent, IProgress<double>? progress, CancellationToken token, long additionalDiskBytes = 0)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (!consent) throw new InvalidOperationException("Explicit model download consent is required.");
+        if (additionalDiskBytes is < 0 or > 536_870_912) throw new ArgumentOutOfRangeException(nameof(additionalDiskBytes));
         var model = _resolve(modelId) ?? throw new ArgumentException("Unknown model.", nameof(modelId));
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         await _gate.WaitAsync(budget.Token).ConfigureAwait(false);
@@ -64,7 +93,7 @@ public sealed class AiModelPackageService : IDisposable
                 offset = 0;
             }
             var drive = new DriveInfo(Path.GetPathRoot(_root)!);
-            if (drive.AvailableFreeSpace < model.Bytes - offset + 64L * 1024 * 1024)
+            if (drive.AvailableFreeSpace < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
                 throw new IOException("Insufficient free space for the model.");
             var download = await RequestWithRangeFallbackAsync(model.DownloadUri, offset, token).ConfigureAwait(false);
             using var response = download.Response;
@@ -80,6 +109,9 @@ public sealed class AiModelPackageService : IDisposable
             else throw new InvalidDataException("Unexpected model download status.");
             if (response.Content.Headers.ContentLength is long length && length != model.Bytes - offset)
                 throw new InvalidDataException("Model response size does not match the catalog.");
+            // A server may ignore Range, so recheck with the actual restart offset.
+            if (drive.AvailableFreeSpace < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
+                throw new IOException("Insufficient free space for model restart and runtime extraction.");
             ReparseSafePathPolicy.RevalidatePreparedDestination(_root, partial);
             await using (var output = new FileStream(partial, offset > 0 ? FileMode.Open : FileMode.Create, FileAccess.Write, FileShare.None, 65536, true))
             {

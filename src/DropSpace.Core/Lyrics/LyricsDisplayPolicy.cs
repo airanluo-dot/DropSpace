@@ -24,6 +24,12 @@ public static class LyricsDisplayPolicy
         return new(true, anchor, true, effective - gapStart >= 3_000);
     }
 
+    public static string? SecondaryPresentation(LyricsLine? line, string languageTag, bool enabled)
+    {
+        var text = Secondary(line, languageTag, enabled);
+        return text is not null && line?.TranslationOrigin == LyricsTranslationOrigin.LocalAi ? "AI · " + text : text;
+    }
+
     public static string? Secondary(LyricsLine? line, string languageTag, bool enabled)
     {
         if (!enabled || string.IsNullOrWhiteSpace(line?.Secondary)) return null;

@@ -6,6 +6,24 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class AiLyricsCacheTests
 {
     [TestMethod]
+    public async Task ClearRemovesOnlyOwnedAiEntries()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var cache = new AiLyricsCache(root);
+            var key = new string('A', 64);
+            await cache.WriteAsync(key, "[]", CancellationToken.None);
+            await File.WriteAllTextAsync(Path.Combine(root, "unrelated.json"), "keep");
+            await cache.ClearAsync(CancellationToken.None);
+            Assert.IsNull(await cache.ReadAsync(key, CancellationToken.None));
+            Assert.IsTrue(File.Exists(Path.Combine(root, "unrelated.json")));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
     public async Task TrimmingAccountsForFilesBeyondTheFirstTenThousand()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

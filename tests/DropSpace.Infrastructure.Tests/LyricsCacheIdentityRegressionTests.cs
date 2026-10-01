@@ -17,8 +17,8 @@ public sealed class LyricsCacheIdentityRegressionTests
             AlbumArtist: "First artist");
         var corrected = original with { AlbumArtist = "Second artist" };
 
-        var first = await service.QueryDetailedAsync(original, new(), default);
-        var second = await service.QueryDetailedAsync(corrected, new(), default);
+        var first = await service.QueryDetailedAsync(original, new() { Enabled = true }, default);
+        var second = await service.QueryDetailedAsync(corrected, new() { Enabled = true }, default);
 
         Assert.AreEqual(LyricsQueryStatus.Found, first.Status);
         Assert.AreEqual(LyricsQueryStatus.Found, second.Status);

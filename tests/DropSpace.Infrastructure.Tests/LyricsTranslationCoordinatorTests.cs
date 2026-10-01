@@ -78,41 +78,18 @@ public sealed class LyricsTranslationCoordinatorTests
     }
 
     [TestMethod]
-    public async Task MatchingProviderLinesSurviveBothInferenceAndCacheHit()
+    public async Task PartialMatchingProviderSongIsKeptWithoutAiGapFilling()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        try
+        var source = Source with { Lines = [Source.Lines[0] with
         {
-            var provider = Source.Lines[0] with
-            {
-                Secondary = "Provider English", TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "en-GB",
-            };
-            var source = Source with { Lines = [provider, Source.Lines[0] with { Text = "Second" }, Source.Lines[0] with
-            {
-                Text = "Third", Secondary = "其他译文", TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "zh-CN",
-            }] };
-            var calls = 0;
-            var coordinator = new LyricsTranslationCoordinator(new(root));
-            Task<string> Infer(string prompt, CancellationToken token)
-            {
-                calls++;
-                CollectionAssert.AreEqual(new[] { 1, 2 }, RequestedIds(prompt));
-                return Task.FromResult(OutputForPrompt(prompt, "Local English"));
-            }
-            foreach (var result in new[]
-            {
-                await coordinator.TranslateAsync(Query, source, "en-US", ModelHash, Infer, CancellationToken.None),
-                await coordinator.TranslateAsync(Query, source, "en-US", ModelHash, Infer, CancellationToken.None),
-            })
-            {
-                Assert.AreSame(provider, result.Lines[0]);
-                Assert.AreEqual("Local English", result.Lines[1].Secondary);
-                Assert.AreEqual("Local English", result.Lines[2].Secondary);
-                AssertOriginalsUnchanged(source, result);
-            }
-            Assert.AreEqual(1, calls);
-        }
-        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+            Secondary = "Provider English", TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "en-GB",
+        }, Source.Lines[0] with { Text = "Second" }] };
+        var result = await new LyricsTranslationCoordinator(new(root)).TranslateAsync(Query, source, "en-US", ModelHash,
+            (_, _) => throw new AssertFailedException("Partial provider translations must not be filled with AI."), CancellationToken.None);
+        Assert.AreSame(source, result);
+        Assert.IsNull(result.Lines[1].Secondary);
+        Assert.IsFalse(Directory.Exists(root));
     }
 
     [TestMethod]
@@ -157,7 +134,7 @@ public sealed class LyricsTranslationCoordinatorTests
         var source = Source with { Lines = Enumerable.Range(0, 14).Select(index => Source.Lines[0] with { Text = "Original " + index }).ToArray() };
         source = source with { Lines = [source.Lines[0] with
         {
-            Secondary = "Provider English", TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "en-US",
+            Secondary = "原有中文", TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "zh-CN",
         }, .. source.Lines.Skip(1)] };
         var calls = 0;
         var result = await new LyricsTranslationCoordinator(new(root)).TranslateAsync(Query, source, "en-US", ModelHash,

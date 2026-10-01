@@ -72,6 +72,7 @@ public sealed record AppSettings
     public SystemActivitySettings SystemActivities { get; init; } = new();
     public WidgetSettings Widgets { get; init; } = new();
 
+    public bool PrivacyChoicesCompleted { get; init; }
     public bool ClipboardPaused { get; init; }
 
     public bool CaptureImages { get; init; } = true;

@@ -83,7 +83,7 @@ public sealed class MediaSessionNativeSmokeTests
             snapshot.AlbumTitle,
             snapshot.Timeline.Duration,
             snapshot.TrackIdentity,
-            snapshot.AlbumArtist), new LyricsSettings(), CancellationToken.None);
+            snapshot.AlbumArtist), new LyricsSettings { Enabled = true }, CancellationToken.None);
 
         TestContext.WriteLine(
             $"Apple Music: title={snapshot.TrackTitle}; artist={snapshot.Artist}; albumArtist={snapshot.AlbumArtist}; " +

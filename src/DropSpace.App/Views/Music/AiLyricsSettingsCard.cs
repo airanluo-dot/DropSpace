@@ -29,8 +29,11 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly Button _download;
     private readonly Button _cancel;
     private readonly Button _resume;
+    private readonly Button _delete;
+    private readonly Button _clearCache;
     private readonly LyricsGlowModeControl _glow;
     private readonly HashSet<string> _installed = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _removable = new(StringComparer.Ordinal);
     private readonly HashSet<string> _interrupted = new(StringComparer.Ordinal);
     private CancellationTokenSource? _lifetime;
     private CancellationTokenSource? _downloadStop;
@@ -81,7 +84,14 @@ public sealed class AiLyricsSettingsCard : UserControl
         _resume = new Button { Content = strings.Get("AiLyricsResumeTranslation"), Visibility = Visibility.Collapsed };
         AutomationProperties.SetAutomationId(_resume, "AiLyricsResumeTranslation");
         _resume.Click += (_, _) => { _service.ResumeTranslation(); Refresh(); };
+        _delete = new Button { Content = strings.Get("AiLyricsDeleteModel") };
+        _clearCache = new Button { Content = strings.Get("AiLyricsClearCache") };
+        AutomationProperties.SetAutomationId(_delete, "AiLyricsDeleteModel");
+        AutomationProperties.SetAutomationId(_clearCache, "AiLyricsClearCache");
+        _delete.Click += OnDelete;
+        _clearCache.Click += OnClearCache;
         actions.Children.Add(_download); actions.Children.Add(_cancel); actions.Children.Add(_resume);
+        actions.Children.Add(_delete); actions.Children.Add(_clearCache);
         body.Children.Add(actions);
         body.Children.Add(new TextBlock { Text = strings.Get(AiLyricsModelCatalog.All.Count > 1 ? "AiLyricsDownloadHelp" : "AiLyricsDownloadHelpSingle"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowTitle"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
@@ -145,7 +155,12 @@ public sealed class AiLyricsSettingsCard : UserControl
     private void OnTranslationStateChanged(object? sender, EventArgs args)
     {
         var generation = _generation;
-        try { DispatcherQueue.TryEnqueue(() => { if (IsCurrent(generation)) Refresh(); }); }
+        try { DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!IsCurrent(generation)) return;
+            if (_service.TranslationState != AiLyricsTranslationState.Ready) _message = string.Empty;
+            Refresh();
+        }); }
         catch (Exception exception) { Debug.WriteLine($"AI lyrics state dispatcher retired: {exception.GetType().Name}"); }
     }
 
@@ -174,13 +189,17 @@ public sealed class AiLyricsSettingsCard : UserControl
         {
             Refresh();
             var installed = new HashSet<string>(StringComparer.Ordinal);
+            var removable = new HashSet<string>(StringComparer.Ordinal);
             foreach (var model in AiLyricsModelCatalog.All)
             {
                 if (await _service.GetInstalledPathAsync(model.Id, token) is not null) installed.Add(model.Id);
+                if (_service.HasModelArtifacts(model.Id)) removable.Add(model.Id);
             }
             if (!IsCurrent(generation)) return;
             _installed.Clear();
             _installed.UnionWith(installed);
+            _removable.Clear();
+            _removable.UnionWith(removable);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception)
@@ -200,10 +219,21 @@ public sealed class AiLyricsSettingsCard : UserControl
         StartOperation(async (generation, token) =>
         {
             var model = SelectedModel();
+            if (enable && !_editor.Settings.Lyrics.Enabled && _editor.Settings.Lyrics.Mode == LyricsMode.Online)
+            {
+                var consent = new ContentDialog
+                {
+                    XamlRoot = XamlRoot, Title = _strings.Get("LyricsEnabled"),
+                    Content = _strings.Get("LyricsOnlinePrivacyHelp"),
+                    PrimaryButtonText = _strings.Get("LyricsEnabled"), CloseButtonText = _strings.Get("AiLyricsNotNow"),
+                    DefaultButton = ContentDialogButton.Close,
+                };
+                if (await ContentDialogLifetime.ShowAsync(consent, token) != ContentDialogResult.Primary || !IsCurrent(generation)) return;
+            }
             if (enable && !await EnsureInstalledAsync(model, generation, token)) return;
             await SaveAsync(generation, settings => settings with
             {
-                Lyrics = settings.Lyrics with { AiModelId = model.Id, AiTranslationEnabled = enable, GlowMode = LyricsGlowPolicy.OnAiEnabledChanged(enable) },
+                Lyrics = settings.Lyrics with { Enabled = enable || settings.Lyrics.Enabled, AiModelId = model.Id, AiTranslationEnabled = enable, SecondaryLyrics = enable || settings.Lyrics.SecondaryLyrics, GlowMode = LyricsGlowPolicy.OnAiEnabledChanged(enable) },
             });
         });
     }
@@ -223,6 +253,49 @@ public sealed class AiLyricsSettingsCard : UserControl
     {
         var model = SelectedModel();
         StartOperation(async (generation, token) => { await EnsureInstalledAsync(model, generation, token); });
+    }
+
+    private void OnDelete(object sender, RoutedEventArgs args)
+    {
+        var model = SelectedModel();
+        StartOperation(async (generation, token) =>
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot, Title = _strings.Get("AiLyricsDeleteModel"),
+                Content = _strings.Format("AiLyricsDeleteConfirm", ModelLabel(model)),
+                PrimaryButtonText = _strings.Get("AiLyricsDeleteModel"), CloseButtonText = _strings.Get("AiLyricsNotNow"),
+                DefaultButton = ContentDialogButton.Close,
+            };
+            if (await ContentDialogLifetime.ShowAsync(dialog, token) != ContentDialogResult.Primary || !IsCurrent(generation)) return;
+            if (_editor.Settings.Lyrics.AiModelId == model.Id &&
+                !await SaveAsync(generation, settings => settings with { Lyrics = settings.Lyrics with { AiTranslationEnabled = false } })) return;
+            await _service.DeleteModelAsync(model.Id, token);
+            if (!IsCurrent(generation)) return;
+            _installed.Remove(model.Id);
+            _interrupted.Remove(model.Id);
+            _removable.Remove(model.Id);
+            _message = _strings.Get("AiLyricsModelDeleted");
+        });
+    }
+
+    private void OnClearCache(object sender, RoutedEventArgs args)
+    {
+        StartOperation(async (generation, token) =>
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot, Title = _strings.Get("AiLyricsClearCache"),
+                Content = _strings.Get("AiLyricsClearCacheConfirm"),
+                PrimaryButtonText = _strings.Get("AiLyricsClearCache"), CloseButtonText = _strings.Get("AiLyricsNotNow"),
+                DefaultButton = ContentDialogButton.Close,
+            };
+            if (await ContentDialogLifetime.ShowAsync(dialog, token) != ContentDialogResult.Primary || !IsCurrent(generation)) return;
+            _message = _strings.Get("AiLyricsClearingCache");
+            Refresh();
+            await _service.ClearCacheAsync(token);
+            if (IsCurrent(generation)) _message = _strings.Get("AiLyricsCacheCleared");
+        });
     }
 
     private void OnCancel(object sender, RoutedEventArgs args)
@@ -308,7 +381,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         if (!IsCurrent(generation)) return false;
         _installed.Remove(model.Id);
         var content = new StackPanel { Spacing = 12 };
-        content.Children.Add(new TextBlock { Text = _strings.Format("AiLyricsConfirmBody", ModelLabel(model), SizeLabel(model), model.Name, SourceLabel(model)) + "\n\n" + ModelHelp(model), TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new TextBlock { Text = _strings.Format("AiLyricsConfirmBody", ModelLabel(model), SizeLabel(model), model.Name, SourceLabel(model)) + "\n\n" + ModelHelp(model) + "\n\n" + _strings.Format("AiLyricsRuntimeIncluded", _service.RuntimeExtractionMiB), TextWrapping = TextWrapping.Wrap });
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
@@ -374,11 +447,12 @@ public sealed class AiLyricsSettingsCard : UserControl
         }
     }
 
-    private async Task SaveAsync(int generation, Func<AppSettings, AppSettings> change)
+    private async Task<bool> SaveAsync(int generation, Func<AppSettings, AppSettings> change)
     {
-        if (!IsCurrent(generation)) return;
+        if (!IsCurrent(generation)) return false;
         var saved = await _editor.UpdateAsync(settings => IsCurrent(generation) ? change(settings) : settings);
         if (IsCurrent(generation) && !saved) _errorMessage = _strings.Get("NativeSettingsSaveFailed");
+        return IsCurrent(generation) && saved;
     }
 
     private bool IsCurrent(int generation) => _generation == generation && _lifetime is { IsCancellationRequested: false };
@@ -417,10 +491,21 @@ public sealed class AiLyricsSettingsCard : UserControl
             _details.Text = _strings.Format("AiLyricsModelDetails", selected.Name, SizeLabel(selected), SourceLabel(selected)) + "\n" + ModelHelp(selected);
             _status.Text = _inspecting ? _strings.Get("AiLyricsChecking") : !string.IsNullOrEmpty(_message) ? _message :
                 installed ? _strings.Get("AiLyricsReady") : _strings.Get("AiLyricsNeedsDownload");
+            if (installed && settings.AiTranslationEnabled && !_busy && !_inspecting && string.IsNullOrEmpty(_message))
+                _status.Text = _strings.Get(_service.TranslationState switch
+                {
+                    AiLyricsTranslationState.Translating => "AiLyricsTranslating",
+                    AiLyricsTranslationState.Unavailable => "AiLyricsTemporarilyUnavailable",
+                    AiLyricsTranslationState.Completed => "AiLyricsTranslationComplete",
+                    _ => "AiLyricsReady",
+                });
             if (_service.TranslationPaused && settings.AiTranslationEnabled && !_busy && !_inspecting)
                 _status.Text = _strings.Get("AiLyricsTranslationPaused");
             _resume.Visibility = _service.TranslationPaused && settings.AiTranslationEnabled ? Visibility.Visible : Visibility.Collapsed;
             _resume.IsEnabled = !_busy && !_inspecting;
+            _delete.Visibility = installed || _removable.Contains(selected.Id) || _interrupted.Contains(selected.Id) ? Visibility.Visible : Visibility.Collapsed;
+            _delete.IsEnabled = !_busy && !_inspecting;
+            _clearCache.IsEnabled = !_busy && !_inspecting;
             _error.Text = _errorMessage;
             _error.Visibility = string.IsNullOrEmpty(_errorMessage) ? Visibility.Collapsed : Visibility.Visible;
             _enabled.IsEnabled = !_busy && !_inspecting;

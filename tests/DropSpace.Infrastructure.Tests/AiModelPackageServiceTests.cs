@@ -14,6 +14,25 @@ public sealed class AiModelPackageServiceTests
         Convert.ToHexString(SHA256.HashData(Payload)));
 
     [TestMethod]
+    public async Task DeleteRemovesOnlySelectedModelAndItsPartialDownload()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            using var service = new AiModelPackageService(root, new Handler(_ => throw new AssertFailedException("Delete cannot use network.")), _ => Model);
+            await File.WriteAllBytesAsync(Path.Combine(root, Model.Sha256 + ".gguf"), Payload);
+            await File.WriteAllBytesAsync(Path.Combine(root, Model.Sha256 + ".partial"), [1]);
+            await File.WriteAllBytesAsync(Path.Combine(root, "other.gguf"), [9]);
+            await service.DeleteAsync(Model.Id, CancellationToken.None);
+            Assert.IsNull(await service.GetInstalledPathAsync(Model.Id, CancellationToken.None));
+            Assert.IsFalse(File.Exists(Path.Combine(root, Model.Sha256 + ".partial")));
+            Assert.IsTrue(File.Exists(Path.Combine(root, "other.gguf")));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
     public async Task RequiresConsentBeforeAnyNetworkRequest()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

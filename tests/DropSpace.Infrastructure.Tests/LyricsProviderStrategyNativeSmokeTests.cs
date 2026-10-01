@@ -32,12 +32,13 @@ public sealed class LyricsProviderStrategyNativeSmokeTests
         };
         var real = new LyricsProviderRegistry(new LyricsHttpClient(client), Path.GetTempPath);
 
-        await VerifyAsync(real, new LyricsSettings(), [LyricsProviderKind.NetEase]);
-        await VerifyAsync(real, new LyricsSettings { BackupProvider = LyricsProviderKind.QqMusic },
+        await VerifyAsync(real, new LyricsSettings { Enabled = true }, [LyricsProviderKind.NetEase]);
+        await VerifyAsync(real, new LyricsSettings { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic },
             [LyricsProviderKind.NetEase, LyricsProviderKind.QqMusic]);
-        await VerifyAsync(real, new LyricsSettings { SearchRemainingProviders = true }, OnlineProviders);
+        await VerifyAsync(real, new LyricsSettings { Enabled = true, SearchRemainingProviders = true }, OnlineProviders);
         await VerifyAsync(real, new LyricsSettings
         {
+            Enabled = true,
             BackupProvider = LyricsProviderKind.QqMusic,
             SearchRemainingProviders = true,
         }, OnlineProviders);

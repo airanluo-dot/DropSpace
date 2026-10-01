@@ -9,6 +9,18 @@ public sealed class LyricsDisplayPolicyTests
     private static readonly LyricsLine Next = new(TimeSpan.FromSeconds(8), TimeSpan.FromSeconds(10), "Next", null, []);
 
     [TestMethod]
+    public void AiPresentationIsLabeledWithoutChangingStoredTranslation()
+    {
+        var line = new LyricsLine(TimeSpan.Zero, TimeSpan.FromSeconds(1), "Original", "Translation", [])
+        { TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "en-US" };
+        Assert.AreEqual("AI · Translation", LyricsDisplayPolicy.SecondaryPresentation(line, "en-GB", true));
+        Assert.AreEqual("Translation", line.Secondary);
+        Assert.AreEqual("Translation", LyricsDisplayPolicy.SecondaryPresentation(line with { TranslationOrigin = LyricsTranslationOrigin.Provider }, "en-US", true));
+        Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(line, "en-US", false));
+        Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(line, "zh-CN", true));
+    }
+
+    [TestMethod]
     public void KnownTranslationTargetMustMatchAppLanguage()
     {
         var line = First with { Secondary = "English translation", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "en-US" };

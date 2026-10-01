@@ -35,6 +35,16 @@ public static class LyricsTranslationPolicy
         return LyricsTranslationDecision.TranslateLocally;
     }
 
+    public static bool HasMatchingProviderTranslation(LyricsDocument document, string targetLanguage)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var target = NormalizeLanguage(targetLanguage);
+        return target.Length > 0 && document.Lines.Any(line =>
+            line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+            !string.IsNullOrWhiteSpace(line.Secondary) &&
+            NormalizeLanguage(line.TranslationLanguage) == target);
+    }
+
     public static string NormalizeLanguage(string? language)
     {
         var tag = language?.Trim().Replace('_', '-').ToLowerInvariant() ?? string.Empty;

@@ -23,7 +23,7 @@
   <data name="ClipboardListenerRegistrationFailed" xml:space="preserve"><value>系统剪贴板监听注册失败；请查看诊断日志。</value></data>
   <data name="ClipboardListenerUnavailable" xml:space="preserve"><value>系统剪贴板监听不可用；请查看诊断日志。</value></data>
   <data name="ClipboardPaused" xml:space="preserve"><value>已暂停剪贴板记录。</value></data>
-  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>仍保持上次退出时的暂停状态。</value></data>
+  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>剪贴板记录已暂停，可在剪贴板页面或托盘菜单中恢复。</value></data>
   <data name="ClipboardPausedStatus" xml:space="preserve"><value>已暂停记录</value></data>
   <data name="ClipboardRecording" xml:space="preserve"><value>正在记录 · 已捕获 {0} 项</value></data>
   <data name="ClipboardResumed" xml:space="preserve"><value>已恢复剪贴板记录。</value></data>
@@ -239,7 +239,7 @@
   <data name="ExperimentalDragDetectionInfo.Title" xml:space="preserve"><value>实验性拖拽检测</value></data>
   <data name="ExperimentalDragDetectionInfo.Message" xml:space="preserve"><value>智能检测目前优先支持资源管理器与桌面的真实文件/文件夹拖拽。部分第三方软件、虚拟文件或不提供标准信号的来源可能无法自动唤醒；已显示的 DropSpace 仍可直接接收标准文件拖放。</value></data>
   <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>开机自启动</value></data>
-  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>默认开启；使用当前用户启动项，不需要管理员权限。</value></data>
+  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>可在首次设置或此处开启，使用当前用户启动项，无需管理员权限。</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>开机自启动</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>显示语言</value></data>
   <data name="LanguageDescription.Text" xml:space="preserve"><value>选择跟随系统时使用 Windows 显示语言。</value></data>
@@ -527,7 +527,7 @@
   <data name="WidgetDropFailed" xml:space="preserve"><value>无法在此放置小组件，请拖到网格单元格或使用位置设置。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>灵动岛</value></data>
-  <data name="ClearLyricsCache" xml:space="preserve"><value>清空歌词缓存</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>清理来源歌词缓存</value></data>
   <data name="WidgetSelect" xml:space="preserve"><value>选中小组件以编辑位置和尺寸。</value></data>
   <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
   <data name="SettingsPageGeneral" xml:space="preserve"><value>常规</value></data>
@@ -676,4 +676,22 @@
   <data name="LyricsFontSizeRestored" xml:space="preserve"><value>已恢复上一次有效字号。请输入 12 至 28 之间的数字。</value></data>
   <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI 翻译连续失败三次，已暂停自动尝试，原歌词不受影响。准备好后可手动恢复。</value></data>
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>恢复 AI 翻译</value></data>
+  <data name="AiLyricsDeleteModel" xml:space="preserve"><value>删除模型</value></data>
+  <data name="AiLyricsClearCache" xml:space="preserve"><value>清理 AI 翻译缓存</value></data>
+  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>删除{0}及未完成的下载？如果它正在启用，将关闭 AI 翻译。其他模型和原歌词会保留。</value></data>
+  <data name="AiLyricsModelDeleted" xml:space="preserve"><value>模型已删除，需要时可重新下载。</value></data>
+  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>删除已保存的 AI 译文？当前推理将停止，已下载模型、原歌词和来源译文会保留。之后需要时将重新翻译。</value></data>
+  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>AI 翻译缓存已清理。</value></data>
+  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>离线运行时已随 App 内置，无需额外下载，解压运行时额外占用最多约 {0} MiB 磁盘空间。请为模型下载和恢复额外预留 64 MiB 可用磁盘空间。</value></data>
+  <data name="AiLyricsTranslating" xml:space="preserve"><value>正在本地翻译，原歌词继续显示。</value></data>
+  <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>暂时无法进行 AI 翻译，原歌词不受影响。</value></data>
+  <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI 译文已就绪。</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>在线歌词会将当前歌曲名、歌手、专辑和时长发送给你选择的歌词来源。全新安装时默认关闭，启用歌词后才查询。选择本地 LRC 可读取自己的歌词文件，不请求在线来源；AI 翻译本身始终在本机运行。</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>正在清理 AI 翻译缓存…</value></data>
+  <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>选择后台功能</value></data>
+  <data name="FirstRunPrivacyBody" xml:space="preserve"><value>无需开启剪贴板记录，也能使用临时空间。开启后，DropSpace 会在本地保存复制的文本、图片和文件引用，窗口关闭到托盘后仍会记录。你可以在剪贴板和设置中暂停、清理记录或修改保留期限。关闭到托盘不等于退出；选择“退出”才会停止 DropSpace。这些选项之后都能修改。</value></data>
+  <data name="FirstRunClipboardChoice" xml:space="preserve"><value>开启本地剪贴板记录</value></data>
+  <data name="FirstRunStartupChoice" xml:space="preserve"><value>登录 Windows 时启动 DropSpace</value></data>
+  <data name="FirstRunContinue" xml:space="preserve"><value>保存选择并继续</value></data>
+  <data name="FirstRunSkip" xml:space="preserve"><value>均不开启，继续</value></data>
 </root>

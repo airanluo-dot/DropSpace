@@ -14,12 +14,25 @@ public sealed class LyricsFallbackTests
             .Bind(Query, Query.Title, Query.Artist, Query.Album, 0, LyricsMatcher.Score(Query, Query.Title, Query.Artist, Query.Album, 0), kind.ToString());
 
     [TestMethod]
+    public async Task FreshDefaultsNeverContactAProviderUntilEnabled()
+    {
+        var providers = Providers(kind => Task.FromResult(Document(kind)));
+        var service = new LyricsService(new(providers));
+        var settings = new LyricsSettings();
+        Assert.IsFalse(settings.Enabled);
+        Assert.AreEqual(LyricsQueryStatus.Disabled, (await service.QueryDetailedAsync(Query, settings, default)).Status);
+        Assert.AreEqual(0, providers.Sum(provider => provider.Calls));
+        Assert.AreEqual(LyricsQueryStatus.Found, (await service.QueryDetailedAsync(Query, settings with { Enabled = true }, default)).Status);
+        Assert.AreEqual(1, providers.Sum(provider => provider.Calls));
+    }
+
+    [TestMethod]
     public async Task PrimaryHitSkipsOtherProvidersAndCachesTheResult()
     {
         var providers = Providers(kind => Task.FromResult(Document(kind)));
         var service = new LyricsService(new(providers));
-        Assert.AreEqual(LyricsProviderKind.NetEase, (await service.QueryAsync(Query, new(), default)).Provider);
-        await service.QueryAsync(Query, new(), default);
+        Assert.AreEqual(LyricsProviderKind.NetEase, (await service.QueryAsync(Query, new() { Enabled = true }, default)).Provider);
+        await service.QueryAsync(Query, new() { Enabled = true }, default);
         Assert.AreEqual(1, providers.Sum(provider => provider.Calls));
     }
 
@@ -28,7 +41,7 @@ public sealed class LyricsFallbackTests
     {
         var providers = Providers(kind => Task.FromResult(kind == LyricsProviderKind.Amll ? Document(kind) : LyricsDocument.Empty));
         var service = new LyricsService(new(providers));
-        Assert.AreEqual(LyricsProviderKind.Amll, (await service.QueryAsync(Query, new() { SearchRemainingProviders = true }, default)).Provider);
+        Assert.AreEqual(LyricsProviderKind.Amll, (await service.QueryAsync(Query, new() { Enabled = true, SearchRemainingProviders = true }, default)).Provider);
         foreach (var provider in providers) Assert.AreEqual(provider.Kind == LyricsProviderKind.LocalLrc ? 0 : 1, provider.Calls);
     }
 
@@ -36,7 +49,7 @@ public sealed class LyricsFallbackTests
     public async Task NoBackupAndRemainingDisabledQueriesOnlyThePreferredProvider()
     {
         var providers = Providers(kind => Task.FromResult(kind == LyricsProviderKind.NetEase ? LyricsDocument.Empty : Document(kind)));
-        var result = await new LyricsService(new(providers)).QueryAsync(Query, new(), default);
+        var result = await new LyricsService(new(providers)).QueryAsync(Query, new() { Enabled = true }, default);
 
         Assert.IsEmpty(result.Lines);
         Assert.AreEqual(1, providers.Single(provider => provider.Kind == LyricsProviderKind.NetEase).Calls);
@@ -53,7 +66,7 @@ public sealed class LyricsFallbackTests
             return Task.FromResult(kind == LyricsProviderKind.QqMusic ? Document(kind) : LyricsDocument.Empty);
         });
         var result = await new LyricsService(new(providers)).QueryAsync(Query,
-            new() { BackupProvider = LyricsProviderKind.QqMusic }, default);
+            new() { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic }, default);
 
         Assert.AreEqual(LyricsProviderKind.QqMusic, result.Provider);
         CollectionAssert.AreEqual(new[] { LyricsProviderKind.NetEase, LyricsProviderKind.QqMusic }, order);
@@ -69,7 +82,7 @@ public sealed class LyricsFallbackTests
             return Task.FromResult(kind == LyricsProviderKind.Kugou ? Document(kind) : LyricsDocument.Empty);
         });
         var result = await new LyricsService(new(providers)).QueryAsync(Query,
-            new() { BackupProvider = LyricsProviderKind.QqMusic, SearchRemainingProviders = true }, default);
+            new() { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic, SearchRemainingProviders = true }, default);
 
         Assert.AreEqual(LyricsProviderKind.Kugou, result.Provider);
         CollectionAssert.AreEqual(
@@ -86,8 +99,8 @@ public sealed class LyricsFallbackTests
         var service = new LyricsService(new(providers));
 
         Assert.AreEqual(LyricsProviderKind.QqMusic, (await service.QueryAsync(Query,
-            new() { BackupProvider = LyricsProviderKind.QqMusic }, default)).Provider);
-        Assert.IsEmpty((await service.QueryAsync(Query, new(), default)).Lines);
+            new() { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic }, default)).Provider);
+        Assert.IsEmpty((await service.QueryAsync(Query, new() { Enabled = true }, default)).Lines);
         Assert.AreEqual(2, providers.Single(provider => provider.Kind == LyricsProviderKind.NetEase).Calls);
     }
 
@@ -96,10 +109,10 @@ public sealed class LyricsFallbackTests
     {
         var providers = Providers(_ => Task.FromResult(LyricsDocument.Empty));
         var service = new LyricsService(new(providers));
-        await service.QueryAsync(Query, new(), default); await service.QueryAsync(Query, new(), default);
+        await service.QueryAsync(Query, new() { Enabled = true }, default); await service.QueryAsync(Query, new() { Enabled = true }, default);
         Assert.AreEqual(2, providers[0].Calls);
         var counts = providers.Select(provider => provider.Calls).ToArray();
-        await service.QueryAsync(Query, new() { Mode = LyricsMode.LocalLrc }, default);
+        await service.QueryAsync(Query, new() { Enabled = true, Mode = LyricsMode.LocalLrc }, default);
         foreach (var provider in providers)
             Assert.AreEqual(counts[(int)provider.Kind] + (provider.Kind == LyricsProviderKind.LocalLrc ? 1 : 0), provider.Calls);
     }
@@ -108,7 +121,7 @@ public sealed class LyricsFallbackTests
     public async Task FailedPrimaryStillFallsBack()
     {
         var providers = Providers(kind => kind == LyricsProviderKind.NetEase ? Task.FromException<LyricsDocument>(new HttpRequestException()) : Task.FromResult(Document(kind)));
-        var result = await new LyricsService(new(providers)).QueryAsync(Query, new() { SearchRemainingProviders = true }, default);
+        var result = await new LyricsService(new(providers)).QueryAsync(Query, new() { Enabled = true, SearchRemainingProviders = true }, default);
         Assert.IsNotEmpty(result.Lines);
         Assert.AreNotEqual(LyricsProviderKind.NetEase, result.Provider);
     }
@@ -119,9 +132,9 @@ public sealed class LyricsFallbackTests
         var failing = true;
         var providers = Providers(kind => failing ? Task.FromException<LyricsDocument>(new HttpRequestException()) : Task.FromResult(Document(kind)));
         var service = new LyricsService(new(providers));
-        Assert.AreEqual(LyricsQueryStatus.Failed, (await service.QueryDetailedAsync(Query, new(), default)).Status);
+        Assert.AreEqual(LyricsQueryStatus.Failed, (await service.QueryDetailedAsync(Query, new() { Enabled = true }, default)).Status);
         failing = false;
-        Assert.AreEqual(LyricsQueryStatus.Found, (await service.QueryDetailedAsync(Query, new(), default)).Status);
+        Assert.AreEqual(LyricsQueryStatus.Found, (await service.QueryDetailedAsync(Query, new() { Enabled = true }, default)).Status);
         Assert.AreEqual(2, providers[0].Calls);
     }
 
@@ -133,10 +146,10 @@ public sealed class LyricsFallbackTests
             ? Document(kind) with { Match = Document(kind).Match! with { TrackIdentity = "previous" } }
             : kind == LyricsProviderKind.Kugou ? Document(kind) : LyricsDocument.Empty));
         var service = new LyricsService(new(providers));
-        var result = await service.QueryDetailedAsync(query, new() { SearchRemainingProviders = true }, default);
+        var result = await service.QueryDetailedAsync(query, new() { Enabled = true, SearchRemainingProviders = true }, default);
         Assert.AreEqual(LyricsProviderKind.Kugou, result.Document.Provider);
         Assert.AreEqual("current", result.Document.Match!.TrackIdentity);
-        Assert.AreEqual(LyricsProviderKind.Kugou, (await service.QueryDetailedAsync(query, new() { SearchRemainingProviders = true }, default)).Document.Provider);
+        Assert.AreEqual(LyricsProviderKind.Kugou, (await service.QueryDetailedAsync(query, new() { Enabled = true, SearchRemainingProviders = true }, default)).Document.Provider);
     }
 
     [TestMethod]
@@ -151,12 +164,12 @@ public sealed class LyricsFallbackTests
             return Document(LyricsProviderKind.NetEase);
         });
         var service = new LyricsService(new([provider]));
-        var pending = service.QueryAsync(Query, new(), default);
+        var pending = service.QueryAsync(Query, new() { Enabled = true }, default);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
         service.ClearCache();
         release.SetResult();
         await pending;
-        await service.QueryAsync(Query, new(), default);
+        await service.QueryAsync(Query, new() { Enabled = true }, default);
         Assert.AreEqual(2, calls);
     }
 
@@ -175,7 +188,7 @@ public sealed class LyricsFallbackTests
             try { await Task.Delay(Timeout.InfiniteTimeSpan, token); return LyricsDocument.Empty; }
             finally { Interlocked.Decrement(ref active); }
         }));
-        var result = await new LyricsService(new(providers)).QueryAsync(Query, new() { SearchRemainingProviders = true }, default).WaitAsync(TimeSpan.FromSeconds(2));
+        var result = await new LyricsService(new(providers)).QueryAsync(Query, new() { Enabled = true, SearchRemainingProviders = true }, default).WaitAsync(TimeSpan.FromSeconds(2));
         Assert.AreEqual(LyricsProviderKind.Kugou, result.Provider);
         Assert.AreEqual(0, active);
     }
@@ -192,10 +205,10 @@ public sealed class LyricsFallbackTests
         });
         var service = new LyricsService(new([provider]));
         using var stop = new CancellationTokenSource();
-        var pending = service.QueryAsync(Query, new(), stop.Token);
+        var pending = service.QueryAsync(Query, new() { Enabled = true }, stop.Token);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(2)); stop.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
-        await service.QueryAsync(Query, new(), default);
+        await service.QueryAsync(Query, new() { Enabled = true }, default);
         Assert.AreEqual(2, calls);
     }
 

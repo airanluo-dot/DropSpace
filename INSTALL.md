@@ -2,7 +2,7 @@
 
 ## Recommended setup
 
-Download `DropSpaceSetup.exe` from the official Stable GitHub Release and verify it against `SHA256SUMS.txt`. The v0.1.0 installer is not commercially signed, so Windows SmartScreen may require “More info → Run anyway”. Never disable Defender or SmartScreen for DropSpace.
+Download `DropSpaceSetup.exe` from the official Stable GitHub Release and verify it against `SHA256SUMS.txt`. Check the chosen release notes for its signing status. Windows may warn about unsigned or unfamiliar builds; verify the official source and SHA256 checksum before deciding whether to run one. Never disable Defender or SmartScreen for DropSpace.
 
 Setup uses Inno Setup 7.0.2 and installs per user without administrator rights. The default program directory is:
 
@@ -32,7 +32,7 @@ The identity package contains only activation metadata and visual assets; the ac
 
 Windows Share registration guarantees availability in the full Share UI, not a fixed position in the Drop Tray suggestion strip. DropSpace Settings opens `ms-settings:multitasking` for the public Drop Tray option and never reads undocumented Shell state.
 
-On first run, DropSpace enables the current user's standard Windows startup entry by default and launches future sign-in instances with `--startup` hidden to the tray. Settings can disable or re-enable it without elevation. Uninstall always removes only DropSpace's startup value.
+On first run, DropSpace asks whether to record the clipboard locally and start at Windows sign-in; neither checkbox is preselected. It saves that choice before recording or registering startup. Existing explicitly saved choices are preserved. Enabled startup uses the current-user entry and launches future sign-in instances with `--startup` hidden to the tray. Settings can change it without elevation. Uninstall always removes only DropSpace's startup value.
 
 ## Uninstall
 

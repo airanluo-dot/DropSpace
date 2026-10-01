@@ -55,6 +55,20 @@ public sealed class AiLyricsCache(string root)
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
+    public Task ClearAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (!Directory.Exists(root)) return Task.CompletedTask;
+        foreach (var file in Directory.EnumerateFiles(root, "*.json", new EnumerationOptions { RecurseSubdirectories = false, AttributesToSkip = FileAttributes.ReparsePoint }))
+        {
+            token.ThrowIfCancellationRequested();
+            var key = Path.GetFileNameWithoutExtension(file);
+            if (key.Length != 64 || !key.All(Uri.IsHexDigit)) continue;
+            File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(root, Path.GetFileName(file)));
+        }
+        return Task.CompletedTask;
+    }
+
     private void Trim()
     {
         // Account for all owned entries. A truncated directory sample can remain

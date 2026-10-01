@@ -97,6 +97,12 @@ public static class DropSpaceWindowVisibility
 try
 {
     $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $repositoryRoot "artifacts/smoke/$([Guid]::NewGuid().ToString('N'))"
+    # Explicit fixture choices, not an application flag that bypasses first-run privacy.
+    $fixtureData = Join-Path $env:DROPSPACE_TEST_DATA_ROOT 'data'
+    New-Item $fixtureData -ItemType Directory -Force | Out-Null
+    $fixtureChannel = if ((Get-Content (Join-Path $repositoryRoot 'RELEASE_VERSION') -Raw).Trim().Contains('-')) { 'beta' } else { 'stable' }
+    @{ PrivacyChoicesCompleted = $true; ClipboardPaused = $false; StartWithWindows = $true; UpdateChannel = $fixtureChannel } |
+        ConvertTo-Json | Set-Content (Join-Path $fixtureData 'settings.json') -Encoding utf8
     $diagnosticDirectory = New-DropSpaceTestDiagnosticDirectory -RepositoryRoot $repositoryRoot -Category $DiagnosticPhase
     $first = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--smoke-test", "--smoke-hold", "--smoke-language", $Language -WindowStyle Hidden -PassThru
     $markerPath = Join-Path ([System.IO.Path]::GetTempPath()) "DropSpace-smoke-$($first.Id).json"

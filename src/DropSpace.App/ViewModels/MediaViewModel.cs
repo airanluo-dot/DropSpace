@@ -146,7 +146,7 @@ public sealed class MediaViewModel : ObservableObject
         Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds);
     public string CurrentLyricText => Settings.Lyrics.Enabled && LyricPresentation.HasLyrics
         ? LyricPresentation.Line?.Text ?? string.Empty : Title;
-    public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(LyricPresentation.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
+    public string? SecondaryLyricText => LyricsDisplayPolicy.SecondaryPresentation(LyricPresentation.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
     public string LyricsStatusText => string.IsNullOrEmpty(Title) || !Settings.Lyrics.Enabled ? string.Empty : LyricsStatus switch
     {
         LyricsQueryStatus.Loading => _strings.Get("LyricsLoading"),

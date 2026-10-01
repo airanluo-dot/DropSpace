@@ -24,7 +24,7 @@ Status: implementation and focused regression work in progress. This is not the 
 | AI-005 | P1 | Cache eviction counted only first 10,000 files | Cache could exceed intended total bound | Account for all owned entries | >10,000-entry regression passed |
 | AI-006 | P1 | Provider translation target was unknown; TTML mixed romanization and translation | Wrong language could suppress AI or appear as translation | Preserve explicit translation language/provenance; keep unknown unknown; separate romanization | Parser and coordinator regressions passed; full App integration pending |
 | AI-007 | P1 | Shutdown while download/inference waited for its semaphore | Queued work could survive disposal | Link queue waits to lifetime cancellation | Download regression passed; new native process tests pending |
-| AI-008 | P1 | Candidate small-model tests showed subject/negation errors and runtime EOS metadata defects | Smaller download may have unacceptable accuracy or malformed output | Matched fixed-case evaluation, hash-pinned model-specific handling only if justified | Compact IQ3_S accepted for experimental opt-in after matched evaluation and hash-specific EOS correction; Windows gate pending |
+| AI-008 | P1 | Candidate small-model tests showed subject/negation errors and runtime EOS metadata defects | Smaller download may have unacceptable accuracy or malformed output | Matched fixed-case evaluation, hash-pinned model-specific handling only if justified | Initial limited-fixture evaluation was insufficient. Full-song and independent single-line tests now show known object/meaning errors. Compact is NOT cleared for release; see AI-009 and semantic review |
 | UI-001 | P2 | Changing lyric font/presentation options previously refetched and cleared lyrics | Visible disruption during adjustment | Separate retrieval settings from presentation settings | Core regression + first Windows build passed; full visual audit pending |
 | QA-001 | P2 | First en-US standalone smoke timed out capturing mixed clipboard file/folder references; same revision installed smoke and release-lane smoke passed | Intermittent failure warrants investigation | Preserve failure logs; bounded rerun without relaxing assertions | Rerun passed; root cause unproven, watch in subsequent full runs |
 
@@ -34,7 +34,7 @@ Status: implementation and focused regression work in progress. This is not the 
 - Small/standard selection, both-model installation, correct defaults, and no unconsented downloads
 - Outward halo native alpha, z-order, click-through, DPI/multi-monitor, mode reversal, pause/end, interlude and no lingering color
 - Font clipping, text scaling, responsive layouts, keyboard/screen-reader behavior, high contrast and reduced motion
-- Full first-time-user review and separate critical product review have NOT started or passed yet
+- Full first-time-user and separate critical product review started on candidate 49ab7ef; not yet passed
 
 ## First-round remediation checkpoint — 2026-10-01 20:03 UTC
 
@@ -60,3 +60,32 @@ The complete first round is still pending integrated Windows verification. Sourc
 | R1-Runtime-1 | P1 | Runtime license collection reads pinned source notices, independent of disabled llama-app target | Prior exact f727ce1 Windows/model gates passed; standalone source fixture/missing-notice regression now added for next Windows run |
 
 Current completed full rounds: 0/3. Website final visual preview was approved by the owner at 19:37 UTC; do not redesign it. Publish both sites only alongside the final App. GPT Site root, language routes and assets must pass actual access verification, not merely a successful deployment status. Release version has not been advanced.
+
+
+## 2026-10-01 21:02 UTC gate update
+
+- `70fc2569` completed the Windows CI/Release validation matrix successfully; publication was skipped. This verified the existing native UIA/lifecycle, bilateral TLS pairing, DPAPI recovery and actual two-model inference regression tests, but does not prove real multi-device, Narrator, multi-monitor or physical-player behavior.
+- `49ab7ef55423456d16560309c78d288d44b53655` adds the token/memory/circuit changes below; its Windows checks are pending. Previous green runs do not validate these new changes.
+
+| ID | Severity | Reproduction / impact | Remedy / status | Evidence |
+|---|---|---|---|---|
+| AI-009 | P1 quality gate | Standard Chinese “leave the key” becomes “keep”; compact Korean scarf becomes another object. Errors recur without background or structured output | Unresolved model-quality limitation; publication held. Asked owner whether a model-plan change is allowed; no approval inferred | `round1-full-song-semantic-review.md`, full-song and single-line outputs reviewed |
+| AI-010 | P1 plan gap | Byte-only batching did not implement the approved actual-token context budget | Embedded source-pinned tokenizer; hash verification, 1800-token input budget, remove optional context then split complete requested rows, fail closed on oversized single line; cache version advanced | Core 360 and focused AI Infrastructure 23 passed; new Windows/native gates pending |
+| AI-011 | P2 plan gap | Both models previously shared 3GiB job budget despite approved compact 1.5GiB initial ceiling | Compact hash selects 1.5GiB before Windows process launch and in working-set watchdog; standard remains 3GiB | Budget unit test passed; actual Windows compact gate pending |
+| AI-012 | P2 recovery | Repeated runtime/output failures had no three-failure automatic pause | Session circuit pauses after three consecutive failed song attempts; cancellation excluded; explicit accessible manual resume reloads current song and invalidates prior generation | Circuit tests and actual service/card projection compile passed; native UI verification pending |
+
+
+## First-time-user/product remediation — 2026-10-01 21:21 UTC
+
+The separate product review is `round1-product-journey-review.md`. Repairs are in the working tree and need a new native Windows validation; they do not count as a completed full round.
+
+- PJ-01/02: Enabling AI also enables lyric/secondary display after any necessary online-source disclosure; Music and island display an `AI ·` source marker without changing stored text.
+- PJ-03: Generation-scoped translation activity/failure/completion states; new state events replace stale download-success feedback. Paused-circuit recovery remains explicit.
+- PJ-04/05: Model-specific deletion (including corrupt/partial files after restart) and separately named AI-cache cleanup. Maintenance cancels and drains inference before file operations; new inference is held out during maintenance. Disk cleanup is background work, errors remain visible, and other model/source/cache ownership is preserved. A failed settings save stops deletion.
+- PJ-06: Confirmation shows bundled-runtime extraction estimate from actual embedded executable sizes; model disk preflight includes that amount plus 64 MiB recovery headroom and rechecks after a server restarts a ranged download.
+- PJ-07: Fresh lyrics defaults are disabled; saved explicit preferences remain intact. Music explains metadata transmission. Enabling AI from disabled online mode first asks to enable online lyrics, then obtains any model-download consent. Native provider test fixtures now explicitly enable lyrics rather than relying on old defaults.
+- PJ-08: Reconciled against the approved plan; any matching target-language provider translation keeps the entire source document unchanged. AI does not fill missing source-translation rows.
+- PJ-09: First-run clipboard/startup choices are saved before initialization, with both checkboxes off initially. Existing valid explicit legacy choices migrate unchanged; empty/corrupt settings do not imply consent. App shutdown cancels the dialog/save/initialization sequence, and redirected activations wait for startup readiness. CI uses explicit isolated fixture settings, not a production bypass flag.
+- PJ-10: Installation instructions no longer label the current installer as v0.1.0; first-run instructions match the actual choice flow.
+
+Local evidence: Core 361 passed; focused Infrastructure lyrics/model/settings tests 83 passed, 3 native-only tests skipped. Actual AI service/settings-card projection compilation passed with zero warnings/errors. App/MainWindow generated-XAML build and actual first-run Windows UI are not validated by that projection build. Model semantic quality remains independently blocked.

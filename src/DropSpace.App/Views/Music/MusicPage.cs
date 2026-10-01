@@ -85,6 +85,7 @@ public sealed class MusicPage : UserControl
         form.AddToggle("MusicDynamicWidth", s => s.IslandActivity.CompactDynamicWidth, (s,v) => s with { IslandActivity = s.IslandActivity with { CompactDynamicWidth = v } });
         form.AddToggle("MusicProgress", s => s.IslandActivity.ShowProgress, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowProgress = v } });
         form.AddHeading("MusicLyricsSection");
+        form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsOnlinePrivacyHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.7 });
         form.AddToggle("LyricsEnabled", s => s.Lyrics.Enabled, (s,v) => s with { Lyrics = s.Lyrics with { Enabled = v } });
         form.AddToggle("LyricsCompact", s => s.IslandActivity.ShowLyricsInCompact, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowLyricsInCompact = v } });
         form.AddChoice("LyricsMode", new[] { (LyricsMode.Online, strings.Get("LyricsOnline")), (LyricsMode.LocalLrc, strings.Get("LyricsLocal")) }, s => s.Lyrics.Mode, (s,v) => s with { Lyrics = s.Lyrics with { Mode = v } });
@@ -240,7 +241,7 @@ public sealed class MusicPage : UserControl
                     TextWrapping = TextWrapping.Wrap,
                     FontSize = _media.Settings.Lyrics.OriginalFontSize,
                 });
-                var secondary = LyricsDisplayPolicy.Secondary(
+                var secondary = LyricsDisplayPolicy.SecondaryPresentation(
                     line,
                     _strings.Culture.Name,
                     _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics);

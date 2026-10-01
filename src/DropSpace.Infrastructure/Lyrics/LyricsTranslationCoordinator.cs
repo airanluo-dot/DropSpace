@@ -24,6 +24,7 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
     {
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return source;
         var target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage);
         var indices = Enumerable.Range(0, source.Lines.Count).Where(index =>
         {
