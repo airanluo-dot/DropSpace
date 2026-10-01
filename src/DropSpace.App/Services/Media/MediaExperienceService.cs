@@ -110,7 +110,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     var playing = session.PlaybackState == MediaPlaybackState.Playing && !string.IsNullOrWhiteSpace(session.TrackTitle);
                     var trackChanged = previousMedia is null || !previousMedia.IsSameTrack(session);
                     var improvedLyricsEvidence = ShouldRetryLyricsWithImprovedEvidence(previousMedia, session, _document.Lines.Count > 0);
-                    var reload = trackChanged || improvedLyricsEvidence || previousSettings?.Lyrics != settings.Lyrics || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
+                    var lyricsSettingsChanged = LyricsReloadPolicy.RequiresReload(previousSettings, settings);
+                    var reload = trackChanged || improvedLyricsEvidence || lyricsSettingsChanged || previousSettings?.IslandActivity.EnableMediaActivity != settings.IslandActivity.EnableMediaActivity ||
                         previousReloadRequest != reloadRequest;
                     var reloadArtwork = trackChanged || !ReferenceEquals(previousMedia?.Artwork, session.Artwork);
                     // Invalidate before publishing the new track so a queued old result
@@ -123,7 +124,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     {
                         if (_disposed) return Task.CompletedTask;
                         _clock.Update(session);
-                        var resetLyrics = trackChanged || improvedLyricsEvidence || previousSettings?.Lyrics != settings.Lyrics || previousReloadRequest != reloadRequest;
+                        var resetLyrics = trackChanged || improvedLyricsEvidence || lyricsSettingsChanged || previousReloadRequest != reloadRequest;
                         // Clear the old frame before publishing the new session. Property
                         // subscribers render synchronously, so assigning Session first would
                         // briefly display the previous song's lyric under the new title.

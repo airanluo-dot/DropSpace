@@ -200,9 +200,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.0-beta.32` (Beta 31). All new prereleases use
+The current Beta target is `v0.3.0-beta.32` (Beta 32). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 30 is the immediate upgrade baseline and
+releases remain immutable. Beta 31 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

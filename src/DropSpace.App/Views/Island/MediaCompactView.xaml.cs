@@ -95,6 +95,9 @@ public sealed partial class MediaCompactView : UserControl
         if (_view is null || BaseLine is null) return;
         var previousHeight = IdealIslandHeight;
         var settings = _view.Settings;
+        BaseLine.FontSize = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? settings.Lyrics.OriginalFontSize : 13;
+        HighlightLine.FontSize = BaseLine.FontSize;
+        SecondaryLine.FontSize = settings.Lyrics.TranslationFontSize;
         var text = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? _view.CurrentLyricText : _view.Title;
         var fontFamily = BaseLine.FontFamily?.Source;
         var fontSize = BaseLine.FontSize;

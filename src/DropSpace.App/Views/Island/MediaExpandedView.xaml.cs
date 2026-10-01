@@ -60,6 +60,11 @@ public sealed partial class MediaExpandedView : UserControl
     private void Render()
     {
         if (_view is null) return;
+        OriginalLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize + 2;
+        TranslatedLyric.FontSize = _view.Settings.Lyrics.TranslationFontSize;
+        // Keep the established compact panel bounds; full lyrics remain available on the Music page.
+        OriginalLyric.MaxLines = OriginalLyric.FontSize > 22 ? 1 : 2;
+        TranslatedLyric.MaxLines = TranslatedLyric.FontSize > 18 ? 1 : 2;
         _updating = true;
         try
         {

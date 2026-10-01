@@ -25,8 +25,8 @@
    </StackPanel>
   </Grid>
   <StackPanel x:Name="LyricsArea" Grid.Row="1" Spacing="2" MaxHeight="112">
-   <TextBlock Text="{Binding CurrentLyricText}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
-   <TextBlock Text="{Binding SecondaryLyricText}" FontSize="13" Opacity="0.72" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+   <TextBlock x:Name="OriginalLyric" Text="{Binding CurrentLyricText}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
+   <TextBlock x:Name="TranslatedLyric" Text="{Binding SecondaryLyricText}" FontSize="14" Opacity="0.72" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
    <TextBlock Text="{Binding LyricsStatusText}" FontSize="11" Opacity="0.72" TextWrapping="Wrap" />
   </StackPanel>
   <Grid x:Name="TimelineRow" Grid.Row="2" ColumnSpacing="12">

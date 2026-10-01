@@ -17,6 +17,11 @@ public sealed record IslandActivitySettings
 
 public sealed record LyricsSettings
 {
+    public bool AiTranslationEnabled { get; init; }
+    public string AiModelId { get; init; } = "hy-mt2-standard";
+    public Lyrics.LyricsGlowMode GlowMode { get; init; }
+    public double OriginalFontSize { get; init; } = 16;
+    public double TranslationFontSize { get; init; } = 14;
     public bool Enabled { get; init; } = true;
     public LyricsMode Mode { get; init; }
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.NetEase;

@@ -618,4 +618,9 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetApplyLayout" xml:space="preserve"><value>Apply layout</value></data>
   <data name="WidgetUndo" xml:space="preserve"><value>Undo</value></data>
   <data name="WidgetMove" xml:space="preserve"><value>Move</value></data>
+  <data name="LyricsOriginalFontSize" xml:space="preserve"><value>Original lyric size</value></data>
+  <data name="LyricsTranslationFontSize" xml:space="preserve"><value>Translation size</value></data>
+  <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
+  <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Preview of translated lyrics</value></data>
+  <data name="LyricsResetFonts" xml:space="preserve"><value>Reset lyric sizes</value></data>
 </root>

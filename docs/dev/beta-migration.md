@@ -1,6 +1,8 @@
 # Beta migration
 
-Canonical target: `v0.3.0-beta.24`; display: Beta 24; channel: Beta.
+Historical migration target: `v0.3.0-beta.24`; display: Beta 24; channel: Beta.
+For the current target and upgrade baseline, use RELEASE_VERSION and its release notes.
+The validation checkpoints below describe the original migration, not the current release.
 
 Version sources: RELEASE_VERSION, Directory.Build.props, Core ReleaseVersion,
 scripts/ReleaseVersion.ps1. Readers retain preview.N and beta.N spelling;

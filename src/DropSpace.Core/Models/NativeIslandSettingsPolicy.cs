@@ -33,6 +33,10 @@ public static class NativeIslandSettingsPolicy
             },
             Lyrics = lyrics with
             {
+                AiModelId = lyrics.AiModelId is "hy-mt2-standard" or "lightweight" ? lyrics.AiModelId : "hy-mt2-standard",
+                GlowMode = Enum.IsDefined(lyrics.GlowMode) ? lyrics.GlowMode : Lyrics.LyricsGlowMode.Off,
+                OriginalFontSize = double.IsFinite(lyrics.OriginalFontSize) ? Math.Clamp(lyrics.OriginalFontSize, 12, 28) : 16,
+                TranslationFontSize = double.IsFinite(lyrics.TranslationFontSize) ? Math.Clamp(lyrics.TranslationFontSize, 10, 24) : 14,
                 Mode = Enum.IsDefined(lyrics.Mode) ? lyrics.Mode : LyricsMode.Online,
                 Provider = provider,
                 BackupProvider = backupProvider,

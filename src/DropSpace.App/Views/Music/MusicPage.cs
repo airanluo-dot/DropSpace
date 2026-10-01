@@ -28,6 +28,8 @@ public sealed class MusicPage : UserControl
     private readonly StackPanel _body = new() { Spacing = 16, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly StackPanel _applications = new() { Spacing = 8 };
     private readonly TextBlock _folder = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _fontPreviewOriginal = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _fontPreviewTranslation = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly StackPanel _lyricsRows = new() { Spacing = 8 };
     private readonly ScrollViewer _lyricsScroll;
     private readonly TextBlock _lyricsStatus = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
@@ -100,6 +102,14 @@ public sealed class MusicPage : UserControl
             (s,v) => s with { Lyrics = s.Lyrics with { SearchRemainingProviders = v } });
         form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsFallbackHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.7 });
         form.AddToggle("LyricsSecondary", s => s.Lyrics.SecondaryLyrics, (s,v) => s with { Lyrics = s.Lyrics with { SecondaryLyrics = v } });
+        form.AddNumber("LyricsOriginalFontSize", 12, 28, 1, s => s.Lyrics.OriginalFontSize, (s,v) => s with { Lyrics = s.Lyrics with { OriginalFontSize = v } });
+        form.AddNumber("LyricsTranslationFontSize", 10, 24, 1, s => s.Lyrics.TranslationFontSize, (s,v) => s with { Lyrics = s.Lyrics with { TranslationFontSize = v } });
+        _fontPreviewOriginal.Text = strings.Get("LyricsOriginalFontPreview");
+        _fontPreviewTranslation.Text = strings.Get("LyricsTranslationFontPreview");
+        form.Rows.Children.Add(CreateCard(new StackPanel { Spacing = 4, Children = { _fontPreviewOriginal, _fontPreviewTranslation } }, new Thickness(14)));
+        var resetFonts = new Button { Content = strings.Get("LyricsResetFonts") };
+        resetFonts.Click += async (_, _) => await editor.UpdateAsync(s => s with { Lyrics = s.Lyrics with { OriginalFontSize = 16, TranslationFontSize = 14 } });
+        form.Rows.Children.Add(resetFonts);
         form.AddToggle("LyricsWords", s => s.Lyrics.WordSyncedHighlighting, (s,v) => s with { Lyrics = s.Lyrics with { WordSyncedHighlighting = v } });
         form.AddNumber("LyricsDelay", -30000, 30000, 100, s => s.Lyrics.DelayMilliseconds, (s,v) => s with { Lyrics = s.Lyrics with { DelayMilliseconds = (int)v } });
         form.AddToggle("LyricsScrolling", s => s.Lyrics.Scrolling, (s,v) => s with { Lyrics = s.Lyrics with { Scrolling = v } });
@@ -150,6 +160,8 @@ public sealed class MusicPage : UserControl
     private void Refresh()
     {
         _folder.Text = _editor.Settings.Lyrics.LocalLrcDirectory;
+        _fontPreviewOriginal.FontSize = _editor.Settings.Lyrics.OriginalFontSize;
+        _fontPreviewTranslation.FontSize = _editor.Settings.Lyrics.TranslationFontSize;
         _nowPlaying.Height = string.IsNullOrEmpty(_media.Title) ? 100 : 380;
         RefreshLyrics();
         var settings = _editor.Settings.IslandActivity;
@@ -225,7 +237,7 @@ public sealed class MusicPage : UserControl
         var lyricsOptions = string.Concat(
             _strings.Culture.Name, "|",
             _media.Settings.Lyrics.Enabled, "|",
-            _media.Settings.Lyrics.SecondaryLyrics);
+            _media.Settings.Lyrics.SecondaryLyrics, "|", _media.Settings.Lyrics.OriginalFontSize, "|", _media.Settings.Lyrics.TranslationFontSize);
         if (!ReferenceEquals(_renderedLyrics, lines) || !string.Equals(_renderedLyricsOptions, lyricsOptions, StringComparison.Ordinal))
         {
             _lyricsRows.Children.Clear();
@@ -236,7 +248,7 @@ public sealed class MusicPage : UserControl
                 {
                     Text = line.Text,
                     TextWrapping = TextWrapping.Wrap,
-                    FontSize = 16,
+                    FontSize = _media.Settings.Lyrics.OriginalFontSize,
                 });
                 var secondary = LyricsDisplayPolicy.Secondary(
                     line,
@@ -248,7 +260,7 @@ public sealed class MusicPage : UserControl
                     {
                         Text = secondary,
                         TextWrapping = TextWrapping.Wrap,
-                        FontSize = 12,
+                        FontSize = _media.Settings.Lyrics.TranslationFontSize,
                         Opacity = 0.72,
                     });
                 }

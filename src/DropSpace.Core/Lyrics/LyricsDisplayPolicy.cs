@@ -27,6 +27,11 @@ public static class LyricsDisplayPolicy
     public static string? Secondary(LyricsLine? line, string languageTag, bool enabled)
     {
         if (!enabled || string.IsNullOrWhiteSpace(line?.Secondary)) return null;
+        if (!string.IsNullOrWhiteSpace(line.TranslationLanguage))
+            return LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) ==
+                LyricsTranslationPolicy.NormalizeLanguage(languageTag) ? line.Secondary : null;
+        // An AI result without its target identity must never survive a language switch.
+        if (line.TranslationOrigin == LyricsTranslationOrigin.LocalAi) return null;
         // Provider translations are optional. English mode must not present a
         // Chinese translation as though it matched the selected display language.
         if (languageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase) &&

@@ -9,6 +9,17 @@ public sealed class LyricsDisplayPolicyTests
     private static readonly LyricsLine Next = new(TimeSpan.FromSeconds(8), TimeSpan.FromSeconds(10), "Next", null, []);
 
     [TestMethod]
+    public void KnownTranslationTargetMustMatchAppLanguage()
+    {
+        var line = First with { Secondary = "English translation", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "en-US" };
+        Assert.AreEqual("English translation", LyricsDisplayPolicy.Secondary(line, "en-GB", true));
+        Assert.IsNull(LyricsDisplayPolicy.Secondary(line, "zh-CN", true));
+        Assert.IsNull(LyricsDisplayPolicy.Secondary(line with { TranslationLanguage = null }, "en-US", true));
+        Assert.IsNull(LyricsDisplayPolicy.Secondary(line with { TranslationOrigin = LyricsTranslationOrigin.Provider }, "zh-CN", true));
+        Assert.IsNull(LyricsDisplayPolicy.Secondary(line, "en-US", false));
+    }
+
+    [TestMethod]
     public void ShortGapKeepsPreviousLyricInsteadOfTitle()
     {
         var state = LyricsDisplayPolicy.Presentation([First, Next], LyricsHighlightFrame.Empty, TimeSpan.FromSeconds(2.3), 0);

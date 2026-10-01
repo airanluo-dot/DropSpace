@@ -33,7 +33,11 @@ public sealed record LyricsMatchInfo(
     string? CandidateId = null,
     string TrackIdentity = "");
 public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
-public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words);
+public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
+{
+    public LyricsTranslationOrigin TranslationOrigin { get; init; }
+    public string? TranslationLanguage { get; init; }
+}
 public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProviderKind Provider, LyricsMatchInfo? Match = null)
 {
     public static LyricsDocument Empty { get; } = new([], LyricsProviderKind.LocalLrc);

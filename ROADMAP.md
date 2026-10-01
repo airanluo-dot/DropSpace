@@ -4,9 +4,11 @@
 
 Harden overlay shutdown and monitor-surface replacement, upgrade the Windows App SDK,
 and improve redacted exception diagnostics. Validate both native Windows locales and
-installer upgrade paths against the final release commit. The observed UIInput.dll
-crash remains under investigation; the release mitigates verified lifecycle hazards
-without claiming every crash is resolved.
+installer upgrade paths against the final release commit. The hidden-window backdrop/GC
+crash was reproduced and its non-UI-thread native-link destruction path fixed; the
+original user-process dump was unavailable, so its exact external trigger remains
+unobserved. This does not claim every crash is resolved. See the
+[current release evidence](.github/release-notes/v0.3.0-beta.32.md).
 
 ## Delivered slice: v0.3.0-beta.31
 
@@ -85,7 +87,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.29
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.32
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -749,9 +751,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.0-beta.29` (Beta 29). All new prereleases use
+The current Beta target is `v0.3.0-beta.32` (Beta 32). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 28 is the immediate upgrade baseline and
+releases remain immutable. Beta 31 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
