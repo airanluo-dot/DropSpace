@@ -62,12 +62,21 @@ foreach ($variant in @('baseline', 'avx2')) {
 }
 $executable = Join-Path $output 'llama-completion.exe'
 $optimized = Join-Path $output 'llama-completion-avx2.exe'
-# Preserve all licenses aggregated by the fixed upstream CMake build, including its vendored libs.
-$licenses = Get-Content (Join-Path $build 'baseline/license.cpp') -Raw
-$sections = [regex]::Matches($licenses, 'R"=L=\((.*?)\)=L="', [Text.RegularExpressions.RegexOptions]::Singleline)
-if ($sections.Count -eq 0) { throw 'Upstream third-party license aggregation is missing.' }
-($sections | ForEach-Object { $_.Groups[1].Value }) -join "`n`n" |
-    Set-Content (Join-Path $output 'LICENSE-llama.cpp') -Encoding utf8
+# The completion-only build deliberately disables llama-app, the target that normally
+# generates license.cpp. Gather pinned source notices directly instead of relying on it.
+$requiredNotices = @('LICENSE', 'vendor/cpp-httplib/LICENSE', 'licenses/LICENSE-jsonhpp')
+foreach ($notice in $requiredNotices) {
+    if (-not (Test-Path (Join-Path $source $notice) -PathType Leaf)) { throw "Missing required runtime notice: $notice" }
+}
+$notices = Get-ChildItem $source -Recurse -File |
+    Where-Object { $_.Name -match '^(LICENSE|LICENCE|NOTICE|COPYING)([.-].*)?$' -and $_.FullName -notmatch '[\\/]\.git[\\/]' } |
+    Sort-Object FullName
+$licenseText = @('Notices from the pinned llama.cpp source tree. Optional unlinked components may also be listed.')
+foreach ($notice in $notices) {
+    $relative = [IO.Path]::GetRelativePath($source, $notice.FullName)
+    $licenseText += "===== $relative =====`n" + (Get-Content $notice.FullName -Raw)
+}
+$licenseText -join "`n`n" | Set-Content (Join-Path $output 'LICENSE-llama.cpp') -Encoding utf8
 # The application embeds this build-produced manifest alongside the exact EXE; the manifest is not
 # accepted from a download or cache folder. Toolchain changes can change the binary SHA256.
 $manifest = [ordered]@{
