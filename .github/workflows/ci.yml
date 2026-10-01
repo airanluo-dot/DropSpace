@@ -100,14 +100,6 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
-      - name: Collect isolated native crash address evidence
-        if: matrix.language == 'zh-CN'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force artifacts/diagnostics | Out-Null
-          $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $env:RUNNER_TEMP ("DropSpace-native-probe-" + [guid]::NewGuid().ToString('N'))
-          dotnet run --project tools/NativeCrashProbe/NativeCrashProbe.csproj -c Release -- artifacts/release/DropSpace.exe artifacts/diagnostics/native-address-evidence.json
-          Remove-Item Env:DROPSPACE_TEST_DATA_ROOT
       - name: Upload portable EXE
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -176,6 +168,15 @@ jobs:
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Collect isolated native crash address evidence
+        if: always() && matrix.language == 'zh-CN'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/diagnostics | Out-Null
+          $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $env:RUNNER_TEMP ("DropSpace-native-probe-" + [guid]::NewGuid().ToString('N'))
+          dotnet run --project tools/NativeCrashProbe/NativeCrashProbe.csproj -c Release -- artifacts/release/DropSpace.exe artifacts/diagnostics/native-address-evidence.json
+          Remove-Item Env:DROPSPACE_TEST_DATA_ROOT
 
       - name: Upload smoke and installer diagnostics
         if: always()

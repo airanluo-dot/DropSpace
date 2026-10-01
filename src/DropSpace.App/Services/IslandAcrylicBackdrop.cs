@@ -1,3 +1,4 @@
+using WinRT;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
@@ -81,7 +82,14 @@ internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
         finally
         {
             if (_root is not null) _root.ActualThemeChanged -= OnThemeChanged;
-            try { DetachController(); }
+            try
+            {
+                DetachController();
+                // The native backdrop link implements IClosable. Rooting prevents early
+                // collection, but its last projection may still finalize off-thread after
+                // disconnection. Close it on the owning XAML thread before unrooting.
+                (connectedTarget ?? target).As<IDisposable>().Dispose();
+            }
             finally
             {
                 _configuration = null;

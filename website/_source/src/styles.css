@@ -246,3 +246,15 @@ html[lang="zh-CN"] .hero-cinematic h1 { font-size:clamp(46px,6.3vw,90px); letter
  .download-gallery .download-card img,.download-gallery .download-icon { flex-shrink:0; width:44px; height:44px; }
 }
 @media(max-width:360px) { .hero-cinematic h1 { font-size:44px; } html[lang="zh-CN"] .hero-cinematic h1 { font-size:38px; } .daily-pair>section { padding-inline:15px; } }
+
+/* Compact bilingual capsule and signature brand action. */
+.nav .language-switch { height:38px; gap:7px; padding:0 12px; border-radius:999px; border-color:#ffffff16; background:#ffffff05; color:#777984; transition:background .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease); flex-shrink:0; }
+.language-switch svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.4; margin-right:2px; color:#aaaeb9; }
+.language-switch .locale-choice { font-size:11px; letter-spacing:.02em; }
+.language-switch .is-current { color:#f7f7f8; }
+.language-switch .locale-divider { color:#51535d; font-size:10px; }
+.nav .language-switch:hover { background:#ffffff0c; border-color:#ffffff30; transform:translateY(-1px); }
+.nav .nav-download { border:1px solid #ffffff22; border-radius:12px; box-shadow:0 4px 18px #ec2b911c; background:linear-gradient(115deg,var(--orange),var(--pink) 52%,var(--blue)); color:#fff; }
+.nav .nav-download:hover { box-shadow:0 6px 26px #ec2b9133; filter:brightness(1.08); }
+@media(max-width:400px) { .nav { gap:8px; } .nav .language-switch { padding:0 8px; gap:4px; } .language-switch svg { width:14px; height:14px; margin-right:0; } .nav .nav-download { padding-inline:12px; } }
+@media(prefers-reduced-motion:reduce) { .nav .language-switch { transition:none; } .nav .language-switch:hover { transform:none; } }
