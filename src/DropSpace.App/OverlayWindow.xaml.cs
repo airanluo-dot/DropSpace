@@ -1358,10 +1358,13 @@ public sealed partial class OverlayWindow : Window
 
     private async void OnCompactClicked(object sender, RoutedEventArgs args)
     {
+        if (_closing) return;
         try
         {
             if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music) _experience.Open(DropSpace.Core.Island.IslandPage.Music);
             else await _viewModel.ExpandAsync();
+            // The await can span a display rebuild or shutdown that retires this HWND.
+            if (_closing) return;
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
             {
                 LogNativeFailure(noActivateFailure);
@@ -1395,12 +1398,12 @@ public sealed partial class OverlayWindow : Window
     }
     private async void OnWidgetSettingsRequested(object? sender, EventArgs args)
     {
-        try { await _widgetViewModel.OpenSettingsAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        try { if (_closing) return; await _widgetViewModel.OpenSettingsAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
         catch (Exception exception) { _logger.LogWarning("Widget settings navigation failed ({Category}).", exception.GetType().Name); }
     }
     private async void OnClipboardOpenMainRequested(object? sender, EventArgs args)
     {
-        try { if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
+        try { if (_closing) return; if (ClipboardExpanded.ViewModel is { } view) await view.OpenMainAsync(); if (_closing) return; _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); }
         catch (Exception exception) { _logger.LogWarning("Clipboard navigation failed ({Category}).", exception.GetType().Name); }
     }
 
