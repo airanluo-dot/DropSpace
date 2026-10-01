@@ -1467,6 +1467,7 @@ public sealed partial class OverlayWindow : Window
 
     private async void OnPrimaryQuickActionClicked(object sender, RoutedEventArgs args)
     {
+        if (_closing) return;
         if (sender is not FrameworkElement { Tag: QuickActionButtonViewModel quickAction })
         {
             return;
@@ -1485,12 +1486,13 @@ public sealed partial class OverlayWindow : Window
                 quickAction.ActionId,
                 xamlRoot,
                 _windowHandle);
-            if (context is null)
+            if (_closing || context is null)
             {
                 return;
             }
 
             var result = await _viewModel.ExecuteQuickActionAsync(quickAction, context);
+            if (_closing) return;
             await _quickActionDialog.ShowResultAsync(result, xamlRoot);
         }
         catch (Exception exception)
