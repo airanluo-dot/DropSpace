@@ -8,6 +8,41 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsParserTests
 {
     [TestMethod]
+    [DataRow(-3000, 1)]
+    [DataRow(-2000, 1)]
+    [DataRow(-1500, 2)]
+    public void NegativeOffsetDoesNotReviveAnExplicitlyEndedLine(int offset, int count)
+    {
+        var parsed = LyricsParser.Parse($"[offset:{offset}]\n[00:01]first\n[00:02]\n[00:10]second", LyricsProviderKind.LocalLrc);
+        Assert.AreEqual(count, parsed.Lines.Count);
+        if (count == 1) Assert.AreEqual("second", parsed.Lines[0].Text);
+        else Assert.AreEqual(TimeSpan.FromMilliseconds(500), parsed.Lines[0].End);
+    }
+
+    [TestMethod]
+    [DataRow(1, 2, 3)]
+    [DataRow(2, 2, 3)]
+    public void ExplicitRelativeTtmlNeverGuessesFromNumericOrder(int parent, int child, int end)
+    {
+        var xml = $"<tt><body><p begin=\"{parent}s\" dur=\"10s\"><span begin=\"{child}s\" end=\"{end}s\">word</span></p></body></tt>";
+        var line = LyricsParser.Parse(xml, LyricsProviderKind.LocalLrc, ttmlTiming: TtmlTimingMode.ParentRelative).Lines.Single();
+        Assert.AreEqual(TimeSpan.FromSeconds(parent + child), line.Words.Single().Start);
+        Assert.AreEqual(TimeSpan.FromSeconds(parent + end), line.Words.Single().End);
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(500)]
+    public void EmptyLrcTimestampEndsSungLineWithoutDisplayingBlank(int offset)
+    {
+        var document = LyricsParser.Parse($"[offset:{offset}]\n[00:01]first\n[00:02]\n[00:10]second", LyricsProviderKind.LocalLrc);
+        Assert.HasCount(2, document.Lines);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(2000 + offset), document.Lines[0].End);
+        Assert.IsNull(new LyricsTimelineEngine().GetFrame(document, TimeSpan.FromSeconds(5), 0).Line);
+        Assert.AreEqual("second", new LyricsTimelineEngine().GetFrame(document, TimeSpan.FromMilliseconds(10000 + offset), 0).Line!.Text);
+    }
+
+    [TestMethod]
     public void ZeroTimeYrcCreditsDoNotReuseTheFirstSungTranslation()
     {
         var document = LyricsParser.Parse(
@@ -96,7 +131,7 @@ public sealed class LyricsParserTests
     {
         const string ttml = "<tt><body><p begin=\"10s\" end=\"20s\"><span begin=\"1s\" dur=\"2s\">word</span></p></body></tt>";
 
-        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll, ttmlTiming: TtmlTimingMode.ParentRelative).Lines.Single();
 
         Assert.AreEqual(TimeSpan.FromSeconds(11), line.Words[0].Start);
         Assert.AreEqual(TimeSpan.FromSeconds(13), line.Words[0].End);

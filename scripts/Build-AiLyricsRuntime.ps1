@@ -2,6 +2,7 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+& (Join-Path $PSScriptRoot 'Test-AiRuntimeNotices.ps1')
 if (-not $IsWindows) { throw 'The shipping local AI runtime must be built and verified on Windows x64.' }
 
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -64,19 +65,7 @@ $executable = Join-Path $output 'llama-completion.exe'
 $optimized = Join-Path $output 'llama-completion-avx2.exe'
 # The completion-only build deliberately disables llama-app, the target that normally
 # generates license.cpp. Gather pinned source notices directly instead of relying on it.
-$requiredNotices = @('LICENSE', 'vendor/cpp-httplib/LICENSE', 'licenses/LICENSE-jsonhpp')
-foreach ($notice in $requiredNotices) {
-    if (-not (Test-Path (Join-Path $source $notice) -PathType Leaf)) { throw "Missing required runtime notice: $notice" }
-}
-$notices = Get-ChildItem $source -Recurse -File |
-    Where-Object { $_.Name -match '^(LICENSE|LICENCE|NOTICE|COPYING)([.-].*)?$' -and $_.FullName -notmatch '[\\/]\.git[\\/]' } |
-    Sort-Object FullName
-$licenseText = @('Notices from the pinned llama.cpp source tree. Optional unlinked components may also be listed.')
-foreach ($notice in $notices) {
-    $relative = [IO.Path]::GetRelativePath($source, $notice.FullName)
-    $licenseText += "===== $relative =====`n" + (Get-Content $notice.FullName -Raw)
-}
-$licenseText -join "`n`n" | Set-Content (Join-Path $output 'LICENSE-llama.cpp') -Encoding utf8
+& (Join-Path $PSScriptRoot 'Collect-AiRuntimeNotices.ps1') -Source $source -OutputPath (Join-Path $output 'LICENSE-llama.cpp')
 # The application embeds this build-produced manifest alongside the exact EXE; the manifest is not
 # accepted from a download or cache folder. Toolchain changes can change the binary SHA256.
 $manifest = [ordered]@{

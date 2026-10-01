@@ -78,7 +78,8 @@ internal sealed class DropLinkAuthenticationMiddleware
     private async Task<bool> AuthenticateAsync(HttpContext context, CancellationToken cancellationToken)
     {
         var request = context.Request;
-        if (request.ContentLength is > DropLinkProtocolPolicy.MaximumAuthenticatedBodyBytes)
+        var bodyLimit = DropLinkProtocolPolicy.BodyLimitFor(request.Path.ToString());
+        if (request.ContentLength > bodyLimit)
         {
             context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
             return false;
@@ -88,7 +89,7 @@ internal sealed class DropLinkAuthenticationMiddleware
         {
             request.EnableBuffering(
                 bufferThreshold: BufferSize,
-                bufferLimit: DropLinkProtocolPolicy.MaximumAuthenticatedBodyBytes);
+                bufferLimit: bodyLimit);
 
             using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
@@ -103,7 +104,7 @@ internal sealed class DropLinkAuthenticationMiddleware
                            cancellationToken).ConfigureAwait(false)) > 0)
                 {
                     totalBytes += read;
-                    if (totalBytes > DropLinkProtocolPolicy.MaximumAuthenticatedBodyBytes)
+                    if (totalBytes > bodyLimit)
                     {
                         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
                         return false;

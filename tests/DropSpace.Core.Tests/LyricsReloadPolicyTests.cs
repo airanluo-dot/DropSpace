@@ -10,7 +10,7 @@ public sealed class LyricsReloadPolicyTests
     public void VisualAdjustmentsDoNotClearOrRefetchLyrics()
     {
         var before = new AppSettings();
-        var after = before with { Lyrics = before.Lyrics with { OriginalFontSize = 22, TranslationFontSize = 18, GlowMode = LyricsGlowMode.Music, DelayMilliseconds = 500, SecondaryLyrics = true } };
+        var after = before with { Lyrics = before.Lyrics with { FontSize = 22, GlowMode = LyricsGlowMode.Music, DelayMilliseconds = 500, SecondaryLyrics = true } };
         Assert.IsFalse(LyricsReloadPolicy.RequiresReload(before, after));
     }
 

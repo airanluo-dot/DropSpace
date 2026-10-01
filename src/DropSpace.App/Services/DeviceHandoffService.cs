@@ -180,6 +180,19 @@ public sealed class DeviceHandoffService(
         return await transfers.GetPeersAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<(PeerDevice Peer, Uri Endpoint)>> DiscoverTrustedPeersAsync(
+        TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        var trusted = (await GetPeersAsync(cancellationToken).ConfigureAwait(false))
+            .Where(peer => peer.TrustState == PeerTrustState.Trusted).ToDictionary(peer => peer.Id);
+        if (trusted.Count == 0) return [];
+        var discovered = await DiscoverAsync(timeout, cancellationToken).ConfigureAwait(false);
+        return discovered.Where(descriptor => trusted.TryGetValue(descriptor.DeviceId, out var peer) &&
+                string.Equals(peer.IdentityFingerprint, descriptor.IdentityFingerprint, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(descriptor => descriptor.DeviceId)
+            .Select(group => (trusted[group.Key], group.First().Endpoint)).ToArray();
+    }
+
     private async Task ReconcilePairingAsync(PeerDevice peer, CancellationToken cancellationToken)
     {
         byte[]? secret = null;

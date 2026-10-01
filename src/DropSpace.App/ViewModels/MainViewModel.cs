@@ -1468,7 +1468,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 await RefreshFileAvailabilityAsync(card, cancellationToken);
             }
 
-            if (card.Item.File is not null && card.Item.Status == ItemStatus.Available)
+            if ((card.Item.File is not null || (card.Item.Kind == ItemKind.Image && card.Item.Payload is not null)) && card.Item.Status == ItemStatus.Available)
             {
                 card.DragStorageItem = await _dragStorageItems.ResolveAsync(card.Item, cancellationToken);
             }
@@ -1527,14 +1527,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             {
                 var card = new ItemCardViewModel(item, _strings);
                 RefreshPrimaryQuickActions(card);
+                // Respect already paged history instead of collapsing it back to the live cap.
+                var retainedLimit = Math.Max(MaximumLiveClipboardItems, Items.Count);
                 Items.Insert(0, card);
                 TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
-                while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
+                TrimLiveClipboardProjection(retainedLimit);
             }
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
         }
+    }
+
+    private void TrimLiveClipboardProjection(int retainedLimit)
+    {
+        if (Items.Count <= retainedLimit) return;
+        while (Items.Count > retainedLimit) Items.RemoveAt(Items.Count - 1);
+        // Evicted rows still exist in storage. The next page must start after the
+        // retained tail rather than skip ahead using the pre-trim cursor.
+        var tail = Items[^1].Item;
+        _projectionCursor = new ItemQueryCursor(0, tail.CreatedAtUtc, tail.Id);
+        HasMoreItems = true;
+        Interlocked.Increment(ref _reloadRevision);
     }
 
     private void OnClipboardStatusChanged(object? sender, ClipboardCaptureStatus status)

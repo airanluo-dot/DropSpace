@@ -9,6 +9,26 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class InternetShareRevokeStoreTests
 {
     [TestMethod]
+    public async Task IncompleteUploadMarkerSurvivesRestartUntilCompletionIsPersisted()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("The store uses Windows DPAPI."); return; }
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-share-journal", Guid.NewGuid().ToString("N"));
+        var paths = new AppStoragePaths(root);
+        try
+        {
+            var store = new InternetShareRevokeStore(paths);
+            var id = Guid.NewGuid();
+            var session = new ShareBackendUploadSession(new Uri("https://share.example.invalid/upload/"),
+                new Uri("https://share.example.invalid/"), "Bearer fixture-token", new Uri("https://share.example.invalid/revoke/"));
+            await store.SaveAsync(id, session, DateTimeOffset.UtcNow.AddHours(1), uploadPending: true);
+            Assert.IsTrue((await new InternetShareRevokeStore(paths).LoadAllAsync()).Single().UploadPending);
+            await store.SaveAsync(id, session, DateTimeOffset.UtcNow.AddHours(1));
+            Assert.IsFalse((await new InternetShareRevokeStore(paths).LoadAllAsync()).Single().UploadPending);
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
     public async Task EncryptedRevokeHandleSurvivesRestartRoundTrip()
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-share-revoke", Guid.NewGuid().ToString("N"));
@@ -28,7 +48,7 @@ public sealed class InternetShareRevokeStoreTests
             var persistedPath = Path.Combine(paths.Data, "share-revokes", shareId.ToString("N") + ".bin");
             Assert.IsTrue(File.Exists(persistedPath));
             Assert.IsFalse(
-                Convert.ToBase64String(await File.ReadAllBytesAsync(persistedPath))
+                System.Text.Encoding.UTF8.GetString(await File.ReadAllBytesAsync(persistedPath))
                     .Contains("Bearer test-secret-that-must-not-be-stored-in-plaintext", StringComparison.Ordinal));
 
             var restored = await new InternetShareRevokeStore(paths).LoadAllAsync();

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml.Controls;
 
 namespace DropSpace.App.Views;
@@ -7,8 +8,41 @@ namespace DropSpace.App.Views;
 /// <summary>Cancellation releases an owned dialog and never depends on a live UI dispatcher.</summary>
 internal static class ContentDialogLifetime
 {
-    public static Task<ContentDialogResult> ShowAsync(ContentDialog dialog, CancellationToken cancellationToken) =>
-        RunAsync(() => dialog.ShowAsync().AsTask(), () => Dismiss(dialog), cancellationToken);
+    private static readonly ConditionalWeakTable<object, SemaphoreSlim> RootGates = new();
+
+    public static Task<ContentDialogResult> ShowAsync(ContentDialog dialog, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dialog);
+        cancellationToken.ThrowIfCancellationRequested();
+        var root = dialog.XamlRoot ?? throw new InvalidOperationException("A dialog requires a live XamlRoot.");
+        return RunSerializedAsync(RootGates.GetValue(root, _ => new SemaphoreSlim(1, 1)),
+            () => dialog.ShowAsync().AsTask(), () => Dismiss(dialog), cancellationToken);
+    }
+
+    internal static async Task<T> RunSerializedAsync<T>(SemaphoreSlim gate, Func<Task<T>> show,
+        Action dismiss, CancellationToken cancellationToken)
+    {
+        await gate.WaitAsync(cancellationToken);
+        Task<T>? nativeCompletion = null;
+        try
+        {
+            return await RunAsync(() => nativeCompletion = show(), dismiss, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Caller cancellation must return promptly, but another modal cannot enter
+            // until the old native dialog really closes (Hide may still be queued).
+            if (nativeCompletion is { IsCompleted: false }) _ = ReleaseAfterCloseAsync(nativeCompletion, gate);
+            else gate.Release();
+        }
+    }
+
+    private static async Task ReleaseAfterCloseAsync(Task completion, SemaphoreSlim gate)
+    {
+        try { await completion.ConfigureAwait(false); }
+        catch (Exception) { /* The original owner observes presentation errors. */ }
+        finally { gate.Release(); }
+    }
 
     internal static async Task<T> RunAsync<T>(Func<Task<T>> show, Action dismiss, CancellationToken cancellationToken)
     {

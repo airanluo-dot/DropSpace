@@ -57,6 +57,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     private readonly SemaphoreSlim _retentionGate = new(1, 1);
     private readonly ConsecutiveClipboardCaptureCoordinator _consecutiveCaptures = new();
     private readonly TextReadCoordinator _textReads = new();
+    private readonly TextReadCoordinator _providerReads = new();
+    private readonly SemaphoreSlim _providerReadSlots = new(8, 8);
+    private readonly ConcurrentDictionary<long, Task> _retiredProviderReads = new();
+    private long _providerReadId;
     // Count active and retired native operations through Cancel and Close.
     private readonly SemaphoreSlim _textReadSlots = new(8, 8);
     private readonly ConcurrentDictionary<long, Task> _retiredTextReads = new();
@@ -392,11 +396,12 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                 if (image.LongLength > _settings.MaxImageBytes) throw new InvalidDataException("Image encoded byte budget exceeded.");
                 var dimensions = await ReadImageDimensionsAsync(image, cancellationToken).ConfigureAwait(false);
                 await using var stream = new MemoryStream(image, writable: false);
-                var payload = await _payloadStore.WriteAsync("images", stream, _settings.MaxImageBytes, cancellationToken).ConfigureAwait(false);
+                var payload = await _payloadStore.WriteFileAsync("images", dimensions.Extension, stream,
+                    _settings.MaxImageBytes, cancellationToken).ConfigureAwait(false);
                 try
                 {
                     item = await _repository.AddImageAsync(
-                        new ImageCandidate(envelope.Sha256, dimensions.Width, dimensions.Height, image.LongLength, envelope.Mime, dimensions.HasAlpha, payload),
+                        new ImageCandidate(envelope.Sha256, dimensions.Width, dimensions.Height, image.LongLength, dimensions.MimeType, dimensions.HasAlpha, payload),
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch
@@ -460,7 +465,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         }
     }
 
-    private Task<(int Width, int Height, bool HasAlpha)> ReadImageDimensionsAsync(byte[] bytes, CancellationToken cancellationToken) =>
+    private Task<(int Width, int Height, bool HasAlpha, string Extension, string MimeType)> ReadImageDimensionsAsync(byte[] bytes, CancellationToken cancellationToken) =>
         _dispatcher.EnqueueAsync(async () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -475,7 +480,16 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
             stream.Seek(0);
             var decoder = await ImageDecoderPreflight.ValidateAsync(stream, _settings.MaxImageBytes, _settings.MaxImagePixels, cancellationToken);
-            return (checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight), decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore);
+            // The peer's MIME label is not a file-format authority. Keep the original
+            // validated bytes and derive both their extension and MIME from the decoder.
+            var codec = decoder.DecoderInformation;
+            var extension = codec.FileExtensions.FirstOrDefault(value => value.Length is > 1 and <= 16 &&
+                value[0] == '.' && value.AsSpan(1).ToArray().All(char.IsAsciiLetterOrDigit))
+                ?? throw new InvalidDataException("The clipboard image decoder has no safe file extension.");
+            var mimeType = codec.MimeTypes.FirstOrDefault(value => value.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidDataException("The clipboard image decoder has no image MIME type.");
+            return (checked((int)decoder.PixelWidth), checked((int)decoder.PixelHeight),
+                decoder.BitmapAlphaMode != BitmapAlphaMode.Ignore, extension, mimeType);
         });
 
     public async Task CopyImageAsync(string relativePath, CancellationToken cancellationToken = default)
@@ -729,11 +743,15 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             Interlocked.Increment(ref _droppedEvents);
             PublishStatus(_strings.Get("ClipboardEventDropped"));
         }
-        else if (_textReads.HasActiveRead)
+        else if (_textReads.HasActiveRead || _providerReads.HasActiveRead)
         {
             // Admit the notification before releasing an older text waiter. The
             // actual sequence can already be newer than the sampled notification.
-            _textReads.Notify(GetClipboardSequenceNumber(), signal.ClipboardSequenceNumber, QueueTextSequence);
+            var currentSequence = GetClipboardSequenceNumber();
+            if (_textReads.HasActiveRead)
+                _textReads.Notify(currentSequence, signal.ClipboardSequenceNumber, QueueTextSequence);
+            if (_providerReads.HasActiveRead)
+                _providerReads.Notify(currentSequence, signal.ClipboardSequenceNumber, QueueTextSequence);
         }
     }
 
@@ -1072,58 +1090,44 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewRead, signal);
 
         if (view.Contains(StandardDataFormats.StorageItems))
-        {
-            RecordDiagnostic(ClipboardDiagnosticDecision.StorageItemsRead, signal);
-            var storageItems = await view.GetStorageItemsAsync();
-            var paths = storageItems
-                .Select(item => item.Path)
-                .Where(path => !string.IsNullOrWhiteSpace(path))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(_settings.MaxClipboardFileItems + 1)
-                .ToArray();
-            if (paths.Length > 0)
+            return await ReadDeferredProviderAsync(signal, async token =>
             {
-                return new ClipboardReadResult(
-                    new ClipboardSnapshot(
-                        null,
-                        null,
-                        paths,
-                        CreateFileClipboardFingerprint(paths),
-                        0,
-                        0,
-                        null,
-                        null),
-                    null);
-            }
-
-            // A producer can publish the StorageItems format before its async item payload is
-            // materialized. Treat that empty read as transient; otherwise this WM_CLIPBOARDUPDATE
-            // would be marked processed and the file/folder batch could never be captured.
-            throw new COMException(
-                "Clipboard storage items are not ready.",
-                unchecked((int)0x8000000A)); // E_PENDING
-        }
+                RecordDiagnostic(ClipboardDiagnosticDecision.StorageItemsRead, signal);
+                var storageItems = await ReadProviderOperationAsync(view.GetStorageItemsAsync, token);
+                token.ThrowIfCancellationRequested();
+                var paths = storageItems.Select(item => item.Path)
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(_settings.MaxClipboardFileItems + 1).ToArray();
+                if (paths.Length > 0)
+                    return new ClipboardReadResult(new ClipboardSnapshot(null, null, paths,
+                        CreateFileClipboardFingerprint(paths), 0, 0, null, null), null);
+                // A producer can announce StorageItems before its payload is ready.
+                throw new COMException("Clipboard storage items are not ready.", unchecked((int)0x8000000A));
+            }, cancellationToken);
 
         if (view.Contains(StandardDataFormats.Bitmap))
-        {
-            RecordDiagnostic(ClipboardDiagnosticDecision.BitmapRead, signal);
-            var reference = await view.GetBitmapAsync();
-            using var stream = await reference.OpenReadAsync();
-            if (stream.Size == 0 ||
-                stream.Size > (ulong)_settings.MaxImageBytes ||
-                stream.Size > int.MaxValue)
+            return await ReadDeferredProviderAsync(signal, async token =>
             {
-                return new ClipboardReadResult(
-                    CreateRejectedSnapshot(signal, "image-byte-limit"),
-                    null);
-            }
-
-            var bytes = new byte[checked((int)stream.Size)];
-            using var reader = new DataReader(stream.GetInputStreamAt(0));
-            await reader.LoadAsync(checked((uint)bytes.Length));
-            reader.ReadBytes(bytes);
-            return new ClipboardReadResult(null, bytes);
-        }
+                RecordDiagnostic(ClipboardDiagnosticDecision.BitmapRead, signal);
+                var reference = await ReadProviderOperationAsync(view.GetBitmapAsync, token);
+                token.ThrowIfCancellationRequested();
+                using var stream = await ReadProviderOperationAsync(reference.OpenReadAsync, token);
+                token.ThrowIfCancellationRequested();
+                if (stream.Size == 0 || stream.Size > (ulong)_settings.MaxImageBytes || stream.Size > int.MaxValue)
+                    return new ClipboardReadResult(CreateRejectedSnapshot(signal, "image-byte-limit"), null);
+                var bytes = new byte[checked((int)stream.Size)];
+                using var reader = new DataReader(stream.GetInputStreamAt(0));
+                try
+                {
+                    var loaded = await ReadProviderOperationAsync(() => reader.LoadAsync(checked((uint)bytes.Length)), token);
+                    token.ThrowIfCancellationRequested();
+                    if (loaded != bytes.Length) throw new InvalidDataException("The clipboard bitmap ended before its declared length.");
+                    reader.ReadBytes(bytes);
+                    return new ClipboardReadResult(null, bytes);
+                }
+                catch { Array.Clear(bytes); throw; }
+            }, cancellationToken);
 
         if (view.Contains(StandardDataFormats.Text))
         {
@@ -1199,6 +1203,103 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             CreateRejectedSnapshot(signal, "unsupported-format"),
             null);
     }
+
+    private async Task<ClipboardReadResult> ReadDeferredProviderAsync(CaptureSignal signal,
+        Func<CancellationToken, Task<ClipboardReadResult>> read, CancellationToken cancellationToken)
+    {
+        // A malicious or broken provider cannot accumulate unlimited native reads. Do not
+        // wait for a retired slot here: newer text must still reach the single capture worker.
+        if (!await _providerReadSlots.WaitAsync(0, cancellationToken))
+            return new ClipboardReadResult(CreateRejectedSnapshot(signal, "provider-read-capacity"), null);
+        TextReadLease? lease = null;
+        CancellationTokenSource? lifetime = null;
+        Task<ClipboardReadResult>? operation = null;
+        var consumed = false;
+        try
+        {
+            lease = _providerReads.Register(signal.ClipboardSequenceNumber, GetClipboardSequenceNumber, QueueTextSequence);
+            lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lease.SupersededToken);
+            lifetime.CancelAfter(TimeSpan.FromSeconds(5));
+            operation = read(lifetime.Token);
+            var result = await operation.WaitAsync(lifetime.Token);
+            lifetime.Token.ThrowIfCancellationRequested();
+            consumed = true;
+            return result;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Supersession already admitted the replacement; a timeout simply skips the
+            // unresponsive sequence. The retirement task retains streams/buffers until done.
+            return new ClipboardReadResult(null, null);
+        }
+        finally
+        {
+            if (lease is not null) _providerReads.Release(lease);
+            if (operation is null) { lifetime?.Dispose(); _providerReadSlots.Release(); }
+            else
+            {
+                var id = Interlocked.Increment(ref _providerReadId);
+                var retirement = RetireProviderReadAsync(operation, lifetime!, consumed);
+                _retiredProviderReads[id] = retirement;
+                _ = retirement.ContinueWith(completed =>
+                {
+                    _ = completed.Exception;
+                    _retiredProviderReads.TryRemove(id, out _);
+                }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+        }
+    }
+
+    private async Task RetireProviderReadAsync(Task<ClipboardReadResult> operation,
+        CancellationTokenSource lifetime, bool consumed)
+    {
+        try
+        {
+            var result = await operation.ConfigureAwait(false);
+            if (!consumed && result.ImageBytes is { } bytes) Array.Clear(bytes);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        { _logger.LogDebug("Clipboard provider read retired ({Category}).", exception.GetType().Name); }
+        finally { lifetime.Dispose(); _providerReadSlots.Release(); }
+    }
+
+    private async Task<T> ReadProviderOperationAsync<T>(Func<IAsyncOperation<T>> start, CancellationToken token)
+    {
+        IAsyncOperation<T>? operation = null;
+        Task StartAsync()
+        {
+            token.ThrowIfCancellationRequested();
+            operation = start();
+            return Task.CompletedTask;
+        }
+        if (_dispatcher.HasThreadAccess) await StartAsync();
+        else await _dispatcher.EnqueueAsync(StartAsync).ConfigureAwait(false);
+        var ownedOperation = operation!;
+        Task<T> nativeRead;
+        try { nativeRead = ownedOperation.AsTask(); }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // Bridge setup failure is not evidence that native ownership ended.
+            nativeRead = ObserveUnbridgedProviderReadAsync(() => ownedOperation.Status, ownedOperation.GetResults);
+        }
+        return await ClipboardProviderReadLifetime.CompleteAsync(nativeRead, ownedOperation.Cancel,
+            ownedOperation.Close, token, exception => _logger.LogDebug(
+                "Clipboard provider teardown failed ({Category}).", exception.GetType().Name)).ConfigureAwait(false);
+    }
+
+    internal static Task<T> ObserveUnbridgedProviderReadAsync<T>(Func<AsyncStatus> readStatus, Func<T> getResults) => Task.Run(async () =>
+    {
+        while (true)
+        {
+            AsyncStatus? status = null;
+            try { status = readStatus(); }
+            catch (Exception exception) when (exception.HResult == unchecked((int)0x80000013))
+            { return default(T)!; }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { }
+            if (status is AsyncStatus.Completed or AsyncStatus.Error or AsyncStatus.Canceled) return getResults();
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+        }
+    });
 
     private void RetireTextRead(Task<string> nativeRead, Action cancel, Action close, bool requestCancellation)
     {

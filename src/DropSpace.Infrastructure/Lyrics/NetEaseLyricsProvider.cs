@@ -72,6 +72,8 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
             if (duration <= 0) duration = Number(song, "dt");
             duration /= 1000;
 
+            // An alias can translate a title but cannot erase canonical Live/Remix evidence.
+            if (LyricsMatcher.HasVersionConflict(query.Title, Text(song, "name"))) continue;
             var titles = new List<string>();
             AddTitle(titles, Text(song, "name"));
             foreach (var property in new[] { "alias", "alia", "transNames", "tns" })

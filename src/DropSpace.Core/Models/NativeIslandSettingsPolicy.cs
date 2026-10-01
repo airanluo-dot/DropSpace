@@ -24,6 +24,7 @@ public static class NativeIslandSettingsPolicy
         var sources = (activity.AllowedMediaSourceAppIds ?? [])
             .Where(id => !string.IsNullOrWhiteSpace(id) && id.Length <= MaximumSourceLength)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(MaximumSources).ToArray();
+        var modelId = lyrics.AiModelId == "lightweight" ? Lyrics.AiLyricsModelCatalog.Compact.Id : lyrics.AiModelId;
         var normalized = settings with
         {
             IslandActivity = activity with
@@ -33,10 +34,9 @@ public static class NativeIslandSettingsPolicy
             },
             Lyrics = lyrics with
             {
-                AiModelId = lyrics.AiModelId is "hy-mt2-standard" or "lightweight" ? lyrics.AiModelId : "hy-mt2-standard",
+                AiModelId = Lyrics.AiLyricsModelCatalog.Find(modelId)?.Id ?? Lyrics.AiLyricsModelCatalog.Standard.Id,
                 GlowMode = Enum.IsDefined(lyrics.GlowMode) ? lyrics.GlowMode : Lyrics.LyricsGlowMode.Off,
-                OriginalFontSize = double.IsFinite(lyrics.OriginalFontSize) ? Math.Clamp(lyrics.OriginalFontSize, 12, 28) : 16,
-                TranslationFontSize = double.IsFinite(lyrics.TranslationFontSize) ? Math.Clamp(lyrics.TranslationFontSize, 10, 24) : 14,
+                FontSize = double.IsFinite(lyrics.FontSize) ? Math.Clamp(lyrics.FontSize, 12, 28) : 16,
                 Mode = Enum.IsDefined(lyrics.Mode) ? lyrics.Mode : LyricsMode.Online,
                 Provider = provider,
                 BackupProvider = backupProvider,

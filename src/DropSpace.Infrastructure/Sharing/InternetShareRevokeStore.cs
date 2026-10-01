@@ -23,7 +23,8 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         ShareBackendUploadSession session,
         DateTimeOffset expiresAtUtc,
         CancellationToken cancellationToken = default,
-        ShareCapacityReservation? reservation = null)
+        ShareCapacityReservation? reservation = null,
+        bool uploadPending = false)
     {
         await StoreGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -41,7 +42,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                 throw new InvalidOperationException("The secure share revoke-handle capacity is full.");
             }
 
-            await SaveCoreAsync(shareId, session, expiresAtUtc, cancellationToken).ConfigureAwait(false);
+            await SaveCoreAsync(shareId, session, expiresAtUtc, uploadPending, cancellationToken).ConfigureAwait(false);
             if (ownsReservation) reservation!.Commit();
         }
         finally { StoreGate.Release(); }
@@ -96,7 +97,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
     }
 
     private async Task SaveCoreAsync(Guid shareId, ShareBackendUploadSession session, DateTimeOffset expiresAtUtc,
-        CancellationToken cancellationToken)
+        bool uploadPending, CancellationToken cancellationToken)
     {
         Validate(shareId, session, expiresAtUtc);
         paths.EnsureCreated();
@@ -110,7 +111,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                 session.DownloadBaseUrl.ToString(),
                 session.UploadAuthorization,
                 session.RevokeUrl.ToString(),
-                expiresAtUtc),
+                expiresAtUtc, uploadPending),
             JsonOptions);
         if (payload.Length > MaximumPayloadBytes)
         {
@@ -218,7 +219,7 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
                         handle.UploadAuthorization,
                         revokeUrl);
                     Validate(shareId, session, handle.ExpiresAtUtc);
-                    result.Add(new RestorableInternetShareSession(shareId, session, handle.ExpiresAtUtc));
+                    result.Add(new RestorableInternetShareSession(shareId, session, handle.ExpiresAtUtc, handle.UploadPending));
                 }
                 finally
                 {
@@ -352,7 +353,8 @@ public sealed class InternetShareRevokeStore(AppStoragePaths paths)
         string DownloadBaseUrl,
         string UploadAuthorization,
         string RevokeUrl,
-        DateTimeOffset ExpiresAtUtc);
+        DateTimeOffset ExpiresAtUtc,
+        bool UploadPending = false);
 }
 
 public sealed class ShareCapacityReservation : IDisposable
@@ -387,4 +389,5 @@ public sealed class ShareCapacityReservation : IDisposable
 public sealed record RestorableInternetShareSession(
     Guid ShareId,
     ShareBackendUploadSession Session,
-    DateTimeOffset ExpiresAtUtc);
+    DateTimeOffset ExpiresAtUtc,
+    bool UploadPending = false);

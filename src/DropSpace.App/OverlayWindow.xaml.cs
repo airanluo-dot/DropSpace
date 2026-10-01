@@ -69,6 +69,8 @@ public sealed partial class OverlayWindow : Window
     private bool _suppressedForFullscreen;
     private long _regionFailureCount;
     private bool _nativeWindowSafeToShow;
+    private readonly bool _supportsModernDwmAttributes;
+    private long _lastNativeRecoveryAttempt;
     private readonly string _nativeConfigurationDiagnostics;
     private string _lastNativeFailureDiagnostics = "none";
     private readonly int _operatingSystemBuild;
@@ -192,6 +194,7 @@ public sealed partial class OverlayWindow : Window
         _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
         _glow = new IslandGlowController(_windowHandle, _monitor.Scale, DispatcherQueue.GetForCurrentThread(), logger);
         _mediaViewModel.PropertyChanged += OnGlowMediaChanged;
+        _supportsModernDwmAttributes = capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes);
         var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
             capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
@@ -643,7 +646,7 @@ public sealed partial class OverlayWindow : Window
 
     private void EnsureVisualHostShown(bool allowActivation)
     {
-        if (!_nativeWindowSafeToShow)
+        if (!_nativeWindowSafeToShow && !TryRecoverNativeSurface())
         {
             _logger.LogError(
                 "Skipped showing overlay HWND {WindowHandle} on monitor {MonitorId} because native borderless setup failed.",
@@ -727,6 +730,25 @@ public sealed partial class OverlayWindow : Window
         _isVisible = false;
         _hideWhenSettled = false;
         _visualPhase = OverlayVisualPhase.Invisible;
+    }
+
+    private bool TryRecoverNativeSurface()
+    {
+        if (_closing) return false;
+        var now = Environment.TickCount64;
+        if (_lastNativeRecoveryAttempt != 0 && now - _lastNativeRecoveryAttempt < 1000) return false;
+        _lastNativeRecoveryAttempt = now;
+        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+        { LogNativeFailure(hideFailure); return false; }
+        var configuration = OverlayWindowInterop.ConfigureVisualWindow(_windowHandle, _supportsModernDwmAttributes);
+        foreach (var failure in configuration.Failures) LogNativeFailure(failure);
+        if (!configuration.IsSafeToShow || !PositionFixedHost()) return false;
+        if (!_nativeRegionController.ApplyEmpty(out var regionFailure))
+        { LogNativeFailure(regionFailure); return false; }
+        _noActivateApplied = null;
+        _nativeWindowShown = false;
+        _nativeWindowSafeToShow = true;
+        return true;
     }
 
     private void HideForNativeFailure()

@@ -46,6 +46,8 @@ public static class DropLinkProtocolRoutes
     public static bool IsPairing(string path) =>
         MatchesRoute(path, PairingHello) || MatchesRoute(path, PairingConfirm);
 
+    public static bool IsClipboard(string path) => MatchesRoute(path, Clipboard);
+
     public static bool RequiresAuthentication(string path) =>
         MatchesRoute(path, Clipboard) || MatchesRoute(path, HandoffText) ||
         path.StartsWith(VersionPrefix + "/transfers/", StringComparison.OrdinalIgnoreCase);
@@ -76,6 +78,11 @@ public static class DropLinkProtocolPolicy
     // The manifest carries the negotiated chunk size. The middleware must allow the complete
     // protocol range before the endpoint validates the per-transfer value.
     public const int MaximumAuthenticatedBodyBytes = 16 * 1024 * 1024 + 64 * 1024;
+    // byte[] is encoded as Base64 in the clipboard JSON; retain the smaller
+    // transfer/hand-off budget for every other authenticated endpoint.
+    public const int MaximumClipboardBodyBytes = (int)(((ClipboardEnvelopePolicy.HardImageLimitBytes + 2) / 3) * 4 + 64 * 1024);
+    public static int BodyLimitFor(string path) => DropLinkProtocolRoutes.IsClipboard(path)
+        ? MaximumClipboardBodyBytes : MaximumAuthenticatedBodyBytes;
     public const int MaximumHandoffReplayEntries = 4_096;
     public const int MaximumHandoffReplayEntriesPerPeer = 256;
     public static readonly TimeSpan HandoffReplayRetention = TimeSpan.FromMinutes(10);

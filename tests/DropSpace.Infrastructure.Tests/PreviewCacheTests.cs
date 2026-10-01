@@ -84,6 +84,68 @@ public sealed class PreviewCacheTests
         Assert.IsNotNull(await GetAsync(cache, request));
     }
 
+    [TestMethod]
+    public async Task TrimAndClearPreserveUnownedFiles()
+    {
+        var paths = new AppStoragePaths(_root);
+        Directory.CreateDirectory(paths.Previews);
+        var sentinel = Path.Combine(paths.Previews, "valuable.txt");
+        await File.WriteAllTextAsync(sentinel, "preserve");
+        var cache = new FilePreviewCache(paths);
+        var request = new PreviewRequest(Item());
+        await cache.PutAsync(request, Descriptor(request) with { CacheGeneration = cache.Generation });
+        await cache.ClearAsync();
+        Assert.AreEqual("preserve", await File.ReadAllTextAsync(sentinel));
+        Assert.HasCount(1, Directory.GetFiles(paths.Previews));
+    }
+
+    [TestMethod]
+    public async Task ReparsePreviewRootCannotWriteOrDeleteExternalFiles()
+    {
+        var paths = new AppStoragePaths(_root);
+        var external = Path.Combine(_root, "external-test-data");
+        Directory.CreateDirectory(external);
+        Directory.CreateDirectory(Path.GetDirectoryName(paths.Previews)!);
+        var sentinel = Path.Combine(external, "valuable.txt");
+        await File.WriteAllTextAsync(sentinel, "preserve");
+        try { Directory.CreateSymbolicLink(paths.Previews, external); }
+        catch (Exception error) when (error is UnauthorizedAccessException or IOException)
+        { Assert.Inconclusive("This test environment cannot create directory links."); return; }
+        try
+        {
+            var cache = new FilePreviewCache(paths);
+            var request = new PreviewRequest(Item());
+            await Assert.ThrowsAsync<InvalidDataException>(() => cache.PutAsync(request, Descriptor(request)));
+            await Assert.ThrowsAsync<InvalidDataException>(() => cache.ClearAsync());
+            Assert.AreEqual("preserve", await File.ReadAllTextAsync(sentinel));
+            Assert.HasCount(1, Directory.GetFiles(external));
+        }
+        finally { Directory.Delete(paths.Previews); }
+    }
+
+    [TestMethod]
+    public async Task FailedClearKeepsSurvivingEntriesInvalidUntilClearCanFinish()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Windows file-sharing semantics are required for the locked-file deletion check.");
+            return;
+        }
+        var paths = new AppStoragePaths(_root);
+        var cache = new FilePreviewCache(paths);
+        var request = new PreviewRequest(Item());
+        await cache.PutAsync(request, Descriptor(request));
+        var file = Directory.GetFiles(paths.Previews).Single();
+        using (var locked = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            await Assert.ThrowsAsync<IOException>(() => cache.ClearAsync());
+            Assert.IsNull(await GetAsync(cache, request), "A surviving stale entry must not become valid after a failed clear.");
+        }
+        Assert.IsNull(await GetAsync(cache, request));
+        await cache.PutAsync(request, Descriptor(request) with { CacheGeneration = cache.Generation, Text = "new" });
+        Assert.AreEqual("new", (await GetAsync(cache, request))!.Text);
+    }
+
     private static DropItemSnapshot Item() => new(Guid.NewGuid(), ItemKind.Text, ItemStatus.Available,
         "test", null, null, null, "text/plain", "content", null, 1);
     private static PreviewDescriptor Descriptor(PreviewRequest request) => new(request.Item.Id, PreviewKind.Text,

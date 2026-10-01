@@ -202,7 +202,7 @@ public static class LyricsMatcher
     private static double DurationTolerance(double requested, double candidate) =>
         Math.Clamp(Math.Max(20, Math.Min(requested, candidate) * 0.08), 20, 40);
 
-    private static bool HasVersionConflict(string requested, string candidate)
+    public static bool HasVersionConflict(string requested, string candidate)
     {
         var requestedLabels = Labels(requested);
         var candidateLabels = Labels(candidate);

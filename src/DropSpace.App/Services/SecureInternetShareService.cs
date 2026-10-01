@@ -31,6 +31,20 @@ public sealed class SecureInternetShareService(
             var restored = await _revokeStore.LoadAllAsync(cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             foreach (var handle in restored) _sessions.TryAdd(handle.ShareId, handle.Session);
+            // Only incomplete uploads are eligible for automatic recovery cleanup;
+            // completed user shares remain valid until explicit revocation or expiry.
+            using var cleanupDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cleanupDeadline.CancelAfter(TimeSpan.FromSeconds(3));
+            foreach (var handle in restored.Where(handle => handle.UploadPending))
+            {
+                try { await RevokeAsync(handle.ShareId, cleanupDeadline.Token).ConfigureAwait(false); }
+                catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidOperationException or UnauthorizedAccessException or OperationCanceledException)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    logger.LogWarning("Incomplete encrypted share cleanup remains pending for {ShareId}: {Category}.", handle.ShareId, exception.GetType().Name);
+                    if (cleanupDeadline.IsCancellationRequested) break;
+                }
+            }
             _initialized = true;
             logger.LogInformation("Restored {RestoredCount} encrypted share revoke handles.", restored.Count);
         }
@@ -49,7 +63,18 @@ public sealed class SecureInternetShareService(
         using var capacityReservation = await _revokeStore.ReserveCapacityAsync(cancellationToken).ConfigureAwait(false);
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
         var backend = new CloudflareWorkerShareBackend(httpClient, endpoint);
-        var client = new InternetShareClient(crypto, backend, storagePaths: paths, stagingLeases: stagingLeases);
+        var client = new InternetShareClient(crypto, backend, storagePaths: paths, stagingLeases: stagingLeases,
+            sessionCreated: async (id, session, expires) =>
+            {
+                await _revokeStore.SaveAsync(id, session, expires, CancellationToken.None, capacityReservation,
+                    uploadPending: true).ConfigureAwait(false);
+                _sessions[id] = session;
+            },
+            sessionRevoked: async id =>
+            {
+                await _revokeStore.DeleteAsync(id, CancellationToken.None).ConfigureAwait(false);
+                _sessions.TryRemove(id, out _);
+            });
         logger.LogInformation("Starting encrypted Internet Share upload for {ItemCount} item(s) with expiry {Lifetime}.", sources.Count, lifetime);
         var result = await client.CreateWithSessionAsync(sources, lifetime, cancellationToken).ConfigureAwait(false);
         try
@@ -70,6 +95,8 @@ public sealed class SecureInternetShareService(
             try
             {
                 await client.RevokeAsync(result.Session, result.Descriptor.ShareId, CancellationToken.None).ConfigureAwait(false);
+                await _revokeStore.DeleteAsync(result.Descriptor.ShareId, CancellationToken.None).ConfigureAwait(false);
+                _sessions.TryRemove(result.Descriptor.ShareId, out _);
             }
             catch (Exception cleanupException) when (cleanupException is HttpRequestException or IOException or InvalidOperationException or UnauthorizedAccessException)
             {

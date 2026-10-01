@@ -219,7 +219,8 @@ test("partial storage writes are cleaned before the same object is retried", asy
   assert.equal((await upload(2)).status, 201);
 });
 
-test("cleanup protects an already-reserved retry whose R2 write is in flight", async () => {
+for (const lifecycleDeletes of [false, true]) {
+test("cleanup protects an in-flight retry and clears expired orphan: lifecycle=" + lifecycleDeletes, async () => {
   const originalNow = Date.now;
   let now = originalNow();
   Date.now = () => now;
@@ -253,7 +254,7 @@ test("cleanup protects an already-reserved retry whose R2 write is in flight", a
       async get(key) { const object = objects.get(key); return object ? { text: async () => object.value, body: object.value } : null; },
       async head(key) {
         const snapshot = objects.get(key) || null;
-        if (snapshot && key.endsWith(".bin")) {
+        if (snapshot && key.endsWith(".bin") && lifecycleDeletes) {
           cleanupHeads++;
           // Lifecycle expiry removes A while a previously reserved B can write.
           objects.delete(key);
@@ -291,10 +292,16 @@ test("cleanup protects an already-reserved retry whose R2 write is in flight", a
     objects.set(key, { value: new Uint8Array(21).fill(1), customMetadata: { uploadReservationId: stale.reservationId } });
     const cleanup = operate("rollback", { reservationId: stale.reservationId, objectName, cleanupStoredObject: true });
     await new Promise(resolve => setImmediate(resolve));
-    objects.delete(key); // Lifecycle expiry also runs when guarded cleanup skips R2.
+    if (lifecycleDeletes) objects.delete(key); // Independent lifecycle cleanup is optional.
     releaseWrite();
     assert.equal((await cleanup).status, 200);
-    assert.equal((await retry).status, 201);
+    assert.equal((await retry).status, lifecycleDeletes ? 201 : 409);
+    if (!lifecycleDeletes) {
+      const nextRetry = await worker.fetch(new Request(session.uploadBaseUrl + objectName, {
+        method: "PUT", headers: { authorization: session.uploadAuthorization, "content-length": "21" }, body: new Uint8Array(21).fill(2),
+      }), env);
+      assert.equal(nextRetry.status, 201, "rollback must clear the expired predecessor without manual lifecycle deletion");
+    }
     const downloaded = await worker.fetch(new Request(session.uploadBaseUrl + objectName), env);
     assert.equal(downloaded.status, 200);
     assert.equal(cleanupHeads, 0, "pending ownership must skip cleanup before reading storage");
@@ -304,3 +311,5 @@ test("cleanup protects an already-reserved retry whose R2 write is in flight", a
     Date.now = originalNow;
   }
 });
+
+}

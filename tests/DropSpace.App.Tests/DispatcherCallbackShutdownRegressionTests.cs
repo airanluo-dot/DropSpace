@@ -60,6 +60,29 @@ public sealed class DispatcherCallbackShutdownRegressionTests
         Assert.AreSame(status, view.UpdateStatus);
     }
 
+    [TestMethod]
+    [DataRow(250)]
+    [DataRow(500)]
+    public void LiveClipboardEvictionRewindsPagingToRetainedTail(int loadedCount)
+    {
+        var view = (MainViewModel)RuntimeHelpers.GetUninitializedObject(typeof(MainViewModel));
+        var items = new ObservableCollection<ItemCardViewModel>();
+        var now = DateTimeOffset.UtcNow;
+        for (var index = 0; index <= loadedCount; index++)
+            items.Add(new ItemCardViewModel(new DropItem(Guid.NewGuid(), ItemSource.Clipboard, ItemKind.Text,
+                $"row {index}", now.AddSeconds(-index), null, false, ItemStatus.Available,
+                string.Empty, 1, null, null, null, null, null, null, null), IdentityAppStringLocalizer.Instance));
+        Set(view, "<Items>k__BackingField", items);
+        var evicted = items[^1].Id;
+        typeof(MainViewModel).GetMethod("TrimLiveClipboardProjection", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(view, [loadedCount]);
+        Assert.AreEqual(loadedCount, items.Count);
+        Assert.IsTrue(view.HasMoreItems);
+        var cursor = (ItemQueryCursor)typeof(MainViewModel).GetField("_projectionCursor", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(view)!;
+        Assert.AreEqual(items[^1].Id, cursor.Id);
+        Assert.AreNotEqual(evicted, cursor.Id);
+        Assert.AreEqual(items[^1].Item.CreatedAtUtc, cursor.CreatedAtUtc);
+    }
+
     private static void Set(object owner, string field, object value) => owner.GetType()
         .GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(owner, value);
 }

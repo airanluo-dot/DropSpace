@@ -60,7 +60,8 @@ public sealed class OleDragDropService : IDisposable
             callbacks,
             _fileDataClassifier,
             _virtualFileMaterializer,
-            _loggerFactory.CreateLogger<DragActivationHost>());
+            _loggerFactory.CreateLogger<DragActivationHost>(),
+            host => _registrations.Remove(host));
         _registrations.Add(host);
         return host;
     }
@@ -386,6 +387,7 @@ public sealed class DragActivationHost : IDisposable
     private NativeRectangle _bounds;
     private bool _enabled = true;
     private bool _dragActive;
+    private readonly Action<DragActivationHost>? _retired;
     private bool _disposed;
 
     internal DragActivationHost(
@@ -393,8 +395,10 @@ public sealed class DragActivationHost : IDisposable
         DragActivationCallbacks callbacks,
         OleFileDataClassifier fileDataClassifier,
         VirtualFileMaterializer virtualFileMaterializer,
-        ILogger<DragActivationHost> logger)
+        ILogger<DragActivationHost> logger,
+        Action<DragActivationHost>? retired = null)
     {
+        _retired = retired;
         _monitor = monitor;
         _logger = logger;
         EnsureWindowClass();
@@ -567,6 +571,7 @@ public sealed class DragActivationHost : IDisposable
         _dropTarget.Dispose();
         DestroyHostWindow();
         _disposed = true;
+        _retired?.Invoke(this);
     }
 
     private bool IsDropReady(NativePoint point)
@@ -901,6 +906,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     private int DragEnterCore(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
+        if (_disposed) { effect = DropEffectNone; return Success; }
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
         try
@@ -953,6 +959,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     private int DragOverCore(uint keyState, NativePoint point, ref uint effect)
     {
+        if (_disposed) { effect = DropEffectNone; return Success; }
         effect = _canAccept ? DropEffectCopy : DropEffectNone;
         if (_canAccept)
         {
@@ -986,6 +993,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     private int DragLeaveCore()
     {
+        if (_disposed) return Success;
         _logger.LogInformation(
             "OLE DragLeave received by {SurfaceKind} on monitor {MonitorId} after {DragOverCount} DragOver events.",
             _surfaceKind,
@@ -1000,6 +1008,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
 
     public int Drop(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
+        if (_disposed) { effect = DropEffectNone; return Success; }
         try
         {
             if (_classification.Kind == OleFileDataKind.VirtualFiles)
@@ -1110,6 +1119,12 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
             return;
         }
 
+        // Reject reentrant callbacks and release any active drag object before native retirement.
+        _disposed = true;
+        _currentDataObject = null;
+        _canAccept = false;
+        _classification = OleFileDataClassification.None;
+        _lastReady = false;
         var result = OleDropTargetNative.Revoke(_windowHandle);
         if (result < 0)
         {

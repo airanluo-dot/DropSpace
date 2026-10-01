@@ -100,6 +100,28 @@ public sealed class OleCallbackBoundaryTests
         finally { lock (classGate) hosts.Remove(window); }
     }
 
+    [TestMethod]
+    public void RetiredTargetRejectsAllLateNativeCallbacksWithoutReadingData()
+    {
+        var target = CreateTarget(new DragActivationCallbacks(
+            _ => Assert.Fail("Retired target must not reveal."),
+            (_, _) => Assert.Fail("Retired target must not update."),
+            _ => Assert.Fail("Retired target must not notify."),
+            (_, _) => throw new AssertFailedException("Retired target must not drop.")));
+        SetField(target, "_disposed", true);
+        SetField(target, "_canAccept", true);
+        uint effect = 1;
+        Assert.AreEqual(0, target.DragEnter(null!, 0, default, ref effect));
+        Assert.AreEqual(0u, effect);
+        effect = 1;
+        Assert.AreEqual(0, target.DragOver(0, default, ref effect));
+        Assert.AreEqual(0u, effect);
+        effect = 1;
+        Assert.AreEqual(0, target.Drop(null!, 0, default, ref effect));
+        Assert.AreEqual(0u, effect);
+        Assert.AreEqual(0, target.DragLeave());
+    }
+
     private static OleDropTargetRegistration CreateTarget(DragActivationCallbacks callbacks)
     {
         // Native registration is unrelated to failure containment inside the callback body.

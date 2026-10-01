@@ -46,6 +46,7 @@ if (systemCheck) {
   systemCheck.dataset.result = isWindows ? "windows" : "other";
 }
 
+// BEGIN LIVE RELEASE RUNTIME
 // Release data is refreshed from the versioned GitHub Pages contract. The generated page already
 // contains the last successfully deployed, validated snapshot; failed production syncs are not deployed.
 const isGitHubPages = location.hostname.endsWith("github.io");
@@ -256,6 +257,8 @@ function renderReleaseEntries(container, releases, zh) {
   }
   container.replaceChildren(fragment);
 }
+
+// END LIVE RELEASE RUNTIME
 
 // Explicit, keyboard-accessible exploration; never auto-rotate or play audio.
 for (const showcase of document.querySelectorAll('[data-native-showcase]')) {

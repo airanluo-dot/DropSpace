@@ -126,7 +126,7 @@ public sealed class DropLinkHost(
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.AddServerHeader = false;
-            options.Limits.MaxRequestBodySize = DropLinkProtocolPolicy.MaximumAuthenticatedBodyBytes;
+            options.Limits.MaxRequestBodySize = DropLinkProtocolPolicy.MaximumClipboardBodyBytes;
             options.Listen(bindAddress, port, listen => listen.UseHttps(identity.Certificate));
         });
         builder.Logging.ClearProviders();
@@ -270,7 +270,7 @@ public sealed class DropLinkHost(
                     DateTimeOffset.UtcNow,
                     DateTimeOffset.UtcNow);
                 await transfers.UpsertPeerAsync(peer, peer.Id.ToString("N"), cancellationToken).ConfigureAwait(false);
-                return Results.Json(new PairingConfirmationResponse(true, peer.Id, PairingState.Trusted, null));
+                return Results.Json(new PairingConfirmationResponse(true, pending.LocalHello.DeviceId, PairingState.Trusted, null));
             }
             catch (Exception exception) when (exception is ArgumentNullException or CryptographicException or InvalidOperationException or TimeoutException or UnauthorizedAccessException or IOException or OperationCanceledException)
             {

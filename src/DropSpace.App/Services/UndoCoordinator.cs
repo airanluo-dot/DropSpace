@@ -200,9 +200,12 @@ public sealed class UndoCoordinator(
         try
         {
             ThrowIfDisposed();
-            var result = await repository.FinalizeExpiredPendingRemovalsAsync(
-                    DateTimeOffset.UtcNow,
-                    cancellationToken)
+            // Startup has no in-memory undo owner. Restore still-undoable records
+            // left by a crash; expired deletions retain their normal cleanup semantics.
+            // A later recovery call must not undo the current session's active removal.
+            var result = await (_active is null
+                    ? repository.RecoverPendingRemovalsAsync(DateTimeOffset.UtcNow, cancellationToken)
+                    : repository.FinalizeExpiredPendingRemovalsAsync(DateTimeOffset.UtcNow, cancellationToken))
                 .ConfigureAwait(false);
             if (cleanupCoordinator is not null)
             {
@@ -327,7 +330,7 @@ public sealed class UndoCoordinator(
             logger.LogDebug("Delete operation payload cleanup is draining through the durable outbox.");
             await cleanupCoordinator.DrainAsync(cancellationToken).ConfigureAwait(false);
             try { await previews.ClearAsync(CancellationToken.None).ConfigureAwait(false); }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
             {
                 logger.LogWarning(exception, "Preview cache cleanup will be retried on startup or the next cache write.");
             }
@@ -352,7 +355,7 @@ public sealed class UndoCoordinator(
         finally
         {
             try { await previews.ClearAsync(CancellationToken.None).ConfigureAwait(false); }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
             {
                 logger.LogWarning(exception, "Preview cache cleanup will be retried on startup or the next cache write.");
             }

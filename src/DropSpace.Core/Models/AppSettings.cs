@@ -149,6 +149,8 @@ public sealed record AppSettings
 
     public ClipboardSyncMode DefaultClipboardSyncMode { get; init; } = ClipboardSyncMode.Off;
 
+    public IReadOnlyDictionary<Guid, ClipboardSyncMode> ClipboardPeerModes { get; init; } = new Dictionary<Guid, ClipboardSyncMode>();
+
     public AppSettings WithSafeUiPreferences() => this with
     {
         Theme = ThemePreference.System,
@@ -239,6 +241,10 @@ public sealed record AppSettings
         {
             throw new ArgumentOutOfRangeException(nameof(FileDragWakeMode));
         }
+
+        if (ClipboardPeerModes is null || ClipboardPeerModes.Count > 128 ||
+            ClipboardPeerModes.Any(entry => entry.Key == Guid.Empty || !Enum.IsDefined(entry.Value)))
+            throw new ArgumentOutOfRangeException(nameof(ClipboardPeerModes));
 
         if (!Enum.IsDefined(DefaultClipboardSyncMode))
         {

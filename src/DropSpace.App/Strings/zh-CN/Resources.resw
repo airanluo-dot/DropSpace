@@ -112,7 +112,7 @@
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>文件或文件夹未能加入临时空间。</value></data>
   <data name="ShareNoAccessibleItems" xml:space="preserve"><value>分享内容中没有 DropSpace 可以访问的文件或文件夹。</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace 无法处理本次分享。请重试或使用顶部拖放入口。</value></data>
-  <data name="StartupRecoveryContent" xml:space="preserve"><value>本地数据初始化失败。为避免覆盖历史记录，应用已停止写入。请保留数据目录并查看本地诊断日志。</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace 未能完成启动，部分后台服务可能仍在运行。请先退出应用，再检查或恢复数据目录，并查看本地诊断日志。</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace 无法安全启动</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>正在计算…</value></data>
   <data name="StorageSummary" xml:space="preserve"><value>当前占用：{0}</value></data>
@@ -668,4 +668,10 @@
   <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>关闭 AI 时也可下载模型。下载中断后，重试时会尽可能继续。</value></data>
   <data name="AiLyricsStandardHelp" xml:space="preserve"><value>腾讯官方 Q4 模型，默认选项；译文仍可能出现错误。</value></data>
   <data name="AiLyricsCompactHelp" xml:space="preserve"><value>同一个 1.8B 模型的第三方 IQ3 量化版，下载体积约小 23%，内存占用较低，但不一定更快。复杂歌词可能误译。</value></data>
+  <data name="LyricsFontSize" xml:space="preserve"><value>歌词字号</value></data>
+  <data name="LyricsFontSizeNumber" xml:space="preserve"><value>歌词字号，12 至 28</value></data>
+  <data name="LyricsFontSizeHelp" xml:space="preserve"><value>拖动滑块或输入 12 至 28 之间的字号，支持小数。原文与译文将按固定比例一起缩放。</value></data>
+  <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>方向键每次调整 0.1，Page Up 或 Page Down 每次调整 1，也可在数字输入框中填写精确字号。</value></data>
+  <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>请输入 12 至 28 之间的数字。预览会保留上一次有效字号。</value></data>
+  <data name="LyricsFontSizeRestored" xml:space="preserve"><value>已恢复上一次有效字号。请输入 12 至 28 之间的数字。</value></data>
 </root>

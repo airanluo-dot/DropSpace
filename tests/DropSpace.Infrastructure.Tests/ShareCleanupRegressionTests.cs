@@ -55,6 +55,34 @@ public sealed class ShareCleanupRegressionTests
         await AssertRetainedLeaseCanBeCompletedAsync(leases);
     }
 
+    [TestMethod]
+    public async Task RecoveryHandlePrecedesUploadsAndSurvivesFailedRevocation()
+    {
+        var events = new List<string>();
+        var backend = new JournalFailureBackend(events);
+        var retained = false;
+        var client = new InternetShareClient(new ShareCryptoService(), backend, storagePaths: _paths,
+            sessionCreated: (_, _, _) => { events.Add("persist"); retained = true; return Task.CompletedTask; },
+            sessionRevoked: _ => { retained = false; return Task.CompletedTask; });
+        await Assert.ThrowsExactlyAsync<IOException>(() => client.CreateWithSessionAsync([CreateSource()], TimeSpan.FromHours(1)));
+        CollectionAssert.AreEqual(new[] { "create", "persist", "upload", "revoke" }, events);
+        Assert.IsTrue(retained, "An unsuccessful remote revoke must retain its recovery capability.");
+    }
+
+    private sealed class JournalFailureBackend(List<string> events) : IShareBackendClient
+    {
+        public Task<ShareBackendUploadSession> CreateAsync(Guid id, DateTimeOffset expires, int count, long bytes, CancellationToken token = default)
+        {
+            events.Add("create");
+            return Task.FromResult(new ShareBackendUploadSession(new Uri("https://share.example.invalid/upload/"),
+                new Uri("https://share.example.invalid/"), "Bearer fixture-token", new Uri("https://share.example.invalid/revoke/")));
+        }
+        public Task UploadAsync(ShareBackendUploadSession session, string name, ReadOnlyMemory<byte> bytes, string contentType, CancellationToken token = default)
+        { events.Add("upload"); throw new IOException("fixture upload failure"); }
+        public Task RevokeAsync(ShareBackendUploadSession session, Guid id, CancellationToken token = default)
+        { events.Add("revoke"); throw new IOException("fixture revoke failure"); }
+    }
+
     private async Task AssertRetainedLeaseCanBeCompletedAsync(StagingLeaseStore leases)
     {
         var leasePath = Directory.EnumerateFiles(_paths.StagingLeases, "*.json").Single();

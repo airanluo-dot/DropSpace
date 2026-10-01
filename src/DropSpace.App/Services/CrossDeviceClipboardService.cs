@@ -14,6 +14,8 @@ public sealed class CrossDeviceClipboardService(
     DeviceIdentityStore identities,
     DropLinkClient client,
     DropLinkHost host,
+    ISettingsService settingsService,
+    DeviceHandoffService handoff,
     ILogger<CrossDeviceClipboardService> logger) : IAsyncDisposable
 {
     private readonly ClipboardLoopGuard _loopGuard = new();
@@ -23,6 +25,7 @@ public sealed class CrossDeviceClipboardService(
     private ClipboardPropagationQueue? _propagation;
     private AppSettings _settings = new();
     private long _originSequence;
+    private DateTimeOffset _nextPeerRefreshUtc;
     private bool _initialized;
     private bool _disposed;
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
@@ -50,12 +53,25 @@ public sealed class CrossDeviceClipboardService(
                 _settings = settings;
                 return;
             }
+            // Peer selection is written through its own serialized operation. A UI
+            // transaction may still carry an older snapshot of that independent field.
+            var persisted = await settingsService.LoadAsync(cancellationToken).ConfigureAwait(false);
+            settings = settings with { ClipboardPeerModes = persisted.ClipboardPeerModes };
             if (_initialized) { _settings = settings; return; }
             try
             {
                 var identity = await identities.GetOrCreateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 _identity = identity;
+                var restoredPeers = settings.ClipboardPeerModes.Count == 0
+                    ? [] : await handoff.DiscoverTrustedPeersAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
+                lock (_gate)
+                {
+                    _peers.Clear();
+                    foreach (var reachable in restoredPeers)
+                        if (settings.ClipboardPeerModes.TryGetValue(reachable.Peer.Id, out var mode))
+                            _peers[reachable.Peer.Id] = new ClipboardPeerChannel(reachable.Peer, reachable.Endpoint, mode);
+                }
                 _propagation = new ClipboardPropagationQueue(
                     (item, token) => PropagateAsync(item, identity, token),
                     exception => logger.LogWarning(exception, "Cross-device clipboard propagation failed without changing local history."));
@@ -87,17 +103,43 @@ public sealed class CrossDeviceClipboardService(
         _identity = null;
     }
 
-    public void ConfigurePeer(PeerDevice peer, Uri endpoint, ClipboardSyncMode? mode = null)
+    public async Task ConfigurePeerAsync(PeerDevice peer, Uri endpoint, ClipboardSyncMode? mode = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(peer);
-        ArgumentNullException.ThrowIfNull(endpoint);
-        if (peer.Platform != DevicePlatform.Windows) throw new PlatformNotSupportedException("Cross-device clipboard v1 supports Windows peers only.");
-        lock (_gate) _peers[peer.Id] = new ClipboardPeerChannel(peer, endpoint, mode ?? _settings.DefaultClipboardSyncMode);
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            ArgumentNullException.ThrowIfNull(peer);
+            ArgumentNullException.ThrowIfNull(endpoint);
+            if (peer.Platform != DevicePlatform.Windows) throw new PlatformNotSupportedException("Cross-device clipboard v1 supports Windows peers only.");
+            var selectedMode = mode ?? _settings.DefaultClipboardSyncMode;
+            if (!Enum.IsDefined(selectedMode) || peer.TrustState != PeerTrustState.Trusted)
+                throw new InvalidOperationException("Clipboard sync requires a trusted peer and a valid mode.");
+            _settings = await settingsService.UpdateAsync(settings =>
+            {
+                var modes = settings.ClipboardPeerModes.ToDictionary(entry => entry.Key, entry => entry.Value);
+                modes[peer.Id] = selectedMode;
+                return settings with { ClipboardPeerModes = modes };
+            }, cancellationToken).ConfigureAwait(false);
+            lock (_gate) _peers[peer.Id] = new ClipboardPeerChannel(peer, endpoint, selectedMode);
+        }
+        finally { _lifecycleGate.Release(); }
     }
 
-    public void RemovePeer(Guid peerId)
+    public async Task RemovePeerAsync(Guid peerId, CancellationToken cancellationToken = default)
     {
-        lock (_gate) _peers.Remove(peerId);
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _settings = await settingsService.UpdateAsync(settings => settings with
+            {
+                ClipboardPeerModes = settings.ClipboardPeerModes.Where(entry => entry.Key != peerId)
+                    .ToDictionary(entry => entry.Key, entry => entry.Value),
+            }, cancellationToken).ConfigureAwait(false);
+            lock (_gate) _peers.Remove(peerId);
+        }
+        finally { _lifecycleGate.Release(); }
     }
 
     public async Task<ClipboardSyncResponse> SendManualAsync(
@@ -138,6 +180,20 @@ public sealed class CrossDeviceClipboardService(
     private async Task PropagateAsync(DropItem item, DeviceIdentity identity, CancellationToken cancellationToken)
     {
         if (!IsEnabled || capture.IsPaused) return;
+        // Discovery endpoints can change after restart or a network transition. Refresh
+        // only explicitly selected peers, and keep discovery work bounded per channel.
+        if (_settings.ClipboardPeerModes.Count > 0 && DateTimeOffset.UtcNow >= _nextPeerRefreshUtc)
+        {
+            _nextPeerRefreshUtc = DateTimeOffset.UtcNow.AddSeconds(30);
+            var reachable = await handoff.DiscoverTrustedPeersAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+            lock (_gate)
+            {
+                _peers.Clear();
+                foreach (var peer in reachable)
+                    if (_settings.ClipboardPeerModes.TryGetValue(peer.Peer.Id, out var mode))
+                        _peers[peer.Peer.Id] = new ClipboardPeerChannel(peer.Peer, peer.Endpoint, mode);
+            }
+        }
         var envelope = await CreateEnvelopeAsync(item, cancellationToken, identity, ClipboardEnvelopePolicy.AutomaticImageLimitBytes).ConfigureAwait(false);
         if (!IsEnabled || capture.IsPaused || envelope is null || !_loopGuard.TryAccept(envelope)) return;
         ClipboardPeerChannel[] channels;

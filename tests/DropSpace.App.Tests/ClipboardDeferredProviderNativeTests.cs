@@ -13,6 +13,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Dispatching;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+using Windows.Storage.Streams;
 
 namespace DropSpace.App.Tests;
 
@@ -42,7 +44,7 @@ public sealed class ClipboardDeferredProviderNativeTests
         var first = $"DropSpaceDeferredNative-{unique}-first";
         var deferred = $"DropSpaceDeferredNative-{unique}-obsolete";
         var second = $"DropSpaceDeferredNative-{unique}-second";
-        var provider = new HeldTextProvider(deferred);
+        var provider = new HeldDataProvider(deferred);
         DataPackage? heldPackage = null;
         ClipboardDiagnosticSession? session = null;
         var checkpoint = Checkpoint.OwnersInitializing;
@@ -228,6 +230,67 @@ public sealed class ClipboardDeferredProviderNativeTests
         }
     }
 
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    [DataRow("StorageItems")]
+    [DataRow("Bitmap")]
+    public async Task NewTextIsCapturedWhileFileOrBitmapProviderRemainsDeferred(string format)
+    {
+        var paths = new AppStoragePaths(Path.Combine(Path.GetTempPath(), "DropSpace-deferred-formats", Guid.NewGuid().ToString("N")));
+        var repository = new SqliteItemRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
+        var consumer = new NativeOwner(heartbeat: true);
+        var producer = new NativeOwner(heartbeat: false);
+        var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
+        var capture = new ClipboardCaptureService(repository, new JsonSettingsService(paths),
+            new FilePayloadStore(paths), new FilePreviewCache(paths), new LocalFileReferenceService(),
+            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance);
+        DataPackage? package = null;
+        HeldDataProvider? provider = null;
+        try
+        {
+            await consumer.InitializeAsync(); await producer.InitializeAsync();
+            await consumer.Queue.EnqueueAsync(() => { notifications.Initialize(consumer.Window); return Task.CompletedTask; });
+            await repository.InitializeAsync(); await capture.InitializeAsync();
+            capture.BeginDiagnosticSession();
+            var imagePath = Path.Combine(paths.Root, "deferred.png");
+            await File.WriteAllBytesAsync(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="));
+            await producer.Queue.EnqueueAsync(async () =>
+            {
+                var file = await StorageFile.GetFileFromPathAsync(imagePath);
+                object payload = format == "StorageItems" ? new IStorageItem[] { file } : RandomAccessStreamReference.CreateFromFile(file);
+                provider = new HeldDataProvider(payload);
+                package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+                package.SetDataProvider(format == "StorageItems" ? StandardDataFormats.StorageItems : StandardDataFormats.Bitmap, provider.OnRequested);
+                await ClipboardAccessPolicy.SetContentAsync(() => Clipboard.SetContent(package));
+            }).WaitAsync(TimeSpan.FromSeconds(8));
+            await provider!.Entered.Task.WaitAsync(TimeSpan.FromSeconds(8));
+            var before = capture.Status.CapturedItems;
+            var replacement = "DropSpaceDeferred-" + Guid.NewGuid().ToString("N");
+            await PublishEagerAsync(producer.Queue, replacement);
+            await WaitForAsync(() => capture.Status.CapturedItems > before, "replacement after deferred " + format);
+            Assert.AreEqual(1, await CountTextAsync(repository, replacement));
+            Assert.IsFalse(provider.Released, "The replacement must not depend on releasing the old provider.");
+            Assert.AreEqual(0, (await repository.QueryAsync(new ItemQuery(Source: ItemSource.Clipboard, Limit: 100)))
+                .Count(item => item.Kind is ItemKind.File or ItemKind.Image));
+        }
+        finally
+        {
+            try
+            {
+                await producer.Queue.EnqueueAsync(() => { provider?.ReleaseAll(); Clipboard.Clear(); return Task.CompletedTask; }).WaitAsync(TimeSpan.FromSeconds(8));
+            }
+            finally
+            {
+                await capture.DisposeAsync();
+                await consumer.Queue.EnqueueAsync(() => { notifications.Dispose(); return Task.CompletedTask; });
+                await producer.DisposeAsync(); await consumer.DisposeAsync();
+                GC.KeepAlive(package);
+                SqliteConnection.ClearAllPools();
+                if (Directory.Exists(paths.Root)) Directory.Delete(paths.Root, recursive: true);
+            }
+        }
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -264,7 +327,7 @@ public sealed class ClipboardDeferredProviderNativeTests
     private enum Checkpoint { OwnersInitializing, FirstText, ConsecutiveSuppression, ProviderPublishing, SecondTextPublishing, SecondTextCapture, Complete }
     private enum CleanupPhase { ProviderRelease, ClipboardClear, CaptureDispose, ListenerDispose, DiagnosticsDispose, ProducerDispose, ConsumerDispose, StorageDelete }
 
-    private sealed class HeldTextProvider(string value)
+    private sealed class HeldDataProvider(object value)
     {
         private readonly object _gate = new();
         private readonly List<PendingRequest> _requests = [];

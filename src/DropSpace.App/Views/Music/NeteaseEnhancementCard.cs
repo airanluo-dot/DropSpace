@@ -81,7 +81,7 @@ public sealed class NeteaseEnhancementCard : UserControl
                 PrimaryButtonText = _strings.Get("NeteaseEnhancementConfirm"),
                 DefaultButton = ContentDialogButton.Close,
             };
-            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            if (await ContentDialogLifetime.ShowAsync(dialog, CancellationToken.None) == ContentDialogResult.Primary)
                 await _view.EnhanceAsync(reinstall);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException) { ShowError(exception); }

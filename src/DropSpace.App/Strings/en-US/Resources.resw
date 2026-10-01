@@ -112,7 +112,7 @@
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>The files or folders could not be added to Temporary Space.</value></data>
   <data name="ShareNoAccessibleItems" xml:space="preserve"><value>The shared content contains no files or folders that DropSpace can access.</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace could not process this share. Try again or use the top-edge drop target.</value></data>
-  <data name="StartupRecoveryContent" xml:space="preserve"><value>Local data initialization failed. To avoid overwriting history, the app stopped writing. Keep the data directory and see the local diagnostic log.</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace could not finish starting. Some background services may still be running. Exit the app before inspecting or restoring its data directory, and check the local diagnostic log.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace could not start safely</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Calculating…</value></data>
   <data name="StorageSummary" xml:space="preserve"><value>Using: {0}</value></data>
@@ -668,4 +668,10 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>You can download a model while AI is off. Interrupted downloads resume when possible.</value></data>
   <data name="AiLyricsStandardHelp" xml:space="preserve"><value>Official Tencent Q4 model. Default choice; translations may still contain mistakes.</value></data>
   <data name="AiLyricsCompactHelp" xml:space="preserve"><value>Third-party IQ3 quantization of the same 1.8B model. About 23% smaller download and lower memory use, but not necessarily faster. Complex lyrics may be mistranslated.</value></data>
+  <data name="LyricsFontSize" xml:space="preserve"><value>Lyric size</value></data>
+  <data name="LyricsFontSizeNumber" xml:space="preserve"><value>Lyric size, 12 to 28</value></data>
+  <data name="LyricsFontSizeHelp" xml:space="preserve"><value>Drag or enter a size from 12 to 28. Decimals are welcome. Original lyrics and translations scale together.</value></data>
+  <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>Use the arrow keys for 0.1 steps, Page Up or Page Down for 1, or type a precise size in the numeric field.</value></data>
+  <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>Enter a number from 12 to 28. The preview keeps the last valid size.</value></data>
+  <data name="LyricsFontSizeRestored" xml:space="preserve"><value>The last valid size was restored. Enter a number from 12 to 28.</value></data>
 </root>

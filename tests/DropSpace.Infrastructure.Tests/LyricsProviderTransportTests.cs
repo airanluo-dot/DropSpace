@@ -10,6 +10,22 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class LyricsProviderTransportTests
 {
     [TestMethod]
+    [DataRow("Live")]
+    [DataRow("Remix")]
+    public async Task NetEaseAliasCannotHideCanonicalVersionConflict(string version)
+    {
+        using var handler = new FixtureHandler(request =>
+        {
+            Assert.IsFalse(request.RequestUri!.AbsolutePath.Contains("lyric", StringComparison.OrdinalIgnoreCase),
+                "A conflicting version must not reach lyric retrieval.");
+            return Json("{\"result\":{\"songs\":[{\"id\":1,\"name\":\"Song (" + version + ")\",\"alias\":[\"Song\"],\"artists\":[{\"name\":\"Artist\"}]}]}}");
+        });
+        using var client = new HttpClient(handler);
+        var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
+        Assert.IsEmpty(result.Lines);
+    }
+
+    [TestMethod]
     public async Task UnknownDurationUsesLrclibSearchInsteadOfInvalidExactRequest()
     {
         using var handler = new FixtureHandler(request =>

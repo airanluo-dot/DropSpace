@@ -7,6 +7,33 @@ namespace DropSpace.Core.Tests;
 public sealed class AiLyricsSettingsTests
 {
     [TestMethod]
+    [DataRow(12.0)]
+    [DataRow(17.375)]
+    [DataRow(28.0)]
+    public void OneDecimalFontSizePreservesOriginalTranslationRatio(double size)
+    {
+        var settings = new AppSettings { Lyrics = new() { FontSize = size } }.Validate();
+        Assert.AreEqual(size, settings.Lyrics.OriginalFontSize);
+        Assert.AreEqual(size * 0.875, settings.Lyrics.TranslationFontSize);
+        var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(System.Text.Json.JsonSerializer.Serialize(settings))!.Validate();
+        Assert.AreEqual(size, restored.Lyrics.FontSize);
+    }
+
+    [TestMethod]
+    public void EveryCatalogModelSurvivesValidationAndPersistence()
+    {
+        foreach (var model in AiLyricsModelCatalog.All)
+        {
+            var original = new AppSettings { Lyrics = new() { AiModelId = model.Id, AiTranslationEnabled = true } };
+            var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(System.Text.Json.JsonSerializer.Serialize(original))!.Validate();
+            Assert.AreEqual(model.Id, restored.Lyrics.AiModelId);
+            Assert.IsTrue(restored.Lyrics.AiTranslationEnabled);
+        }
+        Assert.AreEqual(AiLyricsModelCatalog.Compact.Id,
+            new AppSettings { Lyrics = new() { AiModelId = "lightweight" } }.Validate().Lyrics.AiModelId);
+    }
+
+    [TestMethod]
     public void OldSettingsDefaultToNoAiOrGlow()
     {
         var settings = new AppSettings();
@@ -25,8 +52,7 @@ public sealed class AiLyricsSettingsTests
                 AiTranslationEnabled = true,
                 AiModelId = "../../unsafe",
                 GlowMode = (LyricsGlowMode)99,
-                OriginalFontSize = double.NaN,
-                TranslationFontSize = 900,
+                FontSize = double.NaN,
             },
         });
         Assert.IsTrue(normalized.ClipboardPaused);
@@ -34,7 +60,7 @@ public sealed class AiLyricsSettingsTests
         Assert.AreEqual("hy-mt2-standard", normalized.Lyrics.AiModelId);
         Assert.AreEqual(LyricsGlowMode.Off, normalized.Lyrics.GlowMode);
         Assert.AreEqual(16d, normalized.Lyrics.OriginalFontSize);
-        Assert.AreEqual(24d, normalized.Lyrics.TranslationFontSize);
+        Assert.AreEqual(14d, normalized.Lyrics.TranslationFontSize);
     }
 
     [TestMethod]

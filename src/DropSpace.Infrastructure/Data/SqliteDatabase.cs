@@ -213,6 +213,7 @@ public sealed class SqliteDatabase(
         try
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            connection.CreateCollation("DROPSPACE_PATH", (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left, right));
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000; PRAGMA journal_mode = WAL;";
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);

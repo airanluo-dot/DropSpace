@@ -705,7 +705,14 @@ export class ShareUsageCoordinator {
       try {
         const key = objectKey(current.shareId, objectName);
         const stored = await this.env.SHARES.head(key);
-        if (stored?.customMetadata?.uploadReservationId === reservationId) await this.env.SHARES.delete(key);
+        const storedOwner = stored?.customMetadata?.uploadReservationId;
+        // With no committed or in-flight owner for this object, a different expired
+        // reservation is also an orphan. Otherwise a failed retry leaves its late
+        // predecessor in R2 forever and every later create-only put returns 409.
+        if (typeof storedOwner === "string" && storedOwner.length > 0 &&
+            (storedOwner === reservationId || !current.pending[storedOwner])) {
+          await this.env.SHARES.delete(key);
+        }
       } catch { /* Storage cleanup remains best effort after rollback. */ }
     }
     return coordinatorJson({ ok: true });

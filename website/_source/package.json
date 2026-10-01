@@ -7,7 +7,8 @@
     "sync-releases": "node scripts/sync-releases.mjs",
     "build": "node scripts/build.mjs",
     "test": "node scripts/build.mjs && node --test scripts/*.test.mjs",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "build:static": "node scripts/build-static.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
