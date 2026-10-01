@@ -1,6 +1,14 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.0-beta.31
+## Release target: v0.3.0-beta.32
+
+Harden overlay shutdown and monitor-surface replacement, upgrade the Windows App SDK,
+and improve redacted exception diagnostics. Validate both native Windows locales and
+installer upgrade paths against the final release commit. The observed UIInput.dll
+crash remains under investigation; the release mitigates verified lifecycle hazards
+without claiming every crash is resolved.
+
+## Delivered slice: v0.3.0-beta.31
 
 Stabilize lyric gaps, adapt island position to screen work areas, unify focus-independent
 Acrylic, and improve interruptible page transitions. Expand the widget catalog to 16
