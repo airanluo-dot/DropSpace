@@ -18,23 +18,25 @@ internal static class BackdropLifetimeSmoke
             var backdrop = new SystemBackdropElement { Width = 240, Height = 100 };
             var window = new Window { Content = new Grid { Children = { backdrop } } };
             window.AppWindow.MoveAndResize(new RectInt32(-2000, -2000, 320, 160));
+            using var acrylic = new IslandAcrylicBackdrop();
+            backdrop.SystemBackdrop = acrylic;
             window.Activate();
             window.AppWindow.Hide();
             try
             {
                 for (var change = 0; change < 4; change++)
                 {
-                    backdrop.SystemBackdrop = new IslandAcrylicBackdrop();
+                    acrylic.SetEnabled(true);
                     await Task.Delay(25);
                     await CollectAsync();
-                    backdrop.SystemBackdrop = null;
+                    acrylic.SetEnabled(false);
                     await Task.Delay(25);
                     await CollectAsync();
                 }
             }
             finally
             {
-                backdrop.SystemBackdrop = null;
+                acrylic.Dispose();
                 window.Close();
             }
             await Task.Delay(25);

@@ -5,60 +5,90 @@ using Microsoft.UI.Xaml.Media;
 
 namespace DropSpace.App.Services;
 
-/// <summary>Focus-independent Acrylic. Each window or bounded island owns its own instance.</summary>
-internal sealed class IslandAcrylicBackdrop : SystemBackdrop
+/// <summary>One long-lived XAML target per surface, with a separately switchable Acrylic controller.</summary>
+internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
 {
-    // Keep the managed WinRT projection alive for the entire XAML connection. The
-    // projection owns a thread-affine native backdrop link; a native controller's
-    // COM reference alone does not stop its managed wrapper from being finalized.
     private ICompositionSupportsSystemBackdrop? _connectedTarget;
     private DesktopAcrylicController? _controller;
     private SystemBackdropConfiguration? _configuration;
     private FrameworkElement? _root;
+    private bool _enabled = true;
+    private bool _disposed;
+
+    internal void SetEnabled(bool enabled)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _enabled = enabled;
+        if (enabled) AttachController();
+        else DetachController();
+    }
 
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop target, XamlRoot xamlRoot)
     {
         base.OnTargetConnected(target, xamlRoot);
         _connectedTarget = target;
-        if (_controller is not null) throw new InvalidOperationException("Acrylic material instances cannot be shared.");
-        // The no-activate island is interactive while another application has focus.
-        // Its material focus policy is independent of the transparent host HWND.
         _configuration = new SystemBackdropConfiguration { IsInputActive = true };
         _root = xamlRoot.Content as FrameworkElement;
         if (_root is not null) _root.ActualThemeChanged += OnThemeChanged;
         ApplyTheme();
-        _controller = new DesktopAcrylicController();
-        _controller.SetSystemBackdropConfiguration(_configuration);
-        _controller.AddSystemBackdropTarget(target);
+        if (!_disposed && _enabled) AttachController();
+    }
+
+    private void AttachController()
+    {
+        if (_controller is not null || _connectedTarget is null || _configuration is null) return;
+        var controller = new DesktopAcrylicController();
+        _controller = controller;
+        try
+        {
+            controller.SetSystemBackdropConfiguration(_configuration);
+            controller.AddSystemBackdropTarget(_connectedTarget);
+        }
+        catch
+        {
+            _controller = null;
+            controller.Dispose();
+            throw;
+        }
+    }
+
+    private void DetachController()
+    {
+        var controller = _controller;
+        _controller = null;
+        if (controller is null) return;
+        try
+        {
+            if (_connectedTarget is not null) controller.RemoveSystemBackdropTarget(_connectedTarget);
+        }
+        finally { controller.Dispose(); }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _enabled = false;
+        // Do not clear SystemBackdrop or release its target here. XAML still owns the
+        // native ContentExternalBackdropLink until it disconnects the actual surface.
+        DetachController();
     }
 
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop target)
     {
         var connectedTarget = _connectedTarget;
-        try
-        {
-            base.OnTargetDisconnected(target);
-        }
+        try { base.OnTargetDisconnected(target); }
         finally
         {
             if (_root is not null) _root.ActualThemeChanged -= OnThemeChanged;
-            var controller = _controller;
-            _controller = null;
-            try
-            {
-                controller?.RemoveSystemBackdropTarget(target);
-            }
+            try { DetachController(); }
             finally
             {
-                try { controller?.Dispose(); }
-                finally
-                {
-                    _configuration = null;
-                    _root = null;
-                    _connectedTarget = null;
-                    GC.KeepAlive(connectedTarget);
-                    GC.KeepAlive(target);
-                }
+                _configuration = null;
+                _root = null;
+                _connectedTarget = null;
+                GC.KeepAlive(connectedTarget);
+                GC.KeepAlive(target);
             }
         }
     }

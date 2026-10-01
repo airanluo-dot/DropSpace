@@ -167,7 +167,7 @@ html[lang="zh-CN"] .hero-cinematic h1 { font-size:clamp(46px,6.3vw,90px); letter
 .hero-cinematic .actions { justify-content:center; }
 .hero-cinematic .stable-line { margin-inline:auto; }
 .hero-stage { position:relative; width:100%; max-width:1080px; padding:1px; isolation:isolate; }
-.hero-stage::before { content:''; position:absolute; inset:-60px -40px; z-index:-1; pointer-events:none; background:radial-gradient(ellipse at 22% 42%,#ff8a241b,transparent 46%),radial-gradient(ellipse at 55% 25%,#ec2b9124,transparent 44%),radial-gradient(ellipse at 83% 55%,#168cff26,transparent 46%); filter:blur(28px); }
+.hero-stage::before { content:''; position:absolute; inset:-60px -20px; z-index:-1; pointer-events:none; background:radial-gradient(ellipse at 22% 42%,#ff8a241b,transparent 46%),radial-gradient(ellipse at 55% 25%,#ec2b9124,transparent 44%),radial-gradient(ellipse at 83% 55%,#168cff26,transparent 46%); filter:blur(28px); }
 .hero-stage .desktop-demo { width:100%; max-width:none; aspect-ratio:2.05; border-radius:24px; background:radial-gradient(ellipse at 50% 130%,#123a60,transparent 64%),#090a0e; border-color:#373842; box-shadow:0 42px 90px #0008,0 0 0 7px #121217; }
 .hero-stage .space-popover { width:440px; top:66px; padding:24px; border-radius:20px; background:#0b0b0ef5; box-shadow:0 24px 70px #000b; }
 .hero-stage .island { top:60px; }

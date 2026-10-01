@@ -17,6 +17,7 @@ internal sealed class OverlayMaterialController : IDisposable
     private readonly IWindowsCapabilityService _capabilities;
     private readonly Brush? _normalFallbackBrush;
     private bool _disposed;
+    private IslandAcrylicBackdrop? _acrylic;
 
     public OverlayMaterialController(
         SystemBackdropElement backdrop,
@@ -45,9 +46,11 @@ internal sealed class OverlayMaterialController : IDisposable
         {
             if (canUseAcrylic)
             {
-                _backdrop.SystemBackdrop ??= new IslandAcrylicBackdrop();
+                _acrylic ??= new IslandAcrylicBackdrop();
+                _backdrop.SystemBackdrop ??= _acrylic;
+                _acrylic.SetEnabled(true);
             }
-            else _backdrop.SystemBackdrop = null;
+            else _acrylic?.SetEnabled(false);
 
             _backdrop.Visibility = canUseAcrylic ? Visibility.Visible : Visibility.Collapsed;
             _fallback.Visibility = canUseAcrylic ? Visibility.Collapsed : Visibility.Visible;
@@ -72,7 +75,7 @@ internal sealed class OverlayMaterialController : IDisposable
         }
         catch (Exception)
         {
-            _backdrop.SystemBackdrop = null;
+            _acrylic?.SetEnabled(false);
             _backdrop.Visibility = Visibility.Collapsed;
             _fallback.Visibility = Visibility.Visible;
             _fallback.Background = _normalFallbackBrush;
@@ -99,7 +102,7 @@ internal sealed class OverlayMaterialController : IDisposable
         }
 
         _disposed = true;
-        _backdrop.SystemBackdrop = null;
+        _acrylic?.Dispose();
     }
 
     private static Brush? GetSystemBrush(string key, Brush? fallback)
