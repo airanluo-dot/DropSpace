@@ -327,6 +327,12 @@ public sealed class RedactingFileLoggerProvider : ILoggerProvider, IAsyncDisposa
             var exceptionSummary = exception is null
                 ? string.Empty
                 : $" exception={exception.GetType().Name}:{LogRedactor.Redact(exception.Message)}";
+            if (exception is not null && logLevel >= LogLevel.Error)
+            {
+                exceptionSummary += $" hresult=0x{exception.HResult:X8}";
+                if (!string.IsNullOrWhiteSpace(exception.StackTrace))
+                    exceptionSummary += $" stack={LogRedactor.Redact(exception.StackTrace).ReplaceLineEndings(" | ")}";
+            }
             var line = $"{DateTimeOffset.UtcNow:O} level={logLevel} event={eventId.Id} category={category} message={message}{exceptionSummary}";
             _ = enqueue(line);
         }

@@ -79,4 +79,21 @@ public sealed class LoggingDiagnosticsTests
         Assert.IsTrue(logger.IsEnabled(LogLevel.Information));
         Assert.IsTrue(logger.IsEnabled(LogLevel.Critical));
     }
+    [TestMethod]
+    public async Task ErrorLogsKeepRedactedStackAndErrorCode()
+    {
+        var paths = new AppStoragePaths(_root);
+        await using var provider = new RedactingFileLoggerProvider(paths);
+        Exception captured;
+        try { throw new InvalidOperationException("Request failed: https://user:credential@example.com/api?token=privatevalue"); }
+        catch (InvalidOperationException exception) { captured = exception; }
+        provider.CreateLogger("test").LogError(captured, "Shutdown failed");
+        await provider.DisposeAsync();
+        var log = await File.ReadAllTextAsync(Path.Combine(paths.Logs, "dropspace.log"));
+        StringAssert.Contains(log, "hresult=0x");
+        StringAssert.Contains(log, "stack=");
+        StringAssert.Contains(log, nameof(ErrorLogsKeepRedactedStackAndErrorCode));
+        Assert.IsFalse(log.Contains("privatevalue", StringComparison.Ordinal));
+        Assert.IsFalse(log.Contains("user:credential", StringComparison.Ordinal));
+    }
 }
