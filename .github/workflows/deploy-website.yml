@@ -56,6 +56,14 @@ jobs:
       - name: Test language routes in a real browser
         working-directory: website/_source
         run: npm run test:browser
+      - name: Save website visual review captures
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: website-visual-review
+          path: website/_source/test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
       - name: Upload atomic Pages artifact

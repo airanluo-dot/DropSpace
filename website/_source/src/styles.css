@@ -26,3 +26,113 @@ html[lang="zh-CN"] .desktop-demo[data-state="ready"] .island-label:after{content
 .native-story .split-heading>div>p:not(.section-index),.widget-story .section-copy>p:not(.section-index),.music-story .section-copy>p:not(.section-index){color:var(--muted);font-size:17px;line-height:1.7;max-width:510px}.native-story,.widget-story,.music-story{scroll-margin-top:82px}
 /* Match the existing expanded popover's duration, easing and entrance geometry. */
 .native-tabs button{transition:transform .2s var(--ease),border-color .2s,background .2s}.native-tabs button:hover{transform:translateY(-2px);background:#0b0b0d}.native-panel:not([hidden]){animation:islandPageEnter var(--island-duration) var(--ease) both}@keyframes islandPageEnter{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}
+
+/* Evergreen editorial refinement. Shared across both locales and publications. */
+:root {
+  --shell: 1280px;
+  --page-gutter: clamp(20px, 4.5vw, 72px);
+  --section-space: clamp(76px, 8.4vw, 132px);
+  --display-size: clamp(48px, 5.4vw, 78px);
+  --heading-size: clamp(34px, 4.1vw, 60px);
+  --content-gap: clamp(32px, 5.5vw, 88px);
+  --muted: #adaeb9;
+  --faint: #858693;
+}
+.shell { width: min(calc(100% - var(--page-gutter) * 2), var(--shell)); }
+body { overflow-wrap: break-word; }
+::selection { background: #ec2b9140; color: #fff; }
+main > section { padding-block: var(--section-space); }
+.site-header { background: #050506eb; }
+.nav { height: 80px; }
+.nav-links { gap: 28px; }
+.nav-links a { position: relative; padding-block: 12px; }
+.nav-links a::after { content: ''; position: absolute; bottom: 6px; left: 0; right: 0; height: 1px; background: linear-gradient(90deg,var(--orange),var(--pink),var(--blue)); transform: scaleX(0); transform-origin: left; transition: transform .24s var(--ease); }
+.nav-links a:hover::after,.nav-links a:focus-visible::after { transform: scaleX(1); }
+.hero { position: relative; min-height: 790px; padding-top: 170px; padding-bottom: 110px; grid-template-columns: 1fr 1.14fr; gap: 66px; }
+.hero-copy { position: relative; z-index: 2; }
+.hero h1 { font-size: var(--display-size); line-height: 1.08; font-weight: 640; letter-spacing: -.065em; text-wrap: balance; margin-bottom: 32px; }
+.hero-copy > p { font-size: 18px; line-height: 1.8; max-width: 430px; margin-bottom: 32px; }
+.hero-copy::before { content:''; display:block; width:68px; height:3px; margin-bottom:30px; background:linear-gradient(90deg,var(--orange),var(--pink),var(--blue)); border-radius:3px; }
+.desktop-demo { aspect-ratio: 1.2; border-color:#343541; border-radius:20px; box-shadow:0 36px 90px #0008,0 0 90px #168cff0d,0 0 0 6px #101015; }
+.hero::before { content:''; position:absolute; z-index:-1; right:-2%; top:16%; width:62%; height:65%; background:radial-gradient(ellipse,#168cff10,transparent 66%); pointer-events:none; }
+.button { border-radius: 11px; min-height: 48px; transition:transform .2s var(--ease),border-color .2s,background .2s,box-shadow .2s; }
+.button-primary { box-shadow:0 8px 32px #ec2b9118; }
+.button-primary::before { border-radius:10px; }
+.button:active { transform:translateY(0) scale(.98); }
+.button-small { min-height:40px; }
+.section-index { letter-spacing:.18em!important; font-size:11px!important; color:#a0a1ad!important; margin-bottom:26px!important; }
+.section-copy h2,.section-heading h2,.download h2,.whats-new h2,.open-source h2 { font-size:var(--heading-size); line-height:1.14; letter-spacing:-.045em; font-weight:600; text-wrap:balance; }
+.section-copy > p:last-child,.section-heading > p:last-child,.open-source > div > p { line-height:1.85; }
+.temporary { grid-template-columns: .75fr 1.25fr; gap:var(--content-gap); }
+.reference-flow { grid-template-columns:1.35fr 56px .85fr; gap:12px; }
+.reference-card { padding:13px 11px; }
+.split-heading { grid-template-columns:1.1fr .9fr; gap:var(--content-gap); }
+.split-heading > p { justify-self:end; max-width:400px; margin-bottom:24px; }
+.widget-story,.music-story,.clipboard { gap:var(--content-gap); }
+.band { border-color:#ffffff12; }
+.mode-stage,.native-stage { border-radius:20px; }
+.native-footnotes { gap:30px; line-height:1.8; }
+.native-details li { padding-block:17px; line-height:1.7; }
+.widget-preview,.music-preview { border-radius:20px; border-color:#30303a; }
+.music-lyrics { padding-block:30px; }
+.music-lyrics p { line-height:1.5; }
+.download { grid-template-columns:.8fr 1.2fr; gap:var(--content-gap); }
+.download-card { min-height:140px; padding:24px; border-radius:16px; }
+.download-card small { color:#9495a2; }
+.download-card:hover { box-shadow:0 16px 42px #0006; }
+.download-card > b { transition:transform .24s var(--ease); }
+.download-card:hover > b { transform:translateY(3px); }
+.release-readiness { padding-block:0; }
+.release-readiness article { padding:32px; }
+.release-readiness h2 { font-size:25px; line-height:1.3; }
+.faq { grid-template-columns:.75fr 1.25fr; gap:var(--content-gap); }
+.faq summary { padding-block:25px; line-height:1.5; }
+.faq details > p { line-height:1.85; max-width:60ch; }
+.site-footer { border-color:#ffffff12; }
+html[lang="zh-CN"] .hero h1 { font-size:clamp(42px,4.9vw,70px); line-height:1.2; letter-spacing:-.025em; }
+html[lang="zh-CN"] .section-copy h2,html[lang="zh-CN"] .section-heading h2,html[lang="zh-CN"] .download h2,html[lang="zh-CN"] .whats-new h2,html[lang="zh-CN"] .open-source h2 { line-height:1.24; letter-spacing:-.015em; }
+@media(min-width:981px) and (prefers-reduced-motion:no-preference) {
+  .desktop-demo { animation:heroScreenEnter .85s var(--ease) both; }
+  .hero-copy { animation:heroCopyEnter .7s var(--ease) both; }
+  @keyframes heroScreenEnter { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
+  @keyframes heroCopyEnter { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+}
+@media(max-width:1100px) and (min-width:981px) { .hero { gap:32px; } .hero h1 { font-size:58px; } html[lang="zh-CN"] .hero h1 { font-size:54px; } }
+@media(max-width:980px) {
+  .hero { grid-template-columns:1fr; gap:56px; padding-top:138px; min-height:0; }
+  .hero-copy { max-width:680px; }
+  .hero-copy > p { max-width:520px; }
+  .desktop-demo { width:100%; max-width:700px; justify-self:center; aspect-ratio:1.45; }
+  .temporary,.download,.faq,.split-heading { grid-template-columns:1fr; gap:40px; }
+  .split-heading > p { justify-self:start; max-width:580px; margin:0; }
+  .reference-flow { margin-bottom:50px; }
+  .nav { height:72px; }
+  .hero h1 { max-width:750px; }
+}
+@media(max-width:680px) {
+  :root { --page-gutter:22px; --section-space:76px; --content-gap:34px; }
+  .hero { padding-top:122px; padding-bottom:72px; gap:42px; }
+  .hero h1 { font-size:48px; }
+  html[lang="zh-CN"] .hero h1 { font-size:42px; }
+  .hero-copy::before { width:48px; margin-bottom:24px; }
+  .hero-copy > p { font-size:16px; line-height:1.8; }
+  .hero .actions { gap:10px; }
+  .hero .button { padding-inline:14px; font-size:13px; }
+  .desktop-demo { aspect-ratio:1.15; border-radius:15px; box-shadow:0 24px 55px #0009,0 0 0 3px #101015; }
+  .space-popover { width:calc(100% - 28px); padding:13px; }
+  .desktop-demo[data-state="expanded"] .island { width:calc(100% - 28px); }
+  .demo-caption { padding:12px 8px; gap:5px; font-size:9px; }
+  .reference-flow { grid-template-columns:1fr; gap:18px; margin-bottom:0; }
+  .flow-arrow { width:52px; height:28px; transform:rotate(90deg); margin:auto; }
+  .reference-card { justify-content:center; }
+  .source-safe { position:static; justify-content:center; margin-top:10px; }
+  .download-card { padding:19px 16px; min-height:120px; gap:14px; }
+  .release-readiness article { padding:26px; }
+  .nav .brand img { width:34px; height:34px; }
+  .nav { gap:10px; }
+  .nav .language-switch { margin-left:auto; }
+  .nav .button { padding-inline:12px; }
+  .native-footnotes { gap:14px; }
+}
+@media(max-width:360px) { :root { --page-gutter:16px; } .hero h1,html[lang="zh-CN"] .hero h1 { font-size:38px; } .nav .brand { font-size:14px; gap:7px; } .nav .button { font-size:12px; padding-inline:9px; } }
+@media(prefers-reduced-motion:reduce) { .button:hover,.button:active,.download-card:hover,.download-card:hover>b,.native-tabs button:hover { transform:none; } }
