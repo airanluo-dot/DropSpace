@@ -7,7 +7,9 @@ for (const locale of ['en','zh-cn']) {
    await page.setViewportSize({width,height:width<700?844:1000});
    await page.goto(`/DropSpace/${locale}/`);
    await expect(page.locator('h1')).toBeVisible();
-   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   const overflow=await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+1||r.left< -1)&&getComputedStyle(el).position!=='fixed';}).map(el=>({tag:el.tagName,class:el.className,right:el.getBoundingClientRect().right,text:el.textContent.slice(0,80)})));
+   await page.screenshot({path:`test-results/check-${locale}-${width}.png`,fullPage:true});
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),JSON.stringify({width,overflow})).toBe(true);
    for(const target of ['.hero','.native-story','#widgets','#music','#download','.faq']) {
     const box=await page.locator(target).boundingBox();
     expect(box.x).toBeGreaterThanOrEqual(0);

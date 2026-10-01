@@ -136,3 +136,8 @@ html[lang="zh-CN"] .section-copy h2,html[lang="zh-CN"] .section-heading h2,html[
 }
 @media(max-width:360px) { :root { --page-gutter:16px; } .hero h1,html[lang="zh-CN"] .hero h1 { font-size:38px; } .nav .brand { font-size:14px; gap:7px; } .nav .button { font-size:12px; padding-inline:9px; } }
 @media(prefers-reduced-motion:reduce) { .button:hover,.button:active,.download-card:hover,.download-card:hover>b,.native-tabs button:hover { transform:none; } }
+
+/* Grid tracks may shrink without pushing long English labels beyond the viewport. */
+main section > *, .download-card > div, .file-row > div, .native-file > div { min-width:0; }
+.download-card strong,.download-card span,.native-file strong { overflow-wrap:anywhere; }
+@media(max-width:680px) { .download-card { grid-template-columns:50px minmax(0,1fr) 36px; } .download-card>b { width:36px; height:36px; } .split-heading,.drag .section-heading { min-width:0; } }
