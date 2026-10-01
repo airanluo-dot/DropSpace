@@ -19,9 +19,9 @@ internal sealed class LocalInferenceProcess : IDisposable
     internal StreamReader StandardOutput { get; }
     internal StreamReader StandardError { get; }
 
-    internal static LocalInferenceProcess Start(ProcessStartInfo start)
+    internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = WindowsInferenceProcess.MaximumMemoryBytes)
     {
-        if (OperatingSystem.IsWindows()) return WindowsInferenceProcess.Start(start);
+        if (OperatingSystem.IsWindows()) return WindowsInferenceProcess.Start(start, memoryLimitBytes);
         // Development/test support only. Production is Windows and always requires the native limits.
         var process = new Process { StartInfo = start };
         try

@@ -38,6 +38,7 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
                     AiLyricsRuntimePackage.ManifestResourceName => "runtime-manifest.json",
                     AiLyricsRuntimePackage.ExecutableResourceName => "llama-completion.exe",
                     AiLyricsRuntimePackage.Avx2ExecutableResourceName => "llama-completion-avx2.exe",
+                    "DropSpace.AiLyricsRuntime.llama-tokenize.exe" => "llama-tokenize.exe",
                     _ => throw new InvalidOperationException("Unexpected test resource."),
                 };
                 return File.OpenRead(Path.Combine(runtime, filename));
@@ -51,6 +52,10 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
             var query = new LyricsQuery("Native verification", "DropSpace", "", TimeSpan.FromSeconds(10));
             var prompt = LyricsTranslationPrompt.Build(query, source, [0, 1], "zh-CN");
             var staging = Path.Combine(root, "prompts");
+            var tokenizer = await package.EnsureTokenizerAsync(CancellationToken.None);
+            var tokens = await runner.CountTokensAsync(tokenizer, model, prompt, staging, CancellationToken.None, descriptor.Sha256);
+            Assert.IsTrue(tokens > 0 && tokens <= LyricsTranslationPrompt.MaximumPromptTokens);
+            Assert.AreEqual(0, Directory.GetFiles(staging).Length);
             var output = await runner.RunAsync(executable, model, prompt, staging, CancellationToken.None, descriptor.Sha256, [0, 1]);
             Assert.IsTrue(LyricsTranslationOutput.TryApply(output, source, [0, 1], "zh-CN", out var translated),
                 "The native output must satisfy the strict line-ID protocol.");
@@ -62,6 +67,10 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
                 Assert.AreEqual(LyricsTranslationOrigin.LocalAi, translated.Lines[index].TranslationOrigin);
                 Assert.IsTrue(translated.Lines[index].Secondary!.Any(character => character is >= '\u4e00' and <= '\u9fff'));
             }
+            Assert.AreEqual(0, Directory.GetFiles(staging).Length);
+            using (var tokenizerCancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100)))
+                await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                    runner.CountTokensAsync(tokenizer, model, prompt, staging, tokenizerCancel.Token, descriptor.Sha256));
             Assert.AreEqual(0, Directory.GetFiles(staging).Length);
             using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             await Assert.ThrowsAsync<OperationCanceledException>(() =>

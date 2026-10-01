@@ -167,6 +167,39 @@ public sealed class LyricsTranslationCoordinatorTests
         Assert.IsFalse(Directory.Exists(root));
     }
 
+    [TestMethod]
+    public async Task ActualTokenizerBudgetSplitsWithoutDroppingRequestedLines()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var source = Source with { Lines = Enumerable.Range(0, 13).Select(index => Source.Lines[0] with { Text = "Original " + index }).ToArray() };
+            var seen = new List<int>();
+            var result = await new LyricsTranslationCoordinator(new(root)).TranslateBatchesAsync(Query, source, "zh-CN", ModelHash,
+                (prompt, ids, token) =>
+                {
+                    Assert.IsTrue(ids.Count <= 3);
+                    seen.AddRange(ids);
+                    return Task.FromResult(OutputForPrompt(prompt, "翻译"));
+                }, CancellationToken.None,
+                (prompt, token) => Task.FromResult(RequestedIds(prompt).Length * 600));
+            CollectionAssert.AreEqual(Enumerable.Range(0, 13).ToArray(), seen.ToArray());
+            AssertOriginalsUnchanged(source, result);
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task OversizedSingleLineFailsBeforeInferenceAndCannotCache()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() =>
+            new LyricsTranslationCoordinator(new(root)).TranslateBatchesAsync(Query, Source, "zh-CN", ModelHash,
+                (_, _, _) => throw new AssertFailedException("Must not infer an oversized prompt."), CancellationToken.None,
+                (_, _) => Task.FromResult(LyricsTranslationPrompt.MaximumPromptTokens + 1)));
+        Assert.IsFalse(Directory.Exists(root));
+    }
+
     private static int[] RequestedIds(string prompt)
     {
         using var data = JsonDocument.Parse(prompt.Split("SOURCE DATA JSON:", StringSplitOptions.None)[1].Split("Translate only lines.", StringSplitOptions.None)[0]);

@@ -19,7 +19,8 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
     }
 
     public async Task<LyricsDocument> TranslateBatchesAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
-        string modelSha256, Func<string, IReadOnlyList<int>, CancellationToken, Task<string>> infer, CancellationToken token)
+        string modelSha256, Func<string, IReadOnlyList<int>, CancellationToken, Task<string>> infer, CancellationToken token,
+        Func<string, CancellationToken, Task<int>>? countTokens = null)
     {
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
@@ -43,10 +44,25 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
         budget.CancelAfter(TimeSpan.FromSeconds(180));
         var translated = source;
-        foreach (var batch in indices.Chunk(12))
+        for (var offset = 0; offset < indices.Length;)
         {
             budget.Token.ThrowIfCancellationRequested();
-            var prompt = LyricsTranslationPrompt.Build(query, source, batch, targetLanguage);
+            var take = Math.Min(12, indices.Length - offset);
+            int[] batch;
+            string prompt;
+            while (true)
+            {
+                batch = indices.Skip(offset).Take(take).ToArray();
+                prompt = LyricsTranslationPrompt.Build(query, source, batch, targetLanguage);
+                if (countTokens is null || await countTokens(prompt, budget.Token).ConfigureAwait(false) <= LyricsTranslationPrompt.MaximumPromptTokens)
+                    break;
+                // Background can be omitted, but requested source lines are never truncated.
+                prompt = LyricsTranslationPrompt.Build(query, source, batch, targetLanguage, includeBackground: false);
+                if (await countTokens(prompt, budget.Token).ConfigureAwait(false) <= LyricsTranslationPrompt.MaximumPromptTokens)
+                    break;
+                if (take == 1) throw new InvalidDataException("A lyric line exceeds the verified tokenizer input budget.");
+                take = (take + 1) / 2;
+            }
             var valid = false;
             for (var attempt = 0; attempt < 2 && !valid; attempt++)
             {
@@ -57,6 +73,7 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
             }
             // A failed batch never promotes partial results to a supposedly complete song cache.
             if (!valid) return source;
+            offset += batch.Length;
         }
         budget.Token.ThrowIfCancellationRequested();
         var json = JsonSerializer.Serialize(indices.Select(index => new

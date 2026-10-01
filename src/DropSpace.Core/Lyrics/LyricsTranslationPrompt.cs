@@ -9,11 +9,12 @@ public static class LyricsTranslationPrompt
 {
     // This is plain model input, never HTML. Keep source scripts readable to the tokenizer.
     private static readonly JsonSerializerOptions PromptJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true };
-    public const string Version = "lyrics-v3-constrained-batches";
+    public const string Version = "lyrics-v4-token-budget";
     public const int MaximumInputBytes = 65_536;
+    public const int MaximumPromptTokens = 1800; // 4096 context minus 2048 output and chat-template margin.
 
     public static string Build(LyricsQuery query, LyricsDocument document, IReadOnlyList<int> lineIndices,
-        string targetLanguage)
+        string targetLanguage, bool includeBackground = true)
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(document);
@@ -42,8 +43,8 @@ public static class LyricsTranslationPrompt
             title = query.Title,
             artist = query.Artist,
             album = query.Album,
-            background = Enumerable.Range(contextStart, contextEnd - contextStart)
-                .Where(index => !requested.Contains(index)).Select(index => document.Lines[index].Text),
+            background = includeBackground ? Enumerable.Range(contextStart, contextEnd - contextStart)
+                .Where(index => !requested.Contains(index)).Select(index => document.Lines[index].Text) : Array.Empty<string>(),
             lines = lineIndices.Select(index => new { id = index, text = document.Lines[index].Text }),
         };
         var data = JsonSerializer.Serialize(context, PromptJson);

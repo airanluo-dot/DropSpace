@@ -16,6 +16,7 @@ public sealed class AiLyricsService : IDisposable
     private readonly LlamaCompletionRunner _runner = new();
     private readonly ILogger<AiLyricsService> _logger;
     private readonly string _staging;
+    private readonly LyricsInferenceCircuit _circuit = new();
 
     public AiLyricsService(AppStoragePaths paths, ILogger<AiLyricsService> logger)
     {
@@ -28,6 +29,16 @@ public sealed class AiLyricsService : IDisposable
     }
 
     public event EventHandler? ModelDownloaded;
+    public event EventHandler? TranslationStateChanged;
+    public bool TranslationPaused => _circuit.IsPaused;
+
+    public void ResumeTranslation()
+    {
+        _circuit.Resume();
+        TranslationStateChanged?.Invoke(this, EventArgs.Empty);
+        // The existing refresh path cancels the old song generation and starts the current one.
+        ModelDownloaded?.Invoke(this, EventArgs.Empty);
+    }
 
     public Task<string?> GetInstalledPathAsync(string modelId, CancellationToken token) =>
         _models.GetInstalledPathAsync(modelId, token);
@@ -49,22 +60,38 @@ public sealed class AiLyricsService : IDisposable
              LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) == normalizedTarget))) return document;
         var model = AiLyricsModelCatalog.Find(settings.AiModelId);
         if (model is null) return document;
+        if (!_circuit.TryBegin(out var generation)) return document;
         try
         {
             // This path never downloads. Only the settings consent flow can fetch weights.
             var modelPath = await _models.GetInstalledPathAsync(model.Id, token).ConfigureAwait(false);
             if (modelPath is null) return document;
             var executable = await _runtime.EnsureExecutableAsync(token).ConfigureAwait(false);
-            return await _translations.TranslateBatchesAsync(query, document, targetLanguage, model.Sha256,
-                (prompt, ids, cancellation) => _runner.RunAsync(executable, modelPath, prompt, _staging, cancellation, model.Sha256, ids), token).ConfigureAwait(false);
+            var tokenizer = await _runtime.EnsureTokenizerAsync(token).ConfigureAwait(false);
+            var result = await _translations.TranslateBatchesAsync(query, document, targetLanguage, model.Sha256,
+                (prompt, ids, cancellation) => _runner.RunAsync(executable, modelPath, prompt, _staging, cancellation, model.Sha256, ids), token,
+                (prompt, cancellation) => _runner.CountTokensAsync(tokenizer, modelPath, prompt, _staging, cancellation, model.Sha256)).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            RecordResult(generation, !ReferenceEquals(document, result));
+            return result;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
+            // A killed process can surface as an I/O failure before its cancellation await.
+            token.ThrowIfCancellationRequested();
             // Timeout, missing runtime and invalid model output must not erase provider lyrics.
             _logger.LogDebug("Local lyric translation unavailable ({Category}).", error.GetType().Name);
+            RecordResult(generation, false);
             return document;
         }
+    }
+
+    private void RecordResult(long generation, bool success)
+    {
+        var paused = _circuit.IsPaused;
+        _circuit.Complete(generation, success);
+        if (paused != _circuit.IsPaused) TranslationStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose()

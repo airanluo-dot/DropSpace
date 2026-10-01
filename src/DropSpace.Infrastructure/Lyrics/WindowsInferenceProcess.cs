@@ -21,8 +21,9 @@ internal static class WindowsInferenceProcess
     private const uint CreateNoWindow = 0x08000000;
 
     [SupportedOSPlatform("windows")]
-    internal static LocalInferenceProcess Start(ProcessStartInfo start)
+    internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = MaximumMemoryBytes)
     {
+        if (memoryLimitBytes is < 268_435_456 or > MaximumMemoryBytes) throw new ArgumentOutOfRangeException(nameof(memoryLimitBytes));
         if (IntPtr.Size != 8) throw new PlatformNotSupportedException("Local inference requires 64-bit Windows.");
         SafeJobHandle? job = null;
         Process? process = null;
@@ -30,7 +31,7 @@ internal static class WindowsInferenceProcess
         StreamReader? errors = null;
         try
         {
-            job = CreateLimitedJob();
+            job = CreateLimitedJob(memoryLimitBytes);
             using var stdout = CreateRedirectedPipe(parentReads: true);
             using var stderr = CreateRedirectedPipe(parentReads: true);
             using var stdin = CreateRedirectedPipe(parentReads: false);
@@ -109,7 +110,7 @@ internal static class WindowsInferenceProcess
         string.Join('\0', start.Environment.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
             .Select(pair => $"{pair.Key}={pair.Value}")) + "\0\0";
 
-    private static SafeJobHandle CreateLimitedJob()
+    private static SafeJobHandle CreateLimitedJob(long memoryLimitBytes)
     {
         var job = CreateJobObject(IntPtr.Zero, null);
         if (job.IsInvalid) { job.Dispose(); throw NativeFailure("Unable to create inference limits."); }
@@ -118,14 +119,14 @@ internal static class WindowsInferenceProcess
             var limits = new ExtendedLimitInformation
             {
                 BasicLimitInformation = new BasicLimitInformation { LimitFlags = LimitFlags, ActiveProcessLimit = 1 },
-                ProcessMemoryLimit = (nuint)MaximumMemoryBytes,
-                JobMemoryLimit = (nuint)MaximumMemoryBytes,
+                ProcessMemoryLimit = (nuint)memoryLimitBytes,
+                JobMemoryLimit = (nuint)memoryLimitBytes,
             };
             var length = (uint)Marshal.SizeOf<ExtendedLimitInformation>();
             if (!SetInformationJobObject(job, 9, ref limits, length) ||
                 !QueryInformationJobObject(job, 9, out var actual, length, IntPtr.Zero) ||
                 actual.BasicLimitInformation.LimitFlags != LimitFlags || actual.BasicLimitInformation.ActiveProcessLimit != 1 ||
-                actual.ProcessMemoryLimit != (nuint)MaximumMemoryBytes || actual.JobMemoryLimit != (nuint)MaximumMemoryBytes)
+                actual.ProcessMemoryLimit != (nuint)memoryLimitBytes || actual.JobMemoryLimit != (nuint)memoryLimitBytes)
                 throw NativeFailure("Unable to enforce mandatory inference resource limits.");
             return job;
         }

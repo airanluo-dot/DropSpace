@@ -56,6 +56,10 @@ foreach ($variant in @('baseline', 'avx2')) {
     if (@(Get-ChildItem (Join-Path $variantBuild 'bin/Release') -Filter '*.dll' -File).Count -ne 0) {
         throw 'The CPU runtime unexpectedly requires a bundled native DLL.'
     }
+    if ($variant -eq 'baseline') {
+        Invoke-Checked 'cmake' @('--build', $variantBuild, '--config', 'Release', '--target', 'llama-tokenize', '--parallel', '4')
+        Copy-Item (Join-Path $variantBuild 'bin/Release/llama-tokenize.exe') (Join-Path $output 'llama-tokenize.exe')
+    }
     $builtExe = Join-Path $variantBuild 'bin/Release/llama-completion.exe'
     if (-not (Test-Path $builtExe -PathType Leaf)) { throw 'The fixed source did not produce llama-completion.exe.' }
     $name = if ($variant -eq 'avx2') { 'llama-completion-avx2.exe' } else { 'llama-completion.exe' }
@@ -76,6 +80,11 @@ $manifest = [ordered]@{
     executable = 'llama-completion.exe'
     sha256 = (Get-FileHash $executable -Algorithm SHA256).Hash.ToLowerInvariant()
     bytes = (Get-Item $executable).Length
+    tokenizer = [ordered]@{
+        executable = 'llama-tokenize.exe'
+        sha256 = (Get-FileHash (Join-Path $output 'llama-tokenize.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+        bytes = (Get-Item (Join-Path $output 'llama-tokenize.exe')).Length
+    }
     avx2 = [ordered]@{
         executable = 'llama-completion-avx2.exe'
         sha256 = (Get-FileHash $optimized -Algorithm SHA256).Hash.ToLowerInvariant()

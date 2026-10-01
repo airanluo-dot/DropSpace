@@ -16,10 +16,11 @@ if (-not $manifest.build.cpuOnly -or $manifest.build.sharedLibraries -or $manife
 }
 if (@(Get-ChildItem $RuntimeDirectory -Directory).Count -ne 0) { throw 'Unexpected runtime payload subdirectory.' }
 $names = @(Get-ChildItem $RuntimeDirectory -File | ForEach-Object Name | Sort-Object)
-$expected = @('LICENSE-llama.cpp', 'llama-completion.exe', 'llama-completion-avx2.exe', 'runtime-manifest.json') | Sort-Object
+$expected = @('LICENSE-llama.cpp', 'llama-completion.exe', 'llama-completion-avx2.exe', 'llama-tokenize.exe', 'runtime-manifest.json') | Sort-Object
 if (Compare-Object $names $expected) { throw 'The runtime payload contains missing or unexpected files.' }
 if ($manifest.avx2.executable -cne 'llama-completion-avx2.exe') { throw 'Unexpected optimized runtime executable.' }
-foreach ($variant in @($manifest, $manifest.avx2)) {
+if ($manifest.tokenizer.executable -cne 'llama-tokenize.exe') { throw 'Unexpected tokenizer executable.' }
+foreach ($variant in @($manifest, $manifest.avx2, $manifest.tokenizer)) {
     $exe = Join-Path $RuntimeDirectory $variant.executable
     if ((Get-Item $exe).Length -ne $variant.bytes -or (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -cne $variant.sha256) {
         throw 'Native runtime size/SHA256 verification failed.'

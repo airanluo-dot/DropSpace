@@ -674,4 +674,6 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>Use the arrow keys for 0.1 steps, Page Up or Page Down for 1, or type a precise size in the numeric field.</value></data>
   <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>Enter a number from 12 to 28. The preview keeps the last valid size.</value></data>
   <data name="LyricsFontSizeRestored" xml:space="preserve"><value>The last valid size was restored. Enter a number from 12 to 28.</value></data>
+  <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI translation paused after three consecutive failures. Original lyrics are unchanged. Resume when you are ready to try again.</value></data>
+  <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>Resume AI translation</value></data>
 </root>

@@ -36,7 +36,11 @@ public sealed class AiLyricsRuntimePackage
             (X86Base.CpuId(1, 0).Ecx & (1 << 29)) != 0);
     }
 
-    public async Task<string> EnsureExecutableAsync(CancellationToken token)
+    public Task<string> EnsureExecutableAsync(CancellationToken token) => EnsureComponentAsync(token, tokenizer: false);
+
+    public Task<string> EnsureTokenizerAsync(CancellationToken token) => EnsureComponentAsync(token, tokenizer: true);
+
+    private async Task<string> EnsureComponentAsync(CancellationToken token, bool tokenizer)
     {
         await ExtractionGate.WaitAsync(token).ConfigureAwait(false);
         try
@@ -53,7 +57,17 @@ public sealed class AiLyricsRuntimePackage
                 throw new InvalidDataException("Unrecognized embedded local AI runtime.");
             var executableResource = ExecutableResourceName;
             var selected = root;
-            if (_useAvx2 && root.TryGetProperty("avx2", out var optimized))
+            var fileName = ExecutableName;
+            if (tokenizer)
+            {
+                if (!root.TryGetProperty("tokenizer", out var tokenizerMetadata) ||
+                    tokenizerMetadata.GetProperty("executable").GetString() != "llama-tokenize.exe")
+                    throw new InvalidDataException("The embedded tokenizer metadata is missing or invalid.");
+                selected = tokenizerMetadata;
+                fileName = "llama-tokenize.exe";
+                executableResource = "DropSpace.AiLyricsRuntime.llama-tokenize.exe";
+            }
+            else if (_useAvx2 && root.TryGetProperty("avx2", out var optimized))
             {
                 if (optimized.GetProperty("executable").GetString() != "llama-completion-avx2.exe")
                     throw new InvalidDataException("Invalid optimized runtime executable.");
@@ -66,7 +80,7 @@ public sealed class AiLyricsRuntimePackage
                 throw new InvalidDataException("Invalid embedded runtime integrity metadata.");
             hash = hash.ToLowerInvariant();
             var path = ReparseSafePathPolicy.PrepareContainedFileDestination(_root,
-                Path.Combine(RuntimeId, hash, ExecutableName));
+                Path.Combine(RuntimeId, hash, fileName));
             if (await VerifyAsync(path, hash, bytes, token).ConfigureAwait(false)) return path;
             var partial = ReparseSafePathPolicy.PrepareContainedFileDestination(_root,
                 Path.Combine(RuntimeId, hash, $"{Guid.NewGuid():N}.partial"));

@@ -98,6 +98,53 @@ public sealed class AiLyricsRuntimePackageTests
         finally { Directory.Delete(directory, true); }
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task TokenizerUsesOnlyItsEmbeddedHashAndRejectsTampering(bool tampered)
+    {
+        var directory = NewDirectory();
+        try
+        {
+            byte[] expected = [6, 7, 8];
+            var manifest = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1, runtimeId = AiLyricsRuntimePackage.RuntimeId,
+                sourceCommit = AiLyricsRuntimePackage.SourceCommit, executable = "llama-completion.exe",
+                tokenizer = new { executable = "llama-tokenize.exe", sha256 = Convert.ToHexString(SHA256.HashData(expected)), bytes = expected.Length },
+            }));
+            var package = new AiLyricsRuntimePackage(name => name switch
+            {
+                AiLyricsRuntimePackage.ManifestResourceName => new MemoryStream(manifest, false),
+                "DropSpace.AiLyricsRuntime.llama-tokenize.exe" => new MemoryStream(tampered ? [9, 8, 7] : expected, false),
+                _ => throw new AssertFailedException("Tokenizer must not select a completion executable."),
+            }, directory, useAvx2: true);
+            if (tampered)
+            {
+                await Assert.ThrowsExactlyAsync<InvalidDataException>(() => package.EnsureTokenizerAsync(CancellationToken.None));
+                Assert.AreEqual(0, Directory.GetFiles(directory, "*", SearchOption.AllDirectories).Length);
+            }
+            else
+            {
+                var path = await package.EnsureTokenizerAsync(CancellationToken.None);
+                Assert.AreEqual("llama-tokenize.exe", Path.GetFileName(path));
+                CollectionAssert.AreEqual(expected, await File.ReadAllBytesAsync(path));
+            }
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [TestMethod]
+    public async Task MissingTokenizerMetadataFailsClosed()
+    {
+        var directory = NewDirectory();
+        try
+        {
+            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => Package(directory, [1]).EnsureTokenizerAsync(CancellationToken.None));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     private static string NewDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), "DropSpace-runtime-tests", Guid.NewGuid().ToString("N"));

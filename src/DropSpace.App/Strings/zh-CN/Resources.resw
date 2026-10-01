@@ -674,4 +674,6 @@
   <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>方向键每次调整 0.1，Page Up 或 Page Down 每次调整 1，也可在数字输入框中填写精确字号。</value></data>
   <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>请输入 12 至 28 之间的数字。预览会保留上一次有效字号。</value></data>
   <data name="LyricsFontSizeRestored" xml:space="preserve"><value>已恢复上一次有效字号。请输入 12 至 28 之间的数字。</value></data>
+  <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI 翻译连续失败三次，已暂停自动尝试，原歌词不受影响。准备好后可手动恢复。</value></data>
+  <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>恢复 AI 翻译</value></data>
 </root>

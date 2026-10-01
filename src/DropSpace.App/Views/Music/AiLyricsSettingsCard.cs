@@ -28,6 +28,7 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly ProgressBar _progress = new() { Minimum = 0, Maximum = 100, Visibility = Visibility.Collapsed };
     private readonly Button _download;
     private readonly Button _cancel;
+    private readonly Button _resume;
     private readonly LyricsGlowModeControl _glow;
     private readonly HashSet<string> _installed = new(StringComparer.Ordinal);
     private readonly HashSet<string> _interrupted = new(StringComparer.Ordinal);
@@ -77,7 +78,10 @@ public sealed class AiLyricsSettingsCard : UserControl
         AutomationProperties.SetAutomationId(_cancel, "AiLyricsCancelDownload");
         _download.Click += OnDownload;
         _cancel.Click += OnCancel;
-        actions.Children.Add(_download); actions.Children.Add(_cancel);
+        _resume = new Button { Content = strings.Get("AiLyricsResumeTranslation"), Visibility = Visibility.Collapsed };
+        AutomationProperties.SetAutomationId(_resume, "AiLyricsResumeTranslation");
+        _resume.Click += (_, _) => { _service.ResumeTranslation(); Refresh(); };
+        actions.Children.Add(_download); actions.Children.Add(_cancel); actions.Children.Add(_resume);
         body.Children.Add(actions);
         body.Children.Add(new TextBlock { Text = strings.Get(AiLyricsModelCatalog.All.Count > 1 ? "AiLyricsDownloadHelp" : "AiLyricsDownloadHelpSingle"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowTitle"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
@@ -101,6 +105,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         ++_generation;
         _editor.PropertyChanged += OnSettings;
         _service.ModelDownloaded += OnModelDownloaded;
+        _service.TranslationStateChanged += OnTranslationStateChanged;
         _inspectionTask = InspectAsync(_generation, _lifetime.Token);
     }
 
@@ -108,6 +113,7 @@ public sealed class AiLyricsSettingsCard : UserControl
     {
         _editor.PropertyChanged -= OnSettings;
         _service.ModelDownloaded -= OnModelDownloaded;
+        _service.TranslationStateChanged -= OnTranslationStateChanged;
         var lifetime = _lifetime;
         _lifetime = null;
         ++_generation;
@@ -134,6 +140,13 @@ public sealed class AiLyricsSettingsCard : UserControl
     private void OnSettings(object? sender, PropertyChangedEventArgs args)
     {
         if (_lifetime is not null && args.PropertyName == nameof(NativeSettingsEditor.Settings)) Refresh();
+    }
+
+    private void OnTranslationStateChanged(object? sender, EventArgs args)
+    {
+        var generation = _generation;
+        try { DispatcherQueue.TryEnqueue(() => { if (IsCurrent(generation)) Refresh(); }); }
+        catch (Exception exception) { Debug.WriteLine($"AI lyrics state dispatcher retired: {exception.GetType().Name}"); }
     }
 
     private void OnModelDownloaded(object? sender, EventArgs args)
@@ -404,6 +417,10 @@ public sealed class AiLyricsSettingsCard : UserControl
             _details.Text = _strings.Format("AiLyricsModelDetails", selected.Name, SizeLabel(selected), SourceLabel(selected)) + "\n" + ModelHelp(selected);
             _status.Text = _inspecting ? _strings.Get("AiLyricsChecking") : !string.IsNullOrEmpty(_message) ? _message :
                 installed ? _strings.Get("AiLyricsReady") : _strings.Get("AiLyricsNeedsDownload");
+            if (_service.TranslationPaused && settings.AiTranslationEnabled && !_busy && !_inspecting)
+                _status.Text = _strings.Get("AiLyricsTranslationPaused");
+            _resume.Visibility = _service.TranslationPaused && settings.AiTranslationEnabled ? Visibility.Visible : Visibility.Collapsed;
+            _resume.IsEnabled = !_busy && !_inspecting;
             _error.Text = _errorMessage;
             _error.Visibility = string.IsNullOrEmpty(_errorMessage) ? Visibility.Collapsed : Visibility.Visible;
             _enabled.IsEnabled = !_busy && !_inspecting;

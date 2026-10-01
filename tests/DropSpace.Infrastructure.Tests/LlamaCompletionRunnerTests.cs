@@ -6,6 +6,13 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class LlamaCompletionRunnerTests
 {
     [TestMethod]
+    public void CompactAndStandardUseTheirSeparateApprovedMemoryBudgets()
+    {
+        Assert.AreEqual(1536L * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(DropSpace.Core.Lyrics.AiLyricsModelCatalog.Compact.Sha256));
+        Assert.AreEqual(3L * 1024 * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(DropSpace.Core.Lyrics.AiLyricsModelCatalog.Standard.Sha256));
+    }
+
+    [TestMethod]
     public void CompactEosCorrectionIsWhitelistedToOneVerifiedHash()
     {
         Assert.HasCount(2, LlamaCompletionRunner.ModelCompatibilityArguments(DropSpace.Core.Lyrics.AiLyricsModelCatalog.Compact.Sha256));
