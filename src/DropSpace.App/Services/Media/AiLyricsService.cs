@@ -55,8 +55,8 @@ public sealed class AiLyricsService : IDisposable
             var modelPath = await _models.GetInstalledPathAsync(model.Id, token).ConfigureAwait(false);
             if (modelPath is null) return document;
             var executable = await _runtime.EnsureExecutableAsync(token).ConfigureAwait(false);
-            return await _translations.TranslateAsync(query, document, targetLanguage, model.Sha256,
-                (prompt, cancellation) => _runner.RunAsync(executable, modelPath, prompt, _staging, cancellation, model.Sha256), token).ConfigureAwait(false);
+            return await _translations.TranslateBatchesAsync(query, document, targetLanguage, model.Sha256,
+                (prompt, ids, cancellation) => _runner.RunAsync(executable, modelPath, prompt, _staging, cancellation, model.Sha256, ids), token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception error) when (error is not OutOfMemoryException)

@@ -98,6 +98,7 @@ public sealed class StorageAndRepositoryTests
             IslandActivity = expected.IslandActivity with { AllowedMediaSourceAppIds = actual.IslandActivity.AllowedMediaSourceAppIds },
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
+            ClipboardPeerModes = actual.ClipboardPeerModes,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
         }, actual);
         Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
@@ -348,6 +349,7 @@ public sealed class StorageAndRepositoryTests
         {
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
+            ClipboardPeerModes = actual.ClipboardPeerModes,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
         }, actual);
         Assert.IsTrue(service.LastLoadRecovery.Recovered);

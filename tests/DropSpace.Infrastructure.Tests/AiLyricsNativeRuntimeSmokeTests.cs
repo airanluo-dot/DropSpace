@@ -51,7 +51,7 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
             var query = new LyricsQuery("Native verification", "DropSpace", "", TimeSpan.FromSeconds(10));
             var prompt = LyricsTranslationPrompt.Build(query, source, [0, 1], "zh-CN");
             var staging = Path.Combine(root, "prompts");
-            var output = await runner.RunAsync(executable, model, prompt, staging, CancellationToken.None, descriptor.Sha256);
+            var output = await runner.RunAsync(executable, model, prompt, staging, CancellationToken.None, descriptor.Sha256, [0, 1]);
             Assert.IsTrue(LyricsTranslationOutput.TryApply(output, source, [0, 1], "zh-CN", out var translated),
                 "The native output must satisfy the strict line-ID protocol.");
             for (var index = 0; index < source.Lines.Count; index++)
@@ -65,7 +65,7 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
             Assert.AreEqual(0, Directory.GetFiles(staging).Length);
             using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             await Assert.ThrowsAsync<OperationCanceledException>(() =>
-                runner.RunAsync(executable, model, prompt, staging, cancel.Token, descriptor.Sha256));
+                runner.RunAsync(executable, model, prompt, staging, cancel.Token, descriptor.Sha256, [0, 1]));
             Assert.AreEqual(0, Directory.GetFiles(staging).Length);
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }

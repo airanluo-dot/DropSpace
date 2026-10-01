@@ -10,8 +10,16 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
 {
     private static readonly JsonSerializerOptions CacheJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    public async Task<LyricsDocument> TranslateAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
+    public Task<LyricsDocument> TranslateAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
         string modelSha256, Func<string, CancellationToken, Task<string>> infer, CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(infer);
+        return TranslateBatchesAsync(query, source, targetLanguage, modelSha256,
+            (prompt, _, cancellation) => infer(prompt, cancellation), token);
+    }
+
+    public async Task<LyricsDocument> TranslateBatchesAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
+        string modelSha256, Func<string, IReadOnlyList<int>, CancellationToken, Task<string>> infer, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
@@ -42,7 +50,7 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
             var valid = false;
             for (var attempt = 0; attempt < 2 && !valid; attempt++)
             {
-                var output = await infer(prompt, budget.Token).ConfigureAwait(false);
+                var output = await infer(prompt, batch, budget.Token).ConfigureAwait(false);
                 budget.Token.ThrowIfCancellationRequested();
                 valid = LyricsTranslationOutput.TryApply(output, translated, batch, targetLanguage, out var next);
                 if (valid) translated = next;

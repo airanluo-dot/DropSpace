@@ -150,6 +150,8 @@ public sealed class OverlayWindowService : IDisposable
             ExerciseLifecycle();
         }
 
+        _windows[0].VerifyTransientNativeRecoveryForSmoke();
+
         var geometryStressCycles = 1_000;
         var regionFailures = _windows[0].RunGeometryStress(geometryStressCycles);
         if (regionFailures != 0)

@@ -169,8 +169,8 @@ public sealed class LyricsTranslationCoordinatorTests
 
     private static int[] RequestedIds(string prompt)
     {
-        using var data = JsonDocument.Parse(prompt.Split("SOURCE DATA JSON:", StringSplitOptions.None)[1]);
-        return data.RootElement.GetProperty("translateIds").EnumerateArray().Select(value => value.GetInt32()).ToArray();
+        using var data = JsonDocument.Parse(prompt.Split("SOURCE DATA JSON:", StringSplitOptions.None)[1].Split("Translate only lines.", StringSplitOptions.None)[0]);
+        return data.RootElement.GetProperty("lines").EnumerateArray().Select(value => value.GetProperty("id").GetInt32()).ToArray();
     }
 
     private static string OutputForPrompt(string prompt, string text) =>

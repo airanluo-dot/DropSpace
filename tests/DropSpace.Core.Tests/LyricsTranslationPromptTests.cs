@@ -11,6 +11,33 @@ public sealed class LyricsTranslationPromptTests
     private const string Hash = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     [TestMethod]
+    public void OutputSchemaRequiresEveryRequestedIdExactlyOnceInOrder()
+    {
+        using var schema = System.Text.Json.JsonDocument.Parse(LyricsTranslationPrompt.OutputSchema([12, 13, 16]));
+        Assert.AreEqual(3, schema.RootElement.GetProperty("minItems").GetInt32());
+        Assert.AreEqual(3, schema.RootElement.GetProperty("maxItems").GetInt32());
+        var tuples = schema.RootElement.GetProperty("prefixItems").EnumerateArray().ToArray();
+        CollectionAssert.AreEqual(new[] { 12, 13, 16 }, tuples.Select(item => item.GetProperty("properties").GetProperty("id").GetProperty("const").GetInt32()).ToArray());
+        Assert.IsTrue(tuples.All(item => item.GetProperty("properties").GetProperty("text").GetProperty("minLength").GetInt32() == 1));
+        Assert.Throws<ArgumentException>(() => LyricsTranslationPrompt.OutputSchema([1, 1]));
+        Assert.Throws<ArgumentException>(() => LyricsTranslationPrompt.OutputSchema([]));
+    }
+
+    [TestMethod]
+    public void ContextDoesNotExposeOutputIdsOutsideTheRequestedBatch()
+    {
+        var document = new LyricsDocument(Enumerable.Range(0, 48).Select(index =>
+            new LyricsLine(TimeSpan.FromSeconds(index), TimeSpan.FromSeconds(index + 1), $"line {index}", null, [])).ToArray(), LyricsProviderKind.LocalLrc);
+        var prompt = LyricsTranslationPrompt.Build(Query, document, [12, 13], "en");
+        var dataStart = prompt.IndexOf("SOURCE DATA JSON:", StringComparison.Ordinal) + "SOURCE DATA JSON:".Length;
+        var dataEnd = prompt.IndexOf("Translate only lines.", dataStart, StringComparison.Ordinal);
+        using var json = System.Text.Json.JsonDocument.Parse(prompt[dataStart..dataEnd]);
+        CollectionAssert.AreEqual(new[] { 12, 13 }, json.RootElement.GetProperty("lines").EnumerateArray().Select(line => line.GetProperty("id").GetInt32()).ToArray());
+        Assert.IsTrue(json.RootElement.GetProperty("background").EnumerateArray().All(line => line.ValueKind == System.Text.Json.JsonValueKind.String));
+        Assert.IsFalse(json.RootElement.GetProperty("background").EnumerateArray().Any(line => line.GetString() is "line 12" or "line 13"));
+    }
+
+    [TestMethod]
     public void PromptTargetsEnglishOrChineseExplicitly()
     {
         StringAssert.Contains(LyricsTranslationPrompt.Build(Query, Document, [0], "en-US"), "into English");

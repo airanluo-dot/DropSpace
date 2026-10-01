@@ -14,13 +14,14 @@ public sealed class LlamaCompletionRunner : IDisposable
     private const string Schema = "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"text\":{\"type\":\"string\"}},\"required\":[\"id\",\"text\"],\"additionalProperties\":false}}";
 
     public async Task<string> RunAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
-        CancellationToken cancellationToken, string? verifiedModelSha256 = null)
+        CancellationToken cancellationToken, string? verifiedModelSha256 = null, IReadOnlyList<int>? expectedLineIds = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingDirectory);
         ArgumentNullException.ThrowIfNull(prompt);
         ObjectDisposedException.ThrowIf(_disposed, this);
+        var outputSchema = expectedLineIds is null ? Schema : DropSpace.Core.Lyrics.LyricsTranslationPrompt.OutputSchema(expectedLineIds);
         if (Encoding.UTF8.GetByteCount(prompt) > 80_000) throw new InvalidDataException("Prompt exceeds budget.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
         await InferenceGate.WaitAsync(deadline.Token).ConfigureAwait(false);
@@ -51,7 +52,7 @@ public sealed class LlamaCompletionRunner : IDisposable
                     StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
                 };
                 foreach (var argument in new[] { "-m", Path.GetFullPath(modelPath), "-f", promptPath, "--offline", "--jinja",
-                    "--single-turn", "--load-mode", "none", "--no-display-prompt", "--simple-io", "--no-context-shift", "--reasoning", "off", "-t", "4", "-tb", "4", "-ngl", "0", "-c", "4096", "-n", "2048", "--temp", "0.1", "-j", Schema })
+                    "--single-turn", "--load-mode", "none", "--no-display-prompt", "--simple-io", "--no-context-shift", "--reasoning", "off", "-t", "4", "-tb", "4", "-ngl", "0", "-c", "4096", "-n", "2048", "--temp", "0.1", "-j", outputSchema })
                     start.ArgumentList.Add(argument);
                 foreach (var argument in ModelCompatibilityArguments(verifiedModelSha256)) start.ArgumentList.Add(argument);
                 // Prevent ambient runtime flags from overriding these controlled model and network options.

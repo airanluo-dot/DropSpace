@@ -8,8 +8,8 @@ namespace DropSpace.Core.Lyrics;
 public static class LyricsTranslationPrompt
 {
     // This is plain model input, never HTML. Keep source scripts readable to the tokenizer.
-    private static readonly JsonSerializerOptions PromptJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-    public const string Version = "lyrics-v1";
+    private static readonly JsonSerializerOptions PromptJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true };
+    public const string Version = "lyrics-v3-constrained-batches";
     public const int MaximumInputBytes = 65_536;
 
     public static string Build(LyricsQuery query, LyricsDocument document, IReadOnlyList<int> lineIndices,
@@ -36,13 +36,15 @@ public static class LyricsTranslationPrompt
         }
         var contextStart = document.Lines.Count <= 32 ? 0 : Math.Max(0, lineIndices.Min() - 4);
         var contextEnd = document.Lines.Count <= 32 ? document.Lines.Count : Math.Min(document.Lines.Count, lineIndices.Max() + 5);
+        var requested = lineIndices.ToHashSet();
         var context = new
         {
             title = query.Title,
             artist = query.Artist,
             album = query.Album,
-            context = Enumerable.Range(contextStart, contextEnd - contextStart).Select(index => new { id = index, text = document.Lines[index].Text }),
-            translateIds = lineIndices,
+            background = Enumerable.Range(contextStart, contextEnd - contextStart)
+                .Where(index => !requested.Contains(index)).Select(index => document.Lines[index].Text),
+            lines = lineIndices.Select(index => new { id = index, text = document.Lines[index].Text }),
         };
         var data = JsonSerializer.Serialize(context, PromptJson);
         if (Encoding.UTF8.GetByteCount(data) > MaximumInputBytes)
@@ -53,12 +55,38 @@ public static class LyricsTranslationPrompt
             Use the surrounding lines and metadata only to resolve context. Do not invent song lyrics or facts.
             Preserve meaning, negation, speaker, repetitions, ambiguity and emotional tone. Use natural wording;
             do not add meaning for rhyme. Keep text already in the target language as-is.
-            Output ONLY a JSON array containing exactly the requested translateIds, in their supplied order.
+            Output ONLY a JSON array containing exactly the IDs from lines, in their supplied order.
             Each element must contain only an integer id and a nonempty string text. Never change IDs or output
-            timestamps, explanations, markdown fences, extra keys or extra lines. Example: [{"id":0,"text":"Translation"}]
+            timestamps, explanations, markdown fences, extra keys or extra lines. Example: [{"id":{{lineIndices[0]}},"text":"Translation"}]
             SOURCE DATA JSON:
             {{data}}
+            Translate only lines. Background has no output IDs and must never be output.
+            Output exactly {{lineIndices.Count}} objects, with IDs {{string.Join(", ", lineIndices)}} in that order.
             """;
+    }
+
+    public static string OutputSchema(IReadOnlyList<int> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count is < 1 or > 12 || ids.Any(id => id < 0 || id >= 500) || ids.Distinct().Count() != ids.Count)
+            throw new ArgumentException("Invalid output batch IDs.", nameof(ids));
+        return JsonSerializer.Serialize(new
+        {
+            type = "array",
+            minItems = ids.Count,
+            maxItems = ids.Count,
+            prefixItems = ids.Select(id => new
+            {
+                type = "object",
+                properties = new
+                {
+                    id = new { type = "integer", @const = id },
+                    text = new { type = "string", minLength = 1 },
+                },
+                required = new[] { "id", "text" },
+                additionalProperties = false,
+            }),
+        });
     }
 
     public static string CacheKey(LyricsQuery query, LyricsDocument document, string targetLanguage, string modelSha256)

@@ -2360,6 +2360,35 @@ public sealed partial class MainPage : Page
         VerifyResourceValue(SettingsNavigationItem.Content, "NavSettings.Content");
         VerifyResourceValue(SearchBox.PlaceholderText, "SearchBox.PlaceholderText");
         VerifyResourceValue(AddButton.Content, "AddButton.Content");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(PauseToggle)?.GetName(), "PauseRecordingTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CaptureImagesToggle)?.GetName(), "CaptureImagesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxImageMegabytesNumber)?.GetName(), "MaxImageMegabytesLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxImageMegapixelsNumber)?.GetName(), "MaxImageMegapixelsLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CaptureFilesToggle)?.GetName(), "CaptureFilesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CaptureFoldersToggle)?.GetName(), "CaptureFoldersTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxClipboardFileItemsNumber)?.GetName(), "MaxClipboardFileItemsLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxClipboardFileMegabytesNumber)?.GetName(), "MaxClipboardFileMegabytesLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxClipboardFileTotalMegabytesNumber)?.GetName(), "MaxClipboardFileTotalMegabytesLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(DeviceHandoffToggle)?.GetName(), "DeviceHandoffTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CrossDeviceClipboardToggle)?.GetName(), "CrossDeviceClipboardTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(DefaultClipboardSyncModeCombo)?.GetName(), "DefaultClipboardSyncModeTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(NearbySharingToggle)?.GetName(), "NearbySharingTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(InternetSharingToggle)?.GetName(), "InternetSharingTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RetentionDaysNumber)?.GetName(), "RetentionDaysLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RetentionCountNumber)?.GetName(), "RetentionCountLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(FileDragWakeModeCombo)?.GetName(), "FileDragWakeModeTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(StartWithWindowsToggle)?.GetName(), "StartWithWindowsTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(LanguageCombo)?.GetName(), "LanguageTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ThemeCombo)?.GetName(), "ThemeTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayMotionCombo)?.GetName(), "MotionTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayMonitorCombo)?.GetName(), "MonitorTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayPlacementModeCombo)?.GetName(), "IslandPlacementTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayPlacementMonitorCombo)?.GetName(), "MonitorTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CloseBehaviorCombo)?.GetName(), "CloseBehaviorTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(AutoCheckUpdatesToggle)?.GetName(), "AutoCheckUpdatesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(AutoDownloadUpdatesToggle)?.GetName(), "AutoDownloadUpdatesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(AutoInstallUpdatesToggle)?.GetName(), "AutoInstallUpdatesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(UpdateChannelCombo)?.GetName(), "UpdateChannelTitle.Text");
     }
 
     private void VerifyResourceValue(object? actual, string key)

@@ -284,6 +284,28 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
+    internal void VerifyTransientNativeRecoveryForSmoke()
+    {
+        var originalHandle = _windowHandle;
+        HideForNativeFailure();
+        _lastNativeRecoveryAttempt = Environment.TickCount64;
+        EnsureVisualHostShown(false);
+        if (_nativeWindowSafeToShow || _isVisible)
+            throw new InvalidOperationException("A backoff-protected native failure must remain hidden.");
+        _lastNativeRecoveryAttempt = 0;
+        EnsureVisualHostShown(false);
+        if (!_nativeWindowSafeToShow || !_nativeWindowShown || !_isVisible || _windowHandle != originalHandle)
+            throw new InvalidOperationException("A transient native failure did not recover on the same HWND.");
+        var wasClosing = _closing;
+        try
+        {
+            _closing = true;
+            if (TryRecoverNativeSurface()) throw new InvalidOperationException("Closing windows must not recover.");
+        }
+        finally { _closing = wasClosing; }
+        HideImmediately();
+    }
+
     internal VisibleWindowProbe ProbeVisibleCenter()
     {
         var values = _motion.Current.ProjectToSafeRange();
