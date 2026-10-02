@@ -61,6 +61,7 @@ jobs:
       make_latest: ${{ steps.version.outputs.make_latest }}
       signing_required: ${{ steps.version.outputs.signing_required }}
       ai_runtime_manifest_sha256: ${{ steps.ai-runtime-diagnostic-manifest.outputs.sha256 }}
+      ai_semantic_approved: ${{ steps.ai-release-approval.outputs.approved }}
 
     steps:
       - name: Check out clean source
@@ -117,6 +118,14 @@ jobs:
             throw "Release publication is restricted to the repository owner or the trusted publication bridge."
           }
 
+      - name: Test AI semantic release gate regressions
+        run: node --test scripts/test-ai-release-approval.test.mjs
+
+      # A pending semantic review blocks publication, never ordinary PR validation.
+      - name: Enforce AI semantic publication approval before building
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        run: node scripts/test-ai-release-approval.mjs
+
       - name: Validate Stable and Beta release metadata
         shell: pwsh
         run: |
@@ -159,6 +168,15 @@ jobs:
       - name: Build verified offline AI inference runtime
         shell: pwsh
         run: ./scripts/Build-AiLyricsRuntime.ps1
+
+      - name: Bind semantic approval to the built shipping runtime
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        id: ai-release-approval
+        shell: pwsh
+        run: |
+          node scripts/test-ai-release-approval.mjs --runtime-manifest artifacts/ai-runtime/win-x64/runtime-manifest.json
+          if ($LASTEXITCODE -ne 0) { throw 'AI semantic publication approval failed.' }
+          "approved=true" >> $env:GITHUB_OUTPUT
 
       # Development-only handoff of this run's verified build. No model weights are uploaded.
       - name: Record candidate diagnostic runtime identity
@@ -633,6 +651,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.actor == github.repository_owner || github.actor == 'github-actions[bot]') &&
       needs.validate-release.result == 'success' &&
+      needs.validate-release.outputs.ai_semantic_approved == 'true' &&
       (needs.validate-release.outputs.signing_required != 'true' || needs.sign-release.result == 'success')
     needs: [validate-release, sign-release]
     runs-on: ubuntu-latest
@@ -665,6 +684,10 @@ jobs:
             echo "Tag ${tag} already exists; publication is immutable and cannot retarget it." >&2
             exit 1
           fi
+
+      # Recheck immediately before publication, including expiry and evidence hashes.
+      - name: Recheck AI semantic publication approval
+        run: node scripts/test-ai-release-approval.mjs
 
       - name: Publish immutable Stable or Beta release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2

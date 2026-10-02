@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "status": "pending",
+  "reason": "No shipping model has passed the required semantic release review. Native loading, valid JSON and candidate diagnostic success do not approve release.",
+  "scope": {
+    "releaseVersion": "v0.3.0-beta.32",
+    "shippingModels": [
+      {
+        "id": "hy-mt2-lightweight",
+        "sha256": "46e67068820c68ac43ea9f304556c641e8c9dbf54efb14cef2b4dd540a30f12a"
+      },
+      {
+        "id": "hy-mt2-standard",
+        "sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699"
+      }
+    ],
+    "runtime": {
+      "id": "llama-cpp-v0.5.0-cpu-win-x64",
+      "sourceCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b"
+    },
+    "promptVersion": "lyrics-v4-token-budget",
+    "sources": {
+      "algorithm": "sha256-utf8-lf-v1",
+      "files": [
+        {
+          "path": "src/DropSpace.Core/Lyrics/AiLyricsModelCatalog.cs",
+          "sha256": "babf3bf734de2b0dbfc80dac08c645438531d93b8e48289083570ccef7b0f637"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
+          "sha256": "60555a7ba29cb70f6265ed5099b0647522f5e1f76cf0eddc2508f377cd36c16f"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs",
+          "sha256": "2a3ec0198c7e8eb5ffc205f9b14bc116e9777045b2169836b23208e38a3cab8b"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs",
+          "sha256": "f8c44039c8733d87fc09120d1777a88d2b05d050cb0f6d4a47ed25daea137cf7"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs",
+          "sha256": "c5d3c31aaee8be02ea45fc240e325f1117a3ba95b8eee1b4e3adba7d21f9d776"
+        },
+        {
+          "path": "src/DropSpace.Core/Lyrics/LyricsInferenceCircuit.cs",
+          "sha256": "70f61804bf9411804a694216a45e3baada4a9734014e42a6c65f5e3f0b3d5340"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs",
+          "sha256": "cac39759b69cba4fd6177e2114c1407ff566ca40c0a0466efde5f370f2fdc947"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs",
+          "sha256": "bdf5d10c7897993906f79390e4f5659dd7eb43d0c3244eaede013ff1164e33ff"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsWorkLifetime.cs",
+          "sha256": "c29c94ab706c4a978db990bb50ee1d527e1df8665a3d6c4ffc0c2b1bb4e55896"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs",
+          "sha256": "a28b6c790d0c3042bd2965b05096543ae76e630145edf7537efcb03906b7ebba"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs",
+          "sha256": "9274907058a79977bc4029f8159e73a845364e39d6aaa0fe21d10d3ea3f9829d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
+          "sha256": "8f2948d7c982accd9a67ff82059738cd9daf9e55ed2c19842f748c2e6e11bb02"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs",
+          "sha256": "ea18b94c77212462de8ba8313b44518c9fb8e50a59b122ca69aba02b53eeb0e9"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs",
+          "sha256": "c3f969bb6a79da1ebba4023d21543260d216b8d376352ce0de1bfed9f50e6213"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
+          "sha256": "101fe04842d539ee5e3d33351aca57ee2ea56bd73b34658b676ad91882880a10"
+        },
+        {
+          "path": "scripts/Build-AiLyricsRuntime.ps1",
+          "sha256": "3ba7e7f6b8b9bd8f26e26aef1e2e9b288ac4187c4310da4f45b009578c62a644"
+        },
+        {
+          "path": "scripts/ai-model-qa/Program.cs",
+          "sha256": "7e31c3c15a074e70a4e7a1914c1f961369b4a162542c63e81d258ebbaae5b62f"
+        },
+        {
+          "path": "scripts/ai-model-qa/Run-WindowsModelQa.ps1",
+          "sha256": "80e8c406545d3349da3cfe7779e6abdbb9beb3ac8c7f023e1689ccf56023ebe0"
+        },
+        {
+          "path": "scripts/ai-model-qa/WindowsModelQa.csproj",
+          "sha256": "22e30ba84acb9e18185c8ff723aa00e114841131491f47b712fd4ce7856fd6d7"
+        }
+      ],
+      "sha256": "e7fae41a7eeea8a9947a3ad01fcb36f0afccfe6579eb01143ec4280186b36028"
+    },
+    "fixture": {
+      "path": "scripts/ai-model-qa/inputs/source48.json",
+      "sha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549"
+    }
+  },
+  "review": null
+}

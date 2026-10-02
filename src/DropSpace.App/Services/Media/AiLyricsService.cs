@@ -16,7 +16,7 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiLyricsRuntimePackage _runtime;
     private readonly LyricsTranslationCoordinator _translations;
     private readonly AiLyricsCache _cache;
-    private readonly AiLyricsWorkLifetime _work = new();
+    private readonly AiLyricsWorkLifetime _work;
     private readonly LlamaCompletionRunner _runner = new();
     private readonly ILogger<AiLyricsService> _logger;
     private readonly string _staging;
@@ -31,6 +31,7 @@ public sealed class AiLyricsService : IDisposable
 
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger)
     {
+        _work = new AiLyricsWorkLifetime(_runner.DrainCleanupAsync);
         _applicationRoot = paths.Root;
         var root = Path.Combine(paths.Root, "AiLyrics");
         _models = new AiModelPackageService(Path.Combine(root, "Models"));

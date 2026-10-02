@@ -9,6 +9,8 @@ public sealed class LlamaCompletionRunner : IDisposable
 {
     private static readonly SemaphoreSlim InferenceGate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly object _cleanupSync = new();
+    private Task _pendingCleanup = Task.CompletedTask;
     private bool _disposed;
     private const int MaximumOutputCharacters = 65_536;
     private const string Schema = "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"text\":{\"type\":\"string\"}},\"required\":[\"id\",\"text\"],\"additionalProperties\":false}}";
@@ -99,7 +101,11 @@ public sealed class LlamaCompletionRunner : IDisposable
         finally
         {
             if (cleanup is null) InferenceGate.Release();
-            else _ = ReleaseGateAfterCleanupAsync(cleanup, InferenceGate);
+            else
+            {
+                TrackCleanup(cleanup);
+                _ = ReleaseGateAfterCleanupAsync(cleanup, InferenceGate);
+            }
         }
     }
 
@@ -175,8 +181,38 @@ public sealed class LlamaCompletionRunner : IDisposable
         {
             if (promptPath is not null) cleanup = RemovePromptAfterCleanupAsync(cleanup, promptPath);
             if (cleanup is null) InferenceGate.Release();
-            else _ = ReleaseGateAfterCleanupAsync(cleanup, InferenceGate);
+            else
+            {
+                TrackCleanup(cleanup);
+                _ = ReleaseGateAfterCleanupAsync(cleanup, InferenceGate);
+            }
         }
+    }
+
+    internal void TrackCleanup(Task cleanup)
+    {
+        lock (_cleanupSync)
+            _pendingCleanup = _pendingCleanup.IsCompletedSuccessfully ? cleanup : Task.WhenAll(_pendingCleanup, cleanup);
+    }
+
+    /// <summary>Call after active work is stopped; a timeout never abandons native cleanup ownership.</summary>
+    public Task DrainCleanupAsync(CancellationToken token) => DrainCleanupAsync(token, TimeSpan.FromSeconds(10));
+
+    internal async Task DrainCleanupAsync(CancellationToken token, TimeSpan timeout)
+    {
+        Task cleanup;
+        lock (_cleanupSync) cleanup = _pendingCleanup;
+        try { await cleanup.WaitAsync(timeout, token).ConfigureAwait(false); }
+        catch (TimeoutException error) when (!cleanup.IsCompleted)
+        {
+            throw new TimeoutException("Local inference cleanup is still pending; model/cache maintenance was not started.", error);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            throw new IOException("Local inference cleanup could not be confirmed; model/cache maintenance was not started.", error);
+        }
+        lock (_cleanupSync)
+            if (ReferenceEquals(cleanup, _pendingCleanup)) _pendingCleanup = Task.CompletedTask;
     }
 
     internal static async Task WaitForCleanupPreservingFailureAsync(Task cleanup, int processId,

@@ -6,8 +6,12 @@ public sealed class AiLyricsWorkLifetime : IDisposable
     private readonly object _sync = new();
     private readonly SemaphoreSlim _maintenanceGate = new(1, 1);
     private readonly HashSet<CancellationTokenSource> _active = [];
+    private readonly Func<CancellationToken, Task>? _drainNativeCleanup;
     private TaskCompletionSource _idle = Completed();
     private bool _maintaining, _disposed;
+
+    public AiLyricsWorkLifetime(Func<CancellationToken, Task>? drainNativeCleanup = null) =>
+        _drainNativeCleanup = drainNativeCleanup;
 
     public async Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> action, T unavailable, CancellationToken token)
     {
@@ -48,6 +52,9 @@ public sealed class AiLyricsWorkLifetime : IDisposable
                 idle = _idle.Task;
             }
             await idle.WaitAsync(token).ConfigureAwait(false);
+            // A bounded inference cancellation may return before OS-confirmed exit. Keep
+            // maintenance fenced until that separately owned native cleanup is confirmed.
+            if (_drainNativeCleanup is not null) await _drainNativeCleanup(token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             await Task.Run(() => action(token), token).ConfigureAwait(false);
         }
