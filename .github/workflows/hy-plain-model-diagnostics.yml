@@ -1,0 +1,63 @@
+name: Hy Q8 plaintext protocol control (no publication)
+on:
+  push:
+    branches: [qa/hy-plain-031]
+    paths:
+      - scripts/hy-plain-model-qa/**
+      - '!scripts/hy-plain-model-qa/README.md'
+      - .github/workflows/hy-plain-model-diagnostics.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: hy-plain-control-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  plaintext-control:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Verify fixed runtime artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/ai-model-qa/Get-PinnedDiagnosticRuntime.ps1
+      - name: Parse control PowerShell before execution
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts/hy-plain-model-qa/Run-WindowsHyPlainQa.ps1'),[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count) { $errors; throw 'PowerShell parse failed' }
+      - name: Run one bounded plain-text control
+        id: control
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/hy-plain-model-qa/Run-WindowsHyPlainQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
+            -ExpectedRuntimeManifestSha256 406dfe47bd7c938936a4f57dd0ac4ecba910d8c5fd893aa72877ca172e26b212 `
+            -ModelDirectory artifacts/ai-candidate-models -DownloadMissing `
+            -OutputDirectory artifacts/hy-plain-control
+      - name: Preserve raw control evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: hy-plain-control-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/hy-plain-control/**
+          if-no-files-found: error
+          retention-days: 14
+      - name: Record actual technical outcome
+        if: always()
+        shell: pwsh
+        env:
+          CONTROL_OUTCOME: ${{ steps.control.outcome }}
+        run: |
+          '## Hy Q8 plaintext control: PENDING SEMANTIC REVIEW' >> $env:GITHUB_STEP_SUMMARY
+          'Same sampler, official plaintext template, host ID mapping, 30 single-line translations. Prior failed profiles retained; no full-song or publication approval.' >> $env:GITHUB_STEP_SUMMARY
+          if ($env:CONTROL_OUTCOME -ne 'success') { throw 'Plaintext control failed or was incomplete; read original evidence' }

@@ -1,0 +1,11 @@
+# Hy Q8 plain-text protocol control
+
+One predeclared Windows experiment: the same official Hy Q8 model/runtime hashes and QA sampler, with the official default Chinese-language translation template. No IDs, JSON, schema, background or extra system instruction reach the model. Official Hy documentation also supports structured data and background prompts; this experiment does not claim those formats are unsupported.
+
+The fixed12screen plus the original frozen12-line holdout in both targets produce30 native translations, with supplied-language bypass for six same-target cases. ID alignment is assigned by the host from each request, and checked against the original document after translation. The complete raw response remains evidence. Only the existing known CLI terminator and surrounding whitespace are removed for mapping; empty responses, foreign-source copies and additional lines fail without cropping or retries. This does not automatically establish the correct target language or meaning.
+
+Budgets stay3GiB,4threads,60seconds per line and an active180seconds per case, including all sequential cold launches. Cleanup is separately bounded at10seconds; unconfirmed cleanup stops further launches. No full48 test is scheduled. If the control lacks meaningful quality improvement, stop this profile rather than adjusting wording until results look good.
+
+The fixed sampler differs from Tencent's general recommendation, deliberately retaining the original QA values to isolate the protocol change. The earlier Q8 JSON failures and Q4 plain-text key-action reversal are retained. The frozen holdout is now a known cross-candidate benchmark; it cannot substitute for a fresh independent holdout before adoption. Review under the user's practical standard: minor understandable wording differences may warn, while wrong language, source copying and clear meaning reversal block.
+
+Workflow branch: qa/hy-plain-031 only, read-only permissions, no publication, no cancellation of running experiments. Runtime verification reuses the fixed reviewed artifact helper. Model and runtime pin metadata, actual configuration, prompt hashes, source hashes, CPU qualification, raw outputs and native resource evidence accompany each run. No model is loaded by local compilation or protocol self-tests.
