@@ -1,0 +1,87 @@
+name: Isolated Windows 7B preflight and evidence
+
+on:
+  # Only creating this exact branch starts the one automatic preflight job.
+  # Subsequent pushes are ignored by the job condition below; capture is dispatch-only.
+  push:
+    branches: [qa/windows-7b-preflight-20261003]
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Exact reviewed app source SHA; independent from the orchestration commit
+        required: true
+        type: string
+      mode:
+        description: Preflight performs no model/runtime download or native inference
+        required: true
+        default: preflight
+        type: choice
+        options: [preflight, capture]
+      runtime_run_id:
+        description: Required only for capture; successful exact-source Release producer run
+        required: false
+        type: string
+      runtime_run_attempt:
+        description: Required only for capture; exact producer attempt
+        required: false
+        type: string
+      runtime_artifact_id:
+        description: Required only for capture; exact ai-candidate-runtime artifact
+        required: false
+        type: string
+      runtime_archive_sha256:
+        description: Required only for capture; exact GitHub artifact archive digest, without sha256 prefix
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: isolated-7b-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  evidence:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created == true)
+    # Public repository standard runner only. Never substitute a larger/paid label.
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      EVIDENCE_EXPECTED_COMMIT: ${{ github.event_name == 'push' && 'fedc4eeb48fbeaf4a3424edb191eb2eaacf71dc8' || inputs.expected_commit }}
+      EVIDENCE_MODE: ${{ github.event_name == 'push' && 'preflight' || inputs.mode }}
+      EVIDENCE_TRIGGER_IS_NEW_BRANCH: ${{ github.event.created || false }}
+    steps:
+      - name: Check out orchestration code independently
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: controller
+          persist-credentials: false
+      - name: Check out exact reviewed application source independently
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: source
+          ref: ${{ env.EVIDENCE_EXPECTED_COMMIT }}
+          persist-credentials: false
+      - name: Install pinned .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Verify inputs and measure host; optionally capture exact 7B evidence
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_RUNTIME_RUN_ID: ${{ inputs.runtime_run_id }}
+          EVIDENCE_RUNTIME_RUN_ATTEMPT: ${{ inputs.runtime_run_attempt }}
+          EVIDENCE_RUNTIME_ARTIFACT_ID: ${{ inputs.runtime_artifact_id }}
+          EVIDENCE_RUNTIME_ARCHIVE_SHA256: ${{ inputs.runtime_archive_sha256 }}
+        run: ./controller/scripts/isolated-7b-evidence/Invoke-Isolated7bEvidence.ps1 -SourceRoot (Join-Path $env:GITHUB_WORKSPACE 'source')
+      - name: Preserve diagnostics and model-free evidence, including failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: isolated-7b-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: source/artifacts/isolated-7b-diagnostics/**
+          if-no-files-found: warn
+          retention-days: 14
