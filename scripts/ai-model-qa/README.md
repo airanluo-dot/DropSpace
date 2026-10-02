@@ -120,3 +120,23 @@ The next predeclared comparison therefore runs the same two fixed screens per ca
 QA now adds --perf, cumulative sampled native CPU time and FirstStdoutObservedSeconds (time at first stream read, not an exact native token timestamp). Sampled CPU time on a killed process is a lower bound. A null stdout timestamp means no output was observed. This telemetry helps distinguish compute activity from waiting; no single metric alone proves the cause.
 
 Pinned completion.cpp lines 250–270 apply the chat template to the file prompt as user content; lines 365–368 explicitly disable interaction for a nonempty single-turn prompt. Thus the conversation warning is not evidence of waiting for stdin. No -no-cnv workaround is applied, because that would skip template formatting. No production runtime/catalog changes are made.
+
+## Predeclared minimal-target-only prompt diagnostic
+
+The 61596 AVX2 run resolved the prior loading/performance uncertainty, but Qwen's Chinese target emitted Japanese and Granite copied all source lines. These quality failures are retained. The next CI invocation schedules Qwen only, with explicit `-PromptProfile minimal-target-only`; production remains the default profile for manual calls. The frozen experiment manifest is profiles/minimal-target-only.json (registered before execution). Both original six-line ID groups, exact schema, seed/sampling, AVX2, 3 GiB/60 s/2048-token budgets remain unchanged. Only metadata/background removal, shorter generic instructions and repeated full target name change. This combined ablation cannot identify which component causes any improvement.
+
+Runtime config, environment, per-model prompt-profile.json and summary identify the diagnostic profile; QA source hashes are recorded. Raw output must still pass the original TryApply validator. The separate untouched holdout and full48/180 s acceptance remain mandatory before any production consideration. No semantic success is inferred from a technical green result. No word-specific corrections, seed retries or holdout-driven prompt changes are allowed. Granite is not downloaded or run in this diagnostic.
+
+## Official Hy-MT2 Q8 candidate alongside Qwen diagnostic
+
+The same next CI run also schedules exactly one official Tencent Hy-MT2-1.8B Q8 candidate screen, explicitly using PromptProfile production. Its immutable official revision, 1,908,528,192-byte file and SHA256 are in candidates.json. It keeps the original two six-line ID groups, exact schema, fixed sampler, AVX2 and 3 GiB/60 s budgets. No Q6 download is scheduled. Qwen's minimal-target-only experiment and Hy's production-profile candidate are labelled separately in config/results/CI summary.
+
+This is a candidate screen, not a causal experiment proving quantization explains earlier Q4 errors: earlier Q4 executions were not all byte-identical in prompt/runtime/sampling. Existing Q4/compact failures remain. The Q8 weight file is about 1.78 GiB, leaving about 1.22 GiB under the job cap for all other allocations; this arithmetic does not establish peak memory or successful loading. Architecture and Q8 encoding have pinned-source support, but actual Windows success and semantics remain untested until CI. Both candidate technical outcomes must succeed for the diagnostic job to be technically green; semantic quality remains unapproved.
+
+## Independent diagnostics workflow and pinned runtime reuse
+
+AI model diagnostics now run from .github/workflows/ai-model-diagnostics.yml on feature/ai-lyrics-031 pushes that change this QA directory or that workflow. Concurrency does not cancel a running experiment. The Release workflow retains its shipping native gate and semantic publication gate; its duplicate candidate job is removed. It still uploads the verified runtime and now includes LICENSE-llama.cpp for future reuse.
+
+Get-PinnedDiagnosticRuntime.ps1 uses only the existing read-only GitHub token to retrieve same-repository run 36965634264 attempt 1, artifact 11210435635, from source 61596fcb6e757de2e6496613be3791a38142e04d. It verifies successful run identity, artifact name/ID/digest/expiry, downloaded archive SHA256, exact manifest SHA256, pinned llama source and every native component byte count/hash. Only the expected archive entries are accepted. An expired, missing or mismatched artifact fails; there is no alternate download or rebuild fallback.
+
+The runtime build source SHA and current experiment source SHA are recorded separately in evidence. The legacy artifact did not contain license notices; this is disclosed, and new Release uploads include notices. Reusing it here grants no redistribution or model-quality approval. No runtime is rebuilt in this workflow and no signing/publishing permission or secret is supplied.

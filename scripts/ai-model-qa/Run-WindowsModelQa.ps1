@@ -4,9 +4,10 @@ param(
     [Parameter(Mandatory)][string]$RuntimeDirectory,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ExpectedRuntimeManifestSha256,
     [string]$ModelDirectory,
-    [ValidateSet('qwen3-17-q4','qwen3-17-q8','granite33-2-q4')][string[]]$ModelIds = @('qwen3-17-q4','granite33-2-q4'),
+    [ValidateSet('qwen3-17-q4','qwen3-17-q8','granite33-2-q4','hy-mt2-18-q8')][string[]]$ModelIds = @('qwen3-17-q4','granite33-2-q4'),
     [ValidateSet('Baseline','Avx2')][string]$Variant = 'Baseline',
     [ValidateSet(1536,3072)][int]$MemoryMiB = 3072,
+    [ValidateSet('production','minimal-target-only')][string]$PromptProfile = 'production',
     [switch]$DownloadMissing,
     [switch]$LoadOnly,
     [switch]$TestCancellation,
@@ -78,6 +79,9 @@ Assert-Hash (Join-Path $qa 'inputs/source48.json') $candidates.sourceFixtureSha2
 Copy-Item (Join-Path $qa 'inputs/source48.json') (Join-Path $OutputDirectory 'source48.json')
 Assert-Hash (Join-Path $OutputDirectory 'source48.json') $candidates.sourceFixtureSha256
 $sourceFiles = @(
+    'scripts/ai-model-qa/Program.cs',
+    'scripts/ai-model-qa/Run-WindowsModelQa.ps1',
+    'scripts/ai-model-qa/profiles/minimal-target-only.json',
     'src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs',
     'src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs',
     'src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs',
@@ -90,7 +94,7 @@ Copy-Item $manifestPath (Join-Path $OutputDirectory 'runtime-manifest.json')
 Copy-Item (Join-Path $qa 'candidates.json') (Join-Path $OutputDirectory 'candidates.json')
 $os = Get-CimInstance Win32_OperatingSystem
 $cpu = Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors
-[ordered]@{ utc=(Get-Date).ToUniversalTime().ToString('o'); os=$os.Caption; osVersion=$os.Version; freePhysicalKiB=$os.FreePhysicalMemory; totalVisibleKiB=$os.TotalVisibleMemorySize; cpu=$cpu; variant=$Variant; cpuQualification=$cpuQualification; memoryMiB=$MemoryMiB; runtimeManifestSha256=$ExpectedRuntimeManifestSha256; sourceCommit=$manifest.sourceCommit; note='Read-only host observation; no unrelated processes stopped.' } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'environment.json') -Encoding utf8
+[ordered]@{ utc=(Get-Date).ToUniversalTime().ToString('o'); os=$os.Caption; osVersion=$os.Version; freePhysicalKiB=$os.FreePhysicalMemory; totalVisibleKiB=$os.TotalVisibleMemorySize; cpu=$cpu; variant=$Variant; promptProfile=$PromptProfile; cpuQualification=$cpuQualification; memoryMiB=$MemoryMiB; runtimeManifestSha256=$ExpectedRuntimeManifestSha256; sourceCommit=$manifest.sourceCommit; note='Read-only host observation; no unrelated processes stopped.' } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'environment.json') -Encoding utf8
 if ([long]$os.FreePhysicalMemory -lt (($MemoryMiB + 1024) * 1024L)) { Write-Warning 'Host free RAM is below the selected job budget plus1GiB; preserve this as possible resource-pressure evidence. The job cap is unchanged.' }
 $project = Join-Path $qa 'WindowsModelQa.csproj'
 & dotnet restore $project -p:RestoreLockedMode=true *> (Join-Path $OutputDirectory 'restore.log')
@@ -104,7 +108,7 @@ foreach ($id in $ModelIds) {
     $model = @($candidates.models | Where-Object id -CEQ $id)
     if ($model.Count -ne 1) { throw "Missing/duplicate pinned candidate: $id" }
     $model = $model[0]
-    if ($model.url -notmatch '^https://huggingface\.co/(Qwen|ggml-org|ibm-granite)/[^/]+/resolve/[0-9a-f]{40}/[^/]+\.gguf$') { throw 'Unrecognized candidate URL.' }
+    if ($model.url -notmatch '^https://huggingface\.co/(Qwen|ggml-org|ibm-granite|tencent)/[^/]+/resolve/[0-9a-f]{40}/[^/]+\.gguf$') { throw 'Unrecognized candidate URL.' }
     $path = Join-Path $ModelDirectory $model.file
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         if (-not $DownloadMissing) { throw "Missing $path. Copy the verified existing model or explicitly pass -DownloadMissing." }
@@ -119,7 +123,7 @@ foreach ($id in $ModelIds) {
     $out = Join-Path $OutputDirectory $id
     New-Item $out -ItemType Directory | Out-Null
     Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize,FreeVirtualMemory,TotalVirtualMemorySize | ConvertTo-Json | Set-Content (Join-Path $out 'host-before.json') -Encoding utf8
-    $config = [ordered]@{ modelId=$id; model=$path; modelBytes=$model.bytes; modelSha256=$model.sha256; executable=$exe; executableSha256=$component.sha256; tokenizer=$tokenizer; tokenizerSha256=$manifest.tokenizer.sha256; source=(Join-Path $OutputDirectory 'source48.json'); output=$out; memoryMiB=$MemoryMiB; loadOnly=[bool]$LoadOnly; testCancellation=[bool]$TestCancellation }
+    $config = [ordered]@{ modelId=$id; model=$path; modelBytes=$model.bytes; modelSha256=$model.sha256; executable=$exe; executableSha256=$component.sha256; tokenizer=$tokenizer; tokenizerSha256=$manifest.tokenizer.sha256; source=(Join-Path $OutputDirectory 'source48.json'); output=$out; memoryMiB=$MemoryMiB; promptProfile=$PromptProfile; outputSchema='production-id-text-json-v1'; loadOnly=[bool]$LoadOnly; testCancellation=[bool]$TestCancellation }
     $configPath = Join-Path $out 'qa-config.json'
     $config | ConvertTo-Json -Depth 4 | Set-Content $configPath -Encoding utf8
     & dotnet $dll $configPath *> (Join-Path $out 'console.log')
@@ -141,7 +145,7 @@ foreach ($id in $ModelIds) {
     }
     ConvertTo-Json -InputObject @($owned) -Depth 4 | Set-Content (Join-Path $out 'owned-process-observation.json') -Encoding utf8
     Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize,FreeVirtualMemory,TotalVirtualMemorySize | ConvertTo-Json | Set-Content (Join-Path $out 'host-after.json') -Encoding utf8
-    $summary += [ordered]@{ modelId=$id; harnessExit=$code; results=(Join-Path $out 'results.json'); semanticStatus='Human review required; never a release gate by exit code alone.' }
+    $summary += [ordered]@{ modelId=$id; promptProfile=$PromptProfile; harnessExit=$code; results=(Join-Path $out 'results.json'); semanticStatus='Human review required; never a release gate by exit code alone.' }
     $summary | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $OutputDirectory 'summary.json') -Encoding utf8
     Write-Host "$id completed harness exit $code. Evidence: $out"
 }

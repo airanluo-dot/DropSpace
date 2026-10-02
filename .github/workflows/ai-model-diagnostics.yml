@@ -1,0 +1,140 @@
+name: AI model diagnostics (no publication)
+
+on:
+  push:
+    branches: [feature/ai-lyrics-031]
+    paths:
+      - scripts/ai-model-qa/**
+      - .github/workflows/ai-model-diagnostics.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ai-model-diagnostics-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ai-model-diagnostics:
+    name: Qwen prompt and Hy Q8 diagnostics (quality review required)
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the same candidate source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+
+      - name: Retrieve and verify the fixed reviewed runtime artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/ai-model-qa/Get-PinnedDiagnosticRuntime.ps1
+
+      - name: Parse QA PowerShell without executing its body
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/ai-model-qa/Run-WindowsModelQa.ps1'),
+            [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List; throw 'QA script syntax check failed.' }
+
+      # One predeclared Qwen prompt-profile diagnostic; previous production-profile failures remain evidence.
+      # Capture evidence on error, then fail the job if technical validation was incomplete.
+      - name: Diagnose Qwen3 Q4 minimal-target-only prompt on AVX2
+        id: qwen
+        continue-on-error: true
+        timeout-minutes: 12
+        shell: pwsh
+        env:
+          EXPECTED_RUNTIME_MANIFEST_SHA256: '406dfe47bd7c938936a4f57dd0ac4ecba910d8c5fd893aa72877ca172e26b212'
+        run: |
+          ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
+            -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
+            -ModelDirectory artifacts/ai-candidate-models -ModelIds qwen3-17-q4 `
+            -Variant Avx2 -MemoryMiB 3072 -PromptProfile minimal-target-only -DownloadMissing `
+            -OutputDirectory artifacts/ai-model-diagnostics/qwen3-17-q4
+
+      - name: Screen official Hy MT2 Q8 with production prompt on AVX2
+        id: hyq8
+        if: ${{ !cancelled() && steps.qwen.outcome != 'skipped' }}
+        continue-on-error: true
+        timeout-minutes: 12
+        shell: pwsh
+        env:
+          EXPECTED_RUNTIME_MANIFEST_SHA256: '406dfe47bd7c938936a4f57dd0ac4ecba910d8c5fd893aa72877ca172e26b212'
+        run: |
+          ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
+            -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
+            -ModelDirectory artifacts/ai-candidate-models -ModelIds hy-mt2-18-q8 `
+            -Variant Avx2 -MemoryMiB 3072 -PromptProfile production -DownloadMissing `
+            -OutputDirectory artifacts/ai-model-diagnostics/hy-mt2-18-q8
+
+      - name: Record technical outcomes and mandatory semantic review
+        if: always()
+        shell: pwsh
+        env:
+          QWEN_OUTCOME: ${{ steps.qwen.outcome }}
+          HY_Q8_OUTCOME: ${{ steps.hyq8.outcome }}
+        run: |
+          New-Item artifacts/ai-model-diagnostics -ItemType Directory -Force | Out-Null
+          $record = [ordered]@{
+            sourceSha = '${{ github.sha }}'
+            runtimeBuildSourceSha = '61596fcb6e757de2e6496613be3791a38142e04d'
+            runtimeBuildRunId = 36965634264
+            runtimeArtifactId = 11210435635
+            runId = '${{ github.run_id }}'
+            runAttempt = '${{ github.run_attempt }}'
+            qwenTechnicalOutcome = $env:QWEN_OUTCOME
+            qwenPromptProfile = 'minimal-target-only'
+            hyQ8TechnicalOutcome = $env:HY_Q8_OUTCOME
+            hyQ8PromptProfile = 'production'
+            hyQ8Interpretation = 'Candidate screen only; not a controlled quantization-causality claim'
+            priorProductionProfileQuality = 'FAILED; original evidence retained'
+            graniteStatus = 'NOT SCHEDULED; previous fixed-screen quality failure retained'
+            semanticStatus = 'PENDING HUMAN REVIEW: no candidate is quality-approved by this job.'
+            releaseApproval = $false
+          }
+          $record | ConvertTo-Json | Set-Content artifacts/ai-model-diagnostics/ci-outcomes.json -Encoding utf8
+          @(
+            '## Qwen prompt diagnostic and official Hy Q8 candidate screen',
+            'Same fixed IDs/schema/seed/budgets; background removed and generic target instruction simplified. No holdout or production change.',
+            'Prior baseline timeout evidence remains failed. AVX2 results do not establish support on CPUs without AVX2/FMA/F16C.',
+            "Qwen3 Q4 (minimal-target-only) technical outcome: $env:QWEN_OUTCOME",
+            "Hy MT2 Q8 (production prompt) technical outcome: $env:HY_Q8_OUTCOME",
+            'Hy Q8 is a candidate screen, not proof that quantization caused earlier Q4 errors.',
+            'Semantic quality: PENDING HUMAN REVIEW. Structural success does not approve a model.',
+            'Loading failures have no semantic verdict. Read original stdout/stderr and exit/peak-memory records.',
+            'This job does not test full-song, holdout, cache, or release readiness.'
+          ) -join "`n`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload candidate diagnostic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-model-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ai-model-diagnostics/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce truthful technical diagnostic status
+        if: always()
+        shell: pwsh
+        env:
+          QWEN_OUTCOME: ${{ steps.qwen.outcome }}
+          HY_Q8_OUTCOME: ${{ steps.hyq8.outcome }}
+        run: |
+          if ($env:QWEN_OUTCOME -ne 'success' -or $env:HY_Q8_OUTCOME -ne 'success') {
+            throw 'Candidate diagnostics failed or were incomplete. See the evidence artifact; semantic quality remains unapproved.'
+          }
+          Write-Host 'Both candidate technical screens completed with strict structure. Semantic review is still required.'
