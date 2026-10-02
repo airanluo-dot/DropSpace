@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/DropSpace.Core/DropSpace.Core.csproj" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs" Link="Production/LocalInferenceProcess.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs" Link="Production/WindowsInferenceProcess.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Storage/ReparseSafePathPolicy.cs" Link="Production/ReparseSafePathPolicy.cs" />
+  </ItemGroup>
+</Project>

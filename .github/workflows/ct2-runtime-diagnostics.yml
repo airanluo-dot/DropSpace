@@ -1,0 +1,63 @@
+name: Private CT2 runtime smoke (no publication)
+on:
+  push:
+    branches: [qa/ct2-runtime-031]
+    paths:
+      - scripts/ct2-runtime-qa/**
+      - tools/ct2-helper/**
+      - src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs
+      - src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs
+      - .github/workflows/ct2-runtime-diagnostics.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ct2-runtime-smoke-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  private-runtime:
+    if: github.ref == 'refs/heads/qa/ct2-runtime-031'
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Parse PowerShell before execution
+        shell: pwsh
+        run: |
+          foreach ($file in @('scripts/ct2-runtime-qa/Get-VerifiedInputs.ps1', 'scripts/ct2-runtime-qa/Run-WindowsCt2RuntimeQa.ps1', 'tools/ct2-helper/build.ps1')) {
+            $tokens=$null; $errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$tokens,[ref]$errors) | Out-Null
+            if ($errors.Count) { $errors; throw 'PowerShell parse failed' }
+          }
+      - name: Acquire exact official inputs
+        shell: pwsh
+        run: ./scripts/ct2-runtime-qa/Get-VerifiedInputs.ps1 -Output "$env:RUNNER_TEMP/ct2-reviewed-inputs"
+      - name: Build and inspect private frozen runtime
+        id: native
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/ct2-runtime-qa/Run-WindowsCt2RuntimeQa.ps1 -Inputs "$env:RUNNER_TEMP/ct2-reviewed-inputs" `
+            -Work "$env:RUNNER_TEMP/ct2-private-build" -Output artifacts/ct2-runtime-qa
+      - name: Preserve candidate and raw evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: private-ct2-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ct2-runtime-qa/**
+          if-no-files-found: error
+          retention-days: 14
+      - name: Record bounded acceptance result
+        if: always()
+        shell: pwsh
+        env:
+          NATIVE_OUTCOME: ${{ steps.native.outcome }}
+        run: |
+          '## Private CT2 runtime: native packaging smoke only' >> $env:GITHUB_STEP_SUMMARY
+          'No production publication, model quality, tokenizer parity, App UX, clean-machine compatibility or redistribution approval. Inspect status.json and native-smoke.json.' >> $env:GITHUB_STEP_SUMMARY
+          if ($env:NATIVE_OUTCOME -ne 'success') { throw 'Native packaging smoke failed or did not complete.' }

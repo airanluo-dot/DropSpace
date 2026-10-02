@@ -20,6 +20,7 @@ public sealed class LyricsReloadPolicyTests
         var before = new AppSettings();
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Language = AppLanguagePreference.English }));
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { AiModelId = "lightweight" } }));
+        Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { AiLyricsGpuAccelerationEnabled = false } }));
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { AiTranslationEnabled = true } }));
         Assert.IsTrue(LyricsReloadPolicy.RequiresReload(before, before with { Lyrics = before.Lyrics with { Provider = LyricsProviderKind.QqMusic } }));
     }

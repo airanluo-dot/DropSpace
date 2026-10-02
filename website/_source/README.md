@@ -84,6 +84,12 @@ changelog snapshots and release JSON endpoints. Downloads use official GitHub
 latest-release asset links; release-history links lead to GitHub. The normal
 `npm run build` output and updater-facing API are unchanged.
 
+Static language navigation uses explicit `/en/index.html` and `/zh-cn/index.html`
+files, including the root redirect, so GPT hosting does not need nested directory-index
+rewrites. Official GitHub Pages keeps its `/DropSpace/en/` and `/DropSpace/zh-cn/`
+routes. The static preview server intentionally rejects nested directory routes to
+prevent local tests from masking a public-host routing failure.
+
 The default static origin is `https://dropspace-static.arenvox.chatgpt.site`.
 `SITE_ORIGIN` can override it for a deliberate migration; generating this artifact
 does not publish a Site or alter its access. Keep the existing Site project and

@@ -107,7 +107,7 @@ test('Mobile glow and audio controls remain touch-sized outside the scaled mocku
 test('GPT static showcase retains matching layout without release polling or removed controls',async({page})=>{
   const requests=[];page.on('request',request=>requests.push(request.url()));
   for(const locale of ['en','zh-cn']) {
-    await page.goto(`http://127.0.0.1:4174/${locale}/`);
+    await page.goto(`http://127.0.0.1:4174/${locale}/index.html`);
     await expect(page.locator('html')).toHaveAttribute('data-site-variant','static');
     await expect(page.locator('[data-stable-version],[data-latest-change],.stable-line')).toHaveCount(0);
     await expect(page.locator('[data-download="installer"]').first()).toHaveAttribute('href','https://github.com/airanluo-dot/DropSpace/releases/latest/download/DropSpaceSetup.exe');

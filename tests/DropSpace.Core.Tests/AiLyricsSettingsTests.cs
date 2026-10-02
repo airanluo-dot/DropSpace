@@ -29,8 +29,25 @@ public sealed class AiLyricsSettingsTests
             Assert.AreEqual(model.Id, restored.Lyrics.AiModelId);
             Assert.IsTrue(restored.Lyrics.AiTranslationEnabled);
         }
-        Assert.AreEqual(AiLyricsModelCatalog.Compact.Id,
+        Assert.AreEqual(AiLyricsModelCatalog.ExperimentalPlain.Id,
             new AppSettings { Lyrics = new() { AiModelId = "lightweight" } }.Validate().Lyrics.AiModelId);
+    }
+
+    [TestMethod]
+    public void OnlyPlainQ8BetaIsSelectableAndLegacyProfilesMigrateWithoutEnablingAi()
+    {
+        Assert.HasCount(1, AiLyricsModelCatalog.All);
+        Assert.AreEqual(AiLyricsModelCatalog.ExperimentalPlain, AiLyricsModelCatalog.All[0]);
+        Assert.AreEqual(1_908_528_192, AiLyricsModelCatalog.ExperimentalPlain.Bytes);
+        foreach (var old in AiLyricsModelCatalog.Legacy)
+        {
+            Assert.IsNotNull(AiLyricsModelCatalog.Find(old.Id), "Legacy bytes must remain removable.");
+            Assert.IsNull(AiLyricsModelCatalog.FindSelectable(old.Id));
+            var migrated = new AppSettings { Lyrics = new() { AiModelId = old.Id, AiTranslationEnabled = false } }.Validate();
+            Assert.AreEqual(AiLyricsModelCatalog.ExperimentalPlain.Id, migrated.Lyrics.AiModelId);
+            Assert.IsFalse(migrated.Lyrics.AiTranslationEnabled);
+        }
+        Assert.AreEqual(AiLyricsModelCatalog.ExperimentalPlain.Id, new LyricsSettings().AiModelId);
     }
 
     [TestMethod]
@@ -57,10 +74,24 @@ public sealed class AiLyricsSettingsTests
         });
         Assert.IsTrue(normalized.ClipboardPaused);
         Assert.IsTrue(normalized.Lyrics.AiTranslationEnabled);
-        Assert.AreEqual("hy-mt2-standard", normalized.Lyrics.AiModelId);
+        Assert.AreEqual(AiLyricsModelCatalog.ExperimentalPlain.Id, normalized.Lyrics.AiModelId);
         Assert.AreEqual(LyricsGlowMode.Off, normalized.Lyrics.GlowMode);
         Assert.AreEqual(16d, normalized.Lyrics.OriginalFontSize);
         Assert.AreEqual(14d, normalized.Lyrics.TranslationFontSize);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void GpuPreferencePersistsWithoutEnablingAi(bool accelerated)
+    {
+        var original = new AppSettings { Lyrics = new() { AiLyricsGpuAccelerationEnabled = accelerated } };
+        var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(System.Text.Json.JsonSerializer.Serialize(original))!.Validate();
+        Assert.AreEqual(accelerated, restored.Lyrics.AiLyricsGpuAccelerationEnabled);
+        Assert.IsFalse(restored.Lyrics.AiTranslationEnabled);
+        var old = System.Text.Json.JsonSerializer.Deserialize<AppSettings>("{\"Lyrics\":{\"AiTranslationEnabled\":false}}")!.Validate();
+        Assert.IsTrue(old.Lyrics.AiLyricsGpuAccelerationEnabled);
+        Assert.IsFalse(old.Lyrics.AiTranslationEnabled);
     }
 
     [TestMethod]

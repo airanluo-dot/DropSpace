@@ -19,7 +19,7 @@ export default defineConfig({
     reuseExistingServer: true
   }, {
     command: "node scripts/build-static.mjs && node scripts/serve.mjs --static",
-    url: "http://127.0.0.1:4174/en/",
+    url: "http://127.0.0.1:4174/en/index.html",
     reuseExistingServer: true
   }]
 });

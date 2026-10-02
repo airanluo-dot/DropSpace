@@ -113,7 +113,10 @@ def validate(wheelhouse, inventory, lock, python_version):
                       raw_name.casefold() not in archive_names and
                       not stat.S_ISLNK(item.external_attr >> 16), 'Unsafe or duplicate wheel member')
                 archive_names.add(raw_name.casefold())
-            metadata_names = [item.filename for item in members if item.filename.endswith('.dist-info/METADATA')]
+            # Vendored distributions may carry nested metadata; only the wheel's root
+            # distribution identifies this package. All members still pass raw-name checks above.
+            metadata_names = [item.filename for item in members
+                              if item.filename.count('/') == 1 and item.filename.endswith('.dist-info/METADATA')]
             check(len(metadata_names) == 1 and archive.getinfo(metadata_names[0]).file_size <= 1048576, 'Wheel metadata missing/large')
             metadata = email.parser.BytesParser().parsebytes(archive.read(metadata_names[0]))
             check(len(metadata.get_all('Name', [])) == 1 and len(metadata.get_all('Version', [])) == 1 and

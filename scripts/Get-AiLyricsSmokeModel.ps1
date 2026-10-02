@@ -7,8 +7,7 @@ $directory = Join-Path $root 'artifacts/ai-smoke-model'
 New-Item $directory -ItemType Directory -Force | Out-Null
 # Development-only data; these weights are not included in the application bundle.
 $models = @(
-    @{ File = 'Hy-MT2-1.8B-Q4_K_M.gguf'; Bytes = 1133080448; Hash = 'dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699'; Environment = 'DROPSPACE_AI_SMOKE_MODEL'; Uri = 'https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF/resolve/a0c709d9fac510f2c807aa3af52872340dc37a4a/Hy-MT2-1.8B-Q4_K_M.gguf' },
-    @{ File = 'Hy-MT2-1.8B.i1-IQ3_S.gguf'; Bytes = 876311552; Hash = '46e67068820c68ac43ea9f304556c641e8c9dbf54efb14cef2b4dd540a30f12a'; Environment = 'DROPSPACE_AI_SMOKE_COMPACT_MODEL'; Uri = 'https://huggingface.co/mradermacher/Hy-MT2-1.8B-i1-GGUF/resolve/9f5c7d98d8b625800775e6197e55c7ed38f2f33a/Hy-MT2-1.8B.i1-IQ3_S.gguf' }
+    @{ File = 'Hy-MT2-1.8B-Q8_0.gguf'; Bytes = 1908528192; Hash = '5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4'; Environment = 'DROPSPACE_AI_SMOKE_MODEL'; Uri = 'https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF/resolve/a0c709d9fac510f2c807aa3af52872340dc37a4a/Hy-MT2-1.8B-Q8_0.gguf' }
 )
 foreach ($model in $models) {
     $path = Join-Path $directory $model.File

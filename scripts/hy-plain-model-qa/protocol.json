@@ -1,0 +1,18 @@
+{
+  "id":"official-plain-per-line-v1",
+  "status":"PENDING SEMANTIC REVIEW",
+  "officialTemplateSource":"https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF#hy-mt2-translation-task-instruction-examples-chinese-english-comparison",
+  "template":"将以下文本翻译为{target_lang}，注意只需要输出翻译后的结果，不要额外解释：\n{source_text}",
+  "targets":{"en-US":"英语","zh-CN":"简体中文"},
+  "model":"hy-mt2-18-q8",
+  "sampler":{"seed":42,"temperature":0.1,"topK":20,"topP":0.8,"minP":0.05,"repeatPenalty":1.0,"frequencyPenalty":0,"presencePenalty":0,"maxTokens":2048},
+  "officialSamplerDifference":"Official recommendation uses temperature0.7/topP0.6/repeatPenalty1.05/maxTokens4096. This control retains the prior QA sampler to isolate the translation protocol.",
+  "budgets":{"jobMemoryMiB":3072,"threads":4,"perLineSeconds":60,"caseSeconds":180,"contextTokens":4096,"cleanupObservationSeconds":10},
+  "cases":["screen6 Chinese→English","screen6 Japanese/Korean→Simplified Chinese","frozen holdout12→English with3 same-language bypasses","frozen holdout12→Simplified Chinese with3 same-language bypasses"],
+  "expectedNativeTranslationCalls":30,
+  "routing":"Supplied fixture language tags; no automatic detection claim",
+  "output":"Complete native response bound to request ID outside generation. No JSON or grammar sent to model. Preserve original stdout; remove only known CLI terminator and surrounding whitespace for host mapping. Reject empty/copy/multiline outputs rather than crop.",
+  "priorEvidence":"Original Q8 JSON failures and earlier Q4 single-line action reversal remain failed evidence. Official model also supports JSON/background templates; JSON is not claimed unsupported.",
+  "nextGate":"Review practical quality before any full48 run. No repeated wording/seed search. Fresh independent holdout required before adoption.",
+  "releaseApproval":false
+}

@@ -115,7 +115,7 @@ public sealed class LyricsCache
         finally { _gate.Release(); }
     }
 
-    internal async Task WriteAsync(string category, string identity, string payload, int maximumBytes, long generation, CancellationToken token)
+    internal async Task WriteAsync(string category, string identity, string payload, int maximumBytes, long generation, CancellationToken token, Func<bool>? isCurrent = null)
     {
         var bytes = Encoding.UTF8.GetBytes(payload);
         if (bytes.Length > maximumBytes) throw new InvalidDataException("Lyrics cache entry exceeds its bounded size.");
@@ -124,7 +124,7 @@ public sealed class LyricsCache
         try
         {
             token.ThrowIfCancellationRequested();
-            if (generation != Generation || bytes.LongLength > CurrentQuota()) return;
+            if (generation != Generation || isCurrent?.Invoke() == false || bytes.LongLength > CurrentQuota()) return;
             if (!HasSafeFreeSpace(bytes.LongLength)) return;
             var final = EntryPath(category, identity);
             Directory.CreateDirectory(_root);
@@ -137,6 +137,9 @@ public sealed class LyricsCache
             // old entry cannot be evicted, the new entry must not increase disk usage.
             Trim(CurrentQuota() - bytes.LongLength, final, temporary);
             ReparseSafePathPolicy.RevalidatePreparedDestination(_root, final);
+            // Recheck at publication, after potentially slow quota scans and file writes.
+            token.ThrowIfCancellationRequested();
+            if (generation != Generation || isCurrent?.Invoke() == false) return;
             File.Move(temporary, final, true);
             temporary = null;
         }

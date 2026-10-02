@@ -2,6 +2,46 @@
 
 ## Beta 28 media identity and passive installation inspection
 
+### Local translation backend boundary
+
+`AiLyricsService` receives a contextual verified package resolver and an inference backend through
+DI. Cache preflight belongs to that backend; one strategy cannot consume another strategy's cache.
+The sole selectable/shipping AI profile for this Beta is pinned Tencent Hy-MT2 1.8B Q8_0 with the
+frozen official per-line plaintext template. AI remains off by default. Older Standard/Compact
+settings normalize to Q8 without downloading or deleting anything; their descriptors remain only
+for local artifact inspection/removal. The legacy JSON runner/backend implementation is retained but
+is not selected by production DI or offered as an approved alternative.
+
+`PlainHyLyricsProtocol` versions the exact target/source template, sampler, host mapping, acceptance
+policy, Q8 model digest, trusted embedded runtime-manifest digest, and app-owned track/provider/timing
+identity. No IDs, JSON schema, context/reviewer metadata, or gold source-language labels reach the
+model. `RunPlainAsync` uses a single code-owned argument builder, no `-j`, four CPU threads, the
+shared native admission gate, 3 GiB process memory budget, 60-second line deadline, and retained
+process cleanup ownership. The whole-song inference ceiling is 300 seconds, not a performance claim.
+First generation can take several minutes; known semantic errors remain possible under the Beta label.
+There is no claimed automatic language detector or gold-label bypass: every nonblank unknown-source
+line is evaluated. Unchanged names/same-target/unknown text is neutral. Invalid, missing, multiline,
+cancelled, or failed output never becomes a complete translation or persistent partial-song cache.
+No-useful complete outcomes are memoized only in a bounded 64-entry, ten-minute session cache tied to
+the current clear generation. Existing matching provider translations take precedence.
+
+The unregistered CT2 candidate resolver/backend remains independently executable with explicitly
+injected reviewed route references and a source identifier. Its safe default always abstains on
+unknown or mixed-language documents rather than guessing from script. The resolved request binds
+source/target, detector policy, direct/pivot route, manifest, engine/runtime/model/tokenizer/decoder
+identities. The helper re-verifies expected package identity under retained file leases before launch.
+Every bounded batch/route leg must validate before whole-document publication or caching. No CT2
+model, detector, download URL, catalog selection, or deletion UI is enabled.
+
+CT2 archives stream to private disk staging under exact reviewed size/hash bounds. Strict inventory,
+raw-path/reparse validation and post-extraction private-package verification precede an atomic
+same-volume move to a package-ID/manifest-digest directory; different reviewed versions never
+overwrite installed payloads. Root-wide install exclusion, cancellation rollback and cleanup gate
+release have managed coverage. All selected-backend model/cache maintenance remains fenced by
+`AiLyricsWorkLifetime` through actual native exit. The unified cache retains its 1 GiB default and
+100 MiB–5 GiB quota bounds. Managed/fake/POSIX checks are distinct from native Windows and real-model
+execution evidence; structural smoke success is not semantic-quality approval.
+
 `LyricsQuery` carries generic Windows media evidence, including track and album artist; provider
 adapters share bounded search terms and the Core matcher remains the only acceptance authority.
 The media experience may retry when the same track gains duration but never branches on a player

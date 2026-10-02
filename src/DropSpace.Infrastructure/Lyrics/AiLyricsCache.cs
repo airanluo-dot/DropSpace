@@ -20,10 +20,10 @@ public sealed class AiLyricsCache
     public Task WriteAsync(string key, string validatedJson, CancellationToken token) =>
         WriteAsync(key, validatedJson, Generation, token);
 
-    public Task WriteAsync(string key, string validatedJson, long generation, CancellationToken token)
+    public Task WriteAsync(string key, string validatedJson, long generation, CancellationToken token, Func<bool>? isCurrent = null)
     {
         ValidateKey(key);
-        return _cache.WriteAsync("ai", key, validatedJson, LyricsTranslationOutput.MaximumOutputBytes, generation, token);
+        return _cache.WriteAsync("ai", key, validatedJson, LyricsTranslationOutput.MaximumOutputBytes, generation, token, isCurrent);
     }
 
     public Task ClearAsync(CancellationToken token) => _cache.ClearAsync(token);

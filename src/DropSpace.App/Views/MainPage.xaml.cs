@@ -1546,19 +1546,6 @@ public sealed partial class MainPage : Page
     private async void OnViewReleaseNotesClicked(object sender, RoutedEventArgs args) =>
         await RunAsync(async () => _ = await _viewModel.OpenUpdateReleaseNotesAsync());
 
-    private async void OnOpenDropTraySettingsClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(async () =>
-        {
-            if (!await _viewModel.OpenDropTraySettingsAsync())
-            {
-                await ShowMessageAsync(
-                    _strings.Get("DropTraySettingsUnavailableTitle"),
-                    _strings.Get("DropTraySettingsUnavailableContent"));
-            }
-        });
-    }
-
     private async void OnCopyDragCompatibilityReportClicked(object sender, RoutedEventArgs args) =>
         await RunAsync(() => { _viewModel.CopyDragCompatibilityReport(); return Task.CompletedTask; });
 

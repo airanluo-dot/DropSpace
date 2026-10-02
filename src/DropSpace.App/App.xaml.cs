@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
@@ -61,6 +62,12 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            if (Services.Diagnostics.MusicVisualSmoke.IsRequested(commandLine))
+            {
+                UnhandledException -= OnUnhandledException;
+                Environment.Exit(await Services.Diagnostics.MusicVisualSmoke.RunAsync(commandLine, BuildServices));
+                return;
+            }
             var shellIntake = ShellIntakeCommandLineParser.Parse(commandLine);
             if (commandLine.Contains("--shutdown-for-maintenance", StringComparer.OrdinalIgnoreCase))
             {
@@ -597,6 +604,20 @@ public partial class App : Application
         services.AddSingleton<Services.Widgets.NativeWidgetDataService>();
         services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<ClipboardIslandViewModel>();
+        services.AddSingleton(provider => new AiModelPackageService(
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models")));
+        services.AddSingleton(provider => new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
+        services.AddSingleton<IAiLyricsPackageResolver, PlainHyLyricsPackageResolver>();
+        services.AddSingleton(provider => new AiLyricsCache(provider.GetRequiredService<LyricsCache>()));
+        services.AddSingleton<PlainHyLyricsCoordinator>();
+        services.AddSingleton<AiLyricsRuntimeOptions>();
+        services.AddSingleton<PersistentPlainLyricsRunner>();
+        services.AddSingleton<IAiLyricsBackend>(provider => new PlainHyLyricsBackend(
+            provider.GetRequiredService<PlainHyLyricsCoordinator>(),
+            provider.GetRequiredService<PersistentPlainLyricsRunner>(),
+            provider.GetRequiredService<AiLyricsRuntimePackage>(),
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging")));
         services.AddSingleton<Services.Media.AiLyricsService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();

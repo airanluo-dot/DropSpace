@@ -17,6 +17,10 @@ test('AI lyrics story preserves App behavior, cautious copy and language-specifi
   assert.equal(story.querySelectorAll('input,[data-lyrics-size],[data-lyrics-size-range],[data-lyrics-size-number]').length,0);
   assert.doesNotMatch(story.textContent,/Beta\s*\d+|all languages|zero errors|always accurate|保证|全语言/);
   assert.ok(story.querySelector('.lyrics-accuracy').textContent.length>30);
+  assert.match(story.textContent,/Beta/);
+  assert.match(story.textContent,locale==='en'?/off by default/:/默认关闭/);
+  assert.match(story.querySelector('.lyrics-accuracy').textContent,locale==='en'?/several minutes/:/数分钟/);
+  assert.match(story.querySelector('.lyrics-accuracy').textContent,locale==='en'?/change meaning or omit details/:/误译或遗漏细节/);
  }
 });
 
@@ -25,21 +29,21 @@ test('static showcase strips live release state and retains official GitHub dest
  assert.equal(result.status,0,result.stderr);
  const root=new JSDOM(await read('dist-static/index.html')).window.document;
  const redirect=root.querySelector('script:not([src])').textContent;
- for(const [language,expected] of [['en-US','/en/#ai-lyrics'],['zh-CN','/zh-cn/#ai-lyrics']]) {
+ for(const [language,expected] of [['en-US','/en/index.html#ai-lyrics'],['zh-CN','/zh-cn/index.html#ai-lyrics']]) {
   let destination;
   vm.runInNewContext(redirect,{navigator:{languages:[language]},location:{hash:'#ai-lyrics',replace:value=>{destination=value;}}});
   assert.equal(destination,expected,'GPT root must not inherit the GitHub Pages project prefix');
  }
  for(const locale of ['en','zh-cn']) {
   const doc=new JSDOM(await read(`dist-static/${locale}/index.html`)).window.document;
-  assert.equal(doc.querySelector('[data-language-switch]').getAttribute('href'),locale==='en'?'/zh-cn/':'/en/');
+  assert.equal(doc.querySelector('[data-language-switch]').getAttribute('href'),locale==='en'?'/zh-cn/index.html':'/en/index.html');
   for(const element of doc.querySelectorAll('[href],[src],[poster]')) {
    for(const attribute of ['href','src','poster']) {
     const value=element.getAttribute(attribute);
     if(!value?.startsWith('/')) continue;
     assert.doesNotMatch(value,/^\/DropSpace(?:\/|$)/,'Static routes and assets are root-relative');
     const pathname=value.split(/[?#]/)[0];
-    if(pathname) await stat(new URL(`../dist-static${pathname}`,import.meta.url));
+    if(pathname) assert.equal((await stat(new URL(`../dist-static${pathname}`,import.meta.url))).isFile(),true,'Static navigation must resolve to a file, without directory-index rewrites');
    }
   }
   assert.equal(doc.documentElement.dataset.siteVariant,'static');

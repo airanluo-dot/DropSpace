@@ -38,8 +38,8 @@ sources, with a bounded concurrent quality window and an eight-second per-provid
 budget. A valid result cancels and drains the remaining work. It does not send clipboard text,
 staged filenames or file bytes.
 The historical source-lyrics cache in this slice is process memory only (32 entries,
-bounded text size, two-hour age). The unpublished candidate adds a separate AI/cache
-boundary below; this historical limit does not describe all candidate lyric storage.
+bounded text size, two-hour age). The 0.3.1 Beta 1 boundary below adds persistent lyric caching; this historical
+limit does not describe the current release candidate's total lyric storage.
 Local LRC mode reads only a selected folder with a bounded, nonrecursive scan.
 If every online provider fails, display track metadata. Local mode never invokes
 online fallback. The integration must cancel
@@ -47,25 +47,28 @@ lookup on track/settings/lifecycle changes before release acceptance.
 Process-loopback audio is intended only for the live spectrum; PCM must never be
 saved or uploaded. System notification and volume observation remain opt-in.
 
-## Unreleased 0.3.1 Beta 1 lyrics and AI boundary
+## 0.3.1 Beta 1 lyrics and AI boundary
 
-This section describes development-candidate code, not a published feature or a completed
-acceptance result. Known semantic model errors, complete review rounds and native release
-verification remain open in the [issue register](docs/dev/ai-lyrics-031-issue-register.md).
+This section describes the v0.3.1-beta.1 release candidate; it is not evidence of
+publication or completed native acceptance. The optional AI feature is explicitly Beta:
+first generation can take several minutes, and translation can contain meaning errors.
+Complete review, release-blocking bug remediation and native build/package checks remain
+required. Current evidence is in the [issue register](docs/dev/ai-lyrics-031-issue-register.md)
+and [release checklist](docs/release/v0.3.1-beta.1-checklist.md).
 
 - **Separate choices:** fresh settings leave lyrics and AI translation disabled. Existing
   explicit preferences are preserved. With Online mode selected, enabling AI while lyrics
   are disabled first asks to enable online lookup; downloading a missing model requires its own confirmation.
   Online lookup follows the preferred/backup/remaining-provider controls above. Local LRC
   does not invoke provider fallback. Turning AI off does not itself disable online lyrics.
-- **Model downloads:** only the consent flow fetches catalog-pinned weights from Hugging
-  Face and allowlisted HTTPS redirects. Requests identify the model artifact and, when
+- **Model downloads:** the only selectable model is Hy-MT2 1.8B Q8_0 (about 1.9 GB).
+  Only the consent flow fetches its catalog-pinned weights from Hugging Face and allowlisted HTTPS redirects. Requests identify the model artifact and, when
   resuming, its byte range; they do not contain the lyric prompt or clipboard/file payloads.
   The host still observes normal HTTPS connection/request metadata. Size and SHA-256
   verification precede installation. The runtime is embedded in the App and extracted
   locally; playback does not silently download a missing model.
-- **Local inference:** the prompt contains song title, artist, album and requested/context
-  lyric text. The current runner sends it to the bundled local process with controlled
+- **Local inference:** the plaintext model request contains the requested lyric line and
+  target language. The current runner sends it to the bundled local process with controlled
   offline arguments, without a hosted AI fallback or an HTTP listener. Online source-lyrics
   requests and explicitly enabled sharing remain separate network paths; this is not an
   absolute network-isolation guarantee for the App or its Windows account.
@@ -76,26 +79,30 @@ verification remain open in the [issue register](docs/dev/ai-lyrics-031-issue-re
   model and cache removal controls exist. Disabling AI does not erase existing files, and
   deleting a model does not mean every cached translation is deleted. Cleanup must preserve
   user LRC files, external source files and unrelated models; secure erasure is not promised.
-- **Cache integration:** the prior implementation used an in-memory source/provider cache
-  and a separate 100 MiB AI disk cache. Unified persistence with a default 1 GiB (1024 MiB) total budget,
-  adjustable from 100 MiB to 5 GiB, is being integrated. Cross-restart identity, zero repeated
-  lookup/inference on a valid hit, quota enforcement and deletion/recovery still require
-  integrated verification before they may be claimed as delivered.
+- **Persistent lyric cache:** original lyrics, provider translations and AI translations
+  share App-owned disk caching under a default 1 GiB (1024 MiB) total budget, adjustable
+  from 100 MiB to 5 GiB. Model weights, partial model downloads and runtime files are
+  separate from this budget. Matching valid entries can avoid repeated lookup/inference
+  across restarts. Music's refresh action reconnects media observation without promising
+  a cache bypass. Cache cleanup is distinct from model removal. Quota/deletion errors must
+  remain visible and must not delete a user's LRC folder or source files. Native integration evidence is tracked in
+  the release checklist rather than inferred from this policy description.
 - **Logs and resource risks:** diagnostics use failure categories and numeric process exit
   codes rather than prompt, lyric, model-output or stderr text. The runner has bounded
   threads, token/output/time budgets and model-specific memory limits. Windows Job Objects
   constrain process lifetime/resources; they are not an OS security or network sandbox.
   Native parsers, disk exhaustion, residual staging data and failed child cleanup remain
   risks to test. See the [runtime design](docs/engineering/ai-lyrics-runtime.md).
-- **Output quality:** schema validation preserves the original text/time axis and rejects
-  malformed output, but cannot establish translation accuracy. AI can change meaning or
-  omit details. This warning does not waive the candidate's semantic-quality or release gates.
+- **Output quality:** bounded plaintext validation preserves the original text/time axis
+  and rejects malformed output, but cannot establish translation accuracy. AI can change
+  meaning or omit details. The Beta scope accepts these disclosed quality and latency
+  limits; the complete review, known-bug remediation and native release gates still apply.
 
 ## Overview
 
 DropSpace stores sensitive classes of data by design. “Local only” reduces network exposure but does not make clipboard history safe by default. The product must minimize capture, make recording state obvious, bound retention, and avoid claims that content classification or source-app exclusions are complete.
 
-This threat model covers the Windows desktop runtime described by `ARCHITECTURE.md`, including updates, opt-in lyric providers and sharing, and the unpublished local AI candidate boundary above. Cloud account sync, browser extensions, telemetry and hosted AI translation remain outside the implemented scope.
+This threat model covers the Windows desktop runtime described by `ARCHITECTURE.md`, including updates, opt-in lyric providers and sharing, and the local AI Beta boundary above. Cloud account sync, browser extensions, telemetry and hosted AI translation remain outside the implemented scope.
 
 ## Data lifecycle
 

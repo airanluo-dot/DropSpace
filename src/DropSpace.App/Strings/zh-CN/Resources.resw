@@ -39,8 +39,6 @@
   <data name="DeploymentPortable" xml:space="preserve"><value>便携版（仅下载并验证，不会自动安装）</value></data>
   <data name="DeploymentUnknown" xml:space="preserve"><value>未知部署方式</value></data>
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>添加到 DropSpace</value></data>
-  <data name="DropTraySettingsUnavailableContent" xml:space="preserve"><value>请手动打开 Windows 设置 → 系统 → 多任务处理，查看 Drop Tray 选项。</value></data>
-  <data name="DropTraySettingsUnavailableTitle" xml:space="preserve"><value>无法打开系统设置</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>复制文本、图片、文件或文件夹后，支持的内容会出现在这里。</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>暂无剪贴板记录</value></data>
   <data name="EmptyPinnedDescription" xml:space="preserve"><value>固定临时空间或剪贴板中的项目，它们就会集中显示在这里。</value></data>
@@ -226,18 +224,11 @@
   <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>最多保留天数</value></data>
   <data name="RetentionCountLabel.Text" xml:space="preserve"><value>最多保留未固定项目</value></data>
   <data name="AppearanceSection.Text" xml:space="preserve"><value>外观与窗口</value></data>
-  <data name="DropTrayCompatibilityTitle.Text" xml:space="preserve"><value>顶部拖放兼容性</value></data>
-  <data name="DropTrayCompatibilityDescription.Text" xml:space="preserve"><value>Windows 11 的 Drop Tray 与 DropSpace 使用相同的屏幕顶部拖放区域。开启系统 Drop Tray 时，它可能优先接收拖到顶部的文件，从而阻止 DropSpace 面板自动展开。关闭 Drop Tray 可获得完整的“拖到顶部 → DropSpace 展开 → 放入临时空间”体验。</value></data>
-  <data name="DropTrayApiNotice.Text" xml:space="preserve"><value>Windows 未提供公开、稳定的 API 读取 Drop Tray 开关；DropSpace 不读取内部 Feature Flag，也不会替你更改系统设置。</value></data>
-  <data name="OpenDropTraySettingsButton.Content" xml:space="preserve"><value>打开 Windows Drop Tray 设置</value></data>
-  <data name="OpenDropTraySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>打开 Windows Drop Tray 设置</value></data>
   <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>文件拖拽唤醒方式</value></data>
   <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>智能检测空闲时不占用屏幕顶部；传统模式兼容范围可能更广，但会长期保留不可见顶部输入区域。</value></data>
-  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>智能检测（实验性）</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>智能检测</value></data>
   <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>传统顶部感应区（兼容）</value></data>
   <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>关闭自动唤醒</value></data>
-  <data name="ExperimentalDragDetectionInfo.Title" xml:space="preserve"><value>实验性拖拽检测</value></data>
-  <data name="ExperimentalDragDetectionInfo.Message" xml:space="preserve"><value>智能检测目前优先支持资源管理器与桌面的真实文件/文件夹拖拽。部分第三方软件、虚拟文件或不提供标准信号的来源可能无法自动唤醒；已显示的 DropSpace 仍可直接接收标准文件拖放。</value></data>
   <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>开机自启动</value></data>
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>可在首次设置或此处开启，使用当前用户启动项，无需管理员权限。</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>开机自启动</value></data>
@@ -624,12 +615,19 @@
   <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>静夜里，歌声仍在继续。</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>恢复默认歌词字号</value></data>
-  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为 App 当前语言，优先使用语言匹配的歌词源译文。AI 可能误译；不会为 AI 翻译上传歌词。</value></data>
-  <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词（Beta）</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为 App 当前语言，优先使用语言匹配的歌词源译文。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。已完成的译文会逐行显示。AI 可能误译含义；不会为 AI 翻译上传歌词。</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译（Beta）</value></data>
+  <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU 加速</value></data>
+  <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>优先使用兼容的 GPU 加速 AI 翻译；GPU 不可用或运行失败时自动改用 CPU。关闭后仅使用 CPU。调整此选项不会启用 AI 或下载模型。</value></data>
   <data name="AiLyricsModel" xml:space="preserve"><value>翻译模型</value></data>
-  <data name="AiLyricsStandardModel" xml:space="preserve"><value>标准模型</value></data>
-  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>精简版（实验性）</value></data>
+  <data name="AiLyricsStandardModel" xml:space="preserve"><value>标准模型（旧版 Q4）</value></data>
+  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>精简模型（旧版 IQ3）</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0（Beta）</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>用于本地歌词翻译的腾讯 Q8 模型（Beta）。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。译文可能出现含义错误。</value></data>
+  <data name="AiLyricsLegacyModels" xml:space="preserve"><value>旧版模型文件</value></data>
+  <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>这些旧版模型文件已不再用于翻译，可删除以释放磁盘空间。</value></data>
+  <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>删除{0}</value></data>
   <data name="AiLyricsModelSize" xml:space="preserve"><value>{0} GB（{1} 字节）</value></data>
   <data name="AiLyricsModelDetails" xml:space="preserve"><value>{0}
 下载大小：{1}
@@ -667,8 +665,8 @@
   <data name="LyricsGlowKeyboardHelp" xml:space="preserve"><value>使用方向键选择关闭、AI 歌词或音乐。Home 键选择关闭，End 键选择音乐。</value></data>
   <data name="LyricsGlowAccessibleValue" xml:space="preserve"><value>灵动岛辉光：{0}</value></data>
   <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>关闭 AI 时也可下载模型。下载中断后，重试时会尽可能继续。</value></data>
-  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>腾讯官方 Q4 模型，默认选项；译文仍可能出现错误。</value></data>
-  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>同一个 1.8B 模型的第三方 IQ3 量化版，下载体积约小 23%，内存占用较低，但不一定更快。复杂歌词可能误译。</value></data>
+  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>旧版腾讯 Q4 模型，仅保留已下载文件的检查和删除功能。</value></data>
+  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>旧版第三方 IQ3 模型，仅保留已下载文件的检查和删除功能。</value></data>
   <data name="LyricsFontSize" xml:space="preserve"><value>歌词字号</value></data>
   <data name="LyricsFontSizeNumber" xml:space="preserve"><value>歌词字号，12 至 28</value></data>
   <data name="LyricsFontSizeHelp" xml:space="preserve"><value>拖动滑块或输入 12 至 28 之间的字号，支持小数。原文与译文将按固定比例一起缩放。</value></data>
@@ -684,7 +682,7 @@
   <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>删除缓存的原歌词、来源译文和 AI 译文？当前推理将停止。已下载模型和你的歌词文件会保留。</value></data>
   <data name="AiLyricsCacheCleared" xml:space="preserve"><value>歌词缓存已清理。</value></data>
   <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>离线运行时已随 App 内置，无需额外下载，解压运行时额外占用最多约 {0} MiB 磁盘空间。请为模型下载和恢复额外预留 64 MiB 可用磁盘空间。</value></data>
-  <data name="AiLyricsTranslating" xml:space="preserve"><value>正在本地翻译，原歌词继续显示。</value></data>
+  <data name="AiLyricsTranslating" xml:space="preserve"><value>正在本地翻译，首次完成整首歌词翻译可能需要几分钟。已完成的译文会逐行显示，未完成的部分继续显示原歌词。</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>暂时无法进行 AI 翻译，原歌词不受影响。</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI 译文已就绪。</value></data>
   <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>在线歌词会将当前歌曲名、歌手、专辑和时长发送给你选择的歌词来源。全新安装时默认关闭，启用歌词后才查询。选择本地 LRC 可读取自己的歌词文件，不请求在线来源；AI 翻译本身始终在本机运行。</value></data>

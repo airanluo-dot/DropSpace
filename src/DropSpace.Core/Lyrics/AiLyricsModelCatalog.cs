@@ -18,7 +18,19 @@ public static class AiLyricsModelCatalog
         876_311_552,
         "46e67068820c68ac43ea9f304556c641e8c9dbf54efb14cef2b4dd540a30f12a");
 
-    public static IReadOnlyList<AiLyricsModelDescriptor> All { get; } = Array.AsReadOnly(new[] { Standard, Compact });
+    // Explicit opt-in Beta: frozen Tencent Q8 bytes evaluated with the official plaintext
+    // per-line template. This does not promise real-time generation or semantic correctness.
+    public static AiLyricsModelDescriptor ExperimentalPlain { get; } = new(
+        "hy-mt2-18-q8-plain-beta", "Hy-MT2 1.8B Q8_0 (Beta)",
+        new Uri("https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF/resolve/a0c709d9fac510f2c807aa3af52872340dc37a4a/Hy-MT2-1.8B-Q8_0.gguf"),
+        1_908_528_192,
+        "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4");
 
-    public static AiLyricsModelDescriptor? Find(string id) => All.FirstOrDefault(model => model.Id == id);
+    public static IReadOnlyList<AiLyricsModelDescriptor> All { get; } = Array.AsReadOnly(new[] { ExperimentalPlain });
+
+    public static IReadOnlyList<AiLyricsModelDescriptor> Legacy { get; } = Array.AsReadOnly(new[] { Standard, Compact });
+
+    // Legacy descriptors remain resolvable for local artifact inspection/removal, never activation.
+    public static AiLyricsModelDescriptor? Find(string id) => FindSelectable(id) ?? Legacy.FirstOrDefault(model => model.Id == id);
+    public static AiLyricsModelDescriptor? FindSelectable(string id) => All.FirstOrDefault(model => model.Id == id);
 }

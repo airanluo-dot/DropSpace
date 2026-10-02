@@ -44,7 +44,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private MediaSessionSnapshot _latest = MediaSessionSnapshot.Empty;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
     private LyricsDocument _document = LyricsDocument.Empty;
-    private long _generation, _artworkGeneration;
+    private long _generation, _artworkGeneration, _lyricPositionTicks;
     private long _reloadRequest;
     private bool _initialized, _disposed;
 
@@ -199,16 +199,36 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private void OnModelDownloaded(object? sender, EventArgs args)
     {
         Interlocked.Increment(ref _generation);
+        _lyricsWork.CancelCurrent();
+        AiLyrics.InvalidateTranslation();
         Interlocked.Increment(ref _reloadRequest);
         _changes.Writer.TryWrite(true);
     }
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName != nameof(MainViewModel.Settings)) return;
-        Volatile.Write(ref _settings, _main.Settings); _changes.Writer.TryWrite(true);
+        var previous = Interlocked.Exchange(ref _settings, _main.Settings);
+        if (LyricsReloadPolicy.RequiresReload(previous, _main.Settings))
+        {
+            Interlocked.Increment(ref _generation);
+            _lyricsWork.CancelCurrent();
+            AiLyrics.InvalidateTranslation();
+        }
+        _changes.Writer.TryWrite(true);
     }
     private void OnMediaChanged(object? sender, MediaSessionSnapshot snapshot)
-    { Volatile.Write(ref _latest, snapshot); _changes.Writer.TryWrite(true); }
+    {
+        var previous = Interlocked.Exchange(ref _latest, snapshot);
+        if (!previous.IsSameTrack(snapshot))
+        {
+            // Invalidate at observation, not later in the coordinator queue: an already
+            // queued partial update or final cache write belongs to the old song now.
+            Interlocked.Increment(ref _generation);
+            _lyricsWork.CancelCurrent();
+            AiLyrics.InvalidateTranslation();
+        }
+        _changes.Writer.TryWrite(true);
+    }
     private void OnSpectrumChanged(object? sender, SpectrumFrame frame) => Volatile.Write(ref _spectrum, frame);
 
     private async Task RunAsync(CancellationToken token, TaskCompletionSource? ready = null)
@@ -335,7 +355,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
             await _dispatcher.EnqueueAsync(() =>
             {
-                if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed)
+                if (IsLyricsRequestCurrent(session, settings, generation, token))
                 {
                     _document = result.Document;
                     _view.SetLyricsDocument(result.Document);
@@ -344,19 +364,43 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 }
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
-            if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation))
+            if (IsLyricsRequestCurrent(session, settings, generation, token))
             {
                 var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
                 var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
                     session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);
-                var translated = await AiLyrics.TranslateIfAvailableAsync(query, result.Document, settings.Lyrics, targetLanguage, token).ConfigureAwait(false);
-                if (!ReferenceEquals(translated, result.Document))
+                var partialApplied = false;
+                var progress = new LyricsTranslationProgressContext(
+                    () => TimeSpan.FromTicks(Interlocked.Read(ref _lyricPositionTicks)),
+                    () => IsLyricsRequestCurrent(session, settings, generation, token),
+                    (update, cancellation) => _dispatcher.EnqueueAsync(() =>
+                    {
+                        // This guard executes after dispatch. A valid callback can be stale
+                        // by the time UI work runs (clear, settings, model or song changed).
+                        if (update.IsCurrent && !cancellation.IsCancellationRequested &&
+                            IsLyricsRequestCurrent(session, settings, generation, token))
+                        {
+                            partialApplied = true;
+                            _document = update.Document;
+                            _view.SetLyricsDocument(update.Document);
+                            RenderFrame();
+                        }
+                        return Task.CompletedTask;
+                    }));
+                var publication = await AiLyrics.TranslateForPublicationAsync(query, result.Document, settings.Lyrics,
+                    targetLanguage, token, progress).ConfigureAwait(false);
+                var translated = publication.Document;
+                // A later invalid line or timeout discards the ephemeral view as well as the
+                // durable result; always restore provider lyrics when progress was displayed.
+                if (partialApplied || !ReferenceEquals(translated, result.Document))
                     await _dispatcher.EnqueueAsync(() =>
                     {
-                        if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed)
+                        if (IsLyricsRequestCurrent(session, settings, generation, token))
                         {
-                            _document = translated;
-                            _view.SetLyricsDocument(translated);
+                            // Maintenance can start after inference returns but before this
+                            // action runs. Restore only the source if its AI fence has retired.
+                            _document = publication.IsCurrent ? translated : result.Document;
+                            _view.SetLyricsDocument(_document);
                             RenderFrame();
                         }
                         return Task.CompletedTask;
@@ -371,7 +415,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             {
                 await _dispatcher.EnqueueAsync(() =>
                 {
-                    if (!token.IsCancellationRequested && generation == Interlocked.Read(ref _generation) && !_disposed)
+                    if (IsLyricsRequestCurrent(session, settings, generation, token))
                     {
                         _document = LyricsDocument.Empty;
                         _view.SetLyricsDocument(LyricsDocument.Empty);
@@ -387,6 +431,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
             }
         }
     }
+
+    private bool IsLyricsRequestCurrent(MediaSessionSnapshot session, AppSettings settings, long generation,
+        CancellationToken token) => !_disposed && !token.IsCancellationRequested &&
+        generation == Interlocked.Read(ref _generation) && session.IsSameTrack(Volatile.Read(ref _latest)) &&
+        !LyricsReloadPolicy.RequiresReload(settings, Volatile.Read(ref _settings));
 
     internal static bool ShouldRetryLyricsWithImprovedEvidence(
         MediaSessionSnapshot? previous,
@@ -418,6 +467,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
         // so keep the clock absolute for seeking/display but feed the lyric engine a relative
         // position.
         var lyricPosition = _view.Position - _view.Session.Timeline.Start;
+        Interlocked.Exchange(ref _lyricPositionTicks, (lyricPosition +
+            TimeSpan.FromMilliseconds(Math.Clamp(_view.Settings.Lyrics.DelayMilliseconds, -30_000, 30_000))).Ticks);
         _view.Lyrics = _timeline.GetFrame(_document, lyricPosition, _view.Settings.Lyrics.DelayMilliseconds);
         _view.Spectrum = Volatile.Read(ref _spectrum);
     }

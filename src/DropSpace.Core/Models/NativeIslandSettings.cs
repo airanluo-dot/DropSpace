@@ -19,7 +19,9 @@ public sealed record LyricsSettings
 {
     public long CacheMaximumBytes { get; init; } = 1L * 1024 * 1024 * 1024;
     public bool AiTranslationEnabled { get; init; }
-    public string AiModelId { get; init; } = "hy-mt2-standard";
+    // AI itself remains opt-in. When enabled, prefer verified GPU acceleration with CPU fallback.
+    public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
+    public string AiModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
     public Lyrics.LyricsGlowMode GlowMode { get; init; }
     public double FontSize { get; init; } = 16;
     [System.Text.Json.Serialization.JsonIgnore]

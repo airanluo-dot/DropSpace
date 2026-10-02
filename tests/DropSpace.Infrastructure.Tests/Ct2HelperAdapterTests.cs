@@ -38,8 +38,10 @@ public sealed class Ct2HelperAdapterTests
             (original with { TokenizerSha256 = HashB }).CacheIdentity("ja", "en"),
             (original with { Decoder = Ct2DecoderProtocol.HelsinkiOpus }).CacheIdentity("ja", "en"),
             original.CacheIdentity("ko", "en"),
+            (original with { RuntimeVersion = "ct2-runtime-v2" }).CacheIdentity("ja", "en"),
+            original.CacheIdentity("ja", "en", "pivot"),
         };
-        Assert.HasCount(6, identities);
+        Assert.HasCount(8, identities);
     }
 
     [TestMethod]
@@ -256,6 +258,31 @@ public sealed class Ct2HelperAdapterTests
         Assert.AreEqual("private-stdin", await output);
         await LocalInferenceProcess.WaitForCleanupAsync(child.CompleteAsync(output, errors), observed.Id);
         Assert.IsTrue(observed.HasExited);
+    }
+
+    [TestMethod]
+    public async Task VerifiedRunnerRejectsChangedIdentityBeforeProcessLaunch()
+    {
+        using var fixture = new Fixture("touch must-not-run\n");
+        using var verified = await Ct2PrivatePackage.OpenAsync(fixture.Reference, "ja", "en", default);
+        using var adapter = new Ct2HelperAdapter();
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => adapter.TranslateVerifiedAsync(fixture.Reference,
+            verified.Identity with { RuntimeVersion = "unexpected-runtime" }, "ja", "en", [new(0, "source")], default));
+        await adapter.DrainCleanupAsync(default);
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "engine", "must-not-run")));
+    }
+
+    [TestMethod]
+    public async Task ReviewedPrivateResolverRevalidatesPayloadAndRefusesUnreviewedRoutes()
+    {
+        using var fixture = new Fixture("cat >/dev/null\n");
+        var resolver = new Ct2PrivatePackageResolver([new("ja", "en", fixture.Reference)]);
+        Assert.IsNull(await resolver.ResolveAsync("ko", "en", default));
+        var resolved = await resolver.ResolveAsync("ja", "en", default);
+        Assert.IsNotNull(resolved);
+        Assert.AreEqual(fixture.Reference.ManifestSha256, resolved.Value.Identity.ManifestSha256);
+        await File.AppendAllTextAsync(fixture.Executable, "changed");
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => resolver.ResolveAsync("ja", "en", default));
     }
 
     private sealed class Fixture : IDisposable

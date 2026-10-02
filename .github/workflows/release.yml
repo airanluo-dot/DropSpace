@@ -14,17 +14,9 @@ on:
       - src/**
       - tests/**
   push:
-    branches: [main]
-    paths:
-      - RELEASE_VERSION
-      - .github/workflows/release.yml
-      - .github/release-notes/**
-      - branding/**
-      - scripts/**
-      - installer/**
-      - identity/**
-      - src/**
-      - tests/**
+    # No push path filter: creating the bounded QA branch at an already-existing
+    # reviewed commit must still schedule its one explicit non-publishing run.
+    branches: [main, qa/final-ai-review-031]
   workflow_dispatch:
     inputs:
       publish:
@@ -38,6 +30,12 @@ on:
         required: false
         type: string
 
+      capture_ai_evidence:
+        description: Capture actual plain-Hy production evidence without publishing
+        required: false
+        default: false
+        type: boolean
+
 concurrency:
   group: dropspace-release-${{ github.ref }}
   # A new PR revision invalidates its older validation bundle. Main and explicit
@@ -50,7 +48,8 @@ jobs:
     # The release lane uses the named Windows Server 2025 image so a moving
     # windows-latest image cannot silently change produced bytes.
     runs-on: windows-2025
-    timeout-minutes: 80
+    # Final evidence adds a separately bounded 30-minute capture to normal validation.
+    timeout-minutes: ${{ (github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)) && 110 || 80 }}
     permissions:
       contents: read
       actions: read
@@ -127,6 +126,7 @@ jobs:
         run: |
           ./scripts/Test-AiRuntimePayloadInspector.ps1
           ./scripts/Test-ReviewedAiRuntimeArchive.ps1
+          ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
 
       - name: Test expanded island scope and fullscreen behavior contracts
         run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
@@ -227,7 +227,7 @@ jobs:
 
       # Development-only handoff of this run's verified build. No model weights are uploaded.
       - name: Record candidate diagnostic runtime identity
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
         id: ai-runtime-diagnostic-manifest
         shell: pwsh
         run: |
@@ -235,7 +235,8 @@ jobs:
           "sha256=$hash" >> $env:GITHUB_OUTPUT
 
       - name: Upload runtime for isolated candidate diagnostics
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
+        id: ai-runtime-artifact
         continue-on-error: true
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -245,6 +246,9 @@ jobs:
             artifacts/ai-runtime/win-x64/llama-completion.exe
             artifacts/ai-runtime/win-x64/llama-completion-avx2.exe
             artifacts/ai-runtime/win-x64/llama-tokenize.exe
+            artifacts/ai-runtime/win-x64/plain-lyrics-worker.exe
+            artifacts/ai-runtime/win-x64/plain-lyrics-worker-avx2.exe
+            artifacts/ai-runtime/win-x64/plain-lyrics-worker-vulkan.exe
             artifacts/ai-runtime/win-x64/LICENSE-llama.cpp
           if-no-files-found: error
           retention-days: 60
@@ -254,6 +258,14 @@ jobs:
 
       - name: Test persistence, manifests, downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure-release.trx"
+
+      - name: Test production evidence harness without native inference
+        shell: pwsh
+        run: |
+          dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -p:RestoreLockedMode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness locked restore failed.' }
+          dotnet run --project scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -c Release --no-restore -- --contract-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness contract tests failed.' }
 
       - name: Install locked Windows App Runtime for native tests
         timeout-minutes: 10
@@ -323,6 +335,45 @@ jobs:
       - name: Validate native offline inference and cancellation
         shell: pwsh
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
+
+      - name: Capture final plain-Hy production evidence on both runtime variants
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
+        timeout-minutes: 30
+        shell: pwsh
+        env:
+          RUNTIME_ARTIFACT_ID: ${{ steps.ai-runtime-artifact.outputs.artifact-id }}
+          RUNTIME_ARCHIVE_SHA256: ${{ steps.ai-runtime-artifact.outputs.artifact-digest }}
+        run: |
+          if (-not $env:RUNTIME_ARTIFACT_ID -or -not $env:RUNTIME_ARCHIVE_SHA256) { throw 'The exact licensed runtime artifact must be retained before capture.' }
+          $runtime = 'artifacts/ai-runtime/win-x64'
+          $output = 'artifacts/plain-hy-production-evidence'
+          New-Item $output -ItemType Directory -Force | Out-Null
+          $producer = (Get-Content "$runtime/runtime-manifest.json" -Raw | ConvertFrom-Json).producer
+          $files = @(Get-ChildItem $runtime -File | ForEach-Object {
+            [ordered]@{ path=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=$_.Length }
+          })
+          $contract = [ordered]@{
+            schemaVersion=1; repository=$producer.repository; workflowPath=$producer.workflowPath
+            runId=$producer.runId; runAttempt=$producer.runAttempt; headCommit=$producer.headCommit; checkoutCommit=$producer.checkoutCommit
+            artifactId=[long]$env:RUNTIME_ARTIFACT_ID; artifactName="ai-candidate-runtime-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)"
+            archiveSha256=$env:RUNTIME_ARCHIVE_SHA256; files=$files
+          }
+          $contract | ConvertTo-Json -Depth 8 | Set-Content "$output/runtime-artifact.json" -Encoding utf8
+          node scripts/ai-runtime-publication.mjs verify-contract "$output/runtime-artifact.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Retained runtime artifact contract is invalid.' }
+          foreach ($variant in @('Baseline', 'Avx2')) {
+            $name = "production-plain-hy-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)-$($variant.ToLowerInvariant())"
+            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -Variant $variant -OutputDirectory "$output/$name"
+          }
+
+      - name: Preserve final production evidence including failures
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true))
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: plain-hy-production-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/plain-hy-production-evidence/**
+          if-no-files-found: warn
+          retention-days: 60
 
       - name: Inspect runtime bytes inside the final MSIX
         shell: pwsh
@@ -427,7 +478,8 @@ jobs:
     if: >-
       needs.validate-release.result == 'success' &&
       needs.validate-release.outputs.signing_required == 'true' &&
-      github.event_name != 'pull_request'
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main'
     needs: validate-release
     runs-on: windows-2025
     timeout-minutes: 40

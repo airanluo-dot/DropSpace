@@ -1,244 +1,197 @@
 # AI semantic publication gate
 
-`release-approval.json` is deliberately **pending**. Neither current shipping model
-has passed the semantic release bar. Do not turn native loading, JSON validity,
-source review, candidate diagnostic completion, or this validator's test success
-into approval. This change closes a publication-control gap; it does not fix or
-approve translation quality.
+The committed `release-approval.json` remains **pending** until the final production
+capture and release review exist. Native startup, valid output, a passing build,
+or a candidate experiment does not create semantic approval. Previously retained
+candidate runs keep their original protocol, source, runtime and verdict.
 
-## Where the gate runs
+## Shipping scope
 
-- Every normal Release PR/build runs the validator's synthetic regression tests.
-  Pending, stale, or expired semantic approval does not prevent ordinary PR work.
-- Only `workflow_dispatch` with `publish=true` validates live approval in
-  `validate-release`, first before retrieval and again against the exact reviewed
-  runtime files. Publication retrieves the reviewed artifact instead of rebuilding
-  native binaries. Failure stops that job.
-- `publish-release` requires that exact job's `ai_semantic_approved=true` output,
-  then rechecks the record, evidence, and final release-file byte bindings immediately before publishing. No
-  diagnostic job can emit that output. Existing version, main-branch, actor,
-  signing and `expected_commit` checks remain in place.
-- The validator always enforces approval when called normally. There is no
-  `--skip`, permissive default, or `--publish=false` bypass in the CLI.
+The scope is derived from the actual catalog `All` list. It currently contains
+only `AiLyricsModelCatalog.ExperimentalPlain` (`hy-mt2-18-q8-plain-beta`), the pinned
+Tencent Hy Q8 file. `Standard` and `Compact` remain legacy descriptors for local
+inspection/removal; they are not shipping selections and need no new model approval.
 
-## What is bound
+The production contract is explicit:
 
-The scope is derived from the actual production catalog (every model in `All`,
-including its ID, SHA-256 and byte count),
-the runtime build script's ID and immutable source commit, the prompt/cache
-version, the release version, and the original synthetic `inputs/source48.json`.
-An approval cannot omit Compact while continuing to ship it.
+- backend: `hy-q8-plain-beta-v1`
+- prompt profile: `production-plain-hy`
+- prompt version: `official-plain-per-line-v1`
+- host mapping: `host-mapped-id-text-v1`
+- acceptance: `unknown-copy-neutral-complete-song-v1`
+- native caller: `PlainHyLyricsBackend` → `PlainHyLyricsCoordinator` →
+  `PersistentPlainLyricsRunner.RunPlainAsync`
 
-A code-owned source allowlist hashes the complete current lyrics input and
-display chain: provider adapters/HTTP/registry/service, source parser, matcher and
-normalization, SMTC session selection and bounded reads, track/query/cache
-identity, target-language and settings resolution, MediaExperience/ViewModel,
-the app composition root, OverlayWindow's dedicated expanded-island consumer,
-next-line selection, Music/island secondary-text presentation, and the bounded
-media soft-restart/retirement helpers. It also includes the prompt,
-output parser, translation policy/circuit, runner/native boundary, coordinator,
-work lifetime, cache path, runtime package/build inputs and fixed QA harness.
-Regression tests mutate every listed real source file and independently require
-coverage of every C# file in Core/Lyrics, Infrastructure/Lyrics and App/Services/Media.
-Adding a helper or provider there therefore requires updating the code-owned list;
-it cannot silently remain outside a prior approval. Other semantic dependencies
-moved or introduced outside these directories must be added during code review.
-Some related UI/settings changes conservatively invalidate approval too.
-The record cannot select or remove entries from that list. Individual hashes plus
-an aggregate SHA-256 over the ordered JSON file list must match exactly. The
-source algorithm is `sha256-utf8-lf-v1`: read UTF-8, normalize CRLF to LF, and hash
-without otherwise changing text. This handles the repository's Windows checkout
-rules. Fixture, review JSON and raw evidence hashes cover their **exact bytes**.
+The gate reads the model ID/SHA-256/size, the plain protocol constants, the actual
+shared resident `BuildArguments` implementation and compiled helper sampler vector, resource limits, runtime source,
+release version and original `inputs/source48.json`. Resident startup arguments normalize only the model path to `$MODEL`.
+The separately recorded `samplerArguments` come from the fixed native helper
+source; its LF-normalized CMake/header/C++ source digest is also manifest-bound. No JSON grammar is
+used by this profile. The current whole-song limit is 300 seconds; each native
+call remains bounded at 60 seconds with the production 3 GiB model budget.
 
-Editing a prompt without bumping its version still invalidates approval. Editing
-runner/service/work-lifetime/parser/cache behavior, provider response extraction,
-query selection, media identity, language resolution or secondary presentation
-also invalidates it. Changing
-the model, runtime source, fixed fixture or release version requires a matching
-new semantic review. Unrelated edits do not require a self-referential manifest
-commit. Existing `expected_commit` binds the final reviewed `main` commit at
-publication; the approval's scope binds the relevant code/data within that commit.
+The model sees only the actual official target/source template. Host IDs are
+attached after inference. Unknown or same-target copied lines remain neutral;
+the gate does not invent source-language labels or reject copying as a semantic
+score. A complete source-only/no-useful result is technically recordable, while
+its usefulness still requires review.
 
-## Trust boundary and limitations
+A code-owned allowlist hashes the relevant input/provider/identity/settings,
+inference/cache, app composition, display, diagnostic-startup and packaging
+sources. It also covers the actual production evidence harness. Tests require
+coverage of every C# file in Core/Lyrics, Infrastructure/Lyrics,
+App/Services/Media and App/Services/Diagnostics. New dependencies elsewhere must
+be added during code review. Source text uses `sha256-utf8-lf-v1` for equivalent
+Windows/Linux checkouts. Evidence and runtime hashes cover exact bytes.
 
-This gate trusts the maintainers who can submit and merge repository code. Its
-purpose is to prevent accidental unapproved publication and reuse of stale or
-mismatched quality evidence within that trust boundary. It is **not** a defense
-against a malicious repository writer: that actor can change the manifest,
-evidence, hashes **and the validator/workflow itself**.
+## Finite final production capture
 
-`reviewedBy` is nonempty accountability metadata supplied by those trusted
-maintainers. It is **not authenticated reviewer identity**, a digital signature,
-proof of who authored a verdict, or proof that a human actually ran the review.
-The publication actor check authenticates who starts that workflow; it does not
-authenticate the semantic reviewer. Hashes and provenance envelopes establish
-internal consistency, not truth, authorship or semantic quality.
+Create the bounded `qa/final-ai-review-031` branch at the exact final candidate
+commit to start the existing Release workflow without publication. An optional
+manual `capture_ai_evidence=true, publish=false` run has the same capture behavior.
+Normal PR validation does not automatically repeat the larger capture. The QA
+branch cannot enter signing or publication.
 
-No signer keys, secrets, external approval service or additional user approval
-ceremony are introduced. Retrieval uses the existing workflow token with
-`actions: read`, without creating persistent access. The actual authorized reviewer must be
-recorded honestly. Do not invent a reviewer identity or user approval.
+That run builds and retains a new complete runtime artifact, including
+`LICENSE-llama.cpp` and producer metadata. After the ordinary app/native gates it
+runs `scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1`
+against that runtime and the verified shipping Q8 model. It captures the complete
+source48 fixture to English and Simplified Chinese on baseline and AVX2, cold
+results, zero-inference cache replays, and real cancellation with confirmed
+cleanup. Production time/resource limits apply; a failed/incomplete variant is
+not silently omitted or retried into a pass.
 
-Exact artifact reuse and final packaged-payload byte checks are now part of the
-publication lane. Real semantic evidence is still required; current `pending`
-remains release-blocking. The private disabled CT2 prototype does not select or
-approve a new production engine.
+The capture snapshots source scope, configuration, model identity and runtime
+bytes before execution and verifies them again afterward. It preserves complete
+runner-returned strings and the actual prompts/host IDs. The production runner removes
+the runtime terminator, so these files are honestly called `runner-output`, not
+unaltered process stdout. The capture writes no approval or semantic verdict.
+Evidence, including failures, and the exact runtime artifact are retained for 60
+days. The legacy diagnostic artifact without LICENSE is never a shipping input.
 
-## Recording a real review later
+A change to the production model, GPU/runtime selection, streaming/progressive
+behavior, argument builder, source scope or package after capture makes the old
+capture insufficient for that new scope. Do not claim an untested runtime mode
+was covered by a CPU run. This packet forces CPU selection for both CPU variants;
+Vulkan binary hashes remain package-bound, but physical NVIDIA/AMD execution is
+not asserted by a hosted CPU capture. Finish the selected implementation before the final
+capture; this is one bounded reproduction pass, not an open-ended model search.
 
-1. Use `node scripts/test-ai-release-approval.mjs --print-scope` to inspect the
-   exact current scope. This command is read-only and cannot create approval.
-2. Finish the required semantic release QA for **every shipping model**. Read
-   meaning and language, including actions/objects, negation, quantities,
-   attribution, source-copy behavior and the final full-song/independent-holdout
-   evidence. Fixed-screen diagnostics alone remain insufficient. Structural
-   checks never decide whether these semantic requirements passed.
-3. Retain the actual fixed-fixture native output under
-   `scripts/ai-model-qa/evidence/`. Only original synthetic QA input/output belongs
-   here: no real user/provider lyrics, private external reports, or model weights.
-   Preserve the full authorized semantic review and its other original-fixture
-   QA evidence in the same reviewed evidence set. Nothing is downloaded by this
-   validator. Missing, empty or modified referenced evidence fails closed.
-4. A real semantic review JSON must contain:
-   - `schemaVersion: 1`, `kind: "semantic-review"`, `verdict: "approved"`
-   - `scope`: the complete current derived scope
-   - nonempty `reviewedBy` and `summary` describing the actual semantic judgment
-   - `runtimeManifest`: a repository-relative `path` and exact-byte `sha256` for
-     the actual reviewed runtime manifest, containing pinned identity/source and
-     positive byte counts/SHA-256 for baseline, AVX2 and tokenizer components
-   - `runtimeArtifact`: `schemaVersion: 1`, `repository`, `workflowPath`, positive
-     integer `runId`, `runAttempt`, `artifactId`, `artifactName`, `archiveSha256`,
-     full `headCommit` and `checkoutCommit`, plus `files` containing canonical
-     relative `path`, SHA-256 and positive `bytes` for every retained runtime file
-     including the exact manifest and license. The current producer is this
-     repository's `.github/workflows/release.yml`; the name is
-     `ai-candidate-runtime-<runId>-<runAttempt>`. The reviewed manifest's `producer`
-     records the same repository, workflow, run, attempt and both commits
-   - `reviewedAt` and `expiresAt` in `YYYY-MM-DDTHH:mm:ssZ` UTC format
-   - `models`: one entry per shipping model, in scope order, each with its `id`,
-     `sha256`, `bytes`, explicit semantic `verdict: "approved"`, and nonempty `summary`
-   - each model's nonempty `evidence` list contains references with
-     `kind: "native-output"`, repository-relative `path`, exact-byte `sha256`, and
-     `fixtureSha256` matching the pinned original fixture. The referenced file
-     must be a native provenance envelope, not an arbitrary nonempty text file
-5. Set the manifest's `status` to `approved`, retain the exact scope, and set
-   `review` to `{ "path": "scripts/ai-model-qa/evidence/<actual-review>.json",
-   "sha256": "<actual-review-file-sha256>" }` only after that real review passes.
-   Do not regenerate hashes merely to make a failed/old review pass. No approved
-   example file or automatic approval writer is supplied.
+## Real review record
 
-### Native evidence envelope
+After reviewing actual outputs and clearing known defects, a trusted maintainer
+can record a semantic review under `scripts/ai-model-qa/evidence/` with:
 
-Each `native-output` reference resolves to hashed JSON with:
+- `schemaVersion: 1`, `kind: "semantic-review"`, `verdict: "approved"`
+- the complete current `scope`
+- actual nonempty `reviewedBy` and `summary`
+- `reviewedAt` and `expiresAt` as `YYYY-MM-DDTHH:mm:ssZ`; expiry is at most 30 days
+  after the review, and neither future-dated nor expired at publication
+- `openDefects: []`; accepted model limitations do not waive code, cleanup, data,
+  lifecycle, audit or build defects
+- `acceptedLimitations: []`, or concrete `{id, kind, summary}` entries where
+  `kind` is `quality` or `latency`
+- when limitations are accepted, a Beta release and `userAcceptance` containing
+  the actual `reference` and `acceptedAt`; never invent user acceptance
+- `runtimeManifest`: exact-byte repository evidence `{path, sha256}`
+- `runtimeArtifact`: the immutable producer/artifact contract below
+- `models`: exactly the shipping model list, in scope order, with identity,
+  `verdict: "approved"`, rationale and native evidence references
 
-- `schemaVersion: 1`, `kind: "native-output"`
-- `model`: exact shipping `id`, `sha256`, `bytes`
-- `fixtureSha256`, `promptVersion`, `sourceFingerprintSha256` matching the current
-  approved scope, and `platform: "windows-x64"`
-- `promptProfile: "production"` and
-  `outputSchema: "production-id-text-json-v1"`; these code-owned identities also
-  appear in the derived approval scope
-- `configuration`: a repository-relative `path` and exact-byte `sha256` of the
-  actual saved native-run configuration JSON. Its explicit `promptProfile` and
-  `outputSchema` must match the two production identities above; `loadOnly` must
-  be `false`. Its `modelId`, `modelSha256`, `modelBytes`,
-  `executableSha256` and `tokenizerSha256` must match the envelope/runtime
-- `executedAt`: explicit UTC timestamp no later than the actual semantic review
-- `runtime.manifestSha256` matching the reviewed runtime manifest
-- `runtime.variant`: `baseline` or `avx2`
-- `runtime.completion` and `runtime.tokenizer`: actual `{ "sha256", "bytes" }`
-  component identities matching the reviewed manifest and the stated variant
-- `outputs`: nonempty references with `kind: "raw-output"`, `targetLanguage`
-  (`en` or `zh-Hans`), repository-relative `path` and exact-byte `sha256`
+This permits an honest Beta decision with disclosed limitations without claiming
+perfect translation or turning accepted quality limits into a blanket bug waiver.
+The validator checks the record's consistency, not the truth or authorship of the
+judgment. There is no automatic review writer.
 
-`minimal-target-only` is a non-production prompt ablation. Even if its schema,
-JSON structure or translation looks successful, it cannot support shipping
-approval. Both the envelope and the separately hashed raw configuration are
-checked: relabeling only the envelope as `production` cannot promote a diagnostic
-run. Missing profile/schema identities fail closed instead of assuming defaults.
-A future release-grade capture step must record these fields at execution time;
-older diagnostic configurations missing the explicit output-schema identity are
-not release-ready evidence. Do not modify retained raw configurations afterward
-to manufacture this provenance. The candidate experiment registration JSON is
-bound as a QA source dependency, but it is never an approval input.
+Each model's evidence references use `kind: "native-output"`, repository evidence
+`path`, exact `sha256` and the pinned `fixtureSha256`. Each referenced schema-2
+envelope contains:
 
-Both target languages and both shipping runtime variants must be represented for
-every shipping model. An AVX2 diagnostic cannot approve baseline support. Native
-stdout is retained unchanged and checked for existence, nonempty content and exact
-hash; changing a hash in an outer reference does not excuse inconsistent internal
-model/runtime/prompt/fixture identities. The reviewer still reads that output for
-meaning. Empty output, loader-only data and structural success are not approval.
+- `kind: "native-output"`, exact `model: {id, sha256, bytes}`, `platform: "windows-x64"`
+- `fixtureSha256`, `sourceFingerprintSha256`, `promptProfile`, `outputSchema`,
+  `promptVersion`, `backendId`, `acceptanceVersion`, `samplerIdentity`,
+  `captureMethod` and `executionLimits` matching the current scope
+- `executedAt` in explicit UTC seconds, no later than the real review
+- `runtime: {manifestSha256, variant, completion: {sha256, bytes}}`, with the
+  actual resident `baseline` or `avx2` component from the reviewed manifest,
+  plus `mode: "cpu"`, `profile`, `protocol` and `residentSourceSha256`
+- `configuration: {path, sha256}` for the exact saved schema-2 configuration
+- `technicalChecks`: both `coldTargets` and `cacheTargets` equal
+  `["en", "zh-Hans"]`, `cacheAdditionalInferenceCalls: 0`, plus true
+  `cancellationObserved`, `cleanupConfirmed`, `sourceIdentityUnchanged`,
+  `modelIdentityUnchanged` and `runtimeIdentityUnchanged`
+- exactly two `outputs` references, one per target, with `kind: "runner-output"`
 
-This validates a retained evidence packet; it does not run inference or generate
-an envelope, verdict or approval. The current candidate harness does not generate
-release-ready envelopes automatically. A future capture step must snapshot the
-actual source scope/configuration, runtime manifest and raw outputs together at
-execution time; do not fabricate missing provenance afterward.
+Configuration records repeat the actual scope identities, `loadOnly: false`,
+model fields, executable hash/bytes, runtime manifest/variant, fixture/source
+fingerprints, `executionLimits`, actual startup `nativeArguments`, source-derived
+`samplerArguments`, and `gpuEnabled: false` for this explicit CPU capture. A production label alone
+cannot promote old candidate data. Schema-1 JSON/loader/candidate evidence is not
+accepted as a schema-2 production capture. Missing provenance is never fabricated
+afterward.
 
-### Exact reviewed-runtime to publication link
+Each output file is schema 1, `kind: "production-runner-output"`, its target,
+actual complete production outcome (`Translated` or `NoUsefulTranslation`) and
+`calls`. Every nonblank fixture line occurs once in order with `lineId`,
+`sourceText`, exact `prompt`, full `output` and captured timing information. The
+gate verifies fixture/prompt completeness, not translation meaning. The plain
+production path does not invoke the tokenizer; its bytes remain package-bound,
+without claiming a native tokenizer call occurred.
 
-Ordinary PR validation still builds the runtime and runs native tests. The runtime
-artifact now includes its license and records the producer identity inside its
-manifest; retention is 60 days. `headCommit` is the Actions run's source head;
-`checkoutCommit` is the actual checked-out commit (a PR merge commit can differ).
-These are not required to equal the later publication commit that records the
-review. The current source fingerprint and final `expected_commit` still bind the
-actual release inputs and publication checkout.
+Keep original files unchanged when copying a completed packet from CI into its
+recorded logical evidence directory. The narrow
+`scripts/ai-model-qa/evidence/** -text` Git attribute preserves native byte hashes.
+Use only original synthetic fixture data here, never real user/provider lyrics.
+Finally set the live approval's `review` reference and `status: "approved"` only
+when the real review and final release conditions are complete. Root review owns
+that decision; these tools leave the live record pending.
 
-For explicit publication, `Get-ReviewedAiRuntime.ps1` first validates live approval,
-then retrieves only the review's fixed artifact ID. It verifies same-repository
-producer/head repository, workflow, successful run/attempt, commits, archive
-digest and expiry. Offline extraction rejects missing, extra, duplicated,
-noncanonical or linked entries and verifies every extracted byte count/hash.
-Missing or expired artifacts stop publication; there is no latest-artifact or
-rebuild fallback. The legacy diagnostic artifact without a license cannot satisfy
-the shipping inventory.
+## Exact runtime and publication bytes
 
-The generic inventory supports backend-specific adapters without changing its
-retrieval and packaging guarantees. The current approval adapter requires the
-llama baseline, AVX2, tokenizer, manifest and license. A future backend must
-explicitly declare its required payload/evidence; the disabled CT2 helper is not
-silently approved by the current adapter.
+`runtimeArtifact` contains `schemaVersion: 1`, this `repository`, the allowed
+`workflowPath`, positive `runId`, `runAttempt`, `artifactId`, `artifactName`,
+`archiveSha256`, full `headCommit`/`checkoutCommit`, and a complete `files` inventory
+of canonical path/SHA-256/byte-count entries, including manifest and license.
+The manifest's `producer` must agree. `headCommit` is the Actions source head;
+`checkoutCommit` is the actual checkout, which can be a PR merge commit. The later
+review/publication commit can differ without changing the reviewed source scope.
 
-`Inspect-AiRuntimePayload.ps1` reads embedded managed resources without loading
-the assembly. Portable smoke uses a fresh private .NET extraction directory and
-inspects its actual `DropSpace.dll`; MSIX inspection reads its final packaged
-assembly. Installer lifecycle requires the installed executable to equal the
-release portable. A `runtime-publication.json` record binds these observations
-and the runtime inventory to the exact three release package hashes and source
-commit. Stable signing verifies the unsigned record, repeats inspections after
-signing/rebuilding the installer, and writes a new final-byte record. Immediately
-before publication, the live approval is checked against this inventory and the
-downloaded release bytes. The record stays in the internal CI bundle.
+Publication validates live approval before retrieving only that artifact ID.
+It checks producer/head repository, workflow, successful run/attempt, source,
+archive digest and expiry. Extraction rejects missing, extra, duplicate,
+noncanonical or linked entries and verifies all extracted bytes. There is no
+latest-artifact or rebuild fallback. The inventory core is backend-neutral; the
+current explicit llama adapter requires the three legacy CLI binaries, the
+three resident CPU/AVX2/Vulkan workers, manifest and license. A new runtime mode must explicitly extend its adapter/evidence coverage.
 
-This is a consistency control within the trusted repository, not authenticated
-attestation. Keep the production record pending until real semantic QA passes.
-Retained evidence uses a narrow `scripts/ai-model-qa/evidence/** -text` attribute
-so Git does not rewrite byte-hashed Windows output during checkout.
+Portable smoke inspects embedded resources from a fresh private .NET extraction.
+MSIX inspection reads the actual final packaged assembly. Installer lifecycle
+requires its installed executable to equal the release portable. The internal
+`runtime-publication.json` binds these observations to all three package hashes
+and source commit. Stable signing verifies the unsigned record and repeats
+inspections after signing/rebuilding. Immediately before publication, the gate
+compares live approval, runtime inventory, final commit and downloaded package
+bytes. Existing main-branch/actor/expected-commit/version/signing checks remain.
 
-Approval lasts no more than **30 days from the actual review**. This bounded
-release window avoids carrying an old verdict indefinitely; source/data changes
-invalidate it immediately even within the window. An expired record needs a
-renewed real review, not just a changed timestamp. Missing, invalid, future-dated,
-expired, or overlong timestamps fail closed. The current pending manifest has no
-reviewer or approval timestamps because no qualifying review exists.
+## Trust model and checks
 
-## Local checks
+This control trusts repository writers. A malicious writer could change code,
+evidence and the validator; hashes are consistency checks, not authenticated
+attestations. `reviewedBy` and user-acceptance references are honest accountability
+metadata, not identity authentication. Retrieval uses the existing per-run Actions
+read token; no signer keys, persistent credentials or external approval service
+are introduced.
 
-- `node --test scripts/test-ai-release-approval.test.mjs` tests valid and invalid
-  records in disposable temporary directories using clearly synthetic data
-- `node scripts/test-ai-release-approval.mjs` currently **must exit 1** because the
-  real manifest is pending
-- `node scripts/test-ai-release-approval.mjs --runtime-manifest <built-manifest>`
-  additionally compares the manifest and every sibling runtime file with the
-  reviewed byte inventory
-- `node --test scripts/test-ai-runtime-publication.test.mjs` checks generic
-  inventories, artifact provenance, final package hashes and signing transitions
-- `scripts/Test-AiRuntimePayloadInspector.ps1` and
-  `scripts/Test-ReviewedAiRuntimeArchive.ps1` exercise synthetic PE/MSIX/ZIP fixtures
-- `node scripts/test-ai-release-approval.mjs --release-bundle <directory>` checks
-  final byte bindings with `GITHUB_SHA` as the exact publication commit
+Useful local checks:
 
-There is no manifest commit hash that would refer to itself. There is no automatic
-semantic scoring, external approval service, CI trigger, or production-code change
-in this gate.
+- `node scripts/test-ai-release-approval.mjs --print-scope`
+- `node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs`
+- `scripts/Test-AiRuntimePayloadInspector.ps1`
+- `scripts/Test-ReviewedAiRuntimeArchive.ps1`
+- Normal validator invocation must fail while the live manifest is pending
+- `--runtime-manifest PATH` verifies exact runtime files; `--release-bundle DIR`
+  verifies final byte bindings against `GITHUB_SHA`
+
+A successful structural check never supplies semantic approval. A successful
+capture is a review input; the final requested audit/build/release decision is
+still separate.

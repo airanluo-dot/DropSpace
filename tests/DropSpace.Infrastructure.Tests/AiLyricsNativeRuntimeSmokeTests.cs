@@ -12,8 +12,7 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
 
     [TestMethod]
     [TestCategory("NativeAiRuntime")]
-    [DataRow("hy-mt2-standard", "DROPSPACE_AI_SMOKE_MODEL")]
-    [DataRow("hy-mt2-lightweight", "DROPSPACE_AI_SMOKE_COMPACT_MODEL")]
+    [DataRow("hy-mt2-18-q8-plain-beta", "DROPSPACE_AI_SMOKE_MODEL")]
     public async Task PinnedWindowsRuntimeTranslatesOriginalLinesAndHonorsCancellation(string modelId, string variable)
     {
         if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Shipping runtime smoke requires Windows x64."); return; }
@@ -43,28 +42,31 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
                     AiLyricsRuntimePackage.ExecutableResourceName => "llama-completion.exe",
                     AiLyricsRuntimePackage.Avx2ExecutableResourceName => "llama-completion-avx2.exe",
                     "DropSpace.AiLyricsRuntime.llama-tokenize.exe" => "llama-tokenize.exe",
+                    "DropSpace.AiLyricsRuntime.plain-lyrics-worker.exe" => "plain-lyrics-worker.exe",
+                    "DropSpace.AiLyricsRuntime.plain-lyrics-worker-avx2.exe" => "plain-lyrics-worker-avx2.exe",
+                    "DropSpace.AiLyricsRuntime.plain-lyrics-worker-vulkan.exe" => "plain-lyrics-worker-vulkan.exe",
                     _ => throw new InvalidOperationException("Unexpected test resource."),
                 };
                 return File.OpenRead(Path.Combine(runtime, filename));
             }, Path.Combine(root, "runtime"));
             var executable = await package.EnsureExecutableAsync(CancellationToken.None);
-            using var runner = new LlamaCompletionRunner();
+            using var runner = new PersistentPlainLyricsRunner(package, new AiLyricsRuntimeOptions { GpuEnabled = false });
             var source = new LyricsDocument([
                 new(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(4), "The morning light is on the window.", null, []),
                 new(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(9), "We will meet beside the river.", null, []),
             ], LyricsProviderKind.LocalLrc);
             var query = new LyricsQuery("Native verification", "DropSpace", "", TimeSpan.FromSeconds(10));
-            var prompt = LyricsTranslationPrompt.Build(query, source, [0, 1], "zh-CN");
             var staging = Path.Combine(root, "prompts");
-            var tokenizer = await package.EnsureTokenizerAsync(CancellationToken.None);
-            phase = "tokenization";
-            var tokens = await runner.CountTokensAsync(tokenizer, model, prompt, staging, CancellationToken.None, descriptor.Sha256);
-            Assert.IsTrue(tokens > 0 && tokens <= LyricsTranslationPrompt.MaximumPromptTokens);
-            Assert.AreEqual(0, Directory.GetFiles(staging).Length);
-            phase = "translation and output validation";
-            var output = await runner.RunAsync(executable, model, prompt, staging, CancellationToken.None, descriptor.Sha256, [0, 1]);
-            Assert.IsTrue(LyricsTranslationOutput.TryApply(output, source, [0, 1], "zh-CN", out var translated),
-                "The native output must satisfy the strict line-ID protocol.");
+            var identity = PlainHyLyricsProtocol.InferenceIdentity(package.GetManifestCacheIdentity());
+            var cache = new AiLyricsCache(Path.Combine(root, "cache"));
+            var coordinator = new PlainHyLyricsCoordinator(cache);
+            using var backend = new PlainHyLyricsBackend(coordinator, runner, package, staging);
+            var resolved = new AiLyricsResolvedPackage(PlainHyLyricsBackend.BackendId, identity, model, executable, null,
+                CacheGeneration: cache.Generation);
+            phase = "actual plaintext Beta backend translation and host mapping";
+            var result = await backend.TranslateAsync(resolved, query, source, "zh-CN", CancellationToken.None);
+            Assert.AreEqual(LyricsTranslationOutcome.Translated, result.Outcome);
+            var translated = result.Document;
             for (var index = 0; index < source.Lines.Count; index++)
             {
                 Assert.AreEqual(source.Lines[index].Text, translated.Lines[index].Text);
@@ -73,18 +75,17 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
                 Assert.AreEqual(LyricsTranslationOrigin.LocalAi, translated.Lines[index].TranslationOrigin);
                 Assert.IsTrue(translated.Lines[index].Secondary!.Any(character => character is >= '\u4e00' and <= '\u9fff'));
             }
-            Assert.AreEqual(0, Directory.GetFiles(staging).Length);
-            TestContext.WriteLine($"{modelId}: native translation and strict output validation passed.");
-            phase = "tokenizer cancellation";
-            using (var tokenizerCancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100)))
-                await Assert.ThrowsAsync<OperationCanceledException>(() =>
-                    runner.CountTokensAsync(tokenizer, model, prompt, staging, tokenizerCancel.Token, descriptor.Sha256));
-            Assert.AreEqual(0, Directory.GetFiles(staging).Length);
-            phase = "completion cancellation";
+            await backend.DrainCleanupAsync(CancellationToken.None);
+            Assert.IsFalse(Directory.Exists(staging) && Directory.GetFiles(staging).Length != 0);
+            TestContext.WriteLine($"{modelId}: {PlainHyLyricsProtocol.Version}, {PlainHyLyricsProtocol.HostMappingVersion}, complete native plaintext responses mapped by host; no JSON grammar. Structural smoke is not semantic-quality approval.");
+            TestContext.WriteLine(System.Text.Json.JsonSerializer.Serialize(translated.Lines.Select((line, id) => new { id, line.Text, line.Secondary })));
+            phase = "plaintext completion cancellation";
+            var prompt = PlainHyLyricsProtocol.BuildPrompt(source.Lines[0].Text, "zh-CN");
             using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             await Assert.ThrowsAsync<OperationCanceledException>(() =>
-                runner.RunAsync(executable, model, prompt, staging, cancel.Token, descriptor.Sha256, [0, 1]));
-            Assert.AreEqual(0, Directory.GetFiles(staging).Length);
+                runner.RunPlainAsync(executable, model, prompt, staging, cancel.Token, descriptor.Sha256));
+            await runner.DrainCleanupAsync(CancellationToken.None);
+            Assert.IsFalse(Directory.Exists(staging) && Directory.GetFiles(staging).Length != 0);
             phase = "runtime cleanup after successful translation and cancellation checks";
         }
         catch (Exception error)

@@ -9,17 +9,28 @@ namespace DropSpace.App.Services.Media;
 
 public enum AiLyricsTranslationState { Ready, Translating, Completed, Unavailable }
 
+/// <summary>Retains the request/cache fence until the final document reaches its UI dispatcher.</summary>
+public sealed class AiLyricsPublication(LyricsDocument document, Func<bool> isCurrent)
+{
+    public LyricsDocument Document { get; } = document;
+    public bool IsCurrent => isCurrent();
+}
+
 /// <summary>Optional offline translation. Model consent/download is separate from playback.</summary>
 public sealed class AiLyricsService : IDisposable
 {
     private readonly AiModelPackageService _models;
-    private readonly AiLyricsRuntimePackage _runtime;
-    private readonly LyricsTranslationCoordinator _translations;
+    private readonly IAiLyricsPackageResolver _packageResolver;
+    private readonly IAiLyricsBackend _backend;
+    private readonly bool _ownsModels;
+    private readonly bool _ownsBackend;
     private readonly AiLyricsCache _cache;
     private readonly AiLyricsWorkLifetime _work;
-    private readonly LlamaCompletionRunner _runner = new();
+    private readonly AiLyricsRuntimeOptions _runtimeOptions;
+    private readonly SemaphoreSlim _configurationGate = new(1, 1);
+    private string? _configuredModelId;
+    private bool? _configuredEnabled;
     private readonly ILogger<AiLyricsService> _logger;
-    private readonly string _staging;
     private readonly string _applicationRoot;
     private int _cacheMigrationFailed;
     public bool CacheMigrationFailed => Volatile.Read(ref _cacheMigrationFailed) != 0;
@@ -30,15 +41,24 @@ public sealed class AiLyricsService : IDisposable
     public AiLyricsTranslationState TranslationState { get { lock (_stateGate) return _state; } }
 
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger)
+        : this(paths, lyricsCache, logger, null, null, null) { }
+
+    public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger,
+        AiModelPackageService? models, IAiLyricsPackageResolver? packageResolver, IAiLyricsBackend? backend,
+        AiLyricsRuntimeOptions? runtimeOptions = null)
     {
-        _work = new AiLyricsWorkLifetime(_runner.DrainCleanupAsync);
         _applicationRoot = paths.Root;
         var root = Path.Combine(paths.Root, "AiLyrics");
-        _models = new AiModelPackageService(Path.Combine(root, "Models"));
-        _runtime = new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(), Path.Combine(root, "Runtime"));
+        _ownsModels = models is null;
+        _models = models ?? new AiModelPackageService(Path.Combine(root, "Models"));
+        var runtime = new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(), Path.Combine(root, "Runtime"));
         _cache = new AiLyricsCache(lyricsCache);
-        _translations = new LyricsTranslationCoordinator(_cache);
-        _staging = Path.Combine(root, "Staging");
+        _ownsBackend = backend is null;
+        _runtimeOptions = runtimeOptions ?? new AiLyricsRuntimeOptions();
+        _backend = backend ?? new PlainHyLyricsBackend(new PlainHyLyricsCoordinator(_cache),
+            new PersistentPlainLyricsRunner(runtime, _runtimeOptions), runtime, Path.Combine(root, "Staging"));
+        _packageResolver = packageResolver ?? new PlainHyLyricsPackageResolver(_models, runtime);
+        _work = new AiLyricsWorkLifetime(_backend.DrainCleanupAsync);
         _logger = logger;
     }
 
@@ -71,21 +91,36 @@ public sealed class AiLyricsService : IDisposable
 
     public async Task DownloadAsync(string modelId, bool consent, IProgress<double>? progress, CancellationToken token)
     {
+        if (AiLyricsModelCatalog.FindSelectable(modelId) is null)
+            throw new ArgumentException("This legacy model is available only for removal.", nameof(modelId));
         await _models.DownloadAsync(modelId, consent, progress, token, RuntimeExtractionMiB * 1_048_576).ConfigureAwait(false);
         ModelDownloaded?.Invoke(this, EventArgs.Empty);
     }
 
     public bool HasModelArtifacts(string modelId) => _models.HasArtifacts(modelId);
 
-    public Task DeleteModelAsync(string modelId, CancellationToken token) =>
-        _work.MaintainAsync(cancellation => _models.DeleteAsync(modelId, cancellation), token);
+    public Task DeleteModelAsync(string modelId, CancellationToken token)
+    {
+        InvalidateTranslation();
+        return _work.MaintainAsync(cancellation => _models.DeleteAsync(modelId, cancellation), token);
+    }
 
-    public Task ClearCacheAsync(CancellationToken token) =>
-        _work.MaintainAsync(async cancellation =>
+    public Task ClearCacheAsync(CancellationToken token)
+    {
+        InvalidateTranslation();
+        return _work.MaintainAsync(async cancellation =>
         {
             await _cache.ClearAsync(cancellation).ConfigureAwait(false);
             await RemoveLegacyCacheAsync(cancellation).ConfigureAwait(false);
         }, token);
+    }
+
+    /// <summary>Retires queued UI progress synchronously, before cancellation/draining completes.</summary>
+    public void InvalidateTranslation()
+    {
+        lock (_stateGate) { _statusGeneration++; _state = AiLyricsTranslationState.Ready; }
+        TranslationStateChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public async Task MigrateCacheAsync(CancellationToken token)
     {
@@ -107,21 +142,57 @@ public sealed class AiLyricsService : IDisposable
     }
 
     public async Task<LyricsDocument> TranslateIfAvailableAsync(LyricsQuery query, LyricsDocument document,
-        LyricsSettings settings, string targetLanguage, CancellationToken token)
+        LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null) =>
+        (await TranslateForPublicationAsync(query, document, settings, targetLanguage, token, progress).ConfigureAwait(false)).Document;
+
+    public async Task<AiLyricsPublication> TranslateForPublicationAsync(LyricsQuery query, LyricsDocument document,
+        LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null)
     {
+        Func<bool> isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true);
         try
         {
-            return await _work.RunAsync(cancellation => TranslateCoreAsync(query, document, settings, targetLanguage, cancellation), document, token).ConfigureAwait(false);
+            await ConfigureRuntimeAsync(settings, isCurrent, token).ConfigureAwait(false);
+            if (!isCurrent()) return new(document, () => false);
+            var translated = await _work.RunAsync(cancellation => TranslateCoreAsync(query, document, settings,
+                targetLanguage, cancellation, progress, fence => isCurrent = fence), document, token).ConfigureAwait(false);
+            return new(translated, isCurrent);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
             // Model/cache maintenance cancels only AI, never the original lyric provider.
-            return document;
+            return new(document, () => false);
         }
     }
 
+    private async Task ConfigureRuntimeAsync(LyricsSettings settings, Func<bool> isCurrent, CancellationToken token)
+    {
+        await _configurationGate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            if (!isCurrent()) return;
+            var enabled = settings.Enabled && settings.AiTranslationEnabled;
+            if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
+                _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled) return;
+            InvalidateTranslation();
+            // GPU/model/disable changes release the old resident owner before a new profile
+            // becomes visible. Ordinary song changes keep the verified model warm.
+            await _work.MaintainAsync(cancellation =>
+            {
+                cancellation.ThrowIfCancellationRequested();
+                if (!isCurrent()) return Task.CompletedTask;
+                _runtimeOptions.GpuEnabled = settings.AiLyricsGpuAccelerationEnabled;
+                _configuredModelId = settings.AiModelId;
+                _configuredEnabled = enabled;
+                return Task.CompletedTask;
+            }, token).ConfigureAwait(false);
+        }
+        finally { _configurationGate.Release(); }
+    }
+
     public async Task<LyricsDocument> TranslateCoreAsync(LyricsQuery query, LyricsDocument document,
-        LyricsSettings settings, string targetLanguage, CancellationToken token)
+        LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null,
+        Action<Func<bool>>? capturePublicationFence = null)
     {
         long statusGeneration;
         lock (_stateGate) statusGeneration = ++_statusGeneration;
@@ -129,11 +200,20 @@ public sealed class AiLyricsService : IDisposable
         if (!settings.Enabled || !settings.AiTranslationEnabled || document.Lines.Count == 0) return document;
         // The approved first version never fills gaps in a source-provided translation.
         if (LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage)) return document;
-        var model = AiLyricsModelCatalog.Find(settings.AiModelId);
-        if (model is null) return document;
         // Validated cached data needs neither executable extraction nor a large model rehash.
         // Actual inference still verifies every model/runtime before execution.
-        var cached = await _translations.TryGetCachedResultAsync(query, document, targetLanguage, model.Sha256, token).ConfigureAwait(false);
+        var cacheGeneration = _cache.Generation;
+        bool IsCurrent() => !token.IsCancellationRequested && _cache.Generation == cacheGeneration &&
+            Interlocked.Read(ref _statusGeneration) == statusGeneration && (progress?.IsCurrent ?? true);
+        capturePublicationFence?.Invoke(IsCurrent);
+        // Even a caller that does not display partial output gets the same request/cache fence.
+        var acceptingProgress = 1;
+        var guardedProgress = (progress ?? new LyricsTranslationProgressContext(() => TimeSpan.MinValue,
+            () => true, (_, _) => Task.CompletedTask)).WithFence(cacheGeneration, () => Volatile.Read(ref acceptingProgress) != 0 && IsCurrent());
+        if (!IsCurrent()) return document;
+        var cached = await _backend.TryGetCachedResultAsync(settings.AiModelId, query, document, targetLanguage, token).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        if (!IsCurrent()) return document;
         if (cached is not null)
         {
             SetState(statusGeneration, cached.Outcome == LyricsTranslationOutcome.Translated
@@ -144,15 +224,19 @@ public sealed class AiLyricsService : IDisposable
         try
         {
             // This path never downloads. Only the settings consent flow can fetch weights.
-            var modelPath = await _models.GetInstalledPathAsync(model.Id, token).ConfigureAwait(false);
-            if (modelPath is null) return document;
-            var executable = await _runtime.EnsureExecutableAsync(token).ConfigureAwait(false);
-            var tokenizer = await _runtime.EnsureTokenizerAsync(token).ConfigureAwait(false);
-            SetState(statusGeneration, AiLyricsTranslationState.Translating);
-            var result = await _translations.TranslateBatchesDetailedAsync(query, document, targetLanguage, model.Sha256,
-                (prompt, ids, cancellation) => _runner.RunAsync(executable, modelPath, prompt, _staging, cancellation, model.Sha256, ids), token,
-                (prompt, cancellation) => _runner.CountTokensAsync(tokenizer, modelPath, prompt, _staging, cancellation, model.Sha256)).ConfigureAwait(false);
+            var package = await _packageResolver.ResolveAsync(settings.AiModelId, query, document, targetLanguage, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
+            if (!IsCurrent() || package is null ||
+                !StringComparer.Ordinal.Equals(package.BackendId, _backend.Id)) return document;
+            SetState(statusGeneration, AiLyricsTranslationState.Translating);
+            var result = await _backend.TranslateAsync(package with { CacheGeneration = cacheGeneration },
+                query, document, targetLanguage, token, guardedProgress).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            if (!IsCurrent())
+            {
+                SetState(statusGeneration, AiLyricsTranslationState.Ready);
+                return document;
+            }
             CompleteTranslation(statusGeneration, generation, result.Outcome);
             return result.Document;
         }
@@ -176,6 +260,7 @@ public sealed class AiLyricsService : IDisposable
             SetState(statusGeneration, AiLyricsTranslationState.Unavailable);
             return document;
         }
+        finally { Interlocked.Exchange(ref acceptingProgress, 0); }
     }
 
     internal void CompleteTranslation(long statusGeneration, long circuitGeneration, LyricsTranslationOutcome outcome)
@@ -209,8 +294,9 @@ public sealed class AiLyricsService : IDisposable
 
     public void Dispose()
     {
+        InvalidateTranslation();
         _work.Dispose();
-        _runner.Dispose();
-        _models.Dispose();
+        if (_ownsBackend) _backend.Dispose();
+        if (_ownsModels) _models.Dispose();
     }
 }

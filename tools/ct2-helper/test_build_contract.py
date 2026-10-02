@@ -61,6 +61,32 @@ class BuildContractTests(unittest.TestCase):
             self.assertRegex(line, r'^[-a-z0-9]+ @ file:///.*\.whl --hash=sha256:[a-f0-9]{64}$')
         self.assertNotIn('https:', self.lock.read_text())
 
+    def test_nested_vendor_metadata_does_not_replace_root_distribution(self):
+        package = self.data['packages'][0]
+        path = self.wheels / package['file']
+        with zipfile.ZipFile(path, 'a') as archive:
+            archive.writestr('vendor/bundled-9.9.dist-info/METADATA',
+                             'Metadata-Version: 2.1\nName: bundled\nVersion: 9.9\n')
+        self.refresh(package)
+        self.validate()
+        self.assertEqual(11, len(self.lock.read_text().splitlines()))
+
+    def test_second_root_distribution_metadata_is_rejected(self):
+        package = self.data['packages'][0]
+        with zipfile.ZipFile(self.wheels / package['file'], 'a') as archive:
+            archive.writestr('other-9.9.dist-info/METADATA',
+                             'Metadata-Version: 2.1\nName: other\nVersion: 9.9\n')
+        self.refresh(package)
+        self.reject()
+
+    def test_nested_metadata_cannot_stand_in_for_missing_root_metadata(self):
+        package = self.data['packages'][0]
+        with zipfile.ZipFile(self.wheels / package['file'], 'w') as archive:
+            archive.writestr('vendor/' + package['name'] + '-1.2.3.dist-info/METADATA',
+                             f"Metadata-Version: 2.1\nName: {package['name']}\nVersion: 1.2.3\n")
+        self.refresh(package)
+        self.reject()
+
     def test_strict_top_level_and_version(self):
         for value in ([], {}, None, dict(self.data, extra=1), dict(self.data, schemaVersion=True),
                       dict(self.data, schemaVersion=2), dict(self.data, python='3.12.'),

@@ -31,7 +31,7 @@ if ($LASTEXITCODE -ne 0 -or $actual -cne $commit) { throw 'Runtime source commit
 Invoke-Checked 'git' @('-C', $source, 'fsck', '--no-reflogs')
 
 $configure = @(
-    '-S', $source, '-A', 'x64',
+    '-S', (Join-Path $root 'tools/plain-lyrics-helper'), '-A', 'x64', "-DLLAMA_SOURCE=$source",
     '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded',
     '-DBUILD_SHARED_LIBS=OFF', '-DLLAMA_BUILD_IS_DEV=OFF',
     '-DLLAMA_BUILD_TESTS=OFF', '-DLLAMA_BUILD_EXAMPLES=OFF', '-DLLAMA_BUILD_TOOLS=ON',
@@ -47,11 +47,20 @@ $configure = @(
     '-DGGML_SSE42=OFF', '-DGGML_BMI2=OFF', '-DGGML_AVX512=OFF',
     '-DFETCHCONTENT_FULLY_DISCONNECTED=ON'
 )
-foreach ($variant in @('baseline', 'avx2')) {
+if (-not $env:VULKAN_SDK -or -not (Test-Path (Join-Path $env:VULKAN_SDK 'Bin/glslc.exe'))) {
+    throw 'Resident GPU runtime requires a provisioned official Vulkan SDK (glslc, headers, import library). No driver is installed by this script.'
+}
+foreach ($variant in @('baseline', 'avx2', 'vulkan')) {
     $variantBuild = Join-Path $build $variant
     $simd = if ($variant -eq 'avx2') { 'ON' } else { 'OFF' }
+    $vulkan = if ($variant -eq 'vulkan') { 'ON' } else { 'OFF' }
     Invoke-Checked 'cmake' ($configure + @('-B', $variantBuild,
-        "-DGGML_AVX=$simd", "-DGGML_AVX2=$simd", "-DGGML_FMA=$simd", "-DGGML_F16C=$simd"))
+        "-DGGML_AVX=$simd", "-DGGML_AVX2=$simd", "-DGGML_FMA=$simd", "-DGGML_F16C=$simd", "-DGGML_VULKAN=$vulkan"))
+    Invoke-Checked 'cmake' @('--build', $variantBuild, '--config', 'Release', '--target', 'plain-lyrics-worker', '--parallel', '4')
+    $workerName = if ($variant -eq 'baseline') { 'plain-lyrics-worker.exe' } else { "plain-lyrics-worker-$variant.exe" }
+    Copy-Item (Join-Path $variantBuild 'bin/Release/plain-lyrics-worker.exe') (Join-Path $output $workerName)
+    if (@(Get-ChildItem (Join-Path $variantBuild 'bin/Release') -Filter '*.dll' -File).Count -ne 0) { throw 'The resident runtime unexpectedly requires a bundled native DLL.' }
+    if ($variant -eq 'vulkan') { continue }
     Invoke-Checked 'cmake' @('--build', $variantBuild, '--config', 'Release', '--target', 'llama-completion', '--parallel', '4')
     if (@(Get-ChildItem (Join-Path $variantBuild 'bin/Release') -Filter '*.dll' -File).Count -ne 0) {
         throw 'The CPU runtime unexpectedly requires a bundled native DLL.'
@@ -69,7 +78,7 @@ $executable = Join-Path $output 'llama-completion.exe'
 $optimized = Join-Path $output 'llama-completion-avx2.exe'
 # The completion-only build deliberately disables llama-app, the target that normally
 # generates license.cpp. Gather pinned source notices directly instead of relying on it.
-& (Join-Path $PSScriptRoot 'Collect-AiRuntimeNotices.ps1') -Source $source -OutputPath (Join-Path $output 'LICENSE-llama.cpp')
+& (Join-Path $PSScriptRoot 'Collect-AiRuntimeNotices.ps1') -Source $source -OutputPath (Join-Path $output 'LICENSE-llama.cpp') -VulkanSdk $env:VULKAN_SDK
 # The application embeds this build-produced manifest alongside the exact EXE; the manifest is not
 # accepted from a download or cache folder. Toolchain changes can change the binary SHA256.
 $manifest = [ordered]@{
@@ -90,8 +99,20 @@ $manifest = [ordered]@{
         sha256 = (Get-FileHash $optimized -Algorithm SHA256).Hash.ToLowerInvariant()
         bytes = (Get-Item $optimized).Length
     }
-    build = [ordered]@{ cpuOnly = $true; sharedLibraries = $false; dynamicBackends = $false; server = $false; subprocess = $false; openssl = $false; openmp = $false }
+    resident = [ordered]@{
+        protocol = 1
+        profile = 'hy-q8-plain-resident-v1'
+        sourceSha256 = ''
+        cpu = [ordered]@{ executable = 'plain-lyrics-worker.exe'; sha256 = (Get-FileHash (Join-Path $output 'plain-lyrics-worker.exe') -Algorithm SHA256).Hash.ToLowerInvariant(); bytes = (Get-Item (Join-Path $output 'plain-lyrics-worker.exe')).Length }
+        avx2 = [ordered]@{ executable = 'plain-lyrics-worker-avx2.exe'; sha256 = (Get-FileHash (Join-Path $output 'plain-lyrics-worker-avx2.exe') -Algorithm SHA256).Hash.ToLowerInvariant(); bytes = (Get-Item (Join-Path $output 'plain-lyrics-worker-avx2.exe')).Length }
+        vulkan = [ordered]@{ executable = 'plain-lyrics-worker-vulkan.exe'; sha256 = (Get-FileHash (Join-Path $output 'plain-lyrics-worker-vulkan.exe') -Algorithm SHA256).Hash.ToLowerInvariant(); bytes = (Get-Item (Join-Path $output 'plain-lyrics-worker-vulkan.exe')).Length }
+    }
+    build = [ordered]@{ cpuOnly = $false; legacyCompletionCpuOnly = $true; residentGpuBackend = 'vulkan'; sharedLibraries = $false; dynamicBackends = $false; server = $false; subprocess = $false; openssl = $false; openmp = $false }
 }
-$manifest | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $output 'runtime-manifest.json') -Encoding utf8
+$helperSource = @('CMakeLists.txt', 'gpu-policy.h', 'main.cpp') | ForEach-Object {
+    [IO.File]::ReadAllText((Join-Path $root "tools/plain-lyrics-helper/$_")).Replace("`r`n", "`n")
+}
+$manifest.resident.sourceSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($helperSource -join "`n")))).ToLowerInvariant()
+$manifest | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $output 'runtime-manifest.json') -Encoding utf8
 & (Join-Path $PSScriptRoot 'Test-AiLyricsRuntime.ps1') -RuntimeDirectory $output
 Write-Host "Verified embedded runtime payload: $output"

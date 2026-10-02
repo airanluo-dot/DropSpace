@@ -105,25 +105,145 @@ public sealed class MediaPublisherTimeoutTests
         for (var transition = 1; transition <= 32; transition++)
         {
             var title = $"Track {transition}";
-            var result = await WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
-            {
-                revision++;
-                service.InvalidateMetadata();
-                return Task.FromResult(MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = title });
-            }, () => revision, CancellationToken.None, static (left, right) => left.IsSameTrack(right));
+            var reads = 0;
+            Task<WindowsMediaSessionService.StableMetadata<MediaSessionSnapshot>> ReadAsync(CancellationToken token) =>
+                WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
+                {
+                    reads++;
+                    revision++;
+                    service.InvalidateMetadata();
+                    return Task.FromResult(MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = title });
+                }, () => revision, token, static (left, right) => left.IsSameTrack(right));
+            var result = await ReadAsync(CancellationToken.None);
             Assert.IsTrue(result.EquivalentDespiteRevisionChange);
-            // This is the previously untested window after stable metadata returned.
+            // The endpoint proof cannot cover this event. Reconfirm with bounded fresh
+            // reads even when every read itself raises another equivalent notification.
             revision++;
             service.InvalidateMetadata();
-            var artworkReads = 0;
+            var reconfirmations = 0;
             var completed = await service.CompleteArtworkAsync(result.Value!, result.Revision,
-                _ => { artworkReads++; return Task.FromResult<byte[]?>([1]); }, new object(),
-                CancellationToken.None, result.EquivalentDespiteRevisionChange);
+                _ => Task.FromResult<byte[]?>(null), new object(), CancellationToken.None,
+                token => { reconfirmations++; return ReadAsync(token); });
             Assert.AreEqual(title, completed.TrackTitle);
             Assert.AreEqual(title, service.Current.TrackTitle);
-            Assert.IsNull(completed.Artwork);
-            Assert.AreEqual(0, artworkReads, "Equivalent identity permission must not admit stale artwork.");
+            Assert.AreEqual(1, reconfirmations);
+            Assert.AreEqual(4, reads, "Both proof and reconfirmation are bounded to two reads.");
         }
+    }
+
+    [TestMethod]
+    public async Task EquivalentProofCannotAuthorizeALaterTrackRevision()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        long revision = 0;
+        var proof = await WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
+        {
+            revision++;
+            service.InvalidateMetadata();
+            return Task.FromResult(MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = "A" });
+        }, () => revision, CancellationToken.None, static (left, right) => left.IsSameTrack(right));
+        Assert.IsTrue(proof.EquivalentDespiteRevisionChange);
+        var published = new List<string>();
+        service.Changed += (_, snapshot) => published.Add(snapshot.TrackTitle);
+        revision++; // The publisher moved to B after the A/A proof completed.
+        service.InvalidateMetadata();
+        var artworkReads = 0;
+        var result = await service.CompleteArtworkAsync(proof.Value!, proof.Revision,
+            _ => { artworkReads++; return Task.FromResult<byte[]?>([1]); }, new object(), CancellationToken.None);
+        Assert.AreEqual(MediaSessionSnapshot.Empty, result);
+        Assert.AreEqual(0, published.Count, "The superseded A/A proof must never publish A.");
+        Assert.AreEqual(0, artworkReads);
+    }
+
+    [TestMethod]
+    public async Task LaterTrackNotificationReconfirmsFreshMetadataBeforePublishing()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        long revision = 0;
+        var track = MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = "A" };
+        var proof = await WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
+        {
+            revision++;
+            service.InvalidateMetadata();
+            return Task.FromResult(track);
+        }, () => revision, CancellationToken.None, static (left, right) => left.IsSameTrack(right));
+        Assert.IsTrue(proof.EquivalentDespiteRevisionChange);
+        var published = new List<string>();
+        service.Changed += (_, snapshot) => published.Add(snapshot.TrackTitle);
+        track = track with { TrackTitle = "B" };
+        revision++;
+        service.InvalidateMetadata();
+        var reconfirmations = 0;
+        var result = await service.CompleteArtworkAsync(proof.Value!, proof.Revision,
+            _ => Task.FromResult<byte[]?>(null), new object(), CancellationToken.None, token =>
+            {
+                reconfirmations++;
+                return WindowsMediaSessionService.ReadStableMetadataAsync(_ => Task.FromResult(track), () => revision,
+                    token, static (left, right) => left.IsSameTrack(right));
+            });
+        CollectionAssert.AreEqual(new[] { "B" }, published, "A must not flash before the freshly confirmed B.");
+        Assert.AreEqual("B", result.TrackTitle);
+        Assert.AreEqual("B", service.Current.TrackTitle);
+        Assert.AreEqual(1, reconfirmations);
+    }
+
+    [TestMethod]
+    public async Task SupersededReconfirmationIsRejectedWithoutAnUnboundedRetryLoop()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        var old = MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = "A" };
+        service.InvalidateMetadata();
+        var reconfirmations = 0;
+        var published = 0;
+        var artworkReads = 0;
+        service.Changed += (_, _) => published++;
+        var result = await service.CompleteArtworkAsync(old, 0,
+            _ => { artworkReads++; return Task.FromResult<byte[]?>(null); }, new object(), CancellationToken.None, _ =>
+            {
+                reconfirmations++;
+                var confirmed = new WindowsMediaSessionService.StableMetadata<MediaSessionSnapshot>(
+                    old with { TrackTitle = "B" }, 1, true);
+                service.InvalidateMetadata(); // C arrived after the replacement B proof.
+                return Task.FromResult(confirmed);
+            });
+        Assert.AreEqual(MediaSessionSnapshot.Empty, result);
+        Assert.AreEqual(1, reconfirmations);
+        Assert.AreEqual(0, published);
+        Assert.AreEqual(0, artworkReads);
+    }
+
+    [TestMethod]
+    public async Task CanceledReconfirmationCannotPublishItsLateResult()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        var old = MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = "A" };
+        var native = new TaskCompletionSource<WindowsMediaSessionService.StableMetadata<MediaSessionSnapshot>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var stop = new CancellationTokenSource();
+        service.InvalidateMetadata();
+        var pending = service.CompleteArtworkAsync(old, 0, _ => Task.FromResult<byte[]?>(null), new object(),
+            stop.Token, _ => native.Task);
+        await stop.CancelAsync();
+        try
+        {
+            await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.AreEqual(MediaSessionSnapshot.Empty, service.Current);
+        }
+        finally { native.TrySetResult(new(old with { TrackTitle = "B" }, 1)); }
+        Assert.AreEqual(MediaSessionSnapshot.Empty, service.Current);
+    }
+
+    [TestMethod]
+    public async Task PublicationCallbacksNeverRunInsideTheMetadataRevisionLock()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        var callbackCouldInvalidate = false;
+        service.Changed += (_, _) =>
+            callbackCouldInvalidate = Task.Run(service.InvalidateMetadata).Wait(TimeSpan.FromSeconds(2));
+        var snapshot = MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = "Current" };
+        await service.CompleteArtworkAsync(snapshot, 0, _ => Task.FromResult<byte[]?>(null), new object(), CancellationToken.None);
+        Assert.IsTrue(callbackCouldInvalidate, "A subscriber must not block concurrent metadata notifications.");
+        Assert.AreEqual("Current", service.Current.TrackTitle);
     }
 
     [TestMethod]
@@ -136,7 +256,7 @@ public sealed class MediaPublisherTimeoutTests
         Assert.IsFalse(stable.EquivalentDespiteRevisionChange);
         service.InvalidateMetadata();
         var result = await service.CompleteArtworkAsync(stable.Value!, stable.Revision,
-            _ => Task.FromResult<byte[]?>([1]), new object(), CancellationToken.None, stable.EquivalentDespiteRevisionChange);
+            _ => Task.FromResult<byte[]?>([1]), new object(), CancellationToken.None);
         Assert.AreEqual(MediaSessionSnapshot.Empty, result);
         Assert.AreEqual(MediaSessionSnapshot.Empty, service.Current);
     }

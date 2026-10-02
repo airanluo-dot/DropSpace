@@ -1,0 +1,66 @@
+name: Native music visual diagnostics (no publication)
+on:
+  push:
+    branches: [qa/music-visual-031]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: music-visual-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native-visual:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Restore locked dependencies
+        run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
+      - name: Retrieve verified build-only runtime payload
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/ai-model-qa/Get-PinnedDiagnosticRuntime.ps1 -OutputDirectory artifacts/ai-runtime/win-x64 -EvidenceDirectory artifacts/music-visual/runtime-provenance
+      - name: Build the native portable diagnostic executable
+        shell: pwsh
+        run: ./scripts/Build-PortableExe.ps1 -NoRestore
+      - name: Install locked Windows App Runtime for contract tests
+        shell: pwsh
+        run: ./scripts/Install-TestWindowsAppRuntime.ps1
+      - name: Test visual diagnostic safety and pixel-presence contracts
+        run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --filter FullyQualifiedName~MusicVisualSmokeContractTests --logger "trx;LogFileName=music-visual-contracts.trx"
+      - name: Capture English native controls
+        id: english
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/Test-MusicVisualSmoke.ps1 -Language en-US
+      - name: Capture Chinese native controls
+        id: chinese
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/Test-MusicVisualSmoke.ps1 -Language zh-CN
+      - name: Preserve native visual evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: native-music-visual-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/music-visual/**
+            tests/DropSpace.App.Tests/TestResults/music-visual-contracts.trx
+          if-no-files-found: error
+          retention-days: 14
+      - name: Enforce complete native capture evidence
+        if: always()
+        shell: pwsh
+        env:
+          ENGLISH_OUTCOME: ${{ steps.english.outcome }}
+          CHINESE_OUTCOME: ${{ steps.chinese.outcome }}
+        run: |
+          'Native WinUI component capture only. Inspect PNGs before visual approval. No publication, real provider, Acrylic, game, or physical DPI claim.' >> $env:GITHUB_STEP_SUMMARY
+          if ($env:ENGLISH_OUTCOME -ne 'success' -or $env:CHINESE_OUTCOME -ne 'success') { throw 'Native visual diagnostics failed, were blocked, or did not run. Review the evidence.' }

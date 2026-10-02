@@ -1,0 +1,78 @@
+{
+  "frozenUtc": "2026-10-02T07:45:00Z",
+  "purpose": "Independent original holdout frozen before this profile expansion executes. Notes are review-only, never sent to model.",
+  "lines": [
+    {
+      "id": 0,
+      "language": "en-US",
+      "text": "I sent Mara five postcards; she sent me none.",
+      "semanticCheck": "Speaker sent five postcards to Mara; none came back."
+    },
+    {
+      "id": 1,
+      "language": "ja",
+      "text": "雨がやんでも、まだ庭には出ないでください。",
+      "semanticCheck": "Even if rain stops, do not go into garden yet."
+    },
+    {
+      "id": 2,
+      "language": "ko",
+      "text": "나는 네 사진을 지운 게 아니라 내 사진을 지웠어.",
+      "semanticCheck": "Speaker deleted own photo, not listener photo."
+    },
+    {
+      "id": 3,
+      "language": "zh-CN",
+      "text": "姐姐没有卖掉钢琴，只把它借给了邻居。",
+      "semanticCheck": "Older sister did not sell piano; lent it to neighbor."
+    },
+    {
+      "id": 4,
+      "language": "en-US",
+      "text": "Unless the last bus arrives, we will stay beside the bakery.",
+      "semanticCheck": "Stay beside bakery unless final bus arrives."
+    },
+    {
+      "id": 5,
+      "language": "ja",
+      "text": "六枚の切符のうち、一枚だけを弟に渡した。",
+      "semanticCheck": "Of six tickets, handed only one to younger brother; subject omitted."
+    },
+    {
+      "id": 6,
+      "language": "ko",
+      "text": "불이 켜지기 전에는 파란 단추를 누르지 마.",
+      "semanticCheck": "Do not press blue button before light turns on."
+    },
+    {
+      "id": 7,
+      "language": "zh-CN",
+      "text": "等第三声汽笛响过以后，再把窗帘拉开。",
+      "semanticCheck": "Open curtains only after third whistle has sounded."
+    },
+    {
+      "id": 8,
+      "language": "en-US",
+      "text": "The empty station held our silence until sunrise.",
+      "semanticCheck": "Poetic station holding shared silence until sunrise; no added events."
+    },
+    {
+      "id": 9,
+      "language": "ja",
+      "text": "遠い山の影だけが、眠れない町を静かに包んだ。",
+      "semanticCheck": "Only distant mountain shadow quietly enveloped sleepless town."
+    },
+    {
+      "id": 10,
+      "language": "ko",
+      "text": "낡은 지붕 아래에서 달빛은 아무 대답도 하지 않았어.",
+      "semanticCheck": "Under old roof moonlight gave no answer; no invented speaker."
+    },
+    {
+      "id": 11,
+      "language": "zh-CN",
+      "text": "退潮带走了沙上的脚印，却没有带走我们的歌。",
+      "semanticCheck": "Ebb tide took footprints in sand, not our song."
+    }
+  ]
+}

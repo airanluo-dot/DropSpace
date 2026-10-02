@@ -18,6 +18,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(5);
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private readonly SemaphoreSlim _sessionGate = new(1, 1);
+    private readonly object _metadataPublicationGate = new();
     // Pools survive disable/re-enable: retiring a waiter must not forget native ownership.
     private readonly BoundedMediaOperation _connections = new(2, 2);
     private readonly BoundedMediaOperation _metadataReads = new();
@@ -275,15 +276,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             try
             {
                 _preparingSession = candidate;
-                var metadata = await _primary.PrepareAndCommitAsync(candidate, async readToken =>
-                {
-                    try { return await SubscribeSessionAsync(candidate, false, readToken); }
-                    catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
-                    {
-                        logger.LogDebug("SMTC primary subscription unavailable ({Category}).", exception.GetType().Name);
-                        return null;
-                    }
-                }, async readToken =>
+                async Task<StableMetadata<NativeTrack>> ReadMetadataAsync(CancellationToken readToken)
                 {
                     var result = await ReadStableMetadataAsync(
                         metadataToken => _metadataReads.RunAsync(candidate,
@@ -294,44 +287,65 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     if (result.Value is null)
                         throw new InvalidOperationException("The media publisher changed tracks throughout the metadata read.");
                     return result;
-                }, token);
-                var properties = metadata.Value!;
-                var metadataRevision = metadata.Revision;
-                var native = properties.Snapshot;
-                var timeline = native.Timeline;
-                var source = native.SourceAppUserModelId;
-                var title = native.TrackTitle;
-                var artist = native.Artist;
-                var albumArtist = native.AlbumArtist;
-                var album = native.AlbumTitle;
-                var trackNumber = native.TrackNumber;
-                var duration = timeline.Duration;
-                var durationConsistent = previous.Timeline.Duration <= TimeSpan.Zero || duration <= TimeSpan.Zero ||
-                    Math.Abs((previous.Timeline.Duration - duration).TotalSeconds) <= 2;
-                var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
-                    previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
-                    previous.TrackNumber == trackNumber && durationConsistent;
-                var effectiveStart = timeline.Start;
-                var effectiveEnd = timeline.End;
-                if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
-                {
-                    // A short-lived zero timeline is an Apple Music metadata refresh, not a new
-                    // track. Keep the last known bounds so the UI and lyric clock do not collapse
-                    // to a one-second duration while the native session catches up.
-                    effectiveStart = previous.Timeline.Start;
-                    effectiveEnd = previous.Timeline.End;
                 }
-                // Publish current metadata before optional artwork. A thumbnail publisher
-                // may ignore cancellation, but must never hold back the title or lyrics.
-                var cachedArtwork = sameTrack && _artworkRevision == metadataRevision ? previous.Artwork : null;
-                var snapshot = native with
+                var metadata = await _primary.PrepareAndCommitAsync(candidate, async readToken =>
                 {
-                    SessionId = _sessionIdentity, SourceDisplayName = FriendlyName(source, strings),
-                    Artwork = cachedArtwork, LastUpdated = observedAt,
-                    Timeline = timeline with { Start = effectiveStart, End = effectiveEnd },
-                };
-                return await CompleteArtworkAsync(snapshot, metadataRevision,
-                    artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), candidate, token, metadata.EquivalentDespiteRevisionChange);
+                    try { return await SubscribeSessionAsync(candidate, false, readToken); }
+                    catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
+                    {
+                        logger.LogDebug("SMTC primary subscription unavailable ({Category}).", exception.GetType().Name);
+                        return null;
+                    }
+                }, ReadMetadataAsync, token);
+                var properties = metadata.Value!;
+                MediaSessionSnapshot CreateSnapshot(NativeTrack properties, long metadataRevision)
+                {
+                    var native = properties.Snapshot;
+                    var timeline = native.Timeline;
+                    var source = native.SourceAppUserModelId;
+                    var title = native.TrackTitle;
+                    var artist = native.Artist;
+                    var albumArtist = native.AlbumArtist;
+                    var album = native.AlbumTitle;
+                    var trackNumber = native.TrackNumber;
+                    var duration = timeline.Duration;
+                    var durationConsistent = previous.Timeline.Duration <= TimeSpan.Zero || duration <= TimeSpan.Zero ||
+                        Math.Abs((previous.Timeline.Duration - duration).TotalSeconds) <= 2;
+                    var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
+                        previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
+                        previous.TrackNumber == trackNumber && durationConsistent;
+                    var effectiveStart = timeline.Start;
+                    var effectiveEnd = timeline.End;
+                    if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
+                    {
+                        // A short-lived zero timeline is an Apple Music metadata refresh, not a new
+                        // track. Keep the last known bounds so the UI and lyric clock do not collapse
+                        // to a one-second duration while the native session catches up.
+                        effectiveStart = previous.Timeline.Start;
+                        effectiveEnd = previous.Timeline.End;
+                    }
+                    // Publish current metadata before optional artwork. A thumbnail publisher
+                    // may ignore cancellation, but must never hold back the title or lyrics.
+                    var cachedArtwork = sameTrack && _artworkRevision == metadataRevision ? previous.Artwork : null;
+                    return native with
+                    {
+                        SessionId = _sessionIdentity, SourceDisplayName = FriendlyName(source, strings),
+                        Artwork = cachedArtwork, LastUpdated = observedAt,
+                        Timeline = timeline with { Start = effectiveStart, End = effectiveEnd },
+                    };
+                }
+                var snapshot = CreateSnapshot(properties, metadata.Revision);
+                return await CompleteArtworkAsync(snapshot, metadata.Revision,
+                    artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), candidate, token,
+                    async readToken =>
+                    {
+                        // A/A equivalence proves only its read endpoint. A notification
+                        // after it may be a real A -> B transition: read fresh metadata
+                        // once more, through the same bounded native owner and budget.
+                        var confirmed = await ReadMetadataAsync(readToken);
+                        properties = confirmed.Value!;
+                        return new(CreateSnapshot(properties, confirmed.Revision), confirmed.Revision);
+                    });
             }
             catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
             {
@@ -370,19 +384,29 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     internal async Task<MediaSessionSnapshot> CompleteArtworkAsync(MediaSessionSnapshot snapshot, long metadataRevision,
         Func<CancellationToken, Task<byte[]?>> read, object owner, CancellationToken token,
-        bool equivalentDespiteRevisionChange = false)
+        Func<CancellationToken, Task<StableMetadata<MediaSessionSnapshot>>>? reconfirm = null)
     {
         token.ThrowIfCancellationRequested();
-        if (metadataRevision != Interlocked.Read(ref _metadataRevision))
+        var previous = Current;
+        // Equivalence authorizes its exact revision endpoint, never a later notification.
+        // One bounded reconfirmation keeps equivalent event storms moving without an
+        // unbounded read loop or publishing an A/A proof after a real B notification.
+        if (!TryPublishMetadata(snapshot, metadataRevision))
         {
             RequestRefresh();
-            if (!equivalentDespiteRevisionChange) return Current;
-            // Two consecutive equivalent reads may publish identity through a metadata
-            // notification storm, but that permission never extends to stale artwork.
-            snapshot = snapshot with { Artwork = null };
+            if (reconfirm is null) return Current;
+            var confirmed = await reconfirm(token).WaitAsync(token);
+            token.ThrowIfCancellationRequested();
+            if (confirmed.Value is null) return Current;
+            snapshot = confirmed.Value;
+            metadataRevision = confirmed.Revision;
+            previous = Current;
+            if (!TryPublishMetadata(snapshot, metadataRevision))
+            {
+                RequestRefresh();
+                return Current;
+            }
         }
-        var previous = Current;
-        Publish(snapshot);
         if (metadataRevision != Interlocked.Read(ref _metadataRevision))
         {
             RequestRefresh();
@@ -409,6 +433,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     // Only metadata notifications invalidate an in-flight metadata read. Continuous
     // playback/timeline events must not starve title and artwork updates.
+    // EquivalentDespiteRevisionChange covers notifications through Revision only.
     internal readonly record struct StableMetadata<T>(T? Value, long Revision, bool EquivalentDespiteRevisionChange = false) where T : class
     {
         public void Deconstruct(out T? value, out long revision) { value = Value; revision = Revision; }
@@ -767,7 +792,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     }
     internal void InvalidateMetadata()
     {
-        Interlocked.Increment(ref _metadataRevision);
+        lock (_metadataPublicationGate) Interlocked.Increment(ref _metadataRevision);
         RequestRefresh();
     }
     private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
@@ -827,9 +852,27 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         return name[(name.LastIndexOf('.') + 1)..];
     }
 
+    private bool TryPublishMetadata(MediaSessionSnapshot snapshot, long revision)
+    {
+        // Linearize the endpoint check and current-snapshot write with notifications.
+        // Native work and subscriber callbacks must never execute inside this lock.
+        lock (_metadataPublicationGate)
+        {
+            if (revision != Interlocked.Read(ref _metadataRevision)) return false;
+            Volatile.Write(ref _current, snapshot);
+        }
+        NotifyChanged(snapshot);
+        return true;
+    }
+
     private void Publish(MediaSessionSnapshot snapshot)
     {
         Volatile.Write(ref _current, snapshot);
+        NotifyChanged(snapshot);
+    }
+
+    private void NotifyChanged(MediaSessionSnapshot snapshot)
+    {
         if (Changed is not { } handlers) return;
         foreach (EventHandler<MediaSessionSnapshot> handler in handlers.GetInvocationList())
         {

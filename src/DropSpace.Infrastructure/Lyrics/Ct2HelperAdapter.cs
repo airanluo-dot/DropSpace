@@ -11,11 +11,15 @@ public enum Ct2TokenizerProtocol { ArgosSentencePiece, HelsinkiSentencePiece }
 public enum Ct2DecoderProtocol { Argos, HelsinkiOpus }
 
 public sealed record Ct2PackageIdentity(string EngineSha256, string ModelSha256, string TokenizerSha256,
-    Ct2TokenizerProtocol Tokenizer, Ct2DecoderProtocol Decoder, string ManifestSha256 = "")
+    Ct2TokenizerProtocol Tokenizer, Ct2DecoderProtocol Decoder, string ManifestSha256 = "",
+    string EngineVersion = "ct2-engine-v1", string RuntimeVersion = "ct2-runtime-v1",
+    string ModelVersion = "ct2-model-v1", string TokenizerVersion = "ct2-tokenizer-v1",
+    string DecoderVersion = "ct2-decoder-v1")
 {
-    public string CacheIdentity(string source, string target) => Convert.ToHexStringLower(SHA256.HashData(
-        Encoding.UTF8.GetBytes(string.Join('\n', "ct2-stdio-v1", EngineSha256, ModelSha256, TokenizerSha256,
-            Tokenizer, Decoder, ManifestSha256, source, target))));
+    public string CacheIdentity(string source, string target, string route = "direct") => Convert.ToHexStringLower(SHA256.HashData(
+        Encoding.UTF8.GetBytes(string.Join('\n', "ct2-stdio-v2", EngineVersion, RuntimeVersion, ModelVersion,
+            TokenizerVersion, DecoderVersion, EngineSha256, ModelSha256, TokenizerSha256,
+            Tokenizer, Decoder, ManifestSha256, source, target, route))));
 }
 
 public sealed record Ct2RouteLeg(string Source, string Target, Ct2PackageIdentity Package);
@@ -54,25 +58,17 @@ public static class Ct2LyricsOutput
         ArgumentNullException.ThrowIfNull(original);
         ArgumentNullException.ThrowIfNull(sourceIndices);
         ArgumentNullException.ThrowIfNull(translated);
-        if (sourceIndices.Count != translated.Count || sourceIndices.Distinct().Count() != sourceIndices.Count) throw new InvalidDataException("Incomplete CT2 lyrics output.");
-        var lines = original.Lines.ToArray();
-        for (var i = 0; i < sourceIndices.Count; i++)
-        {
-            if (translated[i] is null || string.IsNullOrWhiteSpace(translated[i].Text) || translated[i].Id != sourceIndices[i] || sourceIndices[i] < 0 || sourceIndices[i] >= lines.Length)
-                throw new InvalidDataException("CT2 lyrics IDs are missing, duplicated, or reordered.");
-            lines[sourceIndices[i]] = lines[sourceIndices[i]] with
-            {
-                Secondary = translated[i].Text,
-                TranslationOrigin = LyricsTranslationOrigin.LocalAi,
-                TranslationLanguage = targetLanguage,
-            };
-        }
-        return original with { Lines = lines };
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(original, targetLanguage)) return original;
+        if (translated.Any(line => line is null)) throw new InvalidDataException("Incomplete CT2 lyrics output.");
+        var json = JsonSerializer.Serialize(translated.Select(line => new { id = line.Id, text = line.Text }));
+        if (!LyricsTranslationOutput.TryApply(json, original, sourceIndices, targetLanguage, out var result))
+            throw new InvalidDataException("CT2 lyrics IDs or text failed app output validation.");
+        return result;
     }
 }
 
 /// <summary>Hidden, app-private CT2 stdio boundary. Not selected by the production lyrics service.</summary>
-public sealed class Ct2HelperAdapter : IDisposable
+public sealed class Ct2HelperAdapter : ICt2InferenceRunner
 {
     private const int MaximumMessageBytes = 256 * 1024;
     private static readonly UTF8Encoding Utf8 = new(false, true);
@@ -91,8 +87,17 @@ public sealed class Ct2HelperAdapter : IDisposable
         if (_timeout <= TimeSpan.Zero || _timeout > TimeSpan.FromMinutes(2)) throw new ArgumentOutOfRangeException(nameof(timeout));
     }
 
-    public async Task<IReadOnlyList<Ct2TranslationLine>> TranslateAsync(Ct2PackageReference packageReference,
-        string source, string target, IReadOnlyList<Ct2SourceLine> lines, CancellationToken token)
+    public Task<IReadOnlyList<Ct2TranslationLine>> TranslateAsync(Ct2PackageReference packageReference,
+        string source, string target, IReadOnlyList<Ct2SourceLine> lines, CancellationToken token) =>
+        TranslateCoreAsync(packageReference, null, source, target, lines, token);
+
+    public Task<IReadOnlyList<Ct2TranslationLine>> TranslateVerifiedAsync(Ct2PackageReference packageReference,
+        Ct2PackageIdentity expectedIdentity, string source, string target, IReadOnlyList<Ct2SourceLine> lines,
+        CancellationToken token) => TranslateCoreAsync(packageReference,
+            expectedIdentity ?? throw new ArgumentNullException(nameof(expectedIdentity)), source, target, lines, token);
+
+    private async Task<IReadOnlyList<Ct2TranslationLine>> TranslateCoreAsync(Ct2PackageReference packageReference,
+        Ct2PackageIdentity? expectedIdentity, string source, string target, IReadOnlyList<Ct2SourceLine> lines, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(lines);
         if (!Ct2RoutePlanner.IsSupported(source, target)) throw new InvalidDataException("Unsupported explicit CT2 route.");
@@ -121,6 +126,8 @@ public sealed class Ct2HelperAdapter : IDisposable
             deadline.Token.ThrowIfCancellationRequested();
             package = await Ct2PrivatePackage.OpenAsync(packageReference, source, target, deadline.Token).ConfigureAwait(false);
             var identity = package.Identity;
+            if (expectedIdentity is not null && identity != expectedIdentity)
+                throw new InvalidDataException("The CT2 package identity changed after route resolution.");
             var request = new Request(1, source, target, package.ModelDirectory, package.SourceTokenizer, package.TargetTokenizer,
                 package.TargetPrefix, identity.Tokenizer.ToString(), identity.Decoder.ToString(), requested);
             var payload = JsonSerializer.SerializeToUtf8Bytes(request, Json);

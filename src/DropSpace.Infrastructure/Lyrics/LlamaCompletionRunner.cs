@@ -5,7 +5,7 @@ using DropSpace.Infrastructure.Storage;
 namespace DropSpace.Infrastructure.Lyrics;
 
 /// <summary>Runs a pre-verified local runtime with bounded output and cancellation. No server or tools are exposed.</summary>
-public sealed class LlamaCompletionRunner : IDisposable
+public sealed class LlamaCompletionRunner : IPlainLyricsRunner
 {
     private static readonly SemaphoreSlim InferenceGate = LocalInferenceProcess.InferenceGate;
     private readonly CancellationTokenSource _lifetime = new();
@@ -13,17 +13,44 @@ public sealed class LlamaCompletionRunner : IDisposable
     private Task _pendingCleanup = Task.CompletedTask;
     private bool _disposed;
     private const int MaximumOutputCharacters = 65_536;
+    private const string PlainModelSha256 = "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4";
     private const string Schema = "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"text\":{\"type\":\"string\"}},\"required\":[\"id\",\"text\"],\"additionalProperties\":false}}";
 
-    public async Task<string> RunAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
-        CancellationToken cancellationToken, string? verifiedModelSha256 = null, IReadOnlyList<int>? expectedLineIds = null)
+    public Task<string> RunAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
+        CancellationToken cancellationToken, string? verifiedModelSha256 = null, IReadOnlyList<int>? expectedLineIds = null) =>
+        RunCompletionAsync(executablePath, modelPath, prompt, stagingDirectory, cancellationToken,
+            verifiedModelSha256, expectedLineIds, plainText: false);
+
+    /// <summary>Runs the frozen experimental Hy Q8 per-line profile without a JSON grammar.</summary>
+    public Task<string> RunPlainAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
+        CancellationToken cancellationToken, string verifiedModelSha256) =>
+        RunCompletionAsync(executablePath, modelPath, prompt, stagingDirectory, cancellationToken,
+            verifiedModelSha256, expectedLineIds: null, plainText: true);
+
+    /// <summary>The frozen plain-text launch profile, also used by evidence capture to record the exact arguments.</summary>
+    public static IReadOnlyList<string> BuildPlainArguments(string modelPath, string promptPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(promptPath);
+        // Frozen scripts/hy-plain-model-qa CompletionArgs profile. Do not append
+        // JSON/schema or legacy-model compatibility options to this strategy.
+        return Array.AsReadOnly(new[] { "-m", Path.GetFullPath(modelPath), "-f", promptPath, "--offline", "--perf", "--no-escape", "--jinja",
+            "--single-turn", "--load-mode", "none", "--no-display-prompt", "--simple-io", "--no-context-shift", "--reasoning", "off",
+            "-t", "4", "-tb", "4", "-ngl", "0", "-c", "4096", "-n", "2048", "--seed", "42", "--temp", "0.1", "--top-k", "20",
+            "--top-p", "0.8", "--min-p", "0.05", "--repeat-penalty", "1.0", "--frequency-penalty", "0", "--presence-penalty", "0" });
+    }
+
+    private async Task<string> RunCompletionAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
+        CancellationToken cancellationToken, string? verifiedModelSha256, IReadOnlyList<int>? expectedLineIds, bool plainText)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingDirectory);
         ArgumentNullException.ThrowIfNull(prompt);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var outputSchema = expectedLineIds is null ? Schema : DropSpace.Core.Lyrics.LyricsTranslationPrompt.OutputSchema(expectedLineIds);
+        if (plainText && !string.Equals(verifiedModelSha256, PlainModelSha256, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("The experimental plain-text profile requires the verified Hy Q8 model.");
+        var outputSchema = plainText ? null : expectedLineIds is null ? Schema : DropSpace.Core.Lyrics.LyricsTranslationPrompt.OutputSchema(expectedLineIds);
         if (Encoding.UTF8.GetByteCount(prompt) > 80_000) throw new InvalidDataException("Prompt exceeds budget.");
         var memoryBudget = MemoryBudgetFor(verifiedModelSha256);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
@@ -58,10 +85,17 @@ public sealed class LlamaCompletionRunner : IDisposable
                     RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true,
                     StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
                 };
-                foreach (var argument in new[] { "-m", Path.GetFullPath(modelPath), "-f", promptPath, "--offline", "--no-escape", "--jinja",
-                    "--single-turn", "--load-mode", "none", "--no-display-prompt", "--simple-io", "--no-context-shift", "--reasoning", "off", "-t", "4", "-tb", "4", "-ngl", "0", "-c", "4096", "-n", "2048", "--temp", "0.1", "-j", outputSchema })
-                    start.ArgumentList.Add(argument);
-                foreach (var argument in ModelCompatibilityArguments(verifiedModelSha256)) start.ArgumentList.Add(argument);
+                if (plainText)
+                {
+                    foreach (var argument in BuildPlainArguments(modelPath, promptPath)) start.ArgumentList.Add(argument);
+                }
+                else
+                {
+                    foreach (var argument in new[] { "-m", Path.GetFullPath(modelPath), "-f", promptPath, "--offline", "--no-escape", "--jinja",
+                        "--single-turn", "--load-mode", "none", "--no-display-prompt", "--simple-io", "--no-context-shift", "--reasoning", "off", "-t", "4", "-tb", "4", "-ngl", "0", "-c", "4096", "-n", "2048", "--temp", "0.1", "-j", outputSchema! })
+                        start.ArgumentList.Add(argument);
+                    foreach (var argument in ModelCompatibilityArguments(verifiedModelSha256)) start.ArgumentList.Add(argument);
+                }
                 // Prevent ambient runtime flags from overriding these controlled model and network options.
                 foreach (var key in start.Environment.Keys.Where(key => (key.StartsWith("LLAMA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("GGML_", StringComparison.OrdinalIgnoreCase))).ToArray())
                     start.Environment.Remove(key);

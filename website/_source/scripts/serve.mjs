@@ -13,7 +13,12 @@ createServer(async (request, response) => {
   try {
     const url = new URL(request.url, "http://127.0.0.1");
     let file = resolveStaticPath(root, url.pathname);
-    if ((await stat(file)).isDirectory()) file = path.join(file, "index.html");
+    if ((await stat(file)).isDirectory()) {
+      // GPT static hosting need not provide nested directory-index rewrites.
+      // Exercise explicit file routes; only the root entry point is implicit.
+      if (staticShowcase && file !== root) throw new Error("Static directory route has no index rewrite.");
+      file = path.join(file, "index.html");
+    }
     const content = await readFile(file);
     response.writeHead(200, { "Content-Type": types[path.extname(file)] ?? "application/octet-stream", "Cache-Control": "no-store" });
     response.end(content);

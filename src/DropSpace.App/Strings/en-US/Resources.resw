@@ -39,8 +39,6 @@
   <data name="DeploymentPortable" xml:space="preserve"><value>Portable (downloads and verifies only; it will not install automatically)</value></data>
   <data name="DeploymentUnknown" xml:space="preserve"><value>Unknown deployment</value></data>
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>Add to DropSpace</value></data>
-  <data name="DropTraySettingsUnavailableContent" xml:space="preserve"><value>Open Windows Settings → System → Multitasking manually to review the Drop Tray option.</value></data>
-  <data name="DropTraySettingsUnavailableTitle" xml:space="preserve"><value>Unable to open system settings</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>Copy text, images, files, or folders and supported content will appear here.</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>No clipboard history</value></data>
   <data name="EmptyPinnedDescription" xml:space="preserve"><value>Pin items from Temporary Space or Clipboard and they will appear together here.</value></data>
@@ -226,18 +224,11 @@
   <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>Maximum retention days</value></data>
   <data name="RetentionCountLabel.Text" xml:space="preserve"><value>Maximum unpinned items retained</value></data>
   <data name="AppearanceSection.Text" xml:space="preserve"><value>Appearance and window</value></data>
-  <data name="DropTrayCompatibilityTitle.Text" xml:space="preserve"><value>Top-edge drag compatibility</value></data>
-  <data name="DropTrayCompatibilityDescription.Text" xml:space="preserve"><value>Windows 11 Drop Tray and DropSpace use the same top-edge drag area. When system Drop Tray is enabled, it can receive files dragged to the top first and prevent the DropSpace panel from expanding automatically. Disable Drop Tray for the full “drag to top → DropSpace expands → drop into Temporary Space” experience.</value></data>
-  <data name="DropTrayApiNotice.Text" xml:space="preserve"><value>Windows does not offer a public, stable API to read the Drop Tray switch. DropSpace does not read internal feature flags or change system settings for you.</value></data>
-  <data name="OpenDropTraySettingsButton.Content" xml:space="preserve"><value>Open Windows Drop Tray settings</value></data>
-  <data name="OpenDropTraySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open Windows Drop Tray settings</value></data>
   <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>File drag wake mode</value></data>
   <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>Smart detection does not occupy the top edge while idle. Classic mode may be more compatible but keeps an invisible top input area active.</value></data>
-  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>Smart detection (experimental)</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>Smart detection</value></data>
   <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>Classic top-edge zone (compatible)</value></data>
   <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>Disable automatic wake</value></data>
-  <data name="ExperimentalDragDetectionInfo.Title" xml:space="preserve"><value>Experimental drag detection</value></data>
-  <data name="ExperimentalDragDetectionInfo.Message" xml:space="preserve"><value>Smart detection currently prioritizes real file and folder drags from Explorer and the desktop. Some third-party apps, virtual files, or sources without standard signals may not wake it automatically; the visible DropSpace panel can still receive standard file drops directly.</value></data>
   <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Choose this during first setup or in Settings. Uses the current-user startup entry without administrator privileges.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
@@ -624,12 +615,19 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Preview of translated lyrics</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>Reset lyric sizes</value></data>
-  <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics</value></data>
-  <data name="AiLyricsDescription" xml:space="preserve"><value>Translate missing lyrics into the app’s language on this computer. Matching source translations take priority. AI can make mistakes; lyrics are not uploaded for AI translation.</value></data>
-  <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics (Beta)</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>Translate missing lyrics into the app’s language on this computer. Matching source translations take priority. The first full translation may take several minutes, depending on your device and lyric length. Completed translations appear line by line. AI may mistranslate the meaning; lyrics are not uploaded for AI translation.</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation (Beta)</value></data>
+  <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU acceleration</value></data>
+  <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Prefer a compatible GPU for AI translation. If GPU acceleration is unavailable or fails, the app uses the CPU instead. Turn this off to use only the CPU. Changing this preference does not turn on AI or download a model.</value></data>
   <data name="AiLyricsModel" xml:space="preserve"><value>Translation model</value></data>
-  <data name="AiLyricsStandardModel" xml:space="preserve"><value>Standard</value></data>
-  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>Compact (experimental)</value></data>
+  <data name="AiLyricsStandardModel" xml:space="preserve"><value>Previous standard model (Q4)</value></data>
+  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>Previous compact model (IQ3)</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0 (Beta)</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>Tencent Q8 model for local lyric translation (Beta). The first full translation may take several minutes, depending on your device and lyric length. Translations may contain meaning errors.</value></data>
+  <data name="AiLyricsLegacyModels" xml:space="preserve"><value>Previous model files</value></data>
+  <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>These older model files are no longer used for translation. You can remove them to free disk space.</value></data>
+  <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>Delete {0}</value></data>
   <data name="AiLyricsModelSize" xml:space="preserve"><value>{0} GB ({1} bytes)</value></data>
   <data name="AiLyricsModelDetails" xml:space="preserve"><value>{0}
 Download size: {1}
@@ -667,8 +665,8 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="LyricsGlowKeyboardHelp" xml:space="preserve"><value>Use the arrow keys to choose Off, AI lyrics, or Music. Home selects Off; End selects Music.</value></data>
   <data name="LyricsGlowAccessibleValue" xml:space="preserve"><value>Island glow: {0}</value></data>
   <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>You can download a model while AI is off. Interrupted downloads resume when possible.</value></data>
-  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>Official Tencent Q4 model. Default choice; translations may still contain mistakes.</value></data>
-  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>Third-party IQ3 quantization of the same 1.8B model. About 23% smaller download and lower memory use, but not necessarily faster. Complex lyrics may be mistranslated.</value></data>
+  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>Previous Tencent Q4 model. Kept only for inspecting and removing old downloads.</value></data>
+  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>Previous third-party IQ3 model. Kept only for inspecting and removing old downloads.</value></data>
   <data name="LyricsFontSize" xml:space="preserve"><value>Lyric size</value></data>
   <data name="LyricsFontSizeNumber" xml:space="preserve"><value>Lyric size, 12 to 28</value></data>
   <data name="LyricsFontSizeHelp" xml:space="preserve"><value>Drag or enter a size from 12 to 28. Decimals are welcome. Original lyrics and translations scale together.</value></data>
@@ -684,7 +682,7 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>Remove cached original lyrics, provider translations, and AI translations? Current inference will stop. Downloaded models and your lyric files are kept.</value></data>
   <data name="AiLyricsCacheCleared" xml:space="preserve"><value>Lyrics cache cleared.</value></data>
   <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>The offline runtime is included in the App; no additional runtime download is required. Runtime extraction uses up to approximately {0} MiB of additional disk space. Allow an extra 64 MiB of free disk space for model download and recovery.</value></data>
-  <data name="AiLyricsTranslating" xml:space="preserve"><value>Translating locally… Original lyrics remain visible.</value></data>
+  <data name="AiLyricsTranslating" xml:space="preserve"><value>Translating locally… The first full translation may take several minutes. Completed translations appear line by line; unfinished lines keep the original lyrics.</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI translation is temporarily unavailable. Original lyrics are unchanged.</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI translation ready.</value></data>
   <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Online lyrics sends the current song title, artist, album and duration to your selected lyric provider. It is off on a fresh installation until you enable lyrics. Choose Local LRC to read your own lyric files without provider requests. AI translation itself stays on this device.</value></data>

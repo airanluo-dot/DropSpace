@@ -22,6 +22,7 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly Func<CancellationToken, Task> _clearLyricsCache;
     private readonly IAppStringLocalizer _strings;
     private readonly ToggleSwitch _enabled = new();
+    private readonly ToggleSwitch _gpuAcceleration = new();
     private readonly ComboBox _models = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBlock _details = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
@@ -32,6 +33,8 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly Button _resume;
     private readonly Button _delete;
     private readonly Button _clearCache;
+    private readonly StackPanel _legacyModels = new() { Spacing = 8, Visibility = Visibility.Collapsed };
+    private readonly Dictionary<string, Button> _legacyDeleteButtons = new(StringComparer.Ordinal);
     private readonly LyricsGlowModeControl _glow;
     private readonly HashSet<string> _installed = new(StringComparer.Ordinal);
     private readonly HashSet<string> _removable = new(StringComparer.Ordinal);
@@ -62,6 +65,13 @@ public sealed class AiLyricsSettingsCard : UserControl
         AutomationProperties.SetAutomationId(_enabled, "AiLyricsEnabled");
         _enabled.Toggled += OnEnabled;
         body.Children.Add(_enabled);
+        _gpuAcceleration.Header = strings.Get("AiLyricsGpuAcceleration");
+        AutomationProperties.SetName(_gpuAcceleration, strings.Get("AiLyricsGpuAcceleration"));
+        AutomationProperties.SetAutomationId(_gpuAcceleration, "AiLyricsGpuAcceleration");
+        AutomationProperties.SetHelpText(_gpuAcceleration, strings.Get("AiLyricsGpuAccelerationHelp"));
+        _gpuAcceleration.Toggled += OnGpuAcceleration;
+        body.Children.Add(_gpuAcceleration);
+        body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsGpuAccelerationHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsModel"), FontWeight = FontWeights.SemiBold });
         foreach (var model in AiLyricsModelCatalog.All)
             _models.Items.Add(new ComboBoxItem { Content = ModelLabel(model), Tag = model });
@@ -95,6 +105,18 @@ public sealed class AiLyricsSettingsCard : UserControl
         actions.Children.Add(_download); actions.Children.Add(_cancel); actions.Children.Add(_resume);
         actions.Children.Add(_delete); actions.Children.Add(_clearCache);
         body.Children.Add(actions);
+        _legacyModels.Children.Add(new TextBlock { Text = strings.Get("AiLyricsLegacyModels"), FontWeight = FontWeights.SemiBold });
+        _legacyModels.Children.Add(new TextBlock { Text = strings.Get("AiLyricsLegacyModelsHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
+        foreach (var model in AiLyricsModelCatalog.Legacy)
+        {
+            var remove = new Button { Content = strings.Format("AiLyricsDeleteLegacyModel", ModelLabel(model)), HorizontalAlignment = HorizontalAlignment.Left };
+            AutomationProperties.SetName(remove, strings.Format("AiLyricsDeleteLegacyModel", ModelLabel(model)));
+            AutomationProperties.SetAutomationId(remove, "AiLyricsDeleteLegacy-" + model.Id);
+            remove.Click += (_, _) => DeleteModel(model);
+            _legacyDeleteButtons.Add(model.Id, remove);
+            _legacyModels.Children.Add(remove);
+        }
+        body.Children.Add(_legacyModels);
         body.Children.Add(new TextBlock { Text = strings.Get(AiLyricsModelCatalog.All.Count > 1 ? "AiLyricsDownloadHelp" : "AiLyricsDownloadHelpSingle"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowTitle"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
         _glow = new LyricsGlowModeControl(strings);
@@ -197,6 +219,9 @@ public sealed class AiLyricsSettingsCard : UserControl
                 if (await _service.GetInstalledPathAsync(model.Id, token) is not null) installed.Add(model.Id);
                 if (_service.HasModelArtifacts(model.Id)) removable.Add(model.Id);
             }
+            // Older packages can be removed, but never selected, enabled, or downloaded.
+            foreach (var model in AiLyricsModelCatalog.Legacy)
+                if (_service.HasModelArtifacts(model.Id)) removable.Add(model.Id);
             if (!IsCurrent(generation)) return;
             _installed.Clear();
             _installed.UnionWith(installed);
@@ -240,6 +265,21 @@ public sealed class AiLyricsSettingsCard : UserControl
         });
     }
 
+    private void OnGpuAcceleration(object sender, RoutedEventArgs args)
+    {
+        if (_syncing) return;
+        var preferGpu = _gpuAcceleration.IsOn;
+        // This is a persisted preference, not a claim about the runtime's active device.
+        // Settings propagation owns cancellation/draining when the execution mode changes.
+        StartOperation(async (generation, _) =>
+        {
+            await SaveAsync(generation, settings => settings with
+            {
+                Lyrics = settings.Lyrics with { AiLyricsGpuAccelerationEnabled = preferGpu },
+            });
+        });
+    }
+
     private void OnModelSelected(object sender, SelectionChangedEventArgs args)
     {
         if (_syncing || _models.SelectedItem is not ComboBoxItem { Tag: AiLyricsModelDescriptor model }) return;
@@ -257,9 +297,10 @@ public sealed class AiLyricsSettingsCard : UserControl
         StartOperation(async (generation, token) => { await EnsureInstalledAsync(model, generation, token); });
     }
 
-    private void OnDelete(object sender, RoutedEventArgs args)
+    private void OnDelete(object sender, RoutedEventArgs args) => DeleteModel(SelectedModel());
+
+    private void DeleteModel(AiLyricsModelDescriptor model)
     {
-        var model = SelectedModel();
         StartOperation(async (generation, token) =>
         {
             var dialog = new ContentDialog
@@ -460,10 +501,13 @@ public sealed class AiLyricsSettingsCard : UserControl
     private bool IsCurrent(int generation) => _generation == generation && _lifetime is { IsCancellationRequested: false };
     private AiLyricsModelDescriptor SelectedModel() =>
         (_models.SelectedItem as ComboBoxItem)?.Tag as AiLyricsModelDescriptor ??
-        AiLyricsModelCatalog.Find(_editor.Settings.Lyrics.AiModelId) ?? AiLyricsModelCatalog.Standard;
-    private string ModelLabel(AiLyricsModelDescriptor model) =>
-        _strings.Get(model.Id == AiLyricsModelCatalog.Standard.Id ? "AiLyricsStandardModel" : "AiLyricsSmallerModel");
-    private string ModelHelp(AiLyricsModelDescriptor model) => _strings.Get(model.Id == AiLyricsModelCatalog.Standard.Id ? "AiLyricsStandardHelp" : "AiLyricsCompactHelp");
+        AiLyricsModelCatalog.FindSelectable(_editor.Settings.Lyrics.AiModelId) ?? AiLyricsModelCatalog.ExperimentalPlain;
+    private string ModelLabel(AiLyricsModelDescriptor model) => _strings.Get(
+        model.Id == AiLyricsModelCatalog.ExperimentalPlain.Id ? "AiLyricsPlainBetaModel" :
+        model.Id == AiLyricsModelCatalog.Standard.Id ? "AiLyricsStandardModel" : "AiLyricsSmallerModel");
+    private string ModelHelp(AiLyricsModelDescriptor model) => _strings.Get(
+        model.Id == AiLyricsModelCatalog.ExperimentalPlain.Id ? "AiLyricsPlainBetaHelp" :
+        model.Id == AiLyricsModelCatalog.Standard.Id ? "AiLyricsStandardHelp" : "AiLyricsCompactHelp");
     private string SizeLabel(AiLyricsModelDescriptor model) => _strings.Format("AiLyricsModelSize", (model.Bytes / 1_000_000_000d).ToString("0.00", _strings.Culture), model.Bytes.ToString("N0", _strings.Culture));
     private static string SourceLabel(AiLyricsModelDescriptor model)
     {
@@ -484,6 +528,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         {
             var settings = _editor.Settings.Lyrics;
             _enabled.IsOn = settings.AiTranslationEnabled;
+            _gpuAcceleration.IsOn = settings.AiLyricsGpuAccelerationEnabled;
             // Retain the candidate while its confirmation/download is running.
             if (!_busy)
                 _models.SelectedItem = _models.Items.OfType<ComboBoxItem>().FirstOrDefault(item =>
@@ -508,10 +553,17 @@ public sealed class AiLyricsSettingsCard : UserControl
             _delete.Visibility = installed || _removable.Contains(selected.Id) || _interrupted.Contains(selected.Id) ? Visibility.Visible : Visibility.Collapsed;
             _delete.IsEnabled = !_busy && !_inspecting;
             _clearCache.IsEnabled = !_busy && !_inspecting;
+            foreach (var (legacyId, remove) in _legacyDeleteButtons)
+            {
+                remove.Visibility = _removable.Contains(legacyId) ? Visibility.Visible : Visibility.Collapsed;
+                remove.IsEnabled = !_busy && !_inspecting;
+            }
+            _legacyModels.Visibility = _legacyDeleteButtons.Keys.Any(legacyId => _removable.Contains(legacyId)) ? Visibility.Visible : Visibility.Collapsed;
             _error.Text = !string.IsNullOrEmpty(_errorMessage) ? _errorMessage :
                 _service.CacheMigrationFailed ? _strings.Get("LyricsCacheMigrationFailed") : string.Empty;
             _error.Visibility = string.IsNullOrEmpty(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
             _enabled.IsEnabled = !_busy && !_inspecting;
+            _gpuAcceleration.IsEnabled = !_busy && !_inspecting;
             _models.IsEnabled = !_busy && !_inspecting;
             _download.Content = _strings.Get(_interrupted.Contains(selected.Id) ? "AiLyricsResumeDownload" : "AiLyricsDownload");
             _download.Visibility = !installed && !_downloading ? Visibility.Visible : Visibility.Collapsed;
