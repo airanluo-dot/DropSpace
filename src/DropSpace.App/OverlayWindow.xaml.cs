@@ -67,6 +67,9 @@ public sealed partial class OverlayWindow : Window
     private bool _hasFrameSubscription;
     private bool _hideWhenSettled;
     private bool _suppressedForFullscreen;
+    private bool _forceFullscreenPresentation;
+    private OverlayState _presentedState = OverlayState.Hidden;
+    private long _lastTopmostFailureLog;
     private long _regionFailureCount;
     private bool _nativeWindowSafeToShow;
     private readonly bool _supportsModernDwmAttributes;
@@ -372,7 +375,7 @@ public sealed partial class OverlayWindow : Window
     internal bool TryEnsureNativeDropTargetForSmoke()
     {
         if (!_isVisible || !_nativeWindowSafeToShow ||
-            _viewModel.Snapshot.State is not (OverlayState.Compact or OverlayState.Expanded))
+            _presentedState is not (OverlayState.Compact or OverlayState.Expanded))
         {
             return false;
         }
@@ -508,9 +511,15 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        var suppressedForFullscreen = _mediaViewModel.Settings.SystemActivities.SuppressOverFullscreen && snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
-                                      _monitorLayout.IsForegroundFullscreen(_monitor);
-        if (suppressedForFullscreen)
+        var settings = _mediaViewModel.Settings;
+        var fullscreen = FullscreenOverlayPolicy.Resolve(snapshot.State,
+            settings.IslandAppearance.ForceShowOverFullscreen,
+            settings.SystemActivities.SuppressOverFullscreen,
+            _monitorLayout.IsForegroundFullscreen(_monitor));
+        _forceFullscreenPresentation = fullscreen.KeepTopmost;
+        snapshot = snapshot with { State = fullscreen.State };
+        _presentedState = fullscreen.State;
+        if (fullscreen.Suppress)
         {
             BeginFullscreenSuppression(snapshot, wakeMode);
             return;
@@ -549,7 +558,8 @@ public sealed partial class OverlayWindow : Window
             target = Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0);
         }
 
-        EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
+        EnsureVisualHostShown(fullscreen.AllowActivation);
+        MaintainFullscreenVisibility();
         _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
         WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
         ClipboardExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
@@ -732,8 +742,36 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
+    internal bool NeedsFullscreenPresentationRecovery =>
+        !_closing && _forceFullscreenPresentation && _isActiveWindow && !_nativeWindowSafeToShow &&
+        !_suppressedForPlacementEdit && !_placementEditActive &&
+        _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen;
+
+    // Called by the low-frequency fullscreen watcher, not by the animation loop.
+    // Reassert only a safe, visible surface; never activate or expose an empty host.
+    internal void MaintainFullscreenVisibility()
+    {
+        if (_closing || !_forceFullscreenPresentation || !_isActiveWindow || !_isVisible ||
+            !_nativeWindowSafeToShow || _suppressedForFullscreen || _suppressedForPlacementEdit ||
+            _placementEditActive || !_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen)
+            return;
+
+        if (!OverlayWindowInterop.MaintainTopmostNoActivate(_windowHandle, out var failure))
+        {
+            // Failure to win the Z order is not a reason to hide the island. The
+            // next foreground/timer event can retry within normal Win32 rules.
+            var now = Environment.TickCount64;
+            if (_lastTopmostFailureLog == 0 || now - _lastTopmostFailureLog >= 10_000)
+            {
+                _lastTopmostFailureLog = now;
+                LogNativeFailure(failure);
+            }
+        }
+    }
+
     private void HideImmediately()
     {
+        _presentedState = OverlayState.Hidden;
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
@@ -779,6 +817,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        _presentedState = OverlayState.Hidden;
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
@@ -1489,15 +1528,32 @@ public sealed partial class OverlayWindow : Window
         if (_closing) return;
         try
         {
-            if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music) _experience.Open(DropSpace.Core.Island.IslandPage.Music);
-            else await _viewModel.ExpandAsync();
-            // The await can span a display rebuild or shutdown that retires this HWND.
+            if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music)
+                _experience.Open(DropSpace.Core.Island.IslandPage.Music);
+            else
+            {
+                await _viewModel.ExpandAsync();
+                if (_closing) return;
+                // An idle fullscreen surface is projected from Hidden, so the
+                // file state machine's item-only Expand cannot open it. This is
+                // an explicit click: open the ordinary manual panel instead.
+                if (_forceFullscreenPresentation && _experience.Current.State != OverlayState.Expanded)
+                    _experience.Open(DropSpace.Core.Island.IslandPage.Files);
+            }
+            // The await can span a display rebuild, setting change or shutdown.
             if (_closing) return;
+            var settings = _mediaViewModel.Settings;
+            var presentation = FullscreenOverlayPolicy.Resolve(OverlayState.Expanded,
+                settings.IslandAppearance.ForceShowOverFullscreen,
+                settings.SystemActivities.SuppressOverFullscreen,
+                _monitorLayout.IsForegroundFullscreen(_monitor));
+            if (!presentation.AllowActivation) return;
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
             {
                 LogNativeFailure(noActivateFailure);
                 return;
             }
+            _noActivateApplied = false;
             Activate();
         }
         catch (Exception exception)
@@ -1660,7 +1716,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerEntered(object sender, PointerRoutedEventArgs args)
     {
-        if (_viewModel.Snapshot.State == OverlayState.Compact)
+        if (_presentedState == OverlayState.Compact)
         {
             _motion.ApplyHover(true, IsReducedMotion());
         }
@@ -1681,7 +1737,7 @@ public sealed partial class OverlayWindow : Window
             args.Handled = true;
             return;
         }
-        if (_viewModel.Snapshot.State == OverlayState.Compact)
+        if (_presentedState == OverlayState.Compact)
         {
             _motion.ApplyPress(true, IsReducedMotion());
         }

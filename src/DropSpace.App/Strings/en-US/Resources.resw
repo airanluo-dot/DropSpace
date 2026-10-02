@@ -697,4 +697,12 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="FirstRunSkip" xml:space="preserve"><value>Continue with both off</value></data>
   <data name="LyricsCacheClearFailed" xml:space="preserve"><value>Lyrics cache could not be cleared. Try again.</value></data>
   <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>Some old lyrics cache files could not be removed. Clear the lyrics cache to retry. Downloaded models and your lyric files are kept.</value></data>
+  <data name="MusicRefresh" xml:space="preserve"><value>Refresh music</value></data>
+  <data name="MusicRefreshHelp" xml:space="preserve"><value>Reconnect music, artwork and lyrics without restarting DropSpace. Settings and cached lyrics are kept.</value></data>
+  <data name="MusicReconnecting" xml:space="preserve"><value>Reconnecting music…</value></data>
+  <data name="MusicReconnected" xml:space="preserve"><value>Music reconnected</value></data>
+  <data name="MusicReconnectFailed" xml:space="preserve"><value>Couldn’t reconnect music. Try the refresh button again.</value></data>
+  <data name="MediaNextLyricLabel" xml:space="preserve"><value>Upcoming lyric</value></data>
+  <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Force Dynamic Island over fullscreen</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
 </root>

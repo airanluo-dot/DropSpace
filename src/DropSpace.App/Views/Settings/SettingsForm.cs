@@ -24,10 +24,14 @@ public sealed class SettingsForm : UserControl
         Unloaded += (_, _) => _editor.PropertyChanged -= OnChanged;
     }
     public void AddHeading(string key) => Rows.Children.Add(new TextBlock { Text = _strings.Get(key), FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
-    public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write, Func<bool, Task<bool>>? beforeChange = null)
+    public ToggleSwitch AddToggle(string key, Func<AppSettings, bool> read, Func<AppSettings, bool, AppSettings> write, Func<bool, Task<bool>>? beforeChange = null, Func<AppSettings, bool>? isEnabled = null)
     {
         var toggle = new ToggleSwitch(); AddRow(key, toggle);
-        _refresh.Add(() => toggle.IsOn = read(_editor.Settings)); Refresh();
+        _refresh.Add(() =>
+        {
+            toggle.IsOn = read(_editor.Settings);
+            toggle.IsEnabled = isEnabled?.Invoke(_editor.Settings) ?? true;
+        }); Refresh();
         var revision = 0L;
         toggle.Toggled += async (_, _) =>
         {

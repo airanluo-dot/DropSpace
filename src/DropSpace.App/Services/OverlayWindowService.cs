@@ -32,6 +32,8 @@ public sealed class OverlayWindowService : IDisposable
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
     private readonly DispatcherQueue _dispatcher;
+    private readonly DispatcherQueueTimer _fullscreenRefreshTimer;
+    private string? _lastFullscreenMonitorId;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OverlayWindowService> _logger;
     private readonly CrashDiagnosticsService _crashDiagnostics;
@@ -89,6 +91,10 @@ public sealed class OverlayWindowService : IDisposable
         _dragSessionDetector = dragSessionDetector;
         _quickPanelHotkey = quickPanelHotkey;
         _dispatcher = dispatcher;
+        _fullscreenRefreshTimer = dispatcher.CreateTimer();
+        _fullscreenRefreshTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _fullscreenRefreshTimer.IsRepeating = true;
+        _fullscreenRefreshTimer.Tick += OnFullscreenRefreshTick;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
         _crashDiagnostics = crashDiagnostics;
@@ -131,6 +137,7 @@ public sealed class OverlayWindowService : IDisposable
         await _quickPanelHotkey.StartAsync(_viewModel.QuickPanelHotkey, cancellationToken);
         _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
         ConfigureWakeMode(_viewModel.FileDragWakeMode);
+        UpdateFullscreenRefreshTimer();
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -540,6 +547,8 @@ public sealed class OverlayWindowService : IDisposable
 
         // Retire before cleanup can synchronously publish media/input changes.
         _disposed = true;
+        _fullscreenRefreshTimer.Stop();
+        _fullscreenRefreshTimer.Tick -= OnFullscreenRefreshTick;
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _experience.Changed -= OnExperienceChanged;
         _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
@@ -625,7 +634,37 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnMediaSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings)) ApplySnapshot(_viewModel.Snapshot);
+        if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings))
+        {
+            UpdateFullscreenRefreshTimer();
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+    }
+
+    private void UpdateFullscreenRefreshTimer()
+    {
+        if (_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen && !_disposed)
+            _fullscreenRefreshTimer.Start();
+        else
+            _fullscreenRefreshTimer.Stop();
+    }
+
+    private string? GetForegroundFullscreenMonitorId() =>
+        _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen
+            ? _surfaceMonitors.FirstOrDefault(_monitorLayout.IsForegroundFullscreen)?.Id
+            : null;
+
+    private void OnFullscreenRefreshTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_disposed || _rebuildingSurfaces || _placementEditingWindow is not null) return;
+        var fullscreenMonitorId = GetForegroundFullscreenMonitorId();
+        // Alt+Enter/F11 can change fullscreen without changing the foreground HWND.
+        // Re-project only on a change, avoiding repeated animation/layout work.
+        if (!string.Equals(fullscreenMonitorId, _lastFullscreenMonitorId, StringComparison.Ordinal) ||
+            fullscreenMonitorId is not null && _windows.Any(window => window.NeedsFullscreenPresentationRecovery))
+            ApplySnapshot(_viewModel.Snapshot);
+        else
+            foreach (var window in _windows) window.MaintainFullscreenVisibility();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
@@ -861,10 +900,18 @@ public sealed class OverlayWindowService : IDisposable
         var primaryOnly = _viewModel.MonitorPreference == OverlayMonitorPreference.Primary &&
                           !smartPointerDisplay;
         var activeMonitorId = primaryOnly ? _primaryMonitor.Id : _viewModel.ActiveMonitorId;
+        _lastFullscreenMonitorId = GetForegroundFullscreenMonitorId();
+        var forceFullscreen = _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen;
+        var isDragging = snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
+        activeMonitorId = FullscreenOverlayPolicy.ResolveMonitorId(activeMonitorId,
+            _viewModel.MonitorPreference, forceFullscreen, _lastFullscreenMonitorId, isDragging);
+        var activePresentation = FullscreenOverlayPolicy.Resolve(snapshot.State, forceFullscreen,
+            _mediaViewModel.Settings.SystemActivities.SuppressOverFullscreen,
+            _lastFullscreenMonitorId is not null && activeMonitorId == _lastFullscreenMonitorId);
         foreach (var host in _activationHosts)
         {
             var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
-            var visualSurfaceOwnsStableInput = snapshot.State is OverlayState.Compact or OverlayState.Expanded;
+            var visualSurfaceOwnsStableInput = activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
             var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
                                     _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
             host.SetEnabled(monitorEnabled && activationEnabled);

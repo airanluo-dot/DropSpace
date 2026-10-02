@@ -18,6 +18,15 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(5);
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private readonly SemaphoreSlim _sessionGate = new(1, 1);
+    // Pools survive disable/re-enable: retiring a waiter must not forget native ownership.
+    private readonly BoundedMediaOperation _connections = new(2, 2);
+    private readonly BoundedMediaOperation _metadataReads = new();
+    private readonly BoundedMediaOperation _artworkReads = new();
+    private readonly BoundedMediaOperation _controls = new();
+    private readonly BoundedMediaOperation _discoveryReads = new();
+    private readonly BoundedMediaOperation _subscriptions = new(32, 3);
+    private MediaEventSubscription? _managerSubscription, _sessionSubscription;
+    private readonly Dictionary<GlobalSystemMediaTransportControlsSession, MediaEventSubscription> _recoverySubscriptions = new(new SessionReferenceComparer());
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
     private GlobalSystemMediaTransportControlsSession[] _recoverySessions = [];
@@ -43,32 +52,45 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             ? dispatcher.EnqueueAsync(() => SetEnabledCoreAsync(enabled, cancellationToken))
             : SetEnabledCoreAsync(enabled, cancellationToken);
 
-    // Keep native session operations and subscriptions in one apartment while
-    // allowing their asynchronous waits to yield normally.
-    private async Task SetEnabledCoreAsync(bool enabled, CancellationToken cancellationToken)
+    public Task RestartAsync(CancellationToken cancellationToken = default) =>
+        dispatcher is not null && !dispatcher.HasThreadAccess
+            ? dispatcher.EnqueueAsync(() => SetEnabledCoreAsync(true, cancellationToken, restart: true))
+            : SetEnabledCoreAsync(true, cancellationToken, restart: true);
+
+    // Serialize service state on the dispatcher. SMTC manager/session objects are
+    // documented Agile; native calls run in bounded workers, never on the UI thread.
+    private async Task SetEnabledCoreAsync(bool enabled, CancellationToken cancellationToken, bool restart = false)
     {
         await _lifecycle.WaitAsync(cancellationToken);
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            if (restart) await StopAsync();
+            cancellationToken.ThrowIfCancellationRequested();
             if (!enabled) { await StopAsync(); return; }
-            if (_manager is not null) return;
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(OperationTimeout);
+            if (_manager is not null) { RequestRefresh(); return; }
             try
             {
-                var manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask(timeout.Token);
+                var manager = await _connections.RunAsync(this,
+                    readToken => AwaitNativeAsync(GlobalSystemMediaTransportControlsSessionManager.RequestAsync(), readToken),
+                    OperationTimeout, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 _lifetime = new();
                 _refresh = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
                 { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
                 _manager = manager;
-                manager.CurrentSessionChanged += OnCurrentSessionChanged;
-                manager.SessionsChanged += OnSessionsChanged;
+                _managerSubscription = await SubscribeManagerAsync(manager, cancellationToken);
                 IsAvailable = true;
                 AvailabilityReason = "Available";
-                _consumer = ConsumeAsync(_refresh.Reader, _lifetime.Token);
+                var firstRefresh = restart ? new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) : null;
+                if (firstRefresh is not null)
+                    _ = firstRefresh.Task.ContinueWith(static failed => { _ = failed.Exception; }, CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                _consumer = ConsumeAsync(_refresh.Reader, _lifetime.Token, ReadSnapshotAsync, firstRefresh);
                 RequestRefresh();
+                // A manual reconnect is successful only after the new consumer has actually
+                // read a snapshot. An empty session list is a valid successful result.
+                if (firstRefresh is not null) await firstRefresh.Task.WaitAsync(cancellationToken);
             }
             catch (Exception exception) when (IsRecoverable(exception))
             {
@@ -92,22 +114,22 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     public Task PlayPauseAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
     {
         if (Current.PlaybackState == MediaPlaybackState.Playing)
-        { EnsureAccepted(Current.CanPause && await session.TryPauseAsync().AsTask(token)); }
-        else EnsureAccepted(Current.CanPlay && await session.TryPlayAsync().AsTask(token));
+        { EnsureAccepted(Current.CanPause && await AwaitNativeAsync(session.TryPauseAsync(), token)); }
+        else EnsureAccepted(Current.CanPlay && await AwaitNativeAsync(session.TryPlayAsync(), token));
     }, cancellationToken);
 
     public Task SkipNextAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    { EnsureAccepted(Current.CanSkipNext && await session.TrySkipNextAsync().AsTask(token)); }, cancellationToken);
+    { EnsureAccepted(Current.CanSkipNext && await AwaitNativeAsync(session.TrySkipNextAsync(), token)); }, cancellationToken);
 
     public Task SkipPreviousAsync(CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
-    { EnsureAccepted(Current.CanSkipPrevious && await session.TrySkipPreviousAsync().AsTask(token)); }, cancellationToken);
+    { EnsureAccepted(Current.CanSkipPrevious && await AwaitNativeAsync(session.TrySkipPreviousAsync(), token)); }, cancellationToken);
 
     public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default) => ControlAsync(async (session, token) =>
     {
         EnsureAccepted(Current.CanSeek);
         var timeline = Current.Timeline;
         var ticks = Math.Clamp(position.Ticks, timeline.Start.Ticks, Math.Max(timeline.Start.Ticks, timeline.End.Ticks));
-        EnsureAccepted(await session.TryChangePlaybackPositionAsync(ticks).AsTask(token));
+        EnsureAccepted(await AwaitNativeAsync(session.TryChangePlaybackPositionAsync(ticks), token));
     }, cancellationToken);
 
     private static void EnsureAccepted(bool accepted)
@@ -127,13 +149,19 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             if (_session is null || _lifetime is null) throw new InvalidOperationException("No media session is available.");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
             timeout.CancelAfter(OperationTimeout);
-            await action(_session, timeout.Token);
+            var session = _session;
+            await _controls.RunAsync(session, async controlToken =>
+            {
+                await action(session, controlToken);
+                return true;
+            }, OperationTimeout, timeout.Token);
         }
         finally { _sessionGate.Release(); }
         RequestRefresh();
     }
 
-    private async Task ConsumeAsync(ChannelReader<bool> reader, CancellationToken token)
+    internal async Task ConsumeAsync(ChannelReader<bool> reader, CancellationToken token,
+        Func<CancellationToken, Task<MediaSessionSnapshot>> readSnapshot, TaskCompletionSource? firstRefresh = null)
     {
         var consecutiveFailures = 0;
         try
@@ -146,9 +174,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                 {
                     using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
                     timeout.CancelAfter(OperationTimeout);
-                    var snapshot = await ReadSnapshotAsync(timeout.Token);
+                    var snapshot = await readSnapshot(timeout.Token);
                     token.ThrowIfCancellationRequested();
+                    IsAvailable = true;
+                    AvailabilityReason = "Available";
                     Publish(snapshot);
+                    firstRefresh?.TrySetResult();
                     consecutiveFailures = 0;
                 }
                 catch (Exception exception) when (IsRecoverable(exception))
@@ -156,8 +187,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     if (token.IsCancellationRequested) break;
                     logger.LogDebug("SMTC refresh failed ({Category}).", exception.GetType().Name);
                     retry = ++consecutiveFailures <= 3;
-                    var current = Current;
-                    Publish(_session is not null && current.SessionId == _sessionIdentity && current.IsActive ? current : MediaSessionSnapshot.Empty);
+                    IsAvailable = false;
+                    AvailabilityReason = exception.GetType().Name;
+                    // A dead publisher is not evidence that the previous song is still current.
+                    // Clear stale UI while keeping bounded recovery and manual refresh usable.
+                    Publish(MediaSessionSnapshot.Empty);
+                    firstRefresh?.TrySetException(exception);
                 }
                 finally { _sessionGate.Release(); }
                 if (retry)
@@ -170,7 +205,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                 }
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { firstRefresh?.TrySetCanceled(token); }
+        catch (Exception exception)
+        {
+            firstRefresh?.TrySetException(exception);
+            throw;
+        }
     }
 
     private async Task<MediaSessionSnapshot> ReadSnapshotAsync(CancellationToken token)
@@ -179,48 +219,35 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         var manager = _manager;
         if (manager is null) return MediaSessionSnapshot.Empty;
         var allowed = Volatile.Read(ref _allowedSources);
-        bool Accept(GlobalSystemMediaTransportControlsSession value)
+        var restrict = Volatile.Read(ref _restrictSources);
+        var discovery = await _discoveryReads.RunAsync(manager, _ =>
         {
-            var source = TryReadSource(value);
-            return source is not null &&
-                (!Volatile.Read(ref _restrictSources) || allowed.Contains(source, StringComparer.OrdinalIgnoreCase));
-        }
-        GlobalSystemMediaTransportControlsSession? currentSession = null;
-        try
-        {
-            currentSession = manager.GetCurrentSession();
-        }
-        catch (Exception exception) when (IsRecoverable(exception))
-        {
-            logger.LogDebug("The current SMTC session could not be read ({Category}); fallback selection will use the session list.", exception.GetType().Name);
-        }
-
-        // Prefer an actively playing and explicitly current session before applying the safety
-        // cap. The old first-128 slice could hide a valid Apple Music renderer behind unrelated
-        // sessions, causing a false Empty snapshot.
-        var rawSessions = manager.GetSessions().ToArray();
-        var allSessions = rawSessions.Where(Accept).ToArray();
-        var sessions = allSessions
-            .OrderByDescending(value => ReferenceEquals(value, currentSession))
-            .ThenByDescending(IsPlaying)
-            .Take(512)
-            .ToArray();
-        AvailableSources = rawSessions
-            .Take(512)
-            .Select(TryReadSource)
-            .Where(static source => !string.IsNullOrWhiteSpace(source))
-            .Select(static source => source!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        var selected = currentSession;
-        if (selected is null || !Accept(selected))
-            selected = sessions.FirstOrDefault() ?? allSessions.FirstOrDefault();
-        var candidates = (selected is null ? sessions : new[] { selected }.Concat(sessions))
+            GlobalSystemMediaTransportControlsSession? current = null;
+            try { current = manager.GetCurrentSession(); }
+            catch (Exception exception) when (IsRecoverable(exception))
+            { logger.LogDebug("The current SMTC session is unavailable ({Category}).", exception.GetType().Name); }
+            return Task.FromResult((Current: current, Sessions: manager.GetSessions().ToArray()));
+        }, TimeSpan.FromSeconds(2), token);
+        var ordered = (discovery.Current is null ? discovery.Sessions : new[] { discovery.Current }.Concat(discovery.Sessions))
             .Distinct(new SessionReferenceComparer())
-            .ToArray();
+            .OrderByDescending(value => ReferenceEquals(value, discovery.Current))
+            .ThenByDescending(value => ReferenceEquals(value, _session))
+            .ThenByDescending(IsRecoverySession).ToArray();
+        var descriptors = await ReadCandidatesAsync(ordered,
+            async (value, readToken) => await _discoveryReads.RunAsync(value, _ =>
+                Task.FromResult((Source: TryReadSource(value), Playing: IsPlaying(value))), TimeSpan.FromMilliseconds(500), readToken),
+            TimeSpan.FromSeconds(1), token);
+        var sources = descriptors.Where(value => value.Value.Source is not null)
+            .ToDictionary(value => value.Candidate, value => value.Value.Source!, new SessionReferenceComparer());
+        AvailableSources = sources.Values.Distinct(StringComparer.OrdinalIgnoreCase).Take(512).ToArray();
+        string? Source(GlobalSystemMediaTransportControlsSession value) => sources.GetValueOrDefault(value);
+        var candidates = descriptors.Where(value => value.Value.Source is { } source &&
+                (!restrict || allowed.Contains(source, StringComparer.OrdinalIgnoreCase)))
+            .OrderByDescending(value => ReferenceEquals(value.Candidate, discovery.Current))
+            .ThenByDescending(value => value.Value.Playing).Select(value => value.Candidate).Take(512).ToArray();
         if (candidates.Length == 0)
         {
-            ObserveRecoverySessions([]);
+            await ObserveRecoverySessionsAsync([], token);
             DetachSession();
             return MediaSessionSnapshot.Empty;
         }
@@ -229,49 +256,50 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         // observed so a temporarily divergent richer renderer can announce that it caught up.
         // Otherwise we can switch to the weak renderer, unsubscribe from InfLink and never
         // regain its controls until the OS happens to raise a manager-level event.
-        ObserveRecoverySessions(SelectRecoverySessions(candidates, TryReadSource, MaximumRecoverySessions));
+        await ObserveRecoverySessionsAsync(SelectRecoverySessions(candidates, Source, MaximumRecoverySessions), token);
         // Preserve the OS/player priority. Only replace its renderer with a richer
         // renderer from the same application reporting the same track.
-        var richer = await SelectRicherSessionAsync(candidates, TryReadSource, ReadSelectionAsync, token, _session);
-        candidates = new[] { richer }.Concat(candidates).Distinct(new SessionReferenceComparer()).ToArray();
+        var richer = await SelectRicherSessionAsync(candidates, Source, ReadSelectionAsync, token, _session, TimeSpan.FromMilliseconds(500));
+        candidates = new[] { richer }.Concat(candidates).Distinct(new SessionReferenceComparer()).Take(MaximumRecoverySessions).ToArray();
         var previous = Current;
+        Exception? lastFailure = null;
         foreach (var candidate in candidates)
         {
-            if (!ReferenceEquals(candidate, _session))
-            {
-                DetachSession();
-                _session = candidate;
-                _sessionIdentity = Guid.NewGuid().ToString("N");
-                candidate.MediaPropertiesChanged += OnMediaPropertiesChanged;
-                candidate.PlaybackInfoChanged += OnPlaybackInfoChanged;
-                candidate.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
-            }
             try
             {
-                var (properties, metadataRevision) = await ReadStableMetadataAsync(
-                    readToken => candidate.TryGetMediaPropertiesAsync().AsTask(readToken),
-                    () => Interlocked.Read(ref _metadataRevision), token);
-                if (properties is null)
+                if (!ReferenceEquals(candidate, _session) || _sessionSubscription is null)
                 {
-                    RequestRefresh();
-                    return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                    DetachSession();
+                    _session = candidate;
+                    _sessionIdentity = Guid.NewGuid().ToString("N");
+                    try { _sessionSubscription = await SubscribeSessionAsync(candidate, false, token); }
+                    catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
+                    { logger.LogDebug("SMTC primary subscription unavailable ({Category}).", exception.GetType().Name); }
                 }
-                var playback = candidate.GetPlaybackInfo();
-                var timeline = candidate.GetTimelineProperties();
-                var source = Bound(candidate.SourceAppUserModelId);
-                var title = Bound(properties.Title);
-                var artist = Bound(properties.Artist);
-                var albumArtist = Bound(properties.AlbumArtist);
-                var album = Bound(properties.AlbumTitle);
-                var trackNumber = properties.TrackNumber;
-                var duration = timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero;
+                var (properties, metadataRevision) = await ReadStableMetadataAsync(
+                    readToken => _metadataReads.RunAsync(candidate,
+                        nativeToken => ReadNativeTrackAsync(candidate, nativeToken),
+                        TimeSpan.FromSeconds(2), readToken),
+                    () => Interlocked.Read(ref _metadataRevision), token,
+                    static (left, right) => left.Snapshot.IsSameTrack(right.Snapshot));
+                if (properties is null)
+                    throw new InvalidOperationException("The media publisher changed tracks throughout the metadata read.");
+                var native = properties.Snapshot;
+                var timeline = native.Timeline;
+                var source = native.SourceAppUserModelId;
+                var title = native.TrackTitle;
+                var artist = native.Artist;
+                var albumArtist = native.AlbumArtist;
+                var album = native.AlbumTitle;
+                var trackNumber = native.TrackNumber;
+                var duration = timeline.Duration;
                 var durationConsistent = previous.Timeline.Duration <= TimeSpan.Zero || duration <= TimeSpan.Zero ||
                     Math.Abs((previous.Timeline.Duration - duration).TotalSeconds) <= 2;
                 var sameTrack = previous.SessionId == _sessionIdentity && previous.SourceAppUserModelId == source && previous.TrackTitle == title &&
                     previous.Artist == artist && previous.AlbumArtist == albumArtist && previous.AlbumTitle == album &&
                     previous.TrackNumber == trackNumber && durationConsistent;
-                var effectiveStart = timeline.StartTime;
-                var effectiveEnd = timeline.EndTime;
+                var effectiveStart = timeline.Start;
+                var effectiveEnd = timeline.End;
                 if (sameTrack && duration <= TimeSpan.Zero && previous.Timeline.Duration > TimeSpan.Zero)
                 {
                     // A short-lived zero timeline is an Apple Music metadata refresh, not a new
@@ -280,51 +308,106 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     effectiveStart = previous.Timeline.Start;
                     effectiveEnd = previous.Timeline.End;
                 }
-                // Players can deliver the new title before its thumbnail. Metadata events
-                // invalidate artwork even when the track key has not changed.
-                var artwork = sameTrack && _artworkRevision == metadataRevision && previous.Artwork is not null
-                    ? previous.Artwork : await ReadOptionalArtworkAsync(
-                        artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), token);
-                if (sameTrack && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork)) artwork = previous.Artwork;
                 if (metadataRevision != Interlocked.Read(ref _metadataRevision))
                 {
                     RequestRefresh();
-                    return previous.SessionId == _sessionIdentity && previous.IsActive ? previous : MediaSessionSnapshot.Empty;
+                    return Current;
                 }
-                _artworkRevision = metadataRevision;
-                return new(_sessionIdentity, source, FriendlyName(source, strings), title, artist, album, artwork,
-                    playback.PlaybackStatus switch
-                    {
-                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
-                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => MediaPlaybackState.Paused,
-                        GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => MediaPlaybackState.Stopped,
-                        _ => MediaPlaybackState.Unknown,
-                    }, playback.Controls.IsPlayEnabled, playback.Controls.IsPauseEnabled,
-                    playback.Controls.IsNextEnabled, playback.Controls.IsPreviousEnabled, playback.Controls.IsPlaybackPositionEnabled,
-                    new(timeline.Position, effectiveStart, effectiveEnd, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime), observedAt,
-                    albumArtist, trackNumber);
+                // Publish current metadata before optional artwork. A thumbnail publisher
+                // may ignore cancellation, but must never hold back the title or lyrics.
+                var cachedArtwork = sameTrack && _artworkRevision == metadataRevision ? previous.Artwork : null;
+                var snapshot = native with
+                {
+                    SessionId = _sessionIdentity, SourceDisplayName = FriendlyName(source, strings),
+                    Artwork = cachedArtwork, LastUpdated = observedAt,
+                    Timeline = timeline with { Start = effectiveStart, End = effectiveEnd },
+                };
+                return await CompleteArtworkAsync(snapshot, metadataRevision,
+                    artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), candidate, token);
+            }
+            catch (OperationCanceledException)
+            {
+                if (_sessionSubscription is null && ReferenceEquals(_session, candidate)) DetachSession();
+                throw;
             }
             catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
             {
                 logger.LogDebug("SMTC candidate session could not be read ({Category}); trying the next session.", exception.GetType().Name);
+                lastFailure = exception;
                 if (ReferenceEquals(_session, candidate)) DetachSession();
             }
         }
+        if (lastFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(lastFailure).Throw();
         return MediaSessionSnapshot.Empty;
+    }
+
+    internal static async Task<IReadOnlyList<(T Candidate, TValue Value)>> ReadCandidatesAsync<T, TValue>(IEnumerable<T> candidates,
+        Func<T, CancellationToken, Task<TValue>> read, TimeSpan budget, CancellationToken token) where T : class
+    {
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
+        stop.CancelAfter(budget);
+        var completed = new List<(T Candidate, TValue Value)>();
+        Exception? lastFailure = null;
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                stop.Token.ThrowIfCancellationRequested();
+                completed.Add((candidate, await read(candidate, stop.Token).WaitAsync(stop.Token)));
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            { lastFailure = new TimeoutException("Optional media discovery exceeded its budget."); break; }
+            catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
+            { lastFailure = exception; }
+        }
+        token.ThrowIfCancellationRequested();
+        if (completed.Count == 0 && lastFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(lastFailure).Throw();
+        return completed;
+    }
+
+    internal async Task<MediaSessionSnapshot> CompleteArtworkAsync(MediaSessionSnapshot snapshot, long metadataRevision,
+        Func<CancellationToken, Task<byte[]?>> read, object owner, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (metadataRevision != Interlocked.Read(ref _metadataRevision)) return Current;
+        var previous = Current;
+        Publish(snapshot);
+        byte[]? artwork;
+        try { artwork = snapshot.Artwork ?? await ReadOptionalArtworkAsync(read, token, owner); }
+        catch (OperationCanceledException) when (_lifetime is { IsCancellationRequested: false })
+        {
+            // The aggregate refresh budget may expire after metadata succeeded. Optional
+            // artwork must not erase that successful publication. Shutdown still cancels.
+            return snapshot;
+        }
+        if (metadataRevision != Interlocked.Read(ref _metadataRevision))
+        {
+            RequestRefresh();
+            return Current;
+        }
+        if (snapshot.IsSameTrack(previous) && artwork is not null && previous.Artwork is not null && artwork.AsSpan().SequenceEqual(previous.Artwork))
+            artwork = previous.Artwork;
+        _artworkRevision = metadataRevision;
+        return snapshot with { Artwork = artwork };
     }
 
     // Only metadata notifications invalidate an in-flight metadata read. Continuous
     // playback/timeline events must not starve title and artwork updates.
     internal static async Task<(T? Value, long Revision)> ReadStableMetadataAsync<T>(
-        Func<CancellationToken, Task<T>> read, Func<long> metadataRevision, CancellationToken token) where T : class
+        Func<CancellationToken, Task<T>> read, Func<long> metadataRevision, CancellationToken token,
+        Func<T, T, bool>? equivalent = null) where T : class
     {
+        T? previous = null;
         for (var attempt = 0; attempt < 2; attempt++)
         {
             token.ThrowIfCancellationRequested();
             var revision = metadataRevision();
-            var value = await read(token);
+            var value = await read(token).WaitAsync(token);
             token.ThrowIfCancellationRequested();
-            if (revision == metadataRevision()) return (value, revision);
+            var latestRevision = metadataRevision();
+            if (revision == latestRevision || (previous is not null && equivalent?.Invoke(previous, value) == true))
+                return (value, latestRevision);
+            previous = value;
         }
         return (null, metadataRevision());
     }
@@ -334,18 +417,18 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     internal static async Task<T> SelectRicherSessionAsync<T>(IReadOnlyList<T> candidates,
         Func<T, string?> source, Func<T, CancellationToken, Task<SessionSelection?>> read,
-        CancellationToken token, T? retained = null) where T : class
+        CancellationToken token, T? retained = null, TimeSpan? selectionBudget = null) where T : class
     {
         var preferred = candidates[0];
         var sourceId = source(preferred);
         var siblings = candidates.Skip(1).Where(value => string.Equals(source(value), sourceId, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (string.IsNullOrWhiteSpace(sourceId) || siblings.Length == 0) return preferred;
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
-        budget.CancelAfter(TimeSpan.FromSeconds(2));
+        budget.CancelAfter(selectionBudget ?? TimeSpan.FromSeconds(2));
         var selected = preferred;
         try
         {
-            var baseline = await read(preferred, budget.Token);
+            var baseline = await read(preferred, budget.Token).WaitAsync(budget.Token);
             if (baseline is null || string.IsNullOrWhiteSpace(baseline.Title) || string.IsNullOrWhiteSpace(baseline.Artist))
             {
                 // Some publishers clear the preferred renderer between songs. Preserve the
@@ -355,7 +438,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     candidates.Any(value => ReferenceEquals(value, retained)) &&
                     string.Equals(source(retained), sourceId, StringComparison.OrdinalIgnoreCase))
                 {
-                    var retainedValue = await read(retained, budget.Token);
+                    var retainedValue = await read(retained, budget.Token).WaitAsync(budget.Token);
                     if (retainedValue is not null && !string.IsNullOrWhiteSpace(retainedValue.Title) &&
                         !string.IsNullOrWhiteSpace(retainedValue.Artist)) return retained;
                 }
@@ -367,7 +450,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     T? readable = null;
                     foreach (var sibling in siblings.Take(MaximumRecoverySessions))
                     {
-                        var value = await read(sibling, budget.Token);
+                        var value = await read(sibling, budget.Token).WaitAsync(budget.Token);
                         if (value is null || !value.IsPlaying || string.IsNullOrWhiteSpace(value.Title)) continue;
                         if (readable is not null) return preferred;
                         readable = sibling;
@@ -379,7 +462,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             var best = Score(baseline);
             foreach (var sibling in siblings)
             {
-                var value = await read(sibling, budget.Token);
+                var value = await read(sibling, budget.Token).WaitAsync(budget.Token);
                 if (value is null || !SameTrack(baseline, value)) continue;
                 var score = Score(value);
                 if (score > best) { best = score; selected = sibling; }
@@ -416,17 +499,77 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         return selected;
     }
 
+    // AsTask(token) in the SDK projection cancels its managed bridge immediately;
+    // that is not proof that the WinRT operation (or a stream read) has completed.
+    // Keep ownership tied to Completed, and request native cancellation separately.
+    internal static Task<T> AwaitNativeAsync<T>(Windows.Foundation.IAsyncOperation<T> operation, CancellationToken token) =>
+        AwaitNativeCompletionAsync(operation.AsTask(CancellationToken.None), operation.Cancel, token);
+
+    internal static Task AwaitNativeAsync(Windows.Foundation.IAsyncAction operation, CancellationToken token) =>
+        AwaitNativeCompletionAsync(CompleteActionAsync(operation), operation.Cancel, token);
+
+    private static async Task<bool> CompleteActionAsync(Windows.Foundation.IAsyncAction operation)
+    {
+        await operation.AsTask(CancellationToken.None).ConfigureAwait(false);
+        return true;
+    }
+
+    private static async Task<T> AwaitNativeCompletionAsync<T>(Task<T> completion, Action cancel, CancellationToken token)
+    {
+        Task cancellation = Task.CompletedTask;
+        var registration = token.Register(() =>
+        {
+            // Register can invoke inline for an already-canceled token, including on the
+            // WinUI image dispatcher. Never run a publisher's Cancel on that thread.
+            Volatile.Write(ref cancellation, Task.Run(() =>
+            {
+                try { cancel(); }
+                catch (Exception) { /* A failing Cancel is not native completion. */ }
+            }));
+        });
+        try { return await completion.ConfigureAwait(false); }
+        finally
+        {
+            registration.Dispose();
+            // Do not release native ownership while its cancellation callback is using it.
+            await Volatile.Read(ref cancellation).ConfigureAwait(false);
+        }
+    }
+
+    private sealed record NativeTrack(MediaSessionSnapshot Snapshot, IRandomAccessStreamReference? Thumbnail);
+
+    private static async Task<NativeTrack> ReadNativeTrackAsync(GlobalSystemMediaTransportControlsSession session, CancellationToken token)
+    {
+        var properties = await AwaitNativeAsync(session.TryGetMediaPropertiesAsync(), token).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        var playback = session.GetPlaybackInfo();
+        token.ThrowIfCancellationRequested();
+        var timeline = session.GetTimelineProperties();
+        token.ThrowIfCancellationRequested();
+        var controls = playback.Controls;
+        return new(new(string.Empty, Bound(session.SourceAppUserModelId), string.Empty,
+            Bound(properties.Title), Bound(properties.Artist), Bound(properties.AlbumTitle), null,
+            playback.PlaybackStatus switch
+            {
+                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => MediaPlaybackState.Playing,
+                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => MediaPlaybackState.Paused,
+                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => MediaPlaybackState.Stopped,
+                _ => MediaPlaybackState.Unknown,
+            }, controls.IsPlayEnabled, controls.IsPauseEnabled, controls.IsNextEnabled, controls.IsPreviousEnabled,
+            controls.IsPlaybackPositionEnabled,
+            new(timeline.Position, timeline.StartTime, timeline.EndTime, playback.PlaybackRate ?? 1, timeline.LastUpdatedTime),
+            DateTimeOffset.UtcNow, Bound(properties.AlbumArtist), properties.TrackNumber), properties.Thumbnail);
+    }
+
     private async Task<SessionSelection?> ReadSelectionAsync(GlobalSystemMediaTransportControlsSession session, CancellationToken token)
     {
         try
         {
-            var properties = await session.TryGetMediaPropertiesAsync().AsTask(token);
-            var playback = session.GetPlaybackInfo();
-            var timeline = session.GetTimelineProperties();
-            return new(Bound(properties.Title), Bound(properties.Artist), Bound(properties.AlbumTitle),
-                timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : TimeSpan.Zero,
-                playback.Controls.IsPlaybackPositionEnabled, properties.Thumbnail is not null,
-                playback.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing);
+            var track = await _metadataReads.RunAsync(session,
+                nativeToken => ReadNativeTrackAsync(session, nativeToken), TimeSpan.FromMilliseconds(500), token);
+            var value = track.Snapshot;
+            return new(value.TrackTitle, value.Artist, value.AlbumTitle, value.Timeline.Duration,
+                value.CanSeek, track.Thumbnail is not null, value.PlaybackState == MediaPlaybackState.Playing);
         }
         catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
         {
@@ -435,14 +578,11 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         }
     }
 
-    internal async Task<byte[]?> ReadOptionalArtworkAsync(Func<CancellationToken, Task<byte[]?>> read, CancellationToken token)
+    internal async Task<byte[]?> ReadOptionalArtworkAsync(Func<CancellationToken, Task<byte[]?>> read, CancellationToken token, object? owner = null)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(1));
         try
         {
-            // Optional thumbnail failures must never retain the previous song's metadata.
-            return await read(timeout.Token);
+            return await _artworkReads.RunAsync(owner ?? this, read, TimeSpan.FromSeconds(1), token);
         }
         catch (Exception exception) when (IsRecoverable(exception))
         {
@@ -455,11 +595,15 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private static async Task<byte[]?> ReadArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
     {
         if (reference is null) return null;
-        using var stream = await reference.OpenReadAsync().AsTask(token);
+        token.ThrowIfCancellationRequested();
+        using var stream = await AwaitNativeAsync(reference.OpenReadAsync(), token);
+        token.ThrowIfCancellationRequested();
         if (stream.Size is 0 or > MaximumArtworkBytes) return null;
         var length = checked((uint)stream.Size);
         using var reader = new DataReader(stream);
-        if (await reader.LoadAsync(length).AsTask(token) != length) return null;
+        token.ThrowIfCancellationRequested();
+        if (await AwaitNativeAsync(reader.LoadAsync(length), token) != length) return null;
+        token.ThrowIfCancellationRequested();
         var bytes = new byte[length];
         reader.ReadBytes(bytes);
         return bytes;
@@ -473,13 +617,10 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         await _sessionGate.WaitAsync();
         try
         {
-            ObserveRecoverySessions([]);
+            RetireRecoverySessions();
             DetachSession();
-            if (_manager is not null)
-            {
-                _manager.CurrentSessionChanged -= OnCurrentSessionChanged;
-                _manager.SessionsChanged -= OnSessionsChanged;
-            }
+            _managerSubscription?.Retire();
+            _managerSubscription = null;
             _manager = null;
             _refresh = null;
             _lifetime?.Dispose();
@@ -509,55 +650,107 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     private void DetachSession()
     {
-        if (_session is not null)
-        {
-            _session.MediaPropertiesChanged -= OnMediaPropertiesChanged;
-            _session.PlaybackInfoChanged -= OnPlaybackInfoChanged;
-            _session.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
-        }
+        _sessionSubscription?.Retire();
+        _sessionSubscription = null;
         _session = null;
         _sessionIdentity = string.Empty;
     }
 
-    private void ObserveRecoverySessions(IReadOnlyList<GlobalSystemMediaTransportControlsSession> sessions)
+    private async Task ObserveRecoverySessionsAsync(IReadOnlyList<GlobalSystemMediaTransportControlsSession> sessions, CancellationToken token)
     {
-        var previousSessions = Volatile.Read(ref _recoverySessions);
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
+        budget.CancelAfter(TimeSpan.FromMilliseconds(500));
         var nextSessions = sessions.ToArray();
-        // Publish immutable membership before changing handlers so callbacks racing with
-        // removal are ignored and callbacks after a new subscription see their membership.
         Volatile.Write(ref _recoverySessions, nextSessions);
-        foreach (var previous in previousSessions)
+        foreach (var previous in _recoverySubscriptions.Keys.ToArray())
         {
             if (nextSessions.Any(value => ReferenceEquals(value, previous))) continue;
-            previous.MediaPropertiesChanged -= OnRecoveryMediaPropertiesChanged;
-            previous.PlaybackInfoChanged -= OnRecoveryPlaybackInfoChanged;
-            previous.TimelinePropertiesChanged -= OnRecoveryTimelinePropertiesChanged;
+            _recoverySubscriptions[previous].Retire();
+            _recoverySubscriptions.Remove(previous);
         }
         foreach (var session in nextSessions)
         {
-            if (previousSessions.Any(value => ReferenceEquals(value, session))) continue;
-            session.MediaPropertiesChanged += OnRecoveryMediaPropertiesChanged;
-            session.PlaybackInfoChanged += OnRecoveryPlaybackInfoChanged;
-            session.TimelinePropertiesChanged += OnRecoveryTimelinePropertiesChanged;
+            if (_recoverySubscriptions.ContainsKey(session)) continue;
+            try { _recoverySubscriptions[session] = await SubscribeSessionAsync(session, true, budget.Token); }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested) { break; }
+            catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
+            { logger.LogDebug("SMTC recovery subscription unavailable ({Category}).", exception.GetType().Name); }
         }
     }
 
+    private void RetireRecoverySessions()
+    {
+        Volatile.Write(ref _recoverySessions, []);
+        foreach (var subscription in _recoverySubscriptions.Values) subscription.Retire();
+        _recoverySubscriptions.Clear();
+    }
+
+    private async Task<MediaEventSubscription> SubscribeManagerAsync(GlobalSystemMediaTransportControlsSessionManager manager, CancellationToken token)
+    {
+        var subscription = new MediaEventSubscription();
+        Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSessionManager, CurrentSessionChangedEventArgs> current =
+            (sender, args) => { if (subscription.IsActive) OnCurrentSessionChanged(sender, args); };
+        Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSessionManager, SessionsChangedEventArgs> sessions =
+            (sender, args) => { if (subscription.IsActive) OnSessionsChanged(sender, args); };
+        await subscription.StartAsync(_subscriptions, manager,
+            () => { manager.CurrentSessionChanged += current; manager.SessionsChanged += sessions; },
+            () => { Unsubscribe(() => manager.CurrentSessionChanged -= current); Unsubscribe(() => manager.SessionsChanged -= sessions); },
+            OperationTimeout, token);
+        return subscription;
+    }
+
+    private async Task<MediaEventSubscription> SubscribeSessionAsync(GlobalSystemMediaTransportControlsSession session, bool recovery, CancellationToken token)
+    {
+        var subscription = new MediaEventSubscription();
+        Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSession, MediaPropertiesChangedEventArgs> media =
+            (sender, args) => { if (subscription.IsActive) { if (recovery) OnRecoveryMediaPropertiesChanged(sender, args); else OnMediaPropertiesChanged(sender, args); } };
+        Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSession, PlaybackInfoChangedEventArgs> playback =
+            (sender, args) => { if (subscription.IsActive) { if (recovery) OnRecoveryPlaybackInfoChanged(sender, args); else OnPlaybackInfoChanged(sender, args); } };
+        Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSession, TimelinePropertiesChangedEventArgs> timeline =
+            (sender, args) => { if (subscription.IsActive) { if (recovery) OnRecoveryTimelinePropertiesChanged(sender, args); else OnTimelinePropertiesChanged(sender, args); } };
+        await subscription.StartAsync(_subscriptions, session,
+            () => { session.MediaPropertiesChanged += media; session.PlaybackInfoChanged += playback; session.TimelinePropertiesChanged += timeline; },
+            () => { Unsubscribe(() => session.MediaPropertiesChanged -= media); Unsubscribe(() => session.PlaybackInfoChanged -= playback); Unsubscribe(() => session.TimelinePropertiesChanged -= timeline); },
+            TimeSpan.FromMilliseconds(500), token);
+        return subscription;
+    }
+
+    private void Unsubscribe(Action remove)
+    {
+        try { remove(); }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { logger.LogDebug("SMTC subscription cleanup failed ({Category}).", exception.GetType().Name); }
+    }
+
     private void OnRecoveryMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
-    { if (IsRecoverySession(sender) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    {
+        if (!IsRecoverySession(sender)) return;
+        if (!ReferenceEquals(sender, _session)) RequestRefresh();
+        else if (_sessionSubscription?.IsActive != true) InvalidateMetadata();
+    }
     private void OnRecoveryPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
-    { if (IsRecoverySession(sender) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    { if (IsRecoverySession(sender) && (!ReferenceEquals(sender, _session) || _sessionSubscription?.IsActive != true)) RequestRefresh(); }
     private void OnRecoveryTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
-    { if (IsRecoverySession(sender) && !ReferenceEquals(sender, _session)) RequestRefresh(); }
+    { if (IsRecoverySession(sender) && (!ReferenceEquals(sender, _session) || _sessionSubscription?.IsActive != true)) RequestRefresh(); }
 
     private bool IsRecoverySession(GlobalSystemMediaTransportControlsSession session) =>
         Volatile.Read(ref _recoverySessions).Any(value => ReferenceEquals(value, session));
 
     private void RequestRefresh() => _refresh?.Writer.TryWrite(true);
-    private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) => RequestRefresh();
-    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args) => RequestRefresh();
+    private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) => OnManagerChanged(sender);
+    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args) => OnManagerChanged(sender);
+    private void OnManagerChanged(GlobalSystemMediaTransportControlsSessionManager sender)
+    {
+        if (!ReferenceEquals(sender, _manager)) return;
+        InvalidateMetadata();
+    }
     private void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
     {
         if (!ReferenceEquals(sender, _session)) return;
+        InvalidateMetadata();
+    }
+    internal void InvalidateMetadata()
+    {
         Interlocked.Increment(ref _metadataRevision);
         RequestRefresh();
     }
@@ -590,7 +783,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         }
     }
 
-    private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or IOException or ArgumentException;
+    private static bool IsRecoverable(Exception exception) => exception is COMException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException or TimeoutException or IOException or ArgumentException;
     private static string Bound(string? text)
     {
         if (string.IsNullOrEmpty(text) || text.Length <= MaximumMetadataCharacters)

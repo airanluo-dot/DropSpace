@@ -41,6 +41,9 @@ public sealed record LyricsSettings
 
 public sealed record IslandAppearanceSettings
 {
+    // Opt-in only. Missing fields in existing settings remain false; the old
+    // fullscreen suppression preference is retained and resumes when this is off.
+    public bool ForceShowOverFullscreen { get; init; }
     public bool AutoHide { get; init; } = true;
     public int HideDelayMilliseconds { get; init; } = 3_000;
     public double CompactScale { get; init; } = 1;

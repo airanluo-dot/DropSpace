@@ -121,6 +121,9 @@ jobs:
       - name: Test AI semantic release gate regressions
         run: node --test scripts/test-ai-release-approval.test.mjs
 
+      - name: Test expanded island scope and fullscreen behavior contracts
+        run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
+
       # A pending semantic review blocks publication, never ordinary PR validation.
       - name: Enforce AI semantic publication approval before building
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true

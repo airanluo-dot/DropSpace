@@ -25,6 +25,12 @@ public sealed class MusicPage : UserControl
     private readonly WindowsMediaSessionService _sessions;
     private readonly MediaApplicationIconService _icons;
     private readonly IAppStringLocalizer _strings;
+    private readonly MediaExperienceService _experience;
+    private readonly Button _refreshMusic;
+    private readonly TextBlock _restartStatus = new() { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+    private CancellationTokenSource? _pageStop;
+    private long _pageGeneration;
+    private Task _restartWait = Task.CompletedTask;
     private readonly StackPanel _body = new() { Spacing = 16, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly StackPanel _applications = new() { Spacing = 8 };
     private readonly TextBlock _folder = new() { TextWrapping = TextWrapping.Wrap };
@@ -45,9 +51,29 @@ public sealed class MusicPage : UserControl
         NeteaseEnhancementViewModel enhancement)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
-        _enhancement = enhancement;
+        _enhancement = enhancement; _experience = experience;
         _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
-        _body.Children.Add(CreateCard(_nowPlaying, new Thickness(0)));
+        // This action belongs only to the main Music page, never the shared island player.
+        _refreshMusic = new Button
+        {
+            Content = new SymbolIcon(Symbol.Refresh),
+            Width = 36, Height = 36,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        AutomationProperties.SetName(_refreshMusic, strings.Get("MusicRefresh"));
+        ToolTipService.SetToolTip(_refreshMusic, strings.Get("MusicRefreshHelp"));
+        AutomationProperties.SetLiveSetting(_restartStatus, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        _refreshMusic.Click += OnRefreshMusic;
+        var musicActions = new Grid { ColumnSpacing = 12, Margin = new Thickness(12, 12, 12, 0) };
+        musicActions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        musicActions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        musicActions.Children.Add(_restartStatus);
+        Grid.SetColumn(_refreshMusic, 1); musicActions.Children.Add(_refreshMusic);
+        var playback = new StackPanel();
+        playback.Children.Add(musicActions);
+        playback.Children.Add(_nowPlaying);
+        _body.Children.Add(CreateCard(playback, new Thickness(0)));
         _enhancementCard = new NeteaseEnhancementCard(enhancement, strings);
         _body.Children.Add(_enhancementCard);
         _lyricsScroll = new ScrollViewer
@@ -138,6 +164,10 @@ public sealed class MusicPage : UserControl
     }
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
+        if (_pageStop is not null) return;
+        _pageStop = new(); ++_pageGeneration;
+        _refreshMusic.IsEnabled = true;
+        _restartStatus.Text = string.Empty;
         _editor.PropertyChanged += OnSettings;
         _media.PropertyChanged += OnMedia;
         _enhancement.PropertyChanged += OnEnhancement;
@@ -146,6 +176,10 @@ public sealed class MusicPage : UserControl
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
+        var pageStop = _pageStop;
+        _pageStop = null; ++_pageGeneration;
+        pageStop?.Cancel();
+        _ = ObserveIconShutdownAsync(_restartWait, pageStop);
         _editor.PropertyChanged -= OnSettings;
         _media.PropertyChanged -= OnMedia;
         _enhancement.PropertyChanged -= OnEnhancement;
@@ -156,6 +190,37 @@ public sealed class MusicPage : UserControl
         _ = ObserveIconShutdownAsync(job, stop);
         _sourcesKey = string.Empty;
     }
+    private async void OnRefreshMusic(object sender, RoutedEventArgs args)
+    {
+        if (_pageStop is null || !_refreshMusic.IsEnabled) return;
+        _restartWait = RefreshMusicAsync(_pageGeneration, _pageStop.Token);
+        await _restartWait;
+    }
+
+    private async Task RefreshMusicAsync(long generation, CancellationToken token)
+    {
+        _refreshMusic.IsEnabled = false;
+        _restartStatus.Text = _strings.Get("MusicReconnecting");
+        try
+        {
+            await _experience.RestartAsync(token);
+            if (IsCurrentPage(generation)) _restartStatus.Text = _strings.Get("MusicReconnected");
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            Debug.WriteLine(exception.GetType().Name);
+            if (IsCurrentPage(generation)) _restartStatus.Text = _strings.Get("MusicReconnectFailed");
+        }
+        finally
+        {
+            if (IsCurrentPage(generation)) _refreshMusic.IsEnabled = true;
+        }
+    }
+
+    private bool IsCurrentPage(long generation) =>
+        generation == _pageGeneration && _pageStop is { IsCancellationRequested: false };
+
     private void OnSettings(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Refresh(); }
     private void OnEnhancement(object? sender, PropertyChangedEventArgs args) => UpdateEnhancementPlacement();
     private void OnMedia(object? sender, PropertyChangedEventArgs args)

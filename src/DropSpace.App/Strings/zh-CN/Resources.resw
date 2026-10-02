@@ -697,4 +697,12 @@
   <data name="FirstRunSkip" xml:space="preserve"><value>均不开启，继续</value></data>
   <data name="LyricsCacheClearFailed" xml:space="preserve"><value>未能清理歌词缓存，请重试。</value></data>
   <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>部分旧歌词缓存未能移除，请使用清理歌词缓存重试。已下载模型和你的歌词文件会保留。</value></data>
+  <data name="MusicRefresh" xml:space="preserve"><value>刷新音乐</value></data>
+  <data name="MusicRefreshHelp" xml:space="preserve"><value>重新连接音乐、封面和歌词，无需重启 DropSpace。保留设置和已缓存的歌词。</value></data>
+  <data name="MusicReconnecting" xml:space="preserve"><value>正在重新连接音乐……</value></data>
+  <data name="MusicReconnected" xml:space="preserve"><value>音乐已重新连接</value></data>
+  <data name="MusicReconnectFailed" xml:space="preserve"><value>音乐重新连接失败，请再次点击刷新重试。</value></data>
+  <data name="MediaNextLyricLabel" xml:space="preserve"><value>即将播放的歌词</value></data>
+  <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>全屏时强制显示灵动岛</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>默认关闭。开启后优先于“全屏时隐藏”，在全屏应用和无边框游戏上保持置顶且不抢焦点。独占全屏游戏可能无法覆盖；不覆盖锁屏或 UAC 安全桌面。</value></data>
 </root>

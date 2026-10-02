@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, fixturePath, readScope, sha256, sourcePaths, validateApproval } from './test-ai-release-approval.mjs';
+import { approvalPath, fixturePath, readScope, sha256, sourcePaths, productionPromptProfile, productionOutputSchema, validateApproval } from './test-ai-release-approval.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const now = Date.parse('2026-10-02T00:00:00Z');
@@ -22,26 +22,68 @@ function example(t) {
   };
   for (const name of [...sourcePaths, fixturePath, 'RELEASE_VERSION']) write(name, fs.readFileSync(path.join(repository, name)));
   const scope = readScope(root);
-  const rawPath = 'scripts/ai-model-qa/evidence/SYNTHETIC-TEST-ONLY.txt';
-  const raw = 'Synthetic validator regression bytes, not an actual model output or semantic approval.\n';
-  write(rawPath, raw);
+  const evidenceDirectory = 'scripts/ai-model-qa/evidence';
+  const stdoutPath = `${evidenceDirectory}/SYNTHETIC-OUTPUT-ONLY.txt`;
+  const stdout = 'Synthetic validator regression bytes, not an actual model output or semantic approval.\n';
+  write(stdoutPath, stdout);
+  const runtimePath = `${evidenceDirectory}/SYNTHETIC-RUNTIME-ONLY.json`;
+  const runtime = {
+    schemaVersion: 1, runtimeId: scope.runtime.id, sourceCommit: scope.runtime.sourceCommit,
+    executable: 'llama-completion.exe', sha256: sha256('synthetic baseline'), bytes: 18,
+    avx2: { executable: 'llama-completion-avx2.exe', sha256: sha256('synthetic avx2'), bytes: 14 },
+    tokenizer: { executable: 'llama-tokenize.exe', sha256: sha256('synthetic tokenizer'), bytes: 19 },
+  };
+  write(runtimePath, json(runtime));
+  const runtimeReference = { path: runtimePath, sha256: sha256(json(runtime)) };
+  const envelopes = scope.shippingModels.flatMap(model => ['baseline', 'avx2'].map(variant => ({
+    schemaVersion: 1, kind: 'native-output', model: { ...model },
+    fixtureSha256: scope.fixture.sha256, promptVersion: scope.promptVersion,
+    promptProfile: productionPromptProfile, outputSchema: productionOutputSchema,
+    sourceFingerprintSha256: scope.sources.sha256, platform: 'windows-x64', executedAt: '2026-10-01T00:00:00Z',
+    runtime: {
+      manifestSha256: runtimeReference.sha256, variant,
+      completion: variant === 'baseline' ? { sha256: runtime.sha256, bytes: runtime.bytes } : { sha256: runtime.avx2.sha256, bytes: runtime.avx2.bytes },
+      tokenizer: { sha256: runtime.tokenizer.sha256, bytes: runtime.tokenizer.bytes },
+    },
+    outputs: ['en', 'zh-Hans'].map(targetLanguage => ({ kind: 'raw-output', targetLanguage, path: stdoutPath, sha256: sha256(stdout) })),
+  })));
+  const configurations = envelopes.map(envelope => ({
+    promptProfile: productionPromptProfile, outputSchema: productionOutputSchema, loadOnly: false,
+    modelId: envelope.model.id, modelSha256: envelope.model.sha256, modelBytes: envelope.model.bytes,
+    executableSha256: envelope.runtime.completion.sha256, tokenizerSha256: envelope.runtime.tokenizer.sha256,
+  }));
+  const configurationPaths = configurations.map((_, i) => `${evidenceDirectory}/SYNTHETIC-CONFIGURATION-ONLY-${i}.json`);
+  configurations.forEach((configuration, i) => {
+    write(configurationPaths[i], json(configuration));
+    envelopes[i].configuration = { path: configurationPaths[i], sha256: sha256(json(configuration)) };
+  });
+  const rawPaths = envelopes.map((_, i) => `${evidenceDirectory}/SYNTHETIC-ENVELOPE-ONLY-${i}.json`);
+  const rawPath = rawPaths[0];
   const report = {
     schemaVersion: 1, kind: 'semantic-review', verdict: 'approved',
     reviewedBy: 'SYNTHETIC TEST ONLY', reviewedAt: '2026-10-01T00:00:00Z', expiresAt: '2026-10-03T00:00:00Z',
-    summary: 'Synthetic unit test; never release evidence.', scope,
-    models: scope.shippingModels.map(model => ({ ...model, verdict: 'approved', summary: 'Synthetic unit test.', evidence: [
-      { kind: 'native-output', path: rawPath, sha256: sha256(raw), fixtureSha256: scope.fixture.sha256 },
-    ] })),
+    summary: 'Synthetic unit test; never release evidence.', scope, runtimeManifest: runtimeReference,
+    models: scope.shippingModels.map((model, i) => ({ ...model, verdict: 'approved', summary: 'Synthetic unit test.', evidence: [0, 1].map(variant => ({
+      kind: 'native-output', path: rawPaths[i * 2 + variant], sha256: '', fixtureSha256: scope.fixture.sha256,
+    })) })),
   };
-  const reportPath = 'scripts/ai-model-qa/evidence/SYNTHETIC-TEST-ONLY.json';
+  const reportPath = `${evidenceDirectory}/SYNTHETIC-TEST-ONLY.json`;
   const approval = { schemaVersion: 1, status: 'approved', scope, review: { path: reportPath, sha256: '' } };
   const save = () => {
     write(reportPath, json(report));
     approval.review.sha256 = sha256(json(report));
     write(approvalPath, json(approval));
   };
+  const saveEnvelopes = () => {
+    envelopes.forEach((envelope, i) => {
+      write(rawPaths[i], json(envelope));
+      report.models[Math.floor(i / 2)].evidence[i % 2].sha256 = sha256(json(envelope));
+    });
+    save();
+  };
+  saveEnvelopes();
   save();
-  return { root, scope, report, approval, rawPath, reportPath, write, save, validate: options => validateApproval(root, { now, ...options }) };
+  return { root, scope, report, approval, rawPath, reportPath, stdoutPath, runtimePath, runtime, envelopes, configurations, configurationPaths, write, save, saveEnvelopes, validate: options => validateApproval(root, { now, ...options }) };
 }
 
 test('synthetic current approval with complete bound evidence passes', t => example(t).validate());
@@ -92,6 +134,123 @@ for (const [name, mutate, expected] of [
 ]) {
   test(`rejects ${name}`, t => {
     const x = example(t); mutate(x); assert.throws(() => x.validate(), expected);
+  });
+}
+
+test('all production lyric and media-ingestion files have a code-owned fingerprint', () => {
+  for (const directory of ['src/DropSpace.Core/Lyrics', 'src/DropSpace.Infrastructure/Lyrics', 'src/DropSpace.App/Services/Media']) {
+    for (const entry of fs.readdirSync(path.join(repository, directory), { recursive: true })) {
+      if (entry.endsWith('.cs')) assert.ok(sourcePaths.includes(`${directory}/${entry.replaceAll('\\', '/')}`), `New production source needs fingerprint coverage: ${directory}/${entry}`);
+    }
+  }
+  for (const name of [
+    'src/DropSpace.Core/Policies/AppLanguagePolicy.cs', 'src/DropSpace.Core/Media/MediaModels.cs',
+    'src/DropSpace.App/App.xaml.cs', 'src/DropSpace.App/ViewModels/MediaViewModel.cs', 'src/DropSpace.App/Services/AppLanguageService.cs',
+    'src/DropSpace.App/Services/ResourceStringLocalizer.cs', 'src/DropSpace.App/Views/Music/MusicPage.cs',
+    'src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs', 'src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs',
+    'src/DropSpace.App/OverlayWindow.xaml', 'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml',
+    'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs',
+  ]) assert.ok(sourcePaths.includes(name), `Target/display chain needs fingerprint coverage: ${name}`);
+});
+
+for (const [name, mutate, expected] of [
+  ['wrong model ID', e => { e.model.id = 'wrong'; }, /model identity/],
+  ['wrong model SHA', e => { e.model.sha256 = '0'.repeat(64); }, /model identity/],
+  ['wrong model bytes', e => { e.model.bytes = 1; }, /model identity/],
+  ['wrong fixture', e => { e.fixtureSha256 = '0'.repeat(64); }, /fixture mismatch/],
+  ['wrong prompt', e => { e.promptVersion = 'wrong'; }, /prompt version/],
+  ['minimal-target-only profile', e => { e.promptProfile = 'minimal-target-only'; }, /production prompt profile/],
+  ['missing prompt profile', e => { delete e.promptProfile; }, /production prompt profile/],
+  ['wrong output schema', e => { e.outputSchema = 'diagnostic-free-text'; }, /production output schema/],
+  ['missing output schema', e => { delete e.outputSchema; }, /production output schema/],
+  ['wrong source fingerprint', e => { e.sourceFingerprintSha256 = '0'.repeat(64); }, /source fingerprint/],
+  ['wrong platform', e => { e.platform = 'linux-x64'; }, /Windows x64/],
+  ['future execution', e => { e.executedAt = '2026-10-02T00:00:00Z'; }, /postdates/],
+  ['missing execution time', e => { delete e.executedAt; }, /UTC timestamp/],
+  ['wrong runtime manifest', e => { e.runtime.manifestSha256 = '0'.repeat(64); }, /runtime manifest mismatch/],
+  ['missing variant', e => { delete e.runtime.variant; }, /variant is required/],
+  ['mislabeled variant', e => { e.runtime.variant = 'avx2'; }, /completion hash/],
+  ['wrong completion bytes', e => { e.runtime.completion.bytes = 1; }, /completion hash/],
+  ['wrong completion SHA', e => { e.runtime.completion.sha256 = '0'.repeat(64); }, /completion hash/],
+  ['wrong tokenizer SHA', e => { e.runtime.tokenizer.sha256 = '0'.repeat(64); }, /tokenizer hash/],
+  ['wrong tokenizer bytes', e => { e.runtime.tokenizer.bytes = 1; }, /tokenizer hash/],
+  ['missing raw output references', e => { e.outputs = []; }, /output references/],
+  ['wrong raw output hash', e => { e.outputs[0].sha256 = '0'.repeat(64); }, /hash mismatch/],
+  ['summary used as raw output', e => { e.outputs[0].kind = 'summary'; }, /preserved raw output/],
+  ['unsupported output target', e => { e.outputs[0].targetLanguage = 'fr'; }, /target is unsupported/],
+  ['missing target language', e => { e.outputs.pop(); }, /both shipping target languages/],
+]) {
+  test(`native envelope rejects ${name} even with recomputed outer hashes`, t => {
+    const x = example(t); mutate(x.envelopes[0]); x.saveEnvelopes(); assert.throws(() => x.validate(), expected);
+  });
+}
+
+for (const [name, mutate, expected] of [
+  ['minimal-target-only run mislabeled by its envelope', c => { c.promptProfile = 'minimal-target-only'; }, /not the production prompt profile/],
+  ['implicit default profile', c => { delete c.promptProfile; }, /not the production prompt profile/],
+  ['wrong raw schema identity', c => { c.outputSchema = 'minimal-target-only'; }, /production output schema identity/],
+  ['missing raw schema identity', c => { delete c.outputSchema; }, /production output schema identity/],
+  ['loader-only run', c => { c.loadOnly = true; }, /Loader-only/],
+  ['wrong model', c => { c.modelId = 'qwen3-17-q4'; }, /model identity mismatch/],
+  ['wrong model hash', c => { c.modelSha256 = '0'.repeat(64); }, /model identity mismatch/],
+  ['wrong model bytes', c => { c.modelBytes = 1; }, /model identity mismatch/],
+  ['wrong completion hash', c => { c.executableSha256 = '0'.repeat(64); }, /completion hash mismatch/],
+  ['wrong tokenizer hash', c => { c.tokenizerSha256 = '0'.repeat(64); }, /tokenizer hash mismatch/],
+]) {
+  test(`native raw configuration rejects ${name} even when all outer hashes match`, t => {
+    const x = example(t); mutate(x.configurations[0]);
+    x.write(x.configurationPaths[0], json(x.configurations[0]));
+    x.envelopes[0].configuration.sha256 = sha256(json(x.configurations[0]));
+    x.saveEnvelopes();
+    assert.throws(() => x.validate(), expected);
+  });
+}
+
+test('missing, modified or hashless native raw configuration fails closed', t => {
+  const x = example(t);
+  delete x.envelopes[0].configuration.sha256; x.saveEnvelopes();
+  assert.throws(() => x.validate(), /SHA256 is required/);
+  x.envelopes[0].configuration.sha256 = sha256(json(x.configurations[0])); x.saveEnvelopes();
+  x.write(x.configurationPaths[0], '{}');
+  assert.throws(() => x.validate(), /hash mismatch/);
+  fs.unlinkSync(path.join(x.root, x.configurationPaths[0]));
+  assert.throws(() => x.validate(), /ENOENT/);
+});
+
+test('opaque nonempty native files are no longer sufficient evidence', t => {
+  const x = example(t);
+  x.write(x.rawPath, 'not a provenance envelope');
+  x.report.models[0].evidence[0].sha256 = sha256('not a provenance envelope');
+  x.save();
+  assert.throws(() => x.validate(), /JSON|Unexpected token/);
+});
+
+test('one runtime variant cannot approve both shipping variants', t => {
+  const x = example(t);
+  x.report.models[0].evidence.pop(); x.save();
+  assert.throws(() => x.validate(), /both shipping runtime variants/);
+});
+
+test('raw output cannot disappear or change after its envelope is recorded', t => {
+  const x = example(t);
+  x.write(x.stdoutPath, 'changed');
+  assert.throws(() => x.validate(), /hash mismatch/);
+  fs.unlinkSync(path.join(x.root, x.stdoutPath));
+  assert.throws(() => x.validate(), /ENOENT/);
+});
+
+for (const [name, mutate, expected] of [
+  ['wrong runtime ID', r => { r.runtimeId = 'wrong'; }, /identity mismatch/],
+  ['wrong runtime source', r => { r.sourceCommit = '0'.repeat(40); }, /source mismatch/],
+  ['missing AVX2 hash', r => { delete r.avx2.sha256; }, /SHA256 is required/],
+  ['zero tokenizer size', r => { r.tokenizer.bytes = 0; }, /byte count is required/],
+  ['wrong baseline component name', r => { r.executable = 'wrong.exe'; }, /Unexpected runtime component/],
+]) {
+  test(`reviewed runtime rejects ${name} even with recomputed manifest hash`, t => {
+    const x = example(t); mutate(x.runtime);
+    x.write(x.runtimePath, json(x.runtime));
+    x.report.runtimeManifest.sha256 = sha256(json(x.runtime)); x.save();
+    assert.throws(() => x.validate(), expected);
   });
 }
 

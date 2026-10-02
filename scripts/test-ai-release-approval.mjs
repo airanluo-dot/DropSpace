@@ -24,11 +24,71 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs',
   'src/DropSpace.App/Services/Media/AiLyricsService.cs',
+  // Upstream identity/selection/provider parsing and target/display propagation.
+  'src/DropSpace.Core/Lyrics/LyricsParser.cs',
+  'src/DropSpace.Core/Lyrics/LyricsMatcher.cs',
+  'src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs',
+  'src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs',
+  'src/DropSpace.Core/Media/MediaModels.cs',
+  'src/DropSpace.Core/Media/MediaPlaybackClock.cs',
+  'src/DropSpace.Core/Media/MediaProcessIdentityPolicy.cs',
+  'src/DropSpace.Core/Models/AppSettings.cs',
+  'src/DropSpace.Core/Models/NativeIslandSettings.cs',
+  'src/DropSpace.Core/Models/NativeIslandSettingsPolicy.cs',
+  'src/DropSpace.Core/Models/SettingsChangePolicy.cs',
+  'src/DropSpace.Core/Models/SettingsValidationPolicy.cs',
+  'src/DropSpace.Core/Models/SettingsMigration14.cs',
+  'src/DropSpace.Core/Policies/AppLanguagePolicy.cs',
+  'src/DropSpace.Core/Abstractions/IAppStringLocalizer.cs',
+  'src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LocalLrcLyricsProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LyricsService.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs',
+  'src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs',
+  'src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs',
+  'src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs',
+  'src/DropSpace.App/Services/Media/MediaExperienceService.cs',
+  'src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs',
+  'src/DropSpace.App/Services/Media/BoundedMediaOperation.cs',
+  'src/DropSpace.App/App.xaml.cs',
+  'src/DropSpace.App/Services/AppLanguageService.cs',
+  'src/DropSpace.App/Services/ResourceStringLocalizer.cs',
+  'src/DropSpace.App/Services/SettingsApplicationCoordinator.cs',
+  'src/DropSpace.App/ViewModels/MediaViewModel.cs',
+  'src/DropSpace.App/ViewModels/MainViewModel.cs',
+  'src/DropSpace.App/ViewModels/NativeSettingsEditor.cs',
+  'src/DropSpace.App/Views/Music/MusicPage.cs',
+  'src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs',
+  'src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs',
+  'src/DropSpace.App/Views/Island/MediaCompactView.xaml',
+  'src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs',
+  'src/DropSpace.App/Views/Island/MediaExpandedView.xaml',
+  'src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs',
+  'src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs',
+  'src/DropSpace.App/Services/Media/MediaApplicationIconService.cs',
+  'src/DropSpace.App/Services/Media/MediaArtworkService.cs',
+  'src/DropSpace.App/Services/Media/MediaEventSubscription.cs',
+  'src/DropSpace.App/Services/Media/MediaProcessResolver.cs',
+  'src/DropSpace.Core/Lyrics/LyricsPreviewPolicy.cs',
+  'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml',
+  'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs',
+  'src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs',
+  'src/DropSpace.App/Services/Media/RetirableMediaWork.cs',
+  'src/DropSpace.App/OverlayWindow.xaml',
+  'scripts/ai-model-qa/profiles/minimal-target-only.json',
   'scripts/Build-AiLyricsRuntime.ps1',
   'scripts/ai-model-qa/Program.cs',
   'scripts/ai-model-qa/Run-WindowsModelQa.ps1',
   'scripts/ai-model-qa/WindowsModelQa.csproj',
 ]);
+export const productionPromptProfile = 'production';
+export const productionOutputSchema = 'production-id-text-json-v1';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
@@ -47,7 +107,7 @@ export function readScope(root) {
   const catalog = readText(root, sourcePaths[0]);
   // Intentionally parse the current restricted catalog shape; a refactor must
   // update this extractor and its tests instead of silently approving no models.
-  const descriptors = [...catalog.matchAll(/public static AiLyricsModelDescriptor (\w+) \{ get; \} = new\(\s*"([^"]+)",\s*"[^"]+",\s*new Uri\("[^"]+"\),\s*[\d_]+,\s*"([a-f0-9]{64})"\);/g)];
+  const descriptors = [...catalog.matchAll(/public static AiLyricsModelDescriptor (\w+) \{ get; \} = new\(\s*"([^"]+)",\s*"[^"]+",\s*new Uri\("[^"]+"\),\s*([\d_]+),\s*"([a-f0-9]{64})"\);/g)];
   assert.ok(descriptors.length > 0, 'No recognizable shipping model descriptors');
   const all = singleMatch(catalog, /All \{ get; \} = Array\.AsReadOnly\(new\[\] \{ ([^}]+) \}\);/g, 'Shipping model list');
   const names = all.split(',').map(name => name.trim());
@@ -55,7 +115,9 @@ export function readScope(root) {
   const shippingModels = names.map(name => {
     const descriptor = descriptors.filter(match => match[1] === name);
     assert.equal(descriptor.length, 1, `Unknown shipping model ${name}`);
-    return { id: descriptor[0][2], sha256: descriptor[0][3] };
+    const bytes = Number(descriptor[0][3].replaceAll('_', ''));
+    assert.ok(Number.isSafeInteger(bytes) && bytes > 0, 'Invalid shipping model byte count');
+    return { id: descriptor[0][2], sha256: descriptor[0][4], bytes };
   }).sort((a, b) => a.id.localeCompare(b.id));
   assert.equal(new Set(shippingModels.map(model => model.id)).size, shippingModels.length, 'Duplicate shipping model IDs');
   const runtimeBuild = readText(root, 'scripts/Build-AiLyricsRuntime.ps1');
@@ -67,6 +129,8 @@ export function readScope(root) {
       id: singleMatch(runtimeBuild, /runtimeId = '([^']+)'/g, 'Runtime identity'),
       sourceCommit: singleMatch(runtimeBuild, /^\$commit = '([a-f0-9]{40})'/gm, 'Runtime source commit'),
     },
+    promptProfile: productionPromptProfile,
+    outputSchema: productionOutputSchema,
     promptVersion: singleMatch(readText(root, 'src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs'), /public const string Version = "([^"]+)";/g, 'Prompt/cache version'),
     sources: { algorithm: 'sha256-utf8-lf-v1', files, sha256: sha256(JSON.stringify(files)) },
     fixture: { path: fixturePath, sha256: sha256(fs.readFileSync(path.join(root, fixturePath))) },
@@ -91,6 +155,66 @@ function readEvidence(root, reference, label) {
   return bytes;
 }
 
+function componentIdentity(component, executable) {
+  assert.equal(component?.executable, executable, `Unexpected runtime component ${executable}`);
+  assert.match(component.sha256 ?? '', hashPattern, `Runtime component ${executable} SHA256 is required`);
+  assert.ok(Number.isSafeInteger(component.bytes) && component.bytes > 0, `Runtime component ${executable} byte count is required`);
+  return { sha256: component.sha256, bytes: component.bytes };
+}
+
+function readReviewedRuntime(root, report, scope) {
+  const runtime = JSON.parse(readEvidence(root, report.runtimeManifest, 'Reviewed runtime manifest').toString('utf8').replace(/^\uFEFF/, ''));
+  assert.equal(runtime.schemaVersion, 1, 'Unsupported reviewed runtime schema');
+  assert.equal(runtime.runtimeId, scope.runtime.id, 'Reviewed runtime identity mismatch');
+  assert.equal(runtime.sourceCommit, scope.runtime.sourceCommit, 'Reviewed runtime source mismatch');
+  return {
+    manifestSha256: report.runtimeManifest.sha256,
+    baseline: componentIdentity(runtime, 'llama-completion.exe'),
+    avx2: componentIdentity(runtime.avx2, 'llama-completion-avx2.exe'),
+    tokenizer: componentIdentity(runtime.tokenizer, 'llama-tokenize.exe'),
+  };
+}
+
+function validateNativeEvidence(root, reference, model, scope, runtime, reviewedAt) {
+  assert.equal(reference.kind, 'native-output', 'Source inspection and diagnostic summaries alone are not runtime evidence');
+  assert.equal(reference.fixtureSha256, scope.fixture.sha256, 'Runtime evidence must use the pinned original QA fixture');
+  const envelope = JSON.parse(readEvidence(root, reference, `Model ${model.id} native evidence`).toString('utf8'));
+  assert.equal(envelope.schemaVersion, 1, 'Unsupported native evidence schema');
+  assert.equal(envelope.kind, 'native-output', 'Native evidence must be a provenance envelope');
+  assert.deepEqual(envelope.model, { id: model.id, sha256: model.sha256, bytes: model.bytes }, 'Native evidence model identity mismatch');
+  assert.equal(envelope.fixtureSha256, scope.fixture.sha256, 'Native evidence fixture mismatch');
+  assert.equal(envelope.promptVersion, scope.promptVersion, 'Native evidence prompt version mismatch');
+  assert.equal(envelope.promptProfile, productionPromptProfile, 'Only the production prompt profile can support shipping approval');
+  assert.equal(envelope.outputSchema, productionOutputSchema, 'Native evidence must use the production output schema');
+  assert.equal(envelope.sourceFingerprintSha256, scope.sources.sha256, 'Native evidence source fingerprint mismatch');
+  assert.equal(envelope.platform, 'windows-x64', 'Native evidence must use the shipping Windows x64 platform');
+  assert.ok(timestamp(envelope.executedAt, 'Native evidence execution time') <= reviewedAt, 'Native evidence postdates its semantic review');
+  assert.equal(envelope.runtime?.manifestSha256, runtime.manifestSha256, 'Native evidence runtime manifest mismatch');
+  const variant = envelope.runtime.variant;
+  assert.ok(['baseline', 'avx2'].includes(variant), 'Native evidence runtime variant is required');
+  assert.deepEqual(envelope.runtime.completion, runtime[variant], 'Native evidence completion hash/bytes mismatch');
+  assert.deepEqual(envelope.runtime.tokenizer, runtime.tokenizer, 'Native evidence tokenizer hash/bytes mismatch');
+  // Read the preserved configuration itself. A production label on an envelope
+  // cannot relabel a minimal-target-only/loader-only run after the fact.
+  const configuration = JSON.parse(readEvidence(root, envelope.configuration, `Model ${model.id} native configuration`).toString('utf8').replace(/^\uFEFF/, ''));
+  assert.equal(configuration.promptProfile, productionPromptProfile, 'Native configuration is not the production prompt profile');
+  assert.equal(configuration.outputSchema, productionOutputSchema, 'Native configuration lacks the production output schema identity');
+  assert.equal(configuration.loadOnly, false, 'Loader-only configuration is not shipping quality evidence');
+  assert.deepEqual({ id: configuration.modelId, sha256: configuration.modelSha256, bytes: configuration.modelBytes }, envelope.model, 'Native configuration model identity mismatch');
+  assert.equal(configuration.executableSha256, runtime[variant].sha256, 'Native configuration completion hash mismatch');
+  assert.equal(configuration.tokenizerSha256, runtime.tokenizer.sha256, 'Native configuration tokenizer hash mismatch');
+  assert.ok(Array.isArray(envelope.outputs) && envelope.outputs.length > 0, 'Native evidence needs original output references');
+  const targets = new Set();
+  for (const output of envelope.outputs) {
+    assert.equal(output.kind, 'raw-output', 'Native evidence output must be preserved raw output');
+    assert.ok(['en', 'zh-Hans'].includes(output.targetLanguage), 'Native evidence output target is unsupported');
+    readEvidence(root, output, `Model ${model.id} raw output`);
+    targets.add(output.targetLanguage);
+  }
+  assert.deepEqual([...targets].sort(), ['en', 'zh-Hans'], 'Native evidence needs both shipping target languages');
+  return variant;
+}
+
 function timestamp(value, label) {
   assert.ok(typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(value), `${label} must be an explicit UTC timestamp`);
   const parsed = Date.parse(value);
@@ -110,26 +234,30 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath }
   assert.equal(report.kind, 'semantic-review', 'Native diagnostics are not a semantic review');
   assert.equal(report.verdict, 'approved', 'Semantic review has not approved release');
   assert.deepEqual(report.scope, scope, 'Semantic review is bound to different release inputs');
-  nonempty(report.reviewedBy, 'Actual semantic reviewer identity');
+  // Accountability metadata within the trusted repository, not identity authentication.
+  nonempty(report.reviewedBy, 'Recorded semantic reviewer identity');
   nonempty(report.summary, 'Semantic review rationale');
   const reviewedAt = timestamp(report.reviewedAt, 'Review time');
   const expiresAt = timestamp(report.expiresAt, 'Approval expiry');
   assert.ok(Number.isFinite(now) && reviewedAt <= now, 'Semantic review cannot be future-dated');
   assert.ok(expiresAt > now && expiresAt > reviewedAt, 'Semantic approval has expired');
   assert.ok(expiresAt - reviewedAt <= maximumApprovalAgeMs, 'Semantic approval cannot last more than 30 days');
+  const reviewedRuntime = readReviewedRuntime(root, report, scope);
   assert.ok(Array.isArray(report.models), 'Per-model semantic reviews are required');
-  assert.deepEqual(report.models.map(model => ({ id: model.id, sha256: model.sha256 })), scope.shippingModels, 'Every shipping model needs semantic approval');
+  assert.deepEqual(report.models.map(model => ({ id: model.id, sha256: model.sha256, bytes: model.bytes })), scope.shippingModels, 'Every shipping model needs semantic approval');
   for (const model of report.models) {
     assert.equal(model.verdict, 'approved', `Model ${model.id} is not semantically approved`);
     nonempty(model.summary, `Model ${model.id} review rationale`);
     assert.ok(Array.isArray(model.evidence) && model.evidence.length > 0, `Model ${model.id} needs native evidence`);
-    for (const evidence of model.evidence) {
-      assert.equal(evidence.kind, 'native-output', 'Source inspection and diagnostic summaries alone are not runtime evidence');
-      assert.equal(evidence.fixtureSha256, scope.fixture.sha256, 'Runtime evidence must use the pinned original QA fixture');
-      readEvidence(root, evidence, `Model ${model.id} native evidence`);
-    }
+    const variants = new Set(model.evidence.map(evidence =>
+      validateNativeEvidence(root, evidence, model, scope, reviewedRuntime, reviewedAt)));
+    assert.deepEqual([...variants].sort(), ['avx2', 'baseline'], `Model ${model.id} needs both shipping runtime variants`);
   }
+
   if (runtimeManifestPath !== undefined) {
+    // Remaining publication-provenance gap: fresh PE builds are not known to be
+    // reproducible. Exact reviewed-byte reuse must be integrated before treating
+    // this source-level check as proof that the shipped runtime was evaluated.
     const runtime = JSON.parse(fs.readFileSync(runtimeManifestPath, 'utf8').replace(/^\uFEFF/, ''));
     assert.equal(runtime.schemaVersion, 1, 'Unsupported built runtime manifest');
     assert.equal(runtime.runtimeId, scope.runtime.id, 'Built runtime identity differs from semantic review');
