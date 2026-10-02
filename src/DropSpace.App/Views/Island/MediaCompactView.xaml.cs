@@ -247,16 +247,14 @@ public sealed partial class MediaCompactView : UserControl
             }
         }
         HighlightClip.Rect = new Rect(0, 0, Math.Max(0, highlight), Math.Max(28, BaseLine.ActualHeight));
-        var overflow = Math.Max(0, _textWidth - LyricViewport.ActualWidth);
         var scroll = 0d;
         if (_view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling && !_view.IsReducedMotion)
         {
-            scroll = frame.Line is { Words.Count: > 0 } ? highlight - LyricViewport.ActualWidth * 0.6 :
-                frame.Line is { } current
-                    ? (_view.Position - _view.Session.Timeline.Start - current.Start).TotalSeconds * 24 - LyricViewport.ActualWidth / 3
-                    : 0;
+            scroll = LyricsDisplayPolicy.CompactScrollOffset(frame.Line,
+                _view.Position - _view.Session.Timeline.Start, _view.Settings.Lyrics.DelayMilliseconds,
+                _view.Settings.Lyrics.WordSyncedHighlighting, highlight, _textWidth, LyricViewport.ActualWidth);
         }
-        LyricTranslation.TranslateX = -Math.Clamp(scroll, 0, overflow);
+        LyricTranslation.TranslateX = -scroll;
         SecondaryTranslation.TranslateX = -_secondaryMarquee.Update(new(
             _view.Session.TrackIdentity, presentation.Line?.Start.Ticks ?? 0, SecondaryLine.Text,
             SecondaryLine.FontSize, XamlRoot?.RasterizationScale ?? 1, _secondaryTextWidth, SecondaryViewport.ActualWidth,

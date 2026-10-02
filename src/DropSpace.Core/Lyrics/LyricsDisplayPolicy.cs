@@ -8,6 +8,19 @@ public static class LyricsDisplayPolicy
         .Replace("\r\n", " ", StringComparison.Ordinal).Replace('\r', ' ').Replace('\n', ' ')
         .Replace('\u0085', ' ').Replace('\u2028', ' ').Replace('\u2029', ' ');
 
+    public static double CompactScrollOffset(LyricsLine? line, TimeSpan position, int delayMilliseconds,
+        bool wordSyncedHighlighting, double highlightWidth, double textWidth, double viewportWidth)
+    {
+        if (line is null || !double.IsFinite(textWidth) || !double.IsFinite(viewportWidth) ||
+            !double.IsFinite(highlightWidth) || textWidth <= 0 || viewportWidth <= 0) return 0;
+        var overflow = Math.Max(0, textWidth - viewportWidth);
+        var effectiveMilliseconds = position.TotalMilliseconds + Math.Clamp(delayMilliseconds, -30_000, 30_000);
+        var scroll = wordSyncedHighlighting && line.Words.Count > 0
+            ? highlightWidth - viewportWidth * 0.6
+            : (effectiveMilliseconds - line.Start.TotalMilliseconds) / 1000 * 24 - viewportWidth / 3;
+        return Math.Clamp(scroll, 0, overflow);
+    }
+
     public static bool IntersectsViewport(double left, double top, double width, double height,
         double viewportWidth, double viewportHeight) =>
         double.IsFinite(left) && double.IsFinite(top) && double.IsFinite(width) && double.IsFinite(height) &&

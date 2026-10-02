@@ -61,14 +61,11 @@ public sealed class LyricsService
             if (cached?.Lines.Any(line => line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
                 !string.IsNullOrWhiteSpace(line.TranslationLanguage) && line.TranslationLanguageIsExplicit is null) == true)
                 cached = null;
-            // A cached original-only NetEase document may have been produced by
-            // the old YRC/LRC mixed-timeline parser. Re-query once after repair.
-            // Valid legacy provider translations and other sources remain reusable;
-            // genuinely untranslated new responses carry the current revision.
+            // Old NetEase entries can contain incomplete cross-paired translations,
+            // not just originals. Their surviving rows cannot establish correctness;
+            // refetch each old revision once, leaving other providers unchanged.
             if (cached is { Provider: LyricsProviderKind.NetEase } &&
-                cached.ProviderDataRevision < NetEaseLyricsProvider.DataRevision &&
-                !cached.Lines.Any(line => line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
-                    !string.IsNullOrWhiteSpace(line.Secondary))) cached = null;
+                cached.ProviderDataRevision < NetEaseLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0)
                 return new(validated, LyricsQueryStatus.Found);

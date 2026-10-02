@@ -8,7 +8,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvider
 {
     private const int MaximumLyricCandidates = 3;
-    internal const int DataRevision = 1;
+    internal const int DataRevision = 2;
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
 
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
@@ -46,13 +46,14 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
         var lrc = NestedText(root, "lrc", "lyric");
         var yrcTranslation = NestedText(root, "ytlrc", "lyric");
         var lrcTranslation = NestedText(root, "tlyric", "lyric");
-        var document = LyricsParser.Parse(string.IsNullOrWhiteSpace(yrc) ? lrc : yrc, Kind,
-            string.IsNullOrWhiteSpace(yrcTranslation) ? lrcTranslation : yrcTranslation);
-        // YRC and LRC are separate provider-authored timelines. If the selected
-        // YRC cannot retain any provider translation, try the independently paired
-        // LRC + tlyric before admitting AI. Do not enlarge timestamp tolerance or
-        // invent an asynchronous/cross-source alignment. Existing YRC translations
-        // keep their original pairing (including intentionally partial translations).
+        // Keep each provider-authored original/translation pair intact. A single
+        // accidentally matching timestamp must not make a mixed YRC/tlyric pair
+        // appear usable while silently dropping the rest of the translation.
+        var document = string.IsNullOrWhiteSpace(yrc)
+            ? LyricsParser.Parse(lrc, Kind, lrcTranslation)
+            : LyricsParser.Parse(yrc, Kind, yrcTranslation);
+        // Credit-only translations do not cover the sung lyrics. Genuine partial
+        // YRC translations retain priority; otherwise try the paired LRC document.
         if (!string.IsNullOrWhiteSpace(yrc) && !string.IsNullOrWhiteSpace(lrc) &&
             (document.Lines.Count == 0 || !HasProviderTranslation(document)))
         {
@@ -65,10 +66,17 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
     }
 
     private static bool HasProviderTranslation(LyricsDocument document) => document.Lines.Any(line =>
-        line.TranslationOrigin == LyricsTranslationOrigin.Provider && !string.IsNullOrWhiteSpace(line.Secondary));
+        line.TranslationOrigin == LyricsTranslationOrigin.Provider && !LyricsLanguagePolicy.IsCredit(line.Text) &&
+        !string.IsNullOrWhiteSpace(line.Secondary));
 
     private static IEnumerable<Candidate> Candidates(JsonElement root, LyricsQuery query)
     {
+        // A successful HTTP/API status is not sufficient: some regional responses
+        // contain an opaque string instead of the searchable catalog object.
+        // Surface a provider failure so it is not mistaken for a genuine no-match.
+        if (root.TryGetProperty("result", out var result) &&
+            result.ValueKind is not (JsonValueKind.Object or JsonValueKind.Null))
+            throw new InvalidDataException("NetEase search returned an unsupported result shape.");
         var songs = Array(root, "result", "songs");
         if (!songs.Any()) songs = Array(root, "songs");
         foreach (var song in songs)
