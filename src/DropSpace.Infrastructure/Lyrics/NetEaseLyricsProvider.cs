@@ -8,6 +8,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvider
 {
     private const int MaximumLyricCandidates = 3;
+    internal const int DataRevision = 1;
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
 
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
@@ -47,13 +48,24 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
         var lrcTranslation = NestedText(root, "tlyric", "lyric");
         var document = LyricsParser.Parse(string.IsNullOrWhiteSpace(yrc) ? lrc : yrc, Kind,
             string.IsNullOrWhiteSpace(yrcTranslation) ? lrcTranslation : yrcTranslation);
-        // Some catalogue rows expose YRC while its payload is temporarily empty or
-        // malformed. The independently returned LRC is still a valid representation.
-        if (document.Lines.Count == 0 && !string.IsNullOrWhiteSpace(yrc) && !string.IsNullOrWhiteSpace(lrc))
-            document = LyricsParser.Parse(lrc, Kind, lrcTranslation);
-        return document.Bind(query, candidate.Title, candidate.Artist, candidate.Album,
+        // YRC and LRC are separate provider-authored timelines. If the selected
+        // YRC cannot retain any provider translation, try the independently paired
+        // LRC + tlyric before admitting AI. Do not enlarge timestamp tolerance or
+        // invent an asynchronous/cross-source alignment. Existing YRC translations
+        // keep their original pairing (including intentionally partial translations).
+        if (!string.IsNullOrWhiteSpace(yrc) && !string.IsNullOrWhiteSpace(lrc) &&
+            (document.Lines.Count == 0 || !HasProviderTranslation(document)))
+        {
+            var pairedLrc = LyricsParser.Parse(lrc, Kind, lrcTranslation);
+            if (document.Lines.Count == 0 || HasProviderTranslation(pairedLrc))
+                document = pairedLrc;
+        }
+        return (document with { ProviderDataRevision = DataRevision }).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
             candidate.Duration, candidate.Score, candidate.Id);
     }
+
+    private static bool HasProviderTranslation(LyricsDocument document) => document.Lines.Any(line =>
+        line.TranslationOrigin == LyricsTranslationOrigin.Provider && !string.IsNullOrWhiteSpace(line.Secondary));
 
     private static IEnumerable<Candidate> Candidates(JsonElement root, LyricsQuery query)
     {

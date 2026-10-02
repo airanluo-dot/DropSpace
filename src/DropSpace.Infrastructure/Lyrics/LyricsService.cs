@@ -61,6 +61,14 @@ public sealed class LyricsService
             if (cached?.Lines.Any(line => line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
                 !string.IsNullOrWhiteSpace(line.TranslationLanguage) && line.TranslationLanguageIsExplicit is null) == true)
                 cached = null;
+            // A cached original-only NetEase document may have been produced by
+            // the old YRC/LRC mixed-timeline parser. Re-query once after repair.
+            // Valid legacy provider translations and other sources remain reusable;
+            // genuinely untranslated new responses carry the current revision.
+            if (cached is { Provider: LyricsProviderKind.NetEase } &&
+                cached.ProviderDataRevision < NetEaseLyricsProvider.DataRevision &&
+                !cached.Lines.Any(line => line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+                    !string.IsNullOrWhiteSpace(line.Secondary))) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0)
                 return new(validated, LyricsQueryStatus.Found);
@@ -86,6 +94,11 @@ public sealed class LyricsService
                 fallbackFailed |= fallback.Failed;
             }
             cancellationToken.ThrowIfCancellationRequested();
+            // Any successful fresh read uses this service's current provider pipeline.
+            // Stamp at the cache boundary too, so injected provider implementations
+            // cannot turn an original-only response into perpetual cache misses.
+            if (document.Provider == LyricsProviderKind.NetEase && document.Lines.Count > 0)
+                document = document with { ProviderDataRevision = NetEaseLyricsProvider.DataRevision };
             if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc)
             {
                 try

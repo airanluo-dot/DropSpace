@@ -68,6 +68,25 @@ public sealed class AuditLyricsAdmissionTests
     }
 
     [TestMethod]
+    public async Task RecoveredNetEaseTranslationNeverReachesAiCacheResolverOrInference()
+    {
+        using var fixture = new Fixture();
+        using var handler = new PayloadHandler(LyricsProviderKind.NetEase, mismatchedYrc: true);
+        using var client = new HttpClient(handler);
+        var lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(client), () => ""), fixture.Cache);
+        var settings = Enabled with { Provider = LyricsProviderKind.NetEase };
+        var source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+        Assert.AreEqual("我会一直等待你", source.Lines[0].Secondary);
+        var progressCalls = 0;
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true,
+            (_, _) => { progressCalls++; return Task.CompletedTask; });
+        var result = await fixture.Service.TranslateIfAvailableAsync(Query, source, settings, "zh-CN", default, progress);
+        Assert.AreEqual("我会一直等待你", result.Lines[0].Secondary);
+        Assert.AreEqual(0, progressCalls);
+        fixture.AssertNoAiCalls();
+    }
+
+    [TestMethod]
     [DataRow("I love you")]
     [DataRow("I need you")]
     [DataRow("Let it be")]
@@ -348,7 +367,7 @@ public sealed class AuditLyricsAdmissionTests
     }
 
     private sealed class PayloadHandler(LyricsProviderKind provider, bool untimed = false,
-        string? originalOverride = null, string? translationOverride = null) : HttpMessageHandler
+        string? originalOverride = null, string? translationOverride = null, bool mismatchedYrc = false) : HttpMessageHandler
     {
         public int Calls { get; private set; }
         public bool FailRequests { get; set; }
@@ -360,7 +379,8 @@ public sealed class AuditLyricsAdmissionTests
             var original = originalOverride ?? (untimed ? "I miss your smile\nLondon" : "[00:01]I will wait for you\n[00:04]Baby");
             var translated = translationOverride ?? (untimed ? "我的世界充满阳光\nLondon" : "[00:01]我会一直等待你\n[00:04]Baby");
             var json = provider == LyricsProviderKind.NetEase
-                ? lyric ? JsonSerializer.Serialize(new { code = 200, lrc = new { lyric = original }, tlyric = new { lyric = translated } })
+                ? lyric ? JsonSerializer.Serialize(new { code = 200, lrc = new { lyric = original }, tlyric = new { lyric = translated },
+                    yrc = new { lyric = mismatchedYrc ? "[1500,3000](1500,1000,0)I will wait for you\n[4500,3000](4500,1000,0)Baby" : "" } })
                     : """{"code":200,"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}],"album":{"name":"Album"},"duration":30000}]}}"""
                 : lyric ? JsonSerializer.Serialize(new { lyric = original, trans = translated })
                     : """{"data":{"song":{"list":[{"songmid":"id","songname":"Song","singer":[{"name":"Artist"}],"albumname":"Album","interval":30}]}}}""";

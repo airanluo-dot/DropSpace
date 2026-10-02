@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
+using System.Text.Json;
 using DropSpace.Infrastructure.Lyrics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -23,6 +25,83 @@ public sealed class LyricsProviderTransportTests
         using var client = new HttpClient(handler);
         var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
         Assert.IsEmpty(result.Lines);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task NetEasePreservesLrcTranslationWhenYrcUsesDifferentTiming(bool unusableYrcTranslation)
+    {
+        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+            ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
+            : Json(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                code = 200,
+                yrc = new { lyric = "[1500,3000](1500,1000,0)I love you" },
+                lrc = new { lyric = "[00:01.000]I love you" },
+                tlyric = new { lyric = "[00:01.000]我爱你" },
+                ytlrc = new { lyric = unusableYrcTranslation ? "[99:00.000]我爱你" : "" }
+            })));
+        using var client = new HttpClient(handler);
+        var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
+        Assert.AreEqual("我爱你", result.Lines.Single().Secondary,
+            "Word-timed originals must not discard an independently valid provider translation.");
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, result.Lines.Single().TranslationOrigin);
+    }
+
+    [TestMethod]
+    public async Task NetEaseKeepsValidWordTimedTranslationPair()
+    {
+        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+            ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
+            : Json(JsonSerializer.Serialize(new
+            {
+                code = 200, yrc = new { lyric = "[1500,3000](1500,1000,0)I love you" },
+                ytlrc = new { lyric = "[00:01.500]我爱你" },
+                lrc = new { lyric = "[00:01.000]I love you" }, tlyric = new { lyric = "[00:01.000]另一译文" }
+            })));
+        using var client = new HttpClient(handler);
+        var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
+        Assert.AreEqual("我爱你", result.Lines.Single().Secondary);
+        Assert.IsNotEmpty(result.Lines.Single().Words);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(1500), result.Lines.Single().Start);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task NetEaseOriginalOnlyLegacyCacheIsRefetchedOnce(bool hasTranslation)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dropspace-netease-cache-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var calls = 0;
+            using var handler = new FixtureHandler(request =>
+            {
+                calls++;
+                return request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+                    ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
+                    : Json(JsonSerializer.Serialize(new { code = 200, lrc = new { lyric = "[00:01.000]I love you" },
+                        tlyric = new { lyric = hasTranslation ? "[00:01.000]我爱你" : "" } }));
+            });
+            using var client = new HttpClient(handler);
+            var cache = new LyricsCache(root);
+            var query = new LyricsQuery("Song", "Artist", "", TimeSpan.FromSeconds(30));
+            var settings = new LyricsSettings { Enabled = true, Provider = LyricsProviderKind.NetEase };
+            var key = JsonSerializer.Serialize(new { version = "source-v2", primary = settings.Provider,
+                backup = (LyricsProviderKind?)null, settings.SearchRemainingProviders,
+                query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album, durationTicks = query.Duration.Ticks });
+            var old = LyricsParser.Parse("[00:01.000]I love you", LyricsProviderKind.NetEase)
+                .Bind(query, query.Title, query.Artist, query.Album, 30, 10, "1");
+            await cache.WriteDocumentAsync(key, old, cache.Generation, default);
+            var service = new LyricsService(new LyricsProviderRegistry(new ILyricsProvider[] { new NetEaseLyricsProvider(new(client)) }), cache);
+            var first = await service.QueryAsync(query, settings, default);
+            Assert.AreEqual(2, calls, "An old original-only record must not permanently hide newly recovered translations.");
+            Assert.AreEqual(hasTranslation ? "我爱你" : null, first.Lines.Single().Secondary);
+            await service.QueryAsync(query, settings, default);
+            Assert.AreEqual(2, calls, "A genuinely untranslated current response must remain cacheable.");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 
     [TestMethod]
