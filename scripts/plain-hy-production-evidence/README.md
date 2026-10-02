@@ -7,7 +7,7 @@ not a replacement native launcher. The argument vector is obtained directly from
 `PersistentPlainLyricsRunner.BuildArguments`; only the model path value is
 normalized to `$MODEL` in recorded configuration.
 
-## Run once per explicitly selected variant
+## Run once per explicitly selected model and variant
 
 Use PowerShell 7, .NET SDK 10 and Node on Windows x64. Build the current runtime first
 with the repository's normal build workflow. Supply the current eight-file shipping
@@ -19,9 +19,16 @@ catalog's exact Q8 bytes. This harness does not download or install anything.
 ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 `
   -RuntimeDirectory ./artifacts/ai-runtime/win-x64 `
   -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL `
+  -ModelId hy-mt2-18-q8-plain-beta `
   -Variant Baseline `
   -OutputDirectory ./artifacts/plain-hy-production/production-plain-hy-RUN-ATTEMPT-baseline
 ```
+
+The default application model remains 1.8B. To capture the optional 7B, explicitly pass
+`-ModelId hy-mt2-7b-q8-plain-beta` and the already downloaded official pinned 7B
+file as `-ModelPath`, with a different output directory. Selection never reuses or
+relabels 1.8B evidence. Model ID, SHA256, byte count, actual inference-call hash,
+startup profile and memory budget must all match the current catalog.
 
 Run a separate, explicit invocation with `-Variant Avx2` and another output basename
 for AVX2. Both capture modes explicitly set `GpuEnabled=false`, regardless of the
@@ -47,7 +54,11 @@ Each invocation schedules exactly:
 7. Before/after source, model and runtime identity checks
 
 A target has the production 300-second whole-song budget and each actual native
-call has its production 60-second limit and 3 GiB memory cap. The runner's bounded
+call has its production 60-second limit. The model-specific process cap is 3 GiB
+for 1.8B or 12 GiB for 7B. Production CPU admission (including GPU-to-CPU fallback)
+requires available physical memory and available commit of at least that cap plus
+a 1 GiB reserve. These are conservative engineering allowances, not measured model
+peaks or promises for any installed RAM size. The runner's bounded
 cleanup remains in effect. The cancellation probe observes for up to 10 seconds,
 then requests cancellation even if observation failed, awaits at most 85 seconds,
 and drains production cleanup with a 20-second admission cancellation and 30-second
@@ -58,6 +69,40 @@ use the production runner's single CPU fallback; the harness itself never retrie
 The packet fails if this probe fails, but CPU fallback is a valid technical result.
 `deviceVendor` is always `unverified`; Vulkan mode alone is not NVIDIA/AMD or other
 physical-device coverage.
+
+## Independent admission audit
+
+The unchanged original `source48.json` remains the inference input. The separately
+reviewed `source48-admission.json` records all original display IDs, source text,
+expected production language/confidence/evidence, per-target eligibility and
+exclusion reason, and each eligible physical segment's index/text/SHA256. Its
+human language annotations are for auditing only and never enter the prompt or
+production source metadata. Capture compares actual policy decisions against
+this frozen file and fails on drift; it never regenerates expectations.
+
+Under policy v3, all 48 rows remain eligible for English: the bounded English
+vocabulary conservatively leaves these longer English sentences unknown. For
+Simplified Chinese, rows 37, 38, 39, 40, 41, 44, 46 and 47 have positive matching
+evidence and remain original, leaving 40 calls. Japanese/Korean verses and unknown
+rows stay eligible. Short known English phrases, credits at the start/middle of
+an untimed block, and multiple semantic segments sharing one display ID are
+verified in separate fake-inference contract tests, not claimed as native fixture
+coverage. If the policy changes, review the fixture plan again before capture.
+
+Every actual call records the original row ID, segment index/hash and verified
+model hash. Progress reports completed display IDs, not fabricated segment IDs.
+The gate requires the complete eligible call set and progress set, unchanged
+source text/timing, final text matching the observed runner outputs, no AI text
+on excluded rows, and actual cache preflight/replay documents with zero new
+calls. Schema-1 runner output and schema-2 capture/configuration cannot be
+relabelled as the new schema-2 runner/schema-3 capture.
+
+Host physical/commit availability is sampled before each cold request and the
+GPU-default probe. Production repeats its own admission immediately before CPU
+load. Process observations record working set, OS peak working set and private
+bytes; these are process observations, not VRAM measurements or hardware quality
+claims. Resource refusal preserves failure records and cannot emit a successful
+evidence envelope. CPU fallback does not certify GPU execution.
 
 ## Evidence and failures
 
@@ -85,16 +130,16 @@ removes the runtime terminator and trims terminal whitespace before returning.
 The observer never trims, repairs, replaces, translates or synthesizes its output.
 
 `NoUsefulTranslation` is a valid completed technical outcome. Copies are neutral.
-No semantic score is calculated. A timeout, rejected line, incomplete 48-line song,
+No semantic score is calculated. A timeout, rejected line, incomplete eligible-segment set,
 new inference during a cache replay, unobserved cancellation, or unconfirmed cleanup
 fails the capture. Available calls, target outputs and failure records remain.
 There are no retries and no automatic reruns. A failed capture emits no successful
 `native-output.json` envelope and cannot become approval by its process exit code.
 
-Only a fully completed capture writes the schema-2 `native-output.json` and
+Only a fully completed capture writes the schema-3 `native-output.json` and
 `evidence-reference.json`. References use the logical repository root
 `scripts/ai-model-qa/evidence/<output-directory-basename>/...`. When importing reviewed evidence, copy only the referenced configuration,
-`native-output.json`, two target output JSON files, `gpu-default-probe.json`, and the byte-exact runtime
+`native-output.json`, two target output JSON files, both `*.cache-output.json` files, `gpu-default-probe.json`, and the byte-exact runtime
 manifest into the repository evidence directory. Preserve that basename and
 referenced file names exactly; the review runtime-manifest reference can point to
 `<logical-root>/runtime-snapshot/runtime-manifest.json` without its sibling binaries.
@@ -117,6 +162,7 @@ accept a user-authored substitute scope or loosen budgets for a slow run.
 dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj --locked-mode
 dotnet build scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj --no-restore -c Release
 dotnet scripts/plain-hy-production-evidence/bin/Release/net10.0/PlainHyProductionEvidence.dll --contract-self-test
+dotnet scripts/plain-hy-production-evidence/bin/Release/net10.0/PlainHyProductionEvidence.dll --verify-fixture-admission scripts/ai-model-qa/inputs/source48.json scripts/plain-hy-production-evidence/source48-admission.json
 pwsh -NoProfile -File scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
 ```
 
@@ -124,5 +170,9 @@ These platform-neutral tests exercise the production coordinator with a fake
 inference seam, neutral copies/no-useful memoization, cache behavior, deterministic
 prompt/line mapping, verbatim output preservation, failure preservation and
 create-only journal semantics. They explicitly do not establish Windows/native
-execution. `--print-native-arguments` prints the production builder's normalized
+execution. `--print-native-arguments <model-id>` prints the production builder's normalized
 argument vector without starting inference.
+
+No 7B Windows capture or quality approval is established by these tool changes.
+The approval manifest remains pending; each model needs independent complete
+Windows baseline/AVX2 evidence and a genuine semantic review before publication.

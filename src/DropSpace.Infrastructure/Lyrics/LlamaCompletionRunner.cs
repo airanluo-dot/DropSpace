@@ -9,11 +9,17 @@ public sealed class LlamaCompletionRunner : IPlainLyricsRunner
 {
     private static readonly SemaphoreSlim InferenceGate = LocalInferenceProcess.InferenceGate;
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly Func<CpuMemorySnapshot?> _readMemorySnapshot;
     private readonly object _cleanupSync = new();
     private Task _pendingCleanup = Task.CompletedTask;
     private bool _disposed;
     private const int MaximumOutputCharacters = 65_536;
     private const string Schema = "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"text\":{\"type\":\"string\"}},\"required\":[\"id\",\"text\"],\"additionalProperties\":false}}";
+
+    public LlamaCompletionRunner() : this(CpuInferenceMemoryPolicy.ReadWindowsSnapshot) { }
+
+    internal LlamaCompletionRunner(Func<CpuMemorySnapshot?> readMemorySnapshot) =>
+        _readMemorySnapshot = readMemorySnapshot ?? throw new ArgumentNullException(nameof(readMemorySnapshot));
 
     public Task<string> RunAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
         CancellationToken cancellationToken, string? verifiedModelSha256 = null, IReadOnlyList<int>? expectedLineIds = null) =>
@@ -100,6 +106,9 @@ public sealed class LlamaCompletionRunner : IPlainLyricsRunner
                     start.Environment.Remove(key);
                 start.Environment["OMP_NUM_THREADS"] = "4";
                 start.Environment["OMP_THREAD_LIMIT"] = "4";
+                deadline.Token.ThrowIfCancellationRequested();
+                CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
+                deadline.Token.ThrowIfCancellationRequested();
                 var child = LocalInferenceProcess.Start(start, memoryBudget);
                 var process = child.Process;
                 using var stop = deadline.Token.Register(() => Stop(process));

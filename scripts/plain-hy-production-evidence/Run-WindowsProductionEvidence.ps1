@@ -3,6 +3,7 @@
 param(
     [Parameter(Mandatory)][string]$RuntimeDirectory,
     [Parameter(Mandatory)][string]$ModelPath,
+    [Parameter(Mandatory)][ValidateSet('hy-mt2-18-q8-plain-beta', 'hy-mt2-7b-q8-plain-beta')][string]$ModelId,
     [Parameter(Mandatory)][ValidateSet('Baseline', 'Avx2')][string]$Variant,
     [Parameter(Mandatory)][string]$OutputDirectory
 )
@@ -58,6 +59,12 @@ function Get-Scope {
     if ($LASTEXITCODE -ne 0) { throw 'The production scope exporter failed.' }
     ($text -join "`n") | ConvertFrom-Json
 }
+function Get-SelectedModel([object]$Scope, [string]$SelectionId) {
+    $matches = @($Scope.shippingModels | Where-Object { $_.id -ceq $SelectionId })
+    if ($matches.Count -ne 1) { throw 'Explicit model ID must uniquely match the current shipping scope.' }
+    if ($null -eq $Scope.modelProfiles.PSObject.Properties[$SelectionId]) { throw 'Selected model resource profile is missing.' }
+    return $matches[0]
+}
 function Get-Canonical([object]$Value) { ConvertTo-Json -InputObject $Value -Depth 40 -Compress }
 function Get-RuntimeInventory([string]$Directory) {
     Assert-PlainPath $Directory
@@ -93,9 +100,8 @@ Write-NewJson 'host.json' ([ordered]@{ executedAt=[DateTimeOffset]::UtcNow.ToStr
 if ($Variant -ceq 'Avx2' -and (-not $cpu.avx2 -or -not $cpu.fma -or -not $cpu.x86 -or -not $cpu.f16c)) { throw 'Host lacks AVX2/FMA/F16C; no fallback variant is allowed.' }
 $scope = Get-Scope
 if ($scope.promptProfile -cne 'production-plain-hy' -or $scope.outputSchema -cne 'host-mapped-id-text-v1' -or $scope.promptVersion -cne 'official-plain-per-line-v1' -or $scope.backendId -cne 'hy-q8-plain-beta-v1' -or $scope.acceptanceVersion -cne 'unknown-copy-neutral-complete-song-v1') { throw 'Scope is not the frozen production plain Hy profile.' }
-$models = @($scope.shippingModels)
-if ($models.Count -ne 1 -or $models[0].id -cne 'hy-mt2-18-q8-plain-beta' -or $models[0].sha256 -cne '5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4' -or $models[0].bytes -ne 1908528192) { throw 'Scope does not select the approved shipping Beta bytes.' }
-$model = $models[0]
+$model = Get-SelectedModel $scope $ModelId
+$modelProfile = $scope.modelProfiles.$ModelId
 Assert-Identity $ModelPath $model.sha256 $model.bytes
 $runtimeBefore = @(Get-RuntimeInventory $RuntimeDirectory)
 Write-NewJson 'runtime-inventory-before.json' $runtimeBefore
@@ -128,20 +134,20 @@ if ($LASTEXITCODE -ne 0) { throw 'Production capture compilation failed; see bui
 $dll = Join-Path $buildOutput 'PlainHyProductionEvidence.dll'
 & dotnet $dll --contract-self-test *> (Join-Path $OutputDirectory 'contract-self-test.log')
 if ($LASTEXITCODE -ne 0) { throw 'Production capture contract tests failed.' }
-$argumentText = & dotnet $dll --print-native-arguments
+$argumentText = & dotnet $dll --print-native-arguments $ModelId
 if ($LASTEXITCODE -ne 0) { throw 'Could not read production native arguments.' }
 $nativeArguments = @((($argumentText -join "`n") | ConvertFrom-Json))
-if ((Get-Canonical $nativeArguments) -cne (Get-Canonical @($scope.nativeArguments))) { throw 'Built production native arguments differ from the invocation scope.' }
+if ((Get-Canonical $nativeArguments) -cne (Get-Canonical @($modelProfile.nativeArguments))) { throw 'Built production native arguments differ from the invocation scope.' }
 if ((Get-Canonical (Get-Scope)) -cne (Get-Canonical $scope)) { throw 'Production scope changed during compilation.' }
 $manifestIdentity = Get-Identity (Join-Path $runtimeSnapshot 'runtime-manifest.json')
 $manifest = Get-Content -LiteralPath (Join-Path $runtimeSnapshot 'runtime-manifest.json') -Raw | ConvertFrom-Json
 $completion = if ($Variant -ceq 'Avx2') { $manifest.resident.avx2 } else { $manifest.resident.cpu }
 if ($manifest.resident.protocol -ne $scope.runtime.resident.protocol -or $manifest.resident.profile -cne $scope.runtime.resident.profile -or $manifest.resident.sourceSha256 -cne $scope.runtime.resident.sourceSha256) { throw 'Built resident worker source/profile differs from the invocation scope.' }
 $config = [ordered]@{
-    schemaVersion=2; modelId=$model.id; modelSha256=$model.sha256; modelBytes=$model.bytes
+    schemaVersion=3; modelId=$model.id; modelSha256=$model.sha256; modelBytes=$model.bytes
     executableSha256=$completion.sha256; executableBytes=$completion.bytes; runtimeManifestSha256=$manifestIdentity.sha256; runtimeVariant=$variantName
     promptProfile=$scope.promptProfile; outputSchema=$scope.outputSchema; promptVersion=$scope.promptVersion; backendId=$scope.backendId
-    acceptanceVersion=$scope.acceptanceVersion; samplerIdentity=$scope.samplerIdentity; nativeArguments=$nativeArguments; samplerArguments=@($scope.samplerArguments); executionLimits=$scope.executionLimits; gpuEnabled=$false
+    acceptanceVersion=$scope.acceptanceVersion; samplerIdentity=$scope.samplerIdentity; nativeArguments=$nativeArguments; samplerArguments=@($scope.samplerArguments); executionLimits=$modelProfile.executionLimits; gpuEnabled=$false
     fixtureSha256=$scope.fixture.sha256; sourceFingerprintSha256=$scope.sources.sha256; loadOnly=$false
     captureMethod='PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync'
     progressContext=[ordered]@{playbackPositionSeconds=0;recordEphemeralUpdates=$true}
@@ -177,20 +183,25 @@ $outputs = foreach ($target in @('en','zh-Hans')) {
     $identity = Get-Identity (Join-Path $OutputDirectory $name)
     [ordered]@{kind='runner-output';targetLanguage=$target;path="$logicalRoot/$name";sha256=$identity.sha256}
 }
+$cacheOutputs = foreach ($target in @('en','zh-Hans')) {
+    $name = $target + '.cache-output.json'
+    $identity = Get-Identity (Join-Path $OutputDirectory $name)
+    [ordered]@{targetLanguage=$target;path="$logicalRoot/$name";sha256=$identity.sha256}
+}
 $checks = [ordered]@{}
 foreach ($name in @('coldTargets','cacheTargets','cacheAdditionalInferenceCalls','cancellationObserved','cleanupConfirmed','sourceIdentityUnchanged','modelIdentityUnchanged','runtimeIdentityUnchanged')) { $checks[$name]=$technical.$name }
 $gpuProbe = Get-Content -LiteralPath (Join-Path $OutputDirectory 'gpu-default-probe.json') -Raw | ConvertFrom-Json
 if ($gpuProbe.gpuEnabled -ne $true -or $gpuProbe.complete -ne $true -or $gpuProbe.cleanupConfirmed -ne $true -or $gpuProbe.deviceVendor -cne 'unverified') { throw 'The separate default-setting GPU probe did not complete and clean up.' }
 $gpuProbeIdentity = Get-Identity (Join-Path $OutputDirectory 'gpu-default-probe.json')
 $envelope = [ordered]@{
-    schemaVersion=2;kind='native-output';platform='windows-x64';executedAt=$executedAt
+    schemaVersion=3;kind='native-output';platform='windows-x64';executedAt=$executedAt
     promptProfile=$scope.promptProfile;outputSchema=$scope.outputSchema;promptVersion=$scope.promptVersion;backendId=$scope.backendId;acceptanceVersion=$scope.acceptanceVersion
-    samplerIdentity=$scope.samplerIdentity;executionLimits=$scope.executionLimits;captureMethod=$config.captureMethod
+    samplerIdentity=$scope.samplerIdentity;executionLimits=$modelProfile.executionLimits;captureMethod=$config.captureMethod
     fixtureSha256=$scope.fixture.sha256;sourceFingerprintSha256=$scope.sources.sha256
     model=[ordered]@{id=$model.id;sha256=$model.sha256;bytes=$model.bytes}
     runtime=[ordered]@{manifestSha256=$manifestIdentity.sha256;variant=$variantName;mode='cpu';protocol=$manifest.resident.protocol;profile=$manifest.resident.profile;residentSourceSha256=$manifest.resident.sourceSha256;completion=[ordered]@{sha256=$completion.sha256;bytes=$completion.bytes}}
     configuration=[ordered]@{path="$logicalRoot/configuration.json";sha256=$configIdentity.sha256}
-    outputs=@($outputs);technicalChecks=$checks
+    outputs=@($outputs);cacheOutputs=@($cacheOutputs);technicalChecks=$checks
     gpuDefaultProbe=[ordered]@{path="$logicalRoot/gpu-default-probe.json";sha256=$gpuProbeIdentity.sha256}
 }
 Write-NewJson 'native-output.json' $envelope

@@ -105,12 +105,19 @@ public sealed class LyricsLanguageAdmissionTests
     }
 
     [TestMethod]
-    public void MixedTranslationLanguagesAndRomanizationDoNotBecomeTargetLanguage()
+    public void MixedTranslationsRetainPerLineEvidenceAndAnyMatchingLineBypassesTheWholeDocument()
     {
-        foreach (var secondary in new[] { "[00:01]kimi no na wa\n[00:02]ai no uta", "[00:01]我会一直等待你\n[00:02]君の声が聞こえる", "[00:01]我会一直等待你\n[00:02]I will stay with you" })
+        var romanization = LyricsParser.Parse("[00:01]first\n[00:02]second", LyricsProviderKind.NetEase,
+            "[00:01]kimi no na wa\n[00:02]ai no uta");
+        Assert.IsTrue(romanization.Lines.All(line => line.TranslationLanguage is null));
+        Assert.IsFalse(LyricsTranslationPolicy.HasMatchingProviderTranslation(romanization, "zh-CN"));
+        foreach (var (text, language) in new[] { ("Baby", (string?)null), ("君の声が聞こえる", "ja"), ("I will stay with you", "en") })
         {
-            var document = LyricsParser.Parse("[00:01]first\n[00:02]second", LyricsProviderKind.NetEase, secondary);
-            Assert.IsFalse(LyricsTranslationPolicy.HasMatchingProviderTranslation(document, "zh-CN"));
+            var document = LyricsParser.Parse("[00:01]first\n[00:02]second", LyricsProviderKind.NetEase,
+                "[00:01]我会一直等待你\n[00:02]" + text);
+            Assert.AreEqual("zh-Hans", document.Lines[0].TranslationLanguage);
+            Assert.AreEqual(language, document.Lines[1].TranslationLanguage);
+            Assert.IsTrue(LyricsTranslationPolicy.HasMatchingProviderTranslation(document, "zh-CN"));
         }
     }
 

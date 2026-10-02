@@ -33,6 +33,57 @@ internal static class ContractTests
             var args = Program.NativeArguments();
             Program.Require(args[0] == "--model" && args[1] == "$MODEL" && args[2] == "--mode" && args[3] == "cpu", "Argument normalization failed.");
             Program.Require(!args.Contains("-j") && args.Length == 4, "Not the production plaintext profile.");
+            var largeArgs = Program.NativeArguments(AiLyricsModelCatalog.ExperimentalLargePlain.Id);
+            Program.Require(largeArgs.SequenceEqual(args.Concat(new[] { "--model-profile", "hy-mt2-7b-q8" })),
+                "7B must select its own pinned resource profile without changing the sampler.");
+            try { Program.NativeArguments("unrecognized"); throw new InvalidOperationException("Unknown model accepted."); }
+            catch (InvalidDataException) { }
+            foreach (var model in AiLyricsModelCatalog.All)
+            {
+                var config = JsonSerializer.Deserialize<CaptureConfiguration>(JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 3, modelId = model.Id, modelSha256 = model.Sha256, modelBytes = model.Bytes,
+                    promptProfile = "production-plain-hy", outputSchema = PlainHyLyricsProtocol.HostMappingVersion,
+                    promptVersion = PlainHyLyricsProtocol.Version, backendId = PlainHyLyricsBackend.BackendId,
+                    acceptanceVersion = PlainHyLyricsProtocol.AcceptanceVersion, samplerIdentity = PlainHyLyricsProtocol.SamplerIdentity,
+                    captureMethod = Program.CaptureMethod, loadOnly = false, runtimeVariant = "baseline", gpuEnabled = false,
+                    executionLimits = new ExecutionLimits(300, 60, model == AiLyricsModelCatalog.ExperimentalLargePlain ? 12288 : 3072, 1800, 16384),
+                    nativeArguments = Program.NativeArguments(model.Id), logicalEvidenceRoot = "scripts/ai-model-qa/evidence/contract-only",
+                }, Program.Json), Program.Json)!;
+                Program.ValidateConfiguration(config);
+                foreach (var invalid in new[] { config with { SchemaVersion = 2 }, config with { ModelSha256 = new string('0', 64) },
+                    config with { ExecutionLimits = config.ExecutionLimits with { MemoryMiB = config.ExecutionLimits.MemoryMiB - 1 } } })
+                {
+                    var rejectedConfig = false;
+                    try { Program.ValidateConfiguration(invalid); } catch (InvalidDataException) { rejectedConfig = true; }
+                    Program.Require(rejectedConfig, "Model configuration schema, pinned hash and resource budget must be exact.");
+                }
+            }
+            var admissionSource = Source("I love you", "作词：Someone", "君の名前を忘れるとは約束していない。",
+                "作曲：Other\nI need you\n编曲：Other\n君の名前を忘れるとは約束していない。");
+            var admission = Program.Admission(admissionSource, "en");
+            Program.Require(admission[0].Reason == "same-target-language" && admission[1].Reason == "credit" &&
+                admission[2].Eligible && admission[3].Eligible && admission[3].Segments.Length == 1 &&
+                admission[3].Segments[0].Text == admissionSource.Lines[2].Text,
+                "Admission must retain original IDs, exclude credits/same target segments and keep foreign segments.");
+            var multipleDirectory = Path.Combine(temporary, "multiple");
+            Directory.CreateDirectory(multipleDirectory);
+            var multipleSource = Source("作词：Someone\nI love you\n编曲：Other\nI need you");
+            using var multiple = new ObservedRunner(new FakeRunner((_, i, _) => Task.FromResult(i == 1 ? "我爱你" : "我需要你")), multipleDirectory);
+            multiple.Begin("contract-segments", "zh-Hans", multipleSource);
+            var multipleProgress = new List<int>();
+            var multipleCache = new AiLyricsCache(Path.Combine(multipleDirectory, "cache"));
+            var multipleCoordinator = new PlainHyLyricsCoordinator(multipleCache);
+            var multipleQuery = new LyricsQuery("test", "", "", TimeSpan.Zero);
+            var multipleResult = await multipleCoordinator.TranslateAsync(multipleQuery, multipleSource, "zh-Hans", new string('a', 64), multipleCache.Generation,
+                (prompt, token) => multiple.RunPlainAsync("unused", "unused", prompt, multipleDirectory, token, AiLyricsModelCatalog.ExperimentalPlain.Sha256), default,
+                new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true, (update, _) => { multipleProgress.Add(update.LineId); return Task.CompletedTask; }, "segments")).ConfigureAwait(false);
+            Program.Require(multiple.Calls.Select(call => call.LineId).SequenceEqual(new[] { 0, 0 }) &&
+                multiple.Calls.Select(call => call.SegmentIndex).SequenceEqual(new[] { 0, 1 }) && multipleProgress.SequenceEqual(new[] { 0 }) &&
+                multipleResult.Document.Lines[0].Text == multipleSource.Lines[0].Text && multipleResult.Document.Lines[0].Secondary == "我爱你 我需要你",
+                "Segment calls/progress/final document must preserve the original single display row.");
+            var multipleCached = await multipleCoordinator.TryGetCachedAsync(multipleQuery, multipleSource, "zh-Hans", new string('a', 64), default).ConfigureAwait(false);
+            Program.Require(multipleCached is not null && Program.SameResult(multipleCached, multipleResult), "Segment cache changed stable row mapping.");
             var source = Source("原句", "Already English");
             var cache = new AiLyricsCache(Path.Combine(temporary, "cache"));
             var coordinator = new PlainHyLyricsCoordinator(cache);

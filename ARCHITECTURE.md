@@ -20,7 +20,14 @@ identity. No IDs, JSON schema, context/reviewer metadata, or gold source-languag
 model. `RunPlainAsync` uses a single code-owned argument builder, no `-j`, four CPU threads, the
 shared native admission gate, a model-specific process memory budget (3 GiB for the default 1.8B;
 12 GiB only for the verified 7B profile), 60-second line deadline, and retained
-process cleanup ownership. The whole-song inference ceiling is 300 seconds, not a performance claim.
+process cleanup ownership. Before every new CPU process, after prior-owner exit and while holding
+that gate, the host requires both available physical RAM and available commit to exceed or equal the
+selected process budget plus 1 GiB (4 GiB for 1.8B; 13 GiB for 7B). Missing measurements or insufficient
+memory leave source lyrics available without starting CPU inference. GPU fallback takes a fresh
+measurement; an existing resident is reused without demanding a second model allocation. These
+conservative thresholds are not measured peaks or a guarantee for a 16 GB machine. Vocabulary-only
+tokenization does not inherit the whole-model admission requirement.
+The whole-song inference ceiling is 300 seconds, not a performance claim.
 First generation can take several minutes; known semantic errors remain possible under the Beta label.
 Host admission excludes recognized credits and same-target original lines using explicit TTML
 language or conservative lexical evidence. Confidence values describe deterministic rules, not

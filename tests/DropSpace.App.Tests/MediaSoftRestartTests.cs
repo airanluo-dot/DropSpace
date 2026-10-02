@@ -1,4 +1,7 @@
 using DropSpace.App.Services.Media;
+using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
+using DropSpace.Infrastructure.Lyrics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DropSpace.App.Tests;
@@ -337,6 +340,97 @@ public sealed class MediaSoftRestartTests
             aiRelease.SetResult(); await aiRetirement.WaitAsync(TestDeadline);
         }
         finally { aiRelease.TrySetResult(); }
+    }
+
+    [TestMethod]
+    public async Task LateHttpCancellationCallbacks_DoNotExhaustMediaWorkOrBlockMaintenanceDrain()
+    {
+        using var handler = new RetiringLyricsHttpFixture();
+        using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        var service = new LyricsService(new([new NetEaseLyricsProvider(new(client))]));
+        var query = new LyricsQuery("Track", "Artist", "", TimeSpan.Zero);
+        var settings = new LyricsSettings { Enabled = true };
+        var jobs = new RetirableMediaWork();
+        try
+        {
+            for (var index = 0; index < 2; index++)
+            {
+                jobs.Start(token => service.QueryDetailedAsync(query, settings, token, refresh: true), CancellationToken.None);
+                await handler.SearchEntered[index].Task.WaitAsync(TestDeadline);
+                // The later lyric HTTP token registers after QueryDetailedAsync's waiter.
+                handler.ContinueSearch[index].SetResult();
+                await handler.LyricsEntered[index].Task.WaitAsync(TestDeadline);
+                jobs.RetireCurrent();
+                await handler.CallbacksEntered[index].Task.WaitAsync(TestDeadline);
+            }
+            await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+            Assert.IsFalse(handler.ReleaseCallbacks.IsSet);
+            Assert.IsFalse(handler.ReleaseResponses.Task.IsCompleted);
+            Assert.AreEqual(2, handler.LyricsCalls);
+            var refreshStarted = NewSignal();
+            Assert.IsTrue(jobs.TryStart(token =>
+            {
+                refreshStarted.SetResult();
+                return service.QueryDetailedAsync(query, settings, token, refresh: true);
+            }, CancellationToken.None), "Retired source waiters must free media work capacity for refresh.");
+            await refreshStarted.Task.WaitAsync(TestDeadline);
+            jobs.RetireCurrent();
+            await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+            Assert.AreEqual(2, handler.LyricsCalls, "The actual HTTP owners still retain their independent provider slots.");
+            handler.ReleaseAll();
+            LyricsQueryResult? recovered = null;
+            jobs.Start(async token => recovered = await service.QueryDetailedAsync(query, settings, token, refresh: true), CancellationToken.None);
+            await jobs.WaitForCurrentAsync(CancellationToken.None).WaitAsync(TestDeadline);
+            await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+            Assert.IsNotNull(recovered);
+            Assert.AreEqual(LyricsQueryStatus.Found, recovered.Status);
+            Assert.AreEqual("fresh after cleanup", recovered.Document.Lines.Single().Text);
+            Assert.AreEqual(3, handler.LyricsCalls);
+        }
+        finally { handler.ReleaseAll(); await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline); }
+    }
+
+    private sealed class RetiringLyricsHttpFixture : HttpMessageHandler
+    {
+        internal readonly TaskCompletionSource[] SearchEntered = [NewSignal(), NewSignal()];
+        internal readonly TaskCompletionSource[] ContinueSearch = [NewSignal(), NewSignal()];
+        internal readonly TaskCompletionSource[] LyricsEntered = [NewSignal(), NewSignal()];
+        internal readonly TaskCompletionSource[] CallbacksEntered = [NewSignal(), NewSignal()];
+        internal readonly TaskCompletionSource ReleaseResponses = NewSignal();
+        internal readonly ManualResetEventSlim ReleaseCallbacks = new();
+        private int _searchCalls, _lyricsCalls;
+        internal int LyricsCalls => Volatile.Read(ref _lyricsCalls);
+        internal void ReleaseAll()
+        {
+            ReleaseCallbacks.Set(); ReleaseResponses.TrySetResult();
+            foreach (var search in ContinueSearch) search.TrySetResult();
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            string json;
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            {
+                var index = Interlocked.Increment(ref _searchCalls) - 1;
+                if (index < 2) { SearchEntered[index].TrySetResult(); await ContinueSearch[index].Task; }
+                json = """{"result":{"songs":[{"id":1,"name":"Track","artists":[{"name":"Artist"}]}]}}""";
+            }
+            else
+            {
+                var index = Interlocked.Increment(ref _lyricsCalls) - 1;
+                if (index < 2)
+                {
+                    using var registration = token.Register(() =>
+                    {
+                        CallbacksEntered[index].TrySetResult(); ReleaseCallbacks.Wait();
+                    });
+                    LyricsEntered[index].TrySetResult(); await ReleaseResponses.Task;
+                    json = """{"lrc":{"lyric":"[00:01]obsolete late response"}}""";
+                }
+                else json = """{"lrc":{"lyric":"[00:01]fresh after cleanup"}}""";
+            }
+            return new(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(json) };
+        }
     }
 
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);

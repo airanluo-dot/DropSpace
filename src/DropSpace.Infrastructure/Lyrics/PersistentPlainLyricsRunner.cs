@@ -23,6 +23,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
     private readonly SemaphoreSlim _operation = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly TimeSpan _idleTimeout;
+    private readonly Func<CpuMemorySnapshot?> _readMemorySnapshot;
     private Session? _session;
     private Task _cleanup = Task.CompletedTask;
     private long _generation;
@@ -40,12 +41,13 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
         : this((gpu, token) => runtime.EnsureResidentWorkerAsync(gpu, token), options, TimeSpan.FromSeconds(60)) { }
 
     internal PersistentPlainLyricsRunner(Func<bool, CancellationToken, Task<string>> resolve,
-        AiLyricsRuntimeOptions options, TimeSpan idleTimeout)
+        AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null)
     {
         _resolve = resolve ?? throw new ArgumentNullException(nameof(resolve));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         if (idleTimeout <= TimeSpan.Zero || idleTimeout > TimeSpan.FromMinutes(2)) throw new ArgumentOutOfRangeException(nameof(idleTimeout));
         _idleTimeout = idleTimeout;
+        _readMemorySnapshot = readMemorySnapshot ?? CpuInferenceMemoryPolicy.ReadWindowsSnapshot;
     }
 
     public static IReadOnlyList<string> BuildArguments(string modelPath, bool gpu) =>
@@ -164,6 +166,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
             start.Environment["OMP_NUM_THREADS"] = "4";
             start.Environment["OMP_THREAD_LIMIT"] = "4";
             var memoryBudget = LlamaCompletionRunner.MemoryBudgetFor(model.Sha256);
+            token.ThrowIfCancellationRequested();
+            // The old worker has fully exited and this owner holds the global gate.
+            // GPU fallback gets a fresh reading here; an existing resident is reused
+            // without pretending that its already allocated weights are still free RAM.
+            if (!gpu) CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
+            token.ThrowIfCancellationRequested();
             var child = LocalInferenceProcess.Start(start, memoryBudget, retainStandardInput: true);
             _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu);
             gateTransferred = true;

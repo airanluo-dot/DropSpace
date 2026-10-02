@@ -9,7 +9,7 @@ $parseErrors = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
 # Load only the checked-in pure input-validation helpers, not the capture entry point.
-foreach ($name in @('Assert-PlainPath', 'Get-Identity', 'Assert-Identity', 'Get-RuntimeInventory')) {
+foreach ($name in @('Assert-PlainPath', 'Get-Identity', 'Assert-Identity', 'Get-RuntimeInventory', 'Get-SelectedModel')) {
     $function = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $name }.GetNewClosure(), $false)
     if ($null -eq $function) { throw "Missing validation helper $name" }
     . ([scriptblock]::Create($function.Extent.Text))
@@ -19,6 +19,11 @@ function Assert-Fails([scriptblock]$Action, [string]$Expected) {
     try { & $Action | Out-Null } catch { if ($_.ToString().Contains($Expected)) { $failed = $true } else { throw } }
     if (-not $failed) { throw "Expected rejection: $Expected" }
 }
+$selectionScope = [pscustomobject]@{ shippingModels=@([pscustomobject]@{id='ordinary'}, [pscustomobject]@{id='large'}); modelProfiles=[pscustomobject]@{ordinary=@{};large=@{}} }
+if ((Get-SelectedModel $selectionScope 'large').id -cne 'large') { throw 'Explicit larger selection used default model.' }
+Assert-Fails { Get-SelectedModel $selectionScope 'unknown' } 'uniquely match'
+$selectionScope.shippingModels += [pscustomobject]@{id='large'}
+Assert-Fails { Get-SelectedModel $selectionScope 'large' } 'uniquely match'
 $temporary = Join-Path ([IO.Path]::GetTempPath()) ('DropSpace-production-packet-contract-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temporary | Out-Null
 try {

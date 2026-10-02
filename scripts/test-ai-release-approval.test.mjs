@@ -25,19 +25,30 @@ function example(t) {
   const scope = readScope(root);
   const evidenceDirectory = 'scripts/ai-model-qa/evidence';
   const fixtureLines = JSON.parse(fs.readFileSync(path.join(root, fixturePath), 'utf8')).Lines;
-  const outputPackets = scope.shippingModels.flatMap(model => ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => ({
-    schemaVersion: 1, kind: 'production-runner-output', model: { ...model }, variant, targetLanguage, outcome: 'Translated',
-    complete: true, playbackPositionSeconds: 0, residentProcessReuseConfirmed: true, firstProgressElapsedMilliseconds: 1,
-    calls: fixtureLines.map((line, lineId) => ({
-      lineId, sourceText: line.Text, phase: 'cold', targetLanguage, status: 'returned',
-      nativeProcess: { id: 123, startedAt: '2026-10-01T00:00:00Z', executable: variant === 'baseline' ? 'plain-lyrics-worker.exe' : 'plain-lyrics-worker-avx2.exe' },
-      prompt: scope.promptTemplate.replace('{0}', () => scope.targetNames[targetLanguage]).replace('{1}', () => line.Text),
-      output: 'SYNTHETIC UNIT TEST ONLY: this is not actual native output or semantic approval.',
-    })).filter(call => call.sourceText.trim()),
-    progressEvents: fixtureLines.map((_, lineId) => ({ requestIdentity: 'SYNTHETIC-REQUEST', cacheGeneration: 0,
-      lineId, completedLineCount: lineId + 1, totalLineCount: fixtureLines.length,
-      isCurrent: true, isEphemeral: true, elapsedMilliseconds: lineId + 1 })),
-  }))));
+  const memory = model => ({ observedAt: '2026-10-01T00:00:00Z', availablePhysicalBytes: 32 * 1024 ** 3,
+    availableCommitBytes: 32 * 1024 ** 3, requiredAvailableBytes: scope.modelProfiles[model.id].cpuMemoryAdmission.minimumAvailableBytes });
+  const syntheticOutput = 'SYNTHETIC UNIT TEST ONLY: this is not actual native output or semantic approval.';
+  const outputPackets = scope.shippingModels.flatMap(model => ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => {
+    const admission = structuredClone(scope.fixtureAdmission.targets[targetLanguage]);
+    const eligible = admission.filter(row => row.eligible);
+    return {
+      schemaVersion: 2, kind: 'production-runner-output', model: { ...model }, variant, targetLanguage, outcome: 'Translated',
+      admissionPolicyVersion: scope.fixtureAdmission.policyVersion, admission, hostMemoryBefore: memory(model),
+      complete: true, playbackPositionSeconds: 0, residentProcessReuseConfirmed: true, firstProgressElapsedMilliseconds: 1,
+      calls: eligible.flatMap(row => row.segments.map(segment => ({
+        lineId: row.lineId, segmentIndex: segment.segmentIndex, segmentSha256: segment.sha256, sourceText: segment.text, verifiedModelSha256: model.sha256,
+        phase: 'cold', targetLanguage, status: 'returned',
+        nativeProcess: { workingSetBytes: 1024, peakWorkingSetBytes: 2048, privateMemoryBytes: 1024, id: 123, startedAt: '2026-10-01T00:00:00Z', executable: variant === 'baseline' ? 'plain-lyrics-worker.exe' : 'plain-lyrics-worker-avx2.exe' },
+        prompt: scope.promptTemplate.replace('{0}', () => scope.targetNames[targetLanguage]).replace('{1}', () => segment.text),
+        output: syntheticOutput,
+      }))),
+      finalDocument: { lines: fixtureLines.map((line, id) => ({ text: line.Text, start: line.Start, end: line.End, words: line.Words, sourceLanguage: line.SourceLanguage ?? null, secondary: admission[id].eligible ? syntheticOutput : null,
+        translationOrigin: admission[id].eligible ? 2 : 0, translationLanguage: admission[id].eligible ? targetLanguage : null })) },
+      progressEvents: eligible.map((row, index) => ({ requestIdentity: 'SYNTHETIC-REQUEST', cacheGeneration: 0,
+        lineId: row.lineId, completedLineCount: index + 1, totalLineCount: eligible.length,
+        isCurrent: true, isEphemeral: true, elapsedMilliseconds: index + 1 })),
+    };
+  })));
   const outputPaths = outputPackets.map((_, i) => `${evidenceDirectory}/SYNTHETIC-OUTPUT-ONLY-${i}.json`);
   outputPackets.forEach((packet, i) => write(outputPaths[i], json(packet)));
   const stdoutPath = outputPaths[0];
@@ -74,7 +85,7 @@ function example(t) {
     files: Object.entries(runtimePayload).map(([name, bytes]) => ({ path: name, sha256: sha256(bytes), bytes: Buffer.byteLength(bytes) })),
   };
   const envelopes = scope.shippingModels.flatMap(model => ['baseline', 'avx2'].map(variant => ({
-    schemaVersion: 2, kind: 'native-output', model: { ...model },
+    schemaVersion: 3, kind: 'native-output', model: { ...model },
     fixtureSha256: scope.fixture.sha256, promptVersion: scope.promptVersion,
     promptProfile: productionPromptProfile, outputSchema: productionOutputSchema,
     backendId: scope.backendId, acceptanceVersion: scope.acceptanceVersion, samplerIdentity: scope.samplerIdentity,
@@ -89,13 +100,24 @@ function example(t) {
     },
     outputs: outputPackets.flatMap((packet, i) => packet.variant === variant && packet.model.id === model.id ? [{ kind: 'runner-output', targetLanguage: packet.targetLanguage, path: outputPaths[i], sha256: sha256(json(packet)) }] : []),
   })));
+  const cachePackets = outputPackets.map(cold => ({ model: cold.model, targetLanguage: cold.targetLanguage,
+    additionalInferenceCalls: 0, matchesCold: true, preflight: { outcome: 0, document: structuredClone(cold.finalDocument) },
+    repeated: { outcome: 0, document: structuredClone(cold.finalDocument) } }));
+  const cachePaths = cachePackets.map((packet, i) => `${evidenceDirectory}/SYNTHETIC-CACHE-ONLY-${i}.json`);
+  const saveCaches = () => cachePackets.forEach((packet, index) => {
+    write(cachePaths[index], json(packet));
+    const envelope = envelopes[Math.floor(index / 2)];
+    envelope.cacheOutputs ??= [];
+    envelope.cacheOutputs[index % 2] = { targetLanguage: packet.targetLanguage, path: cachePaths[index], sha256: sha256(json(packet)) };
+  });
+  saveCaches();
   const gpuProbes = envelopes.map((envelope, index) => ({
     schemaVersion: 1, kind: 'production-gpu-default-probe', gpuEnabled: true, actualBackend: 'cpu', usedCpuFallback: true,
     deviceVendor: 'unverified', targetLanguage: 'en', fixtureLineId: 12, sourceText: fixtureLines[12].Text,
     prompt: scope.promptTemplate.replace('{0}', () => scope.targetNames.en).replace('{1}', () => fixtureLines[12].Text),
     output: 'SYNTHETIC UNIT TEST ONLY', outcome: 'Translated', complete: true, cleanupConfirmed: true,
-    observedProcess: { id: 456, startedAt: '2026-10-01T00:00:00Z', executable: envelope.runtime.variant === 'baseline' ? 'plain-lyrics-worker.exe' : 'plain-lyrics-worker-avx2.exe' },
-    model: envelope.model, sourceFingerprintSha256: scope.sources.sha256, fixtureSha256: scope.fixture.sha256,
+    observedProcess: { workingSetBytes: 1024, peakWorkingSetBytes: 2048, privateMemoryBytes: 1024, id: 456, startedAt: '2026-10-01T00:00:00Z', executable: envelope.runtime.variant === 'baseline' ? 'plain-lyrics-worker.exe' : 'plain-lyrics-worker-avx2.exe' },
+    hostMemoryBefore: memory(envelope.model), model: envelope.model, sourceFingerprintSha256: scope.sources.sha256, fixtureSha256: scope.fixture.sha256,
     runtimeManifestSha256: runtimeReference.sha256, residentSourceSha256: scope.runtime.resident.sourceSha256,
   }));
   const gpuProbePaths = gpuProbes.map((_, i) => `${evidenceDirectory}/SYNTHETIC-GPU-DEFAULT-ONLY-${i}.json`);
@@ -104,7 +126,7 @@ function example(t) {
     envelopes[i].gpuDefaultProbe = { path: gpuProbePaths[i], sha256: sha256(json(probe)) };
   });
   const configurations = envelopes.map(envelope => ({
-    schemaVersion: 2, promptProfile: productionPromptProfile, outputSchema: productionOutputSchema, loadOnly: false,
+    schemaVersion: 3, promptProfile: productionPromptProfile, outputSchema: productionOutputSchema, loadOnly: false,
     promptVersion: scope.promptVersion, backendId: scope.backendId, acceptanceVersion: scope.acceptanceVersion,
     samplerIdentity: scope.samplerIdentity, captureMethod: productionCaptureMethod,
     executionLimits: { ...scope.modelProfiles[envelope.model.id].executionLimits }, nativeArguments: [...scope.modelProfiles[envelope.model.id].nativeArguments],
@@ -145,7 +167,7 @@ function example(t) {
   };
   saveEnvelopes();
   save();
-  return { root, scope, report, approval, rawPath, reportPath, stdoutPath, runtimePath, runtime, runtimePayload, outputPackets, outputPaths, gpuProbes, gpuProbePaths, envelopes, configurations, configurationPaths, write, save, saveEnvelopes, validate: options => validateApproval(root, { now, ...options }) };
+  return { root, scope, report, approval, rawPath, reportPath, stdoutPath, runtimePath, runtime, runtimePayload, outputPackets, outputPaths, cachePackets, cachePaths, saveCaches, gpuProbes, gpuProbePaths, envelopes, configurations, configurationPaths, write, save, saveEnvelopes, validate: options => validateApproval(root, { now, ...options }) };
 }
 
 test('synthetic current approval with complete bound evidence passes', t => example(t).validate());
@@ -220,7 +242,7 @@ test('7B evidence cannot reuse a 1.8B runner capture', t => {
   const x = example(t);
   x.envelopes[2].outputs = structuredClone(x.envelopes[0].outputs);
   x.saveEnvelopes();
-  assert.throws(() => x.validate(), /7B runner output needs its own captured model identity/);
+  assert.throws(() => x.validate(), /Runner output needs its own captured model identity/);
 });
 
 test('7B capture cannot silently use the ordinary startup arguments or memory budget', t => {
@@ -262,10 +284,15 @@ function saveOutputPacket(x, index) {
   x.saveEnvelopes();
 }
 for (const [label, mutate, expected] of [
-  ['missing actual line', output => output.calls.pop(), /every actual fixture line/],
-  ['source-language bypass', output => output.calls.splice(0, 8), /every actual fixture line/],
-  ['changed source text', output => output.calls[0].sourceText = 'different input', /every actual fixture line/],
-  ['wrong host ID', output => output.calls[0].lineId = 99, /every actual fixture line/],
+  ['old schema relabeled', output => output.schemaVersion = 1, /old QA cannot be relabeled/],
+  ['made-up admission exclusion', output => output.admission[12].eligible = false, /independently audited/],
+  ['wrong inference model', output => output.calls[0].verifiedModelSha256 = '0'.repeat(64), /Actual inference model hash/],
+  ['wrong segment hash', output => output.calls[0].segmentSha256 = '0'.repeat(64), /every eligible semantic segment/],
+  ['missing host memory observation', output => delete output.hostMemoryBefore, /host memory allowance/],
+  ['missing actual line', output => output.calls.pop(), /every eligible semantic segment/],
+  ['source-language bypass', output => output.calls.splice(0, 8), /every eligible semantic segment/],
+  ['changed source text', output => output.calls[0].sourceText = 'different input', /every eligible semantic segment/],
+  ['wrong host ID', output => output.calls[0].lineId = 99, /every eligible semantic segment/],
   ['extra prompt instruction', output => output.calls[0].prompt += '\nextra gold label', /actual production template/],
   ['empty output', output => output.calls[0].output = '', /runner-returned output/],
   ['failed whole song', output => output.outcome = 'Failed', /did not complete/],
@@ -275,10 +302,37 @@ for (const [label, mutate, expected] of [
   assert.throws(() => x.validate(), expected);
 });
 
+test('excluded original rows cannot gain AI text in captured final results', t => {
+  const x = example(t);
+  x.outputPackets[1].finalDocument.lines[37].secondary = 'AI rewrite';
+  saveOutputPacket(x, 1);
+  assert.throws(() => x.validate(), /Excluded source row/);
+});
+
+test('cache replay must retain actual model identity, zero new inference and complete cold document', t => {
+  for (const mutate of [cache => cache.model = { ...cache.model, id: 'wrong' },
+    cache => cache.additionalInferenceCalls = 1, cache => cache.repeated.document.lines.pop()]) {
+    const x = example(t); mutate(x.cachePackets[0]); x.saveCaches(); x.saveEnvelopes();
+    assert.throws(() => x.validate(), /Cache replay/);
+  }
+});
+
+test('fixture audit cannot label foreign Japanese as same-target to hide missing inference', t => {
+  const x = example(t);
+  const filename = path.join(x.root, x.scope.fixtureAdmission.path);
+  const audit = JSON.parse(fs.readFileSync(filename));
+  audit.targets.en[12].detectedLanguage = 'en'; audit.targets.en[12].eligible = false;
+  fs.writeFileSync(filename, json(audit));
+  assert.throws(() => readScope(x.root), /independent fixture annotation/);
+});
+
 test('unchanged copied lines remain neutral structural evidence rather than an invented semantic failure', t => {
   const x = example(t);
   x.outputPackets[0].outcome = 'NoUsefulTranslation';
   for (const call of x.outputPackets[0].calls) call.output = call.sourceText;
+  for (const line of x.outputPackets[0].finalDocument.lines) { line.secondary = null; line.translationOrigin = 0; line.translationLanguage = null; }
+  for (const result of [x.cachePackets[0].preflight, x.cachePackets[0].repeated]) { result.outcome = 1; result.document = structuredClone(x.outputPackets[0].finalDocument); }
+  x.saveCaches();
   saveOutputPacket(x, 0); x.validate();
 });
 
@@ -392,7 +446,7 @@ for (const [name, mutate, expected] of [
   ['wrong model hash', c => { c.modelSha256 = '0'.repeat(64); }, /model identity mismatch/],
   ['wrong model bytes', c => { c.modelBytes = 1; }, /model identity mismatch/],
   ['wrong completion hash', c => { c.executableSha256 = '0'.repeat(64); }, /completion hash mismatch/],
-  ['old diagnostic configuration', c => { c.schemaVersion = 1; }, /configuration schema 2/],
+  ['old diagnostic configuration', c => { c.schemaVersion = 1; }, /configuration schema 3/],
   ['wrong production sampler arguments', c => { c.nativeArguments.push('-j', '{}'); }, /actual production arguments/],
   ['wrong runtime variant', c => { c.runtimeVariant = 'avx2'; }, /runtime variant mismatch/],
   ['wrong production budget', c => { c.executionLimits.wholeSongSeconds = 180; }, /execution limits mismatch/],
@@ -457,7 +511,7 @@ for (const [name, mutate, expected] of [
 for (const name of sourcePaths) {
   test(`invalidates changed source: ${name}`, t => {
     const x = example(t);
-    fs.appendFileSync(path.join(x.root, name), '\n// changed after review\n');
+    fs.appendFileSync(path.join(x.root, name), name.endsWith('source48-admission.json') ? '\n' : '\n// changed after review\n');
     assert.throws(() => x.validate(), /stale/);
   });
 }

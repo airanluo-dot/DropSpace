@@ -545,6 +545,7 @@ public sealed class AiLyricsSettingsCard : UserControl
                 {
                     AiLyricsTranslationState.Translating => "AiLyricsTranslating",
                     AiLyricsTranslationState.Unavailable => "AiLyricsTemporarilyUnavailable",
+                    AiLyricsTranslationState.ResourcesUnavailable => "AiLyricsResourcesUnavailable",
                     AiLyricsTranslationState.Completed => "AiLyricsTranslationComplete",
                     _ => "AiLyricsReady",
                 });

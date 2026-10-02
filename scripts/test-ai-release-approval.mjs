@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
+export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
 export const residentSourcePaths = Object.freeze([
   'tools/plain-lyrics-helper/CMakeLists.txt',
@@ -23,6 +24,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Core/Lyrics/LyricsInferenceCircuit.cs',
   'src/DropSpace.Core/Lyrics/PlainHyLyricsProtocol.cs',
   'src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs',
+  'src/DropSpace.Infrastructure/Lyrics/CpuInferenceMemoryPolicy.cs',
+  'src/DropSpace.Infrastructure/Lyrics/InferenceResourcesUnavailableException.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiLyricsWorkLifetime.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs',
@@ -116,6 +119,7 @@ export const sourcePaths = Object.freeze([
   'scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj',
   'scripts/plain-hy-production-evidence/packages.lock.json',
   'scripts/plain-hy-production-evidence/Program.cs',
+  admissionPath,
   'scripts/plain-hy-production-evidence/ContractTests.cs',
   'scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1',
   'scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1',
@@ -191,11 +195,13 @@ export function readScope(root) {
   };
   const largeModelId = descriptors.find(match => match[1] === 'ExperimentalLargePlain')?.[2];
   const ordinaryModelId = descriptors.find(match => match[1] === 'ExperimentalPlain')?.[2];
+  assert.match(readText(root, 'src/DropSpace.Infrastructure/Lyrics/CpuInferenceMemoryPolicy.cs'), /internal const long SystemReserveBytes = 1024L \* 1024 \* 1024;/, 'CPU memory admission reserve changed; update capture adapter');
   const modelProfiles = Object.fromEntries(shippingModels.map(model => {
     assert.ok([ordinaryModelId, largeModelId].includes(model.id), 'Unrecognized shipping model resource profile');
     const large = model.id === largeModelId;
     return [model.id, {
       nativeArguments: large ? [...nativeArguments, '--model-profile', 'hy-mt2-7b-q8'] : nativeArguments,
+      cpuMemoryAdmission: { minimumAvailableBytes: (memoryMiB(large ? 'Hy7BMaximumMemoryBytes' : 'MaximumMemoryBytes') + 1024) * 1024 * 1024, policy: 'process-cap-plus-1GiB-reserve' },
       executionLimits: { ...executionLimits, memoryMiB: memoryMiB(large ? 'Hy7BMaximumMemoryBytes' : 'MaximumMemoryBytes') },
     }];
   }));
@@ -215,6 +221,32 @@ export function readScope(root) {
     // with one LF separator between files (including existing trailing LFs).
     sourceSha256: sha256(residentSourcePaths.map(name => readText(root, name)).join('\n')),
   };
+  const admission = readJson(root, admissionPath);
+  const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
+  const fixture = JSON.parse(fixtureBytes);
+  assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
+  assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
+  assert.equal(admission.policyVersion, singleMatch(readText(root, 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs'), /public const string Version = "([^"]+)";/g, 'Admission policy version'), 'Admission audit must be renewed for policy changes');
+  assert.deepEqual(Object.keys(admission.targets).sort(), ['en', 'zh-Hans']);
+  assert.deepEqual(admission.semanticLanguages, [
+    { firstLineId: 0, lastLineId: 11, language: 'en' }, { firstLineId: 12, lastLineId: 23, language: 'ja' },
+    { firstLineId: 24, lastLineId: 35, language: 'ko' }, { firstLineId: 36, lastLineId: 47, language: 'zh-Hans' },
+  ], 'Independent original fixture language annotations changed');
+  for (const [target, rows] of Object.entries(admission.targets)) {
+    assert.equal(rows.length, fixture.Lines.length, 'Admission audit must cover every source row');
+    for (const [id, row] of rows.entries()) {
+      assert.equal(row.lineId, id); assert.equal(row.sourceText, fixture.Lines[id].Text);
+      assert.ok(['Unknown', 'Lexical', 'Context', 'Explicit'].includes(row.evidenceKind));
+      assert.ok(typeof row.eligible === 'boolean');
+      if (row.confidence >= 0.9) assert.equal(row.detectedLanguage, admission.semanticLanguages.find(group => id >= group.firstLineId && id <= group.lastLineId).language, 'Confident admission language conflicts with independent fixture annotation');
+      // The frozen fixture contains no credits. Unknown evidence remains eligible;
+      // only positive same-target evidence can exclude one of these lyric rows.
+      const expectedEligible = row.confidence < 0.9 || row.detectedLanguage !== target;
+      assert.equal(row.eligible, expectedEligible, 'Fixture audit cannot suppress an unknown or foreign lyric');
+      assert.equal(row.reason, row.eligible ? row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained' : 'same-target-language');
+      assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
+    }
+  }
   const files = sourcePaths.map(name => ({ path: name, sha256: sha256(readText(root, name)) }));
   return {
     releaseVersion: readText(root, 'RELEASE_VERSION').trim(),
@@ -238,6 +270,7 @@ export function readScope(root) {
     executionLimits,
     modelProfiles,
     sources: { algorithm: 'sha256-utf8-lf-v1', files, sha256: sha256(JSON.stringify(files)) },
+    fixtureAdmission: { path: admissionPath, sha256: sha256(readText(root, admissionPath)), ...admission },
     fixture: { path: fixturePath, sha256: sha256(fs.readFileSync(path.join(root, fixturePath))) },
   };
 }
@@ -309,23 +342,27 @@ function readReviewedRuntime(root, report, scope) {
 
 function validateRunnerOutput(root, reference, scope, variant, model) {
   const output = JSON.parse(readEvidence(root, reference, 'Production runner output').toString('utf8').replace(/^\uFEFF/, ''));
-  assert.equal(output.schemaVersion, 1, 'Unsupported production runner output schema');
+  assert.equal(output.schemaVersion, 2, 'Admission-aware runner output schema 2 is required; old QA cannot be relabeled');
   assert.equal(output.kind, 'production-runner-output', 'Output must preserve actual production runner results');
-  // 7B needs its own captured model identity; the existing 1.8B output cannot be relabeled.
-  if (scope.modelProfiles[model.id].nativeArguments.includes('--model-profile'))
-    assert.deepEqual(output.model, { id: model.id, sha256: model.sha256, bytes: model.bytes }, '7B runner output needs its own captured model identity');
+  assert.deepEqual(output.model, { id: model.id, sha256: model.sha256, bytes: model.bytes }, 'Runner output needs its own captured model identity');
   assert.equal(output.targetLanguage, reference.targetLanguage, 'Runner output target mismatch');
   assert.ok(['Translated', 'NoUsefulTranslation'].includes(output.outcome), 'Runner output did not complete the production song');
   assert.equal(output.complete, true, 'Production song capture is incomplete');
   assert.equal(output.playbackPositionSeconds, 0, 'Production capture playback position must be controlled');
   assert.equal(output.residentProcessReuseConfirmed, true, 'Production capture did not confirm resident reuse');
   const fixture = readJson(root, fixturePath);
-  const lines = fixture.Lines.map((line, lineId) => ({ lineId, sourceText: line.Text })).filter(line => line.sourceText.trim());
+  const expectedAdmission = scope.fixtureAdmission.targets[reference.targetLanguage];
+  assert.equal(output.admissionPolicyVersion, scope.fixtureAdmission.policyVersion, 'Runner admission policy mismatch');
+  assert.deepEqual(output.admission, expectedAdmission, 'Actual admission differs from independently audited fixture expectations');
+  const lines = expectedAdmission.filter(row => row.eligible);
+  const segments = lines.flatMap(row => row.segments.map(segment => ({ lineId: row.lineId, segmentIndex: segment.segmentIndex, segmentSha256: segment.sha256, sourceText: segment.text })));
   assert.ok(Array.isArray(output.calls), 'Production native call records are required');
-  assert.deepEqual(output.calls.map(call => ({ lineId: call.lineId, sourceText: call.sourceText })), lines,
-    'Production capture must contain every actual fixture line once, in order, without a source-language bypass');
+  assert.deepEqual(output.calls.map(call => ({ lineId: call.lineId, segmentIndex: call.segmentIndex, segmentSha256: call.segmentSha256, sourceText: call.sourceText })), segments,
+    'Production capture must contain every eligible semantic segment once, with original row IDs');
+  validateHostMemory(output.hostMemoryBefore, scope, model);
   const processes = new Set();
   for (const call of output.calls) {
+    assert.equal(call.verifiedModelSha256, model.sha256, 'Actual inference model hash differs from captured model');
     const prompt = scope.promptTemplate.replace('{0}', () => scope.targetNames[reference.targetLanguage]).replace('{1}', () => call.sourceText);
     assert.equal(call.prompt, prompt, 'Captured prompt differs from the actual production template/source');
     nonempty(call.output, 'Complete runner-returned output');
@@ -334,10 +371,30 @@ function validateRunnerOutput(root, reference, scope, variant, model) {
     assert.equal(call.phase, 'cold', 'Production native call is not the cold generation');
     assert.equal(call.targetLanguage, reference.targetLanguage, 'Production native call target mismatch');
     assert.ok(Number.isSafeInteger(call.nativeProcess?.id) && call.nativeProcess.id > 0, 'Observed resident PID is required');
+    validateProcessMemory(call.nativeProcess);
     assert.ok(Number.isFinite(Date.parse(call.nativeProcess.startedAt)), 'Observed resident process start is required');
     const executable = call.nativeProcess.executable?.split(/[\\/]/).at(-1);
     assert.equal(executable, variant === 'baseline' ? 'plain-lyrics-worker.exe' : 'plain-lyrics-worker-avx2.exe', 'Observed resident executable differs from the tested CPU variant');
     processes.add(`${call.nativeProcess.id}:${call.nativeProcess.startedAt}`);
+  }
+  assert.equal(output.finalDocument?.lines?.length, fixture.Lines.length, 'Final document lost display rows');
+  for (const [id, line] of output.finalDocument.lines.entries()) {
+    assert.equal(line.text, fixture.Lines[id].Text, 'Final original lyric text changed');
+    assert.equal(line.start, fixture.Lines[id].Start, 'Final original lyric timing changed');
+    assert.equal(line.end, fixture.Lines[id].End, 'Final original lyric timing changed');
+    assert.deepEqual(line.words, fixture.Lines[id].Words, 'Final original lyric word timing changed');
+    assert.equal(line.sourceLanguage, fixture.Lines[id].SourceLanguage ?? null, 'Final original source metadata changed');
+    if (expectedAdmission[id].eligible) {
+      const calls = output.calls.filter(call => call.lineId === id);
+      const aggregate = calls.map(call => call.output).join(' ');
+      const unchanged = aggregate.trim() === expectedAdmission[id].segments.map(segment => segment.text).join(' ').trim();
+      assert.equal(line.secondary, unchanged ? null : aggregate, 'Final translated row differs from observed runner output');
+      assert.equal(line.translationOrigin, unchanged ? 0 : 2, 'Final translation provenance mismatch');
+      assert.equal(line.translationLanguage, unchanged ? null : reference.targetLanguage, 'Final translation target mismatch');
+    } else {
+      assert.equal(line.secondary, null, 'Excluded source row gained a translation');
+      assert.equal(line.translationOrigin, 0, 'Excluded source row gained AI provenance');
+    }
   }
   assert.equal(processes.size, 1, 'Cold song did not reuse one actual resident process');
   assert.ok(Array.isArray(output.progressEvents) && output.progressEvents.length === lines.length, 'Every completed line needs an observed progressive callback');
@@ -357,12 +414,25 @@ function validateRunnerOutput(root, reference, scope, variant, model) {
   }
   assert.equal(requests.size, 1, 'Progress callbacks belong to different requests');
   assert.equal(output.firstProgressElapsedMilliseconds, output.progressEvents[0].elapsedMilliseconds, 'First progressive result timing mismatch');
+  return output;
+}
+
+function validateProcessMemory(process) {
+  for (const field of ['workingSetBytes', 'peakWorkingSetBytes', 'privateMemoryBytes'])
+    assert.ok(Number.isSafeInteger(process?.[field]) && process[field] > 0, 'Observed native process memory is required');
+}
+
+function validateHostMemory(memory, scope, model) {
+  assert.equal(memory?.requiredAvailableBytes, scope.modelProfiles[model.id].cpuMemoryAdmission.minimumAvailableBytes, 'CPU host memory allowance mismatch');
+  for (const field of ['availablePhysicalBytes', 'availableCommitBytes']) assert.ok(Number.isSafeInteger(memory[field]) && memory[field] >= 0, 'Host memory observation is required');
+  timestamp(memory.observedAt, 'Host memory observation time');
 }
 
 function validateGpuDefaultProbe(root, reference, model, scope, runtime, variant) {
   const probe = JSON.parse(readEvidence(root, reference, 'GPU-default probe').toString('utf8').replace(/^\uFEFF/, ''));
   assert.equal(probe.schemaVersion, 1, 'Unsupported GPU-default probe schema');
   assert.equal(probe.kind, 'production-gpu-default-probe', 'A real production GPU-default probe is required');
+  validateHostMemory(probe.hostMemoryBefore, scope, model);
   assert.equal(probe.gpuEnabled, true, 'GPU-default probe must request the actual enabled setting');
   assert.equal(probe.complete, true, 'GPU-default probe did not complete');
   assert.equal(probe.cleanupConfirmed, true, 'GPU-default probe cleanup is unconfirmed');
@@ -382,6 +452,7 @@ function validateGpuDefaultProbe(root, reference, model, scope, runtime, variant
   nonempty(probe.output, 'GPU-default probe returned output');
   assert.ok(['Translated', 'NoUsefulTranslation'].includes(probe.outcome), 'GPU-default probe outcome is incomplete');
   assert.ok(Number.isSafeInteger(probe.observedProcess?.id) && probe.observedProcess.id > 0, 'GPU-default probe actual process is required');
+  validateProcessMemory(probe.observedProcess);
   const executable = probe.observedProcess.executable?.split(/[\\/]/).at(-1);
   assert.equal(executable, probe.actualBackend === 'vulkan' ? 'plain-lyrics-worker-vulkan.exe' : variant === 'baseline' ? 'plain-lyrics-worker.exe' : 'plain-lyrics-worker-avx2.exe', 'GPU-default mode differs from observed executable');
 }
@@ -390,7 +461,7 @@ function validateNativeEvidence(root, reference, model, scope, runtime, reviewed
   assert.equal(reference.kind, 'native-output', 'Source inspection and diagnostic summaries alone are not runtime evidence');
   assert.equal(reference.fixtureSha256, scope.fixture.sha256, 'Runtime evidence must use the pinned original QA fixture');
   const envelope = JSON.parse(readEvidence(root, reference, `Model ${model.id} native evidence`).toString('utf8'));
-  assert.equal(envelope.schemaVersion, 2, 'Production plaintext capture requires native evidence schema 2; old QA cannot be relabeled');
+  assert.equal(envelope.schemaVersion, 3, 'Admission-aware capture requires native evidence schema 3; old QA cannot be relabeled');
   assert.equal(envelope.kind, 'native-output', 'Native evidence must be a provenance envelope');
   assert.deepEqual(envelope.model, { id: model.id, sha256: model.sha256, bytes: model.bytes }, 'Native evidence model identity mismatch');
   assert.equal(envelope.fixtureSha256, scope.fixture.sha256, 'Native evidence fixture mismatch');
@@ -415,7 +486,7 @@ function validateNativeEvidence(root, reference, model, scope, runtime, reviewed
   // The plain production path does not invoke a tokenizer. Its packaged bytes
   // remain verified by the artifact inventory; do not claim it was exercised.
   const configuration = JSON.parse(readEvidence(root, envelope.configuration, `Model ${model.id} native configuration`).toString('utf8').replace(/^\uFEFF/, ''));
-  assert.equal(configuration.schemaVersion, 2, 'Production plaintext configuration schema 2 is required');
+  assert.equal(configuration.schemaVersion, 3, 'Admission-aware configuration schema 3 is required');
   assert.equal(configuration.promptProfile, productionPromptProfile, 'Native configuration is not the production prompt profile');
   assert.equal(configuration.outputSchema, productionOutputSchema, 'Native configuration lacks the production output schema identity');
   assert.equal(configuration.loadOnly, false, 'Loader-only configuration is not shipping quality evidence');
@@ -440,14 +511,28 @@ function validateNativeEvidence(root, reference, model, scope, runtime, reviewed
     assert.equal(checks[key], true, `Production native check did not pass: ${key}`);
   assert.ok(Array.isArray(envelope.outputs) && envelope.outputs.length > 0, 'Native evidence needs original output references');
   const targets = new Set();
+  const coldOutputs = new Map();
   for (const output of envelope.outputs) {
     assert.equal(output.kind, 'runner-output', 'Native evidence must preserve runner-returned output, not relabeled raw output');
     assert.ok(['en', 'zh-Hans'].includes(output.targetLanguage), 'Native evidence output target is unsupported');
-    validateRunnerOutput(root, output, scope, variant, model);
+    coldOutputs.set(output.targetLanguage, validateRunnerOutput(root, output, scope, variant, model));
     targets.add(output.targetLanguage);
   }
   assert.deepEqual([...targets].sort(), ['en', 'zh-Hans'], 'Native evidence needs both shipping target languages');
   assert.equal(envelope.outputs.length, 2, 'Native evidence needs exactly one complete capture for both shipping target languages');
+  assert.deepEqual(envelope.cacheOutputs?.map(reference => reference.targetLanguage), ['en', 'zh-Hans'], 'Actual per-target cache observations are required');
+  for (const reference of envelope.cacheOutputs) {
+    const cache = JSON.parse(readEvidence(root, reference, 'Cache replay output'));
+    const cold = coldOutputs.get(reference.targetLanguage);
+    assert.deepEqual(cache.model, envelope.model, 'Cache replay model mismatch');
+    assert.equal(cache.targetLanguage, reference.targetLanguage);
+    assert.equal(cache.additionalInferenceCalls, 0, 'Cache replay launched extra inference');
+    assert.equal(cache.matchesCold, true, 'Cache replay did not match cold generation');
+    for (const result of [cache.preflight, cache.repeated]) {
+      assert.equal(result?.outcome, cold.outcome === 'Translated' ? 0 : 1, 'Cache replay outcome mismatch');
+      assert.deepEqual(result.document, cold.finalDocument, 'Cache replay changed the final document');
+    }
+  }
   validateGpuDefaultProbe(root, envelope.gpuDefaultProbe, model, scope, runtime, variant);
   return variant;
 }

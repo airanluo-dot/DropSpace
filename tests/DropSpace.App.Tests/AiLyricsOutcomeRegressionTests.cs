@@ -186,6 +186,35 @@ public sealed class AiLyricsOutcomeRegressionTests
             true, null, default));
     }
 
+    [TestMethod]
+    public async Task ResourceRefusalsKeepSourceAndRemainRecoverableWithoutPausingInference()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new AppStoragePaths(root);
+            var query = new LyricsQuery("song", "artist", "", TimeSpan.FromSeconds(2));
+            var source = new LyricsDocument([new(TimeSpan.Zero, TimeSpan.FromSeconds(2), "source", null, [])], LyricsProviderKind.LocalLrc);
+            var translated = source with { Lines = [source.Lines[0] with { Secondary = "translated", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "zh" }] };
+            using var models = new AiModelPackageService(Path.Combine(root, "models"));
+            using var backend = new FakeBackend(translated) { Error = new InferenceResourcesUnavailableException() };
+            using var service = new AiLyricsService(paths, new LyricsCache(paths.Lyrics), NullLogger<AiLyricsService>.Instance,
+                models, new FakeResolver(), backend);
+            var settings = new LyricsSettings { Enabled = true, AiTranslationEnabled = true };
+            for (var attempt = 0; attempt < 4; attempt++)
+            {
+                Assert.AreSame(source, await service.TranslateCoreAsync(query, source, settings, "zh", default));
+                Assert.AreEqual(AiLyricsTranslationState.ResourcesUnavailable, service.TranslationState);
+                Assert.IsFalse(service.TranslationPaused);
+            }
+            backend.Error = null;
+            Assert.AreSame(translated, await service.TranslateCoreAsync(query, source, settings, "zh", default));
+            Assert.AreEqual(5, backend.Calls);
+            Assert.AreEqual(AiLyricsTranslationState.Completed, service.TranslationState);
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
     private sealed class FakeResolver : IAiLyricsPackageResolver
     {
         public Task<AiLyricsResolvedPackage?> ResolveAsync(string selectionId, LyricsQuery query, LyricsDocument source, string targetLanguage, CancellationToken token) =>
@@ -199,9 +228,10 @@ public sealed class AiLyricsOutcomeRegressionTests
         public int Drains { get; private set; }
         public bool Disposed { get; private set; }
         public Task Cleanup { get; init; } = Task.CompletedTask;
+        public Exception? Error { get; set; }
         public Task<LyricsTranslationResult> TranslateAsync(AiLyricsResolvedPackage package, LyricsQuery query,
             LyricsDocument source, string targetLanguage, CancellationToken token)
-        { Calls++; return Task.FromResult(new LyricsTranslationResult(result, LyricsTranslationOutcome.Translated)); }
+        { Calls++; if (Error is not null) throw Error; return Task.FromResult(new LyricsTranslationResult(result, LyricsTranslationOutcome.Translated)); }
         public Task DrainCleanupAsync(CancellationToken token) { Drains++; return Cleanup.WaitAsync(token); }
         public void Dispose() { Disposed = true; }
     }

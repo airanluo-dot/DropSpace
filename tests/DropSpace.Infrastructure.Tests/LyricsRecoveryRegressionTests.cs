@@ -245,6 +245,109 @@ public sealed class LyricsRecoveryRegressionTests
         finally { releaseCallbacks.Set(); owners.TrySetResult(); }
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task LateHttpCancellationCallback_CannotBlockProviderDeadlineOrTrackCancellation(bool cancelTrack)
+    {
+        using var handler = new LateHttpCancellationFixture();
+        using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        var service = new LyricsService(new([new NetEaseLyricsProvider(new(client))]),
+            cancelTrack ? TimeSpan.FromSeconds(10) : TimeSpan.FromMilliseconds(400));
+        using var stop = new CancellationTokenSource();
+        try
+        {
+            var pending = service.QueryDetailedAsync(Query, Settings, stop.Token);
+            await handler.SearchEntered.Task.WaitAsync(Budget);
+            // NetEase's second HTTP request starts after the service's cancellation
+            // await is installed. Its linked token is newer in the provider's LIFO
+            // chain; a blocked transport callback used to hide the outer deadline.
+            handler.ContinueSearch.SetResult();
+            await handler.LyricsEntered[0].Task.WaitAsync(Budget);
+            if (cancelTrack) await stop.CancelAsync().WaitAsync(Budget);
+            await handler.CallbacksEntered[0].Task.WaitAsync(Budget);
+            Assert.IsFalse(handler.ReleaseCallbacks.IsSet);
+            if (cancelTrack)
+                await Assert.ThrowsAsync<OperationCanceledException>(() => pending.WaitAsync(Budget));
+            else
+                Assert.AreEqual(LyricsQueryStatus.Failed, (await pending.WaitAsync(Budget)).Status);
+            Assert.IsFalse(handler.ReleaseResponses.Task.IsCompleted,
+                "The caller must retire while the real HTTP operation remains owned.");
+        }
+        finally { handler.ReleaseAll(); }
+    }
+
+    [TestMethod]
+    public async Task TwoLateHttpCancellationCallbacks_LeaveRefreshBounded_AndRecoverWithoutLateCacheWrites()
+    {
+        using var handler = new LateHttpCancellationFixture();
+        using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        var service = new LyricsService(new([new NetEaseLyricsProvider(new(client))]), TimeSpan.FromMilliseconds(400));
+        try
+        {
+            for (var index = 0; index < 2; index++)
+            {
+                var pending = service.QueryDetailedAsync(Query, Settings, default, refresh: true);
+                await handler.SearchEntered.Task.WaitAsync(Budget);
+                handler.ContinueSearch.TrySetResult();
+                await handler.LyricsEntered[index].Task.WaitAsync(Budget);
+                await handler.CallbacksEntered[index].Task.WaitAsync(Budget);
+                Assert.AreEqual(LyricsQueryStatus.Failed, (await pending.WaitAsync(Budget)).Status);
+            }
+            Assert.AreEqual(2, handler.LyricsCalls);
+            for (var retry = 0; retry < 3; retry++)
+                Assert.AreEqual(LyricsQueryStatus.Failed,
+                    (await service.QueryDetailedAsync(Query, Settings, default, refresh: true).WaitAsync(Budget)).Status);
+            Assert.AreEqual(2, handler.LyricsCalls,
+                "Retiring callbacks retain the actual transport budget; refresh cannot spawn replacements without bound.");
+            handler.ReleaseAll();
+            var recovered = await service.QueryDetailedAsync(Query, Settings, default, refresh: true).WaitAsync(Budget);
+            Assert.AreEqual(LyricsQueryStatus.Found, recovered.Status);
+            Assert.AreEqual("fresh after cleanup", recovered.Document.Lines.Single().Text);
+            Assert.AreEqual("fresh after cleanup",
+                (await service.QueryDetailedAsync(Query, Settings, default).WaitAsync(Budget)).Document.Lines.Single().Text);
+            Assert.AreEqual(3, handler.LyricsCalls);
+        }
+        finally { handler.ReleaseAll(); }
+    }
+
+    private sealed class LateHttpCancellationFixture : HttpMessageHandler
+    {
+        internal readonly TaskCompletionSource SearchEntered = NewSignal(), ContinueSearch = NewSignal(), ReleaseResponses = NewSignal();
+        internal readonly TaskCompletionSource[] LyricsEntered = [NewSignal(), NewSignal()];
+        internal readonly TaskCompletionSource[] CallbacksEntered = [NewSignal(), NewSignal()];
+        internal readonly ManualResetEventSlim ReleaseCallbacks = new();
+        private int _lyricsCalls;
+        internal int LyricsCalls => Volatile.Read(ref _lyricsCalls);
+        internal void ReleaseAll() { ReleaseCallbacks.Set(); ReleaseResponses.TrySetResult(); ContinueSearch.TrySetResult(); }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            {
+                SearchEntered.TrySetResult();
+                await ContinueSearch.Task;
+                return Response(request, """{"result":{"songs":[{"id":1,"name":"Track","artists":[{"name":"Artist"}]}]}}""");
+            }
+            var index = Interlocked.Increment(ref _lyricsCalls) - 1;
+            if (index < 2)
+            {
+                using var registration = token.Register(() =>
+                {
+                    CallbacksEntered[index].TrySetResult();
+                    ReleaseCallbacks.Wait();
+                });
+                LyricsEntered[index].TrySetResult();
+                await ReleaseResponses.Task;
+                return Response(request, """{"lrc":{"lyric":"[00:01]obsolete late response"}}""");
+            }
+            return Response(request, """{"lrc":{"lyric":"[00:01]fresh after cleanup"}}""");
+        }
+
+        private static HttpResponseMessage Response(HttpRequestMessage request, string json) =>
+            new(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(json) };
+    }
+
     private sealed class HttpFixture(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)

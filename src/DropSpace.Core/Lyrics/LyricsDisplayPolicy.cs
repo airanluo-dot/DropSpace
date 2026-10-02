@@ -45,6 +45,11 @@ public static class LyricsDisplayPolicy
                 LyricsTranslationPolicy.NormalizeLanguage(languageTag) ? line.Secondary : null;
         // An AI result without its target identity must never survive a language switch.
         if (line.TranslationOrigin == LyricsTranslationOrigin.LocalAi) return null;
+        // An untimed provider block can contain several positively identified
+        // translation segments. Use the same whole-block match as AI admission.
+        if (line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+            LyricsLanguagePolicy.ProviderTranslationMatches(line, LyricsTranslationPolicy.NormalizeLanguage(languageTag)))
+            return line.Secondary;
         // Provider translations are optional. English mode must not present a
         // Chinese translation as though it matched the selected display language.
         if (languageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase) &&

@@ -54,7 +54,11 @@ public sealed class LlamaCompletionRunnerTests
         var executable = Path.Combine(root, OperatingSystem.IsWindows() ? "fake-runtime.exe" : "fake-runtime");
         var pidFile = Path.Combine(root, "process-id");
         var staging = Path.Combine(root, "prompts");
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(() =>
+        {
+            Assert.IsFalse(tokenizer, "Vocabulary-only tokenization must not use full-model CPU RAM admission.");
+            return TestInferenceMemory.Sufficient();
+        });
         using var cancellation = new CancellationTokenSource();
         Task? running = null;
         try

@@ -12,6 +12,134 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class PersistentPlainLyricsRunnerTests
 {
     [TestMethod]
+    [DataRow(false, "physical")]
+    [DataRow(false, "commit")]
+    [DataRow(false, "unknown")]
+    [DataRow(true, "physical")]
+    [DataRow(true, "commit")]
+    [DataRow(true, "unknown")]
+    public async Task CpuAdmissionRejectsBeforeProcessStartAndRecoversAtTheSelectedModelBoundary(bool large, string missing)
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var model = large ? AiLyricsModelCatalog.ExperimentalLargePlain : AiLyricsModelCatalog.ExperimentalPlain;
+        var required = (large ? 13L : 4L) << 30;
+        CpuMemorySnapshot? memory = missing switch
+        {
+            "physical" => new(required - 1, required),
+            "commit" => new(required, required - 1),
+            _ => null,
+        };
+        var reads = 0;
+        var runner = fixture.CreateRunner(readMemorySnapshot: () =>
+        {
+            Assert.AreEqual(0, LocalInferenceProcess.InferenceGate.CurrentCount);
+            reads++;
+            return memory;
+        });
+        await Assert.ThrowsExactlyAsync<InferenceResourcesUnavailableException>(() => fixture.RunAsync(runner, "source", model: model));
+        Assert.AreEqual(1, reads);
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "starts")), "Insufficient or unknown memory may not start a CPU child.");
+        Assert.IsNull(runner.LastExecutionBackend);
+        Assert.IsFalse(runner.LastExecutionUsedCpuFallback);
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount, "Rejected startup releases admission.");
+
+        memory = new(required, required);
+        Assert.AreEqual("recovered", await fixture.RunAsync(runner, "recovered", model: model));
+        Assert.AreEqual(2, reads);
+        var pid = fixture.StartedProcesses().Single().Pid;
+        memory = new(0, 0);
+        Assert.AreEqual("resident reuse", await fixture.RunAsync(runner, "resident reuse", model: model));
+        Assert.AreEqual(2, reads, "An already allocated resident does not require a second full model's free memory.");
+        Assert.AreEqual(pid, fixture.StartedProcesses().Single().Pid);
+    }
+
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public async Task GpuFailureIsReapedBeforeFreshCpuAdmissionAndLowOrUnknownRamCannotStartFallback(bool large, bool unknown)
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(fixture.FailGpuStartup, string.Empty);
+        var model = large ? AiLyricsModelCatalog.ExperimentalLargePlain : AiLyricsModelCatalog.ExperimentalPlain;
+        var required = (large ? 13L : 4L) << 30;
+        CpuMemorySnapshot? memory = new(required, required);
+        var reads = 0;
+        var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true }, readMemorySnapshot: () =>
+        {
+            reads++;
+            var failed = fixture.StartedProcesses().Single();
+            Assert.AreEqual("vulkan", failed.Mode);
+            Assert.IsFalse(IsAlive(failed.Pid), "The GPU must actually exit before taking the fallback RAM snapshot.");
+            Assert.AreEqual(0, LocalInferenceProcess.InferenceGate.CurrentCount);
+            return memory;
+        });
+        fixture.BeforeResolve = gpu =>
+        {
+            if (!gpu) memory = unknown ? null : new(required - 1, required);
+            Assert.AreEqual(0, reads, "GPU execution must not read or reuse a CPU admission snapshot.");
+        };
+        await Assert.ThrowsExactlyAsync<InferenceResourcesUnavailableException>(() => fixture.RunAsync(runner, "source", model: model));
+        Assert.AreEqual(1, reads);
+        Assert.HasCount(1, fixture.StartedProcesses(), "Only the failed, already reaped GPU process may exist.");
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "requests")));
+        CollectionAssert.AreEqual(new[] { true, false }, fixture.ResolvedModes);
+        Assert.IsNull(runner.LastExecutionBackend);
+        fixture.BeforeResolve = null;
+        memory = new(required, required);
+        Assert.AreEqual("retry after RAM recovery", await fixture.RunAsync(runner, "retry after RAM recovery", model: model));
+        Assert.AreEqual(2, reads);
+        Assert.HasCount(2, fixture.StartedProcesses());
+        Assert.AreEqual("cpu", runner.LastExecutionBackend);
+        Assert.IsTrue(runner.LastExecutionUsedCpuFallback);
+    }
+
+    [TestMethod]
+    public async Task ModelSwitchRechecksRamAfterOldResidentExitAndCannotReuseSmallModelAdmission()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var reads = 0;
+        int? previousPid = null;
+        var runner = fixture.CreateRunner(readMemorySnapshot: () =>
+        {
+            reads++;
+            if (previousPid is { } pid) Assert.IsFalse(IsAlive(pid));
+            return new(4L << 30, 4L << 30);
+        });
+        Assert.AreEqual("small", await fixture.RunAsync(runner, "small"));
+        previousPid = fixture.StartedProcesses().Single().Pid;
+        await Assert.ThrowsExactlyAsync<InferenceResourcesUnavailableException>(() =>
+            fixture.RunAsync(runner, "large", model: AiLyricsModelCatalog.ExperimentalLargePlain));
+        Assert.AreEqual(2, reads);
+        Assert.HasCount(1, fixture.StartedProcesses());
+        Assert.IsFalse(IsAlive(previousPid.Value));
+    }
+
+    [TestMethod]
+    public async Task CancellationWhileWaitingForGlobalAdmissionDoesNotReadRamOrStartProcess()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var reads = 0;
+        var runner = fixture.CreateRunner(readMemorySnapshot: () => { reads++; return TestInferenceMemory.Sufficient(); });
+        await LocalInferenceProcess.InferenceGate.WaitAsync();
+        try
+        {
+            using var cancellation = new CancellationTokenSource();
+            var pending = fixture.RunAsync(runner, "queued", cancellation.Token);
+            cancellation.Cancel();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
+            Assert.AreEqual(0, reads);
+            Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "starts")));
+        }
+        finally { LocalInferenceProcess.InferenceGate.Release(); }
+    }
+
+    [TestMethod]
     public async Task ModelSwitchDrainsResidentAndUsesIndependentProfileEvenWhenPathIsReused()
     {
         RequireFixture();
@@ -393,7 +521,8 @@ public sealed class PersistentPlainLyricsRunnerTests
         internal List<bool> ResolvedModes { get; } = [];
         internal Action<bool>? BeforeResolve { get; set; }
 
-        internal PersistentPlainLyricsRunner CreateRunner(AiLyricsRuntimeOptions? options = null, TimeSpan? idleTimeout = null)
+        internal PersistentPlainLyricsRunner CreateRunner(AiLyricsRuntimeOptions? options = null, TimeSpan? idleTimeout = null,
+            Func<CpuMemorySnapshot?>? readMemorySnapshot = null)
         {
             var runner = new PersistentPlainLyricsRunner((gpu, token) =>
             {
@@ -401,7 +530,8 @@ public sealed class PersistentPlainLyricsRunnerTests
                 BeforeResolve?.Invoke(gpu);
                 ResolvedModes.Add(gpu);
                 return Task.FromResult(Executable);
-            }, options ?? new AiLyricsRuntimeOptions { GpuEnabled = false }, idleTimeout ?? TimeSpan.FromSeconds(5));
+            }, options ?? new AiLyricsRuntimeOptions { GpuEnabled = false }, idleTimeout ?? TimeSpan.FromSeconds(5),
+                readMemorySnapshot ?? TestInferenceMemory.Sufficient);
             _runners.Add(runner);
             return runner;
         }

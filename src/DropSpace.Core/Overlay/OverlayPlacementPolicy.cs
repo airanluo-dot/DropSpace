@@ -41,6 +41,18 @@ public static class OverlayPlacementPolicy
         return DynamicIslandTopGapDips;
     }
 
+    /// <summary>
+    /// Position a still-invisible body at its resolved anchor before animating size
+    /// and opacity. The generic Hidden pose has no monitor or custom-position context.
+    /// A visible reversal retains its current pose and spring continuity.
+    /// </summary>
+    public static OverlayMotionValues AnchorInvisibleSurface(
+        OverlayMotionValues current,
+        OverlayResolvedPlacement placement) =>
+        current.Opacity <= 0.001
+            ? current with { TopOffset = placement.SurfaceTopOffsetDips }
+            : current;
+
     public static double FitContentScale(int workWidthPixels, int workHeightPixels,
         double monitorScale, double widthDips, double heightDips, double requestedScale)
     {

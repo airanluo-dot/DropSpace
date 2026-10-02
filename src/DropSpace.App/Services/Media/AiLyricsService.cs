@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DropSpace.App.Services.Media;
 
-public enum AiLyricsTranslationState { Ready, Translating, Completed, Unavailable }
+public enum AiLyricsTranslationState { Ready, Translating, Completed, Unavailable, ResourcesUnavailable }
 
 /// <summary>Retains the request/cache fence until the final document reaches its UI dispatcher.</summary>
 public sealed class AiLyricsPublication(LyricsDocument document, Func<bool> isCurrent)
@@ -260,6 +260,18 @@ public sealed class AiLyricsService : IDisposable
         {
             SetState(statusGeneration, AiLyricsTranslationState.Ready);
             throw;
+        }
+        catch (InferenceResourcesUnavailableException)
+        {
+            if (token.IsCancellationRequested)
+            {
+                SetState(statusGeneration, AiLyricsTranslationState.Ready);
+                token.ThrowIfCancellationRequested();
+            }
+            // Resource admission is recoverable when host memory becomes available.
+            // It is not an inference/model failure and must not trip the failure circuit.
+            SetState(statusGeneration, AiLyricsTranslationState.ResourcesUnavailable);
+            return document;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {

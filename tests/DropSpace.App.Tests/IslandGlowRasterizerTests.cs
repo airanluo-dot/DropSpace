@@ -1,4 +1,6 @@
 using DropSpace.App.Services;
+using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
 using DropSpace.Core.Overlay;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -145,6 +147,60 @@ public sealed class IslandGlowRasterizerTests
                 Assert.AreEqual(0, raster.Pixels[x]);
                 Assert.AreEqual(0, raster.Pixels[(raster.Height - 1) * raster.Width + x]);
             }
+        }
+    }
+
+    [TestMethod]
+    [DataRow(1d)]
+    [DataRow(1.25d)]
+    [DataRow(1.5d)]
+    [DataRow(2d)]
+    public void RevealAndFadeReplayKeepsVisibleHaloInsideTopWorkBoundary(double dpi)
+    {
+        const int workTop = 48;
+        foreach (var mode in new[] { OverlayPlacementMode.Automatic, OverlayPlacementMode.Custom })
+        foreach (var reducedMotion in new[] { false, true })
+        foreach (var shape in new[] { (Width: 280d, Height: 60d, Radius: 26d), (Width: 560d, Height: 340d, Radius: 28d) })
+        {
+            var placement = OverlayPlacementPolicy.Resolve(
+                new OverlayPlacementRequest(-1920, workTop, 1920, 1600, dpi, FileDragWakeMode.Disabled),
+                mode, new OverlayCustomPlacement(400, 40));
+            var controller = new OverlayMotionController(OverlayMotionValues.Hidden);
+            controller.SnapTo(OverlayPlacementPolicy.AnchorInvisibleSurface(controller.Current, placement));
+            controller.SetTarget(new(shape.Width, shape.Height, placement.SurfaceTopOffsetDips,
+                shape.Radius, shape.Radius, 1, 1, 0, 0, 1), reducedMotion);
+            var envelope = new LyricsGlowEnvelope();
+            var lightWasRendered = false;
+            var previousBrightness = 0d;
+            for (var frame = 0; frame < 18; frame++)
+            {
+                if (frame == 9)
+                    controller.SetTarget(OverlayMotionValues.Hidden with { TopOffset = placement.SurfaceTopOffsetDips }, reducedMotion);
+                var elapsed = TimeSpan.FromMilliseconds(33);
+                controller.Step(elapsed);
+                var values = controller.Current;
+                Assert.AreEqual(placement.SurfaceTopOffsetDips, values.TopOffset,
+                    "The reveal must start at its resolved anchor instead of animating down from zero.");
+                var eligible = frame < 9 && values.Opacity > 0.01;
+                envelope.Advance(eligible, 0.6, elapsed, reducedMotion, [0.8, 0.4, 0.5, 0.2, 0.7, 0.6]);
+                if (frame == 9)
+                    Assert.IsTrue(envelope.Brightness > previousBrightness * 0.8 && envelope.Brightness < previousBrightness,
+                        "Fixing placement must preserve the existing smooth dimming envelope.");
+                previousBrightness = envelope.Brightness;
+                var raster = new IslandGlowRasterizer(
+                    Math.Max(1, (int)Math.Round(values.Width * values.DropTargetScale * dpi)),
+                    Math.Max(1, (int)Math.Round(values.Height * values.DropTargetScale * dpi)),
+                    (int)Math.Round(values.TopRadius * dpi), (int)Math.Round(values.BottomRadius * dpi), dpi);
+                raster.Render(envelope.Phase, envelope.Brightness * values.Opacity, envelope.Bands);
+                lightWasRendered |= raster.Pixels.Any(pixel => pixel != 0);
+                var bodyTop = (int)Math.Round((values.TopOffset + values.Height * (1 - values.DropTargetScale) / 2) * dpi);
+                var imageTop = placement.HostTopPixels + bodyTop - raster.PaddingPixels;
+                for (var y = 0; y < Math.Min(raster.Height, workTop - imageTop); y++)
+                    for (var x = 0; x < raster.Width; x++)
+                        Assert.AreEqual(0, raster.Pixels[y * raster.Width + x],
+                            $"Visible halo crossed work top at {dpi:P0}, {mode}, reduced={reducedMotion}, frame={frame}.");
+            }
+            Assert.IsTrue(lightWasRendered, "The boundary assertion must not pass by disabling the glow.");
         }
     }
 

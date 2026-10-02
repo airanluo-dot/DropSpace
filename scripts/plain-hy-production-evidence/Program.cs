@@ -20,9 +20,26 @@ internal static class Program
 
     public static async Task<int> Main(string[] args)
     {
-        if (args is ["--print-native-arguments"])
+        if (args is ["--print-native-arguments", var modelId])
         {
-            Console.WriteLine(JsonSerializer.Serialize(NativeArguments(), Json));
+            Console.WriteLine(JsonSerializer.Serialize(NativeArguments(modelId), Json));
+            return 0;
+        }
+        if (args is ["--verify-fixture-admission", var sourceFixture, var auditPath])
+        {
+            var fixture = JsonSerializer.Deserialize<LyricsDocument>(File.ReadAllText(sourceFixture), Json)!;
+            using var audit = JsonDocument.Parse(File.ReadAllText(auditPath));
+            var scope = JsonSerializer.SerializeToElement(new { fixtureAdmission = audit.RootElement }, Json);
+            Require(HashFile(sourceFixture) == audit.RootElement.GetProperty("fixtureSha256").GetString(), "Fixture identity differs from audit.");
+            Require(LyricsLanguagePolicy.Version == audit.RootElement.GetProperty("policyVersion").GetString(), "Policy version differs from audit.");
+            foreach (var target in Targets) ValidateAdmission(scope, target, Admission(fixture, target));
+            Console.WriteLine("Frozen fixture admission matches actual production policy (no inference).");
+            return 0;
+        }
+        if (args is ["--print-fixture-admission", var fixturePath])
+        {
+            var fixture = JsonSerializer.Deserialize<LyricsDocument>(File.ReadAllText(fixturePath), Json)!;
+            Console.WriteLine(JsonSerializer.Serialize(Targets.Select(target => new { targetLanguage = target, rows = Admission(fixture, target) }), Json));
             return 0;
         }
         if (args is ["--contract-self-test"])
@@ -78,20 +95,26 @@ internal static class Program
         using var extractedRuntimeLock = new InputReadLocks([extractedExecutable]);
         WriteNew(Path.Combine(config.OutputDirectory, "runtime-extraction.json"), new
         { executable = extractedExecutable, sha256 = config.ExecutableSha256, bytes = config.ExecutableBytes, gpuEnabled = false });
-        var identity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity());
+        var identity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), config.ModelSha256);
         var cache = new AiLyricsCache(Path.Combine(config.OutputDirectory, "song-cache"));
         var staging = Path.Combine(config.OutputDirectory, "staging");
         Directory.CreateDirectory(staging);
         using var observer = new ObservedRunner(new PersistentPlainLyricsRunner(runtime, new AiLyricsRuntimeOptions { GpuEnabled = false }), config.OutputDirectory);
         using var backend = new PlainHyLyricsBackend(new PlainHyLyricsCoordinator(cache), observer, runtime, staging);
         var package = new AiLyricsResolvedPackage(PlainHyLyricsBackend.BackendId, identity, config.ModelPath,
-            extractedExecutable, null, CacheGeneration: cache.Generation);
+            extractedExecutable, null, CacheGeneration: cache.Generation, ModelId: config.ModelId, VerifiedModelSha256: config.ModelSha256);
         var query = Query("source48");
         var cold = new List<SongCheck>();
         var repeats = new List<CacheCheck>();
         var technicalPassed = true;
         foreach (var target in Targets)
         {
+            var admission = Admission(source, target);
+            ValidateAdmission(scope.RootElement, target, admission);
+            var eligibleIds = admission.Where(row => row.Eligible).Select(row => row.LineId).ToArray();
+            var expectedCalls = admission.Sum(row => row.Segments.Length);
+            var hostMemoryBefore = CaptureHostMemory(config);
+            WriteNew(Path.Combine(config.OutputDirectory, target + ".admission.json"), new { admission, hostMemoryBefore });
             observer.Begin("cold", target, source);
             var watch = Stopwatch.StartNew();
             LyricsTranslationResult? result = null;
@@ -102,8 +125,8 @@ internal static class Program
                 {
                     token.ThrowIfCancellationRequested();
                     Require(update.IsCurrent && update.IsEphemeral && update.CacheGeneration == cache.Generation &&
-                        update.LineId == progressEvents.Count && update.CompletedLineCount == progressEvents.Count + 1 &&
-                        update.TotalLineCount == source.Lines.Count, "Production progress context/mapping differs from the controlled source-order capture.");
+                        progressEvents.Count < eligibleIds.Length && update.LineId == eligibleIds[progressEvents.Count] && update.CompletedLineCount == progressEvents.Count + 1 &&
+                        update.TotalLineCount == eligibleIds.Length, "Production progress context/mapping differs from the controlled source-order capture.");
                     progressEvents.Add(new(update.RequestIdentity, update.CacheGeneration, update.LineId,
                         update.CompletedLineCount, update.TotalLineCount, update.IsEphemeral, update.IsCurrent,
                         watch.Elapsed.TotalMilliseconds));
@@ -117,10 +140,11 @@ internal static class Program
             var residentReuse = calls.Length > 0 && calls.All(x => x.NativeProcess is not null) &&
                 calls.Select(x => (x.NativeProcess!.Id, x.NativeProcess.StartedAt)).Distinct().Count() == 1;
             var complete = failure is null && result?.Outcome is LyricsTranslationOutcome.Translated or LyricsTranslationOutcome.NoUsefulTranslation
-                && calls.Length == source.Lines.Count && calls.All(x => x.Status == "returned") && progressEvents.Count == source.Lines.Count && residentReuse;
+                && calls.Length == expectedCalls && calls.All(x => x.Status == "returned") && progressEvents.Count == eligibleIds.Length && residentReuse;
             WriteNew(Path.Combine(config.OutputDirectory, target + ".runner-output.json"), new
             {
-                schemaVersion = 1, kind = "production-runner-output", targetLanguage = target,
+                schemaVersion = 2, kind = "production-runner-output", model = new CapturedModel(config.ModelId, config.ModelSha256, config.ModelBytes), targetLanguage = target,
+                admissionPolicyVersion = LyricsLanguagePolicy.Version, admission, hostMemoryBefore, finalDocument = result?.Document,
                 outcome = result?.Outcome.ToString(), complete, elapsedMilliseconds = watch.Elapsed.TotalMilliseconds,
                 error = failure, calls, progressEvents, playbackPositionSeconds = 0, residentProcessReuseConfirmed = residentReuse,
                 firstProgressElapsedMilliseconds = progressEvents.FirstOrDefault()?.ElapsedMilliseconds,
@@ -139,6 +163,9 @@ internal static class Program
             watch.Stop();
             var additional = observer.TotalCalls - count;
             var matching = cached is not null && result is not null && SameResult(cached, result) && SameResult(repeated, result);
+            WriteNew(Path.Combine(config.OutputDirectory, target + ".cache-output.json"), new
+            { model = new CapturedModel(config.ModelId, config.ModelSha256, config.ModelBytes), targetLanguage = target,
+                additionalInferenceCalls = additional, matchesCold = matching, preflight = cached, repeated });
             repeats.Add(new(target, additional, matching, repeated.Outcome.ToString(), watch.Elapsed.TotalMilliseconds));
             technicalPassed &= matching && additional == 0;
         }
@@ -198,8 +225,9 @@ internal static class Program
         using var observer = new ObservedRunner(runner, directory);
         using var backend = new PlainHyLyricsBackend(new PlainHyLyricsCoordinator(cache), observer, runtime, staging);
         var package = new AiLyricsResolvedPackage(PlainHyLyricsBackend.BackendId, identity, config.ModelPath,
-            cpuPath, null, CacheGeneration: cache.Generation);
+            cpuPath, null, CacheGeneration: cache.Generation, ModelId: config.ModelId, VerifiedModelSha256: config.ModelSha256);
         observer.Begin("gpu-default", target, source);
+        var hostMemoryBefore = CaptureHostMemory(config);
         var watch = Stopwatch.StartNew();
         LyricsTranslationResult? result = null;
         string? failure = null;
@@ -230,7 +258,7 @@ internal static class Program
             target, fixtureLineId, source.Lines[0].Text, PlainHyLyricsProtocol.BuildPrompt(source.Lines[0].Text, target),
             call?.Output, result?.Outcome.ToString(), watch.Elapsed.TotalMilliseconds, cleanupConfirmed,
             observed, config.RuntimeManifestSha256, new(config.ModelId, config.ModelSha256, config.ModelBytes), config.FixtureSha256,
-            config.SourceFingerprintSha256, manifest.RootElement.GetProperty("resident").GetProperty("sourceSha256").GetString()!, failure);
+            config.SourceFingerprintSha256, manifest.RootElement.GetProperty("resident").GetProperty("sourceSha256").GetString()!, failure, hostMemoryBefore);
     }
 
     internal static bool ValidGpuRoute(string? actualBackend, bool usedCpuFallback) =>
@@ -284,7 +312,8 @@ internal static class Program
                 try
                 {
                     if (!process.HasExited && string.Equals(process.MainModule?.FileName, executable, StringComparison.OrdinalIgnoreCase))
-                        observations.Add(new(process.Id, process.StartTime.ToUniversalTime().ToString("O"), executable, UtcNow()));
+                        observations.Add(new(process.Id, process.StartTime.ToUniversalTime().ToString("O"), executable, UtcNow(),
+                            process.WorkingSet64, process.PeakWorkingSet64, process.PrivateMemorySize64));
                 }
                 catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
                 { /* Unobservable processes never count as proof. */ }
@@ -295,16 +324,16 @@ internal static class Program
 
     internal static void ValidateConfiguration(CaptureConfiguration config)
     {
-        var model = AiLyricsModelCatalog.ExperimentalPlain;
-        Require(config.SchemaVersion == 2 && config.ModelId == model.Id && config.ModelSha256 == model.Sha256 && config.ModelBytes == model.Bytes,
+        var model = AiLyricsModelCatalog.FindSelectable(config.ModelId) ?? throw new InvalidDataException("Unknown capture model ID.");
+        Require(config.SchemaVersion == 3 && config.ModelId == model.Id && config.ModelSha256 == model.Sha256 && config.ModelBytes == model.Bytes,
             "Configuration model differs from the current production descriptor.");
         Require(config.PromptProfile == "production-plain-hy" && config.OutputSchema == PlainHyLyricsProtocol.HostMappingVersion &&
             config.PromptVersion == PlainHyLyricsProtocol.Version && config.BackendId == PlainHyLyricsBackend.BackendId &&
             config.AcceptanceVersion == PlainHyLyricsProtocol.AcceptanceVersion && config.SamplerIdentity == PlainHyLyricsProtocol.SamplerIdentity &&
             config.CaptureMethod == CaptureMethod && !config.LoadOnly, "Configuration does not select the production plain Hy profile.");
-        Require(config.ExecutionLimits == new ExecutionLimits(300, 60, 3072, 1800, 16384), "Production execution limits differ.");
+        Require(config.ExecutionLimits == new ExecutionLimits(300, 60, model == AiLyricsModelCatalog.ExperimentalLargePlain ? 12288 : 3072, 1800, 16384), "Production execution limits differ.");
         Require(config.RuntimeVariant is "baseline" or "avx2" && !config.GpuEnabled, "An explicit CPU baseline/avx2 runtime with GPU disabled is required.");
-        Require(config.NativeArguments.SequenceEqual(NativeArguments()), "Native arguments differ from production PersistentPlainLyricsRunner.BuildArguments.");
+        Require(config.NativeArguments.SequenceEqual(NativeArguments(config.ModelId)), "Native arguments differ from production PersistentPlainLyricsRunner.BuildArguments.");
         Require(config.LogicalEvidenceRoot.StartsWith("scripts/ai-model-qa/evidence/", StringComparison.Ordinal) &&
             config.LogicalEvidenceRoot.Split('/').All(x => x.Length > 0 && x != "." && x != ".." && x.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.')),
             "Invalid logical evidence path.");
@@ -319,16 +348,18 @@ internal static class Program
             var serializedConfig = JsonSerializer.SerializeToElement(config, Json);
             Require(scope.GetProperty(key).GetString() == serializedConfig.GetProperty(key).GetString(), "Invocation scope mismatch: " + key);
         }
-        Require(JsonSerializer.Deserialize<ExecutionLimits>(scope.GetProperty("executionLimits"), Json) == config.ExecutionLimits,
+        Require(JsonSerializer.Deserialize<ExecutionLimits>(scope.GetProperty("modelProfiles").GetProperty(config.ModelId).GetProperty("executionLimits"), Json) == config.ExecutionLimits,
             "Scope execution limits differ.");
-        Require(scope.GetProperty("nativeArguments").EnumerateArray().Select(x => x.GetString()).SequenceEqual(config.NativeArguments),
+        Require(scope.GetProperty("modelProfiles").GetProperty(config.ModelId).GetProperty("cpuMemoryAdmission").GetProperty("minimumAvailableBytes").GetInt64() ==
+            (long)(config.ExecutionLimits.MemoryMiB + 1024) * 1024 * 1024, "Captured CPU admission allowance differs from production.");
+        Require(scope.GetProperty("modelProfiles").GetProperty(config.ModelId).GetProperty("nativeArguments").EnumerateArray().Select(x => x.GetString()).SequenceEqual(config.NativeArguments),
             "Scope native arguments differ.");
         Require(scope.GetProperty("samplerArguments").EnumerateArray().Select(x => x.GetString()).SequenceEqual(config.SamplerArguments),
             "Scope resident sampler arguments differ.");
-        var models = scope.GetProperty("shippingModels").EnumerateArray().ToArray();
+        var models = scope.GetProperty("shippingModels").EnumerateArray().Where(model => model.GetProperty("id").GetString() == config.ModelId).ToArray();
         Require(models.Length == 1 && models[0].GetProperty("id").GetString() == config.ModelId &&
             models[0].GetProperty("sha256").GetString() == config.ModelSha256 && models[0].GetProperty("bytes").GetInt64() == config.ModelBytes,
-            "The captured model is not the sole scoped shipping model.");
+            "The captured model is not a uniquely scoped shipping model.");
         Require(scope.GetProperty("sources").GetProperty("sha256").GetString() == config.SourceFingerprintSha256 &&
             scope.GetProperty("fixture").GetProperty("sha256").GetString() == config.FixtureSha256, "Scope input identities differ.");
     }
@@ -404,9 +435,52 @@ internal static class Program
         return new(paths);
     }
 
-    internal static string[] NativeArguments()
+    internal static AdmissionRow[] Admission(LyricsDocument source, string target)
     {
-        var args = PersistentPlainLyricsRunner.BuildArguments(Path.GetFullPath("model.gguf"), gpu: false).ToArray();
+        var evidence = LyricsLanguagePolicy.SourceEvidence(source);
+        var eligible = LyricsLanguagePolicy.EligibleIndices(source, target).ToHashSet();
+        return source.Lines.Select((line, id) => new AdmissionRow(id, line.Text, evidence[id].Language,
+            evidence[id].Confidence, evidence[id].Kind.ToString(), eligible.Contains(id),
+            string.IsNullOrWhiteSpace(line.Text) ? "blank" : LyricsLanguagePolicy.IsCredit(line.Text) ? "credit" :
+            eligible.Contains(id) ? evidence[id].IsConfident && !LyricsLanguagePolicy.SameSourceLanguage(evidence[id].Language, target)
+                ? "identified-foreign-language" : "unknown-language-retained" :
+            evidence[id].IsConfident && LyricsLanguagePolicy.SameSourceLanguage(evidence[id].Language, target) ? "same-target-language" : "no-eligible-segments",
+            eligible.Contains(id) ? LyricsLanguagePolicy.EligibleSegments(line, target).Select((text, index) =>
+                new AdmissionSegment(index, text, HashText(text))).ToArray() : [])).ToArray();
+    }
+
+    internal static void ValidateAdmission(JsonElement scope, string target, AdmissionRow[] actual)
+    {
+        var expected = scope.GetProperty("fixtureAdmission").GetProperty("targets").GetProperty(target);
+        Require(JsonSerializer.SerializeToElement(actual, Json).ToString() == JsonSerializer.SerializeToElement(
+            JsonSerializer.Deserialize<AdmissionRow[]>(expected, Json), Json).ToString(),
+            "Actual production admission differs from the independently audited fixture plan; preserve the failure and review the policy.");
+    }
+
+    private static object CaptureHostMemory(CaptureConfiguration config)
+    {
+        var snapshot = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
+        Require(GlobalMemoryStatusEx(ref snapshot), "Cannot observe Windows host memory before capture.");
+        return new { observedAt = UtcNow(), observation = "before-request; production performs its own admission again before every CPU load",
+            availablePhysicalBytes = snapshot.AvailablePhysical, availableCommitBytes = snapshot.AvailablePageFile,
+            requiredAvailableBytes = (long)(config.ExecutionLimits.MemoryMiB + 1024) * 1024 * 1024,
+            policy = "process-cap-plus-1GiB-reserve; conservative engineering allowance, not measured peak" };
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MemoryStatus
+    {
+        internal uint Length; internal uint MemoryLoad; internal ulong TotalPhysical; internal ulong AvailablePhysical;
+        internal ulong TotalPageFile; internal ulong AvailablePageFile; internal ulong TotalVirtual;
+        internal ulong AvailableVirtual; internal ulong AvailableExtendedVirtual;
+    }
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GlobalMemoryStatusEx(ref MemoryStatus status);
+
+    internal static string[] NativeArguments(string? modelId = null)
+    {
+        var descriptor = AiLyricsModelCatalog.FindSelectable(modelId ?? AiLyricsModelCatalog.ExperimentalPlain.Id) ?? throw new InvalidDataException("Unknown capture model ID.");
+        var args = PersistentPlainLyricsRunner.BuildArguments(Path.GetFullPath("model.gguf"), gpu: false, descriptor.Sha256).ToArray();
         var model = Array.IndexOf(args, "--model");
         Require(model >= 0, "Production resident argument builder is missing its model parameter.");
         args[model + 1] = "$MODEL";
@@ -435,11 +509,14 @@ internal static class Program
     }
 }
 
+internal sealed record AdmissionSegment(int SegmentIndex, string Text, string Sha256);
+internal sealed record AdmissionRow(int LineId, string SourceText, string? DetectedLanguage, double Confidence,
+    string EvidenceKind, bool Eligible, string Reason, AdmissionSegment[] Segments);
 internal sealed record GpuDefaultProbe(int SchemaVersion, string Kind, bool GpuEnabled, bool Complete,
     string? ActualBackend, bool UsedCpuFallback, string DeviceVendor, string TargetLanguage, int FixtureLineId,
     string SourceText, string Prompt, string? Output, string? Outcome, double ElapsedMilliseconds,
     bool CleanupConfirmed, NativeObservation? ObservedProcess, string RuntimeManifestSha256, CapturedModel Model,
-    string FixtureSha256, string SourceFingerprintSha256, string ResidentSourceSha256, string? Error);
+    string FixtureSha256, string SourceFingerprintSha256, string ResidentSourceSha256, string? Error, object? HostMemoryBefore = null);
 internal sealed record CapturedModel(string Id, string Sha256, long Bytes);
 internal sealed record ExecutionLimits(int WholeSongSeconds, int PerLineSeconds, int MemoryMiB, int MaximumPromptBytes, int MaximumOutputBytes);
 internal sealed record FileIdentity(string Sha256, long Bytes);
@@ -450,7 +527,8 @@ internal sealed record ProgressObservation(string RequestIdentity, long CacheGen
     int TotalLineCount, bool IsEphemeral, bool IsCurrent, double ElapsedMilliseconds);
 internal sealed record SongCheck(string TargetLanguage, string? Outcome, bool Complete, int Calls, double ElapsedMilliseconds, string? Error);
 internal sealed record CacheCheck(string TargetLanguage, int AdditionalInferenceCalls, bool MatchesCold, string Outcome, double ElapsedMilliseconds);
-internal sealed record NativeObservation(int Id, string StartedAt, string Executable, string ObservedAt);
+internal sealed record NativeObservation(int Id, string StartedAt, string Executable, string ObservedAt,
+    long? WorkingSetBytes = null, long? PeakWorkingSetBytes = null, long? PrivateMemoryBytes = null);
 internal sealed record CancellationCheck(bool CancellationObserved, bool CleanupConfirmed, NativeObservation? ObservedProcess,
     string CancellationRequestedAt, bool CaughtCancellation, bool DrainCompleted, bool ObservedProcessStillAlive,
     bool PromptsRemoved, double ElapsedMilliseconds, string? Error);
@@ -462,7 +540,7 @@ internal sealed record CaptureConfiguration(int SchemaVersion, string ModelId, s
     string ModelPath, string ExecutablePath, string OutputDirectory, string SourcePath, string ScopePath, string LogicalEvidenceRoot,
     bool GpuEnabled, string[] SamplerArguments);
 
-internal sealed record CallRecord(int CallIndex, string Phase, string TargetLanguage, int LineId, string SourceText,
+internal sealed record CallRecord(int CallIndex, string Phase, string TargetLanguage, int LineId, int SegmentIndex, string SegmentSha256, string VerifiedModelSha256, string SourceText,
     string Prompt, string? Output, string Status, string StartedAt, double ElapsedMilliseconds, string? Error, NativeObservation? NativeProcess);
 
 /// <summary>Only observes the actual production IPlainLyricsRunner boundary. Does not build or launch a native process.</summary>
@@ -472,18 +550,23 @@ internal sealed class ObservedRunner(IPlainLyricsRunner inner, string outputDire
     private string _target = "";
     private LyricsDocument _source = LyricsDocument.Empty;
     private int _nextLine;
+    private (int LineId, int SegmentIndex, string Text)[] _segments = [];
     internal int TotalCalls { get; private set; }
     internal List<CallRecord> Calls { get; } = [];
     internal void Begin(string phase, string target, LyricsDocument source)
     {
         _phase = phase; _target = target; _source = source; _nextLine = 0; Calls.Clear();
+        _segments = LyricsLanguagePolicy.EligibleIndices(source, target).SelectMany(id =>
+            LyricsLanguagePolicy.EligibleSegments(source.Lines[id], target).Select((text, index) => (id, index, text))).ToArray();
     }
     public async Task<string> RunPlainAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
         CancellationToken cancellationToken, string verifiedModelSha256)
     {
         Program.Require(_phase != "cache", "Production cache replay requested new inference; capture refuses to rerun generation.");
-        var id = _nextLine++;
-        Program.Require(id < _source.Lines.Count && prompt == PlainHyLyricsProtocol.BuildPrompt(_source.Lines[id].Text, _target),
+        var ordinal = _nextLine++;
+        Program.Require(ordinal < _segments.Length, "Unexpected inference beyond eligible semantic segments.");
+        var (id, segmentIndex, segmentText) = _segments[ordinal];
+        Program.Require(prompt == PlainHyLyricsProtocol.BuildPrompt(segmentText, _target),
             "Observed production prompt does not match the deterministic source line/target mapping.");
         var index = ++TotalCalls;
         var started = Program.UtcNow();
@@ -503,7 +586,7 @@ internal sealed class ObservedRunner(IPlainLyricsRunner inner, string outputDire
         finally
         {
             watch.Stop();
-            var record = new CallRecord(index, _phase, _target, id, _source.Lines[id].Text, prompt, output, status, started, watch.Elapsed.TotalMilliseconds, failure, nativeProcess);
+            var record = new CallRecord(index, _phase, _target, id, segmentIndex, Program.HashText(segmentText), verifiedModelSha256, segmentText, prompt, output, status, started, watch.Elapsed.TotalMilliseconds, failure, nativeProcess);
             Calls.Add(record);
             // One create-only record per actual invocation preserves partial/failing runs immediately.
             Program.WriteNew(Path.Combine(outputDirectory, $"call-{index:D3}.json"), record);

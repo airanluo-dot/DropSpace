@@ -102,6 +102,7 @@ public sealed class LyricsService
     {
         var cancellation = new ProviderCancellation(token, _providerTimeout);
         var requestToken = cancellation.Token;
+        var presentationToken = cancellation.PresentationToken;
         var invocationOwnsCancellation = false;
         Task<ProviderResult>? invocation = null;
         // Bound actual calls, including transports still retiring after the caller left.
@@ -109,10 +110,11 @@ public sealed class LyricsService
         var gate = _providerGates.GetOrAdd(kind, _ => new SemaphoreSlim(2, 2));
         try
         {
-            await gate.WaitAsync(requestToken).ConfigureAwait(false);
+            await gate.WaitAsync(presentationToken).ConfigureAwait(false);
             invocationOwnsCancellation = true;
             invocation = InvokeProviderAsync(kind, query, requestToken, cancellation, gate);
-            var result = await invocation.WaitAsync(requestToken).ConfigureAwait(false);
+            var result = await invocation.WaitAsync(presentationToken).ConfigureAwait(false);
+            presentationToken.ThrowIfCancellationRequested();
             token.ThrowIfCancellationRequested();
             return result;
         }
@@ -211,6 +213,7 @@ public sealed class LyricsService
     {
         private readonly object _gate = new();
         private readonly CancellationTokenSource _source = new();
+        private readonly CancellationTokenSource _presentation = new();
         private readonly CancellationTokenRegistration _registration;
         private readonly Timer _deadline;
         private Task _callbacks = Task.CompletedTask;
@@ -219,17 +222,22 @@ public sealed class LyricsService
         public ProviderCancellation(CancellationToken parent, TimeSpan timeout)
         {
             Token = _source.Token;
+            PresentationToken = _presentation.Token;
             _registration = parent.UnsafeRegister(static state => ((ProviderCancellation)state!).Request(), this);
             _deadline = new Timer(static state => ((ProviderCancellation)state!).Request(), this, timeout, Timeout.InfiniteTimeSpan);
         }
 
         public CancellationToken Token { get; }
+        // This token never reaches a provider or HTTP transport. Their later-registered
+        // callbacks cannot delay cancellation of admission or the presentation waiter.
+        public CancellationToken PresentationToken { get; }
         private void Request()
         {
             lock (_gate)
             {
                 if (_closed || _requested) return;
                 _requested = true;
+                _presentation.Cancel();
                 _callbacks = _source.CancelAsync();
             }
         }
@@ -246,7 +254,7 @@ public sealed class LyricsService
             }
             try { await callbacks.ConfigureAwait(false); }
             catch (Exception exception) when (exception is not OutOfMemoryException) { }
-            finally { _source.Dispose(); }
+            finally { _source.Dispose(); _presentation.Dispose(); }
         }
     }
 

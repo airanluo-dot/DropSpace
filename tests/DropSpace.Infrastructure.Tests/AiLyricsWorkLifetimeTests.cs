@@ -8,7 +8,7 @@ public sealed class AiLyricsWorkLifetimeTests
     [TestMethod]
     public async Task MaintenanceDoesNotDeleteAfterPublicCancellationReturnsWithNativeCleanupPending()
     {
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         using var lifetime = new AiLyricsWorkLifetime(token => runner.DrainCleanupAsync(token, TimeSpan.Zero));
         var cleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var model = Path.Combine(Path.GetTempPath(), "DropSpace-model-maintenance-" + Guid.NewGuid().ToString("N"));
@@ -50,7 +50,7 @@ public sealed class AiLyricsWorkLifetimeTests
     [TestMethod]
     public async Task MaintenanceRejectsNewWorkWhileAwaitingRetainedNativeCleanup()
     {
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         using var lifetime = new AiLyricsWorkLifetime(runner.DrainCleanupAsync);
         var cleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         runner.TrackCleanup(cleanup.Task);
@@ -70,7 +70,7 @@ public sealed class AiLyricsWorkLifetimeTests
     [TestMethod]
     public async Task FailedNativeCleanupRemainsFailClosedForMaintenance()
     {
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         using var lifetime = new AiLyricsWorkLifetime(runner.DrainCleanupAsync);
         runner.TrackCleanup(Task.FromException(new IOException("OS exit unconfirmed.")));
         runner.TrackCleanup(Task.CompletedTask);
@@ -85,7 +85,7 @@ public sealed class AiLyricsWorkLifetimeTests
     [TestMethod]
     public async Task CancellingMaintenanceDoesNotCancelRetainedNativeCleanup()
     {
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         using var lifetime = new AiLyricsWorkLifetime(runner.DrainCleanupAsync);
         var cleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         runner.TrackCleanup(cleanup.Task);

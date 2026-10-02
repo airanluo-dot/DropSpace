@@ -706,4 +706,5 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Force Dynamic Island over fullscreen</value></data>
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
+  <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
 </root>

@@ -42,7 +42,7 @@ public static class LyricsTranslationPolicy
         return target.Length > 0 && document.Lines.Any(line =>
             line.TranslationOrigin == LyricsTranslationOrigin.Provider && !LyricsLanguagePolicy.IsCredit(line.Text) &&
             !string.IsNullOrWhiteSpace(line.Secondary) &&
-            NormalizeLanguage(line.TranslationLanguage) == target);
+            LyricsLanguagePolicy.ProviderTranslationMatches(line, target));
     }
 
     public static string NormalizeLanguage(string? language)

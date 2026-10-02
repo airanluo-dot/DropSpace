@@ -368,7 +368,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Retained runtime artifact contract is invalid.' }
           foreach ($variant in @('Baseline', 'Avx2')) {
             $name = "production-plain-hy-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)-$($variant.ToLowerInvariant())"
-            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -Variant $variant -OutputDirectory "$output/$name"
+            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -ModelId hy-mt2-18-q8-plain-beta -Variant $variant -OutputDirectory "$output/$name"
           }
 
       - name: Preserve final production evidence including failures

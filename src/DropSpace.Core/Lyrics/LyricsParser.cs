@@ -92,7 +92,13 @@ public static class LyricsParser
         foreach (var raw in text.Split('\n').Take(MaximumLines))
         {
             var value = raw.Trim().TrimStart('\uFEFF');
-            if (value.Length == 0) continue;
+            if (value.Length == 0)
+            {
+                // Keep internal section boundaries for an untimed display block.
+                // They also prevent language context from crossing a blank verse.
+                if (plainLines.Count > 0) plainLines.Add(string.Empty);
+                continue;
+            }
             if (value.StartsWith("[offset:", StringComparison.OrdinalIgnoreCase) && value.EndsWith(']'))
             { if (double.TryParse(value[8..^1], CultureInfo.InvariantCulture, out var milliseconds) && double.IsFinite(milliseconds)) offset = Math.Clamp(milliseconds, -30_000, 30_000); continue; }
             var yrc = YrcHeader.Match(value);
@@ -149,7 +155,7 @@ public static class LyricsParser
             if (output.Count >= MaximumLines) break;
         }
         if (output.Count == 0 && plainLines.Count > 0)
-            output.Add(new(TimeSpan.Zero, TimeSpan.FromHours(24), string.Join(Environment.NewLine, plainLines), null, []));
+            output.Add(new(TimeSpan.Zero, TimeSpan.FromHours(24), string.Join(Environment.NewLine, plainLines).TrimEnd(), null, []));
         // Empty timestamped lines explicitly end a lyric before an instrumental gap.
         // Keep their timing evidence without displaying or aligning translations to blank rows.
         emptyBoundaries.Sort();

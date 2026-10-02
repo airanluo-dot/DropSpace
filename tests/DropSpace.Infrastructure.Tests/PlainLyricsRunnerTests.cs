@@ -13,11 +13,53 @@ public sealed class PlainLyricsRunnerTests
     private const string PlainModelSha256 = "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4";
 
     [TestMethod]
+    [DataRow(false, "physical")]
+    [DataRow(false, "commit")]
+    [DataRow(false, "unknown")]
+    [DataRow(true, "physical")]
+    [DataRow(true, "commit")]
+    [DataRow(true, "unknown")]
+    public async Task OneShotCpuAdmissionChecksBothResourcesAndDoesNotStartRejectedProcess(bool large, string missing)
+    {
+        WindowsProcessFixture.RequireAvailable();
+        using var fixture = new Fixture();
+        var model = large ? AiLyricsModelCatalog.ExperimentalLargePlain : AiLyricsModelCatalog.ExperimentalPlain;
+        var required = (large ? 13L : 4L) << 30;
+        CpuMemorySnapshot? memory = missing switch
+        {
+            "physical" => new(required - 1, required),
+            "commit" => new(required, required - 1),
+            _ => null,
+        };
+        var reads = 0;
+        using var runner = new LlamaCompletionRunner(() =>
+        {
+            Assert.AreEqual(0, LocalInferenceProcess.InferenceGate.CurrentCount);
+            reads++;
+            return memory;
+        });
+        fixture.WriteRuntime($": > {Quote(fixture.Ready)}\nprintf 'completed\\n'\n",
+            new { kind = "completion", readyPath = fixture.Ready, output = "completed\n" });
+        await Assert.ThrowsExactlyAsync<InferenceResourcesUnavailableException>(() => runner.RunPlainAsync(
+            fixture.Executable, fixture.Model, "source", fixture.Staging, CancellationToken.None, model.Sha256));
+        await runner.DrainCleanupAsync(CancellationToken.None);
+        Assert.AreEqual(1, reads);
+        Assert.IsFalse(File.Exists(fixture.Ready));
+        Assert.HasCount(0, Directory.GetFiles(fixture.Staging));
+        memory = new(required, required);
+        Assert.AreEqual("completed", await runner.RunPlainAsync(fixture.Executable, fixture.Model, "source",
+            fixture.Staging, CancellationToken.None, model.Sha256));
+        await runner.DrainCleanupAsync(CancellationToken.None);
+        Assert.AreEqual(2, reads);
+        Assert.IsTrue(File.Exists(fixture.Ready));
+    }
+
+    [TestMethod]
     public async Task PlainArgumentsMatchFrozenProfileAndPromptIsClosedUtf8BeforeLaunch()
     {
         WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         using var cancel = new CancellationTokenSource();
         const string prompt = "Translate into Chinese without explanation:\n\n夜の空と星 / 달빛 / a quiet night\n";
         var release = Path.Combine(fixture.Root, "release");
@@ -94,7 +136,7 @@ public sealed class PlainLyricsRunnerTests
     public async Task PlainProfileRejectsEveryUnverifiedOrDifferentModelBeforeStaging()
     {
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         foreach (var hash in new[] { null, "", "untrusted", PlainModelSha256[..^1], " " + PlainModelSha256,
             AiLyricsModelCatalog.Compact.Sha256, AiLyricsModelCatalog.Standard.Sha256,
             "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a" })
@@ -117,7 +159,7 @@ public sealed class PlainLyricsRunnerTests
     {
         WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         using var cancel = new CancellationTokenSource();
         var pidPath = Path.Combine(fixture.Root, "process-id");
         fixture.WriteRuntime(fixture.CaptureArguments + $"echo $$ > {Quote(pidPath)}\n" +
@@ -165,7 +207,7 @@ public sealed class PlainLyricsRunnerTests
     {
         WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         fixture.WriteRuntime("printf '%070000d' 0 >&2\nprintf 'unusable output'\nexit 27\n",
             new { kind = "completion", stderrBytes = 70_000, output = "unusable output", exitCode = 27 });
         var error = await Assert.ThrowsExactlyAsync<LocalInferenceExecutionException>(() => runner.RunPlainAsync(
@@ -186,7 +228,7 @@ public sealed class PlainLyricsRunnerTests
     {
         WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         fixture.WriteRuntime("printf '%070000d' 0\nexec /bin/sleep 60\n",
             new { kind = "completion", stdoutBytes = 70_000, delayMilliseconds = 60_000 });
         var error = await Assert.ThrowsExactlyAsync<InvalidDataException>(() => runner.RunPlainAsync(
@@ -204,7 +246,7 @@ public sealed class PlainLyricsRunnerTests
     public async Task PlainPromptBudgetAndPrecancelledCallRejectBeforeStaging()
     {
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => runner.RunPlainAsync(fixture.Executable, fixture.Model,
             new string('夜', 30_000), fixture.Staging, CancellationToken.None, PlainModelSha256));
         using var cancel = new CancellationTokenSource();
@@ -220,7 +262,7 @@ public sealed class PlainLyricsRunnerTests
     {
         WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
-        using var runner = new LlamaCompletionRunner();
+        using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);
         fixture.WriteRuntime(fixture.CaptureArguments + "printf '[] [end of text]\\n'\n",
             new { kind = "completion", argumentsPath = fixture.Arguments, output = "[] [end of text]\n" });
         Assert.AreEqual("[]", await runner.RunAsync(fixture.Executable, fixture.Model, "legacy prompt", fixture.Staging,

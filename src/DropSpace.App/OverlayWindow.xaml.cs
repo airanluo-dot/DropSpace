@@ -560,6 +560,11 @@ public sealed partial class OverlayWindow : Window
             target = Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0);
         }
 
+        // Hidden has TopOffset=0 because it is independent of monitor placement.
+        // Anchor it while the body is still transparent; otherwise opacity can lead
+        // the top-offset spring and expose a clipped halo during the first frames.
+        var anchored = OverlayPlacementPolicy.AnchorInvisibleSurface(_motion.Current, _resolvedPlacement);
+        if (anchored != _motion.Current) _motion.SnapTo(anchored);
         EnsureVisualHostShown(fullscreen.AllowActivation);
         MaintainFullscreenVisibility();
         _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
