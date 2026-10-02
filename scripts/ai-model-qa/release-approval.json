@@ -372,7 +372,7 @@
         },
         {
           "path": "tools/ct2-helper/build.ps1",
-          "sha256": "6e8f43870668b7a26f0ea60b51f86958129915e91571965ce94936b07d94d6d8"
+          "sha256": "8591f24591d7471a63c413583228a064991ed0a4cf64aac3f3339c15e6746002"
         },
         {
           "path": "tools/ct2-helper/dependencies.schema.json",
@@ -383,7 +383,7 @@
           "sha256": "2c8a8e7677c96eecfb0cdf387793f02769b93914a8c49853c5ef4d3d93dc071d"
         }
       ],
-      "sha256": "4ad2efd9e76d848f88cd2be350c1c797c199221545384639c2b498ed3511397a"
+      "sha256": "e67e3ff61db97452e819e88be37b768233f26e4e9a81bedd7f1c9a038a0782d4"
     },
     "fixture": {
       "path": "scripts/ai-model-qa/inputs/source48.json",

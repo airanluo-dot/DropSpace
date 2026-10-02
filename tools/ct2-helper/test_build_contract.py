@@ -7,6 +7,7 @@ import re
 import stat
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 SCRIPT = Path(__file__).with_name('build.ps1').read_text(encoding='utf-8')
@@ -43,8 +44,14 @@ class BuildContractTests(unittest.TestCase):
         SCOPE['validate'](self.wheels, self.inventory, self.lock, version)
 
     def reject(self, data=UNSET):
-        with self.assertRaises((ValueError, OSError, zipfile.BadZipFile)): self.validate(data)
-        self.assertFalse(self.lock.exists(), 'Rejected inventory must not create an install plan')
+        self.assertFalse(self.lock.exists(), 'Rejection fixture must start without an install plan')
+        try:
+            with self.assertRaises((ValueError, OSError, zipfile.BadZipFile)): self.validate(data)
+            self.assertFalse(self.lock.exists(), 'Rejected inventory must not create an install plan')
+        finally:
+            # A regression can unexpectedly write a plan before assertRaises fails. Do not let
+            # that failed subtest make the next malicious case fail for an unrelated stale file.
+            self.lock.unlink(missing_ok=True)
 
     def test_exact_offline_inventory_generates_only_hashed_file_requirements(self):
         self.validate()
@@ -120,12 +127,46 @@ class BuildContractTests(unittest.TestCase):
 
     def test_malicious_wheel_members_rejected_even_when_hash_matches(self):
         package = self.data['packages'][0]
-        original = (self.wheels / package['file']).read_bytes()
-        for entry in ('../outside.py', '/outside.py', 'folder/../../outside.py', 'folder\\outside.py', 'file:stream'):
-            (self.wheels / package['file']).write_bytes(original)
-            with zipfile.ZipFile(self.wheels / package['file'], 'a') as archive: archive.writestr(entry, 'x')
-            self.refresh(package)
-            with self.subTest(entry=entry): self.reject()
+        path = self.wheels / package['file']
+        original = path.read_bytes()
+        entries = ('../outside.py', '/outside.py', 'folder/../../outside.py',
+                   'folder\\outside.py', 'file:stream', 'safe.py\x00hidden')
+        # Exercise both reader semantics on every OS. ZipInfo normalizes Windows backslashes
+        # and truncates NULs, so writestr(str) would silently repair the malicious fixture.
+        for separator in ('/', '\\'):
+            for entry in entries:
+                with self.subTest(separator=separator, entry=entry):
+                    path.write_bytes(original)
+                    raw = zipfile.ZipInfo('placeholder')
+                    raw.filename = entry
+                    raw.orig_filename = entry
+                    with zipfile.ZipFile(path, 'a') as archive: archive.writestr(raw, 'x')
+                    self.refresh(package)
+                    with patch.object(zipfile.os, 'sep', separator):
+                        with zipfile.ZipFile(path) as archive:
+                            self.assertEqual(entry, archive.infolist()[-1].orig_filename,
+                                             'The raw attack must survive archive construction')
+                        self.reject()
+
+    def test_zip_reader_preserves_original_names_before_platform_normalization(self):
+        import io
+        content = io.BytesIO()
+        raw = zipfile.ZipInfo('placeholder')
+        raw.filename = raw.orig_filename = 'folder\\outside.py'
+        with zipfile.ZipFile(content, 'w') as archive: archive.writestr(raw, 'x')
+        with patch.object(zipfile.os, 'sep', '\\'), zipfile.ZipFile(io.BytesIO(content.getvalue())) as archive:
+            entry = archive.infolist()[0]
+            self.assertEqual('folder/outside.py', entry.filename)
+            self.assertEqual('folder\\outside.py', entry.orig_filename)
+
+    def test_failed_rejection_subtest_cleans_its_install_plan(self):
+        # Intentionally pass a valid inventory to the rejection assertion to reproduce the
+        # first failing subtest. Its generated plan must not contaminate the next rejection.
+        with self.assertRaises(AssertionError): self.reject()
+        self.assertFalse(self.lock.exists())
+        data = copy.deepcopy(self.data)
+        data['packages'][0]['name'] = 'flask'
+        self.reject(data)
 
     def test_case_alias_duplicate_wheel_members_rejected(self):
         package = self.data['packages'][0]
@@ -166,7 +207,6 @@ class BuildContractTests(unittest.TestCase):
         inner = runtime / '_internal'; inner.mkdir(); (inner / 'python312.dll').write_bytes(b'library')
         output = self.root / 'files.json'
         import sys
-        from unittest.mock import patch
         with patch.object(sys, 'argv', ['inventory', str(runtime), str(output)]):
             exec(compile(source, 'build.ps1:runtimeInventory', 'exec'), {'__name__': 'test'})
         files = json.loads(output.read_text())['files']

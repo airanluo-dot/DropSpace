@@ -104,12 +104,15 @@ def validate(wheelhouse, inventory, lock, python_version):
             check(0 < len(members) <= 20000 and sum(item.file_size for item in members) <= 1073741824, 'Wheel content limit')
             archive_names = set()
             for item in members:
-                entry = pathlib.PurePosixPath(item.filename)
-                check(item.filename and not entry.is_absolute() and '..' not in entry.parts and
-                      '\\' not in item.filename and ':' not in item.filename and
-                      item.filename.casefold() not in archive_names and
+                # ZipInfo.filename has already normalized Windows separators and truncated NULs.
+                # Reject unsafe raw archive names before using any normalized view.
+                raw_name = item.orig_filename
+                entry = pathlib.PurePosixPath(raw_name)
+                check(raw_name and raw_name == item.filename and not entry.is_absolute() and '..' not in entry.parts and
+                      '\\' not in raw_name and ':' not in raw_name and '\x00' not in raw_name and
+                      raw_name.casefold() not in archive_names and
                       not stat.S_ISLNK(item.external_attr >> 16), 'Unsafe or duplicate wheel member')
-                archive_names.add(item.filename.casefold())
+                archive_names.add(raw_name.casefold())
             metadata_names = [item.filename for item in members if item.filename.endswith('.dist-info/METADATA')]
             check(len(metadata_names) == 1 and archive.getinfo(metadata_names[0]).file_size <= 1048576, 'Wheel metadata missing/large')
             metadata = email.parser.BytesParser().parsebytes(archive.read(metadata_names[0]))
