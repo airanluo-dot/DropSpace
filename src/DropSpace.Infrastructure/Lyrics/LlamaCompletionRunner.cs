@@ -13,7 +13,6 @@ public sealed class LlamaCompletionRunner : IPlainLyricsRunner
     private Task _pendingCleanup = Task.CompletedTask;
     private bool _disposed;
     private const int MaximumOutputCharacters = 65_536;
-    private const string PlainModelSha256 = "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4";
     private const string Schema = "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"text\":{\"type\":\"string\"}},\"required\":[\"id\",\"text\"],\"additionalProperties\":false}}";
 
     public Task<string> RunAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
@@ -48,7 +47,7 @@ public sealed class LlamaCompletionRunner : IPlainLyricsRunner
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingDirectory);
         ArgumentNullException.ThrowIfNull(prompt);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (plainText && !string.Equals(verifiedModelSha256, PlainModelSha256, StringComparison.OrdinalIgnoreCase))
+        if (plainText && DropSpace.Core.Lyrics.AiLyricsModelCatalog.FindSelectableByHash(verifiedModelSha256) is null)
             throw new InvalidDataException("The experimental plain-text profile requires the verified Hy Q8 model.");
         var outputSchema = plainText ? null : expectedLineIds is null ? Schema : DropSpace.Core.Lyrics.LyricsTranslationPrompt.OutputSchema(expectedLineIds);
         if (Encoding.UTF8.GetByteCount(prompt) > 80_000) throw new InvalidDataException("Prompt exceeds budget.");
@@ -284,7 +283,9 @@ public sealed class LlamaCompletionRunner : IPlainLyricsRunner
 
     internal static long MemoryBudgetFor(string? modelSha256) =>
         string.Equals(modelSha256, DropSpace.Core.Lyrics.AiLyricsModelCatalog.Compact.Sha256, StringComparison.OrdinalIgnoreCase)
-            ? 1536L * 1024 * 1024 : 3L * 1024 * 1024 * 1024;
+            ? 1536L * 1024 * 1024
+            : string.Equals(modelSha256, DropSpace.Core.Lyrics.AiLyricsModelCatalog.ExperimentalLargePlain.Sha256, StringComparison.OrdinalIgnoreCase)
+                ? WindowsInferenceProcess.Hy7BMaximumMemoryBytes : WindowsInferenceProcess.MaximumMemoryBytes;
 
     internal static IReadOnlyList<string> ModelCompatibilityArguments(string? verifiedModelSha256) =>
         string.Equals(verifiedModelSha256, DropSpace.Core.Lyrics.AiLyricsModelCatalog.Compact.Sha256, StringComparison.OrdinalIgnoreCase)

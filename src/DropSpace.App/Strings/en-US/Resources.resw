@@ -514,7 +514,7 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Loading lyrics…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>No verified lyrics found for this track.</value></data>
-  <data name="LyricsFailed" xml:space="preserve"><value>Lyrics could not be loaded. Check the connection or try again.</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>Lyrics are temporarily unavailable. Select Refresh to try again.</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>
@@ -624,6 +624,8 @@ Nothing will be opened automatically.</value></data>
   <data name="AiLyricsStandardModel" xml:space="preserve"><value>Previous standard model (Q4)</value></data>
   <data name="AiLyricsSmallerModel" xml:space="preserve"><value>Previous compact model (IQ3)</value></data>
   <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0 (Beta)</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0 (Beta)</value></data>
+  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>Optional larger model (7.98 GB). Requires more memory and, with GPU acceleration, more video memory than 1.8B. It may be slower; better translation quality or speed is not guaranteed. Existing model downloads remain until you remove them.</value></data>
   <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>Tencent Q8 model for local lyric translation (Beta). The first full translation may take several minutes, depending on your device and lyric length. Translations may contain meaning errors.</value></data>
   <data name="AiLyricsLegacyModels" xml:space="preserve"><value>Previous model files</value></data>
   <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>These older model files are no longer used for translation. You can remove them to free disk space.</value></data>
@@ -703,4 +705,5 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>Upcoming lyric</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Force Dynamic Island over fullscreen</value></data>
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
+  <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
 </root>

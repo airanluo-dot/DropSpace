@@ -10,7 +10,7 @@ public static class OverlayPlacementPolicy
 {
     public const double HostWidthDips = 600;
     public const double MaximumSurfaceWidthDips = 560;
-    public const double DynamicIslandTopGapDips = 8;
+    public const double DynamicIslandTopGapDips = 18;
     public const double MaximumSurfaceHeightDips = 340;
     public const double HostBottomMarginDips = 16;
     public const double MinimumHostHeightDips =

@@ -35,6 +35,7 @@ public sealed record LyricsMatchInfo(
 public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
 public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
 {
+    public string? SourceLanguage { get; init; }
     public LyricsTranslationOrigin TranslationOrigin { get; init; }
     public string? TranslationLanguage { get; init; }
 }

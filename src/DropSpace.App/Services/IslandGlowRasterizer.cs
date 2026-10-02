@@ -1,13 +1,16 @@
+using DropSpace.Core.Overlay;
+
 namespace DropSpace.App.Services;
 
 /// <summary>
-/// An exterior-only, premultiplied BGRA halo. The signed distance uses the island's
+/// A bounded, premultiplied BGRA halo with a small overlap under the island. The signed distance uses the island's
 /// unchanged rounded contour; only the light outside it drifts. No bitmap background
 /// or shape displacement is used, and every outermost pixel is completely transparent.
 /// </summary>
 internal sealed class IslandGlowRasterizer
 {
-    internal const double PaddingDips = 40;
+    internal const double PaddingDips = OverlayPlacementPolicy.DynamicIslandTopGapDips;
+    internal const double InnerOverlapDips = 3;
     private const int AroundSteps = 256;
     private const int DistanceSteps = 160;
     private readonly record struct Sample(int Pixel, int Lookup);
@@ -18,7 +21,7 @@ internal sealed class IslandGlowRasterizer
     {
         if (surfaceWidth <= 0 || surfaceHeight <= 0 || !double.IsFinite(scale) || scale <= 0)
             throw new ArgumentOutOfRangeException(nameof(surfaceWidth));
-        PaddingPixels = (int)Math.Ceiling(PaddingDips * scale);
+        PaddingPixels = checked((int)Math.Ceiling(PaddingDips * scale));
         Width = checked(surfaceWidth + 2 * PaddingPixels);
         Height = checked(surfaceHeight + 2 * PaddingPixels);
         Pixels = new int[checked(Width * Height)];
@@ -36,15 +39,14 @@ internal sealed class IslandGlowRasterizer
             {
                 var dx = x + 0.5 - PaddingPixels - halfWidth;
                 var qx = Math.Abs(dx) - halfWidth + radius;
-                if (qx <= 0 && qy <= 0) continue;
                 var ox = Math.Max(0, qx);
                 var oy = Math.Max(0, qy);
                 var distance = (Math.Sqrt(ox * ox + oy * oy) + Math.Min(Math.Max(qx, qy), 0) - radius) / scale;
-                // Leave the physical surface (including its antialiased edge) untouched.
-                if (distance < 0.5 / scale || distance >= PaddingDips - 1) continue;
+                // The body is above this light. Only a finite inner overlap closes the edge gap.
+                if (distance <= -InnerOverlapDips || distance >= PaddingDips - 1) continue;
                 var around = (Math.Atan2(dy / halfHeight, dx / halfWidth) + Math.PI) / (2 * Math.PI);
                 var aroundIndex = Math.Min(AroundSteps - 1, (int)(around * AroundSteps));
-                var distanceIndex = Math.Min(DistanceSteps - 1, (int)(distance * DistanceSteps / PaddingDips));
+                var distanceIndex = Math.Clamp((int)((distance + InnerOverlapDips) * DistanceSteps / (PaddingDips + InnerOverlapDips)), 0, DistanceSteps - 1);
                 samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex));
             }
         }
@@ -56,7 +58,7 @@ internal sealed class IslandGlowRasterizer
     public int PaddingPixels { get; }
     public int[] Pixels { get; }
 
-    public void Render(double phase, double brightness)
+    public void Render(double phase, double brightness, IReadOnlyList<double>? bands = null)
     {
         brightness = double.IsFinite(brightness) ? Math.Clamp(brightness, 0, 1) : 0;
         if (brightness == 0)
@@ -70,25 +72,33 @@ internal sealed class IslandGlowRasterizer
             var theta = around * (2 * Math.PI / AroundSteps);
             // Three broad overlapping ribbons plus a soft edge wash, with different
             // travel speeds. Their widths breathe outside the fixed physical contour.
-            var broadCenter = 11 + 3 * Math.Sin(theta * 2 - phase * 0.47);
-            var ribbonCenter = 4 + 2.4 * Math.Sin(theta * 3 + phase * 0.63);
-            var outerCenter = 20 + 4 * Math.Sin(theta - phase * 0.39);
-            var broadWidth = 11 + 1.5 * Math.Cos(theta * 2 + phase * 0.29);
-            var broadColor = Palette(theta / (2 * Math.PI) - phase * 0.018);
-            var ribbonColor = Palette(theta / (2 * Math.PI) + 0.08 + phase * 0.024);
-            var outerColor = Palette(theta / (2 * Math.PI) + 0.24 - phase * 0.013);
+            // Interpolate the same six real FFT bands used by the meter around the contour.
+            var bandPosition = around * 6d / AroundSteps;
+            var bandIndex = (int)bandPosition;
+            double Band(int i) => bands is not null && i % 6 < bands.Count && double.IsFinite(bands[i % 6])
+                ? Math.Clamp(bands[i % 6], 0, 1) : 0;
+            var pulse = Band(bandIndex) * (1 - (bandPosition - bandIndex)) + Band(bandIndex + 1) * (bandPosition - bandIndex);
+            var broadCenter = 4 + 1.2 * Math.Sin(theta * 2 - phase * 0.8) + 2 * pulse;
+            var ribbonCenter = 1 + Math.Sin(theta * 3 + phase * 1.1) + 1.5 * pulse;
+            var outerCenter = 8 + 1.5 * Math.Sin(theta - phase * 0.7) + 2 * pulse;
+            var broadWidth = 4 + 0.5 * Math.Cos(theta * 2 + phase * 0.5) + pulse;
+            var broadColor = Palette(theta / (2 * Math.PI) - phase * 0.045);
+            var ribbonColor = Palette(theta / (2 * Math.PI) + 0.08 + phase * 0.060);
+            var outerColor = Palette(theta / (2 * Math.PI) + 0.24 - phase * 0.033);
             for (var distance = 0; distance < DistanceSteps; distance++)
             {
-                var d = (distance + 0.5) * PaddingDips / DistanceSteps;
-                var broad = 0.40 * Gaussian((d - broadCenter) / broadWidth);
-                var ribbon = 0.50 * Gaussian((d - ribbonCenter) / 4.8);
-                var outer = 0.30 * Gaussian((d - outerCenter) / 6.4);
+                var d = (distance + 0.5) * (PaddingDips + InnerOverlapDips) / DistanceSteps - InnerOverlapDips;
+                var broad = 0.32 * Gaussian((d - broadCenter) / broadWidth);
+                var ribbon = 0.38 * Gaussian((d - ribbonCenter) / 2.4);
+                var outer = 0.18 * Gaussian((d - outerCenter) / 3.2);
                 var edge = 0.18 * Gaussian(d / 2.5);
                 var total = broad + ribbon + outer + edge;
                 // A smooth bounded tail reaches zero before the bitmap boundary.
-                var tail = Math.Clamp((PaddingDips - 1 - d) / 9, 0, 1);
+                var tail = Math.Clamp((PaddingDips - 1 - d) / 5, 0, 1);
                 tail = tail * tail * (3 - 2 * tail);
-                var alpha = Math.Clamp(total * brightness * tail, 0, 1);
+                var inner = Math.Clamp((d + InnerOverlapDips) / 1.5, 0, 1);
+                inner = inner * inner * (3 - 2 * inner);
+                var alpha = Math.Clamp(total * brightness * tail * inner, 0, 1);
                 var a = (int)Math.Round(255 * alpha);
                 var red = (broadColor.R * (broad + edge) + ribbonColor.R * ribbon + outerColor.R * outer) / total;
                 var green = (broadColor.G * (broad + edge) + ribbonColor.G * ribbon + outerColor.G * outer) / total;

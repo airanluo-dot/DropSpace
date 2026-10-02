@@ -25,8 +25,8 @@ function example(t) {
   const scope = readScope(root);
   const evidenceDirectory = 'scripts/ai-model-qa/evidence';
   const fixtureLines = JSON.parse(fs.readFileSync(path.join(root, fixturePath), 'utf8')).Lines;
-  const outputPackets = ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => ({
-    schemaVersion: 1, kind: 'production-runner-output', variant, targetLanguage, outcome: 'Translated',
+  const outputPackets = scope.shippingModels.flatMap(model => ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => ({
+    schemaVersion: 1, kind: 'production-runner-output', model: { ...model }, variant, targetLanguage, outcome: 'Translated',
     complete: true, playbackPositionSeconds: 0, residentProcessReuseConfirmed: true, firstProgressElapsedMilliseconds: 1,
     calls: fixtureLines.map((line, lineId) => ({
       lineId, sourceText: line.Text, phase: 'cold', targetLanguage, status: 'returned',
@@ -37,7 +37,7 @@ function example(t) {
     progressEvents: fixtureLines.map((_, lineId) => ({ requestIdentity: 'SYNTHETIC-REQUEST', cacheGeneration: 0,
       lineId, completedLineCount: lineId + 1, totalLineCount: fixtureLines.length,
       isCurrent: true, isEphemeral: true, elapsedMilliseconds: lineId + 1 })),
-  })));
+  }))));
   const outputPaths = outputPackets.map((_, i) => `${evidenceDirectory}/SYNTHETIC-OUTPUT-ONLY-${i}.json`);
   outputPackets.forEach((packet, i) => write(outputPaths[i], json(packet)));
   const stdoutPath = outputPaths[0];
@@ -78,7 +78,7 @@ function example(t) {
     fixtureSha256: scope.fixture.sha256, promptVersion: scope.promptVersion,
     promptProfile: productionPromptProfile, outputSchema: productionOutputSchema,
     backendId: scope.backendId, acceptanceVersion: scope.acceptanceVersion, samplerIdentity: scope.samplerIdentity,
-    executionLimits: { ...scope.executionLimits }, captureMethod: productionCaptureMethod,
+    executionLimits: { ...scope.modelProfiles[model.id].executionLimits }, captureMethod: productionCaptureMethod,
     technicalChecks: { coldTargets: ['en', 'zh-Hans'], cacheTargets: ['en', 'zh-Hans'], cacheAdditionalInferenceCalls: 0,
       cancellationObserved: true, cleanupConfirmed: true, sourceIdentityUnchanged: true, modelIdentityUnchanged: true, runtimeIdentityUnchanged: true },
     sourceFingerprintSha256: scope.sources.sha256, platform: 'windows-x64', executedAt: '2026-10-01T00:00:00Z',
@@ -87,7 +87,7 @@ function example(t) {
       protocol: scope.runtime.resident.protocol, residentSourceSha256: scope.runtime.resident.sourceSha256,
       completion: variant === 'baseline' ? { sha256: runtime.resident.cpu.sha256, bytes: runtime.resident.cpu.bytes } : { sha256: runtime.resident.avx2.sha256, bytes: runtime.resident.avx2.bytes },
     },
-    outputs: outputPackets.flatMap((packet, i) => packet.variant === variant ? [{ kind: 'runner-output', targetLanguage: packet.targetLanguage, path: outputPaths[i], sha256: sha256(json(packet)) }] : []),
+    outputs: outputPackets.flatMap((packet, i) => packet.variant === variant && packet.model.id === model.id ? [{ kind: 'runner-output', targetLanguage: packet.targetLanguage, path: outputPaths[i], sha256: sha256(json(packet)) }] : []),
   })));
   const gpuProbes = envelopes.map((envelope, index) => ({
     schemaVersion: 1, kind: 'production-gpu-default-probe', gpuEnabled: true, actualBackend: 'cpu', usedCpuFallback: true,
@@ -107,7 +107,7 @@ function example(t) {
     schemaVersion: 2, promptProfile: productionPromptProfile, outputSchema: productionOutputSchema, loadOnly: false,
     promptVersion: scope.promptVersion, backendId: scope.backendId, acceptanceVersion: scope.acceptanceVersion,
     samplerIdentity: scope.samplerIdentity, captureMethod: productionCaptureMethod,
-    executionLimits: { ...scope.executionLimits }, nativeArguments: [...scope.nativeArguments],
+    executionLimits: { ...scope.modelProfiles[envelope.model.id].executionLimits }, nativeArguments: [...scope.modelProfiles[envelope.model.id].nativeArguments],
     samplerArguments: [...scope.samplerArguments], gpuEnabled: false,
     fixtureSha256: scope.fixture.sha256, sourceFingerprintSha256: scope.sources.sha256,
     runtimeManifestSha256: envelope.runtime.manifestSha256, runtimeVariant: envelope.runtime.variant,
@@ -199,9 +199,9 @@ test('resident worker source mutation during a build cannot produce a trust mani
   }
 });
 
-test('scope selects only the actual plaintext Q8 shipping profile and its shared arguments', t => {
+test('scope selects both pinned plaintext Q8 profiles with separate resource arguments', t => {
   const x = example(t);
-  assert.deepEqual(x.scope.shippingModels.map(model => model.id), ['hy-mt2-18-q8-plain-beta']);
+  assert.deepEqual(x.scope.shippingModels.map(model => model.id), ['hy-mt2-18-q8-plain-beta', 'hy-mt2-7b-q8-plain-beta']);
   assert.equal(x.scope.promptVersion, 'official-plain-per-line-v1');
   assert.equal(x.scope.outputSchema, 'host-mapped-id-text-v1');
   assert.equal(x.scope.backendId, 'hy-q8-plain-beta-v1');
@@ -209,9 +209,29 @@ test('scope selects only the actual plaintext Q8 shipping profile and its shared
   assert.equal(x.scope.executionLimits.perLineSeconds, 60);
   assert.equal(x.scope.executionLimits.memoryMiB, 3072);
   assert.deepEqual(x.scope.nativeArguments, ['--model', '$MODEL', '--mode', 'cpu']);
+  assert.deepEqual(x.scope.modelProfiles['hy-mt2-7b-q8-plain-beta'].nativeArguments, [...x.scope.nativeArguments, '--model-profile', 'hy-mt2-7b-q8']);
+  assert.equal(x.scope.modelProfiles['hy-mt2-7b-q8-plain-beta'].executionLimits.memoryMiB, 12288);
   assert.ok(!x.scope.samplerArguments.includes('-j'));
   assert.equal(x.scope.samplerArguments[x.scope.samplerArguments.indexOf('--seed') + 1], '42');
   assert.equal(x.scope.runtime.resident.profile, 'hy-q8-plain-resident-v1');
+});
+
+test('7B evidence cannot reuse a 1.8B runner capture', t => {
+  const x = example(t);
+  x.envelopes[2].outputs = structuredClone(x.envelopes[0].outputs);
+  x.saveEnvelopes();
+  assert.throws(() => x.validate(), /7B runner output needs its own captured model identity/);
+});
+
+test('7B capture cannot silently use the ordinary startup arguments or memory budget', t => {
+  for (const property of ['nativeArguments', 'executionLimits']) {
+    const x = example(t);
+    x.configurations[2][property] = structuredClone(x.configurations[0][property]);
+    x.write(x.configurationPaths[2], json(x.configurations[2]));
+    x.envelopes[2].configuration.sha256 = sha256(json(x.configurations[2]));
+    x.saveEnvelopes();
+    assert.throws(() => x.validate(), /Native configuration (execution limits mismatch|differs from actual production arguments)/);
+  }
 });
 
 test('accepted Beta quality/latency limitations do not waive open defects', t => {
@@ -471,7 +491,8 @@ test('unrecognized catalog refactor cannot silently yield an empty shipping list
   const x = example(t);
   const catalog = sourcePaths[0];
   const original = fs.readFileSync(path.join(x.root, catalog), 'utf8');
-  x.write(catalog, original.replace('All { get; } = Array.AsReadOnly(new[] { ExperimentalPlain })', 'All { get; } = BuildModels()'));
+  assert.match(original, /All \{ get; \} = Array\.AsReadOnly\(new\[\] \{ [^}]+ \}\)/);
+  x.write(catalog, original.replace(/All \{ get; \} = Array\.AsReadOnly\(new\[\] \{ [^}]+ \}\)/, 'All { get; } = BuildModels()'));
   assert.throws(() => x.validate(), /Shipping model list/);
 });
 

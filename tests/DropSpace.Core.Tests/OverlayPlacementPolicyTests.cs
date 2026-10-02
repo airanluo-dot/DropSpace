@@ -18,11 +18,11 @@ public sealed class OverlayPlacementPolicyTests
             var center = resolved.HostLeftPixels + OverlayPlacementPolicy.HostWidthDips * dpi / 2;
             Assert.AreEqual(origin.Item1 + screen.Item1 / 2d, center, 0.51);
             Assert.AreEqual(origin.Item2, resolved.HostTopPixels);
-            Assert.AreEqual(8d, resolved.SurfaceTopOffsetDips);
+            Assert.AreEqual(OverlayPlacementPolicy.DynamicIslandTopGapDips, resolved.SurfaceTopOffsetDips);
             var scale = OverlayPlacementPolicy.FitContentScale(screen.Item1, screen.Item2, dpi, 560, 340, 2);
             Assert.IsTrue(scale > 0);
             Assert.IsTrue(560 * scale * dpi <= screen.Item1);
-            Assert.IsTrue((340 * scale + 8) * dpi <= screen.Item2);
+            Assert.IsTrue((340 * scale + resolved.SurfaceTopOffsetDips) * dpi <= screen.Item2);
         }
     }
 

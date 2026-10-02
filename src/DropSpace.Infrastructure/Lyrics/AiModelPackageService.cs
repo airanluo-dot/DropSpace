@@ -11,6 +11,7 @@ public sealed class AiModelPackageService : IDisposable
     private readonly HttpClient _client;
     private readonly string _root;
     private readonly Func<string, AiLyricsModelDescriptor?> _resolve;
+    private readonly Func<string, long> _availableFreeSpace;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
     private bool _disposed;
@@ -18,10 +19,12 @@ public sealed class AiModelPackageService : IDisposable
     public AiModelPackageService(string root) : this(root,
         new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }, AiLyricsModelCatalog.Find) { }
 
-    internal AiModelPackageService(string root, HttpMessageHandler handler, Func<string, AiLyricsModelDescriptor?> resolve)
+    internal AiModelPackageService(string root, HttpMessageHandler handler, Func<string, AiLyricsModelDescriptor?> resolve,
+        Func<string, long>? availableFreeSpace = null)
     {
         _root = Path.GetFullPath(root);
         _resolve = resolve;
+        _availableFreeSpace = availableFreeSpace ?? (path => new DriveInfo(Path.GetPathRoot(path)!).AvailableFreeSpace);
         _client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
     }
 
@@ -76,7 +79,7 @@ public sealed class AiModelPackageService : IDisposable
         {
             budget.Token.ThrowIfCancellationRequested();
             ObjectDisposedException.ThrowIf(_disposed, this);
-            budget.CancelAfter(TimeSpan.FromMinutes(30));
+            budget.CancelAfter(DownloadBudget(model));
             token = budget.Token;
             var final = ReparseSafePathPolicy.PrepareContainedFileDestination(_root, model.Sha256 + ".gguf");
             var partial = ReparseSafePathPolicy.PrepareContainedFileDestination(_root, model.Sha256 + ".partial");
@@ -92,25 +95,13 @@ public sealed class AiModelPackageService : IDisposable
                 File.Delete(partial);
                 offset = 0;
             }
-            var drive = new DriveInfo(Path.GetPathRoot(_root)!);
-            if (drive.AvailableFreeSpace < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
+            if (_availableFreeSpace(_root) < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
                 throw new IOException("Insufficient free space for the model.");
             var download = await RequestWithRangeFallbackAsync(model.DownloadUri, offset, token).ConfigureAwait(false);
             using var response = download.Response;
-            offset = download.Offset;
-            response.EnsureSuccessStatusCode();
-            if (response.StatusCode == HttpStatusCode.PartialContent)
-            {
-                var range = response.Content.Headers.ContentRange;
-                if (range is null || range.Unit != "bytes" || range.From != offset || range.To != model.Bytes - 1 || range.Length != model.Bytes)
-                    throw new InvalidDataException("Invalid model download range.");
-            }
-            else if (response.StatusCode == HttpStatusCode.OK) offset = 0;
-            else throw new InvalidDataException("Unexpected model download status.");
-            if (response.Content.Headers.ContentLength is long length && length != model.Bytes - offset)
-                throw new InvalidDataException("Model response size does not match the catalog.");
+            offset = ValidateDownloadResponse(response, download.Offset, model.Bytes);
             // A server may ignore Range, so recheck with the actual restart offset.
-            if (drive.AvailableFreeSpace < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
+            if (_availableFreeSpace(_root) < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
                 throw new IOException("Insufficient free space for model restart and runtime extraction.");
             ReparseSafePathPolicy.RevalidatePreparedDestination(_root, partial);
             await using (var output = new FileStream(partial, offset > 0 ? FileMode.Open : FileMode.Create, FileAccess.Write, FileShare.None, 65536, true))
@@ -143,6 +134,27 @@ public sealed class AiModelPackageService : IDisposable
             return final;
         }
         finally { _gate.Release(); }
+    }
+
+    // The optional 7B payload is over four times larger. Keep its total transfer and
+    // hash-verification budget bounded without changing the 1.8B or per-read budgets.
+    internal static TimeSpan DownloadBudget(AiLyricsModelDescriptor model) =>
+        model.Id == AiLyricsModelCatalog.ExperimentalLargePlain.Id ? TimeSpan.FromHours(2) : TimeSpan.FromMinutes(30);
+
+    internal static long ValidateDownloadResponse(HttpResponseMessage response, long offset, long expectedBytes)
+    {
+        response.EnsureSuccessStatusCode();
+        if (response.StatusCode == HttpStatusCode.PartialContent)
+        {
+            var range = response.Content.Headers.ContentRange;
+            if (range is null || range.Unit != "bytes" || range.From != offset || range.To != expectedBytes - 1 || range.Length != expectedBytes)
+                throw new InvalidDataException("Invalid model download range.");
+        }
+        else if (response.StatusCode == HttpStatusCode.OK) offset = 0;
+        else throw new InvalidDataException("Unexpected model download status.");
+        if (response.Content.Headers.ContentLength is long length && length != expectedBytes - offset)
+            throw new InvalidDataException("Model response size does not match the catalog.");
+        return offset;
     }
 
     private async Task<(HttpResponseMessage Response, long Offset)> RequestWithRangeFallbackAsync(Uri uri, long offset, CancellationToken token)

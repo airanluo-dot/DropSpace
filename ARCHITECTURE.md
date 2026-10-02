@@ -6,24 +6,44 @@
 
 `AiLyricsService` receives a contextual verified package resolver and an inference backend through
 DI. Cache preflight belongs to that backend; one strategy cannot consume another strategy's cache.
-The sole selectable/shipping AI profile for this Beta is pinned Tencent Hy-MT2 1.8B Q8_0 with the
-frozen official per-line plaintext template. AI remains off by default. Older Standard/Compact
+The default AI model for this Beta remains pinned Tencent Hy-MT2 1.8B Q8_0. A separately pinned
+Tencent Hy-MT2 7B Q8_0 is available as an optional explicit-consent download; it does not replace
+the default or automatically download on selection while AI is off. Both use the same frozen
+official per-line plaintext template and sampler. AI remains off by default. Older Standard/Compact
 settings normalize to Q8 without downloading or deleting anything; their descriptors remain only
 for local artifact inspection/removal. The legacy JSON runner/backend implementation is retained but
 is not selected by production DI or offered as an approved alternative.
 
 `PlainHyLyricsProtocol` versions the exact target/source template, sampler, host mapping, acceptance
-policy, Q8 model digest, trusted embedded runtime-manifest digest, and app-owned track/provider/timing
+policy, selected Q8 model digest, trusted embedded runtime-manifest digest, and app-owned track/provider/timing
 identity. No IDs, JSON schema, context/reviewer metadata, or gold source-language labels reach the
 model. `RunPlainAsync` uses a single code-owned argument builder, no `-j`, four CPU threads, the
-shared native admission gate, 3 GiB process memory budget, 60-second line deadline, and retained
+shared native admission gate, a model-specific process memory budget (3 GiB for the default 1.8B;
+12 GiB only for the verified 7B profile), 60-second line deadline, and retained
 process cleanup ownership. The whole-song inference ceiling is 300 seconds, not a performance claim.
 First generation can take several minutes; known semantic errors remain possible under the Beta label.
-There is no claimed automatic language detector or gold-label bypass: every nonblank unknown-source
-line is evaluated. Unchanged names/same-target/unknown text is neutral. Invalid, missing, multiline,
+Host admission excludes recognized credits and same-target original lines using explicit TTML
+language or conservative lexical evidence. Confidence values describe deterministic rules, not
+calibrated language probabilities. Ambiguous Han, names, romanization and mixed-language lines
+remain eligible; nearby context can strengthen weak positive evidence but document majority cannot
+suppress a foreign verse. No fixture gold labels reach production. Original line IDs remain stable
+across cache, progress and final publication, and the admission version binds the cache key.
+Any valid matching source translation bypasses AI for the whole document before cache/resolver
+activity, including old source-v2 cache entries after conservative reclassification; blank source
+translation lines remain blank. Unchanged names/same-target/unknown output is neutral. Invalid, missing, multiline,
 cancelled, or failed output never becomes a complete translation or persistent partial-song cache.
 No-useful complete outcomes are memoized only in a bounded 64-entry, ten-minute session cache tied to
 the current clear generation. Existing matching provider translations take precedence.
+
+The 7B cache and resolved-package identities include its own verified model hash. Model changes
+cancel and drain the previous native owner before replacement; the native worker confirms the
+selected resource profile and applies separate current-free-memory GPU admission. Existing 1.8B
+identity serialization and launch arguments remain unchanged, while any changed runtime-manifest
+digest still invalidates prior cache identity. CI rebuilds the private worker from the candidate
+checkout before embedding its freshly verified binaries; publication additionally requires exact
+reviewed runtime and per-model evidence. Header/source compatibility and synthetic process tests
+are distinct from real 7B quality, latency or 16 GB GPU qualification. See the
+[optional 7B integration record](docs/dev/hy-mt2-7b-optional-profile.md).
 
 The unregistered CT2 candidate resolver/backend remains independently executable with explicitly
 injected reviewed route references and a source identifier. Its safe default always abstains on

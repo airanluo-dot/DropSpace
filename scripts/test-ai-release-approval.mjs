@@ -45,6 +45,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Core/Lyrics/LyricsMatcher.cs',
   'src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs',
   'src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs',
+  'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs',
+  'src/DropSpace.Core/Lyrics/LyricsMarqueePolicy.cs',
   'src/DropSpace.Core/Media/MediaModels.cs',
   'src/DropSpace.Core/Media/MediaPlaybackClock.cs',
   'src/DropSpace.Core/Media/MediaProcessIdentityPolicy.cs',
@@ -99,6 +101,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml',
   'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs',
   'src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs',
+  'src/DropSpace.App/Services/Media/MediaLyricsRefreshRequest.cs',
   'src/DropSpace.App/Services/Media/RetirableMediaWork.cs',
   'src/DropSpace.App/Services/Media/MediaSessionOwner.cs',
   'src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs',
@@ -173,8 +176,29 @@ export function readScope(root) {
   assert.equal(stringConstant('HostMappingVersion'), productionOutputSchema, 'Production host mapping changed; update the evidence adapter explicitly');
   // Check the actual worker launch builder and parse the compiled helper's frozen
   // sampler flags. A legacy one-shot launch is no longer production evidence.
-  assert.match(runner, /BuildArguments\(string modelPath, bool gpu\) =>\s*Array\.AsReadOnly\(new\[\] \{ "--model", Path\.GetFullPath\(modelPath\), "--mode", gpu \? "vulkan" : "cpu" \}\);/, 'Unrecognized resident startup arguments');
+  assert.match(runner, /BuildArguments\(string modelPath, bool gpu\) =>\s*BuildArguments\(modelPath, gpu, AiLyricsModelCatalog\.ExperimentalPlain\.Sha256\);/, 'Unrecognized default resident startup arguments');
+  assert.match(runner, /var model = AiLyricsModelCatalog\.FindSelectableByHash\(verifiedModelSha256\) \?\?\s*throw new InvalidDataException/, 'Resident model arguments require a verified selectable identity');
+  assert.match(runner, /var arguments = new List<string> \{ "--model", Path\.GetFullPath\(modelPath\), "--mode", gpu \? "vulkan" : "cpu" \};\s*if \(model == AiLyricsModelCatalog\.ExperimentalLargePlain\)\s*arguments\.AddRange\(\["--model-profile", "hy-mt2-7b-q8"\]\);\s*return arguments\.AsReadOnly\(\);/, 'Unrecognized model-specific resident startup arguments');
   const nativeArguments = ['--model', '$MODEL', '--mode', 'cpu'];
+  const windowsProcess = readText(root, 'src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs');
+  const memoryMiB = name => Number(singleMatch(windowsProcess, new RegExp(`internal const long ${name} = ([0-9]+)L \\* 1024 \\* 1024 \\* 1024;`, 'g'), `Production ${name}`)) * 1024;
+  assert.match(legacyRunner, /ExperimentalLargePlain\.Sha256, StringComparison\.OrdinalIgnoreCase\)\s*\? WindowsInferenceProcess\.Hy7BMaximumMemoryBytes : WindowsInferenceProcess\.MaximumMemoryBytes;/, 'Unrecognized model-specific process memory budgets');
+  const executionLimits = {
+    wholeSongSeconds: integerConstant('WholeSongSeconds'),
+    perLineSeconds: Number(singleMatch(runner, /ObjectDisposedException\.ThrowIf\(_disposed, this\);\s*deadline\.CancelAfter\(TimeSpan\.FromSeconds\((\d+)\)\);/g, 'Production per-line deadline')),
+    memoryMiB: memoryMiB('MaximumMemoryBytes'),
+    maximumPromptBytes: integerConstant('MaximumPromptBytes'), maximumOutputBytes: integerConstant('MaximumOutputBytes'),
+  };
+  const largeModelId = descriptors.find(match => match[1] === 'ExperimentalLargePlain')?.[2];
+  const ordinaryModelId = descriptors.find(match => match[1] === 'ExperimentalPlain')?.[2];
+  const modelProfiles = Object.fromEntries(shippingModels.map(model => {
+    assert.ok([ordinaryModelId, largeModelId].includes(model.id), 'Unrecognized shipping model resource profile');
+    const large = model.id === largeModelId;
+    return [model.id, {
+      nativeArguments: large ? [...nativeArguments, '--model-profile', 'hy-mt2-7b-q8'] : nativeArguments,
+      executionLimits: { ...executionLimits, memoryMiB: memoryMiB(large ? 'Hy7BMaximumMemoryBytes' : 'MaximumMemoryBytes') },
+    }];
+  }));
   const helper = readText(root, residentSourcePaths[2]);
   const argumentBody = singleMatch(helper, /std::vector<std::string> args = \{([\s\S]*?)\};/g, 'Compiled resident sampler arguments');
   const samplerArguments = argumentBody.split(',').map(part => {
@@ -211,12 +235,8 @@ export function readScope(root) {
     samplerArguments,
     promptTemplate: stringConstant('Template'),
     targetNames: { en: stringConstant('EnglishTarget'), 'zh-Hans': stringConstant('ChineseTarget') },
-    executionLimits: {
-      wholeSongSeconds: integerConstant('WholeSongSeconds'),
-      perLineSeconds: Number(singleMatch(runner, /ObjectDisposedException\.ThrowIf\(_disposed, this\);\s*deadline\.CancelAfter\(TimeSpan\.FromSeconds\((\d+)\)\);/g, 'Production per-line deadline')),
-      memoryMiB: Number(singleMatch(legacyRunner, /\? 1536L \* 1024 \* 1024 : (\d+)L \* 1024 \* 1024 \* 1024;/g, 'Production ordinary-model memory budget')) * 1024,
-      maximumPromptBytes: integerConstant('MaximumPromptBytes'), maximumOutputBytes: integerConstant('MaximumOutputBytes'),
-    },
+    executionLimits,
+    modelProfiles,
     sources: { algorithm: 'sha256-utf8-lf-v1', files, sha256: sha256(JSON.stringify(files)) },
     fixture: { path: fixturePath, sha256: sha256(fs.readFileSync(path.join(root, fixturePath))) },
   };
@@ -287,10 +307,13 @@ function readReviewedRuntime(root, report, scope) {
   return { ...reviewed, files, artifact };
 }
 
-function validateRunnerOutput(root, reference, scope, variant) {
+function validateRunnerOutput(root, reference, scope, variant, model) {
   const output = JSON.parse(readEvidence(root, reference, 'Production runner output').toString('utf8').replace(/^\uFEFF/, ''));
   assert.equal(output.schemaVersion, 1, 'Unsupported production runner output schema');
   assert.equal(output.kind, 'production-runner-output', 'Output must preserve actual production runner results');
+  // 7B needs its own captured model identity; the existing 1.8B output cannot be relabeled.
+  if (scope.modelProfiles[model.id].nativeArguments.includes('--model-profile'))
+    assert.deepEqual(output.model, { id: model.id, sha256: model.sha256, bytes: model.bytes }, '7B runner output needs its own captured model identity');
   assert.equal(output.targetLanguage, reference.targetLanguage, 'Runner output target mismatch');
   assert.ok(['Translated', 'NoUsefulTranslation'].includes(output.outcome), 'Runner output did not complete the production song');
   assert.equal(output.complete, true, 'Production song capture is incomplete');
@@ -376,7 +399,8 @@ function validateNativeEvidence(root, reference, model, scope, runtime, reviewed
   assert.equal(envelope.outputSchema, productionOutputSchema, 'Native evidence must use the production output schema');
   for (const key of ['backendId', 'acceptanceVersion', 'samplerIdentity', 'captureMethod'])
     assert.equal(envelope[key], scope[key], `Native evidence ${key} mismatch`);
-  assert.deepEqual(envelope.executionLimits, scope.executionLimits, 'Native evidence execution limits mismatch');
+  const modelProfile = scope.modelProfiles[model.id];
+  assert.deepEqual(envelope.executionLimits, modelProfile.executionLimits, 'Native evidence execution limits mismatch');
   assert.equal(envelope.sourceFingerprintSha256, scope.sources.sha256, 'Native evidence source fingerprint mismatch');
   assert.equal(envelope.platform, 'windows-x64', 'Native evidence must use the shipping Windows x64 platform');
   assert.ok(timestamp(envelope.executedAt, 'Native evidence execution time') <= reviewedAt, 'Native evidence postdates its semantic review');
@@ -405,8 +429,8 @@ function validateNativeEvidence(root, reference, model, scope, runtime, reviewed
     assert.equal(configuration[key], scope[key], `Native configuration ${key} mismatch`);
   assert.equal(configuration.fixtureSha256, scope.fixture.sha256, 'Native configuration fixture mismatch');
   assert.equal(configuration.sourceFingerprintSha256, scope.sources.sha256, 'Native configuration source fingerprint mismatch');
-  assert.deepEqual(configuration.executionLimits, scope.executionLimits, 'Native configuration execution limits mismatch');
-  assert.deepEqual(configuration.nativeArguments, scope.nativeArguments, 'Native configuration differs from actual production arguments');
+  assert.deepEqual(configuration.executionLimits, modelProfile.executionLimits, 'Native configuration execution limits mismatch');
+  assert.deepEqual(configuration.nativeArguments, modelProfile.nativeArguments, 'Native configuration differs from actual production arguments');
   assert.deepEqual(configuration.samplerArguments, scope.samplerArguments, 'Native configuration differs from compiled resident sampler arguments');
   const checks = envelope.technicalChecks;
   assert.deepEqual(checks?.coldTargets, ['en', 'zh-Hans'], 'Both complete cold production target runs are required');
@@ -419,7 +443,7 @@ function validateNativeEvidence(root, reference, model, scope, runtime, reviewed
   for (const output of envelope.outputs) {
     assert.equal(output.kind, 'runner-output', 'Native evidence must preserve runner-returned output, not relabeled raw output');
     assert.ok(['en', 'zh-Hans'].includes(output.targetLanguage), 'Native evidence output target is unsupported');
-    validateRunnerOutput(root, output, scope, variant);
+    validateRunnerOutput(root, output, scope, variant, model);
     targets.add(output.targetLanguage);
   }
   assert.deepEqual([...targets].sort(), ['en', 'zh-Hans'], 'Native evidence needs both shipping target languages');

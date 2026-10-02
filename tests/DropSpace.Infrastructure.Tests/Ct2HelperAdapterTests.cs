@@ -79,24 +79,43 @@ public sealed class Ct2HelperAdapterTests
     }
 
     [TestMethod]
-    public async Task CancellationRejectsLateOutputAndCleanupReleasesExecutable()
+    [DataRow(1)]
+    [DataRow(12)]
+    public async Task CancellationRejectsLateOutputAndCleanupReleasesExecutable(int repetitions)
     {
         WindowsProcessFixture.RequireAvailable();
+        for (var iteration = 0; iteration < repetitions; iteration++)
+            await CancelAndDeleteImmediatelyAsync();
+    }
+
+    private static async Task CancelAndDeleteImmediatelyAsync()
+    {
         using var fixture = new Fixture("cat >/dev/null\nprintf ready > ../started\nsleep 2\nprintf '%s' '{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"late\"}]}'\n",
             new { kind = "ct2", ready = true, delayMilliseconds = 2000, lateOutput = "{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"late\"}]}" });
         using var adapter = new Ct2HelperAdapter(TimeSpan.FromSeconds(5));
         using var cancel = new CancellationTokenSource();
         var running = adapter.TranslateAsync(fixture.Reference, "ja", "en", [new(0, "a")], cancel.Token);
+        System.Diagnostics.Process? observed = null;
         try
         {
             await WaitForStartedAsync(fixture, running);
+            observed = System.Diagnostics.Process.GetProcessById(int.Parse(await File.ReadAllTextAsync(fixture.ProcessIdPath),
+                System.Globalization.CultureInfo.InvariantCulture));
+            _ = observed.Handle; // Keep the same native process identity across cancellation.
             cancel.Cancel();
             await Assert.ThrowsAsync<OperationCanceledException>(() => running);
+            await adapter.DrainCleanupAsync(CancellationToken.None);
+            // Synchronous WaitForExit(0) queries the kernel signal, unlike HasExited.
+            Assert.IsTrue(observed.WaitForExit(0), "Cleanup returned before the kernel process object was signaled.");
+            File.Delete(fixture.Executable); // No sleep, retry or test-only release after the drain.
+            Assert.IsFalse(File.Exists(fixture.Executable));
         }
-        finally { cancel.Cancel(); try { await running; } catch (OperationCanceledException) { } }
-        await adapter.DrainCleanupAsync(CancellationToken.None);
-        File.Delete(fixture.Executable);
-        Assert.IsFalse(File.Exists(fixture.Executable));
+        finally
+        {
+            cancel.Cancel();
+            try { await running; } catch (OperationCanceledException) { }
+            finally { observed?.Dispose(); }
+        }
     }
 
     private static Ct2PackageIdentity Package(string model) => new(HashA, model, HashC,
@@ -309,6 +328,7 @@ public sealed class Ct2HelperAdapterTests
     {
         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "dropspace-ct2-test-" + Guid.NewGuid().ToString("N"));
         internal string Executable => Path.Combine(Root, "engine", "helper.exe");
+        internal string ProcessIdPath => Path.Combine(Root, "process-id");
         internal Ct2PackageReference Reference { get; private set; } = null!;
         private readonly Dictionary<string, object?> _manifest;
         internal Fixture(string body, object? windowsScenario = null)
@@ -319,6 +339,7 @@ public sealed class Ct2HelperAdapterTests
             {
                 var scenario = JsonSerializer.SerializeToElement(windowsScenario ?? new { kind = "ct2", exitCode = 9 });
                 var properties = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(scenario.GetRawText())!;
+                properties["pidPath"] = JsonSerializer.SerializeToElement(ProcessIdPath);
                 if (scenario.TryGetProperty("ready", out var ready) && ready.GetBoolean())
                     properties["readyPath"] = JsonSerializer.SerializeToElement(Path.Combine(Root, "started"));
                 if (scenario.TryGetProperty("marker", out var marker) && marker.GetBoolean())
@@ -327,7 +348,7 @@ public sealed class Ct2HelperAdapterTests
             }
             else
             {
-                File.WriteAllText(Executable, "#!/bin/sh\n" + body, new UTF8Encoding(false));
+                File.WriteAllText(Executable, "#!/bin/sh\nprintf '%s' \"$$\" > ../process-id\n" + body, new UTF8Encoding(false));
                 File.SetUnixFileMode(Executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
             foreach (var name in new[] { "model.bin", "config.json", "source.spm", "target.spm" }) File.WriteAllText(Path.Combine(Root, "model", name), name);

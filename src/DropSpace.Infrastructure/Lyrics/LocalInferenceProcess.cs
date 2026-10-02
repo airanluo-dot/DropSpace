@@ -51,7 +51,10 @@ internal sealed class LocalInferenceProcess : IDisposable
         // Kill and KILL_ON_JOB_CLOSE only request termination. A cancelled caller must still
         // await OS exit before the runtime image/model can be deleted or the gate released.
         // The mandatory Windows job permits just this one process and forbids breakaway.
-        await Process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+        if (OperatingSystem.IsWindows())
+            await WindowsInferenceProcess.WaitForExitSignalAsync(Process.SafeHandle).ConfigureAwait(false);
+        else
+            await Process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     // The task retains this owner and its streams until exit and all I/O have settled, even

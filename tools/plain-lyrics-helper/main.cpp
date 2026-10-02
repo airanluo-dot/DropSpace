@@ -5,6 +5,7 @@
 #include "log.h"
 #include "sampling.h"
 #include "gpu-policy.h"
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -31,7 +32,7 @@ static bool read_frame(std::string & out) {
 static void send(const json & value) { std::cout << value.dump() << '\n' << std::flush; }
 
 #ifdef DROPSPACE_VULKAN
-static ggml_backend_dev_t choose_gpu(json & selected_device) {
+static ggml_backend_dev_t choose_gpu(json & selected_device, dropspace::model_profile model_profile) {
     VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO}; app.apiVersion = VK_API_VERSION_1_2;
     VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO}; info.pApplicationInfo = &app;
     VkInstance instance{};
@@ -66,7 +67,7 @@ static ggml_backend_dev_t choose_gpu(json & selected_device) {
             for (const auto & extension : extensions)
                 if (std::string(extension.extensionName) == "VK_EXT_memory_budget") budget = true;
             const bool discrete = p.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-            if (dropspace::gpu_fits(p.vendorID, discrete, budget, props.memory_free, props.memory_total, host_available) &&
+            if (dropspace::gpu_fits(p.vendorID, discrete, budget, props.memory_free, props.memory_total, host_available, model_profile) &&
                 (!best || (discrete && !best_discrete) || (discrete == best_discrete && props.memory_free > best_free))) {
                 best = device; best_free = props.memory_free; best_discrete = discrete;
                 selected_device = {{"vendorId", p.vendorID}, {"name", props.description}, {"discrete", discrete},
@@ -83,12 +84,24 @@ int main(int argc, char ** argv) {
         if (argc == 2 && std::string(argv[1]) == "--version") {
             send({{"protocol", 1}, {"profile", "hy-q8-plain-resident-v1"}}); return 0;
         }
-        if (argc != 5 || std::string(argv[1]) != "--model" || std::string(argv[3]) != "--mode") return 64;
+        if ((argc != 5 && argc != 7) || std::string(argv[1]) != "--model" || std::string(argv[3]) != "--mode") return 64;
+        auto model_profile = dropspace::model_profile::hy_mt2_1_8b_q8;
+        if (argc == 7) {
+            if (std::string(argv[5]) != "--model-profile") return 64;
+            const auto requested = dropspace::parse_model_profile(argv[6]);
+            if (!requested) return 64;
+            model_profile = *requested;
+        }
         const std::string mode = argv[4];
         if (mode != "cpu" && mode != "vulkan") return 64;
 #ifndef DROPSPACE_VULKAN
         if (mode != "cpu") return 65;
 #endif
+        // The host verifies the pinned digest under a retained file lease. This exact
+        // size check also prevents a selected profile from understating its budget.
+        std::error_code model_error;
+        const auto actual_bytes = std::filesystem::file_size(std::filesystem::u8path(argv[2]), model_error);
+        if (model_error || !dropspace::model_size_matches(model_profile, actual_bytes)) return 67;
         // Use pinned upstream argument parsing to freeze defaults, explicit sampler flags and
         // model-metadata override bits exactly like the evaluated llama-completion command.
         std::vector<std::string> args = {"plain-lyrics-worker", "-m", argv[2], "--offline", "--perf", "--no-escape",
@@ -114,7 +127,7 @@ int main(int argc, char ** argv) {
 #ifdef DROPSPACE_VULKAN
         json selected_device;
         if (mode == "vulkan") {
-            auto device = choose_gpu(selected_device);
+            auto device = choose_gpu(selected_device, model_profile);
             if (!device) return 66; // host will fully drain us before CPU fallback
             params.devices = {device, nullptr};
             params.n_gpu_layers = 999;
@@ -126,7 +139,8 @@ int main(int argc, char ** argv) {
         auto templates = common_chat_templates_init(model, params.chat_template);
         const bool chat = common_chat_templates_was_explicit(templates.get());
         auto vocab = llama_model_get_vocab(model);
-        json ready = {{"protocol", 1}, {"ready", true}, {"backend", mode}};
+        json ready = {{"protocol", 1}, {"ready", true}, {"backend", mode},
+            {"modelProfile", std::string(dropspace::policy_for(model_profile)->id)}};
 #ifdef DROPSPACE_VULKAN
         // Diagnostic identity comes from the selected physical adapter, never the
         // user's GPU preference. It does not expose prompt or model contents.

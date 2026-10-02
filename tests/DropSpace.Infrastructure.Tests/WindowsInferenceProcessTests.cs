@@ -113,6 +113,29 @@ public sealed class WindowsInferenceProcessTests
     }
 
     [TestMethod]
+    public async Task NativeExitSignalObservationSurvivesACallerTimeout()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Requires the native Windows process exit signal."); return; }
+        using var child = LocalInferenceProcess.Start(PowerShellStart(
+            "[Console]::WriteLine('ready'); [Threading.Thread]::Sleep(60000)"));
+        using var observed = Process.GetProcessById(child.Process.Id);
+        _ = observed.Handle;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        Assert.AreEqual("ready", await child.StandardOutput.ReadLineAsync(timeout.Token));
+        var output = child.StandardOutput.ReadToEndAsync(timeout.Token);
+        var errors = child.StandardError.ReadToEndAsync(timeout.Token);
+        var exit = WindowsInferenceProcess.WaitForExitSignalAsync(child.Process.SafeHandle);
+        Assert.IsFalse(exit.IsCompleted);
+        await Assert.ThrowsExactlyAsync<TimeoutException>(() =>
+            LocalInferenceProcess.WaitForCleanupAsync(exit, observed.Id, TimeSpan.FromMilliseconds(20)));
+        Assert.IsFalse(exit.IsCompleted, "A caller timeout must leave actual process exit observation alive.");
+        Assert.IsFalse(observed.WaitForExit(0));
+        await LocalInferenceProcess.WaitForCleanupAsync(child.CompleteAsync(output, errors), observed.Id);
+        await exit.WaitAsync(timeout.Token);
+        Assert.IsTrue(observed.WaitForExit(0), "Cleanup must reach the kernel signal without another blocking wait.");
+    }
+
+    [TestMethod]
     public void WindowsArgumentQuotingPreservesQuotesAndTrailingSlashes()
     {
         Assert.AreEqual("\"\"", WindowsInferenceProcess.QuoteArgument(string.Empty));

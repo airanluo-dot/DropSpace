@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,6 +14,12 @@ public sealed partial class MediaCompactView : UserControl
     private bool _subscribed;
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
     private double _textWidth;
+    private double _secondaryTextWidth;
+    private readonly LyricsMarqueeSession _secondaryMarquee = new();
+    private bool _translationWasVisible;
+    private string _displayedTranslation = string.Empty;
+    private LyricsTranslationOrigin _displayedOrigin;
+    private bool _secondaryMeasureInvalid = true;
     private double _interludeOpacity;
     private long _lastPresentationTick;
     private double _primaryHeight = 28;
@@ -26,18 +33,20 @@ public sealed partial class MediaCompactView : UserControl
     public double IdealIslandHeight { get; private set; } = 40;
     // The glow asks the rendered text surface, not only whether a translation exists.
     internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+        SecondaryViewport.Visibility == Visibility.Visible && SecondaryViewport.ActualWidth > 0 && SecondaryViewport.ActualHeight > 0 &&
         SecondaryLine.Visibility == Visibility.Visible && SecondaryLine.Opacity > 0.01 &&
         SecondaryLine.ActualWidth > 0 && SecondaryLine.ActualHeight > 0 &&
         !string.IsNullOrWhiteSpace(SecondaryLine.Text) &&
         string.Equals(SecondaryLine.Text, _view?.SecondaryLyricText, StringComparison.Ordinal);
     public event EventHandler? IdealWidthChanged;
+    public event EventHandler? TranslationVisibilityChanged;
     public MediaCompactView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => InvalidateTextMeasure();
-        Layout.SizeChanged += (_, _) => InvalidateTextMeasure();
+        LayoutUpdated += (_, _) => NotifyTranslationVisibility();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
@@ -51,6 +60,8 @@ public sealed partial class MediaCompactView : UserControl
     {
         DetachXamlRoot();
         Unsubscribe();
+        _secondaryMarquee.Reset();
+        NotifyTranslationVisibility();
     }
     public MediaViewModel? ViewModel
     {
@@ -82,19 +93,24 @@ public sealed partial class MediaCompactView : UserControl
     private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
     {
         AttachXamlRoot();
-        _textWidth = 0;
         InvalidateMeasure();
         Layout.InvalidateMeasure();
-        Refresh();
+        InvalidateTextMeasure();
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion)) Refresh();
+        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) Refresh();
     }
     private void OnViewportSizeChanged(object sender, SizeChangedEventArgs args)
     {
         ViewportClip.Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height));
         RefreshHighlight();
+    }
+    private void OnSecondaryViewportSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        SecondaryViewportClip.Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height));
+        RefreshHighlight();
+        NotifyTranslationVisibility();
     }
     private void Refresh()
     {
@@ -125,13 +141,27 @@ public sealed partial class MediaCompactView : UserControl
             _measuredRasterizationScale = rasterizationScale;
         }
         var secondary = settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null;
-        SecondaryLine.Text = secondary ?? string.Empty;
+        if (_secondaryMeasureInvalid || SecondaryLine.Text != (secondary ?? string.Empty) ||
+            _secondaryMeasure.FontSize != SecondaryLine.FontSize || measureChanged)
+        {
+            SecondaryLine.Text = secondary ?? string.Empty;
+            _secondaryMeasure.FontFamily = SecondaryLine.FontFamily;
+            _secondaryMeasure.FontSize = SecondaryLine.FontSize;
+            _secondaryMeasure.FontWeight = SecondaryLine.FontWeight;
+            _secondaryMeasure.FontStyle = SecondaryLine.FontStyle;
+            _secondaryMeasure.CharacterSpacing = SecondaryLine.CharacterSpacing;
+            _secondaryMeasure.Language = SecondaryLine.Language;
+            _secondaryMeasure.FlowDirection = SecondaryLine.FlowDirection;
+            _secondaryMeasure.IsTextScaleFactorEnabled = SecondaryLine.IsTextScaleFactorEnabled;
+            _secondaryMeasure.Text = SecondaryLine.Text;
+            _secondaryMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            _secondaryTextWidth = _secondaryMeasure.DesiredSize.Width;
+            SecondaryLine.Width = _secondaryTextWidth;
+            SecondaryViewport.Height = _secondaryMeasure.DesiredSize.Height;
+            _secondaryMeasureInvalid = false;
+        }
         SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
-        _secondaryMeasure.FontFamily = SecondaryLine.FontFamily;
-        _secondaryMeasure.FontSize = SecondaryLine.FontSize;
-        _secondaryMeasure.FontWeight = SecondaryLine.FontWeight;
-        _secondaryMeasure.Text = SecondaryLine.Text;
-        _secondaryMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        SecondaryViewport.Visibility = SecondaryLine.Visibility;
         var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryMeasure.DesiredSize.Height : 0;
         IdealIslandHeight = Math.Max(40, _primaryHeight + secondaryHeight + 12);
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
@@ -147,6 +177,7 @@ public sealed partial class MediaCompactView : UserControl
         { IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();
         RefreshInterlude();
+        NotifyTranslationVisibility();
     }
     private void RefreshInterlude()
     {
@@ -172,6 +203,8 @@ public sealed partial class MediaCompactView : UserControl
     {
         _textWidth = 0;
         _measuredFontFamily = null;
+        _secondaryMeasureInvalid = true;
+        _secondaryMarquee.Reset();
         Refresh();
     }
     private void RefreshHighlight()
@@ -205,6 +238,21 @@ public sealed partial class MediaCompactView : UserControl
                     : 0;
         }
         LyricTranslation.TranslateX = -Math.Clamp(scroll, 0, overflow);
+        SecondaryTranslation.TranslateX = -_secondaryMarquee.Update(new(
+            _view.Session.TrackIdentity, presentation.Line?.Start.Ticks ?? 0, SecondaryLine.Text,
+            SecondaryLine.FontSize, XamlRoot?.RasterizationScale ?? 1, _secondaryTextWidth, SecondaryViewport.ActualWidth,
+            _view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling,
+            _view.IsReducedMotion), _view.Position);
+    }
+    private void NotifyTranslationVisibility()
+    {
+        var visible = IsTranslationActuallyVisible;
+        var origin = _view?.LyricPresentation.Line?.TranslationOrigin ?? LyricsTranslationOrigin.None;
+        if (_translationWasVisible == visible && _displayedTranslation == SecondaryLine.Text && _displayedOrigin == origin) return;
+        _translationWasVisible = visible;
+        _displayedTranslation = SecondaryLine.Text;
+        _displayedOrigin = origin;
+        TranslationVisibilityChanged?.Invoke(this, EventArgs.Empty);
     }
     private double Measure(string text)
     {

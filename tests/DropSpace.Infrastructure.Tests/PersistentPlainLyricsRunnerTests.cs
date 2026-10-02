@@ -12,6 +12,61 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class PersistentPlainLyricsRunnerTests
 {
     [TestMethod]
+    public async Task ModelSwitchDrainsResidentAndUsesIndependentProfileEvenWhenPathIsReused()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner();
+        Assert.AreEqual("small", await fixture.RunAsync(runner, "small"));
+        var smallPid = fixture.StartedProcesses().Single().Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(smallPid), "Model replacement must wait for prior native exit.");
+        Assert.AreEqual("large", await fixture.RunAsync(runner, "large", model: AiLyricsModelCatalog.ExperimentalLargePlain));
+        var large = fixture.StartedProcesses()[1];
+        Assert.AreEqual("hy-mt2-7b-q8", large.ModelProfile);
+        Assert.AreNotEqual(smallPid, large.Pid);
+        Assert.AreEqual("large again", await fixture.RunAsync(runner, "large again", model: AiLyricsModelCatalog.ExperimentalLargePlain));
+        Assert.HasCount(2, fixture.StartedProcesses());
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(large.Pid));
+        Assert.AreEqual("small again", await fixture.RunAsync(runner, "small again"));
+        Assert.HasCount(3, fixture.StartedProcesses());
+        Assert.AreEqual("hy-mt2-1.8b-q8", fixture.StartedProcesses()[2].ModelProfile);
+        Assert.HasCount(4, PersistentPlainLyricsRunner.BuildArguments(fixture.Model, false));
+        Assert.HasCount(6, PersistentPlainLyricsRunner.BuildArguments(fixture.Model, false, AiLyricsModelCatalog.ExperimentalLargePlain.Sha256));
+    }
+
+    [TestMethod]
+    [DataRow("omit-model-profile")]
+    [DataRow("wrong-model-profile")]
+    public async Task LargeModelRejectsOldOrMismatchedWorkerHandshakeBeforeSendingPrompt(string marker)
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(Path.Combine(fixture.Root, marker), string.Empty);
+        var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true });
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => fixture.RunAsync(runner, "must not reach worker", model: AiLyricsModelCatalog.ExperimentalLargePlain));
+        Assert.IsFalse(IsAlive(fixture.StartedProcesses().Single().Pid));
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "requests")));
+        CollectionAssert.AreEqual(new[] { true }, fixture.ResolvedModes);
+    }
+
+    [TestMethod]
+    public async Task LargeModelCancellationDrainsBeforeReturningToDefaultProfile()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner();
+        using var cancel = new CancellationTokenSource();
+        var pending = fixture.RunAsync(runner, "partial-and-block", cancel.Token, AiLyricsModelCatalog.ExperimentalLargePlain);
+        await WaitUntilAsync(() => File.Exists(fixture.Blocked), pending);
+        var largePid = fixture.StartedProcesses().Single().Pid;
+        cancel.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
+        Assert.IsFalse(IsAlive(largePid));
+        Assert.AreEqual("default restored", await fixture.RunAsync(runner, "default restored"));
+        Assert.AreEqual("hy-mt2-1.8b-q8", fixture.StartedProcesses()[1].ModelProfile);
+    }
+
+    [TestMethod]
     public async Task ConsecutiveRequestsReuseProcessAndKeepHostIdsOutsidePrompt()
     {
         RequireFixture();
@@ -302,7 +357,7 @@ public sealed class PersistentPlainLyricsRunnerTests
         }
     }
 
-    private sealed record StartedProcess(int Pid, string Mode);
+    private sealed record StartedProcess(int Pid, string Mode, string ModelProfile);
     private sealed record Request(int Protocol, int Pid, string Id, string Prompt);
 
     private sealed class Fixture : IAsyncDisposable
@@ -351,12 +406,13 @@ public sealed class PersistentPlainLyricsRunnerTests
             return runner;
         }
 
-        internal Task<string> RunAsync(PersistentPlainLyricsRunner runner, string prompt, CancellationToken token = default) =>
+        internal Task<string> RunAsync(PersistentPlainLyricsRunner runner, string prompt, CancellationToken token = default,
+            AiLyricsModelDescriptor? model = null) =>
             runner.RunPlainAsync(Path.Combine(Root, "unused one-shot executable"), Model, prompt, Staging, token,
-                AiLyricsModelCatalog.ExperimentalPlain.Sha256).WaitAsync(TimeSpan.FromSeconds(15));
+                (model ?? AiLyricsModelCatalog.ExperimentalPlain).Sha256).WaitAsync(TimeSpan.FromSeconds(15));
 
         internal StartedProcess[] StartedProcesses() => ReadEvents("starts").Select(item => new StartedProcess(
-            item.GetProperty("pid").GetInt32(), item.GetProperty("mode").GetString()!)).ToArray();
+            item.GetProperty("pid").GetInt32(), item.GetProperty("mode").GetString()!, item.GetProperty("modelProfile").GetString()!)).ToArray();
 
         internal Request[] Requests() => ReadEvents("requests").Select(item => new Request(
             item.GetProperty("protocol").GetInt32(), item.GetProperty("pid").GetInt32(),
@@ -380,16 +436,20 @@ public sealed class PersistentPlainLyricsRunnerTests
             import json, os, sys, time
             root = os.path.dirname(os.path.abspath(__file__))
             mode = sys.argv[sys.argv.index('--mode') + 1]
+            model_profile = sys.argv[sys.argv.index('--model-profile') + 1] if '--model-profile' in sys.argv else 'hy-mt2-1.8b-q8'
             pid = os.getpid()
             def record(name, value):
                 with open(os.path.join(root, name), 'a', encoding='utf-8') as output:
                     output.write(json.dumps(value, ensure_ascii=False) + '\n')
-            record('starts', {'pid': pid, 'mode': mode})
+            record('starts', {'pid': pid, 'mode': mode, 'modelProfile': model_profile})
             if mode == 'vulkan' and os.path.exists(os.path.join(root, 'fail-vulkan-startup')):
                 os.close(1)
                 time.sleep(60)
                 sys.exit(27)
-            print(json.dumps({'protocol': 1, 'ready': True, 'backend': mode}), flush=True)
+            ready = {'protocol': 1, 'ready': True, 'backend': mode}
+            if not os.path.exists(os.path.join(root, 'omit-model-profile')):
+                ready['modelProfile'] = 'wrong-model' if os.path.exists(os.path.join(root, 'wrong-model-profile')) else model_profile
+            print(json.dumps(ready), flush=True)
             for line in sys.stdin:
                 request = json.loads(line)
                 record('requests', dict(request, pid=pid))

@@ -144,6 +144,33 @@ public sealed class AiLyricsProgressRegressionTests
         Assert.AreEqual(drains, fixture.Backend.Drains);
     }
 
+    [TestMethod]
+    public async Task StaleProviderBypassCannotInvalidateTheCurrentSongsProgressOrFinal()
+    {
+        using var fixture = new Fixture();
+        LyricsTranslationProgress? queued = null;
+        var activeProgress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true,
+            (update, _) => { queued = update; return Task.CompletedTask; });
+        var active = fixture.Service.TranslateForPublicationAsync(Fixture.Query, Fixture.Source,
+            Fixture.Settings, "en", default, activeProgress);
+        await fixture.Backend.Started.Task;
+        Assert.IsNotNull(queued);
+        var provider = Fixture.Source with { Lines = [Fixture.Source.Lines[0] with
+            { Secondary = "The source translation is here", TranslationOrigin = LyricsTranslationOrigin.Provider,
+                TranslationLanguage = "en" }] };
+        var stale = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => false,
+            (_, _) => throw new AssertFailedException("A stale source request must not publish."));
+        var bypass = await fixture.Service.TranslateForPublicationAsync(Fixture.Query with { Title = "old song" },
+            provider, Fixture.Settings, "en", default, stale);
+        Assert.IsFalse(bypass.IsCurrent);
+        Assert.IsTrue(queued.IsCurrent);
+        Assert.AreEqual(AiLyricsTranslationState.Translating, fixture.Service.TranslationState);
+        fixture.Backend.Complete.SetResult();
+        var final = await active;
+        Assert.IsTrue(final.IsCurrent);
+        Assert.AreSame(Fixture.Translated, final.Document);
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "DropSpace-app-progress-" + Guid.NewGuid().ToString("N"));

@@ -46,6 +46,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private LyricsDocument _document = LyricsDocument.Empty;
     private long _generation, _artworkGeneration, _lyricPositionTicks;
     private long _reloadRequest;
+    private readonly MediaLyricsRefreshRequest _sourceRefresh = new();
     private bool _initialized, _disposed;
 
     public MediaExperienceService(MainViewModel main, MediaViewModel view, WindowsMediaSessionService media,
@@ -93,6 +94,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         Interlocked.Increment(ref _generation);
         Interlocked.Increment(ref _artworkGeneration);
         _lyricsWork.CancelCurrent();
+        AiLyrics.InvalidateTranslation();
         _artworkWork.CancelCurrent();
         TaskCompletionSource? ready = null;
         try
@@ -111,6 +113,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             await SetAudioSourceAsync(null, false, token).ConfigureAwait(false);
             Volatile.Write(ref _latest, _media.Current);
             Volatile.Write(ref _spectrum, SpectrumFrame.Empty);
+            _sourceRefresh.Request();
             Interlocked.Increment(ref _reloadRequest);
             ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             _ = MediaSoftRestartOperation.ObserveAsync(ready.Task);
@@ -303,14 +306,18 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     {
                         // Lyrics and cache maintenance are optional to the metadata path.
                         // Never wait here for a cancelled provider or a clear-cache drain.
+                        var refreshRequest = _sourceRefresh.Capture();
+                        var forceSourceRefresh = _sourceRefresh.IsPending(refreshRequest);
                         lyricsPending = !_lyricsWork.TryStartWhileIdle(_lyricsMaintenance,
-                            workToken => LoadLyricsAsync(session, settings, generation, workToken), token,
+                            workToken => LoadLyricsAsync(session, settings, generation, workToken, forceSourceRefresh), token,
                             () => _changes.Writer.TryWrite(true));
+                        if (!lyricsPending) _sourceRefresh.MarkStarted(refreshRequest);
                         if (lyricsPending)
                             await _dispatcher.EnqueueAsync(() =>
                             {
                                 if (!_disposed && !token.IsCancellationRequested && generation == Interlocked.Read(ref _generation))
-                                    _view.LyricsStatus = LyricsQueryStatus.Failed;
+                                    _view.LyricsStatus = settings.Lyrics.Enabled && !string.IsNullOrWhiteSpace(session.TrackTitle)
+                                        ? LyricsQueryStatus.Loading : LyricsQueryStatus.Disabled;
                                 return Task.CompletedTask;
                             }).WaitAsync(token).ConfigureAwait(false);
                     }
@@ -345,14 +352,16 @@ public sealed class MediaExperienceService : IAsyncDisposable
         catch (OperationCanceledException) when (token.IsCancellationRequested) { ready?.TrySetCanceled(token); }
     }
 
-    private async Task LoadLyricsAsync(MediaSessionSnapshot session, AppSettings settings, long generation, CancellationToken token)
+    private async Task LoadLyricsAsync(MediaSessionSnapshot session, AppSettings settings, long generation, CancellationToken token, bool refresh)
     {
+        LyricsQueryResult? sourceResult = null;
         try
         {
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist), settings.Lyrics, token).ConfigureAwait(false)
+                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist), settings.Lyrics, token, refresh).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
+            sourceResult = result;
             await _dispatcher.EnqueueAsync(() =>
             {
                 if (IsLyricsRequestCurrent(session, settings, generation, token))
@@ -387,8 +396,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         }
                         return Task.CompletedTask;
                     }));
-                var publication = await AiLyrics.TranslateForPublicationAsync(query, result.Document, settings.Lyrics,
-                    targetLanguage, token, progress).ConfigureAwait(false);
+                var translationCancellation = new MediaWorkCancellation(token);
+                var translation = AiLyrics.TranslateForPublicationAsync(query, result.Document, settings.Lyrics,
+                    targetLanguage, translationCancellation.Token, progress);
+                // The AI lifetime retains native cleanup ownership. A song change must not
+                // consume both source-fetch slots while cancelled inference is still draining.
+                _ = translationCancellation.CompleteWhenAsync(translation);
+                var publication = await translation.WaitAsync(token).ConfigureAwait(false);
                 var translated = publication.Document;
                 // A later invalid line or timeout discards the ephemeral view as well as the
                 // durable result; always restore provider lyrics when progress was displayed.
@@ -417,10 +431,12 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 {
                     if (IsLyricsRequestCurrent(session, settings, generation, token))
                     {
-                        _document = LyricsDocument.Empty;
-                        _view.SetLyricsDocument(LyricsDocument.Empty);
-                        _view.LyricsStatus = LyricsQueryStatus.Failed;
-                        _view.Lyrics = LyricsHighlightFrame.Empty;
+                        // Translation/runtime failures must not erase a successful source
+                        // result or mislabel that provider fetch as a network/load failure.
+                        _document = sourceResult?.Document ?? LyricsDocument.Empty;
+                        _view.SetLyricsDocument(_document);
+                        _view.LyricsStatus = sourceResult?.Status ?? LyricsQueryStatus.Failed;
+                        RenderFrame();
                     }
                     return Task.CompletedTask;
                 }).ConfigureAwait(false);

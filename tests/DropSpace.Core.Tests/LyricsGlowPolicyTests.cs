@@ -41,4 +41,29 @@ public sealed class LyricsGlowPolicyTests
         Assert.AreEqual(LyricsGlowMode.Off, LyricsGlowPolicy.OnAiEnabledChanged(false));
         Assert.AreEqual(LyricsGlowMode.AiLyrics, LyricsGlowPolicy.OnAiEnabledChanged(true));
     }
+
+    [TestMethod]
+    [DataRow(2d, false)]
+    [DataRow(4d, true)]
+    public void RetainedAiLineRemainsEligibleWheneverItsTranslationIsStillDisplayed(double gapSeconds, bool interlude)
+    {
+        var line = new LyricsLine(TimeSpan.Zero, TimeSpan.FromSeconds(2), "Original", "Translation", [])
+        {
+            TranslationOrigin = LyricsTranslationOrigin.LocalAi,
+            TranslationLanguage = "en",
+        };
+        var presentation = LyricsDisplayPolicy.Presentation([line], LyricsHighlightFrame.Empty,
+            TimeSpan.FromSeconds(2 + gapSeconds), 0);
+        Assert.IsTrue(presentation.IsWaiting);
+        Assert.AreEqual(interlude, presentation.IsInterlude);
+        var secondary = LyricsDisplayPolicy.Secondary(presentation.Line, "en-US", true);
+        // Compact retains this text during the first three seconds of the gap;
+        // expanded may retain it throughout. Eligibility follows each actual viewport.
+        Assert.AreEqual(!interlude, LyricsGlowPolicy.IsEligible(LyricsGlowMode.AiLyrics, true, true,
+            !presentation.IsInterlude, presentation.Line!.TranslationOrigin, secondary));
+        Assert.IsTrue(LyricsGlowPolicy.IsEligible(LyricsGlowMode.AiLyrics, true, true,
+            true, presentation.Line.TranslationOrigin, secondary));
+        Assert.IsFalse(LyricsGlowPolicy.IsEligible(LyricsGlowMode.AiLyrics, true, true,
+            false, presentation.Line.TranslationOrigin, secondary), "Scrolling the expanded translation offscreen must dim the glow.");
+    }
 }

@@ -20,18 +20,22 @@ public sealed class PlainHyLyricsPackageResolver(AiModelPackageService models, A
         LyricsDocument source, string targetLanguage, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (selectionId != AiLyricsModelCatalog.ExperimentalPlain.Id) return null;
+        var descriptor = AiLyricsModelCatalog.FindSelectable(selectionId);
+        if (descriptor is null) return null;
+        source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
+            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0) return null;
         var model = await models.GetInstalledPathAsync(selectionId, token).ConfigureAwait(false);
         if (model is null) return null;
         var executable = await runtime.EnsureExecutableAsync(token).ConfigureAwait(false);
         // Plain generation uses exactly the evaluated template; no JSON or token-count subprocess.
-        return new(PlainHyLyricsBackend.BackendId, PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity()),
-            model, executable, null);
+        return new(PlainHyLyricsBackend.BackendId, PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), descriptor.Sha256),
+            model, executable, null, ModelId: descriptor.Id, VerifiedModelSha256: descriptor.Sha256);
     }
 }
 
 /// <summary>Whole-song coordinator for host-mapped plaintext output. Unknown/same-target copied lines
-/// are neutral, not a claim of failed or successful translation; no source-script detector is invented.</summary>
+/// are neutral. Shared conservative language/credit admission runs before cache and inference.</summary>
 public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
 {
     private readonly object _memoGate = new();
@@ -41,8 +45,9 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         string targetLanguage, string identity, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return null;
-        var indices = SourceIndices(source);
+        var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return null;
         var generation = cache.Generation;
         var key = PlainHyLyricsProtocol.CacheKey(query, source, targetLanguage, identity);
@@ -71,10 +76,11 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             throw new ArgumentOutOfRangeException(nameof(songBudget));
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
+        source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
         if (cache.Generation != generation || progress?.IsCurrent == false ||
             LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage))
             return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
-        var indices = SourceIndices(source);
+        var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var key = PlainHyLyricsProtocol.CacheKey(query, source, targetLanguage, identity);
         var cached = await TryGetCachedAsync(query, source, targetLanguage, identity, token).ConfigureAwait(false);
@@ -149,9 +155,6 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             .ThenBy(id => source.Lines[id].Start).ThenBy(id => id).First();
     }
 
-    private static int[] SourceIndices(LyricsDocument source) => source.Lines.Count is 0 or > 500 ? [] :
-        Enumerable.Range(0, source.Lines.Count).Where(i => !string.IsNullOrWhiteSpace(source.Lines[i].Text)).ToArray();
-
     private bool IsNoUseful(string key, long generation)
     {
         lock (_memoGate)
@@ -181,9 +184,15 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
     public Task<LyricsTranslationResult?> TryGetCachedResultAsync(string selectionId, LyricsQuery query,
         LyricsDocument source, string targetLanguage, CancellationToken token)
     {
-        if (selectionId != AiLyricsModelCatalog.ExperimentalPlain.Id) return Task.FromResult<LyricsTranslationResult?>(null);
+        token.ThrowIfCancellationRequested();
+        source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
+        var model = AiLyricsModelCatalog.FindSelectable(selectionId);
+        if (model is null ||
+            LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
+            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
+            return Task.FromResult<LyricsTranslationResult?>(null);
         string identity;
-        try { identity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity()); }
+        try { identity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), model.Sha256); }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException)
         { return Task.FromResult<LyricsTranslationResult?>(null); }
         return coordinator.TryGetCachedAsync(query, source, targetLanguage, identity, token);
@@ -196,13 +205,25 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
     public Task<LyricsTranslationResult> TranslateAsync(AiLyricsResolvedPackage package, LyricsQuery query,
         LyricsDocument source, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress)
     {
-        if (package.BackendId != Id || package.Ct2Route is not null ||
-            package.CacheIdentity != PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity()))
+        token.ThrowIfCancellationRequested();
+        source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage) ||
+            LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
+            return Task.FromResult(new LyricsTranslationResult(source, LyricsTranslationOutcome.NoUsefulTranslation));
+        // Unannotated legacy packages remain the original 1.8B profile only. New resolutions
+        // carry both catalog ID and verified bytes; neither may silently select another model.
+        var model = package.ModelId is null && package.VerifiedModelSha256 is null
+            ? AiLyricsModelCatalog.ExperimentalPlain : AiLyricsModelCatalog.FindSelectable(package.ModelId ?? string.Empty);
+        if (model is null || (package.VerifiedModelSha256 is not null &&
+                !string.Equals(package.VerifiedModelSha256, model.Sha256, StringComparison.OrdinalIgnoreCase)) ||
+            (package.ModelId is not null && package.VerifiedModelSha256 is null) ||
+            package.BackendId != Id || package.Ct2Route is not null ||
+            package.CacheIdentity != PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), model.Sha256))
             throw new InvalidDataException("Resolved model/runtime does not belong to the plaintext Beta profile.");
         return coordinator.TranslateAsync(query, source, targetLanguage, package.CacheIdentity,
             package.CacheGeneration ?? throw new InvalidDataException("Missing cache generation."),
             (prompt, cancellation) => runner.RunPlainAsync(package.RuntimePath, package.ModelPath, prompt,
-                stagingDirectory, cancellation, AiLyricsModelCatalog.ExperimentalPlain.Sha256), token, progress);
+                stagingDirectory, cancellation, model.Sha256), token, progress);
     }
     public Task DrainCleanupAsync(CancellationToken token) => runner.DrainCleanupAsync(token);
     public void Dispose() => runner.Dispose();

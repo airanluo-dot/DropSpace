@@ -148,7 +148,21 @@ public sealed class AiLyricsService : IDisposable
     public async Task<AiLyricsPublication> TranslateForPublicationAsync(LyricsQuery query, LyricsDocument document,
         LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null)
     {
+        document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
         Func<bool> isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true);
+        if (!settings.Enabled || !settings.AiTranslationEnabled ||
+            LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage) ||
+            LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0)
+        {
+            if (!isCurrent()) return new(document, () => false);
+            // Retire the preceding presentation before any asynchronous configuration wait.
+            // A stale bypass continuation must never invalidate a newer song's AI result.
+            InvalidateTranslation();
+            // A provider/same-language bypass never initializes AI. If a resident runtime
+            // was already configured, setting changes must still retire its old owner.
+            await ConfigureRuntimeAsync(settings, isCurrent, token, onlyIfConfigured: true).ConfigureAwait(false);
+            return new(document, isCurrent);
+        }
         try
         {
             await ConfigureRuntimeAsync(settings, isCurrent, token).ConfigureAwait(false);
@@ -164,13 +178,13 @@ public sealed class AiLyricsService : IDisposable
         }
     }
 
-    private async Task ConfigureRuntimeAsync(LyricsSettings settings, Func<bool> isCurrent, CancellationToken token)
+    private async Task ConfigureRuntimeAsync(LyricsSettings settings, Func<bool> isCurrent, CancellationToken token, bool onlyIfConfigured = false)
     {
         await _configurationGate.WaitAsync(token).ConfigureAwait(false);
         try
         {
             token.ThrowIfCancellationRequested();
-            if (!isCurrent()) return;
+            if (!isCurrent() || onlyIfConfigured && _configuredEnabled is null) return;
             var enabled = settings.Enabled && settings.AiTranslationEnabled;
             if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
                 _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled) return;
@@ -199,7 +213,9 @@ public sealed class AiLyricsService : IDisposable
         SetState(statusGeneration, AiLyricsTranslationState.Ready);
         if (!settings.Enabled || !settings.AiTranslationEnabled || document.Lines.Count == 0) return document;
         // The approved first version never fills gaps in a source-provided translation.
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage)) return document;
+        document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage) ||
+            LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0) return document;
         // Validated cached data needs neither executable extraction nor a large model rehash.
         // Actual inference still verifies every model/runtime before execution.
         var cacheGeneration = _cache.Generation;

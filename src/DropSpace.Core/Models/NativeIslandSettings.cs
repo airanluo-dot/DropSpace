@@ -34,6 +34,7 @@ public sealed record LyricsSettings
     public LyricsProviderKind? BackupProvider { get; init; }
     public bool SearchRemainingProviders { get; init; }
     public bool SecondaryLyrics { get; init; }
+    public bool ShowAiLyricsLabel { get; init; } = true;
     public bool WordSyncedHighlighting { get; init; } = true;
     public int DelayMilliseconds { get; init; }
     public bool Scrolling { get; init; } = true;

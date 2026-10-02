@@ -26,6 +26,7 @@ public sealed partial class MediaExpandedView : UserControl
     private uint? _activePointerId;
     private double? _queuedSeekSeconds;
     private string _trackIdentity = string.Empty;
+    private string _lyricViewportText = string.Empty;
     private bool _updating;
     public MediaExpandedView()
     {
@@ -76,11 +77,8 @@ public sealed partial class MediaExpandedView : UserControl
     private void Render()
     {
         if (_view is null) return;
-        OriginalLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize * (18d / 16d);
+        OriginalLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize;
         TranslatedLyric.FontSize = _view.Settings.Lyrics.TranslationFontSize;
-        // Keep the established compact panel bounds; full lyrics remain available on the Music page.
-        OriginalLyric.MaxLines = OriginalLyric.FontSize > 22 ? 1 : 2;
-        TranslatedLyric.MaxLines = TranslatedLyric.FontSize > 18 ? 1 : 2;
         _updating = true;
         try
         {
@@ -88,6 +86,7 @@ public sealed partial class MediaExpandedView : UserControl
             if (!string.Equals(_trackIdentity, trackIdentity, StringComparison.Ordinal))
             {
                 _trackIdentity = trackIdentity;
+                _lyricViewportText = string.Empty;
                 CancelSeekInteraction();
             }
             if (!_seekInteraction.IsDragging && !_seekInteraction.IsPreviewing)
@@ -107,6 +106,13 @@ public sealed partial class MediaExpandedView : UserControl
             ArtworkHost.Visibility = showArtwork ? Visibility.Visible : Visibility.Collapsed;
             TimelineRow.Visibility = ControlsRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
             LyricsArea.Visibility = empty || !_view.Settings.Lyrics.Enabled ? Visibility.Collapsed : Visibility.Visible;
+            CurrentLyricsViewport.Visibility = LyricsArea.Visibility;
+            TranslatedLyric.Visibility = string.IsNullOrWhiteSpace(_view.SecondaryLyricText) ? Visibility.Collapsed : Visibility.Visible;
+            if (!string.Equals(_lyricViewportText, _view.CurrentLyricText, StringComparison.Ordinal))
+            {
+                _lyricViewportText = _view.CurrentLyricText;
+                CurrentLyricsViewport.ChangeView(null, 0, null, disableAnimation: true);
+            }
             AutomationProperties.SetName(PlayPause, _view.PlayPauseLabel);
             Spectrum.Visibility = _view.Settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? Visibility.Visible : Visibility.Collapsed;
             for (var index = 0; index < Spectrum.Children.Count; index++)

@@ -63,6 +63,7 @@ internal static class MusicVisualSmoke
         var output = Path.Combine(options.Root, "captures");
         Directory.CreateDirectory(output);
         var captures = new List<CaptureEvidence>();
+        var lyricsLayoutChecks = new List<LyricsLayoutEvidence>();
         var uiErrors = new List<string>();
         var status = "failed";
         var stage = "graphical-session";
@@ -103,6 +104,8 @@ internal static class MusicVisualSmoke
             // Keep one window alive for the whole run. Closing the last WinUI window between
             // captures can terminate the process before the remaining evidence is written.
             host = new Window { Title = "DropSpace synthetic visual diagnostic" };
+            stage = "lyrics-layout-regressions";
+            await CheckLyricsLayoutsAsync(host, strings, lyricsLayoutChecks);
             foreach (var theme in new[] { ElementTheme.Light, ElementTheme.Dark })
             foreach (var scenario in Cases)
             {
@@ -122,7 +125,8 @@ internal static class MusicVisualSmoke
             }
             if (sessions.IsAvailable || sessions.AvailableSources.Count != 0)
                 throw new InvalidOperationException("Native media discovery was activated during the fixture.");
-            status = uiErrors.Count == 0 && captures.All(capture => capture.Failures.Count == 0) ? "passed" : "failed";
+            status = uiErrors.Count == 0 && captures.All(capture => capture.Failures.Count == 0) &&
+                lyricsLayoutChecks.All(check => check.Failures.Count == 0) ? "passed" : "failed";
             stage = "complete";
             return status == "passed" ? 0 : 1;
         }
@@ -144,7 +148,7 @@ internal static class MusicVisualSmoke
                 os = Environment.OSVersion.VersionString,
                 capturedAtUtc = DateTimeOffset.UtcNow,
                 evidenceKind = "native-winui-control-render-target-bitmap",
-                dataSource = "synthetic-only", captures, uiErrors,
+                dataSource = "synthetic-only", captures, lyricsLayoutChecks, uiErrors,
                 limitations = new[]
                 {
                     "Component captures use real controls in a diagnostic host, not the production overlay HWND or main-window shell.",
@@ -162,6 +166,127 @@ internal static class MusicVisualSmoke
         Width = width, Height = height, RequestedTheme = theme,
         Background = new SolidColorBrush(theme == ElementTheme.Dark ? Microsoft.UI.Colors.Black : Microsoft.UI.Colors.White),
     };
+
+    private static async Task CheckLyricsLayoutsAsync(Window window, IAppStringLocalizer strings, List<LyricsLayoutEvidence> evidence)
+    {
+        var selectorFailures = new List<string>();
+        var glowMode = new LyricsGlowModeControl(strings);
+        var standardSelection = new ComboBox { ItemsSource = new[] { strings.Get("LyricsGlowOff") }, SelectedIndex = 0 };
+        var selectors = new StackPanel { Spacing = 8, Children = { glowMode, standardSelection } };
+        var selectorRoot = CreateRoot(ElementTheme.Light, 320, 140);
+        selectorRoot.Children.Add(selectors);
+        window.Content = selectorRoot;
+        window.Activate();
+        await WaitForLayoutAsync(selectorRoot);
+        var nativeSelector = Descendants(glowMode).OfType<ComboBox>().Single();
+        if (Descendants(glowMode).OfType<Slider>().Any() || nativeSelector.Items.Count != 3 ||
+            nativeSelector.FontSize != standardSelection.FontSize || Math.Abs(nativeSelector.ActualHeight - standardSelection.ActualHeight) > .5)
+            selectorFailures.Add("Glow modes did not use the standard native selection dimensions.");
+        var changes = 0;
+        glowMode.ModeChanged += (_, _) => changes++;
+        glowMode.Mode = LyricsGlowMode.Music;
+        if (changes != 0 || nativeSelector.SelectedIndex != 2) selectorFailures.Add("Settings synchronization changed selection semantics.");
+        nativeSelector.SelectedIndex = 1;
+        if (changes != 1 || glowMode.Mode != LyricsGlowMode.AiLyrics) selectorFailures.Add("Native selection did not persist the requested glow mode.");
+        evidence.Add(new(standardSelection.FontSize, selectorRoot.XamlRoot.RasterizationScale, false, false, 0, 0, 0,
+            selectorFailures, "native-selection"));
+        window.Content = null;
+
+        foreach (var fontSize in new[] { 12d, 16d, 17.375, 28d })
+        foreach (var longOriginal in new[] { false, true })
+        foreach (var longTranslation in new[] { false, true })
+        {
+            var failures = new List<string>();
+            var media = CreateFixture(strings, "normal");
+            media.IsReducedMotion = false;
+            media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { FontSize = fontSize },
+                IslandActivity = media.Settings.IslandActivity with { CompactDynamicWidth = false } };
+            var original = longOriginal ? string.Join(" ", Enumerable.Repeat("Original lyric", 15)) : "Hi";
+            var translation = longTranslation ? string.Join(" ", Enumerable.Repeat("Complete translation", 15)) : "OK";
+            var line = new LyricsLine(TimeSpan.Zero, TimeSpan.FromMinutes(1), original, translation, [])
+            { TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = strings.Culture.Name };
+            media.SetLyricsDocument(new([line], LyricsProviderKind.LocalLrc));
+            media.Lyrics = new(line, -1, 0, 1);
+            var compact = new MediaCompactView { ViewModel = media };
+            var root = CreateRoot(ElementTheme.Dark, 320, 140);
+            root.Children.Add(compact);
+            window.Content = root;
+            window.Activate();
+            await WaitForLayoutAsync(root);
+            var descendants = Descendants(compact).OfType<FrameworkElement>().ToArray();
+            var secondary = (TextBlock)descendants.Single(element => element.Name == "SecondaryLine");
+            var primary = (TextBlock)descendants.Single(element => element.Name == "BaseLine");
+            var viewport = (Grid)descendants.Single(element => element.Name == "SecondaryViewport");
+            var transform = (CompositeTransform)secondary.RenderTransform;
+            var viewportWidth = viewport.ActualWidth;
+            if (primary.FontSize != fontSize || secondary.FontSize != fontSize * .875)
+                failures.Add("Selected decimal font size or translation ratio was not rendered.");
+            if (secondary.Text != "AI · " + translation || secondary.TextTrimming != TextTrimming.None)
+                failures.Add("The complete labeled translation was not retained for measurement.");
+            if ((secondary.ActualWidth > viewport.ActualWidth) != longTranslation)
+                failures.Add("Independent translation measurement did not match its short/long fixture.");
+            if (viewport.Clip is not RectangleGeometry clip || Math.Abs(clip.Rect.Width - viewport.ActualWidth) > .01)
+                failures.Add("Translation clipping does not match its actual viewport.");
+            media.Position += TimeSpan.FromSeconds(4);
+            var offset = -transform.TranslateX;
+            if ((offset > 0) != longTranslation) failures.Add("Translation marquee depended on original length or did not advance.");
+            var width = secondary.ActualWidth;
+            media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { ShowAiLyricsLabel = false } };
+            root.UpdateLayout();
+            if (secondary.Text != translation || transform.TranslateX != 0 || secondary.ActualWidth >= width)
+                failures.Add("AI label toggle failed to remeasure and reset the translation.");
+            if (media.LyricPresentation.Line?.TranslationOrigin != LyricsTranslationOrigin.LocalAi)
+                failures.Add("AI label toggle changed the displayed translation origin.");
+            media.Position += TimeSpan.FromSeconds(4);
+            root.Width = 260;
+            root.UpdateLayout();
+            if (transform.TranslateX != 0) failures.Add("Viewport resize did not restart the readable leading hold.");
+            var progressive = line with { Secondary = translation + " appended text" };
+            media.SetLyricsDocument(new([progressive], LyricsProviderKind.LocalLrc));
+            root.UpdateLayout();
+            if (secondary.Text != progressive.Secondary || transform.TranslateX != 0)
+                failures.Add("Progressive text was not remeasured before the next highlight frame.");
+            media.Position += TimeSpan.FromSeconds(4);
+            media.IsReducedMotion = true;
+            if (transform.TranslateX != 0) failures.Add("Reduced motion did not stop the translation marquee.");
+            media.IsReducedMotion = false;
+            media.Position += TimeSpan.FromSeconds(4);
+            media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { Scrolling = false } };
+            if (transform.TranslateX != 0) failures.Add("Disabling scrolling did not restore the full-text leading edge.");
+            media.Session = media.Session with { TrackTitle = "Next synthetic song" };
+            if (secondary.Visibility != Visibility.Collapsed || compact.IsTranslationActuallyVisible)
+                failures.Add("A track change retained the previous translation.");
+            evidence.Add(new(fontSize, root.XamlRoot.RasterizationScale, longOriginal, longTranslation,
+                width, viewportWidth, offset, failures));
+            window.Content = null;
+        }
+
+        var expandedMedia = CreateFixture(strings, "normal");
+        expandedMedia.Settings = expandedMedia.Settings with { Lyrics = expandedMedia.Settings.Lyrics with { FontSize = 28 } };
+        var longLine = new LyricsLine(TimeSpan.Zero, TimeSpan.FromMinutes(1),
+            string.Join(" ", Enumerable.Repeat("Full original lyric", 80)), "Visible translation", [])
+        { TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = strings.Culture.Name };
+        expandedMedia.SetLyricsDocument(new([longLine], LyricsProviderKind.LocalLrc));
+        expandedMedia.Lyrics = new(longLine, -1, 0, 1);
+        var expanded = new ExpandedIslandMusicView { ViewModel = expandedMedia };
+        var expandedRoot = CreateRoot(ElementTheme.Dark, 560, 340);
+        expandedRoot.Children.Add(expanded);
+        window.Content = expandedRoot;
+        await WaitForLayoutAsync(expandedRoot);
+        var expandedFailures = new List<string>();
+        if (expanded.IsTranslationActuallyVisible) expandedFailures.Add("Translation below the viewport was treated as visible.");
+        var scroll = Descendants(expanded).OfType<ScrollViewer>().Single(view => view.Name == "CurrentLyricsViewport");
+        if (!scroll.IsTabStop || AutomationProperties.GetName(scroll) != strings.Get("MusicLyricsSection") || !scroll.Focus(FocusState.Keyboard))
+            expandedFailures.Add("Full lyrics cannot be reached with native keyboard focus.");
+        var visibilityEvents = 0;
+        expanded.TranslationVisibilityChanged += (_, _) => visibilityEvents++;
+        scroll.ChangeView(null, scroll.ScrollableHeight, null, disableAnimation: true);
+        await WaitForLayoutAsync(expandedRoot);
+        if (!expanded.IsTranslationActuallyVisible || visibilityEvents == 0)
+            expandedFailures.Add("Scrolling translation into view did not update actual visibility.");
+        evidence.Add(new(28, expandedRoot.XamlRoot.RasterizationScale, true, false, 0, scroll.ViewportWidth, 0, expandedFailures, "expanded-viewport"));
+        window.Content = null;
+    }
 
     private static MediaViewModel CreateFixture(IAppStringLocalizer strings, string scenario)
     {
@@ -276,6 +401,15 @@ internal static class MusicVisualSmoke
         if (surface == "music-page-component")
         {
             if (next.Length != 0) failures.Add("The main player unexpectedly contains the island upcoming line.");
+            var lyricViewport = elements.OfType<ScrollViewer>().Single(view => view.Name == "CurrentLyricsViewport");
+            if (!lyricViewport.IsTabStop || AutomationProperties.GetName(lyricViewport) != strings.Get("MusicLyricsSection"))
+                failures.Add("The main card's complete lyrics are not exposed to keyboard navigation.");
+            var refreshButton = elements.OfType<Button>().SingleOrDefault(button => AutomationProperties.GetAutomationId(button) == "MusicRefresh");
+            if (refreshButton is null || refreshButton.Content is not StackPanel refreshContent ||
+                !refreshContent.Children.OfType<FontIcon>().Any(icon => icon.Glyph == "\uE72C" && icon.FontSize == 16) ||
+                !refreshContent.Children.OfType<TextBlock>().Any(label => label.Text == strings.Get("MusicRefresh")) ||
+                !double.IsNaN(refreshButton.Width) || !double.IsNaN(refreshButton.Height))
+                failures.Add("Refresh does not expose the standard complete icon and label at native button size.");
             return failures;
         }
         if (next.Length != 1) failures.Add("The island must contain exactly one upcoming lyric element.");
@@ -335,6 +469,9 @@ internal static class MusicVisualSmoke
     }
 
     private sealed record ElementBox(string Name, string Type, bool Visible, double X, double Y, double Width, double Height);
+    private sealed record LyricsLayoutEvidence(double FontSize, double ActualRasterizationScale,
+        bool LongOriginal, bool LongTranslation, double TranslationWidth, double ViewportWidth, double MarqueeOffset,
+        IReadOnlyList<string> Failures, string Surface = "compact-marquee");
     private sealed record CaptureEvidence(string File, string Surface, string Scenario, string Theme,
         int PixelWidth, int PixelHeight, double ActualWidth, double ActualHeight, double RasterizationScale,
         uint WindowDpi, double SystemTextScale, bool HighContrast, double ApplicationLyricFontSize,

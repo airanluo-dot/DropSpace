@@ -12,6 +12,8 @@ public sealed class LyricsService
     private readonly LyricsProviderRegistry _providers;
     private readonly LyricsCache? _cache;
     private readonly MemoryCache _memory = new();
+    private readonly TimeSpan _providerTimeout = TimeSpan.FromSeconds(8);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<LyricsProviderKind, SemaphoreSlim> _providerGates = new();
 
     // Compatibility callers retain a bounded process-memory cache; production injects
     // the shared persistent store explicitly. No temporary directory is owned here.
@@ -22,10 +24,16 @@ public sealed class LyricsService
         _providers = providers;
         _cache = cache;
     }
+    internal LyricsService(LyricsProviderRegistry providers, TimeSpan providerTimeout)
+    {
+        _providers = providers;
+        if (providerTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(providerTimeout));
+        _providerTimeout = providerTimeout;
+    }
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken) =>
         (await QueryDetailedAsync(query, settings, cancellationToken).ConfigureAwait(false)).Document;
 
-    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken)
+    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!settings.Enabled || string.IsNullOrWhiteSpace(query.Title)) return new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
@@ -42,10 +50,10 @@ public sealed class LyricsService
             durationTicks = query.Duration.Ticks,
         });
         var generation = _cache?.Generation ?? _memory.Generation;
-        if (kind != LyricsProviderKind.LocalLrc)
+        if (kind != LyricsProviderKind.LocalLrc && !refresh)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
-            var validated = cached is null ? LyricsDocument.Empty : Validate(cached, query);
+            var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0)
                 return new(validated, LyricsQueryStatus.Found);
         }
@@ -92,16 +100,58 @@ public sealed class LyricsService
     private sealed record ProviderResult(LyricsDocument Document, bool Failed);
     private async Task<ProviderResult> QueryProviderAsync(LyricsProviderKind kind, LyricsQuery query, CancellationToken token)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(8));
-        try { return new(Validate(await _providers.Get(kind).QueryAsync(query, timeout.Token).ConfigureAwait(false), query), false); }
+        var cancellation = new ProviderCancellation(token, _providerTimeout);
+        var requestToken = cancellation.Token;
+        var invocationOwnsCancellation = false;
+        Task<ProviderResult>? invocation = null;
+        // Bound actual calls, including transports still retiring after the caller left.
+        // A deadline releases the presentation waiter, never the provider's resources/slot.
+        var gate = _providerGates.GetOrAdd(kind, _ => new SemaphoreSlim(2, 2));
+        try
+        {
+            await gate.WaitAsync(requestToken).ConfigureAwait(false);
+            invocationOwnsCancellation = true;
+            invocation = InvokeProviderAsync(kind, query, requestToken, cancellation, gate);
+            var result = await invocation.WaitAsync(requestToken).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            // Let cooperative HTTP/stream cleanup finish before returning, but keep a
+            // bounded waiter if a transport ignores cancellation. The invocation still
+            // owns its gate and timeout after this small retirement grace expires.
+            if (invocation is not null)
+            {
+                try { await invocation.WaitAsync(TimeSpan.FromMilliseconds(250)).ConfigureAwait(false); }
+                catch (TimeoutException) { }
+            }
+            token.ThrowIfCancellationRequested();
+            return new(LyricsDocument.Empty, true);
+        }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         { return new(LyricsDocument.Empty, true); }
+        finally { if (!invocationOwnsCancellation) await cancellation.CompleteAsync().ConfigureAwait(false); }
     }
+    private async Task<ProviderResult> InvokeProviderAsync(LyricsProviderKind kind, LyricsQuery query,
+        CancellationToken token, ProviderCancellation cancellation, SemaphoreSlim gate)
+    {
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            var document = await _providers.Get(kind).QueryAsync(query, token).ConfigureAwait(false);
+            // Cancellation wins even when a transport returns a stale success instead of throwing.
+            token.ThrowIfCancellationRequested();
+            return new(Validate(document, query), false);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { return new(LyricsDocument.Empty, true); }
+        finally { await cancellation.CompleteAsync().ConfigureAwait(false); gate.Release(); }
+    }
+
     private async Task<(LyricsDocument Document, bool Failed)> QueryFallbacksAsync(IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        using var stage = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var stage = CancellationTokenSource.CreateLinkedTokenSource(token);
         // At most four provider requests are active. Allow a short quality window
         // after the first usable result so a slower, stronger verified match can
         // win, then cancel and drain the rest.
@@ -139,9 +189,64 @@ public sealed class LyricsService
         }
         finally
         {
-            stage.Cancel();
+            // Request cancellation without synchronously running transport callbacks on
+            // the winner's continuation. The stage owns callbacks until they actually exit.
+            var cancellation = stage.CancelAsync();
+            _ = DisposeStageAfterCancellationAsync(stage, cancellation);
             try { await Task.WhenAll(all).ConfigureAwait(false); }
             catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException or OperationCanceledException) { }
+        }
+    }
+
+    private static async Task DisposeStageAfterCancellationAsync(CancellationTokenSource stage, Task cancellation)
+    {
+        try { await cancellation.ConfigureAwait(false); }
+        catch (Exception exception) when (exception is not OutOfMemoryException) { }
+        finally { stage.Dispose(); }
+    }
+
+    // Cancellation callbacks are part of the transport lifetime. Neither an old song
+    // nor a provider deadline runs those callbacks synchronously on the new caller.
+    private sealed class ProviderCancellation
+    {
+        private readonly object _gate = new();
+        private readonly CancellationTokenSource _source = new();
+        private readonly CancellationTokenRegistration _registration;
+        private readonly Timer _deadline;
+        private Task _callbacks = Task.CompletedTask;
+        private bool _requested, _closed;
+
+        public ProviderCancellation(CancellationToken parent, TimeSpan timeout)
+        {
+            Token = _source.Token;
+            _registration = parent.UnsafeRegister(static state => ((ProviderCancellation)state!).Request(), this);
+            _deadline = new Timer(static state => ((ProviderCancellation)state!).Request(), this, timeout, Timeout.InfiniteTimeSpan);
+        }
+
+        public CancellationToken Token { get; }
+        private void Request()
+        {
+            lock (_gate)
+            {
+                if (_closed || _requested) return;
+                _requested = true;
+                _callbacks = _source.CancelAsync();
+            }
+        }
+
+        public async Task CompleteAsync()
+        {
+            Task callbacks;
+            lock (_gate)
+            {
+                _closed = true;
+                callbacks = _callbacks;
+                _registration.Unregister();
+                _deadline.Dispose();
+            }
+            try { await callbacks.ConfigureAwait(false); }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { }
+            finally { _source.Dispose(); }
         }
     }
 

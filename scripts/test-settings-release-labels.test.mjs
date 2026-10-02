@@ -62,6 +62,30 @@ test('model selector uses selectable catalog only and maps Q8 Beta to its own lo
   assert.match(ai, /ExperimentalPlain.Id \? "AiLyricsPlainBetaHelp"/);
 });
 
+test('optional 7B has its own localized label and resource cost in the existing consent dialog', () => {
+  assert.match(ai, /ExperimentalLargePlain.Id \? "AiLyricsLargePlainBetaModel"/);
+  assert.match(ai, /ExperimentalLargePlain.Id \? "AiLyricsLargePlainBetaHelp"/);
+  for (const language of ['en-US', 'zh-CN']) {
+    const strings = resources(language);
+    assert.match(strings.get('AiLyricsLargePlainBetaModel'), /7B Q8_0.*Beta/);
+    const help = strings.get('AiLyricsLargePlainBetaHelp');
+    assert.match(help, /7\.98 GB/);
+    assert.match(help, language === 'en-US' ? /more memory.*more video memory/ : /更多内存.*更多显存/);
+    assert.match(help, language === 'en-US' ? /not guaranteed/ : /不保证/);
+    assert.match(help, language === 'en-US' ? /remain until you remove them/ : /手动删除以释放空间/);
+  }
+  const install = section(ai, 'private async Task<bool> EnsureInstalledAsync(', 'private async Task<bool> SaveAsync(');
+  assert.match(install, /ModelLabel\(model\), SizeLabel\(model\), model.Name, SourceLabel\(model\)/);
+  assert.match(install, /ModelHelp\(model\)/);
+  const consent = install.indexOf('ContentDialogLifetime.ShowAsync(dialog, token) != ContentDialogResult.Primary');
+  const download = install.indexOf('_service.DownloadAsync(model.Id, consent: true');
+  assert.ok(consent >= 0 && download > consent, 'Model download must follow explicit confirmation');
+  assert.match(install, /DefaultButton = ContentDialogButton.Close/);
+  const selection = section(ai, 'private void OnModelSelected(', 'private void OnDownload(');
+  assert.match(selection, /AiTranslationEnabled && !await EnsureInstalledAsync\(model, generation, token\)/);
+  assert.doesNotMatch(selection, /_service.DownloadAsync|AiTranslationEnabled\s*=/);
+});
+
 test('legacy files have cleanup-only controls, shown only for existing artifacts', () => {
   const legacy = section(ai, 'foreach (var model in AiLyricsModelCatalog.Legacy)', 'body.Children.Add(_legacyModels)');
   assert.match(legacy, /remove.Click \+= \(_, _\) => DeleteModel\(model\)/);

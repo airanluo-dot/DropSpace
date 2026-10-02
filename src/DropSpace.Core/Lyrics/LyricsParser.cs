@@ -47,12 +47,12 @@ public static class LyricsParser
                 End = end, Secondary = translation, Words = words,
                 TranslationOrigin = translationIndex >= 0 && !string.IsNullOrWhiteSpace(translation)
                     ? LyricsTranslationOrigin.Provider : line.TranslationOrigin,
-                // External LRC has no reliable translation language identity. In particular,
-                // Latin or Han script alone must not suppress translation to the App language.
-                TranslationLanguage = translationIndex >= 0 ? null : line.TranslationLanguage,
+                // External TTML carries the translated text's own primary language.
+                // Unlabelled LRC remains unknown until conservative document classification.
+                TranslationLanguage = translationIndex >= 0 ? translations[translationIndex].SourceLanguage : line.TranslationLanguage,
             };
         }
-        return new(ordered, provider);
+        return LyricsLanguagePolicy.IdentifyProviderTranslations(new(ordered, provider));
     }
 
     private static int[] AlignTranslations(LyricsLine[] lines, LyricsLine[] translations)
@@ -224,6 +224,7 @@ public static class LyricsParser
             var languages = translations.Select(value => value.Language).Distinct(StringComparer.Ordinal).ToArray();
             if (textValue.Length > 0) output.Add(new(start, end, textValue, secondary.Length == 0 ? null : secondary, words)
             {
+                SourceLanguage = ExplicitSourceLanguage(paragraph),
                 TranslationOrigin = translation.Length > 0 ? LyricsTranslationOrigin.Provider : LyricsTranslationOrigin.None,
                 TranslationLanguage = translation.Length > 0 && languages.Length == 1 ? languages[0] : null,
             });
@@ -288,6 +289,27 @@ public static class LyricsParser
             normalized.Contains("transliteration", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("romanization", StringComparison.OrdinalIgnoreCase) ||
             normalized.Equals("pinyin", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? ExplicitSourceLanguage(XElement paragraph)
+    {
+        var languages = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var text in paragraph.DescendantNodes().OfType<XText>().Where(t => t.Value.Any(char.IsLetter)))
+        {
+            var ancestors = text.Ancestors().ToArray();
+            if (ancestors.TakeWhile(e => e != paragraph).Any(e =>
+            {
+                var roles = e.Attributes().FirstOrDefault(a => a.Name.LocalName.Equals("role", StringComparison.OrdinalIgnoreCase))?.Value ?? string.Empty;
+                var ruby = e.Attributes().FirstOrDefault(a => a.Name.LocalName.Equals("ruby", StringComparison.OrdinalIgnoreCase))?.Value;
+                return roles.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Any(r => IsTranslationRole(r) || IsRomanizationRole(r)) ||
+                    ruby is not null && (ruby.Equals("text", StringComparison.OrdinalIgnoreCase) || ruby.Equals("textContainer", StringComparison.OrdinalIgnoreCase));
+            })) continue;
+            var declaration = ancestors.Select(e => e.Attribute(XNamespace.Xml + "lang")?.Value).FirstOrDefault(v => v is not null);
+            var language = LyricsTranslationPolicy.NormalizeLanguage(declaration);
+            if (language.Length == 0) return null;
+            languages.Add(language);
+        }
+        return languages.Count == 1 ? languages.Single() : languages.Count > 1 ? "mul" : null;
     }
 
     private static string? ExplicitTranslationLanguage(XElement translation)

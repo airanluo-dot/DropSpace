@@ -2,6 +2,13 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsDisplayPolicy
 {
+    public static bool IntersectsViewport(double left, double top, double width, double height,
+        double viewportWidth, double viewportHeight) =>
+        double.IsFinite(left) && double.IsFinite(top) && double.IsFinite(width) && double.IsFinite(height) &&
+        double.IsFinite(viewportWidth) && double.IsFinite(viewportHeight) &&
+        width > 0 && height > 0 && viewportWidth > 0 && viewportHeight > 0 &&
+        left + width > 0 && top + height > 0 && left < viewportWidth && top < viewportHeight;
+
     public static LyricsPresentation Presentation(IReadOnlyList<LyricsLine> lines,
         LyricsHighlightFrame frame, TimeSpan position, int delayMilliseconds)
     {
@@ -24,10 +31,10 @@ public static class LyricsDisplayPolicy
         return new(true, anchor, true, effective - gapStart >= 3_000);
     }
 
-    public static string? SecondaryPresentation(LyricsLine? line, string languageTag, bool enabled)
+    public static string? SecondaryPresentation(LyricsLine? line, string languageTag, bool enabled, bool showAiLabel = true)
     {
         var text = Secondary(line, languageTag, enabled);
-        return text is not null && line?.TranslationOrigin == LyricsTranslationOrigin.LocalAi ? "AI · " + text : text;
+        return showAiLabel && text is not null && line?.TranslationOrigin == LyricsTranslationOrigin.LocalAi ? "AI · " + text : text;
     }
 
     public static string? Secondary(LyricsLine? line, string languageTag, bool enabled)

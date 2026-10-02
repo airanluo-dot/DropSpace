@@ -41,15 +41,20 @@ public static class PlainHyLyricsProtocol
         !text.Any(c => char.IsControl(c) && c != '\t') && !text.Contains("```", StringComparison.Ordinal) &&
         !text.Contains('\uFFFD');
 
-    public static string InferenceIdentity(string runtimeManifestSha256)
+    public static string InferenceIdentity(string runtimeManifestSha256) =>
+        InferenceIdentity(runtimeManifestSha256, AiLyricsModelCatalog.ExperimentalPlain.Sha256);
+
+    public static string InferenceIdentity(string runtimeManifestSha256, string verifiedModelSha256)
     {
         if (runtimeManifestSha256.Length != 64 || !runtimeManifestSha256.All(Uri.IsHexDigit))
             throw new ArgumentException("A pinned runtime manifest identity is required.", nameof(runtimeManifestSha256));
+        var model = AiLyricsModelCatalog.FindSelectableByHash(verifiedModelSha256) ??
+            throw new ArgumentException("A selectable pinned plaintext model identity is required.", nameof(verifiedModelSha256));
         return Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
         {
             backend = "hy-q8-plain-beta-v1", protocol = Version, mapping = HostMappingVersion,
             acceptance = AcceptanceVersion, template = Template, targets = new[] { EnglishTarget, ChineseTarget },
-            sampler = SamplerIdentity, model = AiLyricsModelCatalog.ExperimentalPlain.Sha256,
+            sampler = SamplerIdentity, model = model.Sha256,
             runtime = runtimeManifestSha256.ToLowerInvariant(), maximumPromptBytes = MaximumPromptBytes,
         })));
     }
@@ -60,6 +65,7 @@ public static class PlainHyLyricsProtocol
         // version this protocol. An old JSON strategy can never supply a plaintext cache hit.
         var documentKey = LyricsTranslationPrompt.CacheKey(query, document, target, inferenceIdentity);
         return Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
-        { cache = "plain-hy-complete-song-v1", protocol = Version, documentKey })));
+        { cache = "plain-hy-complete-song-v2", eligibility = LyricsLanguagePolicy.Version, sourceLanguages = document.Lines.Select(line => line.SourceLanguage),
+            eligibleIds = LyricsLanguagePolicy.EligibleIndices(document, target), protocol = Version, documentKey })));
     }
 }

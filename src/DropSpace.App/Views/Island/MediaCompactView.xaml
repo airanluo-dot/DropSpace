@@ -27,7 +27,12 @@
         <Ellipse x:Name="InterludeDot2" Width="4" Height="4" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" />
       </StackPanel>
     </Grid>
-    <TextBlock x:Name="SecondaryLine" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed" />
+    <Grid x:Name="SecondaryViewport" SizeChanged="OnSecondaryViewportSizeChanged" Visibility="Collapsed">
+      <Grid.Clip><RectangleGeometry x:Name="SecondaryViewportClip" /></Grid.Clip>
+      <TextBlock x:Name="SecondaryLine" HorizontalAlignment="Left" FontSize="11" TextWrapping="NoWrap" Foreground="{StaticResource DropSpaceOverlayForegroundSecondaryBrush}" Visibility="Collapsed">
+        <TextBlock.RenderTransform><CompositeTransform x:Name="SecondaryTranslation" /></TextBlock.RenderTransform>
+      </TextBlock>
+    </Grid>
     </StackPanel>
     <StackPanel x:Name="SpectrumBars" Grid.Column="2" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Height="22" AutomationProperties.AccessibilityView="Raw">
       <Rectangle x:Name="Band0" Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource DropSpaceOverlayForegroundPrimaryBrush}" VerticalAlignment="Center" />

@@ -199,6 +199,8 @@ public sealed partial class OverlayWindow : Window
         _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
         _glow = new IslandGlowController(_windowHandle, _monitor.Scale, DispatcherQueue.GetForCurrentThread(), logger);
         _mediaViewModel.PropertyChanged += OnGlowMediaChanged;
+        MusicCompact.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
+        MusicExpanded.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
         _supportsModernDwmAttributes = capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes);
         var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
@@ -584,6 +586,8 @@ public sealed partial class OverlayWindow : Window
         _windowLifetime.Cancel();
         Views.ContentDialogLifetime.RetireRoot(Root.XamlRoot);
         _mediaViewModel.PropertyChanged -= OnGlowMediaChanged;
+        MusicCompact.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged;
+        MusicExpanded.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged;
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.Dispose();
         _presentationSnapshot = null;
@@ -611,7 +615,15 @@ public sealed partial class OverlayWindow : Window
 
     private void OnGlowMediaChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (_closing || args.PropertyName == nameof(MediaViewModel.IsIslandGlowActive) || _glowRefreshPending) return;
+        if (args.PropertyName == nameof(MediaViewModel.IsIslandGlowActive)) return;
+        QueueGlowTargetRefresh();
+    }
+
+    private void OnGlowTranslationVisibilityChanged(object? sender, EventArgs args) => QueueGlowTargetRefresh();
+
+    private void QueueGlowTargetRefresh()
+    {
+        if (_closing || _glowRefreshPending) return;
         _glowRefreshPending = true;
         if (!DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
         {
@@ -647,7 +659,6 @@ public sealed partial class OverlayWindow : Window
         var secondary = _mediaViewModel.SecondaryLyricText;
         var translationVisible = (compactLyricsVisible || expandedLyricsVisible) &&
             settings.Lyrics.Enabled && settings.Lyrics.SecondaryLyrics &&
-            !presentation.IsWaiting && !presentation.IsInterlude &&
             !string.IsNullOrWhiteSpace(secondary);
         var eligible = _glow.IsAvailable && LyricsGlowPolicy.IsEligible(settings.Lyrics.GlowMode,
             _mediaViewModel.IsPlaying && !string.IsNullOrWhiteSpace(_mediaViewModel.Title),
@@ -665,7 +676,8 @@ public sealed partial class OverlayWindow : Window
                 energy += double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
             energy /= spectrum.Bands.Count;
         }
-        _glow.SetTarget(eligible, energy, _mediaViewModel.IsReducedMotion || preferences.ReducedMotion);
+        _glow.SetTarget(eligible, energy, _mediaViewModel.IsReducedMotion || preferences.ReducedMotion,
+            spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? spectrum.Bands : null);
     }
 
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
@@ -1141,10 +1153,6 @@ public sealed partial class OverlayWindow : Window
             return false;
         }
 
-        _glow.SetGeometry(left, top, width, height,
-            ToPixels(values.TopRadius), ToPixels(values.BottomRadius), values.Opacity);
-        UpdateGlowTarget();
-
         if (values.Opacity <= 0.001)
         {
             if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
@@ -1155,6 +1163,9 @@ public sealed partial class OverlayWindow : Window
                 return false;
             }
 
+            _glow.SetGeometry(left, top, width, height,
+                ToPixels(values.TopRadius), ToPixels(values.BottomRadius), 0);
+            UpdateGlowTarget();
             return true;
         }
 
@@ -1176,6 +1187,11 @@ public sealed partial class OverlayWindow : Window
             return false;
         }
 
+        // Apply the body's region before presenting its underlapping light, so a
+        // geometry transition cannot expose the next glow contour above the old body.
+        _glow.SetGeometry(left, top, width, height,
+            ToPixels(values.TopRadius), ToPixels(values.BottomRadius), values.Opacity);
+        UpdateGlowTarget();
         return true;
     }
 

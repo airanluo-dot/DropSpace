@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -15,9 +16,19 @@ public sealed partial class ExpandedIslandMusicView : UserControl
 {
     internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
         LyricsArea.Visibility == Visibility.Visible && TranslatedLyric.Visibility == Visibility.Visible &&
-        TranslatedLyric.Opacity > 0.01 && TranslatedLyric.ActualWidth > 0 && TranslatedLyric.ActualHeight > 0 &&
+        TranslatedLyric.Opacity > 0.01 && TranslationIntersectsViewport() &&
         !string.IsNullOrWhiteSpace(TranslatedLyric.Text) &&
         string.Equals(TranslatedLyric.Text, _view?.SecondaryLyricText, StringComparison.Ordinal);
+
+    private bool TranslationIntersectsViewport()
+    {
+        if (TranslatedLyric.ActualWidth <= 0 || TranslatedLyric.ActualHeight <= 0 ||
+            CurrentLyricsViewport.ViewportWidth <= 0 || CurrentLyricsViewport.ViewportHeight <= 0) return false;
+        var bounds = TranslatedLyric.TransformToVisual(CurrentLyricsViewport).TransformBounds(
+            new Windows.Foundation.Rect(0, 0, TranslatedLyric.ActualWidth, TranslatedLyric.ActualHeight));
+        return LyricsDisplayPolicy.IntersectsViewport(bounds.Left, bounds.Top, bounds.Width, bounds.Height,
+            CurrentLyricsViewport.ViewportWidth, CurrentLyricsViewport.ViewportHeight);
+    }
 
     private MediaViewModel? _view;
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
@@ -28,6 +39,10 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     private string _trackIdentity = string.Empty;
     private string _lyricViewportText = string.Empty;
     private bool _updating;
+    private bool _translationWasVisible;
+    private string _displayedTranslation = string.Empty;
+    private LyricsTranslationOrigin _displayedOrigin;
+    public event EventHandler? TranslationVisibilityChanged;
     public ExpandedIslandMusicView()
     {
         InitializeComponent();
@@ -51,6 +66,8 @@ public sealed partial class ExpandedIslandMusicView : UserControl
         Progress.AddHandler(PointerCanceledEvent, new PointerEventHandler(OnSeekPointerCanceled), true);
         Progress.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnSeekPointerCaptureLost), true);
         Loaded += OnLoaded; Unloaded += OnUnloaded;
+        CurrentLyricsViewport.ViewChanged += (_, _) => NotifyTranslationVisibility();
+        LayoutUpdated += (_, _) => NotifyTranslationVisibility();
     }
     public MediaViewModel? ViewModel
     {
@@ -72,17 +89,15 @@ public sealed partial class ExpandedIslandMusicView : UserControl
     {
         if (_view is not null) _view.PropertyChanged -= OnChanged;
         CancelSeekInteraction();
+        NotifyTranslationVisibility();
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args) => Render();
     private void Render()
     {
         if (_view is null) return;
-        OriginalLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize * (18d / 16d);
+        OriginalLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize;
         TranslatedLyric.FontSize = _view.Settings.Lyrics.TranslationFontSize;
         NextLyric.FontSize = _view.Settings.Lyrics.OriginalFontSize * (13d / 16d);
-        // Keep the established compact panel bounds; full lyrics remain available on the Music page.
-        OriginalLyric.MaxLines = OriginalLyric.FontSize > 22 ? 1 : 2;
-        TranslatedLyric.MaxLines = TranslatedLyric.FontSize > 18 ? 1 : 2;
         _updating = true;
         try
         {
@@ -90,6 +105,7 @@ public sealed partial class ExpandedIslandMusicView : UserControl
             if (!string.Equals(_trackIdentity, trackIdentity, StringComparison.Ordinal))
             {
                 _trackIdentity = trackIdentity;
+                _lyricViewportText = string.Empty;
                 CancelSeekInteraction();
             }
             if (!_seekInteraction.IsDragging && !_seekInteraction.IsPreviewing)
@@ -128,6 +144,17 @@ public sealed partial class ExpandedIslandMusicView : UserControl
                 ((Rectangle)Spectrum.Children[index]).Height = 2 + 22 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
         }
         finally { _updating = false; }
+        NotifyTranslationVisibility();
+    }
+    private void NotifyTranslationVisibility()
+    {
+        var visible = IsTranslationActuallyVisible;
+        var origin = _view?.LyricPresentation.Line?.TranslationOrigin ?? LyricsTranslationOrigin.None;
+        if (_translationWasVisible == visible && _displayedTranslation == TranslatedLyric.Text && _displayedOrigin == origin) return;
+        _translationWasVisible = visible;
+        _displayedTranslation = TranslatedLyric.Text;
+        _displayedOrigin = origin;
+        TranslationVisibilityChanged?.Invoke(this, EventArgs.Empty);
     }
     private void UpdateTimelineLabels()
     {

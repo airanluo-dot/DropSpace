@@ -4,7 +4,8 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 /// <summary>A verified, local-only backend input. CT2 carries an immutable reviewed route.</summary>
 public sealed record AiLyricsResolvedPackage(string BackendId, string CacheIdentity,
-    string ModelPath, string RuntimePath, string? TokenizerPath, Ct2ResolvedRoute? Ct2Route = null, long? CacheGeneration = null, string? RequestIdentity = null);
+    string ModelPath, string RuntimePath, string? TokenizerPath, Ct2ResolvedRoute? Ct2Route = null, long? CacheGeneration = null,
+    string? RequestIdentity = null, string? ModelId = null, string? VerifiedModelSha256 = null);
 
 public interface IAiLyricsPackageResolver
 {

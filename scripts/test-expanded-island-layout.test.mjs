@@ -14,7 +14,8 @@ test('only the expanded island opts into the new music layout', () => {
   assert.match(musicPage, /_nowPlaying = new MediaExpandedView \{ ViewModel = media, MinHeight = 280, Height = 380 \}/);
   assert.doesNotMatch(musicPage, /new ExpandedIslandMusicView/);
   assert.match(shared, /<Grid Padding="28,24" RowSpacing="12">/);
-  assert.doesNotMatch(shared, /NextLyric|CurrentLyricsViewport/);
+  assert.doesNotMatch(shared, /NextLyric/);
+  assert.match(shared, /<ScrollViewer x:Name="CurrentLyricsViewport"[^>]*VerticalScrollMode="Auto"/);
 });
 
 test('the island reserves the bottom for transport without an empty status footer', () => {

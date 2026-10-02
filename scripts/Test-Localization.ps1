@@ -66,6 +66,29 @@ foreach ($expectedLine in $modelProtocolLines) {
         throw 'The frozen Hy model-facing protocol changed; preserve evaluated prompt bytes and review protocol changes explicitly.'
     }
 }
+# Host-side lyric language/credit vocabulary is input classification data, not UI.
+# Bind exact data declarations in this one Core file; additions or edits require
+# a reviewed policy change, and copying the same bytes into UI code is forbidden.
+$languagePolicyPath = 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs'
+$languagePolicyLineHashes = @(
+    'a1491838c3fff5a19891656102552fa8442759624761e8bf279329f1dd743940'
+    '123ff1374ed5569a5aad2a9bf867ce8aa74fdba026d586a5a4d567c339cfb718'
+    'f9ce14ff105eb6d848a4ecfcbaf0374aa58aff312bb3df5167a771b141587486'
+    '0ec39eaf32fc5744d3d1e7a2c703249b5dd43e8e256ac525229f611daa429ab7'
+    '3f39a25c5777280fb90ab5e74e13433ca927649cae0cd4964adb7c32a607f10f'
+    '3542193c36ce62a424b45adac6726055b5c579c4c28250d33d58f6ee18e58db4'
+)
+function Get-LanguagePolicyLineHash([string]$Line) {
+    $bytes = [Text.Encoding]::UTF8.GetBytes($Line.Trim())
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+}
+$actualLanguageHashes = @(Get-Content -LiteralPath (Join-Path $repositoryRoot $languagePolicyPath) -Encoding UTF8 |
+    ForEach-Object { Get-LanguagePolicyLineHash $_ })
+foreach ($expectedHash in $languagePolicyLineHashes) {
+    if (@($actualLanguageHashes | Where-Object { $_ -ceq $expectedHash }).Count -ne 1) {
+        throw 'The host lyric language vocabulary changed; review its exact data declarations and localization policy together.'
+    }
+}
 $hardcodedChinese = @(
     foreach ($file in $sourceFiles)
     {
@@ -74,6 +97,7 @@ $hardcodedChinese = @(
         {
             $relativePath = [IO.Path]::GetRelativePath($repositoryRoot, $file.FullName).Replace('\', '/')
             if ($relativePath -ceq $modelProtocolPath -and $modelProtocolLines -ccontains $match.Line.Trim()) { continue }
+            if ($relativePath -ceq $languagePolicyPath -and $languagePolicyLineHashes -ccontains (Get-LanguagePolicyLineHash $match.Line)) { continue }
             "{0}:{1}:{2}" -f $file.FullName.Substring($repositoryRoot.Length + 1), $match.LineNumber, $match.Line.Trim()
         }
     }
@@ -217,4 +241,4 @@ foreach ($tag in "System", "English", "SimplifiedChinese")
     }
 }
 
-Write-Host "Localization policy passed: $($englishNames.Count) synchronized resource keys, $($imperativeResourceKeys.Count) imperative references, $($xamlResourceIds.Count) XAML resource identifiers, and only the three frozen model protocol constants exempted."
+Write-Host "Localization policy passed: $($englishNames.Count) synchronized resource keys, $($imperativeResourceKeys.Count) imperative references, $($xamlResourceIds.Count) XAML resource identifiers, with only the three frozen model protocol constants and six exact host vocabulary declarations exempted."

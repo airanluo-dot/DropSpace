@@ -351,8 +351,8 @@ public sealed class AiLyricsSettingsCard : UserControl
     {
         if (_syncing || _lifetime is null) return;
         if (_busy) { Refresh(); return; }
-        // Keep native thumb dragging and repeated arrow presses responsive while persistence runs.
-        // Coalesce to the newest detent instead of disabling the slider halfway through a drag.
+        // Keep the native selection control responsive while persistence runs.
+        // Coalesce to the newest selection while settings save is in progress.
         _desiredGlow = _glow.Mode;
         ++_glowRevision;
         if (!_savingGlow) _glowTask = SaveGlowAsync(_generation);
@@ -367,7 +367,7 @@ public sealed class AiLyricsSettingsCard : UserControl
             while (IsCurrent(generation) && _desiredGlow is { } mode)
             {
                 var revision = _glowRevision;
-                // All three detents work with AI off; Music never enables AI or starts a download.
+                // All three selections work with AI off; Music never enables AI or starts a download.
                 await SaveAsync(generation, settings => settings with { Lyrics = settings.Lyrics with { GlowMode = mode } });
                 if (!IsCurrent(generation)) return;
                 if (revision == _glowRevision) { _desiredGlow = null; break; }
@@ -396,7 +396,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         try
         {
             Refresh();
-            // Finish earlier manual detents before an AI toggle applies its default mode.
+            // Finish earlier manual selections before an AI toggle applies its default mode.
             await _glowTask;
             if (!IsCurrent(generation)) return;
             await action(generation, token);
@@ -504,9 +504,11 @@ public sealed class AiLyricsSettingsCard : UserControl
         AiLyricsModelCatalog.FindSelectable(_editor.Settings.Lyrics.AiModelId) ?? AiLyricsModelCatalog.ExperimentalPlain;
     private string ModelLabel(AiLyricsModelDescriptor model) => _strings.Get(
         model.Id == AiLyricsModelCatalog.ExperimentalPlain.Id ? "AiLyricsPlainBetaModel" :
+        model.Id == AiLyricsModelCatalog.ExperimentalLargePlain.Id ? "AiLyricsLargePlainBetaModel" :
         model.Id == AiLyricsModelCatalog.Standard.Id ? "AiLyricsStandardModel" : "AiLyricsSmallerModel");
     private string ModelHelp(AiLyricsModelDescriptor model) => _strings.Get(
         model.Id == AiLyricsModelCatalog.ExperimentalPlain.Id ? "AiLyricsPlainBetaHelp" :
+        model.Id == AiLyricsModelCatalog.ExperimentalLargePlain.Id ? "AiLyricsLargePlainBetaHelp" :
         model.Id == AiLyricsModelCatalog.Standard.Id ? "AiLyricsStandardHelp" : "AiLyricsCompactHelp");
     private string SizeLabel(AiLyricsModelDescriptor model) => _strings.Format("AiLyricsModelSize", (model.Bytes / 1_000_000_000d).ToString("0.00", _strings.Culture), model.Bytes.ToString("N0", _strings.Culture));
     private static string SourceLabel(AiLyricsModelDescriptor model)

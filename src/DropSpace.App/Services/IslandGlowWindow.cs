@@ -11,7 +11,7 @@ namespace DropSpace.App.Services;
 /// </summary>
 internal sealed class IslandGlowWindow : IDisposable
 {
-    private readonly nint _owner;
+    private readonly nint _island;
     private nint _window;
     private nint _memoryDc;
     private nint _bitmap;
@@ -20,18 +20,32 @@ internal sealed class IslandGlowWindow : IDisposable
     private int _width;
     private int _height;
     private bool _shown;
+    private bool _disposed;
 
-    public IslandGlowWindow(nint owner) => _owner = owner;
+    public IslandGlowWindow(nint island) => _island = island;
 
     internal nint WindowHandle => _window;
 
     public void Present(IslandGlowRasterizer rasterizer, int surfaceLeft, int surfaceTop)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!IsWindow(_island))
+        {
+            // This window is intentionally unowned, so native ownership cannot clean
+            // it up for us if the island closes before the controller is disposed.
+            Dispose();
+            throw new Win32Exception(1400, "The island window has been destroyed.");
+        }
+        if (!IsWindowVisible(_island) || IsIconic(_island))
+        {
+            Hide();
+            return;
+        }
         EnsureWindow();
         EnsureBitmap(rasterizer.Width, rasterizer.Height);
         Marshal.Copy(rasterizer.Pixels, 0, _bits, rasterizer.Pixels.Length);
         var destination = new NativePoint { X = surfaceLeft, Y = surfaceTop };
-        if (!ClientToScreen(_owner, ref destination)) ThrowNativeFailure("ClientToScreen(glow)");
+        if (!ClientToScreen(_island, ref destination)) ThrowNativeFailure("ClientToScreen(glow)");
         destination.X -= rasterizer.PaddingPixels;
         destination.Y -= rasterizer.PaddingPixels;
         var size = new NativeSize { Width = _width, Height = _height };
@@ -39,11 +53,11 @@ internal sealed class IslandGlowWindow : IDisposable
         var blend = new BlendFunction { SourceConstantAlpha = 255, AlphaFormat = 1 };
         if (!UpdateLayeredWindow(_window, nint.Zero, ref destination, ref size, _memoryDc,
                 ref source, 0, ref blend, 2)) ThrowNativeFailure("UpdateLayeredWindow(glow)");
-        if (!_shown)
-        {
-            _ = ShowWindow(_window, 4); // SW_SHOWNOACTIVATE; ownership supplies the island's z-order.
-            _shown = true;
-        }
+        // An owned popup is always above its owner. This independent visual window is
+        // explicitly ordered immediately below the island, without activation or hit testing.
+        if (!SetWindowPos(_window, _island, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200 | 0x0040))
+            ThrowNativeFailure("SetWindowPos(glow below island)");
+        _shown = true;
     }
 
     public void Hide()
@@ -57,11 +71,14 @@ internal sealed class IslandGlowWindow : IDisposable
     {
         if (_window != nint.Zero) return;
         const uint layered = 0x00080000, transparent = 0x00000020;
-        const uint noActivate = 0x08000000, toolWindow = 0x00000080;
+        const uint noActivate = 0x08000000, toolWindow = 0x00000080, topmost = 0x00000008;
         // STATIC is a system class: no rooted managed WndProc or background window
         // thread, no XAML/backdrop lifetime, and no independent message pump.
-        _window = CreateWindowEx(layered | transparent | noActivate | toolWindow, "STATIC", string.Empty,
-            0x80000000, 0, 0, 1, 1, _owner, nint.Zero, nint.Zero, nint.Zero);
+        // Match the island's Z-order band while still hidden. Inserting a normal
+        // window after the last topmost window alone would leave it non-topmost.
+        var zOrderBand = (uint)(GetWindowLongPtr(_island, -20).ToInt64() & topmost);
+        _window = CreateWindowEx(layered | transparent | noActivate | toolWindow | zOrderBand, "STATIC", string.Empty,
+            0x80000000, 0, 0, 1, 1, nint.Zero, nint.Zero, nint.Zero, nint.Zero);
         if (_window == nint.Zero) ThrowNativeFailure("CreateWindowEx(glow)");
         _memoryDc = CreateCompatibleDC(nint.Zero);
         if (_memoryDc == nint.Zero) ThrowNativeFailure("CreateCompatibleDC(glow)");
@@ -98,12 +115,14 @@ internal sealed class IslandGlowWindow : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
         Hide();
         ReleaseBitmap();
         if (_memoryDc != nint.Zero) _ = DeleteDC(_memoryDc);
         _memoryDc = nint.Zero;
         if (_window != nint.Zero) _ = DestroyWindow(_window);
         _window = nint.Zero;
+        _disposed = true;
     }
 
     private static void ThrowNativeFailure(string operation) => throw new Win32Exception(Marshal.GetLastWin32Error(), operation);
@@ -124,9 +143,19 @@ internal sealed class IslandGlowWindow : IDisposable
         int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
     [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ClientToScreen(nint window, ref NativePoint point);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern nint GetWindowLongPtr(nint window, int index);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(nint window);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(nint window);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsIconic(nint window);
     [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool UpdateLayeredWindow(nint window, nint destinationDc, ref NativePoint destination,
         ref NativeSize size, nint sourceDc, ref NativePoint source, uint colorKey, ref BlendFunction blend, uint flags);
+    [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ShowWindow(nint window, int command);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]

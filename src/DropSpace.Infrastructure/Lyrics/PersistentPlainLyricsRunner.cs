@@ -28,6 +28,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
     private long _generation;
     private bool _gpuFailed;
     private bool _lastGpuSetting;
+    private string? _lastModelSha256;
     private volatile bool _disposed;
     private string? _lastExecutionBackend;
     private volatile bool _lastExecutionUsedCpuFallback;
@@ -48,7 +49,17 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
     }
 
     public static IReadOnlyList<string> BuildArguments(string modelPath, bool gpu) =>
-        Array.AsReadOnly(new[] { "--model", Path.GetFullPath(modelPath), "--mode", gpu ? "vulkan" : "cpu" });
+        BuildArguments(modelPath, gpu, AiLyricsModelCatalog.ExperimentalPlain.Sha256);
+
+    public static IReadOnlyList<string> BuildArguments(string modelPath, bool gpu, string verifiedModelSha256)
+    {
+        var model = AiLyricsModelCatalog.FindSelectableByHash(verifiedModelSha256) ??
+            throw new InvalidDataException("The resident plaintext runtime requires a pinned model.");
+        var arguments = new List<string> { "--model", Path.GetFullPath(modelPath), "--mode", gpu ? "vulkan" : "cpu" };
+        if (model == AiLyricsModelCatalog.ExperimentalLargePlain)
+            arguments.AddRange(["--model-profile", "hy-mt2-7b-q8"]);
+        return arguments.AsReadOnly();
+    }
 
     public async Task<string> RunPlainAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
         CancellationToken cancellationToken, string verifiedModelSha256)
@@ -56,8 +67,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
         ArgumentNullException.ThrowIfNull(prompt);
-        if (!string.Equals(verifiedModelSha256, AiLyricsModelCatalog.ExperimentalPlain.Sha256, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("The resident plaintext runtime requires the verified Hy Q8 model.");
+        var model = AiLyricsModelCatalog.FindSelectableByHash(verifiedModelSha256) ??
+            throw new InvalidDataException("The resident plaintext runtime requires a verified Hy Q8 model.");
         if (Encoding.UTF8.GetByteCount(prompt) is 0 or > PlainHyLyricsProtocol.MaximumPromptBytes)
             throw new InvalidDataException("Prompt exceeds the resident runtime budget.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
@@ -70,20 +81,22 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
             Volatile.Write(ref _lastExecutionBackend, null);
             _lastExecutionUsedCpuFallback = false;
             var gpu = _options.GpuEnabled;
-            if (gpu != _lastGpuSetting)
+            if (gpu != _lastGpuSetting || model.Sha256 != _lastModelSha256)
             {
                 await StopSessionAsync().ConfigureAwait(false);
                 _gpuFailed = false;
                 _lastGpuSetting = gpu;
+                _lastModelSha256 = model.Sha256;
             }
             gpu &= !_gpuFailed;
             for (var attempt = 0; ; attempt++)
             {
                 try
                 {
-                    if (_session is not null && (_session.Gpu != gpu || _session.Model != Path.GetFullPath(modelPath) || _session.Child.Process.HasExited))
+                    if (_session is not null && (_session.Gpu != gpu || _session.Model != Path.GetFullPath(modelPath) ||
+                        _session.ModelSha256 != model.Sha256 || _session.Child.Process.HasExited))
                         await StopSessionAsync().ConfigureAwait(false);
-                    if (_session is null) await StartSessionAsync(modelPath, gpu, deadline.Token).ConfigureAwait(false);
+                    if (_session is null) await StartSessionAsync(modelPath, model, gpu, deadline.Token).ConfigureAwait(false);
                     var session = _session!;
                     session.Cancellation.Dispose();
                     // Retain the caller's song token through the resident idle period. A late
@@ -128,7 +141,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
         finally { _operation.Release(); }
     }
 
-    private async Task StartSessionAsync(string modelPath, bool gpu, CancellationToken token)
+    private async Task StartSessionAsync(string modelPath, AiLyricsModelDescriptor model, bool gpu, CancellationToken token)
     {
         await _cleanup.WaitAsync(token).ConfigureAwait(false);
         var executable = await _resolve(gpu, token).ConfigureAwait(false);
@@ -142,7 +155,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
                 RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
             };
-            foreach (var argument in BuildArguments(modelPath, gpu)) start.ArgumentList.Add(argument);
+            foreach (var argument in BuildArguments(modelPath, gpu, model.Sha256)) start.ArgumentList.Add(argument);
             foreach (var key in start.Environment.Keys.Where(key =>
                 key.StartsWith("LLAMA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("GGML_", StringComparison.OrdinalIgnoreCase) ||
                 key.StartsWith("VK_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("VULKAN_", StringComparison.OrdinalIgnoreCase) ||
@@ -150,14 +163,18 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
                 start.Environment.Remove(key);
             start.Environment["OMP_NUM_THREADS"] = "4";
             start.Environment["OMP_THREAD_LIMIT"] = "4";
-            var child = LocalInferenceProcess.Start(start, LlamaCompletionRunner.MemoryBudgetFor(AiLyricsModelCatalog.ExperimentalPlain.Sha256), retainStandardInput: true);
-            _session = new Session(child, Path.GetFullPath(modelPath), gpu);
+            var memoryBudget = LlamaCompletionRunner.MemoryBudgetFor(model.Sha256);
+            var child = LocalInferenceProcess.Start(start, memoryBudget, retainStandardInput: true);
+            _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu);
             gateTransferred = true;
             using var stop = token.Register(() => child.TerminateAndWaitForExitAsync());
             using var ready = await ReadFrameAsync(child.StandardOutput, token).ConfigureAwait(false);
             if (ready.RootElement.GetProperty("protocol").GetInt32() != 1 || !ready.RootElement.GetProperty("ready").GetBoolean() ||
                 ready.RootElement.GetProperty("backend").GetString() != (gpu ? "vulkan" : "cpu"))
                 throw new InvalidDataException("Unexpected resident runtime handshake.");
+            if (model == AiLyricsModelCatalog.ExperimentalLargePlain &&
+                (!ready.RootElement.TryGetProperty("modelProfile", out var profile) || profile.GetString() != "hy-mt2-7b-q8"))
+                throw new InvalidDataException("The resident worker did not confirm the selected 7B resource profile.");
         }
         finally { if (!gateTransferred) LocalInferenceProcess.InferenceGate.Release(); }
     }
@@ -236,14 +253,15 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
 
     private sealed class Session
     {
-        internal Session(LocalInferenceProcess child, string model, bool gpu)
+        internal Session(LocalInferenceProcess child, string model, string modelSha256, long memoryBudget, bool gpu)
         {
-            Child = child; Model = model; Gpu = gpu;
+            Child = child; Model = model; ModelSha256 = modelSha256; Gpu = gpu;
             Errors = DrainErrorsAsync(child.StandardError);
-            Memory = MonitorAsync(child);
+            Memory = MonitorAsync(child, memoryBudget);
         }
         internal LocalInferenceProcess Child { get; }
         internal string Model { get; }
+        internal string ModelSha256 { get; }
         internal bool Gpu { get; }
         internal CancellationTokenRegistration Cancellation { get; set; }
         internal Task Errors { get; }
@@ -253,12 +271,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner
             var buffer = new char[2048];
             while (await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false) > 0) { }
         }
-        private static async Task MonitorAsync(LocalInferenceProcess child)
+        private static async Task MonitorAsync(LocalInferenceProcess child, long memoryBudget)
         {
             while (!child.Process.HasExited)
             {
                 child.Process.Refresh();
-                if (child.Process.WorkingSet64 > WindowsInferenceProcess.MaximumMemoryBytes)
+                if (child.Process.WorkingSet64 > memoryBudget)
                 { await child.TerminateAndWaitForExitAsync().ConfigureAwait(false); return; }
                 await Task.Delay(200).ConfigureAwait(false);
             }

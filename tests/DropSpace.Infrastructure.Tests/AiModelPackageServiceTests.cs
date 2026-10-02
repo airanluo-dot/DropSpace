@@ -33,12 +33,15 @@ public sealed class AiModelPackageServiceTests
     }
 
     [TestMethod]
-    public async Task RequiresConsentBeforeAnyNetworkRequest()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task RequiresConsentBeforeAnyNetworkRequest(bool largeModel)
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         var handler = new Handler(_ => new(HttpStatusCode.OK));
-        using var service = new AiModelPackageService(root, handler, _ => Model);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DownloadAsync("test", false, null, CancellationToken.None));
+        var model = largeModel ? AiLyricsModelCatalog.ExperimentalLargePlain : Model;
+        using var service = new AiModelPackageService(root, handler, _ => model);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DownloadAsync(model.Id, false, null, CancellationToken.None));
         Assert.AreEqual(0, handler.Count);
         Assert.IsFalse(Directory.Exists(root));
     }
@@ -140,6 +143,125 @@ public sealed class AiModelPackageServiceTests
             Assert.IsFalse(File.Exists(Path.Combine(root, Model.Sha256 + ".gguf")));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public void LargerModelHasABoundedBudgetWithoutChangingTheDefault()
+    {
+        Assert.AreEqual(TimeSpan.FromMinutes(30), AiModelPackageService.DownloadBudget(AiLyricsModelCatalog.ExperimentalPlain));
+        Assert.AreEqual(TimeSpan.FromHours(2), AiModelPackageService.DownloadBudget(AiLyricsModelCatalog.ExperimentalLargePlain));
+    }
+
+    [TestMethod]
+    [DataRow(0L)]
+    [DataRow(2_147_483_648L)]
+    [DataRow(5_000_000_000L)]
+    public void SevenBRangeAndLengthValidationKeepFull64BitValues(long offset)
+    {
+        var bytes = AiLyricsModelCatalog.ExperimentalLargePlain.Bytes;
+        using var response = RangeResponse(offset, bytes);
+        Assert.AreEqual(offset, AiModelPackageService.ValidateDownloadResponse(response, offset, bytes));
+        Assert.AreEqual(bytes - offset, response.Content.Headers.ContentLength);
+    }
+
+    [TestMethod]
+    [DataRow("start")]
+    [DataRow("end")]
+    [DataRow("total")]
+    [DataRow("length")]
+    public void SevenBResumeRejectsMismatched64BitHeaders(string changed)
+    {
+        var bytes = AiLyricsModelCatalog.ExperimentalLargePlain.Bytes;
+        const long offset = 5_000_000_000;
+        using var response = RangeResponse(offset, bytes);
+        response.Content.Headers.ContentRange = changed switch
+        {
+            "start" => new(offset + 1, bytes - 1, bytes),
+            "end" => new(offset, bytes - 2, bytes),
+            "total" => new(offset, bytes - 1, bytes + 1),
+            _ => response.Content.Headers.ContentRange,
+        };
+        if (changed == "length") response.Content.Headers.ContentLength = bytes - offset - 1;
+        Assert.ThrowsExactly<InvalidDataException>(() => AiModelPackageService.ValidateDownloadResponse(response, offset, bytes));
+    }
+
+    [TestMethod]
+    public async Task SevenBTruncatedResponseKeepsOnlyReceivedBytesForResume()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var model = AiLyricsModelCatalog.ExperimentalLargePlain;
+        var partial = Path.Combine(root, model.Sha256 + ".partial");
+        try
+        {
+            await File.WriteAllBytesAsync(partial, [1]);
+            var handler = new Handler(request =>
+            {
+                Assert.AreEqual(1L, request.Headers.Range!.Ranges.Single().From);
+                return RangeResponse(1, model.Bytes, [2, 3]);
+            });
+            using var service = new AiModelPackageService(root, handler, _ => model, _ => model.Bytes + 128L * 1024 * 1024);
+            await Assert.ThrowsExactlyAsync<EndOfStreamException>(() => service.DownloadAsync(model.Id, true, null, default));
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(partial));
+            Assert.IsFalse(File.Exists(Path.Combine(root, model.Sha256 + ".gguf")));
+            Assert.AreEqual(1, handler.Count);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task SevenBReservesRuntimeSpaceBeforeRequestingOrChangingPartialFile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var model = AiLyricsModelCatalog.ExperimentalLargePlain;
+        var partial = Path.Combine(root, model.Sha256 + ".partial");
+        const long runtimeBytes = 100L * 1024 * 1024;
+        try
+        {
+            await File.WriteAllBytesAsync(partial, [1]);
+            var handler = new Handler(_ => throw new AssertFailedException("Insufficient space must fail before a network request."));
+            using var service = new AiModelPackageService(root, handler, _ => model,
+                _ => model.Bytes - 1 + runtimeBytes + 64L * 1024 * 1024 - 1);
+            await Assert.ThrowsExactlyAsync<IOException>(() => service.DownloadAsync(model.Id, true, null, default, runtimeBytes));
+            CollectionAssert.AreEqual(new byte[] { 1 }, await File.ReadAllBytesAsync(partial));
+            Assert.AreEqual(0, handler.Count);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public async Task SevenBIgnoredRangeRechecksSpaceBeforeDiscardingPartialBytes()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var model = AiLyricsModelCatalog.ExperimentalLargePlain;
+        var partial = Path.Combine(root, model.Sha256 + ".partial");
+        try
+        {
+            await File.WriteAllBytesAsync(partial, [1, 2, 3]);
+            var handler = new Handler(request =>
+            {
+                Assert.AreEqual(3L, request.Headers.Range!.Ranges.Single().From);
+                var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([]) };
+                response.Content.Headers.ContentLength = model.Bytes;
+                return response;
+            });
+            using var service = new AiModelPackageService(root, handler, _ => model,
+                _ => model.Bytes - 3 + 64L * 1024 * 1024);
+            await Assert.ThrowsExactlyAsync<IOException>(() => service.DownloadAsync(model.Id, true, null, default));
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(partial));
+            Assert.AreEqual(1, handler.Count);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    private static HttpResponseMessage RangeResponse(long offset, long totalBytes, byte[]? payload = null)
+    {
+        var content = new ByteArrayContent(payload ?? []);
+        content.Headers.ContentRange = new ContentRangeHeaderValue(offset, totalBytes - 1, totalBytes);
+        content.Headers.ContentLength = totalBytes - offset;
+        return new(HttpStatusCode.PartialContent) { Content = content };
     }
 
     private sealed class BlockingHandler : HttpMessageHandler

@@ -15,8 +15,9 @@ internal static class Program
         if (File.Exists(scenarioPath)) return RunOneShot(args, scenarioPath);
         var root = Path.GetDirectoryName(Path.GetFullPath(Argument(args, "--model")))!;
         var mode = Argument(args, "--mode");
+        var modelProfile = Array.IndexOf(args, "--model-profile") >= 0 ? Argument(args, "--model-profile") : "hy-mt2-1.8b-q8";
         var pid = Environment.ProcessId;
-        Record(root, "starts", new { pid, mode });
+        Record(root, "starts", new { pid, mode, modelProfile });
         if (mode == "vulkan" && File.Exists(Path.Combine(root, "fail-vulkan-startup")))
         {
             // EOF while the child stays alive verifies that fallback first reaps the child.
@@ -25,7 +26,10 @@ internal static class Program
             Thread.Sleep(60_000);
             return 27;
         }
-        WriteFrame(new { protocol = 1, ready = true, backend = mode });
+        if (File.Exists(Path.Combine(root, "omit-model-profile")))
+            WriteFrame(new { protocol = 1, ready = true, backend = mode });
+        else WriteFrame(new { protocol = 1, ready = true, backend = mode,
+            modelProfile = File.Exists(Path.Combine(root, "wrong-model-profile")) ? "wrong-model" : modelProfile });
         while (Console.ReadLine() is { } line)
         {
             using var request = JsonDocument.Parse(line);

@@ -56,12 +56,21 @@ public sealed class MusicPage : UserControl
         // This action belongs only to the main Music page, never the shared island player.
         _refreshMusic = new Button
         {
-            Content = new SymbolIcon(Symbol.Refresh),
-            Width = 36, Height = 36,
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Spacing = 8,
+                Children =
+                {
+                    new FontIcon { Glyph = "\uE72C", FontFamily = (FontFamily)Application.Current.Resources["SymbolThemeFontFamily"],
+                        FontSize = 16, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false },
+                    new TextBlock { Text = strings.Get("MusicRefresh"), VerticalAlignment = VerticalAlignment.Center },
+                },
+            },
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
         };
         AutomationProperties.SetName(_refreshMusic, strings.Get("MusicRefresh"));
+        AutomationProperties.SetAutomationId(_refreshMusic, "MusicRefresh");
         ToolTipService.SetToolTip(_refreshMusic, strings.Get("MusicRefreshHelp"));
         AutomationProperties.SetLiveSetting(_restartStatus, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
         _refreshMusic.Click += OnRefreshMusic;
@@ -127,6 +136,7 @@ public sealed class MusicPage : UserControl
         form.AddToggle("LyricsSearchRemainingProviders", s => s.Lyrics.SearchRemainingProviders,
             (s,v) => s with { Lyrics = s.Lyrics with { SearchRemainingProviders = v } });
         form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsFallbackHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.7 });
+        form.AddToggle("LyricsShowAiLabel", s => s.Lyrics.ShowAiLyricsLabel, (s,v) => s with { Lyrics = s.Lyrics with { ShowAiLyricsLabel = v } });
         form.AddToggle("LyricsSecondary", s => s.Lyrics.SecondaryLyrics, (s,v) => s with { Lyrics = s.Lyrics with { SecondaryLyrics = v } });
         form.Rows.Children.Add(new LyricsFontSizeControl(editor, strings));
         form.AddToggle("LyricsWords", s => s.Lyrics.WordSyncedHighlighting, (s,v) => s with { Lyrics = s.Lyrics with { WordSyncedHighlighting = v } });
@@ -309,7 +319,7 @@ public sealed class MusicPage : UserControl
         var lyricsOptions = string.Concat(
             _strings.Culture.Name, "|",
             _media.Settings.Lyrics.Enabled, "|",
-            _media.Settings.Lyrics.SecondaryLyrics, "|", _media.Settings.Lyrics.OriginalFontSize, "|", _media.Settings.Lyrics.TranslationFontSize);
+            _media.Settings.Lyrics.SecondaryLyrics, "|", _media.Settings.Lyrics.ShowAiLyricsLabel, "|", _media.Settings.Lyrics.OriginalFontSize, "|", _media.Settings.Lyrics.TranslationFontSize);
         if (!ReferenceEquals(_renderedLyrics, lines) || !string.Equals(_renderedLyricsOptions, lyricsOptions, StringComparison.Ordinal))
         {
             _lyricsRows.Children.Clear();
@@ -325,7 +335,7 @@ public sealed class MusicPage : UserControl
                 var secondary = LyricsDisplayPolicy.SecondaryPresentation(
                     line,
                     _strings.Culture.Name,
-                    _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics);
+                    _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics, _media.Settings.Lyrics.ShowAiLyricsLabel);
                 if (secondary is { Length: > 0 })
                 {
                     row.Children.Add(new TextBlock

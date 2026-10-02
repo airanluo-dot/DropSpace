@@ -18,6 +18,23 @@ public sealed class LyricsDisplayPolicyTests
         Assert.AreEqual("Translation", LyricsDisplayPolicy.SecondaryPresentation(line with { TranslationOrigin = LyricsTranslationOrigin.Provider }, "en-US", true));
         Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(line, "en-US", false));
         Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(line, "zh-CN", true));
+        Assert.AreEqual("Translation", LyricsDisplayPolicy.SecondaryPresentation(line, "en-US", true, showAiLabel: false));
+        Assert.AreEqual(LyricsTranslationOrigin.LocalAi, line.TranslationOrigin);
+        Assert.AreEqual("en-US", line.TranslationLanguage);
+        Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(line, "zh-CN", true, showAiLabel: false));
+    }
+
+    [TestMethod]
+    public void RenderedTranslationMustIntersectTheScrollViewport()
+    {
+        Assert.IsTrue(LyricsDisplayPolicy.IntersectsViewport(0, 20, 160, 28, 180, 80));
+        Assert.IsTrue(LyricsDisplayPolicy.IntersectsViewport(-50, -20, 160, 28, 180, 80));
+        Assert.IsFalse(LyricsDisplayPolicy.IntersectsViewport(0, 80, 160, 28, 180, 80));
+        Assert.IsFalse(LyricsDisplayPolicy.IntersectsViewport(0, -28, 160, 28, 180, 80));
+        Assert.IsFalse(LyricsDisplayPolicy.IntersectsViewport(180, 20, 160, 28, 180, 80));
+        Assert.IsFalse(LyricsDisplayPolicy.IntersectsViewport(-160, 20, 160, 28, 180, 80));
+        Assert.IsFalse(LyricsDisplayPolicy.IntersectsViewport(0, 20, 160, 28, 0, 80));
+        Assert.IsFalse(LyricsDisplayPolicy.IntersectsViewport(double.NaN, 20, 160, 28, 180, 80));
     }
 
     [TestMethod]

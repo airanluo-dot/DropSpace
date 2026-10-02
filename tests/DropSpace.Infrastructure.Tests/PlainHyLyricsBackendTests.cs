@@ -158,15 +158,49 @@ public sealed class PlainHyLyricsBackendTests
             Assert.IsNull(await resolver.ResolveAsync(legacy.Id, Query, Source("text"), "en", default));
     }
 
+    [TestMethod]
+    public async Task Selected7BUsesItsVerifiedHashAndCannotReuse1B8CacheOrForgedIdentity()
+    {
+        using var f = new Fixture();
+        var runtime = new AiLyricsRuntimePackage(_ => new MemoryStream("trusted fixture manifest"u8.ToArray()), Path.GetTempPath());
+        using var runner = new RecordingPlainRunner { ExpectedModel = AiLyricsModelCatalog.ExperimentalLargePlain };
+        using var backend = new PlainHyLyricsBackend(f.Coordinator, runner, runtime, Path.GetTempPath());
+        var model = AiLyricsModelCatalog.ExperimentalLargePlain;
+        var source = Source("original one", "original two");
+        var oldIdentity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity());
+        await f.Cache.WriteAsync(PlainHyLyricsProtocol.CacheKey(Query, source, "en", oldIdentity),
+            "[{\"id\":0,\"text\":\"1.8B cached\"},{\"id\":1,\"text\":\"1.8B cached\"}]", default);
+        Assert.IsNull(await backend.TryGetCachedResultAsync(model.Id, Query, source, "en", default));
+        var identity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), model.Sha256);
+        var package = new AiLyricsResolvedPackage(PlainHyLyricsBackend.BackendId, identity, "verified 7B model", "runtime", null,
+            CacheGeneration: f.Cache.Generation, ModelId: model.Id, VerifiedModelSha256: model.Sha256);
+        var translated = await backend.TranslateAsync(package, Query, source, "en", default);
+        Assert.AreEqual(LyricsTranslationOutcome.Translated, translated.Outcome);
+        Assert.AreEqual(2, runner.Calls);
+        Assert.AreEqual("translated 1", (await backend.TryGetCachedResultAsync(model.Id, Query, source, "en", default))!.Document.Lines[0].Secondary);
+        Assert.AreEqual("1.8B cached", (await backend.TryGetCachedResultAsync(AiLyricsModelCatalog.ExperimentalPlain.Id, Query, source, "en", default))!.Document.Lines[0].Secondary);
+        foreach (var forged in new[]
+        {
+            package with { CacheIdentity = oldIdentity },
+            package with { ModelId = AiLyricsModelCatalog.ExperimentalPlain.Id },
+            package with { VerifiedModelSha256 = AiLyricsModelCatalog.ExperimentalPlain.Sha256 },
+            package with { ModelId = null }, package with { VerifiedModelSha256 = null },
+            package with { ModelId = null, VerifiedModelSha256 = null },
+        })
+            await Assert.ThrowsExactlyAsync<InvalidDataException>(() => backend.TranslateAsync(forged, Query, source, "en", default));
+        Assert.AreEqual(2, runner.Calls);
+    }
+
     private sealed class RecordingPlainRunner : IPlainLyricsRunner
     {
+        internal AiLyricsModelDescriptor ExpectedModel { get; init; } = AiLyricsModelCatalog.ExperimentalPlain;
         internal int Calls { get; private set; }
         internal int Drains { get; private set; }
         internal List<string> Prompts { get; } = [];
         public Task<string> RunPlainAsync(string executablePath, string modelPath, string prompt, string stagingDirectory,
             CancellationToken cancellationToken, string verifiedModelSha256)
         {
-            Assert.AreEqual(AiLyricsModelCatalog.ExperimentalPlain.Sha256, verifiedModelSha256);
+            Assert.AreEqual(ExpectedModel.Sha256, verifiedModelSha256);
             Calls++; Prompts.Add(prompt); return Task.FromResult("translated " + Calls);
         }
         public Task DrainCleanupAsync(CancellationToken token) { Drains++; return Task.CompletedTask; }

@@ -105,6 +105,10 @@ public sealed class PlainLyricsRunnerTests
         }
         Assert.AreEqual(3L * 1024 * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(PlainModelSha256));
         Assert.AreEqual(3L * 1024 * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(PlainModelSha256.ToUpperInvariant()));
+        Assert.AreEqual(12L * 1024 * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(AiLyricsModelCatalog.ExperimentalLargePlain.Sha256));
+        Assert.AreEqual(12L * 1024 * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(AiLyricsModelCatalog.ExperimentalLargePlain.Sha256.ToUpperInvariant()));
+        Assert.AreEqual(3L * 1024 * 1024 * 1024, LlamaCompletionRunner.MemoryBudgetFor(new string('a', 64)),
+            "Unknown identities must not inherit the larger model budget.");
         Assert.HasCount(0, LlamaCompletionRunner.ModelCompatibilityArguments(PlainModelSha256));
     }
 

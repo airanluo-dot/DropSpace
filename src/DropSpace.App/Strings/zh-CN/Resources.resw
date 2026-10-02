@@ -514,7 +514,7 @@
   <data name="LyricsEnabled" xml:space="preserve"><value>启用歌词</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>正在加载歌词……</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>没有找到已验证属于当前歌曲的歌词。</value></data>
-  <data name="LyricsFailed" xml:space="preserve"><value>歌词加载失败，请检查网络后重试。</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>歌词暂时无法加载，请点击刷新重试。</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>无法在此放置小组件，请拖到网格单元格或使用位置设置。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>灵动岛</value></data>
@@ -624,6 +624,8 @@
   <data name="AiLyricsStandardModel" xml:space="preserve"><value>标准模型（旧版 Q4）</value></data>
   <data name="AiLyricsSmallerModel" xml:space="preserve"><value>精简模型（旧版 IQ3）</value></data>
   <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0（Beta）</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0（Beta）</value></data>
+  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>可选的较大模型（7.98 GB）。比 1.8B 占用更多内存，启用 GPU 加速时也需要更多显存。运行可能更慢，不保证翻译质量或速度有所提升。已有模型下载会保留，需手动删除以释放空间。</value></data>
   <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>用于本地歌词翻译的腾讯 Q8 模型（Beta）。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。译文可能出现含义错误。</value></data>
   <data name="AiLyricsLegacyModels" xml:space="preserve"><value>旧版模型文件</value></data>
   <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>这些旧版模型文件已不再用于翻译，可删除以释放磁盘空间。</value></data>
@@ -703,4 +705,5 @@
   <data name="MediaNextLyricLabel" xml:space="preserve"><value>即将播放的歌词</value></data>
   <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>全屏时强制显示灵动岛</value></data>
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>默认关闭。开启后优先于“全屏时隐藏”，在全屏应用和无边框游戏上保持置顶且不抢焦点。独占全屏游戏可能无法覆盖；不覆盖锁屏或 UAC 安全桌面。</value></data>
+  <data name="LyricsShowAiLabel" xml:space="preserve"><value>显示 AI 歌词标识</value></data>
 </root>

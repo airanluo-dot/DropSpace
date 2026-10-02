@@ -28,7 +28,7 @@ public static class LyricsTranslationPolicy
             return LyricsTranslationDecision.UseProvider;
         if (!enabled) return LyricsTranslationDecision.OriginalOnly;
         var source = NormalizeLanguage(sourceLanguage);
-        if (source == target) return LyricsTranslationDecision.OriginalOnly;
+        if (LyricsLanguagePolicy.SameSourceLanguage(source, target)) return LyricsTranslationDecision.OriginalOnly;
         if (!supportedLanguages.Any(language => NormalizeLanguage(language) == target) ||
             (source.Length > 0 && !supportedLanguages.Any(language => NormalizeLanguage(language) == source)))
             return LyricsTranslationDecision.UnsupportedLanguage;
@@ -40,7 +40,7 @@ public static class LyricsTranslationPolicy
         ArgumentNullException.ThrowIfNull(document);
         var target = NormalizeLanguage(targetLanguage);
         return target.Length > 0 && document.Lines.Any(line =>
-            line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+            line.TranslationOrigin == LyricsTranslationOrigin.Provider && !LyricsLanguagePolicy.IsCredit(line.Text) &&
             !string.IsNullOrWhiteSpace(line.Secondary) &&
             NormalizeLanguage(line.TranslationLanguage) == target);
     }

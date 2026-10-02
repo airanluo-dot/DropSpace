@@ -20,7 +20,7 @@ internal sealed class IslandGlowController : IDisposable
     private int _top;
     private double _surfaceOpacity;
     private double _energy;
-    private double _phase;
+    private readonly double[] _bands = new double[6];
     private long _lastTick;
     private bool _eligible;
     private bool _reducedMotion;
@@ -52,7 +52,7 @@ internal sealed class IslandGlowController : IDisposable
         }
         _left = left;
         _top = top;
-        _surfaceOpacity = Math.Clamp(opacity, 0, 1);
+        _surfaceOpacity = double.IsFinite(opacity) ? Math.Clamp(opacity, 0, 1) : 0;
         if (changed && _envelope.Brightness > 0) Render();
     }
 
@@ -61,12 +61,14 @@ internal sealed class IslandGlowController : IDisposable
         if (IsAvailable && _envelope.Brightness > 0) Render();
     }
 
-    public void SetTarget(bool eligible, double normalizedEnergy, bool reducedMotion)
+    public void SetTarget(bool eligible, double normalizedEnergy, bool reducedMotion, IReadOnlyList<double>? bands = null)
     {
         if (!IsAvailable) return;
         _eligible = eligible;
         _energy = normalizedEnergy;
         _reducedMotion = reducedMotion;
+        for (var i = 0; i < _bands.Length; i++)
+            _bands[i] = eligible && bands is not null && i < bands.Count && double.IsFinite(bands[i]) ? Math.Clamp(bands[i], 0, 1) : 0;
         if ((_eligible || _envelope.Brightness > 0) && !_timer.IsRunning)
         {
             _lastTick = Stopwatch.GetTimestamp();
@@ -80,10 +82,7 @@ internal sealed class IslandGlowController : IDisposable
         var now = Stopwatch.GetTimestamp();
         var elapsed = Stopwatch.GetElapsedTime(_lastTick, now);
         _lastTick = now;
-        // Phase survives pause, mode changes and interruptions. Reduced motion freezes
-        // the ribbons, but still allows the gentle audio-driven brightness envelope.
-        if (!_reducedMotion) _phase += Math.Min(elapsed.TotalSeconds, 0.1);
-        _envelope.Advance(_eligible, _energy, elapsed);
+        _envelope.Advance(_eligible, _energy, elapsed, _reducedMotion, _bands);
         Render();
         if (!_eligible && _envelope.Brightness == 0) _timer.Stop();
     }
@@ -100,7 +99,7 @@ internal sealed class IslandGlowController : IDisposable
         {
             _rasterizer ??= new IslandGlowRasterizer(_shape.Width, _shape.Height,
                 _shape.TopRadius, _shape.BottomRadius, _scale);
-            _rasterizer.Render(_phase, _envelope.Brightness * _surfaceOpacity);
+            _rasterizer.Render(_envelope.Phase, _envelope.Brightness * _surfaceOpacity, _envelope.Bands);
             _window.Present(_rasterizer, _left, _top);
         }
         catch (Exception exception) when (exception is Win32Exception or OverflowException or ArgumentException)

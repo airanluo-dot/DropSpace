@@ -14,6 +14,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 internal static class WindowsInferenceProcess
 {
     internal const long MaximumMemoryBytes = 3L * 1024 * 1024 * 1024;
+    internal const long Hy7BMaximumMemoryBytes = 12L * 1024 * 1024 * 1024;
     private const uint LimitFlags = 0x00000008 | 0x00000100 | 0x00000200 | 0x00002000;
     private const uint CreateSuspended = 0x00000004;
     private const uint CreateUnicodeEnvironment = 0x00000400;
@@ -24,7 +25,7 @@ internal static class WindowsInferenceProcess
     internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = MaximumMemoryBytes,
         bool retainStandardInput = false)
     {
-        if (memoryLimitBytes is < 268_435_456 or > MaximumMemoryBytes) throw new ArgumentOutOfRangeException(nameof(memoryLimitBytes));
+        if (memoryLimitBytes is < 268_435_456 or > Hy7BMaximumMemoryBytes) throw new ArgumentOutOfRangeException(nameof(memoryLimitBytes));
         if (IntPtr.Size != 8) throw new PlatformNotSupportedException("Local inference requires 64-bit Windows.");
         SafeJobHandle? job = null;
         Process? process = null;
@@ -95,6 +96,23 @@ internal static class WindowsInferenceProcess
 
     internal static string BuildCommandLine(ProcessStartInfo start) =>
         string.Join(' ', new[] { Path.GetFullPath(start.FileName) }.Concat(start.ArgumentList).Select(QuoteArgument));
+
+    [SupportedOSPlatform("windows")]
+    internal static async Task WaitForExitSignalAsync(SafeProcessHandle process)
+    {
+        // Process.HasExited (also used by .NET 10 WaitForExitAsync) can observe an
+        // exit code before the kernel process object signals. Only that signal
+        // confirms termination and image teardown; package leases must survive it.
+        // Duplicate the already-open handle, never reopen a possibly recycled PID.
+        using var wait = new ProcessExitWaitHandle(process);
+        if (wait.WaitOne(0)) return;
+        var exited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registration = ThreadPool.RegisterWaitForSingleObject(wait,
+            static (state, _) => ((TaskCompletionSource)state!).TrySetResult(), exited,
+            Timeout.Infinite, executeOnlyOnce: true);
+        try { await exited.Task.ConfigureAwait(false); }
+        finally { registration.Unregister(null); }
+    }
 
     internal static string QuoteArgument(string value)
     {
@@ -209,6 +227,21 @@ internal static class WindowsInferenceProcess
     {
         protected override bool ReleaseHandle() => CloseHandle(handle);
     }
+    private sealed class ProcessExitWaitHandle : WaitHandle
+    {
+        internal ProcessExitWaitHandle(SafeProcessHandle process)
+        {
+            var currentProcess = GetCurrentProcess();
+            if (!DuplicateHandle(currentProcess, process, currentProcess, out var duplicate,
+                    0, false, 0x00000002 /* DUPLICATE_SAME_ACCESS */))
+            {
+                var error = NativeFailure("Unable to retain the inference process exit signal.");
+                duplicate.Dispose();
+                throw error;
+            }
+            SafeWaitHandle = duplicate;
+        }
+    }
     private sealed class SafeKernelHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal SafeKernelHandle(IntPtr value) : base(true) => SetHandle(value);
@@ -281,6 +314,12 @@ internal static class WindowsInferenceProcess
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool TerminateProcess(SafeKernelHandle process, uint exitCode);
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DuplicateHandle(IntPtr sourceProcess, SafeProcessHandle source, IntPtr targetProcess,
+        out SafeWaitHandle target, uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, uint options);
     [DllImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CloseHandle(IntPtr handle);

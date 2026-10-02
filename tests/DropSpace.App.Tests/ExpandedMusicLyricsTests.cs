@@ -12,6 +12,64 @@ namespace DropSpace.App.Tests;
 public sealed class ExpandedMusicLyricsTests
 {
     [TestMethod]
+    public void AiLabelToggleNotifiesAllViewsWithoutChangingDocumentOrOrigin()
+    {
+        var view = CreateView();
+        var source = view.LyricsLines[0] with { TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "en-US" };
+        var document = new LyricsDocument([source], LyricsProviderKind.NetEase);
+        view.SetLyricsDocument(document);
+        var notifications = 0;
+        view.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(MediaViewModel.SecondaryLyricText)) notifications++; };
+        Assert.AreEqual("AI · Translation", view.SecondaryLyricText);
+        view.Settings = view.Settings with { Lyrics = view.Settings.Lyrics with { ShowAiLyricsLabel = false } };
+        Assert.AreEqual("Translation", view.SecondaryLyricText);
+        Assert.AreEqual(1, notifications);
+        Assert.AreSame(document.Lines, view.LyricsLines);
+        Assert.AreEqual(LyricsTranslationOrigin.LocalAi, view.LyricPresentation.Line!.TranslationOrigin);
+        view.Settings = view.Settings with { Lyrics = view.Settings.Lyrics with { ShowAiLyricsLabel = true } };
+        Assert.AreEqual("AI · Translation", view.SecondaryLyricText);
+        Assert.AreEqual(2, notifications);
+    }
+
+    [TestMethod]
+    public void SwitchingTrackImmediatelyHidesOldOriginalTranslationAndOrigin()
+    {
+        var view = CreateView();
+        view.Lyrics = new(view.LyricsLines[0], -1, 0, 1);
+        Assert.AreEqual("First", view.CurrentLyricText);
+        view.Session = view.Session with { TrackTitle = "Next track" };
+        Assert.AreEqual("Next track", view.CurrentLyricText);
+        Assert.IsNull(view.SecondaryLyricText);
+        Assert.IsNull(view.LyricPresentation.Line);
+        Assert.HasCount(0, view.LyricsLines);
+    }
+
+    [TestMethod]
+    public void ProgressiveTranslationUsesCurrentDocumentBeforeNextHighlightFrame()
+    {
+        var view = CreateView();
+        view.Lyrics = new(view.LyricsLines[0], -1, 0, 1);
+        var translated = view.LyricsLines[0] with { Secondary = "Updated translation", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "en-US" };
+        view.SetLyricsDocument(new([translated], LyricsProviderKind.NetEase));
+        Assert.AreEqual("AI · Updated translation", view.SecondaryLyricText);
+        Assert.AreSame(translated, view.LyricPresentation.Line);
+        Assert.AreEqual(0, view.CurrentLyricIndex);
+    }
+
+    [TestMethod]
+    public void RepublishingTheSameCachedDocumentRebindsItToTheCurrentTrack()
+    {
+        var view = CreateView();
+        var document = new LyricsDocument(view.LyricsLines, LyricsProviderKind.LocalLrc);
+        view.SetLyricsDocument(document);
+        view.Session = view.Session with { TrackTitle = "Same lyrics on a different recording" };
+        Assert.IsNull(view.SecondaryLyricText);
+        view.SetLyricsDocument(document);
+        Assert.AreEqual("First", view.CurrentLyricText);
+        Assert.AreEqual("Translation", view.SecondaryLyricText);
+    }
+
+    [TestMethod]
     public void PreviewUsesTrackRelativeTimeAndClearsImmediatelyOnTrackSwitch()
     {
         var view = CreateView();
@@ -52,7 +110,7 @@ public sealed class ExpandedMusicLyricsTests
 
     private static MediaViewModel CreateView()
     {
-        var view = new MediaViewModel(new NoopMediaService(), IdentityAppStringLocalizer.Instance, NullLogger<MediaViewModel>.Instance);
+        var view = new MediaViewModel(new NoopMediaService(), new EnglishStrings(), NullLogger<MediaViewModel>.Instance);
         view.Settings = view.Settings with { Lyrics = view.Settings.Lyrics with { Enabled = true, SecondaryLyrics = true } };
         view.Session = MediaSessionSnapshot.Empty with
         {
@@ -79,5 +137,13 @@ public sealed class ExpandedMusicLyricsTests
         public Task SkipPreviousAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SeekAsync(TimeSpan position, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class EnglishStrings : IAppStringLocalizer
+    {
+        public System.Globalization.CultureInfo Culture => System.Globalization.CultureInfo.GetCultureInfo("en-US");
+        public string Get(string key) => key;
+        public bool TryGet(string key, out string value) { value = key; return true; }
+        public string Format(string key, params object?[] arguments) => string.Format(Culture, key, arguments);
     }
 }

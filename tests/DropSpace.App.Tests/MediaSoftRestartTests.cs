@@ -253,6 +253,92 @@ public sealed class MediaSoftRestartTests
         Assert.AreEqual(0, calls);
     }
 
+    [TestMethod]
+    public async Task SourceRefresh_SurvivesCapacityAndMaintenanceRejection_UntilAdmitted()
+    {
+        var refresh = new MediaLyricsRefreshRequest();
+        var jobs = new RetirableMediaWork();
+        var release = NewSignal();
+        using var maintenance = new SemaphoreSlim(1, 1);
+        Assert.IsFalse(refresh.IsPending(refresh.Capture()));
+        var firstStarted = NewSignal(); var secondStarted = NewSignal();
+        jobs.Start(_ => { firstStarted.SetResult(); return release.Task; }, CancellationToken.None);
+        await firstStarted.Task.WaitAsync(TestDeadline); jobs.RetireCurrent();
+        jobs.Start(_ => { secondStarted.SetResult(); return release.Task; }, CancellationToken.None);
+        await secondStarted.Task.WaitAsync(TestDeadline); jobs.RetireCurrent();
+        refresh.Request();
+        var observedRefresh = false;
+        Task Load(CancellationToken _) { observedRefresh = true; return Task.CompletedTask; }
+        for (var index = 0; index < 20; index++)
+        {
+            var ticket = refresh.Capture();
+            Assert.IsTrue(refresh.IsPending(ticket));
+            Assert.IsFalse(jobs.TryStartWhileIdle(maintenance, Load, CancellationToken.None));
+            // No start means no acknowledgement; later capacity notification retains refresh.
+        }
+        release.SetResult(); await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+        await maintenance.WaitAsync();
+        Assert.IsFalse(jobs.TryStartWhileIdle(maintenance, Load, CancellationToken.None));
+        Assert.IsTrue(refresh.IsPending(refresh.Capture()));
+        maintenance.Release();
+        var accepted = refresh.Capture();
+        Assert.IsTrue(jobs.TryStartWhileIdle(maintenance, Load, CancellationToken.None));
+        refresh.MarkStarted(accepted);
+        await jobs.WaitForCurrentAsync(CancellationToken.None).WaitAsync(TestDeadline);
+        await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+        Assert.IsTrue(observedRefresh);
+        Assert.IsFalse(refresh.IsPending(refresh.Capture()));
+    }
+
+    [TestMethod]
+    public void SourceRefresh_NewerClickCannotBeAcknowledgedByAnOlderAdmission()
+    {
+        var refresh = new MediaLyricsRefreshRequest();
+        refresh.Request(); var older = refresh.Capture();
+        refresh.Request(); var newer = refresh.Capture();
+        refresh.MarkStarted(older);
+        Assert.IsTrue(refresh.IsPending(newer));
+        refresh.MarkStarted(newer);
+        refresh.MarkStarted(older);
+        Assert.IsFalse(refresh.IsPending(newer));
+    }
+
+    [TestMethod]
+    public async Task RetiredAiWait_FreesSourceFetchCapacity_WhileAiCleanupRemainsOwned()
+    {
+        var jobs = new RetirableMediaWork();
+        var aiRelease = NewSignal(); var started = NewSignal();
+        Task aiRetirement = Task.CompletedTask;
+        CancellationToken aiToken = default;
+        jobs.Start(async token =>
+        {
+            var cancellation = new MediaWorkCancellation(token);
+            aiToken = cancellation.Token;
+            aiRetirement = cancellation.CompleteWhenAsync(aiRelease.Task);
+            started.SetResult();
+            try { await aiRelease.Task.WaitAsync(token); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        }, CancellationToken.None);
+        try
+        {
+            await started.Task.WaitAsync(TestDeadline);
+            jobs.RetireCurrent();
+            await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+            Assert.IsTrue(aiToken.IsCancellationRequested);
+            Assert.IsFalse(aiRetirement.IsCompleted, "The native owner still holds AI cleanup after source presentation retires.");
+            var calls = 0;
+            for (var index = 0; index < 30; index++)
+            {
+                Assert.IsTrue(jobs.TryStart(_ => { Interlocked.Increment(ref calls); return Task.CompletedTask; }, CancellationToken.None));
+                await jobs.WaitForCurrentAsync(CancellationToken.None).WaitAsync(TestDeadline);
+                await jobs.DrainAsync(CancellationToken.None).WaitAsync(TestDeadline);
+            }
+            Assert.AreEqual(30, calls);
+            aiRelease.SetResult(); await aiRetirement.WaitAsync(TestDeadline);
+        }
+        finally { aiRelease.TrySetResult(); }
+    }
+
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static async Task EventuallyAsync(Func<Task<bool>> condition)
     {
