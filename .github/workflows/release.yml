@@ -152,6 +152,9 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
+      - name: Test frozen model prompt localization exceptions
+        run: node --test scripts/test-localization-policy.test.mjs
+
       - name: Enforce Windows 10/11 compatibility baseline
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
@@ -184,7 +187,9 @@ jobs:
       - name: Build verified offline AI inference runtime
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish == true) }}
         shell: pwsh
-        run: ./scripts/Build-AiLyricsRuntime.ps1
+        run: |
+          ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
+          ./scripts/Build-AiLyricsRuntime.ps1
 
       - name: Record immutable runtime producer identity
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish == true) }}

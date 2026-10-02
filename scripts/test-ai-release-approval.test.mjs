@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, fixturePath, readScope, sha256, sourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval } from './test-ai-release-approval.mjs';
+import { approvalPath, fixturePath, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -149,6 +149,55 @@ function example(t) {
 }
 
 test('synthetic current approval with complete bound evidence passes', t => example(t).validate());
+
+test('resident digest matches the actual PowerShell producer across LF and CRLF source files', t => {
+  const x = example(t);
+  const producer = fs.readFileSync(path.join(repository, 'scripts/Build-AiLyricsRuntime.ps1'), 'utf8');
+  const start = producer.indexOf('$helperSource =');
+  const end = producer.indexOf('$manifest | ConvertTo-Json', start);
+  assert.ok(start >= 0 && end > start, 'The runtime producer must retain its explicit digest block');
+  // Execute only the producer digest block, never the native build/download path.
+  const command = '$ErrorActionPreference = "Stop"; $root = $env:DROPSPACE_DIGEST_TEST_ROOT; ' +
+    '$manifest = @{ resident = @{} };\n' + producer.slice(start, end) +
+    '\n[Console]::WriteLine($manifest.resident.sourceSha256)';
+  for (const endings of ['\n', '\r\n']) {
+    for (const name of residentSourcePaths) {
+      const normalized = fs.readFileSync(path.join(repository, name), 'utf8').replace(/\r\n/g, '\n');
+      x.write(name, normalized.replace(/\n/g, endings));
+    }
+    const produced = spawnSync('pwsh', ['-NoProfile', '-NonInteractive', '-Command', command], {
+      encoding: 'utf8', env: { ...process.env, DROPSPACE_DIGEST_TEST_ROOT: x.root },
+    });
+    assert.equal(produced.status, 0, produced.stderr || produced.error?.message);
+    assert.equal(readScope(x.root).runtime.resident.sourceSha256, produced.stdout.trim());
+  }
+  x.write(residentSourcePaths[1], fs.readFileSync(path.join(x.root, residentSourcePaths[1]), 'utf8') + '// regression mutation\n');
+  assert.notEqual(readScope(x.root).runtime.resident.sourceSha256, x.scope.runtime.resident.sourceSha256);
+});
+
+test('resident worker source mutation during a build cannot produce a trust manifest', t => {
+  const x = example(t);
+  const producer = fs.readFileSync(path.join(repository, 'scripts/Build-AiLyricsRuntime.ps1'), 'utf8');
+  const initialStart = producer.indexOf('$helperInputs =');
+  const initialEnd = producer.indexOf('function Assert-OwnedBuildDirectory', initialStart);
+  const guardStart = producer.indexOf('foreach ($inputPath in $helperInputs)', producer.indexOf('$optimized ='));
+  const guardEnd = producer.indexOf('# The completion-only build', guardStart);
+  assert.ok(initialStart >= 0 && initialEnd > initialStart && guardStart >= 0 && guardEnd > guardStart);
+  for (const mutate of [false, true]) {
+    const command = '$ErrorActionPreference = "Stop"; $root = $env:DROPSPACE_DIGEST_TEST_ROOT;\n' +
+      producer.slice(initialStart, initialEnd) +
+      (mutate ? '\n[IO.File]::AppendAllText((Join-Path $root "tools/plain-lyrics-helper/main.cpp"), "// changed during build")\n' : '\n') +
+      producer.slice(guardStart, guardEnd);
+    const result = spawnSync('pwsh', ['-NoProfile', '-NonInteractive', '-Command', command], {
+      encoding: 'utf8', env: { ...process.env, DROPSPACE_DIGEST_TEST_ROOT: x.root },
+    });
+    assert.ifError(result.error);
+    if (mutate) {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Resident worker source changed during the build/);
+    } else assert.equal(result.status, 0, result.stderr);
+  }
+});
 
 test('scope selects only the actual plaintext Q8 shipping profile and its shared arguments', t => {
   const x = example(t);
@@ -441,14 +490,19 @@ test('updating an evidence hash cannot make whitespace-only evidence valid', t =
   assert.throws(() => x.validate(), /must not be empty/);
 });
 
-test('evidence symlinks cannot escape the repository', { skip: process.platform === 'win32' ? 'Windows symlinks require extra privileges; containment is also checked by canonical-path tests' : false }, t => {
+test('evidence symlinks cannot escape the repository', t => {
   const x = example(t);
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'dropspace-gate-outside-'));
   t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
   const bytes = fs.readFileSync(path.join(x.root, x.rawPath));
   fs.writeFileSync(path.join(outside, 'raw.txt'), bytes);
   fs.unlinkSync(path.join(x.root, x.rawPath));
-  fs.symlinkSync(path.join(outside, 'raw.txt'), path.join(x.root, x.rawPath));
+  try { fs.symlinkSync(path.join(outside, 'raw.txt'), path.join(x.root, x.rawPath), 'file'); }
+  catch (error) {
+    if (process.platform !== 'win32' || !['EPERM', 'EACCES'].includes(error.code)) throw error;
+    t.skip(`Actual Windows file-symlink creation failed: ${error.code}; no permission settings were changed`);
+    return;
+  }
   assert.throws(() => x.validate(), /escapes evidence directory/);
 });
 

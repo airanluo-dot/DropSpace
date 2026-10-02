@@ -67,8 +67,8 @@ public sealed class Ct2HelperAdapterTests
     [DataRow("{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"x\"},{\"id\":1,\"text\":\"y\"}],\"extra\":true}", "extra")]
     public async Task FakeHelperRejectsProtocolErrors(string response, string _)
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("Portable fake helper fixture is POSIX-only; Windows uses the native smoke gate.");
-        using var fixture = new Fixture($"cat >/dev/null\nprintf '%s' '{response}'\n");
+        WindowsProcessFixture.RequireAvailable();
+        using var fixture = new Fixture($"cat >/dev/null\nprintf '%s' '{response}'\n", new { kind = "ct2", output = response });
         try
         {
             using var adapter = new Ct2HelperAdapter(TimeSpan.FromSeconds(3));
@@ -81,12 +81,19 @@ public sealed class Ct2HelperAdapterTests
     [TestMethod]
     public async Task CancellationRejectsLateOutputAndCleanupReleasesExecutable()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("Portable fake helper fixture is POSIX-only; Windows uses the native smoke gate.");
-        using var fixture = new Fixture("cat >/dev/null\nsleep 2\nprintf '%s' '{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"late\"}]}'\n");
+        WindowsProcessFixture.RequireAvailable();
+        using var fixture = new Fixture("cat >/dev/null\nprintf ready > ../started\nsleep 2\nprintf '%s' '{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"late\"}]}'\n",
+            new { kind = "ct2", ready = true, delayMilliseconds = 2000, lateOutput = "{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"late\"}]}" });
         using var adapter = new Ct2HelperAdapter(TimeSpan.FromSeconds(5));
-        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => adapter.TranslateAsync(fixture.Reference, "ja", "en",
-            [new(0, "a")], cancel.Token));
+        using var cancel = new CancellationTokenSource();
+        var running = adapter.TranslateAsync(fixture.Reference, "ja", "en", [new(0, "a")], cancel.Token);
+        try
+        {
+            await WaitForStartedAsync(fixture, running);
+            cancel.Cancel();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => running);
+        }
+        finally { cancel.Cancel(); try { await running; } catch (OperationCanceledException) { } }
         await adapter.DrainCleanupAsync(CancellationToken.None);
         File.Delete(fixture.Executable);
         Assert.IsFalse(File.Exists(fixture.Executable));
@@ -112,8 +119,9 @@ public sealed class Ct2HelperAdapterTests
     [TestMethod]
     public async Task VerifiedHelperCompletesAndReleasesOwnershipRepeatedly()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("POSIX fake helper; native stdin has its own Windows test.");
-        using var fixture = new Fixture("cat >/dev/null\nprintf '%s' '{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"translated\"}]}'\n");
+        WindowsProcessFixture.RequireAvailable();
+        using var fixture = new Fixture("cat >/dev/null\nprintf '%s' '{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"translated\"}]}'\n",
+            new { kind = "ct2", output = "{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"translated\"}]}" });
         using var adapter = new Ct2HelperAdapter();
         for (var i = 0; i < 10; i++)
         {
@@ -177,7 +185,7 @@ public sealed class Ct2HelperAdapterTests
     [TestMethod]
     public async Task ManifestRejectsSymlinkPayload()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("Requires available symbolic-link creation privileges.");
+        WindowsReparseFixture.RequireSymbolicLinks(directory: false);
         using var fixture = new Fixture("exit 9");
         var path = Path.Combine(fixture.Root, "model", "model.bin");
         File.Delete(path);
@@ -207,13 +215,14 @@ public sealed class Ct2HelperAdapterTests
     [TestMethod]
     public async Task ActiveCleanupIsObservedAndSharedGatePreventsOverlap()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("POSIX process fixture.");
-        using var fixture = new Fixture("cat >/dev/null\nprintf ready > ../started\nexec sleep 60\n");
+        WindowsProcessFixture.RequireAvailable();
+        using var fixture = new Fixture("cat >/dev/null\nprintf ready > ../started\nexec sleep 60\n",
+            new { kind = "ct2", ready = true, delayMilliseconds = 60_000 });
         using var adapter = new Ct2HelperAdapter();
         using var cancel = new CancellationTokenSource();
         var running = adapter.TranslateAsync(fixture.Reference, "ja", "en", [new(0, "source")], cancel.Token);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        while (!File.Exists(Path.Combine(fixture.Root, "started"))) await Task.Delay(10, timeout.Token);
+        await WaitForStartedAsync(fixture, running);
         var drain = adapter.DrainCleanupAsync(CancellationToken.None);
         Assert.IsFalse(drain.IsCompleted, "Maintenance must observe active work, not only returned cleanup tasks.");
         Assert.IsFalse(await LocalInferenceProcess.InferenceGate.WaitAsync(50, timeout.Token), "All inference backends share the native process boundary.");
@@ -229,8 +238,9 @@ public sealed class Ct2HelperAdapterTests
     [DataRow(true)]
     public async Task OversizedStreamsAreKilledAndOwnershipIsReleased(bool stderr)
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("POSIX process fixture.");
-        using var fixture = new Fixture("cat >/dev/null\nhead -c 262145 /dev/zero" + (stderr ? " >&2" : "") + "\n");
+        WindowsProcessFixture.RequireAvailable();
+        using var fixture = new Fixture("cat >/dev/null\nhead -c 262145 /dev/zero" + (stderr ? " >&2" : "") + "\n",
+            new { kind = "ct2", stderrBytes = stderr ? 262_145 : 0, stdoutBytes = stderr ? 0 : 262_145 });
         using var adapter = new Ct2HelperAdapter();
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => adapter.TranslateAsync(fixture.Reference, "ja", "en", [new(0, "source")], CancellationToken.None));
         await adapter.DrainCleanupAsync(CancellationToken.None);
@@ -263,7 +273,7 @@ public sealed class Ct2HelperAdapterTests
     [TestMethod]
     public async Task VerifiedRunnerRejectsChangedIdentityBeforeProcessLaunch()
     {
-        using var fixture = new Fixture("touch must-not-run\n");
+        using var fixture = new Fixture("touch must-not-run\n", new { kind = "ct2", marker = true });
         using var verified = await Ct2PrivatePackage.OpenAsync(fixture.Reference, "ja", "en", default);
         using var adapter = new Ct2HelperAdapter();
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => adapter.TranslateVerifiedAsync(fixture.Reference,
@@ -285,18 +295,41 @@ public sealed class Ct2HelperAdapterTests
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => resolver.ResolveAsync("ja", "en", default));
     }
 
+    private static async Task WaitForStartedAsync(Fixture fixture, Task running)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!File.Exists(Path.Combine(fixture.Root, "started")))
+        {
+            if (running.IsCompleted) { await running; Assert.Fail("The helper exited before its active-work signal."); }
+            await Task.Delay(10, timeout.Token);
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         internal string Root { get; } = Path.Combine(Path.GetTempPath(), "dropspace-ct2-test-" + Guid.NewGuid().ToString("N"));
         internal string Executable => Path.Combine(Root, "engine", "helper.exe");
         internal Ct2PackageReference Reference { get; private set; } = null!;
         private readonly Dictionary<string, object?> _manifest;
-        internal Fixture(string body)
+        internal Fixture(string body, object? windowsScenario = null)
         {
             Directory.CreateDirectory(Path.Combine(Root, "engine"));
             Directory.CreateDirectory(Path.Combine(Root, "model"));
-            File.WriteAllText(Executable, "#!/bin/sh\n" + body, new UTF8Encoding(false));
-            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(Executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            if (OperatingSystem.IsWindows())
+            {
+                var scenario = JsonSerializer.SerializeToElement(windowsScenario ?? new { kind = "ct2", exitCode = 9 });
+                var properties = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(scenario.GetRawText())!;
+                if (scenario.TryGetProperty("ready", out var ready) && ready.GetBoolean())
+                    properties["readyPath"] = JsonSerializer.SerializeToElement(Path.Combine(Root, "started"));
+                if (scenario.TryGetProperty("marker", out var marker) && marker.GetBoolean())
+                    properties["markerPath"] = JsonSerializer.SerializeToElement(Path.Combine(Root, "engine", "must-not-run"));
+                WindowsProcessFixture.Write(Executable, properties);
+            }
+            else
+            {
+                File.WriteAllText(Executable, "#!/bin/sh\n" + body, new UTF8Encoding(false));
+                File.SetUnixFileMode(Executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
             foreach (var name in new[] { "model.bin", "config.json", "source.spm", "target.spm" }) File.WriteAllText(Path.Combine(Root, "model", name), name);
             _manifest = new()
             {

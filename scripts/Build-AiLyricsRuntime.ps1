@@ -1,4 +1,8 @@
-param()
+param(
+    [ValidateSet('Ninja Multi-Config', 'Visual Studio 18 2026', 'Visual Studio 17 2022')]
+    [string]$Generator = 'Ninja Multi-Config',
+    [string]$BuildDirectory = ''
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -8,18 +12,62 @@ if (-not $IsWindows) { throw 'The shipping local AI runtime must be built and ve
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $commit = '7fe450e19305b828c199d602c23a8337aaa1f03b'
 $source = Join-Path $root 'artifacts/ai-runtime-source'
-$build = Join-Path $root 'artifacts/ai-runtime-build'
+$build = if ($BuildDirectory) { [IO.Path]::GetFullPath($BuildDirectory) } else { Join-Path $root 'artifacts/ai-runtime-build' }
+if ($BuildDirectory -and (Test-Path -LiteralPath $build)) { throw 'An explicitly supplied native build directory must be fresh; existing contents are preserved.' }
 $output = Join-Path $root 'artifacts/ai-runtime/win-x64'
+$helperInputs = @('tools/plain-lyrics-helper/CMakeLists.txt', 'tools/plain-lyrics-helper/gpu-policy.h', 'tools/plain-lyrics-helper/main.cpp')
+$helperInputIdentities = @{}
+foreach ($inputPath in $helperInputs) {
+    $helperInputIdentities[$inputPath] = (Get-FileHash -LiteralPath (Join-Path $root $inputPath) -Algorithm SHA256).Hash
+}
+
+function Assert-OwnedBuildDirectory([string]$Directory) {
+    $artifactsRoot = [IO.Path]::GetFullPath((Join-Path $root 'artifacts'))
+    $absolute = [IO.Path]::GetFullPath($Directory)
+    $allowedRoot = $artifactsRoot
+    if ($BuildDirectory -and $absolute -ceq $build) {
+        $temporaryRoots = @([IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar),
+            [IO.Path]::GetFullPath((Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Temp')))
+        $matchingRoots = @($temporaryRoots | Where-Object { $absolute.StartsWith($_ + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) })
+        if ($matchingRoots.Count -gt 0) { $allowedRoot = $matchingRoots[0] }
+    }
+    if (-not $absolute.StartsWith($allowedRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Runtime build directory escaped repository artifacts and the approved temporary directories.'
+    }
+    for ($ancestor = $absolute; $ancestor -and $ancestor.Length -ge $allowedRoot.Length; $ancestor = [IO.Path]::GetDirectoryName($ancestor)) {
+        if (Test-Path -LiteralPath $ancestor) {
+            if ((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                throw "Runtime build directories must not traverse a reparse point: $ancestor"
+            }
+        }
+    }
+}
 
 function Invoke-Checked([string]$Command, [string[]]$Arguments) {
     & $Command @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Command failed with exit code $LASTEXITCODE." }
 }
 
+if ($Generator -eq 'Ninja Multi-Config') {
+    # VS/MSBuild's shader-generator subproject fails under deep checkout paths.
+    # Ninja avoids that MAX_PATH restriction without changing global Windows policy.
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+    if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio discovery is unavailable.' }
+    $visualStudio = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+    if ($LASTEXITCODE -ne 0 -or -not $visualStudio) { throw 'The x64 MSVC build tools are unavailable.' }
+    Import-Module (Join-Path $visualStudio 'Common7/Tools/Microsoft.VisualStudio.DevShell.dll')
+    Enter-VsDevShell -VsInstallPath $visualStudio -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64' | Out-Null
+    foreach ($toolDirectory in @('Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin', 'Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja')) {
+        $toolPath = Join-Path $visualStudio $toolDirectory
+        if (Test-Path -LiteralPath $toolPath -PathType Container) { $env:PATH = $toolPath + [IO.Path]::PathSeparator + $env:PATH }
+    }
+}
+
 # A fresh source tree and CMake cache prevent cached options or local source changes from leaking
 # into the trust manifest. Fetch only the immutable official source; never run a user-supplied EXE.
 foreach ($directory in @($source, $build, $output)) {
-    if (Test-Path $directory) { Remove-Item $directory -Recurse -Force }
+    Assert-OwnedBuildDirectory $directory
+    if (Test-Path -LiteralPath $directory) { Remove-Item -LiteralPath $directory -Recurse -Force }
     New-Item $directory -ItemType Directory -Force | Out-Null
 }
 Invoke-Checked 'git' @('init', $source)
@@ -31,7 +79,7 @@ if ($LASTEXITCODE -ne 0 -or $actual -cne $commit) { throw 'Runtime source commit
 Invoke-Checked 'git' @('-C', $source, 'fsck', '--no-reflogs')
 
 $configure = @(
-    '-S', (Join-Path $root 'tools/plain-lyrics-helper'), '-A', 'x64', "-DLLAMA_SOURCE=$source",
+    '-S', (Join-Path $root 'tools/plain-lyrics-helper'), '-G', $Generator, "-DLLAMA_SOURCE=$source",
     '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded',
     '-DBUILD_SHARED_LIBS=OFF', '-DLLAMA_BUILD_IS_DEV=OFF',
     '-DLLAMA_BUILD_TESTS=OFF', '-DLLAMA_BUILD_EXAMPLES=OFF', '-DLLAMA_BUILD_TOOLS=ON',
@@ -47,10 +95,11 @@ $configure = @(
     '-DGGML_SSE42=OFF', '-DGGML_BMI2=OFF', '-DGGML_AVX512=OFF',
     '-DFETCHCONTENT_FULLY_DISCONNECTED=ON'
 )
+if ($Generator -ne 'Ninja Multi-Config') { $configure += @('-A', 'x64') }
 if (-not $env:VULKAN_SDK -or -not (Test-Path (Join-Path $env:VULKAN_SDK 'Bin/glslc.exe'))) {
-    throw 'Resident GPU runtime requires a provisioned official Vulkan SDK (glslc, headers, import library). No driver is installed by this script.'
+    throw 'Resident GPU runtime requires Vulkan build dependencies (glslc, headers, import library). Run scripts/Prepare-VulkanBuildDependencies.ps1 first. No driver is installed by either script.'
 }
-foreach ($variant in @('baseline', 'avx2', 'vulkan')) {
+foreach ($variant in @('vulkan', 'baseline', 'avx2')) {
     $variantBuild = Join-Path $build $variant
     $simd = if ($variant -eq 'avx2') { 'ON' } else { 'OFF' }
     $vulkan = if ($variant -eq 'vulkan') { 'ON' } else { 'OFF' }
@@ -76,6 +125,11 @@ foreach ($variant in @('baseline', 'avx2', 'vulkan')) {
 }
 $executable = Join-Path $output 'llama-completion.exe'
 $optimized = Join-Path $output 'llama-completion-avx2.exe'
+foreach ($inputPath in $helperInputs) {
+    if ((Get-FileHash -LiteralPath (Join-Path $root $inputPath) -Algorithm SHA256).Hash -cne $helperInputIdentities[$inputPath]) {
+        throw 'Resident worker source changed during the build. Discard this incomplete build and rebuild frozen inputs before generating a trust manifest.'
+    }
+}
 # The completion-only build deliberately disables llama-app, the target that normally
 # generates license.cpp. Gather pinned source notices directly instead of relying on it.
 & (Join-Path $PSScriptRoot 'Collect-AiRuntimeNotices.ps1') -Source $source -OutputPath (Join-Path $output 'LICENSE-llama.cpp') -VulkanSdk $env:VULKAN_SDK

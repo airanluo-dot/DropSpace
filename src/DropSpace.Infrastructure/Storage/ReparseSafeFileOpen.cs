@@ -32,8 +32,16 @@ internal static class ReparseSafeFileOpen
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
         }
 
+        // Managed FileStream supports long paths, but this native handle open must
+        // explicitly use extended syntax for hash-addressed runtime cache paths.
+        var fullPath = Path.GetFullPath(path);
+        var nativePath = fullPath.StartsWith(@"\\?\", StringComparison.Ordinal)
+            ? fullPath
+            : fullPath.StartsWith(@"\\", StringComparison.Ordinal)
+                ? @"\\?\UNC\" + fullPath[2..]
+                : @"\\?\" + fullPath;
         var handle = CreateFile(
-            path,
+            nativePath,
             GenericRead,
             FileShareRead,
             IntPtr.Zero,
@@ -42,7 +50,9 @@ internal static class ReparseSafeFileOpen
             IntPtr.Zero);
         if (handle.IsInvalid)
         {
-            throw new IOException("The transfer source could not be opened.", new Win32Exception(Marshal.GetLastWin32Error()));
+            var error = Marshal.GetLastWin32Error();
+            handle.Dispose();
+            throw new IOException("The transfer source could not be opened.", new Win32Exception(error));
         }
 
         try

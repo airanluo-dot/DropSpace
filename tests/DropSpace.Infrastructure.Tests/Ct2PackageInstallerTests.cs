@@ -356,6 +356,22 @@ public sealed class Ct2PackageInstallerTests
     public async Task ReparsePathsAreRejectedBeforeWritingAndOutsideFilesSurvive(string kind)
     {
         RequireSymbolicLinks();
+        await VerifyReparsePathAsync(kind, (link, target) => Directory.CreateSymbolicLink(link, target), junction: false);
+    }
+
+    [TestMethod]
+    [DataRow("root")]
+    [DataRow("ancestor")]
+    [DataRow("package")]
+    [DataRow("dangling-package")]
+    public async Task WindowsJunctionPathsAreRejectedBeforeWritingAndOutsideFilesSurvive(string kind)
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Requires native Windows NTFS junction APIs."); return; }
+        await VerifyReparsePathAsync(kind, WindowsReparseFixture.CreateJunction, junction: true);
+    }
+
+    private static async Task VerifyReparsePathAsync(string kind, Action<string, string> createLink, bool junction)
+    {
         using var fixture = new Fixture();
         var external = Path.Combine(fixture.Base, "outside");
         Directory.CreateDirectory(external);
@@ -366,14 +382,14 @@ public sealed class Ct2PackageInstallerTests
         if (kind is "root" or "ancestor")
         {
             link = fixture.Root;
-            Directory.CreateSymbolicLink(link, external);
+            createLink(link, external);
             if (kind == "ancestor") root = Path.Combine(link, "not-created");
         }
         else
         {
             Directory.CreateDirectory(root);
             link = fixture.PackageRoot;
-            Directory.CreateSymbolicLink(link, kind == "package" ? external : Path.Combine(external, "missing"));
+            createLink(link, kind == "package" ? external : Path.Combine(external, "missing"));
         }
         try
         {
@@ -385,7 +401,7 @@ public sealed class Ct2PackageInstallerTests
         }
         finally
         {
-            if (kind == "dangling-package") File.Delete(link);
+            if (kind == "dangling-package" && !junction && !OperatingSystem.IsWindows()) File.Delete(link);
             else Directory.Delete(link);
         }
     }
@@ -394,6 +410,18 @@ public sealed class Ct2PackageInstallerTests
     public async Task CleanupRefusesReparseTreeButStillDeletesArchiveAndReleasesGate()
     {
         RequireSymbolicLinks();
+        await VerifyReparseCleanupAsync((link, target) => Directory.CreateSymbolicLink(link, target));
+    }
+
+    [TestMethod]
+    public async Task WindowsCleanupRefusesJunctionTreeButStillDeletesArchiveAndReleasesGate()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Requires native Windows NTFS junction APIs."); return; }
+        await VerifyReparseCleanupAsync(WindowsReparseFixture.CreateJunction);
+    }
+
+    private static async Task VerifyReparseCleanupAsync(Action<string, string> createLink)
+    {
         using var fixture = new Fixture();
         var external = Path.Combine(fixture.Base, "outside");
         Directory.CreateDirectory(external);
@@ -405,7 +433,7 @@ public sealed class Ct2PackageInstallerTests
         {
             var staging = Directory.EnumerateDirectories(fixture.Root, "*.staging").Single();
             link = Path.Combine(staging, "injected-link");
-            Directory.CreateSymbolicLink(link, external);
+            createLink(link, external);
             throw new IOException("Simulated interrupted download after staging tampering.");
         });
         try
@@ -431,7 +459,7 @@ public sealed class Ct2PackageInstallerTests
 
     private static void RequireSymbolicLinks()
     {
-        if (OperatingSystem.IsWindows()) Assert.Inconclusive("Symbolic-link fixtures require developer mode or link privileges on Windows.");
+        WindowsReparseFixture.RequireSymbolicLinks(directory: true);
     }
 
     private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));

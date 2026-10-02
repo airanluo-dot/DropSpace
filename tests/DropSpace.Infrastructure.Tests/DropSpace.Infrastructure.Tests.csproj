@@ -9,10 +9,22 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DropSpace.Core\DropSpace.Core.csproj" />
     <ProjectReference Include="..\..\src\DropSpace.Infrastructure\DropSpace.Infrastructure.csproj" />
+    <ProjectReference Include="..\DropSpace.ResidentWorkerFixture\DropSpace.ResidentWorkerFixture.csproj"
+                      ReferenceOutputAssembly="false" OutputItemType="ResidentWorkerFixtureOutput" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="MSTest.TestAdapter" />
     <PackageReference Include="MSTest.TestFramework" />
   </ItemGroup>
+  <Target Name="CopyResidentWorkerFixture" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
+    <PropertyGroup>
+      <_ResidentWorkerFixtureDirectory>@(ResidentWorkerFixtureOutput->'%(RootDir)%(Directory)')</_ResidentWorkerFixtureDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ResidentWorkerFixtureFiles Include="$(_ResidentWorkerFixtureDirectory)DropSpace.ResidentWorkerFixture.*" />
+    </ItemGroup>
+    <Error Condition="'@(_ResidentWorkerFixtureFiles)' == ''" Text="The Windows resident process test fixture was not built." />
+    <Copy SourceFiles="@(_ResidentWorkerFixtureFiles)" DestinationFolder="$(TargetDir)ResidentFixture" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

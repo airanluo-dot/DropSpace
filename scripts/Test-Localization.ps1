@@ -52,12 +52,28 @@ $sourceFiles = @(
     Get-ChildItem -Path (Join-Path $repositoryRoot "src") -Recurse -File |
         Where-Object { $_.Extension -in ".cs", ".xaml" -and $_.FullName -notmatch '[\\/](obj|bin)[\\/]' }
 )
+# These three frozen model-facing constants are an evaluated wire protocol, not UI.
+# Verify exact bytes/definitions and exempt only these lines, never the whole file.
+$modelProtocolPath = 'src/DropSpace.Core/Lyrics/PlainHyLyricsProtocol.cs'
+$modelProtocolLines = @(
+    'public const string EnglishTarget = "英语";',
+    'public const string ChineseTarget = "简体中文";',
+    'public const string Template = "将以下文本翻译为{0}，注意只需要输出翻译后的结果，不要额外解释：\n{1}";'
+)
+$protocolLines = @(Get-Content -LiteralPath (Join-Path $repositoryRoot $modelProtocolPath) -Encoding UTF8 | ForEach-Object { $_.Trim() })
+foreach ($expectedLine in $modelProtocolLines) {
+    if (@($protocolLines | Where-Object { $_ -ceq $expectedLine }).Count -ne 1) {
+        throw 'The frozen Hy model-facing protocol changed; preserve evaluated prompt bytes and review protocol changes explicitly.'
+    }
+}
 $hardcodedChinese = @(
     foreach ($file in $sourceFiles)
     {
         $matches = Select-String -Path $file.FullName -Pattern "[\p{IsCJKUnifiedIdeographs}\p{IsCJKCompatibilityIdeographs}]" -AllMatches -Encoding UTF8
         foreach ($match in $matches)
         {
+            $relativePath = [IO.Path]::GetRelativePath($repositoryRoot, $file.FullName).Replace('\', '/')
+            if ($relativePath -ceq $modelProtocolPath -and $modelProtocolLines -ccontains $match.Line.Trim()) { continue }
             "{0}:{1}:{2}" -f $file.FullName.Substring($repositoryRoot.Length + 1), $match.LineNumber, $match.Line.Trim()
         }
     }
@@ -201,4 +217,4 @@ foreach ($tag in "System", "English", "SimplifiedChinese")
     }
 }
 
-Write-Host "Localization policy passed: $($englishNames.Count) synchronized resource keys, $($imperativeResourceKeys.Count) imperative references, $($xamlResourceIds.Count) XAML resource identifiers, and no Chinese hardcoding in source."
+Write-Host "Localization policy passed: $($englishNames.Count) synchronized resource keys, $($imperativeResourceKeys.Count) imperative references, $($xamlResourceIds.Count) XAML resource identifiers, and only the three frozen model protocol constants exempted."

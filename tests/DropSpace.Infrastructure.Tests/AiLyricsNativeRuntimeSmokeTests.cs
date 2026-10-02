@@ -12,8 +12,9 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
 
     [TestMethod]
     [TestCategory("NativeAiRuntime")]
-    [DataRow("hy-mt2-18-q8-plain-beta", "DROPSPACE_AI_SMOKE_MODEL")]
-    public async Task PinnedWindowsRuntimeTranslatesOriginalLinesAndHonorsCancellation(string modelId, string variable)
+    [DataRow("hy-mt2-18-q8-plain-beta", "DROPSPACE_AI_SMOKE_MODEL", false)]
+    [DataRow("hy-mt2-18-q8-plain-beta", "DROPSPACE_AI_SMOKE_MODEL", true)]
+    public async Task PinnedWindowsRuntimeTranslatesOriginalLinesAndHonorsCancellation(string modelId, string variable, bool gpuEnabled)
     {
         if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Shipping runtime smoke requires Windows x64."); return; }
         var descriptor = AiLyricsModelCatalog.Find(modelId)!;
@@ -50,7 +51,7 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
                 return File.OpenRead(Path.Combine(runtime, filename));
             }, Path.Combine(root, "runtime"));
             var executable = await package.EnsureExecutableAsync(CancellationToken.None);
-            using var runner = new PersistentPlainLyricsRunner(package, new AiLyricsRuntimeOptions { GpuEnabled = false });
+            using var runner = new PersistentPlainLyricsRunner(package, new AiLyricsRuntimeOptions { GpuEnabled = gpuEnabled });
             var source = new LyricsDocument([
                 new(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(4), "The morning light is on the window.", null, []),
                 new(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(9), "We will meet beside the river.", null, []),
@@ -66,6 +67,13 @@ public sealed class AiLyricsNativeRuntimeSmokeTests
             phase = "actual plaintext Beta backend translation and host mapping";
             var result = await backend.TranslateAsync(resolved, query, source, "zh-CN", CancellationToken.None);
             Assert.AreEqual(LyricsTranslationOutcome.Translated, result.Outcome);
+            TestContext.WriteLine($"Native execution: gpuEnabled={gpuEnabled}; backend={runner.LastExecutionBackend}; cpuFallback={runner.LastExecutionUsedCpuFallback}.");
+            if (!gpuEnabled) Assert.AreEqual("cpu", runner.LastExecutionBackend);
+            else if (Environment.GetEnvironmentVariable("DROPSPACE_AI_SMOKE_REQUIRE_GPU") == "1")
+            {
+                Assert.AreEqual("vulkan", runner.LastExecutionBackend, "An explicit GPU gate may not pass by CPU fallback.");
+                Assert.IsFalse(runner.LastExecutionUsedCpuFallback);
+            }
             var translated = result.Document;
             for (var index = 0; index < source.Lines.Count; index++)
             {

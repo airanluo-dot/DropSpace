@@ -31,7 +31,7 @@ static bool read_frame(std::string & out) {
 static void send(const json & value) { std::cout << value.dump() << '\n' << std::flush; }
 
 #ifdef DROPSPACE_VULKAN
-static ggml_backend_dev_t choose_gpu() {
+static ggml_backend_dev_t choose_gpu(json & selected_device) {
     VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO}; app.apiVersion = VK_API_VERSION_1_2;
     VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO}; info.pApplicationInfo = &app;
     VkInstance instance{};
@@ -69,6 +69,8 @@ static ggml_backend_dev_t choose_gpu() {
             if (dropspace::gpu_fits(p.vendorID, discrete, budget, props.memory_free, props.memory_total, host_available) &&
                 (!best || (discrete && !best_discrete) || (discrete == best_discrete && props.memory_free > best_free))) {
                 best = device; best_free = props.memory_free; best_discrete = discrete;
+                selected_device = {{"vendorId", p.vendorID}, {"name", props.description}, {"discrete", discrete},
+                    {"memoryFreeBytes", props.memory_free}, {"memoryTotalBytes", props.memory_total}};
             }
         }
     }
@@ -110,8 +112,9 @@ int main(int argc, char ** argv) {
         params.devices = {nullptr};
         llama_backend_init();
 #ifdef DROPSPACE_VULKAN
+        json selected_device;
         if (mode == "vulkan") {
-            auto device = choose_gpu();
+            auto device = choose_gpu(selected_device);
             if (!device) return 66; // host will fully drain us before CPU fallback
             params.devices = {device, nullptr};
             params.n_gpu_layers = 999;
@@ -123,7 +126,13 @@ int main(int argc, char ** argv) {
         auto templates = common_chat_templates_init(model, params.chat_template);
         const bool chat = common_chat_templates_was_explicit(templates.get());
         auto vocab = llama_model_get_vocab(model);
-        send({{"protocol", 1}, {"ready", true}, {"backend", mode}});
+        json ready = {{"protocol", 1}, {"ready", true}, {"backend", mode}};
+#ifdef DROPSPACE_VULKAN
+        // Diagnostic identity comes from the selected physical adapter, never the
+        // user's GPU preference. It does not expose prompt or model contents.
+        if (mode == "vulkan") ready["device"] = selected_device;
+#endif
+        send(ready);
         std::string frame;
         while (read_frame(frame)) {
             const auto request = json::parse(frame);

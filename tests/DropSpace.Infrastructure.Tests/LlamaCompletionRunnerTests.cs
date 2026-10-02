@@ -48,10 +48,10 @@ public sealed class LlamaCompletionRunnerTests
     [DataRow(true)]
     public async Task CancellationDoesNotReturnUntilTheStartedProcessHasExited(bool tokenizer)
     {
-        if (OperatingSystem.IsWindows()) { Assert.Inconclusive("The portable fixture requires /bin/sh; Windows has native process and runtime gates."); return; }
+        WindowsProcessFixture.RequireAvailable();
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-runner-lifetime-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
-        var executable = Path.Combine(root, "fake-runtime");
+        var executable = Path.Combine(root, OperatingSystem.IsWindows() ? "fake-runtime.exe" : "fake-runtime");
         var pidFile = Path.Combine(root, "process-id");
         var staging = Path.Combine(root, "prompts");
         using var runner = new LlamaCompletionRunner();
@@ -59,8 +59,13 @@ public sealed class LlamaCompletionRunnerTests
         Task? running = null;
         try
         {
-            await File.WriteAllTextAsync(executable, $"#!/bin/sh\necho $$ > '{pidFile.Replace("'", "'\\''")}'\nexec /bin/sleep 60\n");
-            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            if (OperatingSystem.IsWindows())
+                WindowsProcessFixture.Write(executable, new { kind = "lifetime", pidPath = pidFile, delayMilliseconds = 60_000 });
+            else
+            {
+                await File.WriteAllTextAsync(executable, $"#!/bin/sh\necho $$ > '{pidFile.Replace("'", "'\\''")}'\nexec /bin/sleep 60\n");
+                File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
             running = tokenizer
                 ? runner.CountTokensAsync(executable, Path.Combine(root, "model"), "fixture", staging, cancellation.Token)
                 : runner.RunAsync(executable, Path.Combine(root, "model"), "fixture", staging, cancellation.Token);
@@ -82,6 +87,7 @@ public sealed class LlamaCompletionRunnerTests
             cancellation.Cancel();
             if (running is not null)
                 try { await running; } catch (OperationCanceledException) { }
+            await runner.DrainCleanupAsync(CancellationToken.None);
             Directory.Delete(root, true);
         }
     }

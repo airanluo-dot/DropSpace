@@ -30,6 +30,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs',
   'src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs',
+  'src/DropSpace.Infrastructure/Storage/ReparseSafeFileOpen.cs',
   'src/DropSpace.Infrastructure/Lyrics/Ct2HelperAdapter.cs',
   'src/DropSpace.Infrastructure/Lyrics/Ct2PrivatePackage.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiLyricsBackend.cs',
@@ -104,6 +105,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/OverlayWindow.xaml',
   'scripts/ai-model-qa/profiles/minimal-target-only.json',
   'scripts/Build-AiLyricsRuntime.ps1',
+  'scripts/Prepare-VulkanBuildDependencies.ps1',
+  'scripts/build-dependencies/vulkan/vcpkg.json',
   'scripts/ai-model-qa/Program.cs',
   'scripts/ai-model-qa/Run-WindowsModelQa.ps1',
   'scripts/ai-model-qa/WindowsModelQa.csproj',
@@ -184,7 +187,9 @@ export function readScope(root) {
   const resident = {
     protocol: Number(singleMatch(runner, /public const int ProtocolVersion = (\d+);/g, 'Resident protocol version')),
     profile: singleMatch(runner, /public const string ResidentProfileId = "([^"]+)";/g, 'Resident profile identity'),
-    sourceSha256: sha256(residentSourcePaths.map(name => readText(root, name)).join('')),
+    // Match the runtime producer: ordered UTF-8 files, CRLF normalized to LF,
+    // with one LF separator between files (including existing trailing LFs).
+    sourceSha256: sha256(residentSourcePaths.map(name => readText(root, name)).join('\n')),
   };
   const files = sourcePaths.map(name => ({ path: name, sha256: sha256(readText(root, name)) }));
   return {

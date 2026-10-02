@@ -6,7 +6,7 @@ using DropSpace.Infrastructure.Lyrics;
 
 namespace DropSpace.Infrastructure.Tests;
 
-/// <summary>POSIX protocol fixtures establish managed ownership, not native Windows or GPU execution.</summary>
+/// <summary>Process protocol fixtures cover managed/OS ownership; they do not certify model or GPU inference.</summary>
 [TestClass]
 [DoNotParallelize]
 public sealed class PersistentPlainLyricsRunnerTests
@@ -14,7 +14,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task ConsecutiveRequestsReuseProcessAndKeepHostIdsOutsidePrompt()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner();
         Assert.IsNull(runner.LastExecutionBackend);
@@ -39,7 +39,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task MismatchedResponseIdKillsWorkerWithoutGpuFallbackAndNextRequestStartsCleanly()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true });
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => fixture.RunAsync(runner, "mismatched-id"));
@@ -64,7 +64,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [DataRow("oversized-output")]
     public async Task InvalidCompletedResponseIsReapedWithoutRetryingOnCpu(string prompt)
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true });
         await Assert.ThrowsExactlyAsync<InvalidDataException>(() => fixture.RunAsync(runner, prompt));
@@ -76,7 +76,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task CancellationDiscardsPartialOutputAndReapsGpuBeforeNextCpuResolution()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var options = new AiLyricsRuntimeOptions { GpuEnabled = true };
         var runner = fixture.CreateRunner(options);
@@ -100,7 +100,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task FailedGpuStartupIsReapedBeforeSingleCpuRetryAndFallbackRemainsResident()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         File.WriteAllText(fixture.FailGpuStartup, string.Empty);
         var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true });
@@ -126,7 +126,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task GpuOffNeverResolvesGpuAndDrainsBeforeEitherModeChange()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var options = new AiLyricsRuntimeOptions { GpuEnabled = false };
         var runner = fixture.CreateRunner(options);
@@ -153,7 +153,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task IdleTimeoutReapsWorkerReleasesSharedGateAndNextRequestRestarts()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(idleTimeout: TimeSpan.FromMilliseconds(100));
         Assert.AreEqual("first", await fixture.RunAsync(runner, "first"));
@@ -170,7 +170,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task ExplicitDrainReapsResidentWorkerAndAllowsReuse()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner();
         Assert.AreEqual("before drain", await fixture.RunAsync(runner, "before drain"));
@@ -185,7 +185,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task SongCancellationAfterCompletedResponseReapsIdleWorkerBeforeTimeout()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(idleTimeout: TimeSpan.FromMinutes(2));
         using var song = new CancellationTokenSource();
@@ -203,7 +203,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task ReplacedSongTokenCannotKillWorkerOwnedByNewRequest()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(idleTimeout: TimeSpan.FromMinutes(2));
         using var oldSong = new CancellationTokenSource();
@@ -222,7 +222,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     [TestMethod]
     public async Task DisposeCancelsActiveRequestAndDrainConfirmsExitBeforeRejectingReuse()
     {
-        RequirePosix();
+        RequireFixture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner();
         var pending = fixture.RunAsync(runner, "partial-and-block");
@@ -272,10 +272,10 @@ public sealed class PersistentPlainLyricsRunnerTests
         Assert.IsFalse(options.GpuEnabled);
     }
 
-    private static void RequirePosix()
+    private static void RequireFixture()
     {
-        if (OperatingSystem.IsWindows() || !File.Exists("/usr/bin/python3"))
-            Assert.Inconclusive("Requires POSIX /usr/bin/python3; does not establish native Windows or GPU runtime behavior.");
+        if (!OperatingSystem.IsWindows() && !File.Exists("/usr/bin/python3"))
+            Assert.Inconclusive("The POSIX fixture requires /usr/bin/python3; Windows uses the built managed fixture.");
     }
 
     private static bool IsAlive(int pid)
@@ -314,13 +314,23 @@ public sealed class PersistentPlainLyricsRunnerTests
             Root = Path.Combine(Path.GetTempPath(), "DropSpace-resident-runner-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Root);
             if (!writeRuntime) return;
+            if (OperatingSystem.IsWindows())
+            {
+                var payload = Path.Combine(AppContext.BaseDirectory, "ResidentFixture");
+                var appHost = Path.Combine(payload, "DropSpace.ResidentWorkerFixture.exe");
+                Assert.IsTrue(File.Exists(appHost), "The Windows resident fixture must be built; missing fixtures are not skipped.");
+                foreach (var file in Directory.EnumerateFiles(payload, "DropSpace.ResidentWorkerFixture.*"))
+                    File.Copy(file, Path.Combine(Root, Path.GetFileName(file)));
+                File.Copy(appHost, Executable);
+                return;
+            }
             File.WriteAllText(Executable, "#!/usr/bin/python3\n" + Runtime, new UTF8Encoding(false));
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(Executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
 
         internal string Root { get; }
-        internal string Executable => Path.Combine(Root, "fake resident worker");
+        internal string Executable => Path.Combine(Root, OperatingSystem.IsWindows() ? "fake resident worker.exe" : "fake resident worker");
         internal string Model => Path.Combine(Root, "Hy model.gguf");
         internal string Staging => Path.Combine(Root, "private prompts");
         internal string Blocked => Path.Combine(Root, "blocked");

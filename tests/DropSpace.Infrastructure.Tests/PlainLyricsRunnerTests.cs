@@ -5,7 +5,7 @@ using DropSpace.Infrastructure.Lyrics;
 
 namespace DropSpace.Infrastructure.Tests;
 
-/// <summary>POSIX process fixtures verify launch policy and ownership, not native Windows runtime behavior.</summary>
+/// <summary>Actual OS process fixtures verify launch policy and ownership. They do not load an AI model.</summary>
 [TestClass]
 [DoNotParallelize]
 public sealed class PlainLyricsRunnerTests
@@ -15,7 +15,7 @@ public sealed class PlainLyricsRunnerTests
     [TestMethod]
     public async Task PlainArgumentsMatchFrozenProfileAndPromptIsClosedUtf8BeforeLaunch()
     {
-        RequirePosix();
+        WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
         using var runner = new LlamaCompletionRunner();
         using var cancel = new CancellationTokenSource();
@@ -26,7 +26,9 @@ public sealed class PlainLyricsRunnerTests
         fixture.WriteRuntime(fixture.CaptureArguments +
             $"cat \"$4\" > {Quote(capturedPrompt)}\nenv > {Quote(environmentPath)}\n: > {Quote(fixture.Ready)}\n" +
             $"while [ ! -f {Quote(release)} ]; do /bin/sleep 0.02; done\n" +
-            "printf 'A quiet night [end of text]\\n'\n");
+            "printf 'A quiet night [end of text]\\n'\n", new { kind = "completion", argumentsPath = fixture.Arguments,
+                capturedPromptPath = capturedPrompt, environmentPath, readyPath = fixture.Ready, releasePath = release,
+                lateOutput = "A quiet night [end of text]\n" });
         var ambient = new Dictionary<string, string>
         {
             ["LLAMA_ARG_MODEL"] = "unexpected-model",
@@ -60,7 +62,7 @@ public sealed class PlainLyricsRunnerTests
                 Assert.AreEqual(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(promptPath));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(prompt), await File.ReadAllBytesAsync(capturedPrompt));
             // An exclusive managed read also catches a writer left open in this process.
-            // Native Windows sharing is covered by the separate Windows runtime gate.
+            // The Windows child also opened the staged prompt with FileShare.None.
             await using (var stream = new FileStream(promptPath, FileMode.Open, FileAccess.Read, FileShare.None))
             {
                 var bytes = new byte[stream.Length];
@@ -109,13 +111,14 @@ public sealed class PlainLyricsRunnerTests
     [TestMethod]
     public async Task PlainCancellationWaitsForActualExitAndGateSupportsRepeatedPlainAndLegacyReuse()
     {
-        RequirePosix();
+        WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
         using var runner = new LlamaCompletionRunner();
         using var cancel = new CancellationTokenSource();
         var pidPath = Path.Combine(fixture.Root, "process-id");
         fixture.WriteRuntime(fixture.CaptureArguments + $"echo $$ > {Quote(pidPath)}\n" +
-            $"printf 'partial output\\n'\n: > {Quote(fixture.Ready)}\nexec /bin/sleep 60\n");
+            $"printf 'partial output\\n'\n: > {Quote(fixture.Ready)}\nexec /bin/sleep 60\n", new { kind = "completion",
+                argumentsPath = fixture.Arguments, pidPath, output = "partial output\n", readyPath = fixture.Ready, delayMilliseconds = 60_000 });
         var running = runner.RunPlainAsync(fixture.Executable, fixture.Model, "source", fixture.Staging, cancel.Token, PlainModelSha256);
         try
         {
@@ -134,7 +137,7 @@ public sealed class PlainLyricsRunnerTests
             Assert.IsTrue(observed.HasExited, "Cancellation may not hand ownership back before actual process exit.");
             await runner.DrainCleanupAsync(CancellationToken.None);
             Assert.HasCount(0, Directory.GetFiles(fixture.Staging));
-            fixture.WriteRuntime("printf 'translated [end of text]\\n'\n");
+            fixture.WriteRuntime("printf 'translated [end of text]\\n'\n", new { kind = "completion", output = "translated [end of text]\n" });
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 Assert.AreEqual("translated", await runner.RunPlainAsync(fixture.Executable, fixture.Model, "source",
@@ -156,17 +159,18 @@ public sealed class PlainLyricsRunnerTests
     [TestMethod]
     public async Task NonzeroExitDrainsStderrRemovesPromptAndAllowsReuse()
     {
-        RequirePosix();
+        WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
         using var runner = new LlamaCompletionRunner();
-        fixture.WriteRuntime("printf '%070000d' 0 >&2\nprintf 'unusable output'\nexit 27\n");
+        fixture.WriteRuntime("printf '%070000d' 0 >&2\nprintf 'unusable output'\nexit 27\n",
+            new { kind = "completion", stderrBytes = 70_000, output = "unusable output", exitCode = 27 });
         var error = await Assert.ThrowsExactlyAsync<LocalInferenceExecutionException>(() => runner.RunPlainAsync(
             fixture.Executable, fixture.Model, "private source", fixture.Staging, CancellationToken.None, PlainModelSha256));
         Assert.AreEqual(27, error.ExitCode);
         Assert.AreEqual("Local inference exited with code 27.", error.Message);
         await runner.DrainCleanupAsync(CancellationToken.None);
         Assert.HasCount(0, Directory.GetFiles(fixture.Staging));
-        fixture.WriteRuntime("printf 'next response\\n'\n");
+        fixture.WriteRuntime("printf 'next response\\n'\n", new { kind = "completion", output = "next response\n" });
         Assert.AreEqual("next response", await runner.RunPlainAsync(fixture.Executable, fixture.Model, "source",
             fixture.Staging, CancellationToken.None, PlainModelSha256));
         await runner.DrainCleanupAsync(CancellationToken.None);
@@ -176,16 +180,17 @@ public sealed class PlainLyricsRunnerTests
     [TestMethod]
     public async Task OutputBudgetFailureKillsChildAndAllowsDrainAndReuse()
     {
-        RequirePosix();
+        WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
         using var runner = new LlamaCompletionRunner();
-        fixture.WriteRuntime("printf '%070000d' 0\nexec /bin/sleep 60\n");
+        fixture.WriteRuntime("printf '%070000d' 0\nexec /bin/sleep 60\n",
+            new { kind = "completion", stdoutBytes = 70_000, delayMilliseconds = 60_000 });
         var error = await Assert.ThrowsExactlyAsync<InvalidDataException>(() => runner.RunPlainAsync(
             fixture.Executable, fixture.Model, "source", fixture.Staging, CancellationToken.None, PlainModelSha256));
         Assert.AreEqual("Local inference output exceeds budget.", error.Message);
         await runner.DrainCleanupAsync(CancellationToken.None);
         Assert.HasCount(0, Directory.GetFiles(fixture.Staging));
-        fixture.WriteRuntime("printf 'next response\\n'\n");
+        fixture.WriteRuntime("printf 'next response\\n'\n", new { kind = "completion", output = "next response\n" });
         Assert.AreEqual("next response", await runner.RunPlainAsync(fixture.Executable, fixture.Model, "source",
             fixture.Staging, CancellationToken.None, PlainModelSha256));
         await runner.DrainCleanupAsync(CancellationToken.None);
@@ -209,10 +214,11 @@ public sealed class PlainLyricsRunnerTests
     [TestMethod]
     public async Task LegacyJsonSchemaAndCompactCompatibilityArgumentsAreUnchanged()
     {
-        RequirePosix();
+        WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture();
         using var runner = new LlamaCompletionRunner();
-        fixture.WriteRuntime(fixture.CaptureArguments + "printf '[] [end of text]\\n'\n");
+        fixture.WriteRuntime(fixture.CaptureArguments + "printf '[] [end of text]\\n'\n",
+            new { kind = "completion", argumentsPath = fixture.Arguments, output = "[] [end of text]\n" });
         Assert.AreEqual("[]", await runner.RunAsync(fixture.Executable, fixture.Model, "legacy prompt", fixture.Staging,
             CancellationToken.None, AiLyricsModelCatalog.Compact.Sha256, [0, 2]));
         var arguments = await File.ReadAllLinesAsync(fixture.Arguments);
@@ -225,12 +231,6 @@ public sealed class PlainLyricsRunnerTests
         }, arguments);
         await runner.DrainCleanupAsync(CancellationToken.None);
         Assert.HasCount(0, Directory.GetFiles(fixture.Staging));
-    }
-
-    private static void RequirePosix()
-    {
-        if (OperatingSystem.IsWindows())
-            Assert.Inconclusive("POSIX process fixture only; this test does not establish native Windows runtime behavior.");
     }
 
     private static async Task WaitForFileAsync(string path, Task running)
@@ -258,15 +258,16 @@ public sealed class PlainLyricsRunnerTests
         }
 
         public string Root { get; }
-        public string Executable => Path.Combine(Root, "fake runtime");
+        public string Executable => Path.Combine(Root, OperatingSystem.IsWindows() ? "fake runtime.exe" : "fake runtime");
         public string Model => Path.Combine(Root, "Hy model.gguf");
         public string Staging => Path.Combine(Root, "prompts");
         public string Arguments => Path.Combine(Root, "arguments");
         public string Ready => Path.Combine(Root, "ready");
         public string CaptureArguments => $"printf '%s\\n' \"$@\" > {Quote(Arguments)}\n";
 
-        public void WriteRuntime(string body)
+        public void WriteRuntime(string body, object windowsScenario)
         {
+            if (OperatingSystem.IsWindows()) { WindowsProcessFixture.Write(Executable, windowsScenario); return; }
             File.WriteAllText(Executable, "#!/bin/sh\nset -eu\n" + body, new UTF8Encoding(false));
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(Executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);

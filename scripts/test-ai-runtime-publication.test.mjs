@@ -134,11 +134,14 @@ test('publication utility rejects unknown CLI arguments', () => {
 });
 test('Git preserves exact evidence CRLF bytes without changing ordinary JSON attributes', () => {
   const input = Buffer.from('synthetic raw evidence\r\nwith original newlines\r\n');
-  const filtered = spawnSync('git', ['hash-object', '--path=scripts/ai-model-qa/evidence/synthetic.json', '--stdin'], { cwd: repository, input, encoding: 'utf8' });
-  const raw = spawnSync('git', ['hash-object', '--no-filters', '--stdin'], { cwd: repository, input, encoding: 'utf8' });
-  assert.equal(filtered.status, 0); assert.equal(raw.status, 0); assert.equal(filtered.stdout, raw.stdout);
-  const attributes = spawnSync('git', ['check-attr', 'text', '--', 'scripts/ai-model-qa/release-approval.json', 'scripts/ai-model-qa/inputs/source48.json'], { cwd: repository, encoding: 'utf8' });
-  assert.equal(attributes.status, 0);
+  // Sandbox-created checkouts may be owned by a different Windows identity.
+  // Trust only this exact test checkout for these commands; never change global Git policy.
+  const checkout = ['-c', `safe.directory=${path.resolve(repository).replaceAll('\\', '/')}`];
+  const filtered = spawnSync('git', [...checkout, 'hash-object', '--path=scripts/ai-model-qa/evidence/synthetic.json', '--stdin'], { cwd: repository, input, encoding: 'utf8' });
+  const raw = spawnSync('git', [...checkout, 'hash-object', '--no-filters', '--stdin'], { cwd: repository, input, encoding: 'utf8' });
+  assert.equal(filtered.status, 0, filtered.stderr); assert.equal(raw.status, 0, raw.stderr); assert.equal(filtered.stdout, raw.stdout);
+  const attributes = spawnSync('git', [...checkout, 'check-attr', 'text', '--', 'scripts/ai-model-qa/release-approval.json', 'scripts/ai-model-qa/inputs/source48.json'], { cwd: repository, encoding: 'utf8' });
+  assert.equal(attributes.status, 0, attributes.stderr);
   assert.match(attributes.stdout, /release-approval.json: text: set/);
   assert.match(attributes.stdout, /source48.json: text: set/);
 });
