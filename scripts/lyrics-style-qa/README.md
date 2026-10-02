@@ -1,0 +1,9 @@
+# Context and lyrical style diagnostic
+
+This is a separate, finite experiment following the owner's 2026-10-02 request to improve both shipped Q8 models. It changes no App prompt, sampler, catalog, release version or publication gate. It creates no Codex task and consumes no reset card. Only standard public-repository GitHub-hosted Ubuntu runners are requested, not paid larger/GPU runners.
+
+Eight original lyric-like cases are frozen before any output. Each model runs the same 32 planned requests: current official plaintext baseline, context only, context plus restrained faithful lyric style, and that style with Tencent's recommended temperature/top-p/repetition values. Other parameters remain the production completion-runner values. The final arm is a sampler profile comparison, not isolation of each sampler parameter. Expected semantic notes are never passed to inference.
+
+Only exact catalog model byte counts/SHA256 and pinned llama.cpp source are accepted. This is a Linux CPU semantic diagnostic, not Windows App runtime qualification or real-playback evidence. Each child has a 60-second generation deadline, 3/12 GiB RSS ceiling, bounded output and owned-process cleanup; 1.8B/7B require 4/13 GiB available memory before download and each launch. Any failed call stops further launches. Whole experiment allowance is 35 minutes excluding runtime compilation. No budget is lowered to force 7B to load.
+
+Artifacts preserve raw stdout, stderr, prompts, arguments, runtime/model/source hashes, timings and memory. No model binary is uploaded or cached. Technical success does not imply correct target language, meaning, style, full-song stability or release approval. The semantic verdict stays pending human review. A successful screen must be followed by a separately frozen holdout and production integration tests before adopting a changed protocol/cache identity.

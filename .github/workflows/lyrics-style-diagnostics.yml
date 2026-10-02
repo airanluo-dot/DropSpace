@@ -1,0 +1,52 @@
+name: Lyrics context and style diagnostics (no publication)
+on:
+  push:
+    branches: [qa/lyrics-style-20261003]
+    paths:
+      - scripts/lyrics-style-qa/**
+      - .github/workflows/lyrics-style-diagnostics.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lyrics-style-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  compare:
+    name: Pinned ${{ matrix.model }} CPU prompt comparison
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ['1.8b', '7b']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Check fixed prompt contracts without loading models
+        run: python3 scripts/lyrics-style-qa/run.py --self-test
+      - name: Build pinned CPU diagnostic runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/llama"
+          git -C "$RUNNER_TEMP/llama" remote add origin https://github.com/ggml-org/llama.cpp.git
+          git -C "$RUNNER_TEMP/llama" fetch --depth 1 origin 7fe450e19305b828c199d602c23a8337aaa1f03b
+          git -C "$RUNNER_TEMP/llama" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/llama" rev-parse HEAD)" = 7fe450e19305b828c199d602c23a8337aaa1f03b
+          cmake -S "$RUNNER_TEMP/llama" -B "$RUNNER_TEMP/llama/build" -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_AVX2=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF
+          cmake --build "$RUNNER_TEMP/llama/build" --target llama-completion -j 2
+      - name: Compare baseline context style and sampler with actual pinned model
+        env:
+          MODEL_SIZE: ${{ matrix.model }}
+        run: |
+          python3 scripts/lyrics-style-qa/run.py --model "$MODEL_SIZE" --exe "$RUNNER_TEMP/llama/build/bin/llama-completion" --output "$RUNNER_TEMP/lyrics-style/results"
+      - name: Preserve only small raw evidence and pending semantic verdict
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: lyrics-style-${{ matrix.model }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/lyrics-style/results/**
+          if-no-files-found: warn
+          retention-days: 3
