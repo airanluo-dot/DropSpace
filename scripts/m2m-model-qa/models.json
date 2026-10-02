@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "direction": "multilingual",
+      "repo": "facebook/m2m100_1.2B",
+      "revision": "7b36184180524c1a1bbfa37f120a608046250b98",
+      "license": "mit",
+      "gated": false,
+      "files": [
+        {
+          "path": "README.md",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/README.md",
+          "bytes": 4603,
+          "sha256": "f4358f5d8ce691958a36ea897b7360c6ec8039dc5c275331d6953a2a8338d30f"
+        },
+        {
+          "path": "config.json",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/config.json",
+          "bytes": 909,
+          "sha256": "13b5191c92371b2d587baac6c9a04de018a5264d7179020d379a276769051f95"
+        },
+        {
+          "path": "generation_config.json",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/generation_config.json",
+          "bytes": 233,
+          "sha256": "aed76366507333ddbb8bd49960f23c82fe6446b3319a46a54befdb45324ccf61"
+        },
+        {
+          "path": "pytorch_model.bin",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/pytorch_model.bin",
+          "bytes": 4958230644,
+          "sha256": "a58ef8f42362ef12adeddc600b3425f1e2bbd019cfa6aae6b0051e2e3e055cd4"
+        },
+        {
+          "path": "sentencepiece.bpe.model",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/sentencepiece.bpe.model",
+          "bytes": 2423393,
+          "sha256": "d8f7c76ed2a5e0822be39f0a4f95a55eb19c78f4593ce609e2edbc2aea4d380a"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/special_tokens_map.json",
+          "bytes": 1140,
+          "sha256": "c1a4f86c3874d279ae1b2a05162858db5dd6c61665d84223ed886cbcff08fda6"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/tokenizer_config.json",
+          "bytes": 271,
+          "sha256": "1566a6cfa4f541a55594c9d5e090f530812d5de7c94882ea3af156962d9933ae"
+        },
+        {
+          "path": "vocab.json",
+          "url": "https://huggingface.co/facebook/m2m100_1.2B/resolve/7b36184180524c1a1bbfa37f120a608046250b98/vocab.json",
+          "bytes": 3708092,
+          "sha256": "b6e77e474aeea8f441363aca7614317c06381f3eacfe10fb9856d5081d1074cc"
+        }
+      ]
+    }
+  ]
+}
