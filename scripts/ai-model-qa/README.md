@@ -110,3 +110,13 @@ The source fixture is original synthetic text, not lyrics obtained from a user o
 Native inference polling, OS exit wait, and output-drain wait share the invocation cancellation deadline (60 s for load/generation, 20 s tokenizer). Deadline cancellation breaks observation even if Kill fails. Teardown uses the production CompleteAsync ownership task and WaitForCleanupAsync's separate 10 s shutdown observation budget, with no second Dispose wait. Evidence distinguishes InferenceBudgetSeconds, total Seconds, CleanupSeconds, CleanupCompleted and CleanupError. Thus a deadline result may include up to 10 s additional shutdown observation; this is never reported as a successful sub-60 s inference.
 
 Unconfirmed cleanup stops remaining screens and writes a guard in the shared model directory so the next candidate step fails closed before native launch. Retain that guard/evidence for diagnosis; do not automatically retry or delete it to obtain a green run. Deadline/cleanup failure is persisted in each native JSON/result rather than being treated as a semantic verdict.
+
+## AVX2 follow-up after Windows baseline timeouts
+
+The 0959 Windows run loaded both candidates successfully, but all four original screens timed out at 60 s with empty stdout and confirmed cleanup. These baseline failures remain evidence; candidate semantics are unknown. On the same supported CPU, shipping AiLyricsRuntimePackage selects AVX2 when AVX2, FMA and F16C are available, and the native smoke test uses this selector without overriding it. The initial candidate workflow explicitly selected Baseline instead.
+
+The next predeclared comparison therefore runs the same two fixed screens per candidate using Variant Avx2, with unchanged prompt/schema/seed/3 GiB/60 s/2048-token budgets. The same-run runtime artifact includes the optimized executable, whose size/hash and CPU eligibility are verified. No additional baseline, tiny-prompt or first-token-only run is scheduled. It does not establish compatibility on CPUs lacking those features.
+
+QA now adds --perf, cumulative sampled native CPU time and FirstStdoutObservedSeconds (time at first stream read, not an exact native token timestamp). Sampled CPU time on a killed process is a lower bound. A null stdout timestamp means no output was observed. This telemetry helps distinguish compute activity from waiting; no single metric alone proves the cause.
+
+Pinned completion.cpp lines 250–270 apply the chat template to the file prompt as user content; lines 365–368 explicitly disable interaction for a nonempty single-turn prompt. Thus the conversation warning is not evidence of waiting for stdin. No -no-cnv workaround is applied, because that would skip template formatting. No production runtime/catalog changes are made.

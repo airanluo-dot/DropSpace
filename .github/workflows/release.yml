@@ -196,6 +196,7 @@ jobs:
           path: |
             artifacts/ai-runtime/win-x64/runtime-manifest.json
             artifacts/ai-runtime/win-x64/llama-completion.exe
+            artifacts/ai-runtime/win-x64/llama-completion-avx2.exe
             artifacts/ai-runtime/win-x64/llama-tokenize.exe
           if-no-files-found: error
           retention-days: 3
@@ -362,7 +363,7 @@ jobs:
           retention-days: 14
 
   ai-model-diagnostics:
-    name: Candidate loading and structure (quality review required)
+    name: Candidate AVX2 review (quality review required)
     needs: validate-release
     if: >-
       always() && !cancelled() && github.event_name == 'pull_request' &&
@@ -398,9 +399,9 @@ jobs:
             [ref]$tokens, [ref]$errors) | Out-Null
           if ($errors.Count -gt 0) { $errors | Format-List; throw 'QA script syntax check failed.' }
 
-      # Fixed one-shot screens, sequentially, using the baseline CPU executable.
+      # AVX2 follow-up of the recorded baseline failures; same one-shot screens and budgets.
       # Keep going to retain both outcomes, then fail the job if either was incomplete.
-      - name: Diagnose Qwen3 1.7B Q4 loading and fixed screen
+      - name: Review Qwen3 1.7B Q4 on AVX2 with original fixed screen
         id: qwen
         continue-on-error: true
         timeout-minutes: 12
@@ -411,10 +412,10 @@ jobs:
           ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
             -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
             -ModelDirectory artifacts/ai-candidate-models -ModelIds qwen3-17-q4 `
-            -Variant Baseline -MemoryMiB 3072 -DownloadMissing `
+            -Variant Avx2 -MemoryMiB 3072 -DownloadMissing `
             -OutputDirectory artifacts/ai-model-diagnostics/qwen3-17-q4
 
-      - name: Diagnose Granite 3.3 2B Q4 loading and fixed screen
+      - name: Review Granite 3.3 2B Q4 on AVX2 with original fixed screen
         id: granite
         if: ${{ !cancelled() && steps.qwen.outcome != 'skipped' }}
         continue-on-error: true
@@ -426,7 +427,7 @@ jobs:
           ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
             -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
             -ModelDirectory artifacts/ai-candidate-models -ModelIds granite33-2-q4 `
-            -Variant Baseline -MemoryMiB 3072 -DownloadMissing `
+            -Variant Avx2 -MemoryMiB 3072 -DownloadMissing `
             -OutputDirectory artifacts/ai-model-diagnostics/granite33-2-q4
 
       - name: Record technical outcomes and mandatory semantic review
@@ -448,7 +449,8 @@ jobs:
           }
           $record | ConvertTo-Json | Set-Content artifacts/ai-model-diagnostics/ci-outcomes.json -Encoding utf8
           @(
-            '## Candidate diagnostics only',
+            '## Candidate AVX2 diagnostics only',
+            'Prior baseline timeout evidence remains failed. AVX2 results do not establish support on CPUs without AVX2/FMA/F16C.',
             "Qwen3 Q4 technical outcome: $env:QWEN_OUTCOME",
             "Granite Q4 technical outcome: $env:GRANITE_OUTCOME",
             'Semantic quality: PENDING HUMAN REVIEW. Structural success does not approve a model.',

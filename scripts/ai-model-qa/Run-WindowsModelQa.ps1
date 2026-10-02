@@ -59,6 +59,9 @@ Assert-Hash $manifestPath $ExpectedRuntimeManifestSha256
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 if ($manifest.schemaVersion -ne 1 -or $manifest.runtimeId -cne 'llama-cpp-v0.5.0-cpu-win-x64' -or $manifest.sourceCommit -cne '7fe450e19305b828c199d602c23a8337aaa1f03b') { throw 'Unexpected trusted runtime manifest identity.' }
 if ($manifest.executable -cne 'llama-completion.exe' -or $manifest.tokenizer.executable -cne 'llama-tokenize.exe') { throw 'Unexpected runtime component names.' }
+$cpuQualification = [ordered]@{ avx2=[System.Runtime.Intrinsics.X86.Avx2]::IsSupported; fma=[System.Runtime.Intrinsics.X86.Fma]::IsSupported; x86=[System.Runtime.Intrinsics.X86.X86Base]::IsSupported; f16c=$false }
+if ($cpuQualification.x86) { $cpuFeatures=[System.Runtime.Intrinsics.X86.X86Base]::CpuId(1,0); $cpuQualification.f16c=($cpuFeatures.Item3 -band (1 -shl 29)) -ne 0 }
+$cpuQualification | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'cpu-qualification.json') -Encoding utf8
 if ($Variant -eq 'Avx2') {
     if (-not [System.Runtime.Intrinsics.X86.Avx2]::IsSupported -or -not [System.Runtime.Intrinsics.X86.Fma]::IsSupported -or -not [System.Runtime.Intrinsics.X86.X86Base]::IsSupported) { throw 'Host lacks required AVX2/FMA CPU features.' }
     $cpuFeatures = [System.Runtime.Intrinsics.X86.X86Base]::CpuId(1,0)
@@ -87,7 +90,7 @@ Copy-Item $manifestPath (Join-Path $OutputDirectory 'runtime-manifest.json')
 Copy-Item (Join-Path $qa 'candidates.json') (Join-Path $OutputDirectory 'candidates.json')
 $os = Get-CimInstance Win32_OperatingSystem
 $cpu = Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors
-[ordered]@{ utc=(Get-Date).ToUniversalTime().ToString('o'); os=$os.Caption; osVersion=$os.Version; freePhysicalKiB=$os.FreePhysicalMemory; totalVisibleKiB=$os.TotalVisibleMemorySize; cpu=$cpu; variant=$Variant; memoryMiB=$MemoryMiB; runtimeManifestSha256=$ExpectedRuntimeManifestSha256; sourceCommit=$manifest.sourceCommit; note='Read-only host observation; no unrelated processes stopped.' } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'environment.json') -Encoding utf8
+[ordered]@{ utc=(Get-Date).ToUniversalTime().ToString('o'); os=$os.Caption; osVersion=$os.Version; freePhysicalKiB=$os.FreePhysicalMemory; totalVisibleKiB=$os.TotalVisibleMemorySize; cpu=$cpu; variant=$Variant; cpuQualification=$cpuQualification; memoryMiB=$MemoryMiB; runtimeManifestSha256=$ExpectedRuntimeManifestSha256; sourceCommit=$manifest.sourceCommit; note='Read-only host observation; no unrelated processes stopped.' } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'environment.json') -Encoding utf8
 if ([long]$os.FreePhysicalMemory -lt (($MemoryMiB + 1024) * 1024L)) { Write-Warning 'Host free RAM is below the selected job budget plus1GiB; preserve this as possible resource-pressure evidence. The job cap is unchanged.' }
 $project = Join-Path $qa 'WindowsModelQa.csproj'
 & dotnet restore $project -p:RestoreLockedMode=true *> (Join-Path $OutputDirectory 'restore.log')

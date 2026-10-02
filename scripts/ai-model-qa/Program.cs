@@ -73,13 +73,14 @@ Environment.ExitCode=anyFailure?2:0;
 
 List<string> CompletionArgs(string promptPath,int outputTokens,string? schema)
 {
-    var a=new List<string>{"-m",Path.GetFullPath(config.Model),"-f",promptPath,"--offline","--no-escape","--jinja","--single-turn","--load-mode","none","--no-display-prompt","--simple-io","--no-context-shift","--reasoning","off","-t","4","-tb","4","-ngl","0","-c","4096","-n",outputTokens.ToString(),"--seed","42","--temp","0.1","--top-k","20","--top-p","0.8","--min-p","0.05","--repeat-penalty","1.0","--frequency-penalty","0","--presence-penalty","0"};
+    var a=new List<string>{"-m",Path.GetFullPath(config.Model),"-f",promptPath,"--offline","--perf","--no-escape","--jinja","--single-turn","--load-mode","none","--no-display-prompt","--simple-io","--no-context-shift","--reasoning","off","-t","4","-tb","4","-ngl","0","-c","4096","-n",outputTokens.ToString(),"--seed","42","--temp","0.1","--top-k","20","--top-p","0.8","--min-p","0.05","--repeat-penalty","1.0","--frequency-penalty","0","--presence-penalty","0"};
     if(schema is not null){a.Add("-j");a.Add(schema);}return a;
 }
 async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arguments,int seconds,int stdoutLimit=65_536)
 {
     var clock=Stopwatch.StartNew();long peakRss=0,peakPrivate=0;string? reason=null;int? exit=null;int? pid=null;
     bool cleanupCompleted=true; string? cleanupError=null; double cleanupSeconds=0;
+    double sampledCpuSeconds=0; long firstStdoutTicks=-1; string? cpuTelemetryError=null;
     var start=new ProcessStartInfo(Path.GetFullPath(exe)){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,RedirectStandardInput=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
     foreach(var a in arguments)start.ArgumentList.Add(a);
     foreach(var key in start.Environment.Keys.Where(k=>k.StartsWith("LLAMA_",StringComparison.OrdinalIgnoreCase)||k.StartsWith("GGML_",StringComparison.OrdinalIgnoreCase)).ToArray())start.Environment.Remove(key);
@@ -91,6 +92,11 @@ async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arg
         // CompleteAsync owns disposal, including after a bounded caller timeout. Never wrap in using.
         var child=LocalInferenceProcess.Start(start,(long)config.MemoryMiB*1024*1024);
         var process=child.Process;pid=process.Id;
+        void SampleCpu()
+        {
+            try { sampledCpuSeconds=Math.Max(sampledCpuSeconds,process.TotalProcessorTime.TotalSeconds); }
+            catch(Exception e) when(e is InvalidOperationException or System.ComponentModel.Win32Exception) { cpuTelemetryError=e.GetType().Name; }
+        }
         using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
         void Stop(string why)
         {
@@ -98,19 +104,20 @@ async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arg
             // Cancellation breaks the polling/wait even when native Kill cannot be observed.
             try { deadline.Cancel(); } catch(ObjectDisposedException) { /* Late bounded-capture callback after unresolved cleanup. */ }
         }
-        var stdout=Capture(child.StandardOutput,Path.Combine(config.Output,label+".stdout.txt"),stdoutLimit,()=>Stop("stdout-budget"));
+        var stdout=Capture(child.StandardOutput,Path.Combine(config.Output,label+".stdout.txt"),stdoutLimit,()=>Stop("stdout-budget"),()=>Interlocked.CompareExchange(ref firstStdoutTicks,clock.ElapsedTicks,-1));
         var stderr=Capture(child.StandardError,Path.Combine(config.Output,label+".stderr.txt"),1_048_576,()=>Stop("stderr-budget"));
         try
         {
             while(!process.HasExited)
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                try{process.Refresh();peakRss=Math.Max(peakRss,process.WorkingSet64);peakPrivate=Math.Max(peakPrivate,process.PrivateMemorySize64);if(peakRss>(long)config.MemoryMiB*1024*1024)Stop("rss-budget");}
+                try{process.Refresh();SampleCpu();peakRss=Math.Max(peakRss,process.WorkingSet64);peakPrivate=Math.Max(peakPrivate,process.PrivateMemorySize64);if(peakRss>(long)config.MemoryMiB*1024*1024)Stop("rss-budget");}
                 catch(InvalidOperationException) when(process.HasExited){}
                 catch(System.ComponentModel.Win32Exception) when(process.HasExited){}
                 await Task.Delay(50,deadline.Token);
             }
             await process.WaitForExitAsync(deadline.Token);exit=process.ExitCode;
+            SampleCpu();
             await Task.WhenAll(stdout,stderr).WaitAsync(deadline.Token);
             deadline.Token.ThrowIfCancellationRequested();
         }
@@ -142,16 +149,16 @@ async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arg
     }
     // Ensure files exist for launch errors as well as completed calls.
     foreach(var suffix in new[]{".stdout.txt",".stderr.txt"}){var p=Path.Combine(config.Output,label+suffix);if(!File.Exists(p))await File.WriteAllTextAsync(p,"");}
-    var result=new NativeResult(clock.Elapsed.TotalSeconds,exit,exit.HasValue?unchecked((uint)exit.Value).ToString("X8"):null,reason,peakRss,peakPrivate,peakRss>1536L*1024*1024,pid,seconds,cleanupSeconds,cleanupCompleted,cleanupError);
+    var result=new NativeResult(clock.Elapsed.TotalSeconds,exit,exit.HasValue?unchecked((uint)exit.Value).ToString("X8"):null,reason,peakRss,peakPrivate,peakRss>1536L*1024*1024,pid,seconds,cleanupSeconds,cleanupCompleted,cleanupError,sampledCpuSeconds,firstStdoutTicks<0?null:(double)firstStdoutTicks/Stopwatch.Frequency,cpuTelemetryError);
     await File.WriteAllTextAsync(Path.Combine(config.Output,label+".native.json"),JsonSerializer.Serialize(result,json));
     Console.WriteLine($"{config.ModelId} {label}: exit={exit}, reason={reason??"none"}, {clock.Elapsed.TotalSeconds:F3}s, peakRSS={peakRss}");return result;
 }
-static async Task Capture(StreamReader reader,string path,int limit,Action stop)
+static async Task Capture(StreamReader reader,string path,int limit,Action stop,Action? onFirstData=null)
 {
     await using var output=new StreamWriter(path,false,new UTF8Encoding(false));var buffer=new char[2048];int total=0,count;
-    while((count=await reader.ReadAsync(buffer))>0){total+=count;await output.WriteAsync(buffer.AsMemory(0,count));await output.FlushAsync();if(total>limit){stop();return;}}
+    while((count=await reader.ReadAsync(buffer))>0){onFirstData?.Invoke();onFirstData=null;total+=count;await output.WriteAsync(buffer.AsMemory(0,count));await output.FlushAsync();if(total>limit){stop();return;}}
 }
 static string RemoveTerminator(string output){var t=output.Trim();const string marker="[end of text]";return t.EndsWith(marker,StringComparison.Ordinal)?t[..^marker.Length].TrimEnd():t;}
 static async Task CheckHash(string path,string expected){if(expected.Length!=64||!expected.All(Uri.IsHexDigit))throw new InvalidDataException("Expected SHA256 is invalid.");await using var file=File.OpenRead(path);var actual=Convert.ToHexStringLower(await SHA256.HashDataAsync(file));if(!string.Equals(actual,expected,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("SHA256 mismatch: "+path);}
 record Config(string ModelId,string Model,long ModelBytes,string ModelSha256,string Executable,string ExecutableSha256,string Tokenizer,string TokenizerSha256,string Source,string Output,int MemoryMiB,bool LoadOnly,bool TestCancellation);
-record NativeResult(double Seconds,int? ExitCode,string? ExitCodeHex,string? Reason,long PeakRssBytes,long PeakPrivateBytes,bool ExceedsCompactRssBaseline,int? ProcessId,int InferenceBudgetSeconds,double CleanupSeconds,bool CleanupCompleted,string? CleanupError);
+record NativeResult(double Seconds,int? ExitCode,string? ExitCodeHex,string? Reason,long PeakRssBytes,long PeakPrivateBytes,bool ExceedsCompactRssBaseline,int? ProcessId,int InferenceBudgetSeconds,double CleanupSeconds,bool CleanupCompleted,string? CleanupError,double SampledCpuSeconds,double? FirstStdoutObservedSeconds,string? CpuTelemetryError);

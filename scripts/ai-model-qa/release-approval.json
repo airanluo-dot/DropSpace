@@ -88,18 +88,18 @@
         },
         {
           "path": "scripts/ai-model-qa/Program.cs",
-          "sha256": "7e31c3c15a074e70a4e7a1914c1f961369b4a162542c63e81d258ebbaae5b62f"
+          "sha256": "1ca4d76eadc9f62694acdb7df95213b0bafaeb99374b77ce8fc6d825566c2b7f"
         },
         {
           "path": "scripts/ai-model-qa/Run-WindowsModelQa.ps1",
-          "sha256": "80e8c406545d3349da3cfe7779e6abdbb9beb3ac8c7f023e1689ccf56023ebe0"
+          "sha256": "2c5df4bc0392acfb218aa2e56d39169e4fba95059dcbb4d822451f3b10c4f2c6"
         },
         {
           "path": "scripts/ai-model-qa/WindowsModelQa.csproj",
           "sha256": "22e30ba84acb9e18185c8ff723aa00e114841131491f47b712fd4ce7856fd6d7"
         }
       ],
-      "sha256": "e7fae41a7eeea8a9947a3ad01fcb36f0afccfe6579eb01143ec4280186b36028"
+      "sha256": "d6c537536ba575e114f0539d894f048687d2a0a71a4e27fd44a68bd21f7038ad"
     },
     "fixture": {
       "path": "scripts/ai-model-qa/inputs/source48.json",
