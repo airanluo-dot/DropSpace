@@ -9,6 +9,7 @@ param(
     [ValidateSet(3072)][int]$MemoryMiB = 3072,
     [ValidateSet('official-plain-per-line-v1')][string]$PromptProfile = 'official-plain-per-line-v1',
     [switch]$DownloadMissing,
+    [switch]$ExpandedSuite,
     [switch]$LoadOnly,
     [switch]$AcceptanceSuite,
     [switch]$TestCancellation,
@@ -93,10 +94,19 @@ if ($AcceptanceSuite) {
     Copy-Item (Join-Path $qa 'inputs/holdout12.json') $holdoutSource
     Copy-Item (Join-Path $harness 'protocol.json') (Join-Path $OutputDirectory 'plain-protocol.json')
 }
+$freshHoldoutSource = $null
+if ($ExpandedSuite) {
+    Assert-Hash (Join-Path $harness 'fresh-holdout.json') '1db102bea381a5e379343ec95e4331db76c7eea733f900bb2b54e0b5ed63a2a4'
+    $freshHoldoutSource = Join-Path $OutputDirectory 'fresh-holdout.json'
+    Copy-Item (Join-Path $harness 'fresh-holdout.json') $freshHoldoutSource
+    Copy-Item (Join-Path $harness 'expansion-protocol.json') (Join-Path $OutputDirectory 'expansion-protocol.json')
+}
 $sourceFiles = @(
     'scripts/hy-plain-model-qa/Program.cs',
     'scripts/hy-plain-model-qa/PlainProtocol.cs',
     'scripts/hy-plain-model-qa/protocol.json',
+    'scripts/hy-plain-model-qa/expansion-protocol.json',
+    'scripts/hy-plain-model-qa/fresh-holdout.json',
     'scripts/hy-plain-model-qa/Run-WindowsHyPlainQa.ps1',
     'scripts/ai-model-qa/profiles/minimal-target-only.json',
     'src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs',
@@ -145,7 +155,7 @@ foreach ($id in $ModelIds) {
     $out = Join-Path $OutputDirectory $id
     New-Item $out -ItemType Directory | Out-Null
     Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize,FreeVirtualMemory,TotalVirtualMemorySize | ConvertTo-Json | Set-Content (Join-Path $out 'host-before.json') -Encoding utf8
-    $config = [ordered]@{ sourceSha=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID; runAttempt=$env:GITHUB_RUN_ATTEMPT; runtimeBuildSourceSha='61596fcb6e757de2e6496613be3791a38142e04d'; runtimeArtifactId=11210435635; runtimeManifestSha256=$ExpectedRuntimeManifestSha256; protocolSha256=(Get-FileHash (Join-Path $harness 'protocol.json') -Algorithm SHA256).Hash.ToLowerInvariant(); sourceFixtureSha256=$candidates.sourceFixtureSha256; modelId=$id; model=$path; modelBytes=$model.bytes; modelSha256=$model.sha256; executable=$exe; executableSha256=$component.sha256; tokenizer=$tokenizer; tokenizerSha256=$manifest.tokenizer.sha256; source=(Join-Path $OutputDirectory 'source48.json'); output=$out; memoryMiB=$MemoryMiB; evaluationMode='plain-control'; holdoutSource=$holdoutSource; holdoutSha256=$holdoutSha256; promptProfile=$PromptProfile; outputSchema='host-mapped-id-text-v1'; loadOnly=[bool]$LoadOnly; testCancellation=[bool]$TestCancellation }
+    $config = [ordered]@{ sourceSha=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID; runAttempt=$env:GITHUB_RUN_ATTEMPT; runtimeBuildSourceSha='61596fcb6e757de2e6496613be3791a38142e04d'; runtimeArtifactId=11210435635; runtimeManifestSha256=$ExpectedRuntimeManifestSha256; protocolSha256=(Get-FileHash (Join-Path $harness 'protocol.json') -Algorithm SHA256).Hash.ToLowerInvariant(); sourceFixtureSha256=$candidates.sourceFixtureSha256; modelId=$id; model=$path; modelBytes=$model.bytes; modelSha256=$model.sha256; executable=$exe; executableSha256=$component.sha256; tokenizer=$tokenizer; tokenizerSha256=$manifest.tokenizer.sha256; source=(Join-Path $OutputDirectory 'source48.json'); output=$out; memoryMiB=$MemoryMiB; evaluationMode=$(if ($ExpandedSuite) {'plain-expanded'} else {'plain-control'}); freshHoldoutSource=$freshHoldoutSource; freshHoldoutSha256=$(if ($ExpandedSuite) {'1db102bea381a5e379343ec95e4331db76c7eea733f900bb2b54e0b5ed63a2a4'} else {$null}); expansionProtocolSha256=$(if ($ExpandedSuite) {(Get-FileHash (Join-Path $harness 'expansion-protocol.json') -Algorithm SHA256).Hash.ToLowerInvariant()} else {$null}); holdoutSource=$holdoutSource; holdoutSha256=$holdoutSha256; promptProfile=$PromptProfile; outputSchema='host-mapped-id-text-v1'; loadOnly=[bool]$LoadOnly; testCancellation=[bool]$TestCancellation }
     $configPath = Join-Path $out 'qa-config.json'
     $config | ConvertTo-Json -Depth 4 | Set-Content $configPath -Encoding utf8
     & dotnet $dll $configPath *> (Join-Path $out 'console.log')

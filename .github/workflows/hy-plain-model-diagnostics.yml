@@ -1,4 +1,4 @@
-name: Hy Q8 plaintext protocol control (no publication)
+name: Hy Q8 plaintext full-song validation (no publication)
 on:
   push:
     branches: [qa/hy-plain-031]
@@ -35,21 +35,21 @@ jobs:
           $tokens=$null; $errors=$null
           [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts/hy-plain-model-qa/Run-WindowsHyPlainQa.ps1'),[ref]$tokens,[ref]$errors) | Out-Null
           if ($errors.Count) { $errors; throw 'PowerShell parse failed' }
-      - name: Run one bounded plain-text control
+      - name: Run full48 and fresh independent holdout
         id: control
         continue-on-error: true
         shell: pwsh
         run: |
           ./scripts/hy-plain-model-qa/Run-WindowsHyPlainQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
             -ExpectedRuntimeManifestSha256 406dfe47bd7c938936a4f57dd0ac4ecba910d8c5fd893aa72877ca172e26b212 `
-            -ModelDirectory artifacts/ai-candidate-models -DownloadMissing `
-            -OutputDirectory artifacts/hy-plain-control
+            -ModelDirectory artifacts/ai-candidate-models -DownloadMissing -ExpandedSuite `
+            -OutputDirectory artifacts/hy-plain-expanded
       - name: Preserve raw control evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: hy-plain-control-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/hy-plain-control/**
+          name: hy-plain-expanded-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/hy-plain-expanded/**
           if-no-files-found: error
           retention-days: 14
       - name: Record actual technical outcome
@@ -59,5 +59,5 @@ jobs:
           CONTROL_OUTCOME: ${{ steps.control.outcome }}
         run: |
           '## Hy Q8 plaintext control: PENDING SEMANTIC REVIEW' >> $env:GITHUB_STEP_SUMMARY
-          'Same sampler, official plaintext template, host ID mapping, 30 single-line translations. Prior failed profiles retained; no full-song or publication approval.' >> $env:GITHUB_STEP_SUMMARY
+          'Same sampler, official plaintext template, host ID mapping, Full48 both targets, frozen fresh12 both targets, real generation cancellation. Prior30-call control retained; no publication approval.' >> $env:GITHUB_STEP_SUMMARY
           if ($env:CONTROL_OUTCOME -ne 'success') { throw 'Plaintext control failed or was incomplete; read original evidence' }

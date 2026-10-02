@@ -1,0 +1,34 @@
+{
+  "id": "hy-plain-expanded-v1",
+  "promptProfile": "official-plain-per-line-v1",
+  "promptAndSamplerChanged": false,
+  "freshHoldoutSha256": "1db102bea381a5e379343ec95e4331db76c7eea733f900bb2b54e0b5ed63a2a4",
+  "freshFrozenUtc": "2026-10-02T07:45:00Z",
+  "cases": [
+    "Original full48 to English:36 native calls",
+    "Original full48 to Simplified Chinese:36 native calls",
+    "Fresh independent12 to English:9 native calls",
+    "Fresh independent12 to Simplified Chinese:9 native calls",
+    "One real generation cancellation after first output while child alive"
+  ],
+  "expectedNativeRequests": 91,
+  "resourceBudgets": {
+    "jobMemoryMiB": 3072,
+    "threads": 4,
+    "perLineSeconds": 60,
+    "perCaseSeconds": 180,
+    "cleanupSeconds": 10
+  },
+  "latency": "Measure active per-case clock including sequential cold starts and evidence writes; no summed extrapolation. Record first mapped line latency and partial host output after each completed native call.",
+  "routing": "Supplied fixture source-language labels; automatic detection untested. Only text enters unchanged official prompt; semantic-check annotations are not deserialized by QA model-facing types.",
+  "semanticStatus": "PENDING SEMANTIC REVIEW",
+  "priorControl": "Keep b365 30-call control and earlier failed JSON/Q4 outputs. This run does not overwrite them.",
+  "releaseApproval": false,
+  "acceptance": {
+    "source": "User clarification 2026-10-02T07:49:24Z–07:49:41Z",
+    "warnings": "Minor wording differences, including the observed leave/keep silver-key wording, are acceptable warnings and do not independently block acceptance.",
+    "blockers": "Wrong target language, whole-line or substantial omissions, clear substantial overall meaning reversal, or failed timing/resource/cleanup requirements.",
+    "decision": "One comprehensive full48 plus fresh-holdout review. If remaining issues are only minor wording, recommend semantic acceptance with truthful warning record; do not continue model shopping.",
+    "historicalVerdicts": "Earlier strict failures remain historical; do not relabel their original criteria as passed."
+  }
+}
