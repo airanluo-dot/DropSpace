@@ -7,7 +7,9 @@ param(
     [int]$StartupTimeoutSeconds = 120,
 
     [ValidateSet("portable", "installed")]
-    [string]$DiagnosticPhase = "portable"
+    [string]$DiagnosticPhase = "portable",
+
+    [string]$RuntimeInspectionOutput = ""
 )
 
 Set-StrictMode -Version Latest
@@ -35,6 +37,25 @@ if (Get-Process -Name DropSpace -ErrorAction SilentlyContinue)
     throw "Close the existing DropSpace instance before running smoke tests; its data must not receive test activations."
 }
 $previousTestRoot = $env:DROPSPACE_TEST_DATA_ROOT
+$previousBundleExtractRoot = $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR
+$bundleExtractRoot = $null
+$runtimeInspection = $null
+$runtimePackage = $null
+$runtimeInspectionPath = $null
+if (-not [string]::IsNullOrWhiteSpace($RuntimeInspectionOutput))
+{
+    $runtimeInspectionPath = if ([IO.Path]::IsPathRooted($RuntimeInspectionOutput)) { [IO.Path]::GetFullPath($RuntimeInspectionOutput) }
+        else { [IO.Path]::GetFullPath((Join-Path $repositoryRoot $RuntimeInspectionOutput)) }
+    if ([string]::Equals($runtimeInspectionPath, [IO.Path]::GetFullPath($resolvedExecutable), [StringComparison]::OrdinalIgnoreCase))
+    {
+        throw 'RuntimeInspectionOutput must not overwrite the executable.'
+    }
+    $runtimePackage = [ordered]@{
+        name = [IO.Path]::GetFileName($resolvedExecutable)
+        sha256 = (Get-FileHash -LiteralPath $resolvedExecutable -Algorithm SHA256).Hash.ToLowerInvariant()
+        bytes = (Get-Item -LiteralPath $resolvedExecutable).Length
+    }
+}
 $startupKey = 'Software\Microsoft\Windows\CurrentVersion\Run'
 $startupRegistry = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($startupKey)
 $previousStartupValue = if ($null -ne $startupRegistry) { $startupRegistry.GetValue('DropSpace', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) } else { $null }
@@ -96,6 +117,14 @@ public static class DropSpaceWindowVisibility
 
 try
 {
+    if ($null -ne $runtimeInspectionPath)
+    {
+        # A fresh directory ensures that inspection observes this launch's bundle,
+        # never a previously extracted version in the user's normal .NET cache.
+        $bundleExtractRoot = Join-Path ([IO.Path]::GetTempPath()) ('DropSpace-smoke-runtime-' + [Guid]::NewGuid().ToString('N'))
+        New-Item $bundleExtractRoot -ItemType Directory | Out-Null
+        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $bundleExtractRoot
+    }
     $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $repositoryRoot "artifacts/smoke/$([Guid]::NewGuid().ToString('N'))"
     # Explicit fixture choices, not an application flag that bypasses first-run privacy.
     $fixtureData = Join-Path $env:DROPSPACE_TEST_DATA_ROOT 'data'
@@ -213,6 +242,19 @@ try
         throw "DropSpace.exe produced an invalid startup marker."
     }
 
+    if ($null -ne $bundleExtractRoot)
+    {
+        $extractedAssemblies = @(Get-ChildItem -LiteralPath $bundleExtractRoot -Recurse -File |
+            Where-Object { $_.Name -ieq 'DropSpace.dll' })
+        if ($extractedAssemblies.Count -ne 1)
+        {
+            throw "Fresh portable extraction must contain exactly one DropSpace.dll; found $($extractedAssemblies.Count)."
+        }
+        $extractedInspectionPath = Join-Path $bundleExtractRoot 'runtime-inspection.json'
+        & (Join-Path $PSScriptRoot 'Inspect-AiRuntimePayload.ps1') -AssemblyPath $extractedAssemblies[0].FullName -OutputPath $extractedInspectionPath
+        $runtimeInspection = Get-Content -LiteralPath $extractedInspectionPath -Raw | ConvertFrom-Json -AsHashtable
+    }
+
     $second = Start-Process -FilePath $resolvedExecutable -ArgumentList "--test-mode", "--smoke-test" -WindowStyle Hidden -PassThru
     if (-not $second.WaitForExit(15000))
     {
@@ -322,6 +364,24 @@ try
         throw "The primary DropSpace --startup smoke process exited with code $($startup.ExitCode)."
     }
 
+    if ($null -ne $runtimeInspectionPath)
+    {
+        if ((Get-Item -LiteralPath $resolvedExecutable).Length -ne $runtimePackage.bytes -or
+            (Get-FileHash -LiteralPath $resolvedExecutable -Algorithm SHA256).Hash.ToLowerInvariant() -cne $runtimePackage.sha256)
+        {
+            throw 'Portable executable changed during the smoke test and runtime observation.'
+        }
+        $runtimeInspection.package = $runtimePackage
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($runtimeInspectionPath)) | Out-Null
+        $temporaryReport = $runtimeInspectionPath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+        try
+        {
+            [IO.File]::WriteAllText($temporaryReport, ($runtimeInspection | ConvertTo-Json -Depth 6) + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+            [IO.File]::Move($temporaryReport, $runtimeInspectionPath, $true)
+        }
+        finally { if ([IO.File]::Exists($temporaryReport)) { [IO.File]::Delete($temporaryReport) } }
+    }
+
     Write-Host "Portable smoke test passed: startup, Windows App SDK, SQLite, AppData, Win32 clipboard integration, default per-user startup registration, single instance, clean exit."
     Write-Host "Startup visibility regression passed: --startup initialized the process without a visible top-level window, and redirected activation remained functional."
     Write-Host "Windows compatibility probe: build=$($marker.windowsBuild), minimum=$($marker.minimumWindowsBuild), runtime=$($marker.windowsRuntimeStatus), Windows11 visuals: Mica=$($marker.modernWindowAppearanceAvailable), modernDwm=$($marker.modernDwmAttributesAvailable)"
@@ -336,48 +396,60 @@ try
 }
 finally
 {
-    foreach ($process in @($second, $startupSecond, $startup, $first))
-    {
-        if ($null -ne $process -and -not $process.HasExited)
-        {
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-        }
-    }
-    if ($null -ne $diagnosticDirectory)
-    {
-        if ($null -ne $first -and -not $firstDiagnosticsSaved)
-        {
-            Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'primary' -Language $Language -ProcessId $first.Id -MarkerPath $markerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
-        }
-        if ($null -ne $startup)
-        {
-            Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'startup-activation' -Language $Language -ProcessId $startup.Id -MarkerPath $startupMarkerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
-        }
-        foreach ($activation in @(@{ Phase = 'redirect'; Process = $second }, @{ Phase = 'startup-redirect'; Process = $startupSecond }))
-        {
-            if ($null -ne $activation.Process)
-            {
-                $activationMarker = Join-Path ([IO.Path]::GetTempPath()) "DropSpace-smoke-$($activation.Process.Id).json"
-                Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase $activation.Phase -Language $Language -ProcessId $activation.Process.Id -MarkerPath $activationMarker
-            }
-        }
-    }
-    $env:DROPSPACE_TEST_DATA_ROOT = $previousTestRoot
-    $startupRegistry = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($startupKey)
+    $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $previousBundleExtractRoot
     try
     {
-        if ($null -eq $previousStartupValue) { $startupRegistry.DeleteValue('DropSpace', $false) }
-        else { $startupRegistry.SetValue('DropSpace', $previousStartupValue, $previousStartupKind) }
-    }
-    finally { $startupRegistry.Dispose() }
+        foreach ($process in @($second, $startupSecond, $startup, $first))
+        {
+            if ($null -ne $process -and -not $process.HasExited)
+            {
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                $process.WaitForExit(5000) | Out-Null
+            }
+        }
+        if ($null -ne $diagnosticDirectory)
+        {
+            if ($null -ne $first -and -not $firstDiagnosticsSaved)
+            {
+                Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'primary' -Language $Language -ProcessId $first.Id -MarkerPath $markerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
+            }
+            if ($null -ne $startup)
+            {
+                Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase 'startup-activation' -Language $Language -ProcessId $startup.Id -MarkerPath $startupMarkerPath -DataRoot $env:DROPSPACE_TEST_DATA_ROOT
+            }
+            foreach ($activation in @(@{ Phase = 'redirect'; Process = $second }, @{ Phase = 'startup-redirect'; Process = $startupSecond }))
+            {
+                if ($null -ne $activation.Process)
+                {
+                    $activationMarker = Join-Path ([IO.Path]::GetTempPath()) "DropSpace-smoke-$($activation.Process.Id).json"
+                    Save-DropSpaceTestDiagnostics -Directory $diagnosticDirectory -Phase $activation.Phase -Language $Language -ProcessId $activation.Process.Id -MarkerPath $activationMarker
+                }
+            }
+        }
+        $env:DROPSPACE_TEST_DATA_ROOT = $previousTestRoot
+        $startupRegistry = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($startupKey)
+        try
+        {
+            if ($null -eq $previousStartupValue) { $startupRegistry.DeleteValue('DropSpace', $false) }
+            else { $startupRegistry.SetValue('DropSpace', $previousStartupValue, $previousStartupKind) }
+        }
+        finally { $startupRegistry.Dispose() }
 
-    if ($null -ne $markerPath -and (Test-Path $markerPath))
-    {
-        Remove-Item -Path $markerPath -Force
-    }
+        if ($null -ne $markerPath -and (Test-Path $markerPath))
+        {
+            Remove-Item -Path $markerPath -Force
+        }
 
-    if ($null -ne $startupMarkerPath -and (Test-Path $startupMarkerPath))
+        if ($null -ne $startupMarkerPath -and (Test-Path $startupMarkerPath))
+        {
+            Remove-Item -Path $startupMarkerPath -Force
+        }
+    }
+    finally
     {
-        Remove-Item -Path $startupMarkerPath -Force
+        if ($null -ne $bundleExtractRoot -and (Test-Path -LiteralPath $bundleExtractRoot))
+        {
+            Remove-Item -LiteralPath $bundleExtractRoot -Recurse -Force
+        }
     }
 }

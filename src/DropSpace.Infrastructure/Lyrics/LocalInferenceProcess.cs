@@ -5,34 +5,40 @@ namespace DropSpace.Infrastructure.Lyrics;
 /// <summary>Owns one inference process and its redirected streams.</summary>
 internal sealed class LocalInferenceProcess : IDisposable
 {
+    internal static readonly SemaphoreSlim InferenceGate = new(1, 1);
     private IDisposable? _limits;
     private Task? _exit;
     private Task? _cleanup;
     private bool _disposed;
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
 
-    internal LocalInferenceProcess(Process process, StreamReader output, StreamReader errors, IDisposable? limits = null)
+    internal LocalInferenceProcess(Process process, StreamReader output, StreamReader errors,
+        StreamWriter? input = null, IDisposable? limits = null)
     {
         Process = process;
         StandardOutput = output;
         StandardError = errors;
+        StandardInput = input;
         _limits = limits;
     }
 
     internal Process Process { get; }
     internal StreamReader StandardOutput { get; }
     internal StreamReader StandardError { get; }
+    internal StreamWriter? StandardInput { get; }
 
-    internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = WindowsInferenceProcess.MaximumMemoryBytes)
+    internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = WindowsInferenceProcess.MaximumMemoryBytes,
+        bool retainStandardInput = false)
     {
-        if (OperatingSystem.IsWindows()) return WindowsInferenceProcess.Start(start, memoryLimitBytes);
+        if (OperatingSystem.IsWindows()) return WindowsInferenceProcess.Start(start, memoryLimitBytes, retainStandardInput);
         // Development/test support only. Production is Windows and always requires the native limits.
         var process = new Process { StartInfo = start };
         try
         {
             if (!process.Start()) throw new IOException("Local inference failed to start.");
-            process.StandardInput.Close();
-            return new LocalInferenceProcess(process, process.StandardOutput, process.StandardError);
+            if (!retainStandardInput) process.StandardInput.Close();
+            return new LocalInferenceProcess(process, process.StandardOutput, process.StandardError,
+                retainStandardInput ? process.StandardInput : null);
         }
         catch { process.Dispose(); throw; }
     }
@@ -67,6 +73,7 @@ internal sealed class LocalInferenceProcess : IDisposable
             _disposed = true;
             StandardOutput.Dispose();
             StandardError.Dispose();
+            StandardInput?.Dispose();
             Process.Dispose();
         }
     }

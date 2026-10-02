@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
@@ -23,6 +24,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs',
   'src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs',
+  'src/DropSpace.Infrastructure/Lyrics/Ct2HelperAdapter.cs',
+  'src/DropSpace.Infrastructure/Lyrics/Ct2PrivatePackage.cs',
   'src/DropSpace.App/Services/Media/AiLyricsService.cs',
   // Upstream identity/selection/provider parsing and target/display propagation.
   'src/DropSpace.Core/Lyrics/LyricsParser.cs',
@@ -80,12 +83,24 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs',
   'src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs',
   'src/DropSpace.App/Services/Media/RetirableMediaWork.cs',
+  'src/DropSpace.App/Services/Media/MediaSessionOwner.cs',
+  'src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs',
   'src/DropSpace.App/OverlayWindow.xaml',
   'scripts/ai-model-qa/profiles/minimal-target-only.json',
   'scripts/Build-AiLyricsRuntime.ps1',
   'scripts/ai-model-qa/Program.cs',
   'scripts/ai-model-qa/Run-WindowsModelQa.ps1',
   'scripts/ai-model-qa/WindowsModelQa.csproj',
+  // Embedding/packaging declarations are also part of the reviewed shipping input.
+  'src/DropSpace.App/DropSpace.App.csproj',
+  'scripts/Build-PortableExe.ps1',
+  'scripts/Build-UnsignedPackage.ps1',
+  'scripts/Build-Installer.ps1',
+  'scripts/Collect-AiRuntimeNotices.ps1',
+  'tools/ct2-helper/helper.py',
+  'tools/ct2-helper/build.ps1',
+  'tools/ct2-helper/dependencies.schema.json',
+  'tools/ct2-helper/private-package-manifest.schema.json',
 ]);
 export const productionPromptProfile = 'production';
 export const productionOutputSchema = 'production-id-text-json-v1';
@@ -163,16 +178,35 @@ function componentIdentity(component, executable) {
 }
 
 function readReviewedRuntime(root, report, scope) {
-  const runtime = JSON.parse(readEvidence(root, report.runtimeManifest, 'Reviewed runtime manifest').toString('utf8').replace(/^\uFEFF/, ''));
+  const manifestBytes = readEvidence(root, report.runtimeManifest, 'Reviewed runtime manifest');
+  const runtime = JSON.parse(manifestBytes.toString('utf8').replace(/^\uFEFF/, ''));
   assert.equal(runtime.schemaVersion, 1, 'Unsupported reviewed runtime schema');
   assert.equal(runtime.runtimeId, scope.runtime.id, 'Reviewed runtime identity mismatch');
   assert.equal(runtime.sourceCommit, scope.runtime.sourceCommit, 'Reviewed runtime source mismatch');
-  return {
+  const reviewed = {
     manifestSha256: report.runtimeManifest.sha256,
     baseline: componentIdentity(runtime, 'llama-completion.exe'),
     avx2: componentIdentity(runtime.avx2, 'llama-completion-avx2.exe'),
     tokenizer: componentIdentity(runtime.tokenizer, 'llama-tokenize.exe'),
   };
+  const artifact = validateArtifactContract(report.runtimeArtifact);
+  const files = validateInventory(artifact.files);
+  // Current llama adapter. Retrieval and final-package binding use the generic
+  // inventory; another backend must explicitly declare its required components.
+  assert.deepEqual(files.map(file => file.path).sort(), [
+    'LICENSE-llama.cpp', 'llama-completion-avx2.exe', 'llama-completion.exe',
+    'llama-tokenize.exe', 'runtime-manifest.json',
+  ].sort(), 'Reviewed runtime inventory must contain every shipping component and license');
+  for (const [name, identity] of [
+    ['runtime-manifest.json', { sha256: report.runtimeManifest.sha256, bytes: manifestBytes.length }],
+    ['llama-completion.exe', reviewed.baseline], ['llama-completion-avx2.exe', reviewed.avx2],
+    ['llama-tokenize.exe', reviewed.tokenizer],
+  ]) {
+    const file = files.find(item => item.path === name);
+    assert.deepEqual({ sha256: file.sha256, bytes: file.bytes }, identity, `Reviewed runtime inventory mismatch: ${name}`);
+  }
+  validateRuntimeProducer(runtime, artifact);
+  return { ...reviewed, files, artifact };
 }
 
 function validateNativeEvidence(root, reference, model, scope, runtime, reviewedAt) {
@@ -222,7 +256,7 @@ function timestamp(value, label) {
   return parsed;
 }
 
-export function validateApproval(root, { now = Date.now(), runtimeManifestPath } = {}) {
+export function validateApproval(root, { now = Date.now(), runtimeManifestPath, releaseBundleDirectory, expectedCommit } = {}) {
   const approval = readJson(root, approvalPath);
   assert.equal(approval.schemaVersion, 1, 'Unsupported AI approval schema');
   assert.equal(approval.status, 'approved', 'AI semantic release approval is pending or absent; structural success is not approval');
@@ -255,15 +289,22 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath }
   }
 
   if (runtimeManifestPath !== undefined) {
-    // Remaining publication-provenance gap: fresh PE builds are not known to be
-    // reproducible. Exact reviewed-byte reuse must be integrated before treating
-    // this source-level check as proof that the shipped runtime was evaluated.
-    const runtime = JSON.parse(fs.readFileSync(runtimeManifestPath, 'utf8').replace(/^\uFEFF/, ''));
-    assert.equal(runtime.schemaVersion, 1, 'Unsupported built runtime manifest');
-    assert.equal(runtime.runtimeId, scope.runtime.id, 'Built runtime identity differs from semantic review');
-    assert.equal(runtime.sourceCommit, scope.runtime.sourceCommit, 'Built runtime source differs from semantic review');
+    assert.equal(path.basename(runtimeManifestPath), 'runtime-manifest.json', 'Unexpected shipping runtime manifest path');
+    assert.equal(sha256(fs.readFileSync(runtimeManifestPath)), reviewedRuntime.manifestSha256, 'Shipping runtime manifest differs from reviewed bytes');
+    compareInventory(directoryInventory(path.dirname(runtimeManifestPath)), reviewedRuntime.files, 'Shipping runtime');
+  }
+  if (releaseBundleDirectory !== undefined) {
+    assert.match(expectedCommit ?? '', /^[a-f0-9]{40}$/, 'Exact publication commit is required');
+    verifyReleaseBinding(releaseBundleDirectory, { expectedInventory: reviewedRuntime.files, expectedCommit });
   }
   return scope;
+}
+
+export function readApprovedRuntimeContract(root, options = {}) {
+  validateApproval(root, options);
+  const approval = readJson(root, approvalPath);
+  const report = JSON.parse(readEvidence(root, approval.review, 'Semantic review').toString('utf8'));
+  return report.runtimeArtifact;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -273,8 +314,18 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       // Read-only preparation aid. It never writes or approves a manifest.
       console.log(JSON.stringify(readScope(rootDirectory), null, 2));
     } else {
-      assert.ok(args.length === 0 || (args.length === 2 && args[0] === '--runtime-manifest'), 'Usage: node scripts/test-ai-release-approval.mjs [--runtime-manifest PATH | --print-scope]');
-      validateApproval(rootDirectory, { runtimeManifestPath: args[1] });
+      assert.ok(args.length === 0 || (args.length === 2 && ['--runtime-manifest', '--release-bundle', '--export-runtime-contract'].includes(args[0])), 'Usage: node scripts/test-ai-release-approval.mjs [--runtime-manifest PATH | --release-bundle DIRECTORY | --export-runtime-contract PATH | --print-scope]');
+      if (args[0] === '--export-runtime-contract') {
+        const contract = readApprovedRuntimeContract(rootDirectory);
+        fs.mkdirSync(path.dirname(path.resolve(args[1])), { recursive: true });
+        fs.writeFileSync(args[1], JSON.stringify(contract, null, 2) + '\n');
+      } else {
+        validateApproval(rootDirectory, {
+          runtimeManifestPath: args[0] === '--runtime-manifest' ? args[1] : undefined,
+          releaseBundleDirectory: args[0] === '--release-bundle' ? args[1] : undefined,
+          expectedCommit: process.env.GITHUB_SHA,
+        });
+      }
       console.log('AI semantic approval and evidence bindings are valid. The recorded semantic review, not this structural check, establishes quality.');
     }
   } catch (error) {

@@ -52,7 +52,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs",
-          "sha256": "cac39759b69cba4fd6177e2114c1407ff566ca40c0a0466efde5f370f2fdc947"
+          "sha256": "dc0552a7f94920ce4ad53ac1f5470448d564ffd0403c9935abbd3abaa90d998f"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs",
@@ -72,15 +72,23 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
-          "sha256": "8f2948d7c982accd9a67ff82059738cd9daf9e55ed2c19842f748c2e6e11bb02"
+          "sha256": "a432662a9ea560d287eb06afbcfa658415bd3c2eb4f4e435de5445b8337c9b37"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs",
-          "sha256": "ea18b94c77212462de8ba8313b44518c9fb8e50a59b122ca69aba02b53eeb0e9"
+          "sha256": "d0b359c382cc1e048dded6ddb0841eb50c47866792ea4b6212b7b4d6965259be"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs",
           "sha256": "c3f969bb6a79da1ebba4023d21543260d216b8d376352ce0de1bfed9f50e6213"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Ct2HelperAdapter.cs",
+          "sha256": "3a094159d436d7784b2b250383dd676c4cabbfba67f3f0696dbe979046d04a47"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PrivatePackage.cs",
+          "sha256": "0dfc24cb09e7f4aa50203138f20fa13035d46bee78673f4b9c1eb622abd4f68d"
         },
         {
           "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
@@ -200,7 +208,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
-          "sha256": "09e550c8e4d96932edbaed69bcde081bcc587840676be6b90a9d030602fbc160"
+          "sha256": "37e148f77b0d5a35df1f7f86da16a8c11f9925b4fc464c61f9802668df88b23a"
         },
         {
           "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
@@ -307,6 +315,14 @@
           "sha256": "11fa91ce1d6aba31bf8e0617fdc42fa8116b9b05887f142374c3885860ac2a36"
         },
         {
+          "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+          "sha256": "8dfbb3fdd23900f0466561aa39dccfaab7ddccaf07a924a329ea052d585535d9"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+          "sha256": "24f2084921a7763676ac142a64129b964c23021e77e4dccec839f1effe080ee4"
+        },
+        {
           "path": "src/DropSpace.App/OverlayWindow.xaml",
           "sha256": "aaea1f1c1b5284ae36a6d1a793b4402c71e960536d98938c213d48785c89d79d"
         },
@@ -329,9 +345,45 @@
         {
           "path": "scripts/ai-model-qa/WindowsModelQa.csproj",
           "sha256": "edc9d2b6e4d3a4dc3930a620588cb8eb976251a86c82c4fd16d2568b0aa65bfb"
+        },
+        {
+          "path": "src/DropSpace.App/DropSpace.App.csproj",
+          "sha256": "3ceb5a9c5b899668379398ccbaf8c5c3c44ad6654cb419d2f15274e2698b52f5"
+        },
+        {
+          "path": "scripts/Build-PortableExe.ps1",
+          "sha256": "4b2735c47285f27f93b993774078620ddcda92dcd819744e29e075b74e6317c3"
+        },
+        {
+          "path": "scripts/Build-UnsignedPackage.ps1",
+          "sha256": "b2802ddc1c8a5859c2da4f9377dfd3ed8016dbb09f1c29f2005bd375f4b46ca5"
+        },
+        {
+          "path": "scripts/Build-Installer.ps1",
+          "sha256": "6fcc0737185cbc9b8d604b5c8cc25feb98767572a2f824e81fae97e5dbc87800"
+        },
+        {
+          "path": "scripts/Collect-AiRuntimeNotices.ps1",
+          "sha256": "9cd871f9c6b33e06166f7350e12e9b18458e952dac543fac2a7793f23a626516"
+        },
+        {
+          "path": "tools/ct2-helper/helper.py",
+          "sha256": "c8060dc31515f9b192dda42152f4247c880bb5aba5f28437b2e7a2f5dfc70aed"
+        },
+        {
+          "path": "tools/ct2-helper/build.ps1",
+          "sha256": "6e8f43870668b7a26f0ea60b51f86958129915e91571965ce94936b07d94d6d8"
+        },
+        {
+          "path": "tools/ct2-helper/dependencies.schema.json",
+          "sha256": "7c153c53f177a91184ab35993151e9bc80377e412c312398d94bf28f31c60141"
+        },
+        {
+          "path": "tools/ct2-helper/private-package-manifest.schema.json",
+          "sha256": "2c8a8e7677c96eecfb0cdf387793f02769b93914a8c49853c5ef4d3d93dc071d"
         }
       ],
-      "sha256": "4ddc2294ac0ee31dca86d98d516cb071e655183c15e61276751c74604a2e1d50"
+      "sha256": "4ad2efd9e76d848f88cd2be350c1c797c199221545384639c2b498ed3511397a"
     },
     "fixture": {
       "path": "scripts/ai-model-qa/inputs/source48.json",

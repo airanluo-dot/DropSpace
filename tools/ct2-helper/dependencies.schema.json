@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DropSpace offline CT2 helper exact dependency/version allowlist",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "python", "packages"],
+  "properties": {
+    "schemaVersion": {"type": "integer", "const": 1},
+    "python": {"type": "string", "pattern": "^3\\.12\\.[0-9]+$"},
+    "packages": {
+      "type": "array", "minItems": 11, "maxItems": 11, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "version", "file", "bytes", "sha256"],
+        "properties": {
+          "name": {"enum": ["ctranslate2", "sentencepiece", "pyinstaller", "pyinstaller-hooks-contrib", "numpy", "pyyaml", "setuptools", "packaging", "altgraph", "pefile", "pywin32-ctypes"]},
+          "version": {"type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+){1,3}$"},
+          "file": {"type": "string", "pattern": "^[A-Za-z0-9_.+-]+\\.whl$"},
+          "bytes": {"type": "integer", "minimum": 1, "maximum": 268435456},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    }
+  }
+}

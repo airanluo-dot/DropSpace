@@ -53,6 +53,7 @@ jobs:
     timeout-minutes: 80
     permissions:
       contents: read
+      actions: read
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -119,10 +120,22 @@ jobs:
           }
 
       - name: Test AI semantic release gate regressions
-        run: node --test scripts/test-ai-release-approval.test.mjs
+        run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
+
+      - name: Test packaged runtime inspection regressions
+        shell: pwsh
+        run: |
+          ./scripts/Test-AiRuntimePayloadInspector.ps1
+          ./scripts/Test-ReviewedAiRuntimeArchive.ps1
 
       - name: Test expanded island scope and fullscreen behavior contracts
         run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
+
+      - name: Test private translation helper protocol without model dependencies
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
 
       # A pending semantic review blocks publication, never ordinary PR validation.
       - name: Enforce AI semantic publication approval before building
@@ -169,16 +182,47 @@ jobs:
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
       - name: Build verified offline AI inference runtime
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish == true) }}
         shell: pwsh
         run: ./scripts/Build-AiLyricsRuntime.ps1
 
-      - name: Bind semantic approval to the built shipping runtime
+      - name: Record immutable runtime producer identity
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish == true) }}
+        shell: pwsh
+        env:
+          PRODUCER_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $path = 'artifacts/ai-runtime/win-x64/runtime-manifest.json'
+          $manifest = Get-Content $path -Raw | ConvertFrom-Json
+          $checkout = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $checkout -cne $env:GITHUB_SHA) { throw 'Runtime producer checkout mismatch.' }
+          $producer = [ordered]@{
+            repository = $env:GITHUB_REPOSITORY
+            workflowPath = '.github/workflows/release.yml'
+            runId = [long]$env:GITHUB_RUN_ID
+            runAttempt = [int]$env:GITHUB_RUN_ATTEMPT
+            headCommit = $env:PRODUCER_HEAD_COMMIT
+            checkoutCommit = $checkout
+          }
+          $manifest | Add-Member -NotePropertyName producer -NotePropertyValue $producer
+          $json = ($manifest | ConvertTo-Json -Depth 8) -replace "`r`n", "`n"
+          [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE $path), $json + "`n", [Text.UTF8Encoding]::new($false))
+
+      - name: Retrieve the exact semantically reviewed runtime
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/Get-ReviewedAiRuntime.ps1
+
+      - name: Bind semantic approval to exact shipping runtime bytes
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         id: ai-release-approval
         shell: pwsh
         run: |
           node scripts/test-ai-release-approval.mjs --runtime-manifest artifacts/ai-runtime/win-x64/runtime-manifest.json
           if ($LASTEXITCODE -ne 0) { throw 'AI semantic publication approval failed.' }
+          ./scripts/Test-AiLyricsRuntime.ps1
           "approved=true" >> $env:GITHUB_OUTPUT
 
       # Development-only handoff of this run's verified build. No model weights are uploaded.
@@ -203,7 +247,7 @@ jobs:
             artifacts/ai-runtime/win-x64/llama-tokenize.exe
             artifacts/ai-runtime/win-x64/LICENSE-llama.cpp
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 60
 
       - name: Test core policies, versions, and update selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core-release.trx"
@@ -262,11 +306,11 @@ jobs:
 
       - name: Test installer /UPDATE, restart, upgrade, and uninstall lifecycle
         shell: pwsh
-        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
 
       - name: Smoke test portable EXE (en-US resource context) without public network access
         shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US
+        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
 
       - name: Smoke test portable EXE (zh-CN resource context) without public network access
         shell: pwsh
@@ -279,6 +323,10 @@ jobs:
       - name: Validate native offline inference and cancellation
         shell: pwsh
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
+
+      - name: Inspect runtime bytes inside the final MSIX
+        shell: pwsh
+        run: ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
 
       - name: Freeze unsigned bytes and generate release metadata
         shell: pwsh
@@ -299,6 +347,13 @@ jobs:
           ./scripts/New-UpdateManifest.ps1
           ./scripts/Test-UpdateManifest.ps1
           Get-ChildItem artifacts/release | Select-Object Name,Length
+
+      - name: Bind inspected runtime bytes to the unsigned release bundle
+        run: node scripts/ai-runtime-publication.mjs record-bundle artifacts/release runtime-directory artifacts/ai-runtime/win-x64 artifacts/runtime-inspection/portable.json artifacts/runtime-inspection/msix.json artifacts/runtime-inspection/installer.json
+
+      - name: Verify exact reviewed bytes in the completed unsigned release bundle
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
       - name: Record release build environment
         shell: pwsh
@@ -330,6 +385,7 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
+            artifacts/release/runtime-publication.json
           if-no-files-found: error
           retention-days: 2
 
@@ -396,6 +452,13 @@ jobs:
         with:
           name: DropSpace-identity-unsigned-${{ needs.validate-release.outputs.tag }}
           path: artifacts/identity
+
+      - name: Verify and preserve unsigned runtime publication binding
+        shell: pwsh
+        run: |
+          node scripts/ai-runtime-publication.mjs verify-bundle artifacts/release
+          if ($LASTEXITCODE -ne 0) { throw 'Unsigned runtime publication binding failed.' }
+          Copy-Item artifacts/release/runtime-publication.json artifacts/unsigned-runtime-publication.json
 
       - name: Enforce stable signing configuration
         shell: pwsh
@@ -483,9 +546,13 @@ jobs:
       - name: Re-run final signed installer and portable smoke gates
         shell: pwsh
         run: |
-          ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
-          ./scripts/Test-PortableSmoke.ps1 -Language en-US
+          ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
+          ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
           ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+
+      - name: Inspect runtime bytes inside the signed MSIX
+        shell: pwsh
+        run: ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
 
       - name: Freeze signed bytes and generate release metadata
         shell: pwsh
@@ -509,6 +576,13 @@ jobs:
           ./scripts/New-UpdateManifest.ps1
           ./scripts/Test-UpdateManifest.ps1
 
+      - name: Bind inspected runtime bytes to the signed release bundle
+        run: node scripts/ai-runtime-publication.mjs record-bundle artifacts/release reference-binding artifacts/unsigned-runtime-publication.json artifacts/runtime-inspection/portable.json artifacts/runtime-inspection/msix.json artifacts/runtime-inspection/installer.json
+
+      - name: Verify exact reviewed bytes in the completed signed release bundle
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
+
       - name: Upload signed release bundle
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -519,6 +593,7 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
+            artifacts/release/runtime-publication.json
           if-no-files-found: error
           retention-days: 2
 
@@ -576,7 +651,7 @@ jobs:
 
       # Recheck immediately before publication, including expiry and evidence hashes.
       - name: Recheck AI semantic publication approval
-        run: node scripts/test-ai-release-approval.mjs
+        run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
       - name: Publish immutable Stable or Beta release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2

@@ -7,7 +7,7 @@ namespace DropSpace.Infrastructure.Lyrics;
 /// <summary>Runs a pre-verified local runtime with bounded output and cancellation. No server or tools are exposed.</summary>
 public sealed class LlamaCompletionRunner : IDisposable
 {
-    private static readonly SemaphoreSlim InferenceGate = new(1, 1);
+    private static readonly SemaphoreSlim InferenceGate = LocalInferenceProcess.InferenceGate;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _cleanupSync = new();
     private Task _pendingCleanup = Task.CompletedTask;

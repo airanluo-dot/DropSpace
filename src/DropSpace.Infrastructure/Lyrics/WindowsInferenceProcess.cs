@@ -21,7 +21,8 @@ internal static class WindowsInferenceProcess
     private const uint CreateNoWindow = 0x08000000;
 
     [SupportedOSPlatform("windows")]
-    internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = MaximumMemoryBytes)
+    internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = MaximumMemoryBytes,
+        bool retainStandardInput = false)
     {
         if (memoryLimitBytes is < 268_435_456 or > MaximumMemoryBytes) throw new ArgumentOutOfRangeException(nameof(memoryLimitBytes));
         if (IntPtr.Size != 8) throw new PlatformNotSupportedException("Local inference requires 64-bit Windows.");
@@ -29,6 +30,7 @@ internal static class WindowsInferenceProcess
         Process? process = null;
         StreamReader? output = null;
         StreamReader? errors = null;
+        StreamWriter? input = null;
         try
         {
             job = CreateLimitedJob(memoryLimitBytes);
@@ -65,10 +67,12 @@ internal static class WindowsInferenceProcess
                     _ = process.Handle;
                     output = new StreamReader(stdout.TakeParentStream(), Encoding.UTF8);
                     errors = new StreamReader(stderr.TakeParentStream(), Encoding.UTF8);
-                    stdin.Parent.Dispose(); // Immediate EOF; the runtime cannot request interactive input.
+                    if (retainStandardInput)
+                        input = new StreamWriter(stdin.TakeParentStream(), new UTF8Encoding(false)) { AutoFlush = true };
+                    else stdin.Parent.Dispose(); // Immediate EOF; the runtime cannot request interactive input.
                     if (ResumeThread(thread) == uint.MaxValue)
                         throw NativeFailure("Unable to resume bounded local inference.");
-                    return new LocalInferenceProcess(process, output, errors, job);
+                    return new LocalInferenceProcess(process, output, errors, input, job);
                 }
                 catch
                 {
@@ -83,6 +87,7 @@ internal static class WindowsInferenceProcess
             job?.Dispose();
             output?.Dispose();
             errors?.Dispose();
+            input?.Dispose();
             process?.Dispose();
             throw;
         }
@@ -145,19 +150,19 @@ internal static class WindowsInferenceProcess
             read.Dispose(); write.Dispose();
             throw NativeFailure("Unable to restrict inference handle inheritance.");
         }
-        return new RedirectedPipe(parent, child);
+        return new RedirectedPipe(parent, child, parentReads);
     }
 
     private static IOException NativeFailure(string message) => new(message, new Win32Exception(Marshal.GetLastWin32Error()));
 
-    private sealed class RedirectedPipe(SafeFileHandle parent, SafeFileHandle child) : IDisposable
+    private sealed class RedirectedPipe(SafeFileHandle parent, SafeFileHandle child, bool parentReads) : IDisposable
     {
         private bool _transferred;
         internal SafeFileHandle Parent { get; } = parent;
         internal SafeFileHandle Child { get; } = child;
         internal FileStream TakeParentStream()
         {
-            var stream = new FileStream(Parent, FileAccess.Read, 4096, isAsync: false);
+            var stream = new FileStream(Parent, parentReads ? FileAccess.Read : FileAccess.Write, 4096, isAsync: false);
             _transferred = true;
             return stream;
         }

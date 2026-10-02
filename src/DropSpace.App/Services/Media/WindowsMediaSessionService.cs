@@ -24,11 +24,14 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private readonly BoundedMediaOperation _artworkReads = new();
     private readonly BoundedMediaOperation _controls = new();
     private readonly BoundedMediaOperation _discoveryReads = new();
-    private readonly BoundedMediaOperation _subscriptions = new(32, 3);
-    private MediaEventSubscription? _managerSubscription, _sessionSubscription;
+    private readonly MediaSubscriptionAdmission _subscriptions = new();
+    private readonly MediaSessionOwner<GlobalSystemMediaTransportControlsSession> _primary = new();
+    private MediaEventSubscription? _managerSubscription;
     private readonly Dictionary<GlobalSystemMediaTransportControlsSession, MediaEventSubscription> _recoverySubscriptions = new(new SessionReferenceComparer());
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
-    private GlobalSystemMediaTransportControlsSession? _session;
+    private GlobalSystemMediaTransportControlsSession? _preparingSession;
+    private GlobalSystemMediaTransportControlsSession? _session => _primary.Session;
+    private MediaEventSubscription? _sessionSubscription => _primary.Subscription;
     private GlobalSystemMediaTransportControlsSession[] _recoverySessions = [];
     private CancellationTokenSource? _lifetime;
     private Channel<bool>? _refresh;
@@ -39,7 +42,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     private long _metadataRevision;
     private long _artworkRevision = -1;
     private bool _restrictSources;
-    private string _sessionIdentity = string.Empty;
+    private string _sessionIdentity => _primary.Identity;
 
     public event EventHandler<MediaSessionSnapshot>? Changed;
     public MediaSessionSnapshot Current => Volatile.Read(ref _current);
@@ -260,30 +263,40 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         // Preserve the OS/player priority. Only replace its renderer with a richer
         // renderer from the same application reporting the same track.
         var richer = await SelectRicherSessionAsync(candidates, Source, ReadSelectionAsync, token, _session, TimeSpan.FromMilliseconds(500));
-        candidates = new[] { richer }.Concat(candidates).Distinct(new SessionReferenceComparer()).Take(MaximumRecoverySessions).ToArray();
+        // A failed preferred candidate must not crowd the still-discovered canonical
+        // session out of the bounded fallback list.
+        var retained = _session is { } selected && candidates.Any(value => ReferenceEquals(value, selected))
+            ? new[] { selected } : [];
+        candidates = new[] { richer }.Concat(retained).Concat(candidates).Distinct(new SessionReferenceComparer()).Take(MaximumRecoverySessions).ToArray();
         var previous = Current;
         Exception? lastFailure = null;
         foreach (var candidate in candidates)
         {
             try
             {
-                if (!ReferenceEquals(candidate, _session) || _sessionSubscription is null)
+                _preparingSession = candidate;
+                var metadata = await _primary.PrepareAndCommitAsync(candidate, async readToken =>
                 {
-                    DetachSession();
-                    _session = candidate;
-                    _sessionIdentity = Guid.NewGuid().ToString("N");
-                    try { _sessionSubscription = await SubscribeSessionAsync(candidate, false, token); }
+                    try { return await SubscribeSessionAsync(candidate, false, readToken); }
                     catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
-                    { logger.LogDebug("SMTC primary subscription unavailable ({Category}).", exception.GetType().Name); }
-                }
-                var (properties, metadataRevision) = await ReadStableMetadataAsync(
-                    readToken => _metadataReads.RunAsync(candidate,
-                        nativeToken => ReadNativeTrackAsync(candidate, nativeToken),
-                        TimeSpan.FromSeconds(2), readToken),
-                    () => Interlocked.Read(ref _metadataRevision), token,
-                    static (left, right) => left.Snapshot.IsSameTrack(right.Snapshot));
-                if (properties is null)
-                    throw new InvalidOperationException("The media publisher changed tracks throughout the metadata read.");
+                    {
+                        logger.LogDebug("SMTC primary subscription unavailable ({Category}).", exception.GetType().Name);
+                        return null;
+                    }
+                }, async readToken =>
+                {
+                    var result = await ReadStableMetadataAsync(
+                        metadataToken => _metadataReads.RunAsync(candidate,
+                            nativeToken => ReadNativeTrackAsync(candidate, nativeToken),
+                            TimeSpan.FromSeconds(2), metadataToken),
+                        () => Interlocked.Read(ref _metadataRevision), readToken,
+                        static (left, right) => left.Snapshot.IsSameTrack(right.Snapshot));
+                    if (result.Value is null)
+                        throw new InvalidOperationException("The media publisher changed tracks throughout the metadata read.");
+                    return result;
+                }, token);
+                var properties = metadata.Value!;
+                var metadataRevision = metadata.Revision;
                 var native = properties.Snapshot;
                 var timeline = native.Timeline;
                 var source = native.SourceAppUserModelId;
@@ -308,11 +321,6 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     effectiveStart = previous.Timeline.Start;
                     effectiveEnd = previous.Timeline.End;
                 }
-                if (metadataRevision != Interlocked.Read(ref _metadataRevision))
-                {
-                    RequestRefresh();
-                    return Current;
-                }
                 // Publish current metadata before optional artwork. A thumbnail publisher
                 // may ignore cancellation, but must never hold back the title or lyrics.
                 var cachedArtwork = sameTrack && _artworkRevision == metadataRevision ? previous.Artwork : null;
@@ -323,19 +331,14 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
                     Timeline = timeline with { Start = effectiveStart, End = effectiveEnd },
                 };
                 return await CompleteArtworkAsync(snapshot, metadataRevision,
-                    artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), candidate, token);
-            }
-            catch (OperationCanceledException)
-            {
-                if (_sessionSubscription is null && ReferenceEquals(_session, candidate)) DetachSession();
-                throw;
+                    artworkToken => ReadArtworkAsync(properties.Thumbnail, artworkToken), candidate, token, metadata.EquivalentDespiteRevisionChange);
             }
             catch (Exception exception) when (IsRecoverable(exception) && exception is not OperationCanceledException)
             {
                 logger.LogDebug("SMTC candidate session could not be read ({Category}); trying the next session.", exception.GetType().Name);
                 lastFailure = exception;
-                if (ReferenceEquals(_session, candidate)) DetachSession();
             }
+            finally { _preparingSession = null; }
         }
         if (lastFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(lastFailure).Throw();
         return MediaSessionSnapshot.Empty;
@@ -366,12 +369,25 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     }
 
     internal async Task<MediaSessionSnapshot> CompleteArtworkAsync(MediaSessionSnapshot snapshot, long metadataRevision,
-        Func<CancellationToken, Task<byte[]?>> read, object owner, CancellationToken token)
+        Func<CancellationToken, Task<byte[]?>> read, object owner, CancellationToken token,
+        bool equivalentDespiteRevisionChange = false)
     {
         token.ThrowIfCancellationRequested();
-        if (metadataRevision != Interlocked.Read(ref _metadataRevision)) return Current;
+        if (metadataRevision != Interlocked.Read(ref _metadataRevision))
+        {
+            RequestRefresh();
+            if (!equivalentDespiteRevisionChange) return Current;
+            // Two consecutive equivalent reads may publish identity through a metadata
+            // notification storm, but that permission never extends to stale artwork.
+            snapshot = snapshot with { Artwork = null };
+        }
         var previous = Current;
         Publish(snapshot);
+        if (metadataRevision != Interlocked.Read(ref _metadataRevision))
+        {
+            RequestRefresh();
+            return Current;
+        }
         byte[]? artwork;
         try { artwork = snapshot.Artwork ?? await ReadOptionalArtworkAsync(read, token, owner); }
         catch (OperationCanceledException) when (_lifetime is { IsCancellationRequested: false })
@@ -393,7 +409,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     // Only metadata notifications invalidate an in-flight metadata read. Continuous
     // playback/timeline events must not starve title and artwork updates.
-    internal static async Task<(T? Value, long Revision)> ReadStableMetadataAsync<T>(
+    internal readonly record struct StableMetadata<T>(T? Value, long Revision, bool EquivalentDespiteRevisionChange = false) where T : class
+    {
+        public void Deconstruct(out T? value, out long revision) { value = Value; revision = Revision; }
+    }
+
+    internal static async Task<StableMetadata<T>> ReadStableMetadataAsync<T>(
         Func<CancellationToken, Task<T>> read, Func<long> metadataRevision, CancellationToken token,
         Func<T, T, bool>? equivalent = null) where T : class
     {
@@ -405,11 +426,12 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             var value = await read(token).WaitAsync(token);
             token.ThrowIfCancellationRequested();
             var latestRevision = metadataRevision();
-            if (revision == latestRevision || (previous is not null && equivalent?.Invoke(previous, value) == true))
-                return (value, latestRevision);
+            var confirmedEquivalent = previous is not null && equivalent?.Invoke(previous, value) == true;
+            if (revision == latestRevision || confirmedEquivalent)
+                return new(value, latestRevision, confirmedEquivalent);
             previous = value;
         }
-        return (null, metadataRevision());
+        return new(null, metadataRevision());
     }
 
     internal sealed record SessionSelection(string Title, string Artist, string Album, TimeSpan Duration,
@@ -499,8 +521,8 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         return selected;
     }
 
-    // AsTask(token) in the SDK projection cancels its managed bridge immediately;
-    // that is not proof that the WinRT operation (or a stream read) has completed.
+    // Cancellation of a projected task does not establish that the native operation
+    // (or a stream read) and its resources have completed.
     // Keep ownership tied to Completed, and request native cancellation separately.
     internal static Task<T> AwaitNativeAsync<T>(Windows.Foundation.IAsyncOperation<T> operation, CancellationToken token) =>
         AwaitNativeCompletionAsync(operation.AsTask(CancellationToken.None), operation.Cancel, token);
@@ -648,13 +670,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         finally { _lifecycle.Release(); }
     }
 
-    private void DetachSession()
-    {
-        _sessionSubscription?.Retire();
-        _sessionSubscription = null;
-        _session = null;
-        _sessionIdentity = string.Empty;
-    }
+    private void DetachSession() => _primary.Clear();
 
     private async Task ObserveRecoverySessionsAsync(IReadOnlyList<GlobalSystemMediaTransportControlsSession> sessions, CancellationToken token)
     {
@@ -692,7 +708,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             (sender, args) => { if (subscription.IsActive) OnCurrentSessionChanged(sender, args); };
         Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSessionManager, SessionsChangedEventArgs> sessions =
             (sender, args) => { if (subscription.IsActive) OnSessionsChanged(sender, args); };
-        await subscription.StartAsync(_subscriptions, manager,
+        await subscription.StartAsync(_subscriptions.Manager, manager,
             () => { manager.CurrentSessionChanged += current; manager.SessionsChanged += sessions; },
             () => { Unsubscribe(() => manager.CurrentSessionChanged -= current); Unsubscribe(() => manager.SessionsChanged -= sessions); },
             OperationTimeout, token);
@@ -708,7 +724,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             (sender, args) => { if (subscription.IsActive) { if (recovery) OnRecoveryPlaybackInfoChanged(sender, args); else OnPlaybackInfoChanged(sender, args); } };
         Windows.Foundation.TypedEventHandler<GlobalSystemMediaTransportControlsSession, TimelinePropertiesChangedEventArgs> timeline =
             (sender, args) => { if (subscription.IsActive) { if (recovery) OnRecoveryTimelinePropertiesChanged(sender, args); else OnTimelinePropertiesChanged(sender, args); } };
-        await subscription.StartAsync(_subscriptions, session,
+        await subscription.StartAsync(recovery ? _subscriptions.Recovery : _subscriptions.Primary, session,
             () => { session.MediaPropertiesChanged += media; session.PlaybackInfoChanged += playback; session.TimelinePropertiesChanged += timeline; },
             () => { Unsubscribe(() => session.MediaPropertiesChanged -= media); Unsubscribe(() => session.PlaybackInfoChanged -= playback); Unsubscribe(() => session.TimelinePropertiesChanged -= timeline); },
             TimeSpan.FromMilliseconds(500), token);
@@ -746,7 +762,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     }
     private void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
     {
-        if (!ReferenceEquals(sender, _session)) return;
+        if (!ReferenceEquals(sender, _session) && !ReferenceEquals(sender, _preparingSession)) return;
         InvalidateMetadata();
     }
     internal void InvalidateMetadata()

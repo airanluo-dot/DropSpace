@@ -98,6 +98,50 @@ public sealed class MediaPublisherTimeoutTests
     }
 
     [TestMethod]
+    public async Task EquivalentMetadataStillPublishesWhenAnotherNotificationArrivesBeforePublication()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        long revision = 0;
+        for (var transition = 1; transition <= 32; transition++)
+        {
+            var title = $"Track {transition}";
+            var result = await WindowsMediaSessionService.ReadStableMetadataAsync(_ =>
+            {
+                revision++;
+                service.InvalidateMetadata();
+                return Task.FromResult(MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = title });
+            }, () => revision, CancellationToken.None, static (left, right) => left.IsSameTrack(right));
+            Assert.IsTrue(result.EquivalentDespiteRevisionChange);
+            // This is the previously untested window after stable metadata returned.
+            revision++;
+            service.InvalidateMetadata();
+            var artworkReads = 0;
+            var completed = await service.CompleteArtworkAsync(result.Value!, result.Revision,
+                _ => { artworkReads++; return Task.FromResult<byte[]?>([1]); }, new object(),
+                CancellationToken.None, result.EquivalentDespiteRevisionChange);
+            Assert.AreEqual(title, completed.TrackTitle);
+            Assert.AreEqual(title, service.Current.TrackTitle);
+            Assert.IsNull(completed.Artwork);
+            Assert.AreEqual(0, artworkReads, "Equivalent identity permission must not admit stale artwork.");
+        }
+    }
+
+    [TestMethod]
+    public async Task UnconfirmedMetadataCannotPublishAfterALaterTrackNotification()
+    {
+        await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
+        var stable = await WindowsMediaSessionService.ReadStableMetadataAsync(
+            _ => Task.FromResult(MediaSessionSnapshot.Empty with { SessionId = "session", TrackTitle = "Old" }),
+            () => 0, CancellationToken.None);
+        Assert.IsFalse(stable.EquivalentDespiteRevisionChange);
+        service.InvalidateMetadata();
+        var result = await service.CompleteArtworkAsync(stable.Value!, stable.Revision,
+            _ => Task.FromResult<byte[]?>([1]), new object(), CancellationToken.None, stable.EquivalentDespiteRevisionChange);
+        Assert.AreEqual(MediaSessionSnapshot.Empty, result);
+        Assert.AreEqual(MediaSessionSnapshot.Empty, service.Current);
+    }
+
+    [TestMethod]
     public async Task TrulyDifferentConsecutiveMetadataIsStillRejected()
     {
         long revision = 0;

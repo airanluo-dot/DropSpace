@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { approvalPath, fixturePath, readScope, sha256, sourcePaths, productionPromptProfile, productionOutputSchema, validateApproval } from './test-ai-release-approval.mjs';
+import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const now = Date.parse('2026-10-02T00:00:00Z');
@@ -32,9 +33,23 @@ function example(t) {
     executable: 'llama-completion.exe', sha256: sha256('synthetic baseline'), bytes: 18,
     avx2: { executable: 'llama-completion-avx2.exe', sha256: sha256('synthetic avx2'), bytes: 14 },
     tokenizer: { executable: 'llama-tokenize.exe', sha256: sha256('synthetic tokenizer'), bytes: 19 },
+    producer: {
+      repository: 'airanluo-dot/DropSpace', workflowPath: '.github/workflows/release.yml',
+      runId: 123, runAttempt: 1, headCommit: 'a'.repeat(40), checkoutCommit: 'b'.repeat(40),
+    },
   };
   write(runtimePath, json(runtime));
   const runtimeReference = { path: runtimePath, sha256: sha256(json(runtime)) };
+  const runtimePayload = {
+    'runtime-manifest.json': json(runtime), 'llama-completion.exe': 'synthetic baseline',
+    'llama-completion-avx2.exe': 'synthetic avx2', 'llama-tokenize.exe': 'synthetic tokenizer',
+    'LICENSE-llama.cpp': 'Synthetic license fixture; not a real runtime license.\n',
+  };
+  const runtimeArtifact = {
+    schemaVersion: 1, ...runtime.producer, artifactId: 456,
+    artifactName: 'ai-candidate-runtime-123-1', archiveSha256: sha256('synthetic archive'),
+    files: Object.entries(runtimePayload).map(([name, bytes]) => ({ path: name, sha256: sha256(bytes), bytes: Buffer.byteLength(bytes) })),
+  };
   const envelopes = scope.shippingModels.flatMap(model => ['baseline', 'avx2'].map(variant => ({
     schemaVersion: 1, kind: 'native-output', model: { ...model },
     fixtureSha256: scope.fixture.sha256, promptVersion: scope.promptVersion,
@@ -62,7 +77,7 @@ function example(t) {
   const report = {
     schemaVersion: 1, kind: 'semantic-review', verdict: 'approved',
     reviewedBy: 'SYNTHETIC TEST ONLY', reviewedAt: '2026-10-01T00:00:00Z', expiresAt: '2026-10-03T00:00:00Z',
-    summary: 'Synthetic unit test; never release evidence.', scope, runtimeManifest: runtimeReference,
+    summary: 'Synthetic unit test; never release evidence.', scope, runtimeManifest: runtimeReference, runtimeArtifact,
     models: scope.shippingModels.map((model, i) => ({ ...model, verdict: 'approved', summary: 'Synthetic unit test.', evidence: [0, 1].map(variant => ({
       kind: 'native-output', path: rawPaths[i * 2 + variant], sha256: '', fixtureSha256: scope.fixture.sha256,
     })) })),
@@ -83,7 +98,7 @@ function example(t) {
   };
   saveEnvelopes();
   save();
-  return { root, scope, report, approval, rawPath, reportPath, stdoutPath, runtimePath, runtime, envelopes, configurations, configurationPaths, write, save, saveEnvelopes, validate: options => validateApproval(root, { now, ...options }) };
+  return { root, scope, report, approval, rawPath, reportPath, stdoutPath, runtimePath, runtime, runtimePayload, envelopes, configurations, configurationPaths, write, save, saveEnvelopes, validate: options => validateApproval(root, { now, ...options }) };
 }
 
 test('synthetic current approval with complete bound evidence passes', t => example(t).validate());
@@ -344,18 +359,63 @@ test('updating manifest scope without a newly matching review fails', t => {
   assert.throws(() => x.validate(), /different release inputs/);
 });
 
-test('built runtime ID and source commit must match the semantic review', t => {
+test('shipping runtime must contain exactly the reviewed manifest and every reviewed binary/license byte', t => {
   const x = example(t);
-  const runtimePath = path.join(x.root, 'runtime.json');
-  const runtime = { schemaVersion: 1, runtimeId: x.scope.runtime.id, sourceCommit: x.scope.runtime.sourceCommit };
-  fs.writeFileSync(runtimePath, json(runtime));
+  const runtimePath = path.join(x.root, 'shipping/runtime-manifest.json');
+  for (const [name, bytes] of Object.entries(x.runtimePayload)) x.write(`shipping/${name}`, bytes);
   x.validate({ runtimeManifestPath: runtimePath });
-  for (const [field, value] of [['runtimeId', 'wrong'], ['sourceCommit', '0'.repeat(40)], ['schemaVersion', 2]]) {
-    fs.writeFileSync(runtimePath, json({ ...runtime, [field]: value }));
-    assert.throws(() => x.validate({ runtimeManifestPath: runtimePath }), /runtime/);
+  for (const [name, bytes] of Object.entries(x.runtimePayload)) {
+    x.write(`shipping/${name}`, bytes + 'changed');
+    assert.throws(() => x.validate({ runtimeManifestPath: runtimePath }), /runtime.*(bytes|files)/i);
+    x.write(`shipping/${name}`, bytes);
   }
+  x.write('shipping/runtime-manifest.json', json({ schemaVersion: 1, runtimeId: x.scope.runtime.id, sourceCommit: x.scope.runtime.sourceCommit }));
+  assert.throws(() => x.validate({ runtimeManifestPath: runtimePath }), /differs from reviewed bytes/);
+  x.write('shipping/runtime-manifest.json', x.runtimePayload['runtime-manifest.json']);
+  x.write('shipping/extra.dll', 'unexpected dependency');
+  assert.throws(() => x.validate({ runtimeManifestPath: runtimePath }), /exact reviewed runtime files/);
+  fs.unlinkSync(path.join(x.root, 'shipping/extra.dll'));
+  fs.unlinkSync(path.join(x.root, 'shipping/LICENSE-llama.cpp'));
+  assert.throws(() => x.validate({ runtimeManifestPath: runtimePath }), /exact reviewed runtime files/);
   fs.unlinkSync(runtimePath);
   assert.throws(() => x.validate({ runtimeManifestPath: runtimePath }), /ENOENT/);
+});
+
+test('an artifact without the required license cannot become a shipping review', t => {
+  const x = example(t);
+  x.report.runtimeArtifact.files = x.report.runtimeArtifact.files.filter(file => file.path !== 'LICENSE-llama.cpp');
+  x.save();
+  assert.throws(() => x.validate(), /every shipping component and license/);
+});
+
+test('review requires exact immutable runtime artifact provenance', t => {
+  const x = example(t);
+  delete x.report.runtimeArtifact; x.save();
+  assert.throws(() => x.validate(), /runtime artifact contract/);
+});
+
+test('producer identity inside the reviewed manifest cannot differ from artifact provenance', t => {
+  const x = example(t);
+  x.report.runtimeArtifact.checkoutCommit = 'c'.repeat(40); x.save();
+  assert.throws(() => x.validate(), /producer metadata mismatch/);
+});
+
+test('publication binds live approval to exact final release files and source commit', t => {
+  const x = example(t);
+  const directory = path.join(x.root, 'release');
+  const sourceCommit = 'd'.repeat(40);
+  for (const name of ['DropSpace.exe', 'DropSpace-x64.msix', 'DropSpaceSetup.exe']) x.write(`release/${name}`, `synthetic ${name}`);
+  const identity = name => fileIdentity(path.join(directory, name));
+  const files = x.report.runtimeArtifact.files;
+  const portable = { schemaVersion: 1, package: identity('DropSpace.exe'), files };
+  const msix = { schemaVersion: 1, package: identity('DropSpace-x64.msix'), files };
+  const installer = { schemaVersion: 1, kind: 'installer-payload', package: identity('DropSpaceSetup.exe'), installedPortable: portable.package };
+  writeReleaseBinding(directory, { runtimeFiles: files, sourceCommit, portable, msix, installer });
+  x.validate({ releaseBundleDirectory: directory, expectedCommit: sourceCommit });
+  assert.throws(() => x.validate({ releaseBundleDirectory: directory }), /Exact publication commit/);
+  assert.throws(() => x.validate({ releaseBundleDirectory: directory, expectedCommit: 'e'.repeat(40) }), /source commit mismatch/);
+  fs.appendFileSync(path.join(directory, 'DropSpace.exe'), 'changed after inspection');
+  assert.throws(() => x.validate({ releaseBundleDirectory: directory, expectedCommit: sourceCommit }), /Final release package changed/);
 });
 
 test('CLI fails closed for unknown arguments rather than skipping validation', () => {
@@ -369,12 +429,21 @@ test('workflow tests every PR but gates only explicit publication, with a second
   const validate = workflow.split('\n  validate-release:')[1].split('\n  ai-model-diagnostics:')[0];
   assert.match(validate, /- name: Test AI semantic release gate regressions\n        run: node --test scripts\/test-ai-release-approval.test.mjs/);
   assert.match(validate, /- name: Enforce AI semantic publication approval before building\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        run: node scripts\/test-ai-release-approval.mjs/);
-  assert.match(validate, /- name: Bind semantic approval to the built shipping runtime\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        id: ai-release-approval/);
+  assert.match(validate, /- name: Bind semantic approval to exact shipping runtime bytes\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        id: ai-release-approval/);
   assert.match(validate, /--runtime-manifest artifacts\/ai-runtime\/win-x64\/runtime-manifest.json\n          if \(\$LASTEXITCODE -ne 0\)/);
   assert.match(validate, /ai_semantic_approved: \$\{\{ steps.ai-release-approval.outputs.approved \}\}/);
   const publish = workflow.split('\n  publish-release:')[1];
   assert.match(publish, /needs.validate-release.outputs.ai_semantic_approved == 'true'/);
   assert.match(publish, /needs: \[validate-release, sign-release\]/);
-  assert.match(publish, /- name: Recheck AI semantic publication approval\n        run: node scripts\/test-ai-release-approval.mjs\n\n      - name: Publish immutable/);
+  assert.match(publish, /- name: Recheck AI semantic publication approval\n        run: node scripts\/test-ai-release-approval.mjs --release-bundle artifacts\/release\n\n      - name: Publish immutable/);
   assert.match(validate, /Assert-DropSpacePublicationCommit \$env:EXPECTED_COMMIT \$env:ACTUAL_COMMIT/);
+  assert.match(validate, /- name: Build verified offline AI inference runtime\n        if: \$\{\{ !\(github.event_name == 'workflow_dispatch' && inputs.publish == true\) \}\}/);
+  assert.match(validate, /- name: Retrieve the exact semantically reviewed runtime\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true/);
+  assert.match(validate, /Get-ReviewedAiRuntime.ps1/);
+  assert.match(validate, /record-bundle artifacts\/release runtime-directory/);
+  const sign = workflow.split('\n  sign-release:')[1].split('\n  publish-release:')[0];
+  assert.match(sign, /verify-bundle artifacts\/release/);
+  assert.match(sign, /record-bundle artifacts\/release reference-binding/);
+  assert.match(sign, /Inspect-AiRuntimePayload.ps1 -MsixPath artifacts\/release\/DropSpace-x64.msix/);
+  assert.equal((workflow.match(/artifacts\/release\/runtime-publication.json\n          if-no-files-found/g) ?? []).length, 2);
 });

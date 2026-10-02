@@ -11,10 +11,11 @@ approve translation quality.
 - Every normal Release PR/build runs the validator's synthetic regression tests.
   Pending, stale, or expired semantic approval does not prevent ordinary PR work.
 - Only `workflow_dispatch` with `publish=true` validates live approval in
-  `validate-release`, first before building and again against the build-produced
-  runtime manifest. Failure stops that job.
+  `validate-release`, first before retrieval and again against the exact reviewed
+  runtime files. Publication retrieves the reviewed artifact instead of rebuilding
+  native binaries. Failure stops that job.
 - `publish-release` requires that exact job's `ai_semantic_approved=true` output,
-  then rechecks the record and evidence immediately before publishing. No
+  then rechecks the record, evidence, and final release-file byte bindings immediately before publishing. No
   diagnostic job can emit that output. Existing version, main-branch, actor,
   signing and `expected_commit` checks remain in place.
 - The validator always enforces approval when called normally. There is no
@@ -73,12 +74,15 @@ The publication actor check authenticates who starts that workflow; it does not
 authenticate the semantic reviewer. Hashes and provenance envelopes establish
 internal consistency, not truth, authorship or semantic quality.
 
-No signer keys, secrets, external approval service, new permissions or additional
-user approval ceremony are introduced. The actual authorized reviewer must be
+No signer keys, secrets, external approval service or additional user approval
+ceremony are introduced. Retrieval uses the existing workflow token with
+`actions: read`, without creating persistent access. The actual authorized reviewer must be
 recorded honestly. Do not invent a reviewer identity or user approval.
 
-The final evaluated-runtime-to-shipping-runtime binary link is still incomplete;
-see the explicit remaining work below. Current `pending` remains release-blocking.
+Exact artifact reuse and final packaged-payload byte checks are now part of the
+publication lane. Real semantic evidence is still required; current `pending`
+remains release-blocking. The private disabled CT2 prototype does not select or
+approve a new production engine.
 
 ## Recording a real review later
 
@@ -102,6 +106,14 @@ see the explicit remaining work below. Current `pending` remains release-blockin
    - `runtimeManifest`: a repository-relative `path` and exact-byte `sha256` for
      the actual reviewed runtime manifest, containing pinned identity/source and
      positive byte counts/SHA-256 for baseline, AVX2 and tokenizer components
+   - `runtimeArtifact`: `schemaVersion: 1`, `repository`, `workflowPath`, positive
+     integer `runId`, `runAttempt`, `artifactId`, `artifactName`, `archiveSha256`,
+     full `headCommit` and `checkoutCommit`, plus `files` containing canonical
+     relative `path`, SHA-256 and positive `bytes` for every retained runtime file
+     including the exact manifest and license. The current producer is this
+     repository's `.github/workflows/release.yml`; the name is
+     `ai-candidate-runtime-<runId>-<runAttempt>`. The reviewed manifest's `producer`
+     records the same repository, workflow, run, attempt and both commits
    - `reviewedAt` and `expiresAt` in `YYYY-MM-DDTHH:mm:ssZ` UTC format
    - `models`: one entry per shipping model, in scope order, each with its `id`,
      `sha256`, `bytes`, explicit semantic `verdict: "approved"`, and nonempty `summary`
@@ -163,29 +175,46 @@ release-ready envelopes automatically. A future capture step must snapshot the
 actual source scope/configuration, runtime manifest and raw outputs together at
 execution time; do not fabricate missing provenance afterward.
 
-### Remaining evaluated-runtime to publication link (not implemented)
+### Exact reviewed-runtime to publication link
 
-The build-time gate still compares only runtime schema, ID and source commit with
-the reviewed scope. It **does not yet prove** that fresh shipping PE binaries are
-the exact ones in the reviewed evidence packet. Rebuilding the same llama.cpp
-commit can change baseline/AVX2/tokenizer bytes due to toolchain or build inputs.
-Blindly comparing old and freshly rebuilt hashes could make legitimate publication
-impossible; it must not be presented as reproducible without evidence.
+Ordinary PR validation still builds the runtime and runs native tests. The runtime
+artifact now includes its license and records the producer identity inside its
+manifest; retention is 60 days. `headCommit` is the Actions run's source head;
+`checkoutCommit` is the actual checked-out commit (a PR merge commit can differ).
+These are not required to equal the later publication commit that records the
+review. The current source fingerprint and final `expected_commit` still bind the
+actual release inputs and publication checkout.
 
-The minimal proposed follow-on is to preserve one trusted runtime artifact from
-the release-validation build, run the full required QA against those exact three
-binaries, and publish using that already-evaluated runtime artifact rather than
-rebuilding it. The consuming publication run would verify its originating
-repository/commit/run/artifact identity, retained manifest and all component
-hashes/byte counts, then verify the packaged runtime is unchanged. Missing,
-expired, wrong-run or changed artifacts would stop publication. The review and
-final `expected_commit` must also remain bound to the actual source scope. Artifact
-reuse, retention and final payload checks require a separately reviewed workflow
-change; none are silently simulated by this validator.
+For explicit publication, `Get-ReviewedAiRuntime.ps1` first validates live approval,
+then retrieves only the review's fixed artifact ID. It verifies same-repository
+producer/head repository, workflow, successful run/attempt, commits, archive
+digest and expiry. Offline extraction rejects missing, extra, duplicated,
+noncanonical or linked entries and verifies every extracted byte count/hash.
+Missing or expired artifacts stop publication; there is no latest-artifact or
+rebuild fallback. The legacy diagnostic artifact without a license cannot satisfy
+the shipping inventory.
 
-Until that link and genuine semantic QA are complete, the production record must
-remain pending. The envelope consistency improvement alone does not close the
-shipping-runtime provenance finding and does not approve either production model.
+The generic inventory supports backend-specific adapters without changing its
+retrieval and packaging guarantees. The current approval adapter requires the
+llama baseline, AVX2, tokenizer, manifest and license. A future backend must
+explicitly declare its required payload/evidence; the disabled CT2 helper is not
+silently approved by the current adapter.
+
+`Inspect-AiRuntimePayload.ps1` reads embedded managed resources without loading
+the assembly. Portable smoke uses a fresh private .NET extraction directory and
+inspects its actual `DropSpace.dll`; MSIX inspection reads its final packaged
+assembly. Installer lifecycle requires the installed executable to equal the
+release portable. A `runtime-publication.json` record binds these observations
+and the runtime inventory to the exact three release package hashes and source
+commit. Stable signing verifies the unsigned record, repeats inspections after
+signing/rebuilding the installer, and writes a new final-byte record. Immediately
+before publication, the live approval is checked against this inventory and the
+downloaded release bytes. The record stays in the internal CI bundle.
+
+This is a consistency control within the trusted repository, not authenticated
+attestation. Keep the production record pending until real semantic QA passes.
+Retained evidence uses a narrow `scripts/ai-model-qa/evidence/** -text` attribute
+so Git does not rewrite byte-hashed Windows output during checkout.
 
 Approval lasts no more than **30 days from the actual review**. This bounded
 release window avoids carrying an old verdict indefinitely; source/data changes
@@ -201,8 +230,14 @@ reviewer or approval timestamps because no qualifying review exists.
 - `node scripts/test-ai-release-approval.mjs` currently **must exit 1** because the
   real manifest is pending
 - `node scripts/test-ai-release-approval.mjs --runtime-manifest <built-manifest>`
-  additionally compares the build's runtime ID/source commit to the reviewed
-  scope; this remains a source-level check, with the binary reuse gap above
+  additionally compares the manifest and every sibling runtime file with the
+  reviewed byte inventory
+- `node --test scripts/test-ai-runtime-publication.test.mjs` checks generic
+  inventories, artifact provenance, final package hashes and signing transitions
+- `scripts/Test-AiRuntimePayloadInspector.ps1` and
+  `scripts/Test-ReviewedAiRuntimeArchive.ps1` exercise synthetic PE/MSIX/ZIP fixtures
+- `node scripts/test-ai-release-approval.mjs --release-bundle <directory>` checks
+  final byte bindings with `GITHUB_SHA` as the exact publication commit
 
 There is no manifest commit hash that would refer to itself. There is no automatic
 semantic scoring, external approval service, CI trigger, or production-code change
