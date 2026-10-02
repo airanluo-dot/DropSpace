@@ -14,6 +14,7 @@ if(config.MemoryMiB!=3072) throw new ArgumentException("Marian prototype keeps t
 Directory.CreateDirectory(config.Output);
 await Verify(config.Source,"63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549");
 await Verify(config.Python,config.PythonSha256);
+if(!Path.IsPathFullyQualified(config.SitePackages) || !Directory.Exists(config.SitePackages)) throw new InvalidDataException("Controlled site-packages directory is missing");
 await Verify(config.InferScript,config.InferScriptSha256);
 await Verify(config.ConversionManifest,config.ConversionManifestSha256);
 await Verify(config.Holdout,"88a30d2ddd52307ab5832b457400c4a50545800147ac6c9e8863dd71f96f8b56");
@@ -49,7 +50,7 @@ async Task Target(string label,LyricsDocument document,int group,string target,b
         }
         catch(OperationCanceledException) { }
     }):Task.CompletedTask;
-    var run=await Probe(label,config.Python,["-I","-X","utf8","-u",config.InferScript,"--request",requestPath],180,external:budget.Token);
+    var run=await Probe(label,config.Python,["-I","-S","-X","utf8","-u",config.InferScript,"--site-packages",config.SitePackages,"--request",requestPath],180,external:budget.Token);
     observerStop.Cancel();await observer;
     bool valid=false;string? error=null;
     try
@@ -169,6 +170,6 @@ static async Task Capture(StreamReader reader,string path,int limit,Action stop,
     while((count=await reader.ReadAsync(buffer))>0){onFirstData?.Invoke();onFirstData=null;total+=count;await output.WriteAsync(buffer.AsMemory(0,count));await output.FlushAsync();if(total>limit){stop();return;}}
 }
 
-record Config(string Python,string PythonSha256,string InferScript,string InferScriptSha256,string ConversionManifest,string ConversionManifestSha256,string Source,string Holdout,string Output,int MemoryMiB);
+record Config(string Python,string PythonSha256,string SitePackages,string InferScript,string InferScriptSha256,string ConversionManifest,string ConversionManifestSha256,string Source,string Holdout,string Output,int MemoryMiB);
 record LineOutput(int id,string text);
 record NativeResult(double Seconds,int? ExitCode,string? ExitCodeHex,string? Reason,long PeakRssBytes,long PeakPrivateBytes,bool ExceedsCompactRssBaseline,int? ProcessId,int InferenceBudgetSeconds,double CleanupSeconds,bool CleanupCompleted,string? CleanupError,double SampledCpuSeconds,double? FirstStdoutObservedSeconds,string? CpuTelemetryError);

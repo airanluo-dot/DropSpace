@@ -1,5 +1,5 @@
 """QA-only offline process; fixture language tags are supplied, never inferred."""
-import argparse, hashlib, json, os, socket, threading, time
+import argparse, hashlib, json, os, socket, sys, threading, time
 
 def deny_network(*args, **kwargs):
     raise RuntimeError("QA inference is offline; network connections are forbidden")
@@ -15,7 +15,12 @@ def sha(path):
     return h.hexdigest()
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--request',required=True);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--request',required=True);p.add_argument('--site-packages',required=True);a=p.parse_args()
+    packages=Path(a.site_packages)
+    if not packages.is_absolute() or not packages.is_dir(): raise ValueError('Controlled site-packages directory is missing')
+    # Direct base interpreter uses -I -S: no user/global site or executable .pth processing.
+    # Add only the hash-locked QA venv packages; do not use site.addsitedir.
+    sys.path.insert(0,str(packages.resolve()))
     req=json.loads(Path(a.request).read_text(encoding='utf-8-sig'))
     evidence=Path(req['evidence']);evidence.mkdir(parents=True,exist_ok=True)
     def write(name,data):

@@ -43,7 +43,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Safe model conversion failed; no inference att
 $conversion = Join-Path $OutputDirectory 'conversion-manifest.json'
 $infer = Join-Path $qa 'infer.py'
 $config = @{
-    python = $python; pythonSha256 = Hash $python
+    python = $pythonBase; pythonSha256 = Hash $pythonBase
+    sitePackages = (Resolve-Path (Join-Path $venv "Lib/site-packages")).Path
+    interpreterLaunch = "Direct verified base interpreter; -I -S; explicit locked site-packages; no .pth execution"
     inferScript = $infer; inferScriptSha256 = Hash $infer
     conversionManifest = $conversion; conversionManifestSha256 = Hash $conversion
     source = Join-Path $repo 'scripts/ai-model-qa/inputs/source48.json'

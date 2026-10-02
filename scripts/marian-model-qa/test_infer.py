@@ -28,7 +28,7 @@ class ProtocolTests(unittest.TestCase):
         import socket
         with patch.object(socket.socket,'connect'),patch.object(socket,'create_connection'):
             spec.loader.exec_module(module)
-            with patch.dict(sys.modules,{'ctranslate2':types.SimpleNamespace(Translator=Translator),'transformers':types.SimpleNamespace(MarianTokenizer=Tokenizer)}),patch.object(sys,'argv',['infer','--request',str(request)]),contextlib.redirect_stdout(io.StringIO()) as output:
+            with patch.dict(sys.modules,{'ctranslate2':types.SimpleNamespace(Translator=Translator),'transformers':types.SimpleNamespace(MarianTokenizer=Tokenizer)}),patch.object(sys,'argv',['infer','--site-packages',str(root),'--request',str(request)]),patch.object(sys,'path',sys.path.copy()),contextlib.redirect_stdout(io.StringIO()) as output:
                 module.main()
         return json.loads(output.getvalue()),calls,root
     def test_source_only_avoids_model(self):
@@ -42,6 +42,18 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual([x['id'] for x in result['outputs']['cold']],[3,2,8])
         self.assertEqual(result['outputs']['cold'][-1]['text'],'Unchanged')
         self.assertTrue((root/'evidence/cold-ja-en.raw.json').exists())
+    def test_direct_isolated_interpreter_ignores_pth(self):
+        import subprocess
+        root=Path(tempfile.mkdtemp()); packages=root/'site-packages';packages.mkdir()
+        marker=root/'pth-executed'
+        (packages/'unsafe.pth').write_text("import pathlib; pathlib.Path("+repr(str(marker))+").touch()")
+        manifest=root/'manifest.json';manifest.write_text('{"models":{}}')
+        request=root/'request.json';request.write_text(json.dumps({'manifest':str(manifest),'evidence':str(root/'evidence'),'target':'en','lines':[{'id':1,'language':'en','text':'雪 remains unchanged'}]}))
+        run=subprocess.run([sys.executable,'-I','-S','-X','utf8',str(Path(__file__).with_name('infer.py')),'--site-packages',str(packages),'--request',str(request)],capture_output=True,encoding='utf-8',timeout=10)
+        self.assertEqual(run.returncode,0,run.stderr)
+        self.assertEqual(json.loads(run.stdout)['modelCalls'],0)
+        self.assertIn('雪',run.stdout)
+        self.assertFalse(marker.exists())
     def test_missing_eos_rejects(self):
         with self.assertRaisesRegex(ValueError,'without EOS'):self.run_fixture([{'id':0,'language':'zh','text':'Chinese'}],'en',False)
 
