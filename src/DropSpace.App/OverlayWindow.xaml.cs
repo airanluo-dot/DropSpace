@@ -101,6 +101,25 @@ public sealed partial class OverlayWindow : Window
     private readonly WidgetViewModel _widgetViewModel;
     private OverlaySnapshot? _presentationSnapshot;
     private bool _mediaGeometryRefreshPending;
+    private MediaSessionSnapshot? _lastGlowSession;
+    private IslandGlowTransfer? _glowTransfer;
+
+    internal IslandGlowTransfer? CaptureGlowHandoff()
+    {
+        if (!_isVisible || !GlowContinuationAllowed() || _lastGlowSession is not { } session ||
+            !session.IsSameTrack(_mediaViewModel.Session) || _glow.CaptureVisualState() is not { } state) return null;
+        return new(new LyricsGlowHandoff(MonitorId, session with { Artwork = null }, state), Stopwatch.GetTimestamp());
+    }
+
+    internal void StageGlowHandoff(IslandGlowTransfer transfer) => _glowTransfer = transfer;
+
+    private bool GlowContinuationAllowed()
+    {
+        var preferences = _visualPreferences.Current;
+        return !_closing && !_suppressedForPlacementEdit && !_placementEditActive && !_suppressedForFullscreen &&
+            _mediaViewModel.IsPlaying && _mediaViewModel.Settings.Lyrics.GlowMode is LyricsGlowMode.AiLyrics or LyricsGlowMode.Music &&
+            !preferences.HighContrast && preferences.AdvancedEffectsEnabled;
+    }
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -311,6 +330,35 @@ public sealed partial class OverlayWindow : Window
         }
         finally { _closing = wasClosing; }
         HideImmediately();
+        VerifyGlowHandoffLifecycleForSmoke();
+    }
+
+    private void VerifyGlowHandoffLifecycleForSmoke()
+    {
+        var wasSuppressed = _suppressedForFullscreen;
+        var snapshot = new LyricsGlowVisualState(.2, 3, .5, .3, .2, .1, .4, .5, .2);
+        IslandGlowTransfer Transfer() => new(new LyricsGlowHandoff(MonitorId, _mediaViewModel.Session, snapshot), Stopwatch.GetTimestamp());
+        try
+        {
+            // Exercise the actual native first-show order, including its initial
+            // transparent ApplyMotionFrame before _isVisible becomes true.
+            var pending = Transfer();
+            StageGlowHandoff(pending);
+            EnsureVisualHostShown(false);
+            if (!_isVisible || !ReferenceEquals(pending, _glowTransfer))
+                throw new InvalidOperationException("Pre-show geometry discarded the staged glow continuation.");
+            HideImmediately();
+            StageGlowHandoff(Transfer());
+            BeginFullscreenSuppression(_viewModel.Snapshot, FileDragWakeMode.Disabled);
+            if (_glowTransfer is not null)
+                throw new InvalidOperationException("Initial fullscreen suppression retained a stale glow continuation.");
+            _glow.VerifyFrameCaptureFenceForSmoke();
+        }
+        finally
+        {
+            _suppressedForFullscreen = wasSuppressed;
+            HideImmediately();
+        }
     }
 
     internal VisibleWindowProbe ProbeVisibleCenter()
@@ -587,6 +635,7 @@ public sealed partial class OverlayWindow : Window
     public void CloseForShutdown()
     {
         if (_closing) return;
+        _glowTransfer = null;
         _closing = true;
         _windowLifetime.Cancel();
         Views.ContentDialogLifetime.RetireRoot(Root.XamlRoot);
@@ -621,6 +670,13 @@ public sealed partial class OverlayWindow : Window
     private void OnGlowMediaChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(MediaViewModel.IsIslandGlowActive)) return;
+        if (_lastGlowSession is { } previous && !previous.IsSameTrack(_mediaViewModel.Session))
+            _glow.InvalidateFrameCapture();
+        // Observe invalidations immediately, so Off→On or A→B→A in one queued
+        // dispatcher turn cannot revive an obsolete transfer.
+        if (_glowTransfer is { } transfer)
+            transfer.State.Evaluate(MonitorId, _mediaViewModel.Session, GlowContinuationAllowed(), false, false,
+                Stopwatch.GetElapsedTime(transfer.Timestamp));
         QueueGlowTargetRefresh();
     }
 
@@ -647,6 +703,7 @@ public sealed partial class OverlayWindow : Window
             _presentationSnapshot?.State is OverlayState.Compact or OverlayState.Expanded;
         if (!visible || preferences.HighContrast || !preferences.AdvancedEffectsEnabled)
         {
+            _glowTransfer = null;
             _mediaViewModel.SetIslandGlowActive(this, false);
             _glow.HideImmediately();
             return;
@@ -655,7 +712,7 @@ public sealed partial class OverlayWindow : Window
         var values = _motion.Current.ProjectToSafeRange();
         var settings = _mediaViewModel.Settings;
         var presentation = _mediaViewModel.LyricPresentation;
-        var compactLyricsVisible = MusicCompact.IsTranslationActuallyVisible &&
+        var compactLyricsVisible = MusicCompact.IsTranslationVisibleWithin(Surface) &&
             CompactPanel.Visibility == Visibility.Visible && values.CompactContent > 0.01 &&
             settings.IslandActivity.ShowLyricsInCompact;
         var expandedLyricsVisible = MusicExpanded.IsTranslationActuallyVisible &&
@@ -669,6 +726,15 @@ public sealed partial class OverlayWindow : Window
             _mediaViewModel.IsPlaying && !string.IsNullOrWhiteSpace(_mediaViewModel.Title),
             eligibleSurface && values.Opacity > 0.01, translationVisible,
             presentation.Line?.TranslationOrigin ?? LyricsTranslationOrigin.None, secondary);
+        if (_glowTransfer is { } pending)
+        {
+            var layoutReady = eligible || values.Opacity > 0.01 && Surface.ActualHeight > 0 &&
+                (values.CompactContent >= 0.99 || values.ExpandedContent >= 0.99);
+            if (pending.State.Evaluate(MonitorId, _mediaViewModel.Session, GlowContinuationAllowed(), layoutReady, eligible,
+                Stopwatch.GetElapsedTime(pending.Timestamp)) is { } restored)
+                _glow.RestoreVisualState(restored);
+            if (layoutReady) _glowTransfer = null;
+        }
         _mediaViewModel.SetIslandGlowActive(this, eligible);
 
         // Consume the existing selected-player loopback spectrum, never a microphone
@@ -681,8 +747,11 @@ public sealed partial class OverlayWindow : Window
                 energy += double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
             energy /= spectrum.Bands.Count;
         }
+        if (_lastGlowSession is null || !_lastGlowSession.IsSameTrack(_mediaViewModel.Session))
+            _glow.InvalidateFrameCapture();
         _glow.SetTarget(eligible, energy, _mediaViewModel.IsReducedMotion || preferences.ReducedMotion,
-            spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? spectrum.Bands : null);
+            spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? spectrum.Bands : null, settings.Lyrics.SimplifiedGlow);
+        _lastGlowSession = _mediaViewModel.Session;
     }
 
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
@@ -734,7 +803,9 @@ public sealed partial class OverlayWindow : Window
         }
 
         var failuresBeforeFrame = RegionFailureCount;
-        if (!ApplyMotionFrame(_motion.Current))
+        // This is pre-show geometry, not a decision to hide the new surface.
+        // Keep its staged handoff until real post-show visibility/layout is known.
+        if (!ApplyMotionFrame(_motion.Current, updateGlowTarget: false))
         {
             return;
         }
@@ -788,6 +859,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        _glowTransfer = null;
         _presentedState = OverlayState.Hidden;
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
@@ -834,6 +906,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        _glowTransfer = null;
         _presentedState = OverlayState.Hidden;
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.HideImmediately();
@@ -865,6 +938,7 @@ public sealed partial class OverlayWindow : Window
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
+        _glowTransfer = null;
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
@@ -1112,7 +1186,7 @@ public sealed partial class OverlayWindow : Window
         offset.Y = _pageReducedMotion ? 0 : 4 * (1 - progress);
     }
 
-    private bool ApplyMotionFrame(OverlayMotionValues values)
+    private bool ApplyMotionFrame(OverlayMotionValues values, bool updateGlowTarget = true)
     {
         values = ProjectMotionToHostSurface(values.ProjectToSafeRange());
         _compositionAnimator.ApplyMotion(values);
@@ -1170,7 +1244,7 @@ public sealed partial class OverlayWindow : Window
 
             _glow.SetGeometry(left, top, width, height,
                 ToPixels(values.TopRadius), ToPixels(values.BottomRadius), 0);
-            UpdateGlowTarget();
+            if (updateGlowTarget) UpdateGlowTarget();
             return true;
         }
 
@@ -1196,7 +1270,7 @@ public sealed partial class OverlayWindow : Window
         // geometry transition cannot expose the next glow contour above the old body.
         _glow.SetGeometry(left, top, width, height,
             ToPixels(values.TopRadius), ToPixels(values.BottomRadius), values.Opacity);
-        UpdateGlowTarget();
+        if (updateGlowTarget) UpdateGlowTarget();
         return true;
     }
 

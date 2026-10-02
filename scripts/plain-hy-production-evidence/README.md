@@ -80,9 +80,11 @@ human language annotations are for auditing only and never enter the prompt or
 production source metadata. Capture compares actual policy decisions against
 this frozen file and fails on drift; it never regenerates expectations.
 
-Under policy v4, English rows 0, 1, 2, 3 and 7 have positive function-word
+Under policy v5, English rows 0, 1, 2, 3 and 7 have positive function-word
 evidence and remain original for the English target, leaving 43 calls. Open
-content vocabulary does not count as foreign-language evidence. Other English
+content vocabulary does not count as foreign-language evidence. Every punctuated
+clause must independently support English; unknown or structurally foreign clauses
+cannot borrow evidence from an English prefix. Other English
 fixture rows remain unknown and eligible; human labels never force a match. For
 Simplified Chinese, rows 37, 38, 39, 40, 41, 44, 46 and 47 have positive matching
 evidence and remain original, leaving 40 calls. Japanese/Korean verses and unknown

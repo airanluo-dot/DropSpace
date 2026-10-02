@@ -660,6 +660,8 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsInspectFailed" xml:space="preserve"><value>Downloaded models could not be checked. Check that the app’s data folder is accessible, then reopen this page.</value></data>
   <data name="AiLyricsOperationFailed" xml:space="preserve"><value>This change could not be completed. Please try again.</value></data>
   <data name="LyricsGlowTitle" xml:space="preserve"><value>Island glow</value></data>
+  <data name="LyricsSimplifiedGlow" xml:space="preserve"><value>Simplified glow</value></data>
+  <data name="LyricsSimplifiedGlowHelp" xml:space="preserve"><value>Concentrate the glow along the bottom arc, from 45° down-left to 45° down-right of the center, with softly fading ends. Turn off to surround the island.</value></data>
   <data name="LyricsGlowOff" xml:space="preserve"><value>Off</value></data>
   <data name="LyricsGlowAi" xml:space="preserve"><value>AI lyrics</value></data>
   <data name="LyricsGlowMusic" xml:space="preserve"><value>Music</value></data>

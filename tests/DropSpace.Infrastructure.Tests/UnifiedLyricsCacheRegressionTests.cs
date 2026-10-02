@@ -12,7 +12,7 @@ public sealed class UnifiedLyricsCacheRegressionTests
     private static readonly LyricsQuery Query = new("Song", "Artist", "Album", TimeSpan.FromSeconds(30), "track");
     private static LyricsDocument Document(string text = "Original") => new LyricsDocument(
         [new(TimeSpan.Zero, TimeSpan.FromSeconds(30), text, "普通译文", [])
-        { TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "zh-CN" }], LyricsProviderKind.NetEase)
+        { TranslationOrigin = LyricsTranslationOrigin.Provider, TranslationLanguage = "zh-CN", TranslationLanguageIsExplicit = true }], LyricsProviderKind.NetEase)
         .Bind(Query, Query.Title, Query.Artist, Query.Album, 30, 10, "candidate");
 
     [TestMethod]

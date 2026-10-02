@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
-  "policyVersion": "lexical-context-eligibility-v4",
+  "policyVersion": "lexical-context-eligibility-v5",
   "reviewNotes": "Hand-authored original fixture has English rows 0–11, Japanese 12–23, Korean 24–35, Simplified Chinese 36–47. Labels describe the fixture; no labels or expectations enter the model prompt. Conservative unknown/weak evidence remains eligible even when a human knows the language. Explicit reviewed per-row policy expectations below must be renewed with policy changes; capture never regenerates them. Positive English function-word evidence recognizes rows 0, 1, 2, 3 and 7 without requiring a closed content-word vocabulary; the other English rows remain unknown. Mixed Latin clauses and romanization counterexamples, short-phrase same-target admission and credits/multisegment behavior are covered by separate fake-inference contract tests, not falsely claimed by this 48-line native fixture.",
   "semanticLanguages": [
     {

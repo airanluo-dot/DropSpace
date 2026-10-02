@@ -171,6 +171,134 @@ No real model or user-machine workload was run for this repair. Same-commit Wind
 independent review remain separate requirements. Glow appearance and motion are also a
 separate iterative acceptance item; policy tests and single frames do not establish it.
 
+## Mixed-clause admission and source-cache provenance repair
+
+Independent review of `111b33b496463bc19e86a1498cb84c973e6151c8` found that
+`I love you, kimi ga suki` and `I love you, wo hen xiang ni` borrowed the English
+prefix's evidence. This incorrectly skipped English-target original translation and,
+when supplied as the only provider translation, suppressed translation of other rows.
+Policy v5 requires every nonempty punctuated clause to provide its own English evidence.
+Unknown clauses remain unknown. Bounded ordered romanization components also contradict
+English in unpunctuated mixed units; open English content vocabulary remains supported.
+This is still a conservative bounded policy, not a general language detector.
+
+Physical lyric rows retain their original IDs/text/timing. Provider matching across
+separate physical/timed rows still uses the existing any-matching-row whole-document
+bypass. New original/provider App regressions cover clause order, punctuation, unknown
+tails, Chinese credits and a missing second translation. Fake coordinator inference
+checks the same original IDs in prompts, progress, final results and cache replay.
+
+`TranslationLanguageIsExplicit` distinguishes current explicit TTML tags (`true`) from
+inference (`false`). Inferred tags are re-evaluated, including clearing a stale wrong tag.
+Legacy source-v2 entries with a nonempty tag and unspecified provenance cannot safely
+distinguish those cases: they require one successful provider refetch. A failed refetch
+does not bless the old tag; later recovery retries normally. Legacy null-tag entries
+remain usable without a network request. New explicit short TTML translations survive
+cache round trips and still bypass every AI boundary. The ordinary cache fixture now
+marks its deliberately supplied language tag explicit; its cache assertions are unchanged.
+AI eligibility version v5 fences prior AI results. The actual source48 decisions are
+byte-for-byte equal to the v4 diagnostic dump: 43 English-target and 40 Chinese-target
+calls, with unchanged per-row audit expectations. Only the reviewed policy version changes.
+
+## Glow and compact presentation iteration
+
+The actual C# renderer was replayed against the same synthetic six-band input, geometry,
+phase clock and brightness schedule, with a neutral body mask on dark/light backgrounds.
+The first set compares the frozen baseline with four individual changes: contour attack
+120 to 60 ms (release remains 120 ms), color travel rates `.045/.060/.033` to
+`.065/.085/.047`, quiet autonomous shape amplitude reduced to 25%, and outer ribbon
+weight `.18` to `.12`. The combined candidate retains those changes. It does not raise
+overall brightness or claim beat detection. Full surround remains the default.
+
+The persistent native **Simplified glow / 简化光效** switch defaults off and is independent
+of Off/AI/Music selection and model/cache admission. The final requested range is the
+physical center-ray interval from down-left 45 degrees through the bottom to down-right
+45 degrees. Each raster sample uses real coordinates; the prior normalized angle still
+drives color and six-band travel. The endpoints feather inward over eight degrees;
+this is neither half a rectangular mask nor a fixed percentage of the perimeter. Mode
+changes crossfade in the existing envelope. Settings persistence, old JSON defaults,
+rapid reversal, reduced motion, four DPIs and premultiplied transparent bounds are tested.
+
+The meter and glow now share expiry of stale process-loopback input: unchanged for the
+first 150 ms, smoothly reduced to zero bands by 600 ms without a packet. The glow settles
+to its quiet baseline while eligible; reduced motion uses static low intensity. Paused
+and disabled states retain the common fade-out. A DPI/topology rebuild can transfer a
+deep value snapshot once for the same monitor and actual bound track; current visibility,
+mode, playback, theme and layout still govern restoration. No old HWND, timer or geometry
+is transferred, and stale/reversed state changes cannot revive the snapshot.
+Read-only follow-up found three real window-order gaps beyond the initial Core tests:
+pre-show transparent geometry discarded the pending snapshot, initial fullscreen
+suppression retained it, and a new track target could relabel the preceding frame.
+Pre-show geometry now defers the glow decision, suppression immediately clears the pending
+state, and capture requires a fresh target followed by an actual frame advancement after
+track invalidation. An old timer tick alone cannot reopen that fence. The existing native
+lifecycle smoke now exercises the actual first-show/suppression paths and controller frame
+ordering; these added Windows paths remain unexecuted in Linux.
+
+Compact untimed paragraphs are flattened only for rendering, preserving original document
+text and IDs. Both rows retain independent full-text measurement and marquee. Actual
+secondary visibility intersects its viewport and island body. Measured text height uses
+the same bounded body geometry, including large accessibility text; the radius is bounded
+by both dimensions. New native smoke cases cover long paragraphs at 12/16/17.375/28 DIP
+and an off-body translation. Those native smoke cases have not run in this Linux executor.
+
+Synthetic evidence is retained under `/workspace/scratch/glow-motion-preview`,
+`/workspace/scratch/glow-motion-combined-111b33b-uncommitted`, and
+`/workspace/scratch/glow-motion-physical45-111b33b-uncommitted`. These are cloud paths,
+not paths on the user's computer. The latter names record the base commit, not a claim
+that its uncommitted candidate was the old committed renderer. The clean MP4s, synchronized
+HTML player, per-frame signal/geometry records and source hashes distinguish the snapshots.
+The physical-angle player includes optional center/endpoint diagnostic marks; they are
+not present in the clean renderer or alpha measurements.
+
+Browser playback/seek and sampled original-size frame sequences were inspected. Color
+positions travel more visibly and the outer tail is lighter. The expanded contour remains
+subtle and harder to judge on a light background. This is a visual candidate, not a claim
+of WWDC2024-equivalent appearance or Windows acceptance. No new continuous Windows
+playback, native material/composition or live selected-player audio was observed.
+
+## Current cloud checks and previous Windows failure
+
+| Check | Actual result |
+| --- | --- |
+| Full Core | 522 passed, 0 failed, 0 skipped |
+| Full Infrastructure | 622 passed, **8 failed**, 26 skipped; same DPAPI/read-only-home limits above |
+| Linked actual App services | 91 passed, 0 failed, 0 skipped |
+| Linked actual rasterizer suite | 22 passed, 0 failed, 0 skipped; native HWND tests excluded from this Linux run |
+| Node scripts | 361 passed, 0 failed, 0 skipped |
+| Six static PowerShell policies | Passed; 695 synchronized resource keys |
+| Evidence Release build, fake contract and frozen source48 audit | Passed; 0 build warnings/errors |
+| PowerShell evidence contracts | Passed |
+| Actual publication gate | Exit 1 at `pending`; no semantic approval created |
+
+Records are in `/workspace/scratch/dropspace-cloud-checkpoint/mixed-glow-validation`.
+Earlier failed runs remain: the first Infrastructure pass had the eight environment
+failures plus three cache fixtures without the new explicit-tag marker, and the earlier
+glow harness ran three Windows-only tests on Linux and failed to load user32. The Node
+fingerprint gate also initially rejected the newly added production glow handoff file;
+the code-owned fingerprint now includes it and spectrum freshness. These failures were
+not erased or represented as passes. No model, GPU or user-machine test was run.
+
+[Windows run 37021310139](https://github.com/airanluo-dot/DropSpace/actions/runs/37021310139)
+passed for **1eee12095 only**: each language had Core 480, Infrastructure 645 with 4 skips,
+and App 402 with 3 skips. The later
+[run 37026974099](https://github.com/airanluo-dot/DropSpace/actions/runs/37026974099) for
+**111b33b4 only** completed with **failure**. English passed Core 490, Infrastructure 649
+with 4 skips, and App 414 with 3 skips. Chinese passed Core 490, then Infrastructure had
+648 passed, 1 failed and 4 skipped; App was not reached. Both matrices' CT2 38 and Windows
+process 7 tests passed. Raw logs/TRX/hashes are under the corresponding cloud scratch run.
+
+The failed Chinese test was
+`LlamaCompletionRunnerTests.CancellationDoesNotReturnUntilTheStartedProcessHasExited(False)`.
+Reading its PID file at line 78 raised a sharing violation **before** cancellation was
+invoked. The child wrote directly to the visible PID path, allowing existence to race
+the writer's open handle. This is the source-supported explanation; the actual handle
+owner was not independently observed. The fixture now closes a sibling temporary PID
+file before atomically publishing the final path. Cancellation/actual-exit/deletion
+assertions remain unchanged. The old run remains failed and was not rerun or canceled.
+This repair and the current candidate still require their own Windows CI and independent
+review; previous matrices cannot qualify this source revision.
+
 ## First-candidate Windows CI and remaining acceptance
 
 [Windows CI 37013042584](https://github.com/airanluo-dot/DropSpace/actions/runs/37013042584)

@@ -23,6 +23,8 @@ public sealed record LyricsSettings
     public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
     public string AiModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
     public Lyrics.LyricsGlowMode GlowMode { get; init; }
+    // Missing in older settings: keep the full surrounding halo.
+    public bool SimplifiedGlow { get; init; }
     public double FontSize { get; init; } = 16;
     [System.Text.Json.Serialization.JsonIgnore]
     public double OriginalFontSize => FontSize;

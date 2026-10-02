@@ -50,6 +50,8 @@ public static class LyricsParser
                 // External TTML carries the translated text's own primary language.
                 // Unlabelled LRC remains unknown until conservative document classification.
                 TranslationLanguage = translationIndex >= 0 ? translations[translationIndex].SourceLanguage : line.TranslationLanguage,
+                TranslationLanguageIsExplicit = translationIndex >= 0
+                    ? !string.IsNullOrWhiteSpace(translations[translationIndex].SourceLanguage) : line.TranslationLanguageIsExplicit,
             };
         }
         return LyricsLanguagePolicy.IdentifyProviderTranslations(new(ordered, provider));
@@ -233,6 +235,7 @@ public static class LyricsParser
                 SourceLanguage = ExplicitSourceLanguage(paragraph),
                 TranslationOrigin = translation.Length > 0 ? LyricsTranslationOrigin.Provider : LyricsTranslationOrigin.None,
                 TranslationLanguage = translation.Length > 0 && languages.Length == 1 ? languages[0] : null,
+                TranslationLanguageIsExplicit = translation.Length > 0 && languages.Length == 1 && !string.IsNullOrWhiteSpace(languages[0]),
             });
         }
         return output;

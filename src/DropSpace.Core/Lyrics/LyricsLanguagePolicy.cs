@@ -19,9 +19,13 @@ public readonly record struct LyricsLanguageEvidence(string? Language, double Co
 /// </summary>
 public static class LyricsLanguagePolicy
 {
-    public const string Version = "lexical-context-eligibility-v4";
+    public const string Version = "lexical-context-eligibility-v5";
     private static readonly Regex Credit = new(@"^\s*(?:作\s*词|作\s*詞|作\s*曲|编\s*曲|編\s*曲|填词|填詞|词曲|詞曲|词|詞|曲|制作人|製作人|制作|製作|监制|監製|混音|母带|母帶|录音|錄音|演唱|原唱|和声|和聲|吉他|贝斯|貝斯|鼓|钢琴|鋼琴|出品|发行|發行|版权|版權|翻译|翻譯|译者|譯者|词作者|曲作者|lyrics(?: by)?|words(?: by)?|music(?: by)?|written by|composed by|composer|arranged by|arranger|producer|produced by|mixed by|mastered by|vocal(?:s)?|guitar|bass|drums)\s*[:：/／]|^\s*(?:written|composed|arranged|produced|mixed|mastered|lyrics|words|music)\s+by\s+\S", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Words = new(@"[a-z]+(?:['’][a-z]+)?", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    // Keep clause boundaries until each clause has supplied its own evidence.
+    // Apostrophes and word-internal hyphens remain part of the same lyric unit.
+    private static readonly Regex Clauses = new("[,，;；:：.!?。！？…—–/／|｜•·()（）\\[\\]{}\"“”«»\\r\\n\\u0085\\u2028\\u2029]+|(?<!\\p{L})['‘’]|['‘’](?!\\p{L})",
+        RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly HashSet<string> English = new(StringComparer.OrdinalIgnoreCase)
     { "i", "the", "you", "your", "you're", "i'm", "i've", "don't", "doesn't", "isn't", "it's", "we're", "they", "their", "with", "without", "this", "that", "and", "are", "was", "were", "will", "would", "could", "should", "have", "never", "for", "from", "my", "me" };
     // Chinese grammatical phrases, excluding nouns shared with Japanese Han text.
@@ -38,7 +42,8 @@ public static class LyricsLanguagePolicy
     private static readonly Regex ForeignLatinPhrase = new(
         @"\b(?:je\s+(?:t'aime|suis|veux|te|ne)|tu\s+(?:es|vas)|nous\s+(?:sommes|avons)|vous\s+(?:etes|avez)|(?:mon|ton)\s+amour|la\s+vie\s+est|" +
         @"mi\s+amor|te\s+(?:amo|quiero)|yo\s+(?:soy|quiero)|sin\s+ti|ich\s+(?:bin|liebe|will)|wir\s+(?:sind|haben)|eu\s+te\s+amo|" +
-        @"(?:wo|ni|ta)\s+(?:ai|yao|zai|shi)|(?:kimi|anata|watashi|boku)\s+(?:no|wa|o)|no\s+na\s+wa|(?:ai|koi)\s+no|aishiteru|saranghae(?:yo)?)\b",
+        @"(?:wo|ni|ta|nimen|tamen)\s+(?:(?:hen|bu|mei|hai|ye|dou|zheng|zhen\s+de|yi\s+zhi)\s+){0,3}(?:ai|yao|zai|shi|xiang|deng|hui|neng|kan|ting|xi\s+huan)\b|" +
+        @"(?:kimi|anata|watashi|boku)\s+(?:no|wa|o|ga|ni|to|de|mo)\s+[a-z]+|no\s+na\s+wa|(?:ai|koi)\s+no|aishiteru|saranghae(?:yo)?)\b",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
 
     private static string[] PhysicalLines(string text) => text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -54,7 +59,7 @@ public static class LyricsLanguagePolicy
         if (string.IsNullOrWhiteSpace(text)) return default;
         // Untimed providers keep a whole physical document in one display row.
         // A credit header neither classifies nor excludes the lyric body below it.
-        text = string.Join(" ", PhysicalLines(text).Where(line => !IsCreditLine(line)));
+        text = string.Join("\n", PhysicalLines(text).Where(line => !IsCreditLine(line)));
         if (text.Length == 0) return default;
         if (!string.IsNullOrWhiteSpace(explicitLanguage))
         {
@@ -85,17 +90,24 @@ public static class LyricsLanguagePolicy
         }
         if (latin == letters.Length)
         {
-            var words = Words.Matches(text).Select(m => m.Value.Replace('’', '\'')).ToArray();
-            var shortImperative = words.Length == 3 && words[0].Equals("let", StringComparison.OrdinalIgnoreCase) &&
-                new[] { "it", "me", "us", "him", "her", "them" }.Contains(words[1], StringComparer.OrdinalIgnoreCase) &&
-                new[] { "be", "go" }.Contains(words[2], StringComparer.OrdinalIgnoreCase);
-            if (!ForeignLatinPhrase.IsMatch(string.Join(" ", words)) &&
-                (shortImperative || words.Length >= 3 &&
-                words.Any(DistinctiveEnglish.Contains) &&
-                words.Where(English.Contains).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 2))
+            var clauses = Clauses.Split(text).Where(part => part.Any(char.IsLetter)).ToArray();
+            if (clauses.Length > 0 && clauses.All(HasEnglishClauseEvidence))
                 return new("en", 0.95, LyricsLanguageEvidenceKind.Lexical);
         }
         return default;
+    }
+
+    private static bool HasEnglishClauseEvidence(string text)
+    {
+        var words = Words.Matches(text).Select(m => m.Value.Replace('’', '\'')).ToArray();
+        // Ordered foreign grammatical components also contradict English in an
+        // unpunctuated mixed clause. A lone unknown content word does not.
+        if (ForeignLatinPhrase.IsMatch(string.Join(" ", words))) return false;
+        var shortImperative = words.Length == 3 && words[0].Equals("let", StringComparison.OrdinalIgnoreCase) &&
+            new[] { "it", "me", "us", "him", "her", "them" }.Contains(words[1], StringComparer.OrdinalIgnoreCase) &&
+            new[] { "be", "go" }.Contains(words[2], StringComparer.OrdinalIgnoreCase);
+        return shortImperative || words.Length >= 3 && words.Any(DistinctiveEnglish.Contains) &&
+            words.Where(English.Contains).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 2;
     }
 
     public static IReadOnlyList<LyricsLanguageEvidence> SourceEvidence(LyricsDocument document)
@@ -164,7 +176,7 @@ public static class LyricsLanguagePolicy
         // A provider's explicit language tag remains authoritative (including short
         // TTML translations). Untagged multi-line display rows can carry evidence
         // for more than one language without forcing it into the single tag field.
-        if (!string.IsNullOrWhiteSpace(line.TranslationLanguage))
+        if (line.TranslationLanguageIsExplicit != false && !string.IsNullOrWhiteSpace(line.TranslationLanguage))
             return LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) == normalizedTarget;
         return ProviderSegmentEvidence(line).Any(evidence => evidence.IsConfident &&
             LyricsTranslationPolicy.NormalizeLanguage(evidence.Language) == normalizedTarget);
@@ -194,14 +206,16 @@ public static class LyricsLanguagePolicy
         for (var c = 0; c < candidates.Length; c++)
         {
             var i = candidates[c];
-            if (!string.IsNullOrWhiteSpace(document.Lines[i].TranslationLanguage)) continue;
+            if (document.Lines[i].TranslationLanguageIsExplicit != false &&
+                !string.IsNullOrWhiteSpace(document.Lines[i].TranslationLanguage)) continue;
             var languages = ProviderSegmentEvidence(document.Lines[i]).Where(evidence => evidence.IsConfident)
                 .Select(evidence => evidence.Language).Distinct(StringComparer.Ordinal).ToArray();
             // Multiple positive languages stay untagged; the matching policy above
             // evaluates their independent evidence instead of erasing it.
-            if (languages.Length != 1) continue;
+            var language = languages.Length == 1 ? languages[0] : null;
+            if (document.Lines[i].TranslationLanguage == language && document.Lines[i].TranslationLanguageIsExplicit == false) continue;
             lines ??= document.Lines.ToArray();
-            lines[i] = lines[i] with { TranslationLanguage = languages[0] };
+            lines[i] = lines[i] with { TranslationLanguage = language, TranslationLanguageIsExplicit = false };
         }
         return lines is null ? document : document with { Lines = lines };
     }

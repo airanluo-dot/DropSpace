@@ -13,7 +13,7 @@ internal sealed class IslandGlowRasterizer
     internal const double InnerOverlapDips = 3;
     private const int AroundSteps = 256;
     private const int DistanceSteps = 160;
-    private readonly record struct Sample(int Pixel, int Lookup);
+    private readonly record struct Sample(int Pixel, int Lookup, float SimplifiedCoverage);
     private readonly Sample[] _samples;
     private readonly int[] _lookup = new int[AroundSteps * DistanceSteps];
 
@@ -47,7 +47,14 @@ internal sealed class IslandGlowRasterizer
                 var around = (Math.Atan2(dy / halfHeight, dx / halfWidth) + Math.PI) / (2 * Math.PI);
                 var aroundIndex = Math.Min(AroundSteps - 1, (int)(around * AroundSteps));
                 var distanceIndex = Math.Clamp((int)((distance + InnerOverlapDips) * DistanceSteps / (PaddingDips + InnerOverlapDips)), 0, DistanceSteps - 1);
-                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex));
+                // Color/band travel uses the existing normalized angle. Coverage
+                // uses the physical center ray independently: lower-left 45° to
+                // lower-right 45°, with an eight-degree inward endpoint feather.
+                // Precompute per pixel to avoid coarse angle-LUT steps on a wide capsule.
+                var bottomAngle = Math.Atan2(Math.Abs(dx), dy);
+                var coverage = Math.Clamp((Math.PI / 4 - bottomAngle) / (8 * Math.PI / 180), 0, 1);
+                coverage = coverage * coverage * (3 - 2 * coverage);
+                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex, (float)coverage));
             }
         }
         _samples = samples.ToArray();
@@ -58,7 +65,7 @@ internal sealed class IslandGlowRasterizer
     public int PaddingPixels { get; }
     public int[] Pixels { get; }
 
-    public void Render(double phase, double brightness, IReadOnlyList<double>? bands = null)
+    public void Render(double phase, double brightness, IReadOnlyList<double>? bands = null, double simplification = 0)
     {
         brightness = double.IsFinite(brightness) ? Math.Clamp(brightness, 0, 1) : 0;
         if (brightness == 0)
@@ -67,6 +74,14 @@ internal sealed class IslandGlowRasterizer
             return;
         }
         phase = double.IsFinite(phase) ? phase : 0;
+        simplification = double.IsFinite(simplification) ? Math.Clamp(simplification, 0, 1) : 0;
+        double Band(int i) => bands is not null && i % 6 < bands.Count && double.IsFinite(bands[i % 6])
+            ? Math.Clamp(bands[i % 6], 0, 1) : 0;
+        var energy = 0d;
+        for (var index = 0; index < 6; index++) energy += Band(index) / 6;
+        // Quiet music keeps a small color drift, but autonomous shape motion must
+        // not resemble an audio transient. Actual local band offsets stay intact.
+        var autonomousMotion = 0.25 + 0.75 * Math.Clamp(energy * 3, 0, 1);
         for (var around = 0; around < AroundSteps; around++)
         {
             var theta = around * (2 * Math.PI / AroundSteps);
@@ -75,22 +90,20 @@ internal sealed class IslandGlowRasterizer
             // Interpolate the same six real FFT bands used by the meter around the contour.
             var bandPosition = around * 6d / AroundSteps;
             var bandIndex = (int)bandPosition;
-            double Band(int i) => bands is not null && i % 6 < bands.Count && double.IsFinite(bands[i % 6])
-                ? Math.Clamp(bands[i % 6], 0, 1) : 0;
             var pulse = Band(bandIndex) * (1 - (bandPosition - bandIndex)) + Band(bandIndex + 1) * (bandPosition - bandIndex);
-            var broadCenter = 4 + 1.2 * Math.Sin(theta * 2 - phase * 0.8) + 2 * pulse;
-            var ribbonCenter = 1 + Math.Sin(theta * 3 + phase * 1.1) + 1.5 * pulse;
-            var outerCenter = 8 + 1.5 * Math.Sin(theta - phase * 0.7) + 2 * pulse;
-            var broadWidth = 4 + 0.5 * Math.Cos(theta * 2 + phase * 0.5) + pulse;
-            var broadColor = Palette(theta / (2 * Math.PI) - phase * 0.045);
-            var ribbonColor = Palette(theta / (2 * Math.PI) + 0.08 + phase * 0.060);
-            var outerColor = Palette(theta / (2 * Math.PI) + 0.24 - phase * 0.033);
+            var broadCenter = 4 + autonomousMotion * 1.2 * Math.Sin(theta * 2 - phase * 0.8) + 2 * pulse;
+            var ribbonCenter = 1 + autonomousMotion * Math.Sin(theta * 3 + phase * 1.1) + 1.5 * pulse;
+            var outerCenter = 8 + autonomousMotion * 1.5 * Math.Sin(theta - phase * 0.7) + 2 * pulse;
+            var broadWidth = 4 + autonomousMotion * 0.5 * Math.Cos(theta * 2 + phase * 0.5) + pulse;
+            var broadColor = Palette(theta / (2 * Math.PI) - phase * 0.065);
+            var ribbonColor = Palette(theta / (2 * Math.PI) + 0.08 + phase * 0.085);
+            var outerColor = Palette(theta / (2 * Math.PI) + 0.24 - phase * 0.047);
             for (var distance = 0; distance < DistanceSteps; distance++)
             {
                 var d = (distance + 0.5) * (PaddingDips + InnerOverlapDips) / DistanceSteps - InnerOverlapDips;
                 var broad = 0.32 * Gaussian((d - broadCenter) / broadWidth);
                 var ribbon = 0.38 * Gaussian((d - ribbonCenter) / 2.4);
-                var outer = 0.18 * Gaussian((d - outerCenter) / 3.2);
+                var outer = 0.12 * Gaussian((d - outerCenter) / 3.2);
                 var edge = 0.18 * Gaussian(d / 2.5);
                 var total = broad + ribbon + outer + edge;
                 // A smooth bounded tail reaches zero before the bitmap boundary.
@@ -111,7 +124,19 @@ internal sealed class IslandGlowRasterizer
                 _lookup[around * DistanceSteps + distance] = a << 24 | r << 16 | g << 8 | b;
             }
         }
-        foreach (var sample in _samples) Pixels[sample.Pixel] = _lookup[sample.Lookup];
+        foreach (var sample in _samples)
+        {
+            var pixel = _lookup[sample.Lookup];
+            if (simplification == 0 || sample.SimplifiedCoverage == 1) { Pixels[sample.Pixel] = pixel; continue; }
+            var coverage = 1 - simplification + simplification * sample.SimplifiedCoverage;
+            // Scale every premultiplied channel together; transparent endpoints
+            // must not leave RGB residue when the mode switches repeatedly.
+            var a = (int)Math.Round(((uint)pixel >> 24) * coverage);
+            var r = (int)Math.Round(((pixel >> 16) & 255) * coverage);
+            var g = (int)Math.Round(((pixel >> 8) & 255) * coverage);
+            var b = (int)Math.Round((pixel & 255) * coverage);
+            Pixels[sample.Pixel] = a << 24 | r << 16 | g << 8 | b;
+        }
     }
 
     private static double Gaussian(double value) => Math.Exp(-0.5 * value * value);

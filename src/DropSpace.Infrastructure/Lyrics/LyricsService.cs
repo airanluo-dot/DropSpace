@@ -53,6 +53,14 @@ public sealed class LyricsService
         if (kind != LyricsProviderKind.LocalLrc && !refresh)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
+            // Older source-v2 entries persisted both heuristic and explicit tags
+            // without provenance. They cannot safely be distinguished. Refetch
+            // those entries once; legacy untagged entries remain reusable. New
+            // explicit TTML tags survive cache round trips, inferred tags are
+            // reclassified below on every read after a policy change.
+            if (cached?.Lines.Any(line => line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+                !string.IsNullOrWhiteSpace(line.TranslationLanguage) && line.TranslationLanguageIsExplicit is null) == true)
+                cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0)
                 return new(validated, LyricsQueryStatus.Found);

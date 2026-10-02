@@ -6,6 +6,7 @@ using DropSpace.App.ViewModels;
 using DropSpace.App.Views.Island;
 using DropSpace.App.Views.Music;
 using DropSpace.Core.Abstractions;
+using DropSpace.Core.Island;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using DropSpace.Core.Models;
@@ -258,6 +259,50 @@ internal static class MusicVisualSmoke
                 failures.Add("A track change retained the previous translation.");
             evidence.Add(new(fontSize, root.XamlRoot.RasterizationScale, longOriginal, longTranslation,
                 width, viewportWidth, offset, failures));
+            window.Content = null;
+        }
+
+        foreach (var fontSize in new[] { 12d, 16d, 17.375, 28d })
+        {
+            var failures = new List<string>();
+            var media = CreateFixture(strings, "normal");
+            media.IsReducedMotion = false;
+            media.Settings = media.Settings with { Lyrics = media.Settings.Lyrics with { FontSize = fontSize } };
+            var source = LyricsParser.Parse(string.Join("\n", Enumerable.Repeat("Original paragraph", 8)), LyricsProviderKind.LocalLrc);
+            var line = source.Lines.Single() with { Secondary = string.Join("\r\n", Enumerable.Repeat("Complete translated paragraph", 8)),
+                TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = strings.Culture.Name };
+            media.SetLyricsDocument(source with { Lines = [line] });
+            media.Lyrics = new(line, -1, 0, 1);
+            var compact = new MediaCompactView { ViewModel = media };
+            var body = new Border { Width = 300, Height = 100, Child = compact };
+            var root = CreateRoot(ElementTheme.Dark, 340, 380);
+            root.Children.Add(body);
+            window.Content = root;
+            await WaitForLayoutAsync(root);
+            compact.Height = compact.IdealIslandHeight;
+            body.Height = IslandGeometry.ForMusicCompact(compact.IdealIslandWidth, compact.IdealIslandHeight, 1).Height;
+            root.UpdateLayout();
+            var elements = Descendants(compact).OfType<FrameworkElement>().ToArray();
+            var primary = (TextBlock)elements.Single(element => element.Name == "BaseLine");
+            var secondary = (TextBlock)elements.Single(element => element.Name == "SecondaryLine");
+            var viewport = (Grid)elements.Single(element => element.Name == "SecondaryViewport");
+            var transform = (CompositeTransform)secondary.RenderTransform;
+            if (primary.Text != LyricsDisplayPolicy.CompactText(line.Text) ||
+                secondary.Text != LyricsDisplayPolicy.CompactText("AI · " + line.Secondary))
+                failures.Add("Untimed paragraphs were not retained in full single-line presentation.");
+            if (Math.Abs(compact.Height - body.Height) > .01 || !compact.IsTranslationVisibleWithin(body))
+                failures.Add("Measured compact lyrics exceeded the body or their translation was not visible.");
+            media.Position += TimeSpan.FromSeconds(4);
+            var offset = -transform.TranslateX;
+            if (offset <= 0) failures.Add("A multi-line provider translation did not use its independent marquee.");
+            transform.TranslateY = body.Height + secondary.ActualHeight;
+            if (compact.IsTranslationVisibleWithin(body)) failures.Add("A positive-size translation outside the body was marked visible.");
+            transform.TranslateY = 0;
+            if (!compact.IsTranslationVisibleWithin(body)) failures.Add("Returning the translation to the body did not restore visibility.");
+            if (media.LyricPresentation.Line?.Text != line.Text || media.LyricPresentation.Line?.Secondary != line.Secondary)
+                failures.Add("Compact presentation changed the stored multi-line lyrics.");
+            evidence.Add(new(fontSize, root.XamlRoot.RasterizationScale, true, true,
+                secondary.ActualWidth, viewport.ActualWidth, offset, failures, "compact-untimed-body"));
             window.Content = null;
         }
 

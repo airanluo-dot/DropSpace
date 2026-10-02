@@ -78,6 +78,25 @@ public sealed class AiLyricsSettingsTests
         var settings = new AppSettings();
         Assert.IsFalse(settings.Lyrics.AiTranslationEnabled);
         Assert.AreEqual(LyricsGlowMode.Off, settings.Lyrics.GlowMode);
+        Assert.IsFalse(settings.Lyrics.SimplifiedGlow);
+    }
+
+    [TestMethod]
+    public void SimplifiedGlowDefaultsOffAndRoundTripsIndependentlyOfModeAndAi()
+    {
+        var old = System.Text.Json.JsonSerializer.Deserialize<AppSettings>("{\"Lyrics\":{\"GlowMode\":2}}")!.Validate();
+        Assert.IsFalse(old.Lyrics.SimplifiedGlow);
+        foreach (var mode in Enum.GetValues<LyricsGlowMode>())
+        foreach (var simplified in new[] { false, true })
+        foreach (var ai in new[] { false, true })
+        {
+            var settings = old with { Lyrics = old.Lyrics with
+                { GlowMode = mode, SimplifiedGlow = simplified, AiTranslationEnabled = ai } };
+            var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(System.Text.Json.JsonSerializer.Serialize(settings))!.Validate();
+            Assert.AreEqual(settings.Lyrics, restored.Lyrics);
+            Assert.IsFalse(LyricsReloadPolicy.RequiresReload(settings,
+                settings with { Lyrics = settings.Lyrics with { SimplifiedGlow = !simplified } }));
+        }
     }
 
     [TestMethod]

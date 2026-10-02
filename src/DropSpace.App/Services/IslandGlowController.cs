@@ -6,6 +6,8 @@ using Microsoft.UI.Dispatching;
 
 namespace DropSpace.App.Services;
 
+internal sealed record IslandGlowTransfer(LyricsGlowHandoff State, long Timestamp);
+
 /// <summary>Owns one interruptible envelope and phase for this island's entire lifetime.</summary>
 internal sealed class IslandGlowController : IDisposable
 {
@@ -24,8 +26,11 @@ internal sealed class IslandGlowController : IDisposable
     private long _lastTick;
     private bool _eligible;
     private bool _reducedMotion;
+    private bool _simplifiedGlow;
     private bool _disposed;
     private bool _failed;
+    private bool _captureCurrentFrame;
+    private bool _captureTargetFresh;
 
     public IslandGlowController(nint owner, double scale, DispatcherQueue dispatcher, ILogger logger)
     {
@@ -39,6 +44,23 @@ internal sealed class IslandGlowController : IDisposable
     }
 
     public bool IsAvailable => !_disposed && !_failed;
+    public LyricsGlowVisualState? CaptureVisualState() => IsAvailable && _captureCurrentFrame && _eligible && _envelope.Brightness > 0
+        ? _envelope.Capture() : null;
+
+    // A target change does not yet make the preceding frame belong to that track.
+    // Only an actual advancement with the current target can authorize a capture.
+    public void InvalidateFrameCapture()
+    {
+        _captureCurrentFrame = false;
+        _captureTargetFresh = false;
+    }
+
+    // Called only after current-window policy and layout authorize the continuation.
+    // SetTarget below owns timer startup with a fresh monotonic timestamp.
+    public void RestoreVisualState(LyricsGlowVisualState state)
+    {
+        if (IsAvailable) _envelope.Restore(state);
+    }
 
     public void SetGeometry(int left, int top, int width, int height, int topRadius, int bottomRadius, double opacity)
     {
@@ -61,12 +83,15 @@ internal sealed class IslandGlowController : IDisposable
         if (IsAvailable && _envelope.Brightness > 0) Render();
     }
 
-    public void SetTarget(bool eligible, double normalizedEnergy, bool reducedMotion, IReadOnlyList<double>? bands = null)
+    public void SetTarget(bool eligible, double normalizedEnergy, bool reducedMotion, IReadOnlyList<double>? bands = null,
+        bool simplifiedGlow = false)
     {
         if (!IsAvailable) return;
         _eligible = eligible;
+        _captureTargetFresh = true;
         _energy = normalizedEnergy;
         _reducedMotion = reducedMotion;
+        _simplifiedGlow = simplifiedGlow;
         for (var i = 0; i < _bands.Length; i++)
             _bands[i] = eligible && bands is not null && i < bands.Count && double.IsFinite(bands[i]) ? Math.Clamp(bands[i], 0, 1) : 0;
         if ((_eligible || _envelope.Brightness > 0) && !_timer.IsRunning)
@@ -82,9 +107,38 @@ internal sealed class IslandGlowController : IDisposable
         var now = Stopwatch.GetTimestamp();
         var elapsed = Stopwatch.GetElapsedTime(_lastTick, now);
         _lastTick = now;
-        _envelope.Advance(_eligible, _energy, elapsed, _reducedMotion, _bands);
+        AdvanceFrame(elapsed);
+    }
+
+    private void AdvanceFrame(TimeSpan elapsed)
+    {
+        if (elapsed <= TimeSpan.Zero) return;
+        _envelope.Advance(_eligible, _energy, elapsed, _reducedMotion, _bands, _simplifiedGlow);
+        _captureCurrentFrame = _captureTargetFresh;
         Render();
         if (!_eligible && _envelope.Brightness == 0) _timer.Stop();
+    }
+
+    internal void VerifyFrameCaptureFenceForSmoke()
+    {
+        try
+        {
+            SetTarget(true, .5, false, [.3, .2, .1, .4, .5, .2]);
+            AdvanceFrame(TimeSpan.FromMilliseconds(33));
+            if (CaptureVisualState() is null) throw new InvalidOperationException("An advanced eligible frame was not capturable.");
+            InvalidateFrameCapture();
+            AdvanceFrame(TimeSpan.FromMilliseconds(33));
+            if (CaptureVisualState() is not null) throw new InvalidOperationException("An old target timer tick reopened the capture fence.");
+            SetTarget(true, .7, false, [.1, .5, .3, .2, .4, .8]);
+            if (CaptureVisualState() is not null) throw new InvalidOperationException("A new track target relabeled the preceding glow frame.");
+            // A→B→A before a frame must remain invalid, even if the final identity matches.
+            InvalidateFrameCapture();
+            SetTarget(true, .5, false, [.3, .2, .1, .4, .5, .2]);
+            if (CaptureVisualState() is not null) throw new InvalidOperationException("A target reversal revived an unadvanced glow frame.");
+            AdvanceFrame(TimeSpan.FromMilliseconds(33));
+            if (CaptureVisualState() is null) throw new InvalidOperationException("Current input did not reauthorize frame capture.");
+        }
+        finally { HideImmediately(); }
     }
 
     private void Render()
@@ -99,7 +153,7 @@ internal sealed class IslandGlowController : IDisposable
         {
             _rasterizer ??= new IslandGlowRasterizer(_shape.Width, _shape.Height,
                 _shape.TopRadius, _shape.BottomRadius, _scale);
-            _rasterizer.Render(_envelope.Phase, _envelope.Brightness * _surfaceOpacity, _envelope.Bands);
+            _rasterizer.Render(_envelope.Phase, _envelope.Brightness * _surfaceOpacity, _envelope.Bands, _envelope.Simplification);
             _window.Present(_rasterizer, _left, _top);
         }
         catch (Exception exception) when (exception is Win32Exception or OverflowException or ArgumentException)
@@ -115,6 +169,7 @@ internal sealed class IslandGlowController : IDisposable
 
     public void HideImmediately()
     {
+        InvalidateFrameCapture();
         _eligible = false;
         _timer.Stop();
         _envelope.Advance(false, 0, TimeSpan.FromSeconds(5));

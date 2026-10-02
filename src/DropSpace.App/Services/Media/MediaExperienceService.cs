@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading.Channels;
 using DropSpace.App.Services.Audio;
 using DropSpace.App.ViewModels;
@@ -42,7 +43,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private MediaWorkCancellation? _runtimeStop;
     private AppSettings _settings = new();
     private MediaSessionSnapshot _latest = MediaSessionSnapshot.Empty;
-    private SpectrumFrame _spectrum = SpectrumFrame.Empty;
+    private sealed record SpectrumObservation(SpectrumFrame Frame, long Timestamp);
+    private SpectrumObservation _spectrum = new(SpectrumFrame.Empty, 0);
     private LyricsDocument _document = LyricsDocument.Empty;
     private long _generation, _artworkGeneration, _lyricPositionTicks;
     private long _reloadRequest;
@@ -112,7 +114,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             // capture worker merely because its process ID has not changed.
             await SetAudioSourceAsync(null, false, token).ConfigureAwait(false);
             Volatile.Write(ref _latest, _media.Current);
-            Volatile.Write(ref _spectrum, SpectrumFrame.Empty);
+            Volatile.Write(ref _spectrum, new SpectrumObservation(SpectrumFrame.Empty, 0));
             _sourceRefresh.Request();
             Interlocked.Increment(ref _reloadRequest);
             ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -232,7 +234,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
         }
         _changes.Writer.TryWrite(true);
     }
-    private void OnSpectrumChanged(object? sender, SpectrumFrame frame) => Volatile.Write(ref _spectrum, frame);
+    private void OnSpectrumChanged(object? sender, SpectrumFrame frame) =>
+        Volatile.Write(ref _spectrum, new SpectrumObservation(frame, Stopwatch.GetTimestamp()));
 
     private async Task RunAsync(CancellationToken token, TaskCompletionSource? ready = null)
     {
@@ -486,7 +489,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
         Interlocked.Exchange(ref _lyricPositionTicks, (lyricPosition +
             TimeSpan.FromMilliseconds(Math.Clamp(_view.Settings.Lyrics.DelayMilliseconds, -30_000, 30_000))).Ticks);
         _view.Lyrics = _timeline.GetFrame(_document, lyricPosition, _view.Settings.Lyrics.DelayMilliseconds);
-        _view.Spectrum = Volatile.Read(ref _spectrum);
+        var observation = Volatile.Read(ref _spectrum);
+        _view.Spectrum = SpectrumFreshnessPolicy.Apply(observation.Frame, Stopwatch.GetElapsedTime(observation.Timestamp));
     }
     private void OnExperienceChanged(object? sender, IslandExperienceSnapshot snapshot)
     {

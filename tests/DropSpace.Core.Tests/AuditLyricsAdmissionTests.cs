@@ -64,6 +64,70 @@ public sealed class AuditLyricsAdmissionTests
     }
 
     [TestMethod]
+    public void EveryClauseMustSupplyItsOwnLanguageEvidenceWithoutBorrowingAnEnglishPrefix()
+    {
+        string[] foreign = ["kimi ga suki", "boku mo kimi ga suki", "watashi wa anata ga suki", "anata ni aitai", "kimi to aruita",
+            "wo hen xiang ni", "wo bu xiang zou", "ni hai ai wo", "wo ye zai deng ni", "wo zhen de xiang ni", "wo yi zhi zai deng ni"];
+        string[] separators = [", ", "; ", ": ", ". ", "! ", "? ", " — ", " / ", " | ", "｜", "… ", "，", "；"];
+        foreach (var clause in foreign)
+        {
+            var texts = separators.SelectMany(separator => new[] { "I love you" + separator + clause, clause + separator + "I love you" })
+                .Concat(["I love you " + clause, clause + " I love you", "I " + clause + " love you",
+                    "I love you and " + clause, "I love you but " + clause, "I love you (" + clause + ")"]);
+            foreach (var text in texts)
+            {
+                Assert.IsFalse(LyricsLanguagePolicy.Identify(text).IsConfident, text);
+                var original = LyricsParser.Parse("作词：某人\n" + text + "\n作曲：某人", LyricsProviderKind.NetEase);
+                CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(original, "en-US"), text);
+                CollectionAssert.AreEqual(new[] { text }, LyricsLanguagePolicy.EligibleSegments(original.Lines[0], "en-US"), text);
+                var provider = LyricsParser.Parse("[00:01]君が好き\n[00:04]我的世界充满阳光", LyricsProviderKind.QqMusic, "[00:01]" + text);
+                Assert.IsNull(provider.Lines[0].TranslationLanguage, text);
+                Assert.IsFalse(LyricsTranslationPolicy.HasMatchingProviderTranslation(provider, "en-US"), text);
+            }
+        }
+    }
+
+    [TestMethod]
+    [DataRow("I love you, suki")]
+    [DataRow("Baby; I need you")]
+    [DataRow("I love you (London)")]
+    [DataRow("I love you | suki")]
+    [DataRow("Baby｜I need you")]
+    [DataRow("I love you ‘suki’")]
+    [DataRow("'Baby' I need you")]
+    public void UnknownClauseRemainsUnknownWithoutInventingForeignLanguage(string text)
+    {
+        Assert.IsNull(LyricsLanguagePolicy.Identify(text).Language);
+    }
+
+    [TestMethod]
+    [DataRow("I love you, I need you")]
+    [DataRow("I love you; you are my light")]
+    [DataRow("Your turquoise telescope rests beside the observatory.")]
+    [DataRow("The women carry my lantern")]
+    [DataRow("The ore glitters beside my lantern")]
+    [DataRow("The hen rests beside my telescope")]
+    [DataRow("You're the light in my life")]
+    public void IndependentEnglishClausesAndHomographsRetainOpenVocabulary(string text)
+    {
+        Assert.AreEqual("en", LyricsLanguagePolicy.Identify(text).Language);
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(LyricsParser.Parse(text, LyricsProviderKind.NetEase), "en-US"));
+    }
+
+    [TestMethod]
+    public void InferredTagsAreReevaluatedButExplicitTtmlTagsRemainAuthoritative()
+    {
+        var source = LyricsParser.Parse("[00:01]君が好き", LyricsProviderKind.NetEase, "[00:01]I love you, wo hen xiang ni");
+        var stale = source with { Lines = [source.Lines[0] with { TranslationLanguage = "en", TranslationLanguageIsExplicit = false }] };
+        Assert.IsFalse(LyricsTranslationPolicy.HasMatchingProviderTranslation(stale, "en-US"));
+        Assert.IsNull(LyricsLanguagePolicy.IdentifyProviderTranslations(stale).Lines[0].TranslationLanguage);
+        var explicitSource = LyricsParser.Parse("[00:01]世界", LyricsProviderKind.NetEase,
+            "<tt xmlns=\"http://www.w3.org/ns/ttml\" xml:lang=\"en\"><body><p begin=\"1s\">World</p></body></tt>");
+        Assert.AreEqual(true, explicitSource.Lines[0].TranslationLanguageIsExplicit);
+        Assert.IsTrue(LyricsTranslationPolicy.HasMatchingProviderTranslation(LyricsLanguagePolicy.IdentifyProviderTranslations(explicitSource), "en-US"));
+    }
+
+    [TestMethod]
     [DataRow("作词：某人\nI love you\n作曲：另一人\n君の声が聞こえる", "zh-CN", "I love you", "君の声が聞こえる")]
     [DataRow("I love you\n作曲：另一人\nkimi no na wa", "en-US", "kimi no na wa", null)]
     [DataRow("作词：某人\n我的世界充满阳光\nI need you\n作曲：另一人\n愛", "zh-CN", "I need you", "愛")]

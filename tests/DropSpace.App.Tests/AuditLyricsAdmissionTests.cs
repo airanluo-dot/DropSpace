@@ -192,6 +192,107 @@ public sealed class AuditLyricsAdmissionTests
         Assert.AreEqual(poison, await aiCache.ReadAsync(poisonKey, default), "A source bypass must not overwrite even an unused AI cache entry.");
     }
 
+    [TestMethod]
+    [DataRow("I love you, kimi ga suki")]
+    [DataRow("I love you, wo hen xiang ni")]
+    [DataRow("wo hen xiang ni; I need you")]
+    [DataRow("I love you and kimi ga suki")]
+    [DataRow("I wo yi zhi zai deng ni need you")]
+    [DataRow("I love you (suki)")]
+    [DataRow("I love you | suki")]
+    public async Task MixedOriginalCannotSkipActualAppAdmissionEvenWithChineseCredits(string text)
+    {
+        using var fixture = new Fixture();
+        var source = LyricsParser.Parse("作词：某人\n" + text + "\n作曲：某人", LyricsProviderKind.NetEase);
+        var result = await fixture.Service.TranslateIfAvailableAsync(Query, source, Enabled, "en-US", default);
+        fixture.AssertAiAdmission();
+        CollectionAssert.AreEqual(new[] { text }, LyricsLanguagePolicy.EligibleSegments(source.Lines[0], "en-US"));
+        CollectionAssert.AreEqual(source.Lines.ToArray(), result.Lines.ToArray());
+    }
+
+    [TestMethod]
+    [DataRow(LyricsProviderKind.NetEase, 0)]
+    [DataRow(LyricsProviderKind.QqMusic, 0)]
+    [DataRow(LyricsProviderKind.NetEase, 1)]
+    [DataRow(LyricsProviderKind.QqMusic, 1)]
+    [DataRow(LyricsProviderKind.NetEase, 2)]
+    [DataRow(LyricsProviderKind.QqMusic, 2)]
+    public async Task MixedProviderPayloadAndLegacyWrongTagDoNotBypassTheUntranslatedRow(
+        LyricsProviderKind provider, int cacheMode)
+    {
+        foreach (var translation in new[] { "I love you, kimi ga suki", "I love you, wo hen xiang ni",
+            "wo bu xiang zou I need you", "I love you but anata ni aitai", "I love you | suki" })
+        {
+            using var fixture = new Fixture();
+            using var handler = new PayloadHandler(provider, originalOverride: "[00:01]君が好き\n[00:04]我的世界充满阳光",
+                translationOverride: "[00:01]" + translation);
+            using var client = new HttpClient(handler);
+            var lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(client), () => ""), fixture.Cache);
+            var settings = Enabled with { Provider = provider };
+            var source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+            Assert.HasCount(2, source.Lines);
+            if (cacheMode != 0)
+            {
+                var key = SourceCacheKey(settings, provider);
+                await fixture.Cache.WriteDocumentAsync(key, source with { Lines =
+                    [source.Lines[0] with { TranslationLanguage = "en", TranslationLanguageIsExplicit = cacheMode == 1 ? null : false }, source.Lines[1]] },
+                    fixture.Cache.Generation, default);
+                if (cacheMode == 1)
+                {
+                    handler.FailRequests = true;
+                    Assert.AreEqual(LyricsQueryStatus.Failed, (await lyrics.QueryDetailedAsync(Query, settings, default)).Status,
+                        "A failed migration fetch must not return a legacy unproven tag as trusted evidence.");
+                    fixture.AssertNoAiCalls();
+                    handler.FailRequests = false;
+                }
+                var requests = handler.Calls;
+                source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+                if (cacheMode == 1) Assert.IsTrue(handler.Calls > requests, "Unproven legacy tags require one successful provider refetch.");
+                else Assert.AreEqual(requests, handler.Calls, "Known inferred tags can be reclassified without a provider request.");
+                requests = handler.Calls;
+                source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+                Assert.AreEqual(requests, handler.Calls, "The migrated source cache remains reusable.");
+            }
+            Assert.IsNull(source.Lines[0].TranslationLanguage);
+            Assert.IsFalse(LyricsTranslationPolicy.HasMatchingProviderTranslation(source, "en-US"));
+            CollectionAssert.AreEqual(new[] { 0, 1 }, LyricsLanguagePolicy.EligibleIndices(source, "en-US"));
+            await fixture.Service.TranslateIfAvailableAsync(Query, source, settings, "en-US", default);
+            fixture.AssertAiAdmission();
+        }
+    }
+
+    [TestMethod]
+    [DataRow(LyricsProviderKind.NetEase)]
+    [DataRow(LyricsProviderKind.QqMusic)]
+    public async Task ExplicitShortTtmlTranslationSurvivesLegacyMigrationAndNewSourceCache(LyricsProviderKind provider)
+    {
+        using var fixture = new Fixture();
+        using var handler = new PayloadHandler(provider, originalOverride: "[00:01]世界",
+            translationOverride: "<tt xmlns=\"http://www.w3.org/ns/ttml\" xml:lang=\"en\"><body><p begin=\"1s\">World</p></body></tt>");
+        using var client = new HttpClient(handler);
+        var lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(client), () => ""), fixture.Cache);
+        var settings = Enabled with { Provider = provider };
+        var source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+        await fixture.Cache.WriteDocumentAsync(SourceCacheKey(settings, provider), source with { Lines =
+            [source.Lines[0] with { TranslationLanguageIsExplicit = null }] }, fixture.Cache.Generation, default);
+        var requests = handler.Calls;
+        source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+        Assert.IsTrue(handler.Calls > requests);
+        requests = handler.Calls;
+        source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+        Assert.AreEqual(requests, handler.Calls);
+        Assert.AreEqual(true, source.Lines[0].TranslationLanguageIsExplicit);
+        Assert.AreEqual("World", source.Lines[0].Secondary);
+        await fixture.Service.TranslateIfAvailableAsync(Query, source, settings, "en-US", default);
+        fixture.AssertNoAiCalls();
+    }
+
+    private static string SourceCacheKey(LyricsSettings settings, LyricsProviderKind provider) => JsonSerializer.Serialize(new
+    {
+        version = "source-v2", primary = provider, backup = (LyricsProviderKind?)null, settings.SearchRemainingProviders,
+        Query.TrackIdentity, Query.Title, Query.Artist, Query.AlbumArtist, Query.Album, durationTicks = Query.Duration.Ticks,
+    });
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "DropSpace-audit-app-" + Guid.NewGuid().ToString("N"));
@@ -212,6 +313,12 @@ public sealed class AuditLyricsAdmissionTests
             Assert.AreEqual(0, _spy.ResolverCalls);
             Assert.AreEqual(0, _spy.InferenceCalls);
             Assert.AreEqual(0, _spy.DrainCalls);
+        }
+        public void AssertAiAdmission()
+        {
+            Assert.AreEqual(1, _spy.CacheCalls);
+            Assert.AreEqual(1, _spy.ResolverCalls);
+            Assert.AreEqual(0, _spy.InferenceCalls, "The spy returns no package; no actual model runs in this regression.");
         }
         public void Dispose()
         {
@@ -244,9 +351,11 @@ public sealed class AuditLyricsAdmissionTests
         string? originalOverride = null, string? translationOverride = null) : HttpMessageHandler
     {
         public int Calls { get; private set; }
+        public bool FailRequests { get; set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Calls++;
+            if (FailRequests) throw new HttpRequestException("Synthetic provider outage during legacy-cache migration.");
             var lyric = request.RequestUri!.AbsolutePath.Contains("lyric", StringComparison.Ordinal);
             var original = originalOverride ?? (untimed ? "I miss your smile\nLondon" : "[00:01]I will wait for you\n[00:04]Baby");
             var translated = translationOverride ?? (untimed ? "我的世界充满阳光\nLondon" : "[00:01]我会一直等待你\n[00:04]Baby");

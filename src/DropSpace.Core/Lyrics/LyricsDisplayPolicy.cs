@@ -2,6 +2,12 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsDisplayPolicy
 {
+    // Compact owns two single-line marquees. Untimed provider blocks retain their
+    // full document text/IDs elsewhere; only these display strings lose line breaks.
+    public static string CompactText(string? text) => (text ?? string.Empty)
+        .Replace("\r\n", " ", StringComparison.Ordinal).Replace('\r', ' ').Replace('\n', ' ')
+        .Replace('\u0085', ' ').Replace('\u2028', ' ').Replace('\u2029', ' ');
+
     public static bool IntersectsViewport(double left, double top, double width, double height,
         double viewportWidth, double viewportHeight) =>
         double.IsFinite(left) && double.IsFinite(top) && double.IsFinite(width) && double.IsFinite(height) &&

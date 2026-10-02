@@ -660,6 +660,8 @@
   <data name="AiLyricsInspectFailed" xml:space="preserve"><value>无法检查已下载的模型。请确认可访问应用的数据文件夹，然后重新打开此页面。</value></data>
   <data name="AiLyricsOperationFailed" xml:space="preserve"><value>未能完成此操作，请重试。</value></data>
   <data name="LyricsGlowTitle" xml:space="preserve"><value>灵动岛辉光</value></data>
+  <data name="LyricsSimplifiedGlow" xml:space="preserve"><value>简化光效</value></data>
+  <data name="LyricsSimplifiedGlowHelp" xml:space="preserve"><value>将光带集中在底部弧线，范围从中心向左下 45° 到右下 45°，两端柔和渐隐。关闭后恢复四周环绕。</value></data>
   <data name="LyricsGlowOff" xml:space="preserve"><value>关闭</value></data>
   <data name="LyricsGlowAi" xml:space="preserve"><value>AI 歌词</value></data>
   <data name="LyricsGlowMusic" xml:space="preserve"><value>音乐</value></data>

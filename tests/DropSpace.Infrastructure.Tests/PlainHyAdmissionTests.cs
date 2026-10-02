@@ -63,6 +63,47 @@ public sealed class PlainHyAdmissionTests
     }
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task MixedClauseAdmissionKeepsOriginalIdsAcrossProgressFinalAndVersionedCache(bool mixedProvider)
+    {
+        using var fixture = new Fixture();
+        const string mixed = "I love you, wo hen xiang ni";
+        var source = LyricsParser.Parse("[00:00]作词：Someone\n[00:01]" + (mixedProvider ? "君が好き" : mixed) +
+            "\n[00:04]我的世界充满阳光", LyricsProviderKind.NetEase, mixedProvider ? "[00:01]" + mixed : null);
+        var oldKey = Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            cache = "plain-hy-complete-song-v2", eligibility = "lexical-context-eligibility-v4",
+            sourceLanguages = source.Lines.Select(line => line.SourceLanguage),
+            eligibleIds = mixedProvider ? new[] { 1, 2 } : new[] { 2 }, protocol = PlainHyLyricsProtocol.Version,
+            documentKey = LyricsTranslationPrompt.CacheKey(Query, source, "en-US", Identity),
+        })));
+        await fixture.Cache.WriteAsync(oldKey, "[{\"id\":2,\"text\":\"POISON old admission\"}]", default);
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(Query, source, "en-US", Identity, default));
+        var prompts = new List<string>();
+        var progressCalls = 0;
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true, (update, _) =>
+        {
+            progressCalls++;
+            Assert.AreEqual(2, update.TotalLineCount);
+            Assert.IsNull(update.Document.Lines[0].Secondary);
+            return Task.CompletedTask;
+        });
+        var result = await fixture.Coordinator.TranslateAsync(Query, source, "en-US", Identity, fixture.Cache.Generation,
+            (prompt, _) => { prompts.Add(prompt); return Task.FromResult(prompts.Count == 1 ? "I love you and miss you dearly" : "My world is full of sunshine"); }, default, progress);
+        CollectionAssert.AreEqual(new[] { PlainHyLyricsProtocol.BuildPrompt(source.Lines[1].Text, "en-US"),
+            PlainHyLyricsProtocol.BuildPrompt(source.Lines[2].Text, "en-US") }, prompts);
+        Assert.IsTrue(progressCalls > 0);
+        Assert.AreEqual(source.Lines[0], result.Document.Lines[0]);
+        Assert.IsTrue(result.Document.Lines.Skip(1).All(line => line.TranslationOrigin == LyricsTranslationOrigin.LocalAi));
+        var cached = await fixture.Coordinator.TryGetCachedAsync(Query, source, "en-US", Identity, default);
+        Assert.IsNotNull(cached);
+        CollectionAssert.AreEqual(result.Document.Lines.ToArray(), cached.Document.Lines.ToArray());
+        using var json = JsonDocument.Parse((await fixture.Cache.ReadAsync(PlainHyLyricsProtocol.CacheKey(Query, source, "en-US", Identity), default))!);
+        CollectionAssert.AreEqual(new[] { 1, 2 }, json.RootElement.EnumerateArray().Select(row => row.GetProperty("id").GetInt32()).ToArray());
+    }
+
+    [TestMethod]
     public async Task PlainBackendAndResolverBypassBeforeRuntimeManifestOrModelAccess()
     {
         using var fixture = new Fixture();

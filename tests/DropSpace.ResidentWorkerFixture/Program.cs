@@ -67,7 +67,14 @@ internal static class Program
         int Number(string name) => data.TryGetProperty(name, out var value) ? value.GetInt32() : 0;
         var kind = Text("kind");
         if (kind is not ("completion" or "ct2" or "lifetime")) return 64;
-        if (Text("pidPath") is { } pidPath) File.WriteAllText(pidPath, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (Text("pidPath") is { } pidPath)
+        {
+            // File existence is the parent's readiness signal. Publish only
+            // after closing the writer so Windows readers cannot race its handle.
+            var pendingPidPath = pidPath + ".pending";
+            File.WriteAllText(pendingPidPath, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            File.Move(pendingPidPath, pidPath);
+        }
         if (Text("argumentsPath") is { } argumentsPath) File.WriteAllLines(argumentsPath, args, new UTF8Encoding(false));
         if (Text("capturedPromptPath") is { } captured)
         {

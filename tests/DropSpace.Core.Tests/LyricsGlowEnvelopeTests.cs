@@ -76,6 +76,55 @@ public sealed class LyricsGlowEnvelopeTests
     }
 
     [TestMethod]
+    public void ShortTransientHasPromptContourAttackAndSlowerRelease()
+    {
+        var envelope = new LyricsGlowEnvelope();
+        envelope.Advance(true, .5, TimeSpan.FromMilliseconds(66), bands: [1, 0, 0, 0, 0, 0]);
+        var peak = envelope.Bands[0];
+        Assert.IsTrue(peak > .6 && peak < .8);
+        envelope.Advance(true, 0, TimeSpan.FromMilliseconds(66), bands: [0, 0, 0, 0, 0, 0]);
+        Assert.IsTrue(envelope.Bands[0] > peak * .5 && envelope.Bands[0] < peak);
+        Assert.IsTrue(envelope.Bands.Skip(1).All(value => value == 0), "No new band energy may be invented.");
+    }
+
+    [TestMethod]
+    public void ReducedMotionSettlesToQuietStaticLightIndependentlyOfAudioPeaks()
+    {
+        var envelope = new LyricsGlowEnvelope();
+        envelope.Advance(true, 1, TimeSpan.FromMilliseconds(100), bands: [1, 0, .5, 0, .2, 0]);
+        var phase = envelope.Phase;
+        var bands = envelope.Bands.ToArray();
+        for (var frame = 0; frame < 240; frame++)
+            envelope.Advance(true, frame % 2, TimeSpan.FromMilliseconds(33), true, [1, 1, 1, 1, 1, 1]);
+        Assert.AreEqual(.08, envelope.Brightness, .000001);
+        Assert.AreEqual(phase, envelope.Phase);
+        CollectionAssert.AreEqual(bands, envelope.Bands.ToArray());
+        var firstOffFrame = envelope.Advance(false, 1, TimeSpan.FromMilliseconds(33), true);
+        Assert.IsTrue(firstOffFrame > 0 && firstOffFrame < .08);
+    }
+
+    [TestMethod]
+    public void SimplifiedModeCrossfadesAndReversesWithoutChangingAudioOrColorPhase()
+    {
+        var full = new LyricsGlowEnvelope();
+        var changing = new LyricsGlowEnvelope();
+        for (var tick = 0; tick < 60; tick++)
+        {
+            var simplified = tick is >= 10 and < 25 || tick >= 30;
+            var before = changing.Simplification;
+            full.Advance(true, .6, TimeSpan.FromMilliseconds(33), bands: [.8, .1, .4, .2, .3, .9]);
+            changing.Advance(true, .6, TimeSpan.FromMilliseconds(33), bands: [.8, .1, .4, .2, .3, .9], simplifiedGlow: simplified);
+            Assert.AreEqual(full.Brightness, changing.Brightness);
+            Assert.AreEqual(full.Phase, changing.Phase);
+            CollectionAssert.AreEqual(full.Bands.ToArray(), changing.Bands.ToArray());
+            Assert.IsTrue(Math.Abs(changing.Simplification - before) < .25, "No one-frame mode cut.");
+            if (tick == 25) Assert.IsTrue(changing.Simplification is > 0 and < 1);
+        }
+        Assert.IsTrue(changing.Simplification > .999);
+        Assert.AreEqual(0d, full.Simplification);
+    }
+
+    [TestMethod]
     public void FrameRateDoesNotChangeEnvelopeForConstantInput()
     {
         var sixty = new LyricsGlowEnvelope();

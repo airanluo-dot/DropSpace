@@ -135,6 +135,59 @@ public sealed class IslandGlowRasterizerTests
     [DataRow(1.25d)]
     [DataRow(1.5d)]
     [DataRow(2d)]
+    public void SimplifiedLightUsesPhysical45DegreeEndpointsWithSoftFeatherAndTheSameTransparentBounds(double scale)
+    {
+        foreach (var shape in new[] { (280, 60, 26), (560, 340, 28), (120, 120, 60) })
+        {
+            var width = (int)(shape.Item1 * scale);
+            var height = (int)(shape.Item2 * scale);
+            var raster = new IslandGlowRasterizer(width, height, (int)(shape.Item3 * scale), (int)(shape.Item3 * scale), scale);
+            raster.Render(2.1, .46, [1, .2, .4, .1, .8, .3]);
+            var full = raster.Pixels.ToArray();
+            raster.Render(2.1, .46, [1, .2, .4, .1, .8, .3], 1);
+            var simplified = raster.Pixels.ToArray();
+            var centerX = raster.PaddingPixels + width / 2d;
+            var centerY = raster.PaddingPixels + height / 2d;
+            var featherPixels = new int[2];
+            var retainedPixels = 0;
+            for (var y = 0; y < raster.Height; y++)
+            for (var x = 0; x < raster.Width; x++)
+            {
+                var index = y * raster.Width + x;
+                var all = (uint)full[index] >> 24;
+                var lower = (uint)simplified[index] >> 24;
+                Assert.IsTrue(lower <= all);
+                var dx = x + .5 - centerX;
+                var dy = y + .5 - centerY;
+                var angle = Math.Atan2(Math.Abs(dx), dy) * 180 / Math.PI;
+                if (angle >= 45) Assert.AreEqual(0u, lower, "Physical 45° endpoints must not be widened by aspect-ratio normalization.");
+                if (angle <= 37) { Assert.AreEqual(all, lower); if (lower > 0) retainedPixels++; }
+                if (angle is > 37 and < 45 && lower > 0 && lower < all) featherPixels[dx < 0 ? 0 : 1]++;
+                if (x == 0 || y == 0 || x == raster.Width - 1 || y == raster.Height - 1)
+                    Assert.AreEqual(0, simplified[index]);
+            }
+            Assert.IsTrue(retainedPixels > 0);
+            Assert.IsTrue(featherPixels.All(count => count > 0), "Both endpoints must fade over an area, not form a hard angular cut.");
+            foreach (var blend in new[] { .2, .5, .8 })
+            {
+                raster.Render(2.1, .46, [1, .2, .4, .1, .8, .3], blend);
+                for (var i = 0; i < raster.Pixels.Length; i++)
+                {
+                    var alpha = (uint)raster.Pixels[i] >> 24;
+                    Assert.IsTrue(alpha >= ((uint)simplified[i] >> 24) && alpha <= ((uint)full[i] >> 24));
+                    Assert.IsTrue(((raster.Pixels[i] >> 16) & 255) <= alpha);
+                    Assert.IsTrue(((raster.Pixels[i] >> 8) & 255) <= alpha);
+                    Assert.IsTrue((raster.Pixels[i] & 255) <= alpha);
+                }
+            }
+        }
+    }
+
+    [TestMethod]
+    [DataRow(1d)]
+    [DataRow(1.25d)]
+    [DataRow(1.5d)]
+    [DataRow(2d)]
     public void AsymmetricAndTinyContoursKeepSignedLookupBounded(double scale)
     {
         foreach (var shape in new[] { (1, 1, 0, 0), (20, 6, 0, 3), (280, 60, 0, 26) })

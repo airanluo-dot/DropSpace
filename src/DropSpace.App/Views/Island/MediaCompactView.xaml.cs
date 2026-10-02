@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Island;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
@@ -36,8 +37,23 @@ public sealed partial class MediaCompactView : UserControl
         SecondaryViewport.Visibility == Visibility.Visible && SecondaryViewport.ActualWidth > 0 && SecondaryViewport.ActualHeight > 0 &&
         SecondaryLine.Visibility == Visibility.Visible && SecondaryLine.Opacity > 0.01 &&
         SecondaryLine.ActualWidth > 0 && SecondaryLine.ActualHeight > 0 &&
-        !string.IsNullOrWhiteSpace(SecondaryLine.Text) &&
-        string.Equals(SecondaryLine.Text, _view?.SecondaryLyricText, StringComparison.Ordinal);
+        !string.IsNullOrWhiteSpace(SecondaryLine.Text) && TranslationIntersects(this) &&
+        string.Equals(SecondaryLine.Text, LyricsDisplayPolicy.CompactText(_view?.SecondaryLyricText), StringComparison.Ordinal);
+    internal bool IsTranslationVisibleWithin(FrameworkElement body) =>
+        IsTranslationActuallyVisible && TranslationIntersects(body);
+
+    private bool TranslationIntersects(FrameworkElement viewport)
+    {
+        var textBounds = SecondaryLine.TransformToVisual(viewport).TransformBounds(
+            new Rect(0, 0, SecondaryLine.ActualWidth, SecondaryLine.ActualHeight));
+        var clipBounds = SecondaryViewport.TransformToVisual(viewport).TransformBounds(
+            new Rect(0, 0, SecondaryViewport.ActualWidth, SecondaryViewport.ActualHeight));
+        var left = Math.Max(textBounds.Left, clipBounds.Left);
+        var top = Math.Max(textBounds.Top, clipBounds.Top);
+        return LyricsDisplayPolicy.IntersectsViewport(left, top,
+            Math.Min(textBounds.Right, clipBounds.Right) - left,
+            Math.Min(textBounds.Bottom, clipBounds.Bottom) - top, viewport.ActualWidth, viewport.ActualHeight);
+    }
     public event EventHandler? IdealWidthChanged;
     public event EventHandler? TranslationVisibilityChanged;
     public MediaCompactView()
@@ -120,7 +136,8 @@ public sealed partial class MediaCompactView : UserControl
         BaseLine.FontSize = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? settings.Lyrics.OriginalFontSize : 13;
         HighlightLine.FontSize = BaseLine.FontSize;
         SecondaryLine.FontSize = settings.Lyrics.TranslationFontSize;
-        var text = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? _view.CurrentLyricText : _view.Title;
+        var text = LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled
+            ? _view.CurrentLyricText : _view.Title);
         var fontFamily = BaseLine.FontFamily?.Source;
         var fontSize = BaseLine.FontSize;
         var fontWeight = BaseLine.FontWeight.Weight;
@@ -140,11 +157,11 @@ public sealed partial class MediaCompactView : UserControl
             _measuredFontWeight = fontWeight;
             _measuredRasterizationScale = rasterizationScale;
         }
-        var secondary = settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null;
-        if (_secondaryMeasureInvalid || SecondaryLine.Text != (secondary ?? string.Empty) ||
+        var secondary = LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null);
+        if (_secondaryMeasureInvalid || SecondaryLine.Text != secondary ||
             _secondaryMeasure.FontSize != SecondaryLine.FontSize || measureChanged)
         {
-            SecondaryLine.Text = secondary ?? string.Empty;
+            SecondaryLine.Text = secondary;
             _secondaryMeasure.FontFamily = SecondaryLine.FontFamily;
             _secondaryMeasure.FontSize = SecondaryLine.FontSize;
             _secondaryMeasure.FontWeight = SecondaryLine.FontWeight;
@@ -163,7 +180,7 @@ public sealed partial class MediaCompactView : UserControl
         SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
         SecondaryViewport.Visibility = SecondaryLine.Visibility;
         var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryMeasure.DesiredSize.Height : 0;
-        IdealIslandHeight = Math.Max(40, _primaryHeight + secondaryHeight + 12);
+        IdealIslandHeight = IslandGeometry.MusicCompactHeight(_primaryHeight + secondaryHeight + 12);
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
         var spectrum = settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
@@ -222,9 +239,9 @@ public sealed partial class MediaCompactView : UserControl
             highlight = 0;
             if (frame.WordIndex >= 0 && frame.WordIndex < line.Words.Count)
             {
-            var before = string.Concat(line.Words.Take(frame.WordIndex).Select(word => word.Text));
+            var before = LyricsDisplayPolicy.CompactText(string.Concat(line.Words.Take(frame.WordIndex).Select(word => word.Text)));
             var beforeWidth = Measure(before);
-            highlight = beforeWidth + (Measure(before + line.Words[frame.WordIndex].Text) - beforeWidth) * frame.WordProgress;
+            highlight = beforeWidth + (Measure(LyricsDisplayPolicy.CompactText(before + line.Words[frame.WordIndex].Text)) - beforeWidth) * frame.WordProgress;
             }
         }
         HighlightClip.Rect = new Rect(0, 0, Math.Max(0, highlight), Math.Max(28, BaseLine.ActualHeight));
@@ -257,6 +274,9 @@ public sealed partial class MediaCompactView : UserControl
     private double Measure(string text)
     {
         _measure.FontFamily = BaseLine.FontFamily; _measure.FontSize = BaseLine.FontSize; _measure.FontWeight = BaseLine.FontWeight;
+        _measure.FontStyle = BaseLine.FontStyle; _measure.CharacterSpacing = BaseLine.CharacterSpacing;
+        _measure.Language = BaseLine.Language; _measure.FlowDirection = BaseLine.FlowDirection;
+        _measure.IsTextScaleFactorEnabled = BaseLine.IsTextScaleFactorEnabled;
         _measure.Text = text; _measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return _measure.DesiredSize.Width;
     }

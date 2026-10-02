@@ -929,7 +929,8 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private void CreateMonitorSurfaces(IReadOnlyList<MonitorDescriptor>? snapshot = null)
+    private void CreateMonitorSurfaces(IReadOnlyList<MonitorDescriptor>? snapshot = null,
+        IReadOnlyDictionary<string, IslandGlowTransfer>? glowTransfers = null)
     {
         var monitors = snapshot ?? _monitorLayout.GetMonitors();
         _primaryMonitor = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
@@ -961,6 +962,8 @@ public sealed class OverlayWindowService : IDisposable
                 _widgetViewModel,
                 _clipboardViewModel,
                 _systemActivityViewModel);
+            if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
+                window.StageGlowHandoff(transfer);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementEditRequested += OnOverlayPlacementEditRequested;
@@ -1368,6 +1371,10 @@ public sealed class OverlayWindowService : IDisposable
                 }
                 ResumePlacementSuppressedWindows();
 
+                var glowTransfers = new Dictionary<string, IslandGlowTransfer>(StringComparer.Ordinal);
+                foreach (var window in _windows)
+                    if (window.CaptureGlowHandoff() is { } transfer) glowTransfers[window.MonitorId] = transfer;
+
                 foreach (var window in _windows)
                 {
                     window.PlacementCommitted -= OnPlacementCommitted;
@@ -1384,7 +1391,7 @@ public sealed class OverlayWindowService : IDisposable
                 }
 
                 _activationHosts.Clear();
-                CreateMonitorSurfaces(monitors);
+                CreateMonitorSurfaces(monitors, glowTransfers);
                 ConfigureWakeMode(_viewModel.FileDragWakeMode, force: true);
                 if (_primaryMonitor is not null &&
                     !_windows.Any(window => string.Equals(

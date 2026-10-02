@@ -38,6 +38,9 @@ public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, strin
     public string? SourceLanguage { get; init; }
     public LyricsTranslationOrigin TranslationOrigin { get; init; }
     public string? TranslationLanguage { get; init; }
+    // null is legacy/unspecified provenance, false is inferred and must be
+    // re-evaluated by the current policy, true is the provider's explicit tag.
+    public bool? TranslationLanguageIsExplicit { get; init; }
 }
 public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProviderKind Provider, LyricsMatchInfo? Match = null)
 {
