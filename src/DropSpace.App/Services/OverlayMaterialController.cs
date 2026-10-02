@@ -90,8 +90,18 @@ internal sealed class OverlayMaterialController : IDisposable
 
     public void SetCornerRadius(CornerRadius radius)
     {
-        _backdrop.CornerRadius = radius;
-        _fallback.CornerRadius = radius;
+        // XAML antialiasing and the integer native HRGN must not leave an
+        // uncovered pixel of the WinUI host between the material and the halo.
+        // Paint one physical pixel beyond that boundary; the unchanged native
+        // region still owns the visible contour and mouse hit area.
+        var scale = _backdrop.XamlRoot?.RasterizationScale ?? 1;
+        var bleed = 1 / (double.IsFinite(scale) && scale > 0 ? scale : 1);
+        var paintedRadius = new CornerRadius(radius.TopLeft + bleed, radius.TopRight + bleed,
+            radius.BottomRight + bleed, radius.BottomLeft + bleed);
+        _backdrop.Margin = new Thickness(-bleed);
+        _fallback.Margin = new Thickness(-bleed);
+        _backdrop.CornerRadius = paintedRadius;
+        _fallback.CornerRadius = paintedRadius;
     }
 
     public void Dispose()

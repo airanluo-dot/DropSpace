@@ -228,6 +228,23 @@ internal static class MusicVisualSmoke
                 failures.Add("Independent translation measurement did not match its short/long fixture.");
             if (viewport.Clip is not RectangleGeometry clip || Math.Abs(clip.Rect.Width - viewport.ActualWidth) > .01)
                 failures.Add("Translation clipping does not match its actual viewport.");
+            if (VisualTreeHelper.GetParent(secondary) is not Canvas)
+                failures.Add("The full translation must be arranged in an unconstrained canvas before viewport clipping.");
+            var arrangedSlot = Microsoft.UI.Xaml.Controls.Primitives.LayoutInformation.GetLayoutSlot(secondary);
+            if (arrangedSlot.Width + .5 < secondary.ActualWidth)
+                failures.Add("The translation's layout slot clips its tail before the scrolling transform.");
+            if (longTranslation)
+            {
+                var viewportBefore = viewport.TransformToVisual(root).TransformPoint(new Point());
+                transform.TranslateX = -(secondary.ActualWidth - viewport.ActualWidth);
+                root.UpdateLayout();
+                var viewportAfter = viewport.TransformToVisual(root).TransformPoint(new Point());
+                var tail = secondary.TransformToVisual(viewport).TransformBounds(
+                    new Rect(secondary.ActualWidth - 12, 0, 12, secondary.ActualHeight));
+                if (Math.Abs(viewportBefore.X - viewportAfter.X) > .01 || tail.Left < -.5 || tail.Right > viewport.ActualWidth + .5)
+                    failures.Add("The viewport moved or the complete translation tail could not enter its visible area.");
+                transform.TranslateX = 0;
+            }
             media.Position += TimeSpan.FromSeconds(4);
             var offset = -transform.TranslateX;
             if ((offset > 0) != longTranslation) failures.Add("Translation marquee depended on original length or did not advance.");

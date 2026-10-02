@@ -41,7 +41,7 @@ public sealed class LyricsGlowEnvelope
                 var band = bands is not null && index < bands.Count && double.IsFinite(bands[index])
                     ? Math.Clamp(bands[index], 0, 1) : 0;
                 // Follow transients promptly without snapping back between FFT frames.
-                var contourBlend = 1 - Math.Exp(-motionSeconds / (band > _bands[index] ? 0.06 : 0.12));
+                var contourBlend = 1 - Math.Exp(-motionSeconds / (band > _bands[index] ? 0.045 : 0.12));
                 _bands[index] += (band - _bands[index]) * contourBlend;
             }
         }
@@ -50,7 +50,7 @@ public sealed class LyricsGlowEnvelope
         // baseline remains during quiet passages. The mode policy,
         // rather than audio loudness, is responsible for deciding when the glow may exist.
         var target = eligible ? 0.08 + (reducedMotion ? 0 : 0.38 * Math.Sqrt(energy)) : 0;
-        var timeConstant = !eligible ? 0.28 : target > Brightness ? 0.10 : 0.30;
+        var timeConstant = !eligible ? 0.28 : target > Brightness ? 0.055 : 0.18;
         var blend = 1 - Math.Exp(-Math.Min(seconds, 5) / timeConstant);
         Brightness += (target - Brightness) * blend;
         if (!eligible && Brightness < 0.002) Brightness = 0;

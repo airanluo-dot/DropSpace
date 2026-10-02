@@ -117,6 +117,42 @@ public sealed class IslandGlowRasterizerTests
     }
 
     [TestMethod]
+    [DataRow(.3)]
+    [DataRow(.8)]
+    public void AudibleBandsProduceVisibleTravelingPeaksAndSilenceHasNoShapeAnimation(double level)
+    {
+        var raster = new IslandGlowRasterizer(280, 60, 26, 26, 1);
+        static double Extent(IslandGlowRasterizer r, int x)
+        {
+            double sum = 0, weighted = 0;
+            for (var y = r.PaddingPixels + 60; y < r.Height; y++)
+            {
+                var alpha = (uint)r.Pixels[y * r.Width + x] >> 24;
+                sum += alpha; weighted += alpha * (y - r.PaddingPixels - 60 + .5);
+            }
+            return sum > 0 ? weighted / sum : 0;
+        }
+        var positions = new[] { 60, 90, 120, 150, 180, 210 };
+        raster.Render(0, .4, [0, 0, 0, 0, 0, 0]);
+        var quiet = positions.Select(x => Extent(raster, x + raster.PaddingPixels)).ToArray();
+        raster.Render(1, .4, [0, 0, 0, 0, 0, 0]);
+        CollectionAssert.AreEqual(quiet, positions.Select(x => Extent(raster, x + raster.PaddingPixels)).ToArray());
+        var spread = 0d;
+        var travel = 0d;
+        double[]? previous = null;
+        foreach (var phase in new[] { 0d, .25, .5, .75, 1d })
+        {
+            raster.Render(phase, .4, [level, level, level, level, level, level]);
+            var extents = positions.Select(x => Extent(raster, x + raster.PaddingPixels)).ToArray();
+            spread = Math.Max(spread, extents.Max() - extents.Min());
+            if (previous is not null) travel = Math.Max(travel, extents.Zip(previous, (a, b) => Math.Abs(a - b)).Max());
+            previous = extents;
+        }
+        Assert.IsGreaterThan(2d, spread, "The glow must have visibly distinct crests and troughs, not a uniformly straight ring.");
+        Assert.IsGreaterThan(1d, travel, "A visible audio-driven crest must move along the contour.");
+    }
+
+    [TestMethod]
     public void InvalidOrMissingBandsCannotInventEnergyOrLeaveResidue()
     {
         var raster = new IslandGlowRasterizer(280, 60, 0, 26, 1.25);
@@ -135,7 +171,7 @@ public sealed class IslandGlowRasterizerTests
     [DataRow(1.25d)]
     [DataRow(1.5d)]
     [DataRow(2d)]
-    public void SimplifiedLightUsesPhysical45DegreeEndpointsWithSoftFeatherAndTheSameTransparentBounds(double scale)
+    public void SimplifiedLightFollowsLowerQuarterOfContourWithSoftEndsAndNoRadialCone(double scale)
     {
         foreach (var shape in new[] { (280, 60, 26), (560, 340, 28), (120, 120, 60) })
         {
@@ -159,15 +195,32 @@ public sealed class IslandGlowRasterizerTests
                 Assert.IsTrue(lower <= all);
                 var dx = x + .5 - centerX;
                 var dy = y + .5 - centerY;
-                var angle = Math.Atan2(Math.Abs(dx), dy) * 180 / Math.PI;
-                if (angle >= 45) Assert.AreEqual(0u, lower, "Physical 45° endpoints must not be widened by aspect-ratio normalization.");
-                if (angle <= 37) { Assert.AreEqual(all, lower); if (lower > 0) retainedPixels++; }
-                if (angle is > 37 and < 45 && lower > 0 && lower < all) featherPixels[dx < 0 ? 0 : 1]++;
+                if (dy <= 0) Assert.AreEqual(0u, lower, "Simplified light belongs to the lower contour, not the upper island.");
+                if (lower > 0 && lower == all) retainedPixels++;
+                if (lower > 0 && lower < all) featherPixels[dx < 0 ? 0 : 1]++;
                 if (x == 0 || y == 0 || x == raster.Width - 1 || y == raster.Height - 1)
                     Assert.AreEqual(0, simplified[index]);
             }
             Assert.IsTrue(retainedPixels > 0);
-            Assert.IsTrue(featherPixels.All(count => count > 0), "Both endpoints must fade over an area, not form a hard angular cut.");
+            Assert.IsTrue(featherPixels.All(count => count > 0), "Both endpoints must fade along the outline, not form a hard cut.");
+            if (shape.Item1 > shape.Item2 * 3)
+            {
+                var offset = (int)(40 * scale);
+                var y = raster.PaddingPixels + height + (int)(2 * scale);
+                var x = raster.PaddingPixels + width / 2 + offset;
+                Assert.IsGreaterThan(0u, Alpha(raster, x, y),
+                    "A wide capsule must light its lower border beyond the old center-ray cone.");
+                // Fixed border position: masking strength must stay constant down
+                // the outward normal instead of widening into a triangular beam.
+                var ratios = new List<double>();
+                for (var normal = 1; normal <= (int)(8 * scale); normal++)
+                {
+                    var i = (raster.PaddingPixels + height + normal) * raster.Width + x;
+                    var a = (uint)full[i] >> 24;
+                    if (a >= 10) ratios.Add(((uint)simplified[i] >> 24) / (double)a);
+                }
+                Assert.IsTrue(ratios.Count > 1 && ratios.Max() - ratios.Min() < .12);
+            }
             foreach (var blend in new[] { .2, .5, .8 })
             {
                 raster.Render(2.1, .46, [1, .2, .4, .1, .8, .3], blend);

@@ -743,9 +743,16 @@ public sealed partial class OverlayWindow : Window
         var energy = 0d;
         if (spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0)
         {
+            var peak = 0d;
             foreach (var band in spectrum.Bands)
-                energy += double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
-            energy /= spectrum.Bands.Count;
+            {
+                var level = double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
+                energy += level * level;
+                peak = Math.Max(peak, level);
+            }
+            // A vocal or transient in one band must not be divided away by five
+            // quiet bands while the adjacent meter visibly moves.
+            energy = .55 * Math.Sqrt(energy / spectrum.Bands.Count) + .45 * peak;
         }
         if (_lastGlowSession is null || !_lastGlowSession.IsSameTrack(_mediaViewModel.Session))
             _glow.InvalidateFrameCapture();

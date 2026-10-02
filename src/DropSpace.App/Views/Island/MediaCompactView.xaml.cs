@@ -152,6 +152,8 @@ public sealed partial class MediaCompactView : UserControl
             LyricCanvas.Width = _textWidth;
             _primaryHeight = Math.Max(28, _measure.DesiredSize.Height);
             LyricViewport.Height = _primaryHeight;
+            LyricCanvas.Height = _measure.DesiredSize.Height;
+            Canvas.SetTop(LyricCanvas, Math.Max(0, (_primaryHeight - LyricCanvas.Height) / 2));
             _measuredFontFamily = fontFamily;
             _measuredFontSize = fontSize;
             _measuredFontWeight = fontWeight;
