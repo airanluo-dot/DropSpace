@@ -15,6 +15,7 @@ using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Content;
 using DropSpace.Infrastructure.Logging;
+using DropSpace.Infrastructure.Lyrics;
 using DropSpace.Infrastructure.Actions;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
@@ -455,6 +456,7 @@ public partial class App : Application
         _fileLogger = fileLogger;
         var services = new ServiceCollection();
         services.AddSingleton(paths);
+        services.AddSingleton(new LyricsCache(paths.Lyrics));
         services.AddSingleton<IOsVersionPolicy, WindowsOsVersionPolicy>();
         services.AddSingleton<IApiAvailabilityService, WindowsApiAvailabilityService>();
         services.AddSingleton<IRuntimeDependencyProbe, WindowsAppRuntimeDependencyProbe>();

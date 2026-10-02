@@ -7,7 +7,21 @@ adapters share bounded search terms and the Core matcher remains the only accept
 The media experience may retry when the same track gains duration but never branches on a player
 name. `LyricsService` executes preferred → optional backup sequentially, then starts the bounded
 remaining-provider quality race only when enabled; the strategy is part of the cache key. Local
-mode never enters the online chain. NetEase passive inspection is separate from update preparation and live capability
+mode never enters the online chain. Online documents (including provider translations) and local-AI
+translations share an app-owned persistent lyrics cache. Its identity includes track evidence,
+provider strategy, target language, pinned model hash, source content, and translation prompt version.
+The cache uses atomic replacement, generation-fenced clearing, access-time LRU eviction, and a
+settings-bounded 100 MiB–5 GiB quota (1 GiB by default); user LRC files and model packages are outside
+this directory and are never cache eviction targets. Persistent lyric identity excludes the random
+SMTC session identifier while retaining player, track metadata, track number, and exact duration;
+the runtime identity still controls song-change publication. Incompatible pre-unified AI cache
+entries are retired by strict owned-name cleanup and regenerated on demand. Cleanup runs off the
+UI thread, rejects reparse traversal, and exposes retryable failures without blocking startup.
+Valid model output with no useful LocalAi secondary is a neutral result, not a successful
+translation. It is suppressed only in a bounded 64-entry, ten-minute session cache keyed by the
+full versioned identity and clear generation; invalid, timed-out, and canceled work is not
+suppressed this way. This check does not assess language or semantic translation quality.
+NetEase passive inspection is separate from update preparation and live capability
 verification: committed managed files are hash-checked locally, while independent loader/plugin
 presence can project an Installed state without projecting Enhanced capability.
 

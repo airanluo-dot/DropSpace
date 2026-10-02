@@ -18,6 +18,16 @@ public static class LyricsTranslationOutput
         text.Contains("<|im_start|>", StringComparison.Ordinal) ||
         text.Contains("<|im_end|>", StringComparison.Ordinal);
 
+    public static bool HasUsefulLocalTranslation(LyricsDocument document, string targetLanguage)
+    {
+        var target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage);
+        return target.Length > 0 && document.Lines.Any(line =>
+            line.TranslationOrigin == LyricsTranslationOrigin.LocalAi &&
+            !string.IsNullOrWhiteSpace(line.Secondary) &&
+            LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) == target &&
+            !string.Equals(line.Text.Trim(), line.Secondary.Trim(), StringComparison.Ordinal));
+    }
+
     public static bool TryApply(string? json, LyricsDocument source, IReadOnlyList<int> lineIndices,
         string targetLanguage, out LyricsDocument result)
     {

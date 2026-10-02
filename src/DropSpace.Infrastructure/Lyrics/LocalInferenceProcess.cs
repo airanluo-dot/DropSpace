@@ -5,7 +5,11 @@ namespace DropSpace.Infrastructure.Lyrics;
 /// <summary>Owns one inference process and its redirected streams.</summary>
 internal sealed class LocalInferenceProcess : IDisposable
 {
-    private readonly IDisposable? _limits;
+    private IDisposable? _limits;
+    private Task? _exit;
+    private Task? _cleanup;
+    private bool _disposed;
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(10);
 
     internal LocalInferenceProcess(Process process, StreamReader output, StreamReader errors, IDisposable? limits = null)
     {
@@ -33,15 +37,63 @@ internal sealed class LocalInferenceProcess : IDisposable
         catch { process.Dispose(); throw; }
     }
 
-    public void Dispose()
+    internal Task TerminateAndWaitForExitAsync() => _exit ??= TerminateCoreAsync();
+
+    private async Task TerminateCoreAsync()
+    {
+        Terminate();
+        // Kill and KILL_ON_JOB_CLOSE only request termination. A cancelled caller must still
+        // await OS exit before the runtime image/model can be deleted or the gate released.
+        // The mandatory Windows job permits just this one process and forbids breakaway.
+        await Process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+    }
+
+    // The task retains this owner and its streams until exit and all I/O have settled, even
+    // when the bounded caller wait expires. It is also the inference gate's release barrier.
+    internal Task CompleteAsync(params Task[] operations) => _cleanup ??= CompleteCoreAsync(operations);
+
+    private async Task CompleteCoreAsync(Task[] operations)
+    {
+        await TerminateAndWaitForExitAsync().ConfigureAwait(false);
+        try { await Task.WhenAll(operations).ConfigureAwait(false); }
+        catch (Exception)
+        {
+            // The invoking inference owns these operation results and preserves its primary
+            // failure. Here only settlement matters: a reader/watchdog fault does not undo
+            // confirmed OS exit or make successfully released handles unsafe to reuse.
+        }
+        finally
+        {
+            _disposed = true;
+            StandardOutput.Dispose();
+            StandardError.Dispose();
+            Process.Dispose();
+        }
+    }
+
+    internal static async Task WaitForCleanupAsync(Task cleanup, int processId, TimeSpan? timeout = null)
+    {
+        var budget = timeout ?? ShutdownTimeout;
+        try { await cleanup.WaitAsync(budget).ConfigureAwait(false); }
+        catch (TimeoutException error)
+        {
+            throw new TimeoutException($"Local inference process {processId} cleanup exceeded {budget.TotalSeconds} seconds; process ownership and exit observation remain active.", error);
+        }
+    }
+
+    private void Terminate()
     {
         // Closing the only job handle kills the child even if normal shutdown fails.
-        _limits?.Dispose();
+        Interlocked.Exchange(ref _limits, null)?.Dispose();
         try { if (!Process.HasExited) Process.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { }
         catch (System.ComponentModel.Win32Exception) { }
-        StandardOutput.Dispose();
-        StandardError.Dispose();
-        Process.Dispose();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        var processId = Process.Id;
+        WaitForCleanupAsync(CompleteAsync(), processId).GetAwaiter().GetResult();
     }
 }

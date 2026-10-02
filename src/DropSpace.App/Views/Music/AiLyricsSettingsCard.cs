@@ -19,6 +19,7 @@ public sealed class AiLyricsSettingsCard : UserControl
 {
     private readonly NativeSettingsEditor _editor;
     private readonly AiLyricsService _service;
+    private readonly Func<CancellationToken, Task> _clearLyricsCache;
     private readonly IAppStringLocalizer _strings;
     private readonly ToggleSwitch _enabled = new();
     private readonly ComboBox _models = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -49,9 +50,10 @@ public sealed class AiLyricsSettingsCard : UserControl
     private string _message = string.Empty;
     private string _errorMessage = string.Empty;
 
-    public AiLyricsSettingsCard(NativeSettingsEditor editor, AiLyricsService service, IAppStringLocalizer strings)
+    public AiLyricsSettingsCard(NativeSettingsEditor editor, AiLyricsService service, IAppStringLocalizer strings, Func<CancellationToken, Task>? clearLyricsCache = null)
     {
         _editor = editor; _service = service; _strings = strings;
+        _clearLyricsCache = clearLyricsCache ?? service.ClearCacheAsync;
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsTitle"), FontSize = 18, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsDescription"), TextWrapping = TextWrapping.Wrap });
@@ -293,7 +295,7 @@ public sealed class AiLyricsSettingsCard : UserControl
             if (await ContentDialogLifetime.ShowAsync(dialog, token) != ContentDialogResult.Primary || !IsCurrent(generation)) return;
             _message = _strings.Get("AiLyricsClearingCache");
             Refresh();
-            await _service.ClearCacheAsync(token);
+            await _clearLyricsCache(token);
             if (IsCurrent(generation)) _message = _strings.Get("AiLyricsCacheCleared");
         });
     }
@@ -506,8 +508,9 @@ public sealed class AiLyricsSettingsCard : UserControl
             _delete.Visibility = installed || _removable.Contains(selected.Id) || _interrupted.Contains(selected.Id) ? Visibility.Visible : Visibility.Collapsed;
             _delete.IsEnabled = !_busy && !_inspecting;
             _clearCache.IsEnabled = !_busy && !_inspecting;
-            _error.Text = _errorMessage;
-            _error.Visibility = string.IsNullOrEmpty(_errorMessage) ? Visibility.Collapsed : Visibility.Visible;
+            _error.Text = !string.IsNullOrEmpty(_errorMessage) ? _errorMessage :
+                _service.CacheMigrationFailed ? _strings.Get("LyricsCacheMigrationFailed") : string.Empty;
+            _error.Visibility = string.IsNullOrEmpty(_error.Text) ? Visibility.Collapsed : Visibility.Visible;
             _enabled.IsEnabled = !_busy && !_inspecting;
             _models.IsEnabled = !_busy && !_inspecting;
             _download.Content = _strings.Get(_interrupted.Contains(selected.Id) ? "AiLyricsResumeDownload" : "AiLyricsDownload");

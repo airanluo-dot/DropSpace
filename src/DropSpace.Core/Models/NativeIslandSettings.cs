@@ -17,6 +17,7 @@ public sealed record IslandActivitySettings
 
 public sealed record LyricsSettings
 {
+    public long CacheMaximumBytes { get; init; } = 1L * 1024 * 1024 * 1024;
     public bool AiTranslationEnabled { get; init; }
     public string AiModelId { get; init; } = "hy-mt2-standard";
     public Lyrics.LyricsGlowMode GlowMode { get; init; }

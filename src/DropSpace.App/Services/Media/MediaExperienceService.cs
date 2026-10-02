@@ -26,11 +26,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly SystemVisualPreferenceService _visualPreferences;
     private readonly HttpClient _http;
     private readonly LyricsService _lyrics;
+    private readonly LyricsCache _lyricsCache;
     public AiLyricsService AiLyrics { get; }
     private readonly LyricsTimelineEngine _timeline = new();
     private readonly MediaPlaybackClock _clock = new();
     private readonly Channel<bool> _changes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly CancellationTokenSource _stop = new();
+    private readonly SemaphoreSlim _lyricsMaintenance = new(1, 1);
     private readonly DispatcherQueueTimer _frames, _expiry;
     private Task _worker = Task.CompletedTask, _lyricsJob = Task.CompletedTask, _artworkJob = Task.CompletedTask;
     private CancellationTokenSource? _trackStop, _artworkStop;
@@ -45,14 +47,14 @@ public sealed class MediaExperienceService : IAsyncDisposable
     public MediaExperienceService(MainViewModel main, MediaViewModel view, WindowsMediaSessionService media,
         WindowsProcessLoopbackService audio, MediaProcessResolver processes, MediaArtworkService artwork,
         IslandExperienceCoordinator experience, DispatcherQueue dispatcher, ILogger<MediaExperienceService> logger,
-        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics)
+        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics, LyricsCache lyricsCache)
     {
         _main = main; _view = view; _media = media; _audio = audio; _processes = processes; _artwork = artwork;
         _experience = experience; _dispatcher = dispatcher; _logger = logger;
-        _visualPreferences = visualPreferences; AiLyrics = aiLyrics;
+        _visualPreferences = visualPreferences; AiLyrics = aiLyrics; _lyricsCache = lyricsCache;
         AiLyrics.ModelDownloaded += OnModelDownloaded;
         _http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory));
+        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache);
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
         _frames.Tick += OnFrame;
         _expiry = dispatcher.CreateTimer(); _expiry.IsRepeating = false; _expiry.Tick += OnExpiry;
@@ -72,10 +74,33 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _changes.Writer.TryWrite(true);
         return Task.CompletedTask;
     }
-    public void ClearLyricsCache()
+    public async Task ClearLyricsCacheAsync(CancellationToken token = default)
     {
-        _lyrics.ClearCache(); Interlocked.Increment(ref _generation); Interlocked.Increment(ref _reloadRequest);
-        _document = LyricsDocument.Empty; _view.SetLyricsDocument(LyricsDocument.Empty); _view.Lyrics = LyricsHighlightFrame.Empty; _changes.Writer.TryWrite(true);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
+        await _lyricsMaintenance.WaitAsync(linked.Token);
+        try
+        {
+            Interlocked.Increment(ref _generation);
+            _trackStop?.Cancel();
+            await _lyricsJob;
+            await _dispatcher.EnqueueAsync(() =>
+            {
+                _document = LyricsDocument.Empty;
+                _view.SetLyricsDocument(LyricsDocument.Empty);
+                _view.Lyrics = LyricsHighlightFrame.Empty;
+                return Task.CompletedTask;
+            });
+            // Both source fetches and AI work have drained before deleting their shared store.
+            // Surface deletion failures to the initiating control instead of reporting success.
+            await AiLyrics.ClearCacheAsync(linked.Token);
+        }
+        finally
+        {
+            Interlocked.Increment(ref _generation);
+            Interlocked.Increment(ref _reloadRequest);
+            _lyricsMaintenance.Release();
+            _changes.Writer.TryWrite(true);
+        }
     }
     private void OnModelDownloaded(object? sender, EventArgs args)
     {
@@ -106,6 +131,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 try
                 {
                     var settings = Volatile.Read(ref _settings);
+                    if (previousSettings is null) await AiLyrics.MigrateCacheAsync(token).ConfigureAwait(false);
+                    if (previousSettings?.Lyrics.CacheMaximumBytes != settings.Lyrics.CacheMaximumBytes)
+                    {
+                        try { await _lyricsCache.SetMaximumBytesAsync(settings.Lyrics.CacheMaximumBytes, token).ConfigureAwait(false); }
+                        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+                        { _logger.LogDebug("Lyrics cache quota could not be applied ({Category}).", exception.GetType().Name); }
+                    }
                     var reloadRequest = Interlocked.Read(ref _reloadRequest);
                     var observe = settings.IslandActivity.EnableMediaActivity || _view.IsPresentationVisible;
                     if (previousSettings?.IslandActivity != settings.IslandActivity || previousObserve != observe)
@@ -154,9 +186,14 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     }).ConfigureAwait(false);
                     if (reload)
                     {
-                        await _lyricsJob.ConfigureAwait(false);
-                        _trackStop?.Dispose(); _trackStop = CancellationTokenSource.CreateLinkedTokenSource(token);
-                        _lyricsJob = LoadLyricsAsync(session, settings, generation, _trackStop.Token);
+                        await _lyricsMaintenance.WaitAsync(token).ConfigureAwait(false);
+                        try
+                        {
+                            await _lyricsJob.ConfigureAwait(false);
+                            _trackStop?.Dispose(); _trackStop = CancellationTokenSource.CreateLinkedTokenSource(token);
+                            _lyricsJob = LoadLyricsAsync(session, settings, generation, _trackStop.Token);
+                        }
+                        finally { _lyricsMaintenance.Release(); }
                     }
                     if (reloadArtwork)
                     {
@@ -196,7 +233,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         {
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.TrackIdentity, session.AlbumArtist), settings.Lyrics, token).ConfigureAwait(false)
+                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist), settings.Lyrics, token).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
             await _dispatcher.EnqueueAsync(() =>
             {
@@ -213,7 +250,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             {
                 var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
                 var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.TrackIdentity, session.AlbumArtist);
+                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);
                 var translated = await AiLyrics.TranslateIfAvailableAsync(query, result.Document, settings.Lyrics, targetLanguage, token).ConfigureAwait(false);
                 if (!ReferenceEquals(translated, result.Document))
                     await _dispatcher.EnqueueAsync(() =>
@@ -320,6 +357,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _stop.Cancel(); _changes.Writer.TryComplete();
         await _worker.ConfigureAwait(false); await Task.WhenAll(_lyricsJob, _artworkJob).ConfigureAwait(false);
         await _media.SetEnabledAsync(false).ConfigureAwait(false); await _audio.SetSourceAsync(null, false).ConfigureAwait(false);
-        _trackStop?.Dispose(); _artworkStop?.Dispose(); _stop.Dispose(); _http.Dispose(); _lyrics.ClearCache();
+        _trackStop?.Dispose(); _artworkStop?.Dispose(); _stop.Dispose(); _http.Dispose();
     }
 }

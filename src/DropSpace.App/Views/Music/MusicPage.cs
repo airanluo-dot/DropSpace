@@ -76,7 +76,7 @@ public sealed class MusicPage : UserControl
         lyricsPanel.Children.Add(_lyricsStatus);
         lyricsPanel.Children.Add(_lyricsScroll);
         _body.Children.Add(CreateCard(lyricsPanel, new Thickness(16)));
-        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings));
+        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings, experience.ClearLyricsCacheAsync));
         var form = new SettingsForm(editor, strings); _body.Children.Add(form);
         form.AddHeading("MusicPlaybackSection");
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });
@@ -107,10 +107,26 @@ public sealed class MusicPage : UserControl
         form.AddNumber("LyricsDelay", -30000, 30000, 100, s => s.Lyrics.DelayMilliseconds, (s,v) => s with { Lyrics = s.Lyrics with { DelayMilliseconds = (int)v } });
         form.AddToggle("LyricsScrolling", s => s.Lyrics.Scrolling, (s,v) => s with { Lyrics = s.Lyrics with { Scrolling = v } });
         form.AddNumber("LyricsWidth", NativeIslandSettingsPolicy.MinimumWidth, NativeIslandSettingsPolicy.MaximumWidth, 10, s => s.Lyrics.ScrollingMaxWidth, (s,v) => s with { Lyrics = s.Lyrics with { ScrollingMaxWidth = (int)v } });
+        form.AddNumber("LyricsCacheSize", 100, 5120, 1,
+            s => s.Lyrics.CacheMaximumBytes / 1024d / 1024d,
+            (s,v) => s with { Lyrics = s.Lyrics with { CacheMaximumBytes = (long)v * 1024 * 1024 } });
         var folderButton = new Button { Content = strings.Get("ChooseFolder") };
         folderButton.Click += async (_, _) => await editor.PickLyricsFolderAsync(windowHandle);
         form.AddRow("LyricsFolder", folderButton); form.Rows.Children.Add(_folder);
-        var clear = new Button { Content = strings.Get("ClearLyricsCache") }; clear.Click += (_, _) => experience.ClearLyricsCache(); form.Rows.Children.Add(clear);
+        var clear = new Button { Content = strings.Get("ClearLyricsCache") };
+        var cacheStatus = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetLiveSetting(cacheStatus, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        clear.Click += async (_, _) =>
+        {
+            clear.IsEnabled = false;
+            cacheStatus.Text = strings.Get("AiLyricsClearingCache");
+            try { await experience.ClearLyricsCacheAsync(); cacheStatus.Text = strings.Get("AiLyricsCacheCleared"); }
+            catch (OperationCanceledException) { cacheStatus.Text = strings.Get("LyricsCacheClearFailed"); }
+            catch (Exception error) when (error is not OutOfMemoryException) { cacheStatus.Text = strings.Get("LyricsCacheClearFailed"); }
+            finally { clear.IsEnabled = true; }
+        };
+        form.Rows.Children.Add(clear);
+        form.Rows.Children.Add(cacheStatus);
         form.AddHeading("MusicApplications");
         form.AddToggle("MusicAllApplications", s => !s.IslandActivity.UseMediaSourceAllowList && s.IslandActivity.AllowedMediaSourceAppIds.Length == 0,
             (s,v) => s with { IslandActivity = s.IslandActivity with { UseMediaSourceAllowList = !v, AllowedMediaSourceAppIds = v ? [] : sessions.AvailableSources.ToArray() } });

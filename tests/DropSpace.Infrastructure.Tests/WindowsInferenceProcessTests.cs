@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using DropSpace.Infrastructure.Lyrics;
 
@@ -6,6 +7,44 @@ namespace DropSpace.Infrastructure.Tests;
 [TestClass]
 public sealed class WindowsInferenceProcessTests
 {
+    [TestMethod]
+    public async Task WatchdogFailurePreservesPrimaryErrorWithoutPoisoningReleasedOwnership()
+    {
+        var start = OperatingSystem.IsWindows()
+            ? PowerShellStart("[Console]::WriteLine('ready'); [Threading.Thread]::Sleep(60000)")
+            : new ProcessStartInfo("/bin/sh")
+            {
+                UseShellExecute = false,
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
+                ArgumentList = { "-c", "printf 'ready\\n'; exec /bin/sleep 60" },
+            };
+        using var child = LocalInferenceProcess.Start(start);
+        using var observed = Process.GetProcessById(child.Process.Id);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        Assert.AreEqual("ready", await child.StandardOutput.ReadLineAsync(timeout.Token));
+        var output = child.StandardOutput.ReadToEndAsync(timeout.Token);
+        var errors = child.StandardError.ReadToEndAsync(timeout.Token);
+        var primary = new Win32Exception(5, "Watchdog snapshot failed.");
+        var watchdog = Task.FromException(primary);
+        using var gate = new SemaphoreSlim(0, 1);
+        var actual = await Assert.ThrowsExactlyAsync<Win32Exception>(async () =>
+        {
+            try { await watchdog; }
+            finally
+            {
+                var cleanup = child.CompleteAsync(output, errors, watchdog);
+                await LlamaCompletionRunner.WaitForCleanupPreservingFailureAsync(cleanup, observed.Id, primary);
+                await LlamaCompletionRunner.ReleaseGateAfterCleanupAsync(cleanup, gate);
+            }
+        });
+        Assert.AreSame(primary, actual);
+        Assert.IsTrue(observed.HasExited);
+        Assert.AreEqual(1, gate.CurrentCount, "A completed ownership barrier must release the inference gate despite a business-operation failure.");
+        Assert.ThrowsExactly<ObjectDisposedException>(() => child.StandardOutput.Peek());
+        Assert.ThrowsExactly<ObjectDisposedException>(() => child.StandardError.Peek());
+        Assert.IsFalse(primary.Data.Contains("LocalInferenceShutdownFailure"));
+    }
+
     [TestMethod]
     public async Task NativeProcessReadsClosedPromptAndRedirectsBothStreams()
     {
@@ -47,15 +86,30 @@ public sealed class WindowsInferenceProcessTests
     }
 
     [TestMethod]
-    public async Task DisposingOwnerTerminatesTheNativeChild()
+    public void DisposingOwnerWaitsForTheNativeChildToExit()
     {
         if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Requires the native Windows process APIs."); return; }
         var child = LocalInferenceProcess.Start(PowerShellStart("[Threading.Thread]::Sleep(60000)"));
         using var observed = Process.GetProcessById(child.Process.Id);
         child.Dispose();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        await observed.WaitForExitAsync(timeout.Token);
-        Assert.IsTrue(observed.HasExited);
+        Assert.IsTrue(observed.HasExited, "Owner disposal must wait for exit, not merely request termination.");
+    }
+
+    [TestMethod]
+    public async Task AsyncTerminationWaitsForExitAndDrainsBothNativeStreams()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Inconclusive("Requires the native Windows process APIs."); return; }
+        using var child = LocalInferenceProcess.Start(PowerShellStart(
+            "[Console]::Error.Write('stderr-readable'); [Console]::WriteLine('ready'); [Threading.Thread]::Sleep(60000)"));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        Assert.AreEqual("ready", await child.StandardOutput.ReadLineAsync(timeout.Token));
+        var output = child.StandardOutput.ReadToEndAsync(timeout.Token);
+        var errors = child.StandardError.ReadToEndAsync(timeout.Token);
+        using var observed = Process.GetProcessById(child.Process.Id);
+        await LocalInferenceProcess.WaitForCleanupAsync(child.CompleteAsync(output, errors), observed.Id);
+        Assert.IsTrue(observed.HasExited, "Async termination must await the OS exit barrier.");
+        Assert.AreEqual(string.Empty, await output);
+        Assert.AreEqual("stderr-readable", await errors);
     }
 
     [TestMethod]

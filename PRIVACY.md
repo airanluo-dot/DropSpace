@@ -37,7 +37,9 @@ only the explicit remaining-provider switch can query the other unselected onlin
 sources, with a bounded concurrent quality window and an eight-second per-provider
 budget. A valid result cancels and drains the remaining work. It does not send clipboard text,
 staged filenames or file bytes.
-Lyrics cache is process memory only (32 entries, bounded text size, two-hour age).
+The historical source-lyrics cache in this slice is process memory only (32 entries,
+bounded text size, two-hour age). The unpublished candidate adds a separate AI/cache
+boundary below; this historical limit does not describe all candidate lyric storage.
 Local LRC mode reads only a selected folder with a bounded, nonrecursive scan.
 If every online provider fails, display track metadata. Local mode never invokes
 online fallback. The integration must cancel
@@ -45,11 +47,55 @@ lookup on track/settings/lifecycle changes before release acceptance.
 Process-loopback audio is intended only for the live spectrum; PCM must never be
 saved or uploaded. System notification and volume observation remain opt-in.
 
+## Unreleased 0.3.1 Beta 1 lyrics and AI boundary
+
+This section describes development-candidate code, not a published feature or a completed
+acceptance result. Known semantic model errors, complete review rounds and native release
+verification remain open in the [issue register](docs/dev/ai-lyrics-031-issue-register.md).
+
+- **Separate choices:** fresh settings leave lyrics and AI translation disabled. Existing
+  explicit preferences are preserved. With Online mode selected, enabling AI while lyrics
+  are disabled first asks to enable online lookup; downloading a missing model requires its own confirmation.
+  Online lookup follows the preferred/backup/remaining-provider controls above. Local LRC
+  does not invoke provider fallback. Turning AI off does not itself disable online lyrics.
+- **Model downloads:** only the consent flow fetches catalog-pinned weights from Hugging
+  Face and allowlisted HTTPS redirects. Requests identify the model artifact and, when
+  resuming, its byte range; they do not contain the lyric prompt or clipboard/file payloads.
+  The host still observes normal HTTPS connection/request metadata. Size and SHA-256
+  verification precede installation. The runtime is embedded in the App and extracted
+  locally; playback does not silently download a missing model.
+- **Local inference:** the prompt contains song title, artist, album and requested/context
+  lyric text. The current runner sends it to the bundled local process with controlled
+  offline arguments, without a hosted AI fallback or an HTTP listener. Online source-lyrics
+  requests and explicitly enabled sharing remain separate network paths; this is not an
+  absolute network-isolation guarantee for the App or its Windows account.
+- **Disk and deletion:** models, resumable partial downloads, extracted runtime files,
+  prompt staging files and cached translations use App-owned local locations. They are not
+  an encrypted vault. Prompt files are removed on ordinary completion/cancellation paths
+  on a best-effort basis; a crash or refused deletion can leave local text behind. Separate
+  model and cache removal controls exist. Disabling AI does not erase existing files, and
+  deleting a model does not mean every cached translation is deleted. Cleanup must preserve
+  user LRC files, external source files and unrelated models; secure erasure is not promised.
+- **Cache integration:** the prior implementation used an in-memory source/provider cache
+  and a separate 100 MiB AI disk cache. Unified persistence with a default 1 GiB (1024 MiB) total budget,
+  adjustable from 100 MiB to 5 GiB, is being integrated. Cross-restart identity, zero repeated
+  lookup/inference on a valid hit, quota enforcement and deletion/recovery still require
+  integrated verification before they may be claimed as delivered.
+- **Logs and resource risks:** diagnostics use failure categories and numeric process exit
+  codes rather than prompt, lyric, model-output or stderr text. The runner has bounded
+  threads, token/output/time budgets and model-specific memory limits. Windows Job Objects
+  constrain process lifetime/resources; they are not an OS security or network sandbox.
+  Native parsers, disk exhaustion, residual staging data and failed child cleanup remain
+  risks to test. See the [runtime design](docs/engineering/ai-lyrics-runtime.md).
+- **Output quality:** schema validation preserves the original text/time axis and rejects
+  malformed output, but cannot establish translation accuracy. AI can change meaning or
+  omit details. This warning does not waive the candidate's semantic-quality or release gates.
+
 ## Overview
 
 DropSpace stores sensitive classes of data by design. “Local only” reduces network exposure but does not make clipboard history safe by default. The product must minimize capture, make recording state obvious, bound retention, and avoid claims that content classification or source-app exclusions are complete.
 
-This threat model covers the Windows desktop runtime described by `ARCHITECTURE.md`, including its narrow public GitHub Release update boundary. Cloud sync, accounts, browser extensions, telemetry, and AI remain outside it.
+This threat model covers the Windows desktop runtime described by `ARCHITECTURE.md`, including updates, opt-in lyric providers and sharing, and the unpublished local AI candidate boundary above. Cloud account sync, browser extensions, telemetry and hosted AI translation remain outside the implemented scope.
 
 ## Data lifecycle
 
@@ -74,6 +120,7 @@ Space file records store references and metadata only. Clipboard images and larg
 - File paths, names, timestamps, and user work patterns.
 - Pinned items and retention preferences.
 - Database, payload files, backups, logs, and exported diagnostics.
+- Candidate lyric prompts/translations, local caches, and the integrity of downloaded models and extracted runtimes.
 - Integrity of actions that open, copy, replace, or drag referenced content.
 
 ### Trust boundaries
@@ -83,8 +130,10 @@ Space file records store references and metadata only. Clipboard images and larg
 3. DropSpace → target applications during copy/drag/open.
 4. User-controlled paths/removable/network/cloud storage → file services.
 5. UI process → SQLite/payload/cache directories.
-6. Future network/AI providers are outside MVP and require a new explicit boundary.
+6. Selected online lyric providers → untrusted lyric/metadata parsing → local display/cache.
 7. Public DropSpace website/GitHub Release metadata and GitHub downloads → bounded update parser/cache → optional installer execution.
+8. User-confirmed model host downloads → pinned local model store → controlled native inference process and App-owned prompt/cache files.
+9. Explicitly enabled peer/LAN/Internet sharing → the separate [network threat model](docs/security/network-threat-model.md).
 
 ### Assumptions
 
@@ -93,7 +142,7 @@ Space file records store references and metadata only. Clipboard images and larg
 - Source files remain owned and protected by their existing file-system/provider permissions.
 - Windows, WinUI, clipboard, image codec, SQLite, and shell components are trusted platform dependencies but can fail on malformed or unavailable input.
 - Same-account malware or an administrator can generally access local app data; MVP does not claim protection from that attacker.
-- Ordinary content features make no network calls. If update checks are enabled, DropSpace contacts only the public versioned DropSpace website API, its GitHub Pages mirror, the GitHub Releases API, and official GitHub asset URLs without a user or device identifier.
+- Local Space/Clipboard operations do not require content upload. Online lyrics, model downloads, enhancement management and sharing have the separate opt-in boundaries documented here. The updater itself contacts the public versioned DropSpace website API, its GitHub Pages mirror, the GitHub Releases API and official GitHub asset URLs without a user or device identifier; that updater list is not an allowlist for every optional App feature.
 
 ### Threat actors and conditions
 
@@ -213,7 +262,7 @@ Before V1.1+, evaluate Windows Data Protection APIs for payload keys and define 
 | Threat | Primary control | Residual risk |
 |---|---|---|
 | Sensitive clipboard capture | Pause, finite retention, clear controls | User may forget to pause; attribution incomplete |
-| Local data theft | User-scoped storage, no network, optional future protection | Same-account malware/admin can access data |
+| Local data theft | User-scoped storage, explicit network-feature controls, optional future protection | Same-account malware/admin can access data |
 | Malformed/huge payload | Size/pixel/time/concurrency limits | Decoder/platform defects remain possible |
 | Clipboard feedback loop | Self-write marker + fingerprint/time window | Other apps can rewrite equivalent content |
 | Path traversal in payload store | Generated relative paths + root containment check | File-system compromise outside app model |
@@ -230,7 +279,7 @@ Before V1.1+, evaluate Windows Data Protection APIs for payload keys and define 
 - A malicious URL is copied and later selected. DropSpace displays it as data and never launches it until the user explicitly chooses Open under an allowed-scheme policy.
 - A migration fails after an update. Transactions and the pre-migration backup preserve the prior store; the app enters recovery instead of overwriting history.
 
-Out of scope for MVP severity claims: an attacker with administrator/kernel access, a fully compromised Windows account, or compromise of an AI/cloud provider that does not exist in the MVP architecture.
+The historical MVP had no AI provider. The current candidate's model-download and native-inference boundaries are explicitly in scope above. Administrator/kernel compromise and a fully compromised Windows account remain outside the protection promised here; local inference does not remove those risks.
 
 ### Updater privacy and network behavior
 

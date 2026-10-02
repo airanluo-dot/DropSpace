@@ -10,6 +10,8 @@ public static class NativeIslandSettingsPolicy
     public const int MaximumDelayMilliseconds = 30_000;
     public const int MinimumWidth = 80;
     public const int MaximumWidth = 600;
+    public const long MinimumLyricsCacheBytes = 100L * 1024 * 1024;
+    public const long MaximumLyricsCacheBytes = 5L * 1024 * 1024 * 1024;
 
     public static AppSettings Normalize(AppSettings settings)
     {
@@ -34,6 +36,7 @@ public static class NativeIslandSettingsPolicy
             },
             Lyrics = lyrics with
             {
+                CacheMaximumBytes = Math.Clamp(lyrics.CacheMaximumBytes, MinimumLyricsCacheBytes, MaximumLyricsCacheBytes),
                 AiModelId = Lyrics.AiLyricsModelCatalog.Find(modelId)?.Id ?? Lyrics.AiLyricsModelCatalog.Standard.Id,
                 GlowMode = Enum.IsDefined(lyrics.GlowMode) ? lyrics.GlowMode : Lyrics.LyricsGlowMode.Off,
                 FontSize = double.IsFinite(lyrics.FontSize) ? Math.Clamp(lyrics.FontSize, 12, 28) : 16,

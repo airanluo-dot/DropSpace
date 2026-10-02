@@ -100,12 +100,25 @@ public static class LyricsTranslationPrompt
         var material = JsonSerializer.Serialize(new
         {
             version = Version,
+            acceptance = "useful-local-ai-v1",
             target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage),
             model = modelSha256.ToUpperInvariant(),
             title = query.Title,
             artist = query.Artist,
+            albumArtist = query.AlbumArtist,
             album = query.Album,
-            lines = document.Lines.Select(line => new { line.Text, start = line.Start.Ticks, end = line.End.Ticks }),
+            trackIdentity = query.TrackIdentity,
+            provider = document.Provider,
+            candidate = document.Match?.CandidateId,
+            lines = document.Lines.Select(line => new
+            {
+                line.Text,
+                start = line.Start.Ticks,
+                end = line.End.Ticks,
+                line.Secondary,
+                line.TranslationLanguage,
+                line.TranslationOrigin,
+            }),
         });
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(material)));
     }

@@ -5,22 +5,41 @@ using DropSpace.Core.Lyrics;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
+public enum LyricsTranslationOutcome { Translated, NoUsefulTranslation, Failed }
+public sealed record LyricsTranslationResult(LyricsDocument Document, LyricsTranslationOutcome Outcome);
+
 /// <summary>The caller owns song/language generations and must discard results after its token is cancelled.</summary>
 public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
 {
     private static readonly JsonSerializerOptions CacheJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
+    private readonly object _noUsefulGate = new();
+    private readonly Dictionary<string, (long Generation, DateTimeOffset Until)> _noUseful = new(StringComparer.Ordinal);
+
     public async Task<LyricsDocument?> TryGetCachedAsync(LyricsQuery query, LyricsDocument source,
+        string targetLanguage, string modelSha256, CancellationToken token)
+    {
+        var result = await TryGetCachedResultAsync(query, source, targetLanguage, modelSha256, token).ConfigureAwait(false);
+        return result?.Outcome == LyricsTranslationOutcome.Translated ? result.Document : null;
+    }
+
+    public async Task<LyricsTranslationResult?> TryGetCachedResultAsync(LyricsQuery query, LyricsDocument source,
         string targetLanguage, string modelSha256, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return null;
         var indices = Enumerable.Range(0, source.Lines.Count).Where(index => !string.IsNullOrWhiteSpace(source.Lines[index].Text)).ToArray();
         if (indices.Length is 0 or > 500) return null;
-        var saved = await cache.ReadAsync(LyricsTranslationPrompt.CacheKey(query, source, targetLanguage, modelSha256), token).ConfigureAwait(false);
+        var key = LyricsTranslationPrompt.CacheKey(query, source, targetLanguage, modelSha256);
+        var generation = cache.Generation;
+        if (IsNoUseful(key, generation)) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        var saved = await cache.ReadAsync(key, token).ConfigureAwait(false);
         if (saved is null || !LyricsTranslationOutput.TryApply(saved, source, indices, targetLanguage, out var result)) return null;
         token.ThrowIfCancellationRequested();
-        return result;
+        if (LyricsTranslationOutput.HasUsefulLocalTranslation(result, targetLanguage))
+            return new(result, LyricsTranslationOutcome.Translated);
+        RememberNoUseful(key, generation);
+        return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
     }
 
     public Task<LyricsDocument> TranslateAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
@@ -33,11 +52,16 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
 
     public async Task<LyricsDocument> TranslateBatchesAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
         string modelSha256, Func<string, IReadOnlyList<int>, CancellationToken, Task<string>> infer, CancellationToken token,
+        Func<string, CancellationToken, Task<int>>? countTokens = null) =>
+        (await TranslateBatchesDetailedAsync(query, source, targetLanguage, modelSha256, infer, token, countTokens).ConfigureAwait(false)).Document;
+
+    public async Task<LyricsTranslationResult> TranslateBatchesDetailedAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
+        string modelSha256, Func<string, IReadOnlyList<int>, CancellationToken, Task<string>> infer, CancellationToken token,
         Func<string, CancellationToken, Task<int>>? countTokens = null)
     {
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
-        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return source;
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var target = LyricsTranslationPolicy.NormalizeLanguage(targetLanguage);
         var indices = Enumerable.Range(0, source.Lines.Count).Where(index =>
         {
@@ -47,13 +71,18 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
                 LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) == target;
             return !string.IsNullOrWhiteSpace(line.Text) && !matchingProvider;
         }).ToArray();
-        if (indices.Length is 0 or > 500) return source;
+        if (indices.Length is 0 or > 500) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var key = LyricsTranslationPrompt.CacheKey(query, source, targetLanguage, modelSha256);
+        var cacheGeneration = cache.Generation;
+        if (IsNoUseful(key, cacheGeneration)) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         var saved = await cache.ReadAsync(key, token).ConfigureAwait(false);
         if (saved is not null && LyricsTranslationOutput.TryApply(saved, source, indices, targetLanguage, out var cached))
         {
             token.ThrowIfCancellationRequested();
-            return cached;
+            if (LyricsTranslationOutput.HasUsefulLocalTranslation(cached, targetLanguage))
+                return new(cached, LyricsTranslationOutcome.Translated);
+            RememberNoUseful(key, cacheGeneration);
+            return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         }
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
         budget.CancelAfter(TimeSpan.FromSeconds(180));
@@ -86,10 +115,15 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
                 if (valid) translated = next;
             }
             // A failed batch never promotes partial results to a supposedly complete song cache.
-            if (!valid) return source;
+            if (!valid) return new(source, LyricsTranslationOutcome.Failed);
             offset += batch.Length;
         }
         budget.Token.ThrowIfCancellationRequested();
+        if (!LyricsTranslationOutput.HasUsefulLocalTranslation(translated, targetLanguage))
+        {
+            RememberNoUseful(key, cacheGeneration);
+            return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        }
         var json = JsonSerializer.Serialize(indices.Select(index => new
         {
             id = index,
@@ -99,12 +133,32 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
         // per-entry cache budget, but optional persistence must not discard its result.
         if (Encoding.UTF8.GetByteCount(json) <= LyricsTranslationOutput.MaximumOutputBytes)
         {
-            try { await cache.WriteAsync(key, json, budget.Token).ConfigureAwait(false); }
+            try { await cache.WriteAsync(key, json, cacheGeneration, budget.Token).ConfigureAwait(false); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
             catch (InvalidDataException) { }
         }
         token.ThrowIfCancellationRequested();
-        return translated;
+        return new(translated, LyricsTranslationOutcome.Translated);
+    }
+
+    private bool IsNoUseful(string key, long generation)
+    {
+        lock (_noUsefulGate)
+        {
+            if (_noUseful.TryGetValue(key, out var saved) && saved.Generation == generation && saved.Until > DateTimeOffset.UtcNow) return true;
+            _noUseful.Remove(key);
+            return false;
+        }
+    }
+
+    private void RememberNoUseful(string key, long generation)
+    {
+        lock (_noUsefulGate)
+        {
+            if (generation != cache.Generation) return;
+            if (_noUseful.Count >= 64) _noUseful.Remove(_noUseful.MinBy(entry => entry.Value.Until).Key);
+            _noUseful[key] = (generation, DateTimeOffset.UtcNow.AddMinutes(10));
+        }
     }
 }

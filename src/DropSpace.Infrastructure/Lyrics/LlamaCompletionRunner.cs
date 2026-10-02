@@ -25,7 +25,11 @@ public sealed class LlamaCompletionRunner : IDisposable
         if (Encoding.UTF8.GetByteCount(prompt) > 80_000) throw new InvalidDataException("Prompt exceeds budget.");
         var memoryBudget = MemoryBudgetFor(verifiedModelSha256);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+        // An unresolved previous teardown keeps the gate closed, but must not leave a
+        // caller without an external cancellation token waiting indefinitely.
+        deadline.CancelAfter(TimeSpan.FromSeconds(70));
         await InferenceGate.WaitAsync(deadline.Token).ConfigureAwait(false);
+        Task? cleanup = null;
         try
         {
             deadline.Token.ThrowIfCancellationRequested();
@@ -61,12 +65,13 @@ public sealed class LlamaCompletionRunner : IDisposable
                     start.Environment.Remove(key);
                 start.Environment["OMP_NUM_THREADS"] = "4";
                 start.Environment["OMP_THREAD_LIMIT"] = "4";
-                using var child = LocalInferenceProcess.Start(start, memoryBudget);
+                var child = LocalInferenceProcess.Start(start, memoryBudget);
                 var process = child.Process;
                 using var stop = deadline.Token.Register(() => Stop(process));
                 var output = ReadBoundedAsync(child.StandardOutput, process, deadline.Token);
                 var errors = DrainAsync(child.StandardError, deadline.Token);
                 var memory = MonitorMemoryAsync(process, memoryBudget, deadline.Token);
+                Exception? primaryFailure = null;
                 try
                 {
                     await process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
@@ -77,22 +82,25 @@ public sealed class LlamaCompletionRunner : IDisposable
                     if (process.ExitCode != 0) throw new LocalInferenceExecutionException(process.ExitCode, tokenizer: false);
                     return RemoveRuntimeTerminator(text);
                 }
+                catch (Exception error) { primaryFailure = error; throw; }
                 finally
                 {
-                    Stop(process);
-                    try { await Task.WhenAll(output, errors, memory).ConfigureAwait(false); }
-                    catch (Exception error) when (error is IOException or OperationCanceledException or InvalidDataException) { }
+                    var processId = process.Id;
+                    deadline.Cancel();
+                    cleanup = child.CompleteAsync(output, errors, memory);
+                    await WaitForCleanupPreservingFailureAsync(cleanup, processId, primaryFailure).ConfigureAwait(false);
                 }
             }
             finally
             {
-                // Best-effort removal after success, timeout, cancellation, or launch failure.
-                try { File.Delete(promptPath); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
+                cleanup = RemovePromptAfterCleanupAsync(cleanup, promptPath);
             }
         }
-        finally { InferenceGate.Release(); }
+        finally
+        {
+            if (cleanup is null) InferenceGate.Release();
+            else _ = ReleaseGateAfterCleanupAsync(cleanup, InferenceGate);
+        }
     }
 
     public async Task<int> CountTokensAsync(string tokenizerPath, string modelPath, string prompt,
@@ -106,6 +114,7 @@ public sealed class LlamaCompletionRunner : IDisposable
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
         await InferenceGate.WaitAsync(deadline.Token).ConfigureAwait(false);
+        Task? cleanup = null;
         string? promptPath = null;
         try
         {
@@ -133,11 +142,12 @@ public sealed class LlamaCompletionRunner : IDisposable
             foreach (var key in start.Environment.Keys.Where(key => key.StartsWith("LLAMA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("GGML_", StringComparison.OrdinalIgnoreCase)).ToArray())
                 start.Environment.Remove(key);
             var memoryBudget = MemoryBudgetFor(verifiedModelSha256);
-            using var child = LocalInferenceProcess.Start(start, memoryBudget);
+            var child = LocalInferenceProcess.Start(start, memoryBudget);
             using var stop = deadline.Token.Register(() => Stop(child.Process));
             var output = ReadBoundedAsync(child.StandardOutput, child.Process, deadline.Token, 1_048_576);
             var errors = DrainAsync(child.StandardError, deadline.Token);
             var memory = MonitorMemoryAsync(child.Process, memoryBudget, deadline.Token);
+            Exception? primaryFailure = null;
             try
             {
                 await child.Process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
@@ -152,18 +162,54 @@ public sealed class LlamaCompletionRunner : IDisposable
                     throw new InvalidDataException("Invalid tokenizer result.");
                 return count;
             }
+            catch (Exception error) { primaryFailure = error; throw; }
             finally
             {
-                Stop(child.Process);
-                try { await Task.WhenAll(output, errors, memory).ConfigureAwait(false); }
-                catch (Exception error) when (error is IOException or OperationCanceledException or InvalidDataException) { }
+                var processId = child.Process.Id;
+                deadline.Cancel();
+                cleanup = child.CompleteAsync(output, errors, memory);
+                await WaitForCleanupPreservingFailureAsync(cleanup, processId, primaryFailure).ConfigureAwait(false);
             }
         }
         finally
         {
-            if (promptPath is not null) try { File.Delete(promptPath); } catch (IOException) { } catch (UnauthorizedAccessException) { }
-            InferenceGate.Release();
+            if (promptPath is not null) cleanup = RemovePromptAfterCleanupAsync(cleanup, promptPath);
+            if (cleanup is null) InferenceGate.Release();
+            else _ = ReleaseGateAfterCleanupAsync(cleanup, InferenceGate);
         }
+    }
+
+    internal static async Task WaitForCleanupPreservingFailureAsync(Task cleanup, int processId,
+        Exception? primaryFailure, TimeSpan? timeout = null)
+    {
+        try { await LocalInferenceProcess.WaitForCleanupAsync(cleanup, processId, timeout).ConfigureAwait(false); }
+        catch (Exception error) when (primaryFailure is not null)
+        {
+            primaryFailure.Data["LocalInferenceShutdownFailure"] = error.ToString();
+            Trace.TraceError("Local inference cleanup failed: {0}", error);
+        }
+    }
+
+    internal static async Task ReleaseGateAfterCleanupAsync(Task cleanup, SemaphoreSlim gate)
+    {
+        try { await cleanup.ConfigureAwait(false); }
+        catch (Exception error)
+        {
+            // Fail closed if exit/cleanup cannot be established. Never overlap another
+            // inference with a child whose resource ownership is unresolved.
+            Trace.TraceError("Local inference gate remains held after cleanup failure: {0}", error);
+            return;
+        }
+        gate.Release();
+    }
+
+    private static async Task RemovePromptAfterCleanupAsync(Task? cleanup, string promptPath)
+    {
+        // A teardown timeout leaves this continuation owning prompt removal until exit.
+        if (cleanup is not null) await cleanup.ConfigureAwait(false);
+        try { File.Delete(promptPath); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 
     internal static long MemoryBudgetFor(string? modelSha256) =>

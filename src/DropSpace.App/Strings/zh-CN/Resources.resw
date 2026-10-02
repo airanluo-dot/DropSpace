@@ -527,7 +527,8 @@
   <data name="WidgetDropFailed" xml:space="preserve"><value>无法在此放置小组件，请拖到网格单元格或使用位置设置。</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>移除小组件</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>灵动岛</value></data>
-  <data name="ClearLyricsCache" xml:space="preserve"><value>清理来源歌词缓存</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>清理歌词缓存</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>歌词缓存上限 (MiB)</value></data>
   <data name="WidgetSelect" xml:space="preserve"><value>选中小组件以编辑位置和尺寸。</value></data>
   <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
   <data name="SettingsPageGeneral" xml:space="preserve"><value>常规</value></data>
@@ -677,11 +678,11 @@
   <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI 翻译连续失败三次，已暂停自动尝试，原歌词不受影响。准备好后可手动恢复。</value></data>
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>恢复 AI 翻译</value></data>
   <data name="AiLyricsDeleteModel" xml:space="preserve"><value>删除模型</value></data>
-  <data name="AiLyricsClearCache" xml:space="preserve"><value>清理 AI 翻译缓存</value></data>
+  <data name="AiLyricsClearCache" xml:space="preserve"><value>清理歌词缓存</value></data>
   <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>删除{0}及未完成的下载？如果它正在启用，将关闭 AI 翻译。其他模型和原歌词会保留。</value></data>
   <data name="AiLyricsModelDeleted" xml:space="preserve"><value>模型已删除，需要时可重新下载。</value></data>
-  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>删除已保存的 AI 译文？当前推理将停止，已下载模型、原歌词和来源译文会保留。之后需要时将重新翻译。</value></data>
-  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>AI 翻译缓存已清理。</value></data>
+  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>删除缓存的原歌词、来源译文和 AI 译文？当前推理将停止。已下载模型和你的歌词文件会保留。</value></data>
+  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>歌词缓存已清理。</value></data>
   <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>离线运行时已随 App 内置，无需额外下载，解压运行时额外占用最多约 {0} MiB 磁盘空间。请为模型下载和恢复额外预留 64 MiB 可用磁盘空间。</value></data>
   <data name="AiLyricsTranslating" xml:space="preserve"><value>正在本地翻译，原歌词继续显示。</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>暂时无法进行 AI 翻译，原歌词不受影响。</value></data>
@@ -694,4 +695,6 @@
   <data name="FirstRunStartupChoice" xml:space="preserve"><value>登录 Windows 时启动 DropSpace</value></data>
   <data name="FirstRunContinue" xml:space="preserve"><value>保存选择并继续</value></data>
   <data name="FirstRunSkip" xml:space="preserve"><value>均不开启，继续</value></data>
+  <data name="LyricsCacheClearFailed" xml:space="preserve"><value>未能清理歌词缓存，请重试。</value></data>
+  <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>部分旧歌词缓存未能移除，请使用清理歌词缓存重试。已下载模型和你的歌词文件会保留。</value></data>
 </root>

@@ -15,6 +15,17 @@ DropSpace **v0.2.1 is the Stable baseline and this repository targets v0.3.0-bet
 
 Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target: [v0.3.0-beta.32](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.3.0-beta.32); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
+The `feature/ai-lyrics-031` development line also contains **unreleased 0.3.1 Beta 1**
+work: optional on-device lyric translation, explicit model-download consent and local
+model/cache management. Release metadata has not been advanced. Online lyric lookup
+has a separate opt-in provider boundary; local AI translation does not make the whole
+application network-free. Unified persistent caching of original lyrics, provider
+translations and AI translations (default 1 GiB (1024 MiB), adjustable 100 MiB–5 GiB) is still being
+integrated and verified. These are candidate capabilities, not published guarantees.
+Known model-quality issues and the required complete review/native release gates remain
+open; see the [issue register](docs/dev/ai-lyrics-031-issue-register.md) and
+[candidate privacy boundary](PRIVACY.md#unreleased-031-beta-1-lyrics-and-ai-boundary).
+
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
 native callback/OLE ownership, clipboard capture, batch actions, transfer and share lifecycle,
 storage confinement, update verification and release contracts. The [three-round audit](docs/audit/2026-09-30/full-project-three-round-audit.md)
@@ -121,7 +132,7 @@ Only contributors building from source need Visual Studio or the .NET/Windows SD
 - Local content storage; the updater sends no user content and reads only the public versioned DropSpace website/GitHub Release metadata when enabled.
 - File records are references; removing a record never deletes or moves its source file.
 - Clipboard source-app exclusions are best effort and are not treated as a privacy guarantee.
-- AI, OCR, accounts, cloud sync, and browser extensions are outside the MVP and V1.1 scope.
+- **Historical MVP/V1.1 scope:** AI, OCR, accounts, cloud sync, and browser extensions were excluded. The unpublished 0.3.1 candidate adds the limited local AI lyrics boundary described above; it does not add accounts, cloud sync or a hosted AI translation service.
 
 ## Documentation
 

@@ -60,6 +60,7 @@ jobs:
       prerelease: ${{ steps.version.outputs.prerelease }}
       make_latest: ${{ steps.version.outputs.make_latest }}
       signing_required: ${{ steps.version.outputs.signing_required }}
+      ai_runtime_manifest_sha256: ${{ steps.ai-runtime-diagnostic-manifest.outputs.sha256 }}
 
     steps:
       - name: Check out clean source
@@ -158,6 +159,28 @@ jobs:
       - name: Build verified offline AI inference runtime
         shell: pwsh
         run: ./scripts/Build-AiLyricsRuntime.ps1
+
+      # Development-only handoff of this run's verified build. No model weights are uploaded.
+      - name: Record candidate diagnostic runtime identity
+        if: github.event_name == 'pull_request'
+        id: ai-runtime-diagnostic-manifest
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash artifacts/ai-runtime/win-x64/runtime-manifest.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Upload runtime for isolated candidate diagnostics
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/ai-runtime/win-x64/runtime-manifest.json
+            artifacts/ai-runtime/win-x64/llama-completion.exe
+            artifacts/ai-runtime/win-x64/llama-tokenize.exe
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Test core policies, versions, and update selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core-release.trx"
@@ -319,6 +342,122 @@ jobs:
           path: artifacts/diagnostics/**
           if-no-files-found: ignore
           retention-days: 14
+
+  ai-model-diagnostics:
+    name: Candidate loading and structure (quality review required)
+    needs: validate-release
+    if: >-
+      always() && !cancelled() && github.event_name == 'pull_request' &&
+      needs.validate-release.outputs.ai_runtime_manifest_sha256 != ''
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the same candidate source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+
+      - name: Download this run's verified native runtime
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: ai-candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ai-candidate-runtime
+
+      - name: Parse QA PowerShell without executing its body
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/ai-model-qa/Run-WindowsModelQa.ps1'),
+            [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List; throw 'QA script syntax check failed.' }
+
+      # Fixed one-shot screens, sequentially, using the baseline CPU executable.
+      # Keep going to retain both outcomes, then fail the job if either was incomplete.
+      - name: Diagnose Qwen3 1.7B Q4 loading and fixed screen
+        id: qwen
+        continue-on-error: true
+        timeout-minutes: 12
+        shell: pwsh
+        env:
+          EXPECTED_RUNTIME_MANIFEST_SHA256: ${{ needs.validate-release.outputs.ai_runtime_manifest_sha256 }}
+        run: |
+          ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
+            -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
+            -ModelDirectory artifacts/ai-candidate-models -ModelIds qwen3-17-q4 `
+            -Variant Baseline -MemoryMiB 3072 -DownloadMissing `
+            -OutputDirectory artifacts/ai-model-diagnostics/qwen3-17-q4
+
+      - name: Diagnose Granite 3.3 2B Q4 loading and fixed screen
+        id: granite
+        if: ${{ !cancelled() && steps.qwen.outcome != 'skipped' }}
+        continue-on-error: true
+        timeout-minutes: 12
+        shell: pwsh
+        env:
+          EXPECTED_RUNTIME_MANIFEST_SHA256: ${{ needs.validate-release.outputs.ai_runtime_manifest_sha256 }}
+        run: |
+          ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
+            -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
+            -ModelDirectory artifacts/ai-candidate-models -ModelIds granite33-2-q4 `
+            -Variant Baseline -MemoryMiB 3072 -DownloadMissing `
+            -OutputDirectory artifacts/ai-model-diagnostics/granite33-2-q4
+
+      - name: Record technical outcomes and mandatory semantic review
+        if: always()
+        shell: pwsh
+        env:
+          QWEN_OUTCOME: ${{ steps.qwen.outcome }}
+          GRANITE_OUTCOME: ${{ steps.granite.outcome }}
+        run: |
+          New-Item artifacts/ai-model-diagnostics -ItemType Directory -Force | Out-Null
+          $record = [ordered]@{
+            sourceSha = '${{ github.sha }}'
+            runId = '${{ github.run_id }}'
+            runAttempt = '${{ github.run_attempt }}'
+            qwenTechnicalOutcome = $env:QWEN_OUTCOME
+            graniteTechnicalOutcome = $env:GRANITE_OUTCOME
+            semanticStatus = 'PENDING HUMAN REVIEW: no candidate is quality-approved by this job.'
+            releaseApproval = $false
+          }
+          $record | ConvertTo-Json | Set-Content artifacts/ai-model-diagnostics/ci-outcomes.json -Encoding utf8
+          @(
+            '## Candidate diagnostics only',
+            "Qwen3 Q4 technical outcome: $env:QWEN_OUTCOME",
+            "Granite Q4 technical outcome: $env:GRANITE_OUTCOME",
+            'Semantic quality: PENDING HUMAN REVIEW. Structural success does not approve a model.',
+            'Loading failures have no semantic verdict. Read original stdout/stderr and exit/peak-memory records.',
+            'This job does not test full-song, holdout, cache, or release readiness.'
+          ) -join "`n`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload candidate diagnostic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-model-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ai-model-diagnostics/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce truthful technical diagnostic status
+        if: always()
+        shell: pwsh
+        env:
+          QWEN_OUTCOME: ${{ steps.qwen.outcome }}
+          GRANITE_OUTCOME: ${{ steps.granite.outcome }}
+        run: |
+          if ($env:QWEN_OUTCOME -ne 'success' -or $env:GRANITE_OUTCOME -ne 'success') {
+            throw 'Candidate diagnostics failed or were incomplete. See the evidence artifact; semantic quality remains unapproved.'
+          }
+          Write-Host 'Both technical screens completed with strict structure. Semantic review is still required.'
 
   sign-release:
     name: Sign stable release bundle

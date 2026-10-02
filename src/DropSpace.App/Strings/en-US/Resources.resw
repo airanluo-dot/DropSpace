@@ -527,7 +527,8 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>
-  <data name="ClearLyricsCache" xml:space="preserve"><value>Clear source lyrics cache</value></data>
+  <data name="ClearLyricsCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>Lyrics cache limit (MiB)</value></data>
   <data name="WidgetSelect" xml:space="preserve"><value>Select a widget to edit its position and size.</value></data>
   <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
   <data name="SettingsPageGeneral" xml:space="preserve"><value>General</value></data>
@@ -677,11 +678,11 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI translation paused after three consecutive failures. Original lyrics are unchanged. Resume when you are ready to try again.</value></data>
   <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>Resume AI translation</value></data>
   <data name="AiLyricsDeleteModel" xml:space="preserve"><value>Delete model</value></data>
-  <data name="AiLyricsClearCache" xml:space="preserve"><value>Clear AI translation cache</value></data>
+  <data name="AiLyricsClearCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
   <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>Delete {0} and its partial download? If this model is enabled, AI translation will be turned off. Other models and original lyrics are kept.</value></data>
   <data name="AiLyricsModelDeleted" xml:space="preserve"><value>Model removed. You can download it again later.</value></data>
-  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>Remove saved AI translations? Current inference will stop. Downloaded models and original/provider lyrics are kept. Future translations will be generated again.</value></data>
-  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>AI translation cache cleared.</value></data>
+  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>Remove cached original lyrics, provider translations, and AI translations? Current inference will stop. Downloaded models and your lyric files are kept.</value></data>
+  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>Lyrics cache cleared.</value></data>
   <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>The offline runtime is included in the App; no additional runtime download is required. Runtime extraction uses up to approximately {0} MiB of additional disk space. Allow an extra 64 MiB of free disk space for model download and recovery.</value></data>
   <data name="AiLyricsTranslating" xml:space="preserve"><value>Translating locally… Original lyrics remain visible.</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI translation is temporarily unavailable. Original lyrics are unchanged.</value></data>
@@ -694,4 +695,6 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="FirstRunStartupChoice" xml:space="preserve"><value>Start DropSpace when I sign in to Windows</value></data>
   <data name="FirstRunContinue" xml:space="preserve"><value>Save choices and continue</value></data>
   <data name="FirstRunSkip" xml:space="preserve"><value>Continue with both off</value></data>
+  <data name="LyricsCacheClearFailed" xml:space="preserve"><value>Lyrics cache could not be cleared. Try again.</value></data>
+  <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>Some old lyrics cache files could not be removed. Clear the lyrics cache to retry. Downloaded models and your lyric files are kept.</value></data>
 </root>
