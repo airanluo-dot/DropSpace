@@ -10,12 +10,14 @@ param(
     [ValidateSet('production','minimal-target-only')][string]$PromptProfile = 'production',
     [switch]$DownloadMissing,
     [switch]$LoadOnly,
+    [switch]$AcceptanceSuite,
     [switch]$TestCancellation,
     [string]$OutputDirectory
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows -or -not [Environment]::Is64BitProcess) { throw 'Use PowerShell 7 in a Windows x64 process.' }
+if ($AcceptanceSuite -and ($ModelIds.Count -ne 1 -or $ModelIds[0] -cne 'hy-mt2-18-q8' -or $PromptProfile -cne 'production' -or $Variant -cne 'Avx2' -or $MemoryMiB -ne 3072 -or $LoadOnly)) { throw 'Acceptance suite is predeclared only for Hy Q8 / production profile / AVX2.' }
 $qa = $PSScriptRoot
 $repo = [IO.Path]::GetFullPath((Join-Path $qa '../..'))
 $runtime = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
@@ -78,10 +80,23 @@ $candidates = Get-Content -LiteralPath (Join-Path $qa 'candidates.json') -Raw | 
 Assert-Hash (Join-Path $qa 'inputs/source48.json') $candidates.sourceFixtureSha256
 Copy-Item (Join-Path $qa 'inputs/source48.json') (Join-Path $OutputDirectory 'source48.json')
 Assert-Hash (Join-Path $OutputDirectory 'source48.json') $candidates.sourceFixtureSha256
+$holdoutSource = $null
+$holdoutSha256 = $null
+if ($AcceptanceSuite) {
+    Assert-Hash (Join-Path $qa 'inputs/holdout-original.json') '844e47610bfe4b02165b1db8841b8fadb5453380bf09ebd876f5eb96490fc299'
+    $holdoutSource = Join-Path $OutputDirectory 'holdout12.json'
+    $holdoutSha256 = '88a30d2ddd52307ab5832b457400c4a50545800147ac6c9e8863dd71f96f8b56'
+    Assert-Hash (Join-Path $qa 'inputs/holdout12.json') $holdoutSha256
+    Copy-Item (Join-Path $qa 'inputs/holdout12.json') $holdoutSource
+    Copy-Item (Join-Path $qa 'profiles/hy-q8-acceptance.json') (Join-Path $OutputDirectory 'acceptance-protocol.json')
+}
 $sourceFiles = @(
     'scripts/ai-model-qa/Program.cs',
     'scripts/ai-model-qa/Run-WindowsModelQa.ps1',
     'scripts/ai-model-qa/profiles/minimal-target-only.json',
+    'src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs',
+    'src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs',
+    'src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs',
     'src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs',
     'src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs',
     'src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs',
@@ -123,7 +138,7 @@ foreach ($id in $ModelIds) {
     $out = Join-Path $OutputDirectory $id
     New-Item $out -ItemType Directory | Out-Null
     Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize,FreeVirtualMemory,TotalVirtualMemorySize | ConvertTo-Json | Set-Content (Join-Path $out 'host-before.json') -Encoding utf8
-    $config = [ordered]@{ modelId=$id; model=$path; modelBytes=$model.bytes; modelSha256=$model.sha256; executable=$exe; executableSha256=$component.sha256; tokenizer=$tokenizer; tokenizerSha256=$manifest.tokenizer.sha256; source=(Join-Path $OutputDirectory 'source48.json'); output=$out; memoryMiB=$MemoryMiB; promptProfile=$PromptProfile; outputSchema='production-id-text-json-v1'; loadOnly=[bool]$LoadOnly; testCancellation=[bool]$TestCancellation }
+    $config = [ordered]@{ modelId=$id; model=$path; modelBytes=$model.bytes; modelSha256=$model.sha256; executable=$exe; executableSha256=$component.sha256; tokenizer=$tokenizer; tokenizerSha256=$manifest.tokenizer.sha256; source=(Join-Path $OutputDirectory 'source48.json'); output=$out; memoryMiB=$MemoryMiB; evaluationMode=$(if ($AcceptanceSuite) {'acceptance'} else {'screen'}); holdoutSource=$holdoutSource; holdoutSha256=$holdoutSha256; promptProfile=$PromptProfile; outputSchema='production-id-text-json-v1'; loadOnly=[bool]$LoadOnly; testCancellation=[bool]$TestCancellation }
     $configPath = Join-Path $out 'qa-config.json'
     $config | ConvertTo-Json -Depth 4 | Set-Content $configPath -Encoding utf8
     & dotnet $dll $configPath *> (Join-Path $out 'console.log')
@@ -145,7 +160,7 @@ foreach ($id in $ModelIds) {
     }
     ConvertTo-Json -InputObject @($owned) -Depth 4 | Set-Content (Join-Path $out 'owned-process-observation.json') -Encoding utf8
     Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize,FreeVirtualMemory,TotalVirtualMemorySize | ConvertTo-Json | Set-Content (Join-Path $out 'host-after.json') -Encoding utf8
-    $summary += [ordered]@{ modelId=$id; promptProfile=$PromptProfile; harnessExit=$code; results=(Join-Path $out 'results.json'); semanticStatus='Human review required; never a release gate by exit code alone.' }
+    $summary += [ordered]@{ modelId=$id; promptProfile=$PromptProfile; harnessExit=$code; results=(Join-Path $out 'results.json'); semanticStatus='PENDING SEMANTIC REVIEW; record actual reviewer identity; no release approval by exit code.' }
     $summary | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $OutputDirectory 'summary.json') -Encoding utf8
     Write-Host "$id completed harness exit $code. Evidence: $out"
 }

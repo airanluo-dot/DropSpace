@@ -5,5 +5,9 @@
     <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs" Link="Production/LocalInferenceProcess.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs" Link="Production/WindowsInferenceProcess.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Storage/ReparseSafePathPolicy.cs" Link="Production/ReparseSafePathPolicy.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs" Link="Production/LyricsTranslationCoordinator.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs" Link="Production/AiLyricsCache.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs" Link="Production/LyricsCache.cs" />
+    <Compile Include="../../src/DropSpace.Infrastructure/Storage/ReparseSafeFileOpen.cs" Link="Production/ReparseSafeFileOpen.cs" />
   </ItemGroup>
 </Project>

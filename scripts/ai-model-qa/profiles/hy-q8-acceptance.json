@@ -1,0 +1,37 @@
+{
+  "status": "preregistered-not-executed",
+  "modelId": "hy-mt2-18-q8",
+  "promptProfile": "production",
+  "outputSchema": "production-id-text-json-v1",
+  "sampling": "Same existing seed42/temp0.1/topK20/topP0.8/minP0.05",
+  "holdoutOriginalSha256": "844e47610bfe4b02165b1db8841b8fadb5453380bf09ebd876f5eb96490fc299",
+  "holdoutDocumentSha256": "88a30d2ddd52307ab5832b457400c4a50545800147ac6c9e8863dd71f96f8b56",
+  "holdoutNotesExcluded": true,
+  "datasets": [
+    "independent original 12-line holdout",
+    "original 48-line synthetic full song"
+  ],
+  "targets": [
+    "en-US",
+    "zh-CN"
+  ],
+  "cache": "Real coordinator and unified cache, repeat requires zero inference/tokenizer calls",
+  "cancellation": "2-second cancellation, OS cleanup confirmed and zero persisted entries",
+  "limits": {
+    "memoryMiB": 3072,
+    "secondsPerNative": 60,
+    "secondsPerSong": 180,
+    "threads": 4
+  },
+  "qualityStandard": {
+    "source": "User instructions 2026-10-02T05:53:34Z and 05:53:39Z",
+    "warnings": "Minor object/wording/modifier differences or small omissions that do not impair overall understanding",
+    "blockers": "Wrong target language, untranslated foreign passages, clear reversal of overall meaning"
+  },
+  "historicalResults": "Previous stricter failure labels retained; this candidate status uses the newer practical user criterion",
+  "productionCatalogChanged": false,
+  "releaseApproval": false,
+  "samplingAlignmentLimit": "QA explicitly fixes seed42 and filters. Current App runner does not explicitly set seed/filters; final production integration must align or independently validate that difference.",
+  "sourceOnly": "Original English 12-line verse targeting English; real coordinator must return NoUsefulTranslation, memoized retry must invoke zero inference and persist zero entries",
+  "reviewerPolicy": "Content review may be AI-assisted; actual reviewer identity must be recorded. User is not required to perform a manual approval ritual."
+}

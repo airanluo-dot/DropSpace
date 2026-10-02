@@ -1,0 +1,78 @@
+{
+  "createdUtc": "2026-10-02T02:42:00Z",
+  "protocol": "Independent original holdout; not used for screening or prompt changes; once per qualifying model per target. Source notes never included in prompt.",
+  "lines": [
+    {
+      "id": 0,
+      "language": "en",
+      "text": "I lent her two keys; she did not lend them to me.",
+      "reviewNote": "Two keys; I lent to her, not the reverse."
+    },
+    {
+      "id": 1,
+      "language": "en",
+      "text": "If dawn stays dark, leave the bell untouched.",
+      "reviewNote": "Conditional; do not touch bell."
+    },
+    {
+      "id": 2,
+      "language": "en",
+      "text": "The tide borrowed my shadow, not my voice.",
+      "reviewNote": "Shadow borrowed; voice explicitly excluded; no extra stanza."
+    },
+    {
+      "id": 3,
+      "language": "zh-CN",
+      "text": "我只归还了三封信，没有拿走第四封。",
+      "reviewNote": "Returned only three letters; did not take fourth."
+    },
+    {
+      "id": 4,
+      "language": "zh-CN",
+      "text": "别把灯递给我，给她；我会在门外等。",
+      "reviewNote": "Lamp to her, not me; I wait outside."
+    },
+    {
+      "id": 5,
+      "language": "zh-CN",
+      "text": "月光落进空杯，却没有替我说一句话。",
+      "reviewNote": "Moonlight enters empty cup; says nothing on my behalf."
+    },
+    {
+      "id": 6,
+      "language": "ja",
+      "text": "君が帰らなくても、私は窓を閉めない。",
+      "reviewNote": "Even if you do not return, I will not close the window."
+    },
+    {
+      "id": 7,
+      "language": "ja",
+      "text": "四つの石のうち、二つだけを川に戻して。",
+      "reviewNote": "Of four stones return only two to river."
+    },
+    {
+      "id": 8,
+      "language": "ja",
+      "text": "朝は名前を呼ばずに、橋だけを照らした。",
+      "reviewNote": "Morning illuminated only bridge; did not call a name."
+    },
+    {
+      "id": 9,
+      "language": "ko",
+      "text": "그녀가 나를 기다린 게 아니라 내가 그녀를 기다렸어.",
+      "reviewNote": "I waited for her, not she for me."
+    },
+    {
+      "id": 10,
+      "language": "ko",
+      "text": "파란 리본은 여기에 두고 검은 우산만 가져가.",
+      "reviewNote": "Leave blue ribbon here; take only black umbrella."
+    },
+    {
+      "id": 11,
+      "language": "ko",
+      "text": "바람은 내 편지를 읽지 않고 창문만 흔들었어.",
+      "reviewNote": "Wind did not read my letter; only shook window."
+    }
+  ]
+}
