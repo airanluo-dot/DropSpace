@@ -77,7 +77,7 @@ public sealed class ClipboardDeferredProviderNativeTests
             checkpoint = Checkpoint.FirstText;
             capture.BeginDiagnosticStage(ClipboardSmokeStage.FirstTextWrite);
             var baseline = capture.Status;
-            await PublishEagerAsync(producer.Queue, first);
+            await PublishEagerAsync(producer, first);
             capture.BeginDiagnosticStage(ClipboardSmokeStage.FirstTextCapture);
             await WaitForAsync(() => capture.Status.CapturedItems > baseline.CapturedItems, "first-text capture");
             Assert.IsTrue(capture.Status.ObservedEvents > baseline.ObservedEvents, "First text must produce a real native notification.");
@@ -86,7 +86,7 @@ public sealed class ClipboardDeferredProviderNativeTests
             checkpoint = Checkpoint.ConsecutiveSuppression;
             capture.BeginDiagnosticStage(ClipboardSmokeStage.ConsecutiveTextWrite);
             var beforeDuplicate = capture.Status;
-            await PublishEagerAsync(producer.Queue, first);
+            await PublishEagerAsync(producer, first);
             capture.BeginDiagnosticStage(ClipboardSmokeStage.ConsecutiveSuppression);
             await WaitForAsync(() => capture.Status.SuppressedConsecutiveDuplicates > beforeDuplicate.SuppressedConsecutiveDuplicates,
                 "consecutive duplicate suppression");
@@ -97,13 +97,13 @@ public sealed class ClipboardDeferredProviderNativeTests
             checkpoint = Checkpoint.ProviderPublishing;
             capture.BeginDiagnosticStage(ClipboardSmokeStage.SecondTextWrite);
             providerEventBaseline = capture.DiagnosticSnapshot.Events.LastOrDefault()?.Index ?? 0;
-            await producer.Queue.EnqueueAsync(() =>
+            await producer.SetContentAsync(() =>
             {
                 heldPackage = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
                 heldPackage.SetDataProvider(StandardDataFormats.Text, provider.OnRequested);
                 // Flush would materialize the held provider before the test can
                 // establish its actual in-flight GetTextAsync handshake.
-                return ClipboardAccessPolicy.SetContentAsync(() => Clipboard.SetContent(heldPackage));
+                Clipboard.SetContent(heldPackage);
             }).WaitAsync(TimeSpan.FromSeconds(8));
             heldPublishedSequence = GetClipboardSequenceNumber();
             await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(8));
@@ -126,7 +126,7 @@ public sealed class ClipboardDeferredProviderNativeTests
             heartbeatBeforeSecond = consumer.Heartbeats;
             var beforeSecond = capture.Status;
             WriteCheckpoint();
-            await PublishEagerAsync(producer.Queue, second);
+            await PublishEagerAsync(producer, second);
             var deadline = DateTimeOffset.UtcNow.AddSeconds(8);
             secondDeadline = deadline;
             secondPublished = true;
@@ -254,23 +254,21 @@ public sealed class ClipboardDeferredProviderNativeTests
             capture.BeginDiagnosticSession();
             var imagePath = Path.Combine(paths.Root, "deferred.png");
             await File.WriteAllBytesAsync(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="));
-            await producer.Queue.EnqueueAsync(async () =>
+            // Dedicated DispatcherQueue callbacks have no SynchronizationContext.
+            // Resolve the file before entering the OLE owner for synchronous publication.
+            var file = await StorageFile.GetFileFromPathAsync(imagePath).AsTask().WaitAsync(TimeSpan.FromSeconds(8));
+            await producer.SetContentAsync(() =>
             {
-                var file = await StorageFile.GetFileFromPathAsync(imagePath);
                 object payload = format == "StorageItems" ? new IStorageItem[] { file } : RandomAccessStreamReference.CreateFromFile(file);
                 provider = new HeldDataProvider(payload);
                 package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
                 package.SetDataProvider(format == "StorageItems" ? StandardDataFormats.StorageItems : StandardDataFormats.Bitmap, provider.OnRequested);
-                try { await ClipboardAccessPolicy.SetContentAsync(() => Clipboard.SetContent(package)); }
-                catch (COMException error)
-                {
-                    throw new InvalidOperationException($"Deferred {format} fixture SetContent failed with HRESULT 0x{error.HResult:X8}.", error);
-                }
+                Clipboard.SetContent(package);
             }).WaitAsync(TimeSpan.FromSeconds(8));
             await provider!.Entered.Task.WaitAsync(TimeSpan.FromSeconds(8));
             var before = capture.Status.CapturedItems;
             var replacement = "DropSpaceDeferred-" + Guid.NewGuid().ToString("N");
-            await PublishEagerAsync(producer.Queue, replacement);
+            await PublishEagerAsync(producer, replacement);
             await WaitForAsync(() => capture.Status.CapturedItems > before, "replacement after deferred " + format);
             Assert.AreEqual(1, await CountTextAsync(repository, replacement));
             Assert.IsFalse(provider.Released, "The replacement must not depend on releasing the old provider.");
@@ -295,17 +293,33 @@ public sealed class ClipboardDeferredProviderNativeTests
         }
     }
 
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    public async Task ClipboardWriteRetryRunsOnTheOleInitializedOwnerThread()
+    {
+        await using var owner = new NativeOwner(heartbeat: false);
+        await owner.InitializeAsync();
+        var attempts = 0;
+        await owner.SetContentAsync(() =>
+        {
+            // Exercise the real retry delay without modifying the global clipboard.
+            if (++attempts == 1) throw new COMException("Controlled clipboard busy", unchecked((int)0x800401D0));
+        });
+        Assert.AreEqual(2, attempts, "Both attempts must execute on the initialized owner thread.");
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() },
     };
 
-    private static Task PublishEagerAsync(DispatcherQueue dispatcher, string text) => dispatcher.EnqueueAsync(() =>
+    private static Task PublishEagerAsync(NativeOwner owner, string text) => owner.SetContentAsync(() =>
     {
         var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
         package.SetText(text);
-        return ClipboardAccessPolicy.SetContentAsync(() => { Clipboard.SetContent(package); Clipboard.Flush(); });
+        Clipboard.SetContent(package);
+        Clipboard.Flush();
     }).WaitAsync(TimeSpan.FromSeconds(8));
 
     private static async Task<int> CountTextAsync(IItemRepository repository, string text) =>
@@ -396,6 +410,7 @@ public sealed class ClipboardDeferredProviderNativeTests
         private DispatcherQueueTimer? _timer;
         private long _heartbeats;
         private bool _oleInitialized;
+        private int _ownerThreadId;
         public DispatcherQueue Queue => _controller.DispatcherQueue;
         public nint Window { get; private set; }
         public ApartmentState Apartment { get; private set; } = ApartmentState.Unknown;
@@ -404,6 +419,7 @@ public sealed class ClipboardDeferredProviderNativeTests
 
         public Task InitializeAsync() => Queue.EnqueueAsync(() =>
         {
+            _ownerThreadId = Environment.CurrentManagedThreadId;
             Apartment = Thread.CurrentThread.GetApartmentState();
             OleHResult = OleInitialize(0);
             Marshal.ThrowExceptionForHR(OleHResult.Value);
@@ -420,6 +436,36 @@ public sealed class ClipboardDeferredProviderNativeTests
             }
             return Task.CompletedTask;
         }).WaitAsync(TimeSpan.FromSeconds(8));
+
+        public async Task SetContentAsync(Action setContent)
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            var cancellationToken = timeout.Token;
+            try
+            {
+                await ClipboardAccessPolicy.SetContentAsync(() =>
+                {
+                    // Retry delays have no owner SynchronizationContext. Dispatch every
+                    // synchronous write back, without blocking the owner on its own queue.
+                    if (Queue.HasThreadAccess) Write();
+                    else Queue.EnqueueAsync(() => { Write(); return Task.CompletedTask; })
+                        .WaitAsync(cancellationToken).GetAwaiter().GetResult();
+                }, cancellationToken).WaitAsync(cancellationToken);
+            }
+            finally { timeout.Cancel(); }
+
+            void Write()
+            {
+                // A timed-out queued callback may still be dequeued during cleanup.
+                // It must not publish after this operation has returned.
+                cancellationToken.ThrowIfCancellationRequested();
+                Assert.IsTrue(Queue.HasThreadAccess, "Clipboard publication must run on its owner queue.");
+                Assert.AreEqual(_ownerThreadId, Environment.CurrentManagedThreadId, "Clipboard publication must remain on the OLE-initialized thread.");
+                Assert.AreEqual(ApartmentState.STA, Thread.CurrentThread.GetApartmentState());
+                Assert.IsTrue(_oleInitialized, "Clipboard publication requires a live OLE initialization.");
+                setContent();
+            }
+        }
 
         public async ValueTask DisposeAsync()
         {
