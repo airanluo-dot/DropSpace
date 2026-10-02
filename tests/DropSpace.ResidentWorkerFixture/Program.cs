@@ -73,7 +73,9 @@ internal static class Program
             // after closing the writer so Windows readers cannot race its handle.
             var pendingPidPath = pidPath + ".pending";
             File.WriteAllText(pendingPidPath, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            File.Move(pendingPidPath, pidPath);
+            // The same verified helper package can be launched repeatedly. Replace
+            // its previous PID signal without reopening the published file to write.
+            File.Move(pendingPidPath, pidPath, overwrite: true);
         }
         if (Text("argumentsPath") is { } argumentsPath) File.WriteAllLines(argumentsPath, args, new UTF8Encoding(false));
         if (Text("capturedPromptPath") is { } captured)

@@ -141,12 +141,17 @@ public sealed class Ct2HelperAdapterTests
         WindowsProcessFixture.RequireAvailable();
         using var fixture = new Fixture("cat >/dev/null\nprintf '%s' '{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"translated\"}]}'\n",
             new { kind = "ct2", output = "{\"version\":1,\"lines\":[{\"id\":0,\"text\":\"translated\"}]}" });
+        // A prior invocation's readiness signal must not crash the next helper.
+        // Keep it present: deleting it here would hide the fixture publication bug.
+        File.WriteAllText(fixture.ProcessIdPath, "stale prior process");
         using var adapter = new Ct2HelperAdapter();
         for (var i = 0; i < 10; i++)
         {
             var result = await adapter.TranslateAsync(fixture.Reference, "ja", "en", [new(0, "source")], CancellationToken.None);
             Assert.AreEqual("translated", result.Single().Text);
             await adapter.DrainCleanupAsync(CancellationToken.None);
+            Assert.IsTrue(int.TryParse(await File.ReadAllTextAsync(fixture.ProcessIdPath), out var processId) && processId > 0);
+            Assert.IsFalse(File.Exists(fixture.ProcessIdPath + ".pending"));
         }
     }
 
