@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
-  "policyVersion": "lexical-context-eligibility-v3",
-  "reviewNotes": "Hand-authored original fixture has English rows 0–11, Japanese 12–23, Korean 24–35, Simplified Chinese 36–47. Labels describe the fixture; no labels or expectations enter the model prompt. Conservative unknown/weak evidence remains eligible even when a human knows the language. Explicit reviewed per-row policy expectations below must be renewed with policy changes; capture never regenerates them. The bounded English vocabulary does not positively identify the longer English fixture sentences: all 0–11 remain unknown. Short-phrase same-target admission and credits/multisegment behavior are covered by the separate fake-inference contract tests, not falsely claimed by this 48-line native fixture.",
+  "policyVersion": "lexical-context-eligibility-v4",
+  "reviewNotes": "Hand-authored original fixture has English rows 0–11, Japanese 12–23, Korean 24–35, Simplified Chinese 36–47. Labels describe the fixture; no labels or expectations enter the model prompt. Conservative unknown/weak evidence remains eligible even when a human knows the language. Explicit reviewed per-row policy expectations below must be renewed with policy changes; capture never regenerates them. Positive English function-word evidence recognizes rows 0, 1, 2, 3 and 7 without requiring a closed content-word vocabulary; the other English rows remain unknown. Mixed Latin clauses and romanization counterexamples, short-phrase same-target admission and credits/multisegment behavior are covered by separate fake-inference contract tests, not falsely claimed by this 48-line native fixture.",
   "semanticLanguages": [
     {
       "firstLineId": 0,
@@ -30,66 +30,42 @@
       {
         "lineId": 0,
         "sourceText": "I fold the morning into a paper boat.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
-        "eligible": true,
-        "reason": "unknown-language-retained",
-        "segments": [
-          {
-            "segmentIndex": 0,
-            "text": "I fold the morning into a paper boat.",
-            "sha256": "03e9e32a4d6a67edd57578dbf793a536afe88b874c11f793957247e25062958f"
-          }
-        ]
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
       },
       {
         "lineId": 1,
         "sourceText": "Your blue cup waits beside the window.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
-        "eligible": true,
-        "reason": "unknown-language-retained",
-        "segments": [
-          {
-            "segmentIndex": 0,
-            "text": "Your blue cup waits beside the window.",
-            "sha256": "81d9f463643bed1b5748993fb149c9233f436fe111c0f6d516217365bbd70e74"
-          }
-        ]
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
       },
       {
         "lineId": 2,
         "sourceText": "I did not promise to forget your name.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
-        "eligible": true,
-        "reason": "unknown-language-retained",
-        "segments": [
-          {
-            "segmentIndex": 0,
-            "text": "I did not promise to forget your name.",
-            "sha256": "a07960ebaa5f26be6722a8588ee5072f4021c5b2061c622e21aab520d63eb8e6"
-          }
-        ]
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
       },
       {
         "lineId": 3,
         "sourceText": "You said the northern road was closed.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
-        "eligible": true,
-        "reason": "unknown-language-retained",
-        "segments": [
-          {
-            "segmentIndex": 0,
-            "text": "You said the northern road was closed.",
-            "sha256": "b2183e8a6bc2a5a816e7b30cac53618abb6bb86494a099ab0d8b1f4e16a5ca86"
-          }
-        ]
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
       },
       {
         "lineId": 4,
@@ -142,18 +118,12 @@
       {
         "lineId": 7,
         "sourceText": "I hear the train but cannot see its lights.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
-        "eligible": true,
-        "reason": "unknown-language-retained",
-        "segments": [
-          {
-            "segmentIndex": 0,
-            "text": "I hear the train but cannot see its lights.",
-            "sha256": "09eb03687fe22f1e83fdee0df1b1dc6dcabfac404fac54656e08dce338268ec0"
-          }
-        ]
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
       },
       {
         "lineId": 8,
@@ -800,11 +770,11 @@
       {
         "lineId": 0,
         "sourceText": "I fold the morning into a paper boat.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
         "eligible": true,
-        "reason": "unknown-language-retained",
+        "reason": "identified-foreign-language",
         "segments": [
           {
             "segmentIndex": 0,
@@ -816,11 +786,11 @@
       {
         "lineId": 1,
         "sourceText": "Your blue cup waits beside the window.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
         "eligible": true,
-        "reason": "unknown-language-retained",
+        "reason": "identified-foreign-language",
         "segments": [
           {
             "segmentIndex": 0,
@@ -832,11 +802,11 @@
       {
         "lineId": 2,
         "sourceText": "I did not promise to forget your name.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
         "eligible": true,
-        "reason": "unknown-language-retained",
+        "reason": "identified-foreign-language",
         "segments": [
           {
             "segmentIndex": 0,
@@ -848,11 +818,11 @@
       {
         "lineId": 3,
         "sourceText": "You said the northern road was closed.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
         "eligible": true,
-        "reason": "unknown-language-retained",
+        "reason": "identified-foreign-language",
         "segments": [
           {
             "segmentIndex": 0,
@@ -912,11 +882,11 @@
       {
         "lineId": 7,
         "sourceText": "I hear the train but cannot see its lights.",
-        "detectedLanguage": null,
-        "confidence": 0,
-        "evidenceKind": "Unknown",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
         "eligible": true,
-        "reason": "unknown-language-retained",
+        "reason": "identified-foreign-language",
         "segments": [
           {
             "segmentIndex": 0,

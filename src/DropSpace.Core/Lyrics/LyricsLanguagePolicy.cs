@@ -19,7 +19,7 @@ public readonly record struct LyricsLanguageEvidence(string? Language, double Co
 /// </summary>
 public static class LyricsLanguagePolicy
 {
-    public const string Version = "lexical-context-eligibility-v3";
+    public const string Version = "lexical-context-eligibility-v4";
     private static readonly Regex Credit = new(@"^\s*(?:作\s*词|作\s*詞|作\s*曲|编\s*曲|編\s*曲|填词|填詞|词曲|詞曲|词|詞|曲|制作人|製作人|制作|製作|监制|監製|混音|母带|母帶|录音|錄音|演唱|原唱|和声|和聲|吉他|贝斯|貝斯|鼓|钢琴|鋼琴|出品|发行|發行|版权|版權|翻译|翻譯|译者|譯者|词作者|曲作者|lyrics(?: by)?|words(?: by)?|music(?: by)?|written by|composed by|composer|arranged by|arranger|producer|produced by|mixed by|mastered by|vocal(?:s)?|guitar|bass|drums)\s*[:：/／]|^\s*(?:written|composed|arranged|produced|mixed|mastered|lyrics|words|music)\s+by\s+\S", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Words = new(@"[a-z]+(?:['’][a-z]+)?", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly HashSet<string> English = new(StringComparer.OrdinalIgnoreCase)
@@ -31,13 +31,15 @@ public static class LyricsLanguagePolicy
     private static readonly Regex SpacedCredit = new(@"^\s*(?:作\s*词|作\s*詞|作\s*曲|编\s*曲|編\s*曲|填词|填詞|词曲|詞曲|制作人|製作人|编曲|混音|母带|母帶|录音|錄音|演唱|原唱)\s+\S", RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly HashSet<string> DistinctiveEnglish = new(StringComparer.OrdinalIgnoreCase)
     { "the", "you", "your", "you're", "i'm", "i've", "don't", "doesn't", "isn't", "it's", "we're", "they", "their", "with", "without", "this", "that", "would", "could", "should" };
-    // A small auditable vocabulary bounds the grammar rule. Unknown Latin words
-    // can be another language or romanization, so English cues must not swallow them.
-    private static readonly HashSet<string> EnglishLexicalWords = new(StringComparer.OrdinalIgnoreCase)
-    { "love", "need", "miss", "want", "wait", "stay", "light", "life", "here", "there", "always", "forever",
-        "know", "see", "hear", "feel", "hold", "leave", "come", "go", "home", "heart", "away", "alone", "together",
-        "be", "am", "is", "it", "not", "no", "we", "us", "he", "she", "him", "her", "them", "a", "an", "to",
-        "of", "in", "on", "at", "as", "so", "but", "or", "only", "again", "all", "one", "two" };
+    // Positive English function-word evidence permits open content vocabulary.
+    // Only positive foreign phrase evidence can contradict it; a new noun/verb
+    // is not itself evidence of another language. These bounded multi-word cues
+    // retain mixed/romanized clauses without treating every Latin word as English.
+    private static readonly Regex ForeignLatinPhrase = new(
+        @"\b(?:je\s+(?:t'aime|suis|veux|te|ne)|tu\s+(?:es|vas)|nous\s+(?:sommes|avons)|vous\s+(?:etes|avez)|(?:mon|ton)\s+amour|la\s+vie\s+est|" +
+        @"mi\s+amor|te\s+(?:amo|quiero)|yo\s+(?:soy|quiero)|sin\s+ti|ich\s+(?:bin|liebe|will)|wir\s+(?:sind|haben)|eu\s+te\s+amo|" +
+        @"(?:wo|ni|ta)\s+(?:ai|yao|zai|shi)|(?:kimi|anata|watashi|boku)\s+(?:no|wa|o)|no\s+na\s+wa|(?:ai|koi)\s+no|aishiteru|saranghae(?:yo)?)\b",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
 
     private static string[] PhysicalLines(string text) => text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     private static bool IsCreditLine(string text) => Credit.IsMatch(text) || SpacedCredit.IsMatch(text);
@@ -87,9 +89,10 @@ public static class LyricsLanguagePolicy
             var shortImperative = words.Length == 3 && words[0].Equals("let", StringComparison.OrdinalIgnoreCase) &&
                 new[] { "it", "me", "us", "him", "her", "them" }.Contains(words[1], StringComparer.OrdinalIgnoreCase) &&
                 new[] { "be", "go" }.Contains(words[2], StringComparer.OrdinalIgnoreCase);
-            if (shortImperative || words.Length >= 3 && words.All(word => English.Contains(word) || EnglishLexicalWords.Contains(word)) &&
+            if (!ForeignLatinPhrase.IsMatch(string.Join(" ", words)) &&
+                (shortImperative || words.Length >= 3 &&
                 words.Any(DistinctiveEnglish.Contains) &&
-                words.Where(English.Contains).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 2)
+                words.Where(English.Contains).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 2))
                 return new("en", 0.95, LyricsLanguageEvidenceKind.Lexical);
         }
         return default;

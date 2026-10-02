@@ -89,7 +89,38 @@ or sampler:
   7B; a missing genuine capture leaves publication blocked. Release notes distinguish the
   default 1.8B and optional, unqualified 7B profiles.
 
-## Actual cloud verification
+## English admission repair following review of the second candidate
+
+The second candidate, `1eee12095d240ce9605a58cde46c80e477f6a8b5` (tree
+`1a0842ad27cfa1203d0573b22fa6179bbc731a37`), fixed the first review findings
+but introduced a confirmed English admission regression. Its closed content-word
+vocabulary rejected ordinary sentences such as `Your blue cup waits beside the
+window.` and `You said the northern road was closed.` Unknown classification
+allowed same-target AI rewriting and prevented matching English provider bypass.
+
+Policy v4 retains positive English function-word evidence with open content
+vocabulary. Bounded positive foreign-phrase evidence vetoes mixed Latin clauses;
+unrecognized words alone are not foreign-language evidence. Short English cases,
+mixed scripts, romanization and credits retain their prior admission rules. This
+remains a conservative heuristic, not universal language recognition. Version v4
+also fences prior AI cache keys; the fixed prompt and sampler are unchanged.
+
+An isolated identical probe compiled the old policy and current policy into
+separate scratch outputs: the two original sentences plus NetEase/QQ translations
+failed all six expectations on `1eee12095` and passed all six after repair.
+Actual App service tests cover fresh mocked payloads, legacy source-v2 null tags
+and poisoned AI caches, asserting zero AI cache/resolver/inference/progress calls
+and unchanged original/provider text. Coordinator tests separately reject poisoned
+cache admission before invoking inference or progress.
+
+The unchanged source48 fixture was reviewed against the actual policy: English
+IDs 0, 1, 2, 3 and 7 now have positive evidence, leaving 43 English-target calls;
+Chinese-target calls remain 40. Other English IDs remain unknown. Human language
+labels are never injected into prompts or production metadata. Frozen expectations
+and the publication gate reject AI text on excluded English IDs 1 and 3 as well
+as Chinese ID 37. This does not create genuine native model evidence or approval.
+
+## Cloud verification of the second candidate (historical)
 
 | Check | Actual result | Limit |
 | --- | --- | --- |
@@ -117,6 +148,28 @@ Temporary linked App evidence is in `/workspace/scratch/app-managed-regression` 
 are in `/workspace/scratch/node-static-triage`. None is a path on the user's Windows computer.
 NuGet restore succeeded through the configured network; dependency locks and sources were
 not changed. No runtime, model, build cache or large test payload is added to Git.
+
+## Cloud verification after the English admission repair
+
+| Check | Actual result |
+| --- | --- |
+| Full Core | 490 passed, 0 failed, 0 skipped |
+| Full Infrastructure | 619 passed, **8 failed**, 26 skipped; same Linux limitations detailed above |
+| Linked actual App services | 76 passed, 0 failed, 0 skipped |
+| Isolated old/current parser and admission probe | Old 0/6 (expected RED), current 6/6 |
+| Node scripts | 359 passed, 0 failed, 0 skipped |
+| Six static PowerShell policies | Passed; 693 synchronized resource keys |
+| Evidence tool Release build, fake contract and frozen fixture audit | Passed; build 0 warnings/errors |
+| PowerShell evidence contracts | Passed, no native execution |
+| Actual publication gate | Still blocked at pending |
+
+These records are in `/workspace/scratch/dropspace-cloud-checkpoint/english-regression-validation`;
+the isolated probe is in `/workspace/scratch/english-admission-red-green`. An initial Node
+invocation omitted the installed PowerShell directory from PATH (13 `pwsh ENOENT` failures).
+After correcting only the process environment, the complete rerun passed; both logs remain.
+No real model or user-machine workload was run for this repair. Same-commit Windows CI and
+independent review remain separate requirements. Glow appearance and motion are also a
+separate iterative acceptance item; policy tests and single frames do not establish it.
 
 ## First-candidate Windows CI and remaining acceptance
 

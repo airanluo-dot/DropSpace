@@ -71,7 +71,11 @@ public sealed class AuditLyricsAdmissionTests
     [DataRow("I love you")]
     [DataRow("I need you")]
     [DataRow("Let it be")]
-    public async Task ShortEnglishOriginalSkipsCacheResolverInferenceAndProgress(string text)
+    [DataRow("Your blue cup waits beside the window.")]
+    [DataRow("You said the northern road was closed.")]
+    [DataRow("Your amber lantern glows beside the window.")]
+    [DataRow("You said the winding path was blocked.")]
+    public async Task SameTargetEnglishOriginalSkipsCacheResolverInferenceAndProgress(string text)
     {
         using var fixture = new Fixture();
         var source = LyricsParser.Parse("作词：Someone\n" + text + "\n作曲：Someone", LyricsProviderKind.NetEase);
@@ -81,6 +85,56 @@ public sealed class AuditLyricsAdmissionTests
         var result = await fixture.Service.TranslateIfAvailableAsync(Query, source, Enabled, "en-US", default, progress);
         CollectionAssert.AreEqual(source.Lines.ToArray(), result.Lines.ToArray());
         Assert.IsNull(result.Lines.Single().Secondary);
+        Assert.AreEqual(0, progressCalls);
+        fixture.AssertNoAiCalls();
+    }
+
+    [TestMethod]
+    [DataRow(LyricsProviderKind.NetEase, false, "Your blue cup waits beside the window.")]
+    [DataRow(LyricsProviderKind.NetEase, true, "Your blue cup waits beside the window.")]
+    [DataRow(LyricsProviderKind.QqMusic, false, "Your blue cup waits beside the window.")]
+    [DataRow(LyricsProviderKind.QqMusic, true, "Your blue cup waits beside the window.")]
+    [DataRow(LyricsProviderKind.NetEase, false, "You said the northern road was closed.")]
+    [DataRow(LyricsProviderKind.NetEase, true, "You said the northern road was closed.")]
+    [DataRow(LyricsProviderKind.QqMusic, false, "You said the northern road was closed.")]
+    [DataRow(LyricsProviderKind.QqMusic, true, "You said the northern road was closed.")]
+    public async Task EnglishProviderContentWordsSurviveFreshAndLegacyPayloadsWithoutAnyAiCalls(
+        LyricsProviderKind provider, bool legacySourceCache, string translation)
+    {
+        using var fixture = new Fixture();
+        using var handler = new PayloadHandler(provider, originalOverride: "[00:01]你的蓝色杯子放在窗边",
+            translationOverride: "[00:01]" + translation);
+        using var client = new HttpClient(handler);
+        var lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(client), () => ""), fixture.Cache);
+        var settings = Enabled with { Provider = provider };
+        var queried = await lyrics.QueryDetailedAsync(Query, settings, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, queried.Status);
+        var source = queried.Document;
+        if (legacySourceCache)
+        {
+            var key = JsonSerializer.Serialize(new
+            {
+                version = "source-v2", primary = provider, backup = (LyricsProviderKind?)null, settings.SearchRemainingProviders,
+                Query.TrackIdentity, Query.Title, Query.Artist, Query.AlbumArtist, Query.Album, durationTicks = Query.Duration.Ticks,
+            });
+            await fixture.Cache.WriteDocumentAsync(key, source with
+                { Lines = source.Lines.Select(line => line with { TranslationLanguage = null }).ToArray() }, fixture.Cache.Generation, default);
+            var requests = handler.Calls;
+            source = (await lyrics.QueryDetailedAsync(Query, settings, default)).Document;
+            Assert.AreEqual(requests, handler.Calls);
+        }
+        Assert.IsTrue(LyricsTranslationPolicy.HasMatchingProviderTranslation(source, "en-US"));
+        var aiCache = new AiLyricsCache(fixture.Cache);
+        await aiCache.WriteAsync(LyricsTranslationPrompt.CacheKey(Query, source, "en-US", AiLyricsModelCatalog.ExperimentalPlain.Sha256),
+            "[{\"id\":0,\"text\":\"The model must not rewrite the provider translation\"}]", default);
+        var progressCalls = 0;
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true,
+            (_, _) => { progressCalls++; return Task.CompletedTask; });
+        var result = await fixture.Service.TranslateIfAvailableAsync(Query, source, settings, "en-US", default, progress);
+        CollectionAssert.AreEqual(source.Lines.ToArray(), result.Lines.ToArray());
+        Assert.AreEqual("你的蓝色杯子放在窗边", result.Lines[0].Text);
+        Assert.AreEqual(translation, result.Lines[0].Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, result.Lines[0].TranslationOrigin);
         Assert.AreEqual(0, progressCalls);
         fixture.AssertNoAiCalls();
     }
@@ -186,15 +240,16 @@ public sealed class AuditLyricsAdmissionTests
         public void Dispose() { }
     }
 
-    private sealed class PayloadHandler(LyricsProviderKind provider, bool untimed = false) : HttpMessageHandler
+    private sealed class PayloadHandler(LyricsProviderKind provider, bool untimed = false,
+        string? originalOverride = null, string? translationOverride = null) : HttpMessageHandler
     {
         public int Calls { get; private set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Calls++;
             var lyric = request.RequestUri!.AbsolutePath.Contains("lyric", StringComparison.Ordinal);
-            var original = untimed ? "I miss your smile\nLondon" : "[00:01]I will wait for you\n[00:04]Baby";
-            var translated = untimed ? "我的世界充满阳光\nLondon" : "[00:01]我会一直等待你\n[00:04]Baby";
+            var original = originalOverride ?? (untimed ? "I miss your smile\nLondon" : "[00:01]I will wait for you\n[00:04]Baby");
+            var translated = translationOverride ?? (untimed ? "我的世界充满阳光\nLondon" : "[00:01]我会一直等待你\n[00:04]Baby");
             var json = provider == LyricsProviderKind.NetEase
                 ? lyric ? JsonSerializer.Serialize(new { code = 200, lrc = new { lyric = original }, tlyric = new { lyric = translated } })
                     : """{"code":200,"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}],"album":{"name":"Album"},"duration":30000}]}}"""

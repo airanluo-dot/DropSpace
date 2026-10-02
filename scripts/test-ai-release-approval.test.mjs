@@ -302,10 +302,10 @@ for (const [label, mutate, expected] of [
   assert.throws(() => x.validate(), expected);
 });
 
-test('excluded original rows cannot gain AI text in captured final results', t => {
+for (const [targetIndex, lineId] of [[0, 1], [0, 3], [1, 37]]) test(`excluded original row ${lineId} for target ${targetIndex} cannot gain AI text in captured final results`, t => {
   const x = example(t);
-  x.outputPackets[1].finalDocument.lines[37].secondary = 'AI rewrite';
-  saveOutputPacket(x, 1);
+  x.outputPackets[targetIndex].finalDocument.lines[lineId].secondary = 'AI rewrite';
+  saveOutputPacket(x, targetIndex);
   assert.throws(() => x.validate(), /Excluded source row/);
 });
 

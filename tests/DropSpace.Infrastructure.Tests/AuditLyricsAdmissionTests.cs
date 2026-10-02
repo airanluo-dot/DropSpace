@@ -12,6 +12,29 @@ public sealed class AuditLyricsAdmissionTests
     private static string Identity => PlainHyLyricsProtocol.InferenceIdentity(new string('a', 64));
 
     [TestMethod]
+    [DataRow("Your blue cup waits beside the window.", false)]
+    [DataRow("Your blue cup waits beside the window.", true)]
+    [DataRow("You said the northern road was closed.", false)]
+    [DataRow("You said the northern road was closed.", true)]
+    public async Task RecognizedEnglishBypassesPoisonedCacheInferenceAndProgress(string text, bool providerTranslation)
+    {
+        using var fixture = new Fixture();
+        var source = providerTranslation
+            ? LyricsParser.Parse("[00:01]你的蓝色杯子放在窗边", LyricsProviderKind.NetEase, "[00:01]" + text)
+            : LyricsParser.Parse("[00:01]" + text, LyricsProviderKind.NetEase);
+        var key = PlainHyLyricsProtocol.CacheKey(Query, source, "en-US", Identity);
+        await fixture.Cache.WriteAsync(key, "[{\"id\":0,\"text\":\"Unwanted AI rewrite\"}]", default);
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(Query, source, "en-US", Identity, default));
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true,
+            (_, _) => throw new AssertFailedException("No progress should be published on language bypass."));
+        var result = await fixture.Coordinator.TranslateAsync(Query, source, "en-US", Identity, fixture.Cache.Generation,
+            (_, _) => throw new AssertFailedException("No inference should run on language bypass."), default, progress);
+        CollectionAssert.AreEqual(source.Lines.ToArray(), result.Document.Lines.ToArray());
+        Assert.AreEqual(providerTranslation ? LyricsTranslationOrigin.Provider : LyricsTranslationOrigin.None,
+            result.Document.Lines[0].TranslationOrigin);
+    }
+
+    [TestMethod]
     [DataRow("作词：某人\nI love you\n作曲：另一人\n君の声が聞こえる", "zh-CN", "I love you", "君の声が聞こえる")]
     [DataRow("I love you\n作曲：另一人\nkimi no na wa", "en-US", "kimi no na wa", null)]
     [DataRow("作词：某人\n我的世界充满阳光\nI need you\n作曲：另一人\n愛", "zh-CN", "I need you", "愛")]

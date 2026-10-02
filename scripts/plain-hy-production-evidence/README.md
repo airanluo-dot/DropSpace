@@ -80,11 +80,14 @@ human language annotations are for auditing only and never enter the prompt or
 production source metadata. Capture compares actual policy decisions against
 this frozen file and fails on drift; it never regenerates expectations.
 
-Under policy v3, all 48 rows remain eligible for English: the bounded English
-vocabulary conservatively leaves these longer English sentences unknown. For
+Under policy v4, English rows 0, 1, 2, 3 and 7 have positive function-word
+evidence and remain original for the English target, leaving 43 calls. Open
+content vocabulary does not count as foreign-language evidence. Other English
+fixture rows remain unknown and eligible; human labels never force a match. For
 Simplified Chinese, rows 37, 38, 39, 40, 41, 44, 46 and 47 have positive matching
 evidence and remain original, leaving 40 calls. Japanese/Korean verses and unknown
-rows stay eligible. Short known English phrases, credits at the start/middle of
+rows stay eligible. Mixed Latin clauses and romanization counterexamples,
+short known English phrases, credits at the start/middle of
 an untimed block, and multiple semantic segments sharing one display ID are
 verified in separate fake-inference contract tests, not claimed as native fixture
 coverage. If the policy changes, review the fixture plan again before capture.
