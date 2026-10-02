@@ -1,0 +1,17 @@
+{
+  "id": "marian-private-helper-v1",
+  "status": "candidate-only; PENDING SEMANTIC REVIEW",
+  "runtime": "Windows x64, CPython 3.11.9, CT2 int8 CPU, private child process with no HTTP service",
+  "sourceLanguage": "Known fixture labels; this does not validate App automatic language detection",
+  "routes": {"zh-en": "direct", "ja-en": "direct", "ko-en": "direct", "en-zh": ">>cmn_Hans<< id 5", "ja-zh": "ja-en then en-zh", "ko-zh": "ko-en then en-zh"},
+  "budgets": {"jobMemoryMiB": 3072, "compactComparisonMiB": 1536, "cpuThreads": 4, "perHopSeconds": 60, "wholeTargetSeconds": 180, "coldAndWarmCombinedWithinTargetBudget": true, "cleanupObservationSeconds": 10},
+  "sampler": {"type": "deterministic beam search", "beamSize": 4, "maxInputTokens": 512, "maxDecodingLength": 511, "requireTerminalEOS": true, "maxBatchSize": 12, "samplingTopK": 1, "lengthPenalty": 1, "repetitionPenalty": 1},
+  "source48Sha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
+  "holdout12Sha256": "88a30d2ddd52307ab5832b457400c4a50545800147ac6c9e8863dd71f96f8b56",
+  "holdoutOriginalSha256": "844e47610bfe4b02165b1db8841b8fadb5453380bf09ebd876f5eb96490fc299",
+  "tests": ["full48 EN and simplified Chinese cold/warm", "frozen holdout12 EN and simplified Chinese cold/warm", "source-only zero model calls", "cancel real CT2 decode and confirm Windows Job ownership cleanup"],
+  "warm": "Second decode using retained model/tokenizer instances, not result cache reuse",
+  "quality": {"warnings": "Minor understandable lexical/modifier differences or small omissions", "blockers": "Wrong target language, foreign-source copying, clear overall meaning reversal"},
+  "build": "Official pinned weights_only deserialization, safetensors intermediate, CT2 int8 conversion. Build resource/time separate from inference.",
+  "noPublication": true
+}

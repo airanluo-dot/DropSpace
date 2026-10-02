@@ -1,0 +1,51 @@
+name: Marian offline candidate QA (no publication)
+on:
+  push:
+    branches: [qa/marian-031]
+    paths:
+      - scripts/marian-model-qa/**
+      - '!scripts/marian-model-qa/README.md'
+      - .github/workflows/marian-model-diagnostics.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: marian-model-diagnostics-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  marian-candidate:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: 3.11.9
+          architecture: x64
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Convert pinned official weights then measure isolated offline inference
+        id: candidate
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/marian-model-qa/Run-WindowsMarianQa.ps1
+      - name: Preserve actual evidence including failures
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: marian-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/marian-evidence
+          if-no-files-found: error
+          retention-days: 14
+      - name: Require technical completion; content review remains pending
+        if: always()
+        shell: pwsh
+        env:
+          CANDIDATE_OUTCOME: ${{ steps.candidate.outcome }}
+        run: |
+          '## Marian candidate: PENDING SEMANTIC REVIEW' >> $env:GITHUB_STEP_SUMMARY
+          'Known fixture source-language routes. Technical success is not publication approval.' >> $env:GITHUB_STEP_SUMMARY
+          if ($env:CANDIDATE_OUTCOME -ne 'success') { throw 'Candidate technical execution failed; see raw artifact' }
