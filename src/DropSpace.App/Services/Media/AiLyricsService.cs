@@ -103,6 +103,14 @@ public sealed class AiLyricsService : IDisposable
         if (LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage)) return document;
         var model = AiLyricsModelCatalog.Find(settings.AiModelId);
         if (model is null) return document;
+        // Validated cached data needs neither executable extraction nor a large model rehash.
+        // Actual inference still verifies every model/runtime before execution.
+        var cached = await _translations.TryGetCachedAsync(query, document, targetLanguage, model.Sha256, token).ConfigureAwait(false);
+        if (cached is not null)
+        {
+            SetState(statusGeneration, AiLyricsTranslationState.Completed);
+            return cached;
+        }
         if (!_circuit.TryBegin(out var generation)) return document;
         try
         {
@@ -135,7 +143,8 @@ public sealed class AiLyricsService : IDisposable
                 token.ThrowIfCancellationRequested();
             }
             // Timeout, missing runtime and invalid model output must not erase provider lyrics.
-            _logger.LogDebug("Local lyric translation unavailable ({Category}).", error.GetType().Name);
+            _logger.LogDebug("Local lyric translation unavailable ({Category}); process exit code {ExitCode}.",
+                error.GetType().Name, (error as LocalInferenceExecutionException)?.ExitCode);
             RecordResult(generation, false);
             SetState(statusGeneration, AiLyricsTranslationState.Unavailable);
             return document;

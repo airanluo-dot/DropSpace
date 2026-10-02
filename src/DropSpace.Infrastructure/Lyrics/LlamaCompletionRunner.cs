@@ -74,7 +74,7 @@ public sealed class LlamaCompletionRunner : IDisposable
                     await errors.ConfigureAwait(false);
                     await memory.ConfigureAwait(false);
                     deadline.Token.ThrowIfCancellationRequested();
-                    if (process.ExitCode != 0) throw new IOException("Local inference exited unsuccessfully.");
+                    if (process.ExitCode != 0) throw new LocalInferenceExecutionException(process.ExitCode, tokenizer: false);
                     return RemoveRuntimeTerminator(text);
                 }
                 finally
@@ -144,7 +144,7 @@ public sealed class LlamaCompletionRunner : IDisposable
                 var text = await output.ConfigureAwait(false);
                 await Task.WhenAll(errors, memory).ConfigureAwait(false);
                 deadline.Token.ThrowIfCancellationRequested();
-                if (child.Process.ExitCode != 0) throw new IOException("Local tokenizer exited unsuccessfully.");
+                if (child.Process.ExitCode != 0) throw new LocalInferenceExecutionException(child.Process.ExitCode, tokenizer: true);
                 const string marker = "Total number of tokens:";
                 var offset = text.LastIndexOf(marker, StringComparison.Ordinal);
                 if (offset < 0 || !int.TryParse(text[(offset + marker.Length)..].Trim(),

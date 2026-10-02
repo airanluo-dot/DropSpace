@@ -75,6 +75,8 @@ public sealed partial class OverlayWindow : Window
     private string _lastNativeFailureDiagnostics = "none";
     private readonly int _operatingSystemBuild;
     private bool _visualDragActive;
+    private long _visualDragGeneration;
+    private readonly CancellationTokenSource _windowLifetime = new();
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
     private readonly OverlayPlacementEditSession _placementEdit = new();
@@ -569,6 +571,8 @@ public sealed partial class OverlayWindow : Window
     {
         if (_closing) return;
         _closing = true;
+        _windowLifetime.Cancel();
+        Views.ContentDialogLifetime.RetireRoot(Root.XamlRoot);
         _mediaViewModel.PropertyChanged -= OnGlowMediaChanged;
         _mediaViewModel.SetIslandGlowActive(this, false);
         _glow.Dispose();
@@ -1609,7 +1613,7 @@ public sealed partial class OverlayWindow : Window
                 new ItemSelectionSnapshot([DropItemSnapshot.FromItem(quickAction.Card.Item)]),
                 quickAction.ActionId,
                 xamlRoot,
-                _windowHandle);
+                _windowHandle, _windowLifetime.Token);
             if (_closing || context is null)
             {
                 return;
@@ -1617,7 +1621,7 @@ public sealed partial class OverlayWindow : Window
 
             var result = await _viewModel.ExecuteQuickActionAsync(quickAction, context);
             if (_closing) return;
-            await _quickActionDialog.ShowResultAsync(result, xamlRoot);
+            await _quickActionDialog.ShowResultAsync(result, xamlRoot, _windowLifetime.Token);
         }
         catch (Exception exception)
         {
@@ -1705,6 +1709,7 @@ public sealed partial class OverlayWindow : Window
         if (!_visualDragActive)
         {
             _visualDragActive = true;
+            ++_visualDragGeneration;
             _visualDragCallbacks.DragApproaching(_monitor.Id);
         }
         _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
@@ -1724,6 +1729,7 @@ public sealed partial class OverlayWindow : Window
             if (!_visualDragActive)
             {
                 _visualDragActive = true;
+                ++_visualDragGeneration;
                 _visualDragCallbacks.DragApproaching(_monitor.Id);
             }
             _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
@@ -1757,6 +1763,17 @@ public sealed partial class OverlayWindow : Window
         }
 
         args.Handled = true;
+        var generation = _visualDragGeneration;
+        var outer = _visualDragCallbacks.CaptureGuard?.Invoke();
+        bool Current() => !_closing && generation == _visualDragGeneration && (outer?.Invoke() ?? true);
+        // OLE can begin another gesture while this payload provider is still asynchronous.
+        _visualDragActive = false;
+        void Finish()
+        {
+            if (!Current()) return;
+            _visualDragActive = false;
+            _visualDragCallbacks.DragLeft(_monitor.Id);
+        }
         var deferral = args.GetDeferral();
         try
         {
@@ -1782,16 +1799,18 @@ public sealed partial class OverlayWindow : Window
                     paths.Length);
                 if (paths.Length == 0)
                 {
-                    ResetVisualDrag();
+                    Finish();
                     return;
                 }
 
-                await _visualDragCallbacks.Dropped(_monitor.Id, paths);
+                if (_visualDragCallbacks.GuardedDropped is { } guarded)
+                    await guarded(_monitor.Id, paths, Current);
+                else await _visualDragCallbacks.Dropped(_monitor.Id, paths);
                 // Use the same cleanup path as DragLeave. The drop callback normally clears
                 // ownership in OverlayWindowService, but keeping this local state transition
                 // explicit also covers direct/test callbacks and guarantees the visual target
                 // cannot remain in a drag-ready state after a successful drop.
-                ResetVisualDrag();
+                Finish();
                 return;
             }
 
@@ -1801,22 +1820,22 @@ public sealed partial class OverlayWindow : Window
                 var text = args.DataView.Contains(StandardDataFormats.WebLink)
                     ? (await args.DataView.GetWebLinkAsync()).AbsoluteUri
                     : await args.DataView.GetTextAsync();
-                await _viewModel.CompleteVisibleTextDropAsync(_monitor.Id, text);
+                await _viewModel.CompleteVisibleTextDropAsync(_monitor.Id, text, isCurrent: Current);
                 args.AcceptedOperation = DataPackageOperation.Copy;
                 // Text drops do not go through the file-drop callback's common cleanup path.
                 // Reset after completion so the completed drop is not immediately cancelled.
-                ResetVisualDrag();
+                Finish();
                 return;
             }
 
             args.AcceptedOperation = DataPackageOperation.None;
-            ResetVisualDrag();
+            Finish();
         }
         catch (Exception exception)
         {
             args.AcceptedOperation = DataPackageOperation.None;
             _logger.LogWarning(exception, "Visible Overlay StorageItems drop failed.");
-            ResetVisualDrag();
+            Finish();
         }
         finally { deferral.Complete(); }
     }

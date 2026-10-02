@@ -615,6 +615,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public string StorageSummaryText => _strings.Format("StorageSummary", StorageSummary);
 
+    public Task CopyTextAsync(string text, CancellationToken token = default) => _clipboard.CopyTextAsync(text, token);
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         Settings = await _settingsCoordinator.LoadAsync(cancellationToken);
@@ -1697,6 +1699,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken,
+            actionContext?.CancellationToken ?? CancellationToken.None, _lifetimeCancellation.Token);
+        cancellationToken = lifetime.Token;
+        cancellationToken.ThrowIfCancellationRequested();
         selection ??= ResolveActionSelection(card);
         var capability = _actions.Evaluate(selection)
             .FirstOrDefault(candidate => candidate.Descriptor.Id == actionId && candidate.IsAvailable);
@@ -1715,7 +1722,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 CancellationToken = cancellationToken,
             };
         var result = await _actions.ExecuteAsync(actionId, context, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(result.MessageResourceKey))
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_disposed && !string.IsNullOrWhiteSpace(result.MessageResourceKey))
         {
             StatusMessage = _strings.Get(result.MessageResourceKey);
         }

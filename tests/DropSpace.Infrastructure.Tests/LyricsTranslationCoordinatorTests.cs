@@ -13,6 +13,26 @@ public sealed class LyricsTranslationCoordinatorTests
     private static readonly LyricsDocument Source = new([new(TimeSpan.Zero, TimeSpan.FromSeconds(3), "Hello", null, [])], LyricsProviderKind.LocalLrc);
 
     [TestMethod]
+    public async Task ValidatedCacheCanBeReadWithoutAnInferenceOrRuntimeDependency()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var cache = new AiLyricsCache(root);
+            await cache.WriteAsync(LyricsTranslationPrompt.CacheKey(Query, Source, "zh-CN", ModelHash), "[{\"id\":0,\"text\":\"你好\"}]", CancellationToken.None);
+            var coordinator = new LyricsTranslationCoordinator(cache);
+            var result = await coordinator.TryGetCachedAsync(Query, Source, "zh-CN", ModelHash, CancellationToken.None);
+            Assert.IsNotNull(result);
+            Assert.AreEqual("你好", result.Lines[0].Secondary);
+            AssertOriginalsUnchanged(Source, result);
+            Assert.IsNull(await coordinator.TryGetCachedAsync(Query, Source, "en-US", ModelHash, CancellationToken.None));
+            await cache.WriteAsync(LyricsTranslationPrompt.CacheKey(Query, Source, "zh-CN", ModelHash), "invalid", CancellationToken.None);
+            Assert.IsNull(await coordinator.TryGetCachedAsync(Query, Source, "zh-CN", ModelHash, CancellationToken.None));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
     public async Task CacheHitDoesNotRunInferenceAndLanguageHasSeparateKey()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

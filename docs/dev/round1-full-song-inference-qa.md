@@ -122,3 +122,15 @@ The local-context + generic-fidelity retry also failed to fix the blocking actio
 A final bounded Chinese-task-instruction candidate, motivated by the official model card’s task templates, also retained both serious semantic errors: standard action reversal at 39.819 s and compact scarf→headband at 58.251 s. Compact additionally changed the lamp/lantern to morning light. The candidate was not treated as a release-quality pass; complete outputs and provenance are in the semantic review.
 
 Final diagnostic: each model was tested once on its problematic line alone with the official minimal translation template and no background/JSON/schema. Standard still reversed leave→keep (11.644 s); compact changed scarf to necklace (7.595 s). These exact errors are not explained solely by structured-batch pressure. Known semantic release-quality blockers remain, and candidate testing stopped after the two planned calls. Full raw outputs and interpretation are in the semantic review and `.runtime/single-line-diagnostic/`.
+
+
+## Token-budget pipeline follow-up, 2026-10-01 21:41 UTC
+
+Re-executed the same synthetic 48-line fixture through the new actual `llama-tokenize` callback, with production runner model-specific memory watchdog and unchanged translation semantics. Linux development execution is not Windows hardware certification.
+
+- Standard→Chinese: 108.90 seconds, four first-attempt structurally valid batches; cache hit 0.0158 seconds, no inference.
+- Compact→Chinese: 141.43 seconds, four first-attempt structurally valid batches; cache hit 0.0084 seconds, no inference.
+- Standard→English: batch 3 ended with a nonzero-process IOException at 41.17 seconds; whole-song attempt stopped at 109.51 seconds and did not promote a partial song to cache. The old runner did not preserve its numeric exit code. This failure is unresolved, not silently counted as a pass.
+- One diagnostic replay of exactly that failed batch completed in 27.32 seconds, exit 0, peak observed Linux RSS 1,530,888,192 bytes. It is not proof that the earlier failure is fixed; sampling used the existing runtime default seed and the original failing exit reason was unavailable. No semantic candidate selection or substitution was performed.
+- Runtime errors now retain a numeric process exit code for privacy-safe diagnosis; no lyric text, prompt or personal path is added to production logs.
+- Source/outputs/counters are retained under `.runtime/fullsong-v4-budget-qa/` (synthetic QA only). The known semantic quality gate remains closed. The coordinator-only cache latency excludes the old App model/runtime rehash; the new cache-first App path still needs end-to-end measurement.

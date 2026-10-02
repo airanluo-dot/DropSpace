@@ -525,7 +525,9 @@ public sealed class DragSessionDetector : IDisposable, IAsyncDisposable
         }
 
         Interlocked.Exchange(ref _pointerObservationActive, 0);
-        Volatile.Write(ref _candidateCreationSuppressed, 0);
+        // Placement suppression is caller-owned desired state, not a native-run resource.
+        // A delayed Stop must not undo an edit that was armed while it was draining.
+        if (Volatile.Read(ref _disposeRequested) != 0) Volatile.Write(ref _candidateCreationSuppressed, 0);
         if (!_disposed)
         {
             _observerRegistrationReady.Reset();

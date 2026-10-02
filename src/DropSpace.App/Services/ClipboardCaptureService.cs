@@ -1131,7 +1131,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
         if (view.Contains(StandardDataFormats.Text))
         {
-            await _textReadSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // Retired native reads may never return; a full text pool must not block
+            // the single signal consumer from reaching newer image/file updates.
+            if (!await ClipboardProviderReadLifetime.TryReserveSlotAsync(_textReadSlots, cancellationToken).ConfigureAwait(false))
+                return new ClipboardReadResult(CreateRejectedSnapshot(signal, "text-read-capacity"), null);
             IAsyncOperation<string>? operation = null;
             Task<string>? nativeRead = null;
             TextReadLease? read = null;
@@ -1209,7 +1212,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
     {
         // A malicious or broken provider cannot accumulate unlimited native reads. Do not
         // wait for a retired slot here: newer text must still reach the single capture worker.
-        if (!await _providerReadSlots.WaitAsync(0, cancellationToken))
+        if (!await ClipboardProviderReadLifetime.TryReserveSlotAsync(_providerReadSlots, cancellationToken))
             return new ClipboardReadResult(CreateRejectedSnapshot(signal, "provider-read-capacity"), null);
         TextReadLease? lease = null;
         CancellationTokenSource? lifetime = null;

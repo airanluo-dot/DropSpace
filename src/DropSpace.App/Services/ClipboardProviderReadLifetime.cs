@@ -6,6 +6,8 @@ namespace DropSpace.App.Services;
 /// </summary>
 internal static class ClipboardProviderReadLifetime
 {
+    internal static Task<bool> TryReserveSlotAsync(SemaphoreSlim slots, CancellationToken token) => slots.WaitAsync(0, token);
+
     internal static async Task<T> CompleteAsync<T>(Task<T> nativeRead, Action cancel, Action close,
         CancellationToken cancellationToken, Action<Exception>? report = null)
     {

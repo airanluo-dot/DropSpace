@@ -45,10 +45,10 @@ public sealed class OverlayWindowService : IDisposable
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
     private long _activeSmartSessionId;
+    private long _dragGeneration;
     private DragScreenPoint _activeSmartSessionPoint;
     private FileDragWakeMode? _configuredWakeMode;
     private OverlayWindow? _placementEditingWindow;
-    private FileDragWakeMode? _placementInputRestoreMode;
     private bool _topologyRefreshPending;
     private bool _disposed;
     private bool _rebuildingSurfaces;
@@ -712,7 +712,6 @@ public sealed class OverlayWindowService : IDisposable
                 host.SetEnabled(false);
             }
 
-            _placementInputRestoreMode = _configuredWakeMode ?? _viewModel.FileDragWakeMode;
             _placementEditingWindow = window;
             // Reset the serialized drag policy before arming the edit. The edit still needs the
             // Smart observer's global Escape hook, so restart it after the old session is gone.
@@ -801,12 +800,8 @@ public sealed class OverlayWindowService : IDisposable
 
     private void RestorePlacementInputMode()
     {
-        var restoreMode = _placementInputRestoreMode;
-        _placementInputRestoreMode = null;
-        if (restoreMode is { } mode && mode != FileDragWakeMode.SmartExperimental)
-        {
-            _dragSessionDetector.SetMode(mode);
-        }
+        // Settings may have changed while the temporary Escape observer was active.
+        ConfigureWakeMode(_viewModel.FileDragWakeMode, force: true);
     }
 
     private void ResumePlacementSuppressedWindows()
@@ -895,8 +890,11 @@ public sealed class OverlayWindowService : IDisposable
             OnVisibleDragApproaching,
             OnVisibleDragReadyChanged,
             OnVisibleDragLeft,
-            OnVisibleDroppedAsync,
-            OnVisibleOwnedDroppedAsync);
+            (monitor, paths) => OnVisibleDroppedAsync(monitor, paths),
+            (monitor, paths, lease) => OnVisibleOwnedDroppedAsync(monitor, paths, lease),
+            CaptureDragCompletionGuard,
+            (monitor, paths, current) => OnVisibleDroppedAsync(monitor, paths, current),
+            (monitor, paths, lease, current) => OnVisibleOwnedDroppedAsync(monitor, paths, lease, current));
         foreach (var monitor in monitors)
         {
             var window = new OverlayWindow(
@@ -954,16 +952,19 @@ public sealed class OverlayWindowService : IDisposable
             _viewModel.CancelDrag();
         }
 
-        _dragSessionDetector.SetMode(mode);
+        _dragSessionDetector.SetMode(_placementEditingWindow is null ? mode : FileDragWakeMode.SmartExperimental);
         _configuredWakeMode = mode;
-        if (mode == FileDragWakeMode.ClassicTopEdge)
+        if (_placementEditingWindow is null && mode == FileDragWakeMode.ClassicTopEdge)
         {
             var callbacks = new DragActivationCallbacks(
                 OnDragApproaching,
                 OnDragReadyChanged,
                 OnDragLeft,
-                OnDroppedAsync,
-                OnOwnedDroppedAsync);
+                (monitor, paths) => OnDroppedAsync(monitor, paths),
+                (monitor, paths, lease) => OnOwnedDroppedAsync(monitor, paths, lease),
+                CaptureDragCompletionGuard,
+                (monitor, paths, current) => OnDroppedAsync(monitor, paths, current),
+                (monitor, paths, lease, current) => OnOwnedDroppedAsync(monitor, paths, lease, current));
             foreach (var monitor in _monitorLayout.GetMonitors())
             {
                 var host = _dragDropService.CreateActivationHost(monitor, callbacks);
@@ -992,6 +993,7 @@ public sealed class OverlayWindowService : IDisposable
                 _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
             }
 
+            if (_activeSmartSessionId != candidate.SessionId) ++_dragGeneration;
             _activeSmartSessionId = candidate.SessionId;
             _activeSmartSessionPoint = candidate.Point;
             _logger.LogInformation(
@@ -1110,6 +1112,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnDragApproaching(string monitorId)
     {
+        ++_dragGeneration;
         _activeDragOwner = DragTargetOwner.ActivationHost;
         _logger.LogInformation(
             "Visual overlay reveal requested by drag activation on monitor {MonitorId}.",
@@ -1139,11 +1142,12 @@ public sealed class OverlayWindowService : IDisposable
         ApplySnapshot(_viewModel.Snapshot);
     }
 
-    private async Task OnDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnDroppedAsync(string monitorId, IReadOnlyList<string> paths, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            var accepted = await _viewModel.CompleteDropAsync(monitorId, paths);
+            var accepted = await _viewModel.CompleteDropAsync(monitorId, paths, isCurrent: current);
             _logger.LogInformation(
                 "Temporary Space activation-host drop completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}.",
                 monitorId,
@@ -1152,28 +1156,36 @@ public sealed class OverlayWindowService : IDisposable
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
     }
 
-    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
+    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: false);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: false, isCurrent: current);
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
     }
 
     private void OnVisibleDragApproaching(string monitorId)
     {
+        ++_dragGeneration;
         if (_activeSmartSessionId != 0)
         {
             _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
@@ -1212,11 +1224,12 @@ public sealed class OverlayWindowService : IDisposable
         ApplySnapshot(_viewModel.Snapshot);
     }
 
-    private async Task OnVisibleDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnVisibleDroppedAsync(string monitorId, IReadOnlyList<string> paths, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            var accepted = await _viewModel.CompleteVisibleDropAsync(monitorId, paths);
+            var accepted = await _viewModel.CompleteVisibleDropAsync(monitorId, paths, isCurrent: current);
             _logger.LogInformation(
                 "Visible Overlay direct drop completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}, resulting state {State}.",
                 monitorId,
@@ -1226,24 +1239,37 @@ public sealed class OverlayWindowService : IDisposable
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
     }
 
-    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
+    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: true);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: true, isCurrent: current);
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
+    }
+
+    private Func<bool> CaptureDragCompletionGuard()
+    {
+        var generation = _dragGeneration;
+        return () => !_disposed && generation == _dragGeneration;
     }
 
     private void CompleteSmartDetectorSession()

@@ -12,7 +12,10 @@ public sealed record DragActivationCallbacks(
     Action<string, bool> DragReadyChanged,
     Action<string> DragLeft,
     Func<string, IReadOnlyList<string>, Task> Dropped,
-    Func<string, IReadOnlyList<string>, StagingLease, Task>? DroppedOwned = null);
+    Func<string, IReadOnlyList<string>, StagingLease, Task>? DroppedOwned = null,
+    Func<Func<bool>>? CaptureGuard = null,
+    Func<string, IReadOnlyList<string>, Func<bool>, Task>? GuardedDropped = null,
+    Func<string, IReadOnlyList<string>, StagingLease, Func<bool>, Task>? GuardedDroppedOwned = null);
 
 /// <summary>
 /// Owns OLE initialization and native drop-target registrations. Both the visually transparent reveal host
@@ -489,7 +492,18 @@ public sealed class DragActivationHost : IDisposable
                     {
                         CollapseAfterDrag();
                     }
-                });
+                },
+            callbacks.CaptureGuard,
+            callbacks.GuardedDropped is null ? null : async (monitorId, paths, current) =>
+            {
+                try { await callbacks.GuardedDropped(monitorId, paths, current); }
+                finally { if (current()) CollapseAfterDrag(); }
+            },
+            callbacks.GuardedDroppedOwned is null ? null : async (monitorId, paths, lease, current) =>
+            {
+                try { await callbacks.GuardedDroppedOwned(monitorId, paths, lease, current); }
+                finally { if (current()) CollapseAfterDrag(); }
+            });
         try
         {
             _dropTarget = new OleDropTargetRegistration(
@@ -865,6 +879,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private Task? _lastDropCompletion;
     private CancellationTokenSource? _dropCancellation;
     private bool _disposed;
+    private long _dragGeneration;
 
     public OleDropTargetRegistration(
         nint windowHandle,
@@ -907,6 +922,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
     private int DragEnterCore(IDataObject dataObject, uint keyState, NativePoint point, ref uint effect)
     {
         if (_disposed) { effect = DropEffectNone; return Success; }
+        ++_dragGeneration;
         _currentDataObject = dataObject;
         var discoveredWindow = WindowFromPoint(point);
         try
@@ -1018,7 +1034,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 _dropCancellation = new CancellationTokenSource();
                 effect = _canAccept ? DropEffectCopy : DropEffectNone;
                 _lastDropCompletion = effect == DropEffectCopy
-                    ? CompleteVirtualDropAsync(dataObject, _dropCancellation.Token)
+                    ? CompleteVirtualDropAsync(dataObject, _dropCancellation.Token, CaptureCompletionGuard())
                     : null;
                 if (effect != DropEffectCopy)
                 {
@@ -1042,7 +1058,7 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
                 Interlocked.Read(ref _dragOverCount));
             if (effect == DropEffectCopy)
             {
-                _lastDropCompletion = CompleteDropAsync(paths);
+                _lastDropCompletion = CompleteDropAsync(paths, CaptureCompletionGuard());
                 _ = _lastDropCompletion;
             }
             else
@@ -1141,15 +1157,30 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         _disposed = true;
     }
 
-    private async Task CompleteVirtualDropAsync(IDataObject dataObject, CancellationToken cancellationToken)
+    private Func<bool> CaptureCompletionGuard()
+    {
+        var generation = _dragGeneration;
+        var outer = _callbacks.CaptureGuard?.Invoke();
+        return () => !_disposed && generation == _dragGeneration && (outer?.Invoke() ?? true);
+    }
+
+    private async Task CompleteVirtualDropAsync(IDataObject dataObject, CancellationToken cancellationToken, Func<bool> current)
     {
         MaterializedVirtualFileBatch? batch = null;
         try
         {
             batch = await _virtualFileMaterializer.MaterializeAsync(dataObject, cancellationToken);
-            if (_callbacks.DroppedOwned is { } droppedOwned)
+            if (_callbacks.GuardedDroppedOwned is { } guardedOwned)
+            {
+                await guardedOwned(_monitorId, batch.Paths, batch.Lease, current);
+            }
+            else if (_callbacks.DroppedOwned is { } droppedOwned)
             {
                 await droppedOwned(_monitorId, batch.Paths, batch.Lease);
+            }
+            else if (_callbacks.GuardedDropped is { } guarded)
+            {
+                await guarded(_monitorId, batch.Paths, current);
             }
             else
             {
@@ -1158,12 +1189,12 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            NotifyDragLeft();
+            if (current()) NotifyDragLeft();
         }
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "Virtual-file materialization failed after the OLE callback returned.");
-            NotifyDragLeft();
+            if (current()) NotifyDragLeft();
         }
         finally
         {
@@ -1184,16 +1215,17 @@ internal sealed class OleDropTargetRegistration : IOleDropTarget, IDisposable
         }
     }
 
-    private async Task CompleteDropAsync(IReadOnlyList<string> paths)
+    private async Task CompleteDropAsync(IReadOnlyList<string> paths, Func<bool> current)
     {
         try
         {
-            await _callbacks.Dropped(_monitorId, paths);
+            if (_callbacks.GuardedDropped is { } guarded) await guarded(_monitorId, paths, current);
+            else await _callbacks.Dropped(_monitorId, paths);
         }
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "The shared Temporary Space drop pipeline failed.");
-            NotifyDragLeft();
+            if (current()) NotifyDragLeft();
         }
     }
 

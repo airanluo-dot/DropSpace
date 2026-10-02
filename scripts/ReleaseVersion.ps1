@@ -94,3 +94,11 @@ function Assert-DropSpaceNewReleaseVersion
     }
     return $info
 }
+
+
+function Assert-DropSpacePublicationCommit {
+    param([string]$ExpectedCommit, [string]$ActualCommit)
+    if ($ExpectedCommit -cnotmatch '^[0-9a-f]{40}$' -or $ExpectedCommit -cne $ActualCommit) {
+        throw 'Release publication requires the exact reviewed commit; main may have advanced since dispatch.'
+    }
+}

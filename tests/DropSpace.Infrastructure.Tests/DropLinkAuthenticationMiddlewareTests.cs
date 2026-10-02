@@ -15,6 +15,48 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class DropLinkAuthenticationMiddlewareTests
 {
     [TestMethod]
+    public async Task MissingAuthenticationIsRejectedWithoutReadingTheBody()
+    {
+        var body = new CountingBody(new byte[1_048_576]);
+        var context = new DefaultHttpContext();
+        context.Request.Path = DropLinkProtocolRoutes.Clipboard;
+        context.Request.Method = HttpMethods.Post;
+        context.Request.Body = body;
+        context.Request.ContentLength = body.Length;
+        var middleware = new DropLinkAuthenticationMiddleware(_ => throw new AssertFailedException("Unauthenticated endpoint reached."), null!, null!, new());
+        await middleware.InvokeAsync(context);
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+        Assert.AreEqual(0, body.ReadCalls);
+    }
+
+    [TestMethod]
+    public async Task ConcurrentRequestAdmissionIsBoundedAndRecovers()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var middleware = new DropLinkAuthenticationMiddleware(_ => release.Task, null!, null!, new());
+        var active = Enumerable.Range(0, 8).Select(_ => middleware.InvokeAsync(new DefaultHttpContext())).ToArray();
+        var rejected = new DefaultHttpContext();
+        await middleware.InvokeAsync(rejected);
+        Assert.AreEqual(StatusCodes.Status429TooManyRequests, rejected.Response.StatusCode);
+        release.SetResult();
+        await Task.WhenAll(active);
+        var next = new DefaultHttpContext();
+        await middleware.InvokeAsync(next);
+        Assert.AreEqual(StatusCodes.Status200OK, next.Response.StatusCode);
+    }
+
+    private sealed class CountingBody(byte[] bytes) : MemoryStream(bytes)
+    {
+        public int ReadCalls { get; private set; }
+        public override bool CanSeek => false;
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        {
+            ReadCalls++;
+            return base.ReadAsync(buffer, token);
+        }
+    }
+
+    [TestMethod]
     public async Task ValidBodyHashAndHmacReachEndpointAndRewindBody()
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-tests", Guid.NewGuid().ToString("N"));

@@ -126,6 +126,8 @@ public sealed class DropLinkHost(
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.AddServerHeader = false;
+            options.Limits.MaxConcurrentConnections = 32;
+            options.Limits.Http2.MaxStreamsPerConnection = 8;
             options.Limits.MaxRequestBodySize = DropLinkProtocolPolicy.MaximumClipboardBodyBytes;
             options.Listen(bindAddress, port, listen => listen.UseHttps(identity.Certificate));
         });

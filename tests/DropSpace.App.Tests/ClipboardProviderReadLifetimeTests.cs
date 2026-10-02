@@ -6,6 +6,21 @@ namespace DropSpace.App.Tests;
 public sealed class ClipboardProviderReadLifetimeTests
 {
     [TestMethod]
+    public async Task ExhaustedRetiredTextPoolDoesNotBlockOtherFormatAdmission()
+    {
+        using var text = new SemaphoreSlim(8, 8);
+        using var other = new SemaphoreSlim(8, 8);
+        for (var index = 0; index < 8; index++)
+            Assert.IsTrue(await ClipboardProviderReadLifetime.TryReserveSlotAsync(text, CancellationToken.None));
+        var ninth = ClipboardProviderReadLifetime.TryReserveSlotAsync(text, CancellationToken.None);
+        Assert.IsTrue(ninth.IsCompleted, "Admission must not wait on a permanently retired native operation.");
+        Assert.IsFalse(await ninth);
+        Assert.IsTrue(await ClipboardProviderReadLifetime.TryReserveSlotAsync(other, CancellationToken.None));
+        text.Release();
+        Assert.IsTrue(await ClipboardProviderReadLifetime.TryReserveSlotAsync(text, CancellationToken.None));
+    }
+
+    [TestMethod]
     public async Task SupersessionReleasesWaiterButRetainsLateStreamUntilNativeCompletion()
     {
         using var stop = new CancellationTokenSource();

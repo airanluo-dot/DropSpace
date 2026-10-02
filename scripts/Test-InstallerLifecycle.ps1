@@ -323,6 +323,16 @@ try
         throw "Custom installation path was not recorded."
     }
 
+    # This isolated lifecycle fixture explicitly chooses background behavior before
+    # launch; production first-run privacy is never bypassed by an application flag.
+    $fixtureData = Join-Path $dataRoot 'data'
+    New-Item $fixtureData -ItemType Directory -Force | Out-Null
+    $fixtureSettingsPath = Join-Path $fixtureData 'settings.json'
+    $fixtureSettings = if (Test-Path $fixtureSettingsPath) { Get-Content $fixtureSettingsPath -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
+    $fixtureSettings.PrivacyChoicesCompleted = $true
+    if (-not $fixtureSettings.ContainsKey('ClipboardPaused')) { $fixtureSettings.ClipboardPaused = $false }
+    if (-not $fixtureSettings.ContainsKey('StartWithWindows')) { $fixtureSettings.StartWithWindows = $true }
+    $fixtureSettings | ConvertTo-Json -Depth 30 | Set-Content $fixtureSettingsPath -Encoding utf8
     $runningProcess = Start-Process -FilePath $installedExe -WindowStyle Hidden -PassThru
     Wait-ForMaintenanceEndpoint $runningProcess
 

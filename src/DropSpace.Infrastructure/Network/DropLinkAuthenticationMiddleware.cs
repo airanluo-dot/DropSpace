@@ -17,6 +17,7 @@ internal sealed class DropLinkAuthenticationMiddleware
     private const int BufferSize = 64 * 1024;
     private const int AuthenticationTagBytes = 32;
 
+    private readonly SemaphoreSlim _requests = new(8, 8);
     private readonly RequestDelegate _next;
     private readonly DeviceSecretStore _secrets;
     private readonly TransferRepository _transfers;
@@ -35,6 +36,17 @@ internal sealed class DropLinkAuthenticationMiddleware
     }
 
     public async Task InvokeAsync(HttpContext context)
+    {
+        if (!await _requests.WaitAsync(0, context.RequestAborted).ConfigureAwait(false))
+        {
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            return;
+        }
+        try { await InvokeAdmittedAsync(context).ConfigureAwait(false); }
+        finally { _requests.Release(); }
+    }
+
+    private async Task InvokeAdmittedAsync(HttpContext context)
     {
         var path = context.Request.Path.ToString();
         if (DropLinkProtocolRoutes.IsPairing(path))
@@ -84,147 +96,78 @@ internal sealed class DropLinkAuthenticationMiddleware
             context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
             return false;
         }
-
+        // Authenticate the declared hash before reading or buffering any body bytes.
+        var bodyHash = request.Headers[DropLinkProtocolHeaders.BodySha256].ToString();
+        var device = request.Headers[DropLinkProtocolHeaders.Device].ToString();
+        var nonce = request.Headers[DropLinkProtocolHeaders.Nonce].ToString();
+        var auth = request.Headers[DropLinkProtocolHeaders.Auth].ToString();
+        if (!DropLinkProtocolPolicy.IsLowerHexHash(bodyHash) || !Guid.TryParse(device, out var peerId) ||
+            peerId == Guid.Empty || !DropLinkProtocolPolicy.IsAuthenticationNonce(nonce) || auth.Length != 44)
+            return false;
+        byte[] authBytes;
+        try { authBytes = Convert.FromBase64String(auth); }
+        catch (FormatException) { return false; }
+        byte[]? secret = null;
+        var reserved = false;
+        var accepted = false;
         try
         {
-            request.EnableBuffering(
-                bufferThreshold: BufferSize,
-                bufferLimit: bodyLimit);
+            if (authBytes.Length != AuthenticationTagBytes) return false;
+            if (await _transfers.GetPeerTrustStateAsync(peerId, cancellationToken).ConfigureAwait(false) != PeerTrustState.Trusted)
+                return false;
+            secret = await _secrets.GetAsync(peerId, cancellationToken).ConfigureAwait(false);
+            if (secret is null) return false;
+            var expected = DropLinkPairingService.ComputeAuth(secret, request.Method, request.Path.ToString(), nonce, bodyHash);
+            if (!DropLinkPairingService.FixedTimeEquals(expected, auth)) return false;
+            if (!_nonces.TryReserve(peerId, nonce, DateTimeOffset.UtcNow)) return false;
+            reserved = true;
 
+            request.EnableBuffering(bufferThreshold: BufferSize, bufferLimit: bodyLimit);
             using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
-            byte[]? actualBodyHash = null;
-            byte[]? suppliedBodyHash = null;
+            byte[]? actualHash = null;
+            var suppliedHash = Convert.FromHexString(bodyHash);
             try
             {
-                long totalBytes = 0;
+                long total = 0;
                 int read;
-                while ((read = await request.Body.ReadAsync(
-                           buffer.AsMemory(0, BufferSize),
-                           cancellationToken).ConfigureAwait(false)) > 0)
+                while ((read = await request.Body.ReadAsync(buffer.AsMemory(0, BufferSize), cancellationToken).ConfigureAwait(false)) > 0)
                 {
-                    totalBytes += read;
-                    if (totalBytes > bodyLimit)
+                    total += read;
+                    if (total > bodyLimit)
                     {
                         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
                         return false;
                     }
-
                     digest.AppendData(buffer, 0, read);
                 }
-
                 request.Body.Position = 0;
-                actualBodyHash = digest.GetHashAndReset();
-
-                var bodyHashHeader = request.Headers[DropLinkProtocolHeaders.BodySha256].ToString();
-                if (!DropLinkProtocolPolicy.IsLowerHexHash(bodyHashHeader))
-                {
-                    return false;
-                }
-
-                suppliedBodyHash = Convert.FromHexString(bodyHashHeader);
-                if (!CryptographicOperations.FixedTimeEquals(actualBodyHash, suppliedBodyHash))
-                {
-                    return false;
-                }
-
-                var deviceHeader = request.Headers[DropLinkProtocolHeaders.Device].ToString();
-                var nonce = request.Headers[DropLinkProtocolHeaders.Nonce].ToString();
-                var auth = request.Headers[DropLinkProtocolHeaders.Auth].ToString();
-                if (!Guid.TryParse(deviceHeader, out var peerId) ||
-                    !DropLinkProtocolPolicy.IsAuthenticationNonce(nonce) ||
-                    string.IsNullOrWhiteSpace(auth))
-                {
-                    return false;
-                }
-
-                byte[] authBytes;
-                try
-                {
-                    authBytes = Convert.FromBase64String(auth);
-                }
-                catch (FormatException)
-                {
-                    return false;
-                }
-
-                if (authBytes.Length != AuthenticationTagBytes)
-                {
-                    CryptographicOperations.ZeroMemory(authBytes);
-                    return false;
-                }
-
-                var secret = await _secrets.GetAsync(peerId, cancellationToken).ConfigureAwait(false);
-                if (secret is null)
-                {
-                    CryptographicOperations.ZeroMemory(authBytes);
-                    return false;
-                }
-
-                try
-                {
-                    // A DPAPI secret alone is not an authorization grant. The durable
-                    // peer lifecycle must also say Trusted; pending, unpairing, blocked,
-                    // and unknown rows fail closed during restart reconciliation.
-                    if (await _transfers.GetPeerTrustStateAsync(peerId, cancellationToken).ConfigureAwait(false) != PeerTrustState.Trusted)
-                    {
-                        return false;
-                    }
-
-                    if (!_nonces.TryReserve(peerId, nonce, DateTimeOffset.UtcNow))
-                    {
-                        return false;
-                    }
-
-                    var expected = DropLinkPairingService.ComputeAuth(
-                        secret,
-                        request.Method,
-                        request.Path.ToString(),
-                        nonce,
-                        bodyHashHeader);
-                    if (!DropLinkPairingService.FixedTimeEquals(expected, auth))
-                    {
-                        _nonces.Remove(peerId, nonce);
-                        return false;
-                    }
-
-                    context.Items[AuthenticatedPeerContextKey] = peerId;
-                    return true;
-                }
-                finally
-                {
-                    CryptographicOperations.ZeroMemory(secret);
-                    CryptographicOperations.ZeroMemory(authBytes);
-                }
+                actualHash = digest.GetHashAndReset();
+                if (!CryptographicOperations.FixedTimeEquals(actualHash, suppliedHash)) return false;
+                context.Items[AuthenticatedPeerContextKey] = peerId;
+                accepted = true;
+                return true;
             }
             finally
             {
-                if (actualBodyHash is not null)
-                {
-                    CryptographicOperations.ZeroMemory(actualBodyHash);
-                }
-
-                if (suppliedBodyHash is not null)
-                {
-                    CryptographicOperations.ZeroMemory(suppliedBodyHash);
-                }
-
+                if (actualHash is not null) CryptographicOperations.ZeroMemory(actualHash);
+                CryptographicOperations.ZeroMemory(suppliedHash);
                 CryptographicOperations.ZeroMemory(buffer);
                 ArrayPool<byte>.Shared.Return(buffer);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (IOException)
         {
             context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
             return false;
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException) { return false; }
+        finally
         {
-            return false;
+            if (reserved && !accepted) _nonces.Remove(peerId, nonce);
+            if (secret is not null) CryptographicOperations.ZeroMemory(secret);
+            CryptographicOperations.ZeroMemory(authBytes);
         }
     }
 

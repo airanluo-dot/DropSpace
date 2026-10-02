@@ -199,7 +199,9 @@ public sealed partial class MainPage : Page
         UpdateSectionChrome();
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs args)
+    private void OnUnloaded(object sender, RoutedEventArgs args) => Retire();
+
+    internal void Retire()
     {
         _dialogLifetime.Cancel();
         if (!_subscriptionsAttached)
@@ -500,7 +502,7 @@ public sealed partial class MainPage : Page
                 selection,
                 quickAction.ActionId,
                 xamlRoot,
-                _windowHandle);
+                _windowHandle, _dialogLifetime.Token);
             if (context is null)
             {
                 return;
@@ -1102,7 +1104,7 @@ public sealed partial class MainPage : Page
                 selection,
                 action,
                 xamlRoot,
-                _windowHandle);
+                _windowHandle, _dialogLifetime.Token);
             if (context is null)
             {
                 return;
@@ -1273,9 +1275,7 @@ public sealed partial class MainPage : Page
         var result = await ShowOwnedDialogAsync(dialog);
         if (result == ContentDialogResult.Primary)
         {
-            var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
-            package.SetText(descriptor.Url.ToString());
-            Clipboard.SetContent(package);
+            await _viewModel.CopyTextAsync(descriptor.Url.ToString(), _dialogLifetime.Token);
         }
         else if (result == ContentDialogResult.Secondary)
         {
@@ -2303,7 +2303,7 @@ public sealed partial class MainPage : Page
     }
 
     private Task ShowActionResultAsync(ItemActionResult result) =>
-        _quickActionDialog.ShowResultAsync(result, XamlRoot);
+        _quickActionDialog.ShowResultAsync(result, XamlRoot, _dialogLifetime.Token);
 
     private async Task ApplySettingChangeAsync(
         Func<AppSettings, AppSettings> update,

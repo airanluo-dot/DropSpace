@@ -10,6 +10,19 @@ public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)
 {
     private static readonly JsonSerializerOptions CacheJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
+    public async Task<LyricsDocument?> TryGetCachedAsync(LyricsQuery query, LyricsDocument source,
+        string targetLanguage, string modelSha256, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return null;
+        var indices = Enumerable.Range(0, source.Lines.Count).Where(index => !string.IsNullOrWhiteSpace(source.Lines[index].Text)).ToArray();
+        if (indices.Length is 0 or > 500) return null;
+        var saved = await cache.ReadAsync(LyricsTranslationPrompt.CacheKey(query, source, targetLanguage, modelSha256), token).ConfigureAwait(false);
+        if (saved is null || !LyricsTranslationOutput.TryApply(saved, source, indices, targetLanguage, out var result)) return null;
+        token.ThrowIfCancellationRequested();
+        return result;
+    }
+
     public Task<LyricsDocument> TranslateAsync(LyricsQuery query, LyricsDocument source, string targetLanguage,
         string modelSha256, Func<string, CancellationToken, Task<string>> infer, CancellationToken token)
     {

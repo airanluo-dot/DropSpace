@@ -8,15 +8,27 @@ namespace DropSpace.App.Views;
 /// <summary>Cancellation releases an owned dialog and never depends on a live UI dispatcher.</summary>
 internal static class ContentDialogLifetime
 {
-    private static readonly ConditionalWeakTable<object, SemaphoreSlim> RootGates = new();
+    private sealed class RootState
+    {
+        internal SemaphoreSlim Gate { get; } = new(1, 1);
+        internal CancellationTokenSource Stop { get; } = new();
+    }
+    private static readonly ConditionalWeakTable<object, RootState> RootGates = new();
 
-    public static Task<ContentDialogResult> ShowAsync(ContentDialog dialog, CancellationToken cancellationToken)
+    public static async Task<ContentDialogResult> ShowAsync(ContentDialog dialog, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dialog);
         cancellationToken.ThrowIfCancellationRequested();
         var root = dialog.XamlRoot ?? throw new InvalidOperationException("A dialog requires a live XamlRoot.");
-        return RunSerializedAsync(RootGates.GetValue(root, _ => new SemaphoreSlim(1, 1)),
-            () => dialog.ShowAsync().AsTask(), () => Dismiss(dialog), cancellationToken);
+        var state = RootGates.GetValue(root, _ => new RootState());
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, state.Stop.Token);
+        return await RunSerializedAsync(state.Gate,
+            () => dialog.ShowAsync().AsTask(), () => Dismiss(dialog), lifetime.Token).ConfigureAwait(false);
+    }
+
+    internal static void RetireRoot(Microsoft.UI.Xaml.XamlRoot? root)
+    {
+        if (root is not null) RootGates.GetValue(root, _ => new RootState()).Stop.Cancel();
     }
 
     internal static async Task<T> RunSerializedAsync<T>(SemaphoreSlim gate, Func<Task<T>> show,

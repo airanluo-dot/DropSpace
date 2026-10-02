@@ -128,3 +128,12 @@ try {
     Assert-Equal (Get-DropSpaceLifecycleBaselineVersion (Get-DropSpaceReleaseInfo 'v0.3.1-beta.1') -NotesRoot $baselineFixture) '0.3.0' 'Published stable is preferred when documented'
 }
 finally { if (Test-Path $baselineFixture) { Remove-Item $baselineFixture -Recurse -Force } }
+
+
+$reviewedCommit = 'a' * 40
+Assert-DropSpacePublicationCommit $reviewedCommit $reviewedCommit
+foreach ($invalidExpected in @('', 'main', ('b' * 40))) {
+    $denied = $false
+    try { Assert-DropSpacePublicationCommit $invalidExpected $reviewedCommit } catch { $denied = $true }
+    Assert-Equal $denied $true 'Reject missing, symbolic, or advanced publication commit'
+}

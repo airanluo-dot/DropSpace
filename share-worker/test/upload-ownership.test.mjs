@@ -313,3 +313,51 @@ test("cleanup protects an in-flight retry and clears expired orphan: lifecycle="
 });
 
 }
+
+test("a later retry recovers an orphan after transient cleanup failure", async () => {
+  const values = new Map();
+  const objects = new Map();
+  let running = Promise.resolve();
+  let dataPuts = 0;
+  const env = {};
+  const coordinator = new ShareUsageCoordinator({
+    storage: {
+      async get(key) { return structuredClone(values.get(key)); },
+      async put(key, value) { values.set(key, structuredClone(value)); },
+    },
+    blockConcurrencyWhile(callback) {
+      const pending = running.then(callback);
+      running = pending.catch(() => {});
+      return pending;
+    },
+  }, env);
+  Object.assign(env, {
+    UPLOAD_TOKEN_SECRET: "test-secret-".repeat(4),
+    SHARE_CREATION_LIMITER: { idFromName: name => name, get: () => ({ fetch: async () => new Response("{}") }) },
+    SHARE_COORDINATOR: { idFromName: name => name, get: () => ({ fetch: (url, init) => coordinator.fetch(new Request(url, init)) }) },
+    SHARES: {
+      async get(key) { const object = objects.get(key); return object ? { text: async () => object.value, body: object.value } : null; },
+      async head(key) { return objects.get(key) || null; },
+      async put(key, value, options = {}) {
+        if (options.onlyIf?.etagDoesNotMatch === "*" && objects.has(key)) return null;
+        const object = { value, ...options };
+        objects.set(key, object);
+        if (key.endsWith(".bin") && ++dataPuts === 1) throw new Error("partial storage write");
+        return object;
+      },
+      async delete(key) { if (!this.failedDelete) { this.failedDelete = true; throw new Error("temporary R2 delete outage"); } objects.delete(key); },
+    },
+  });
+  const created = await worker.fetch(new Request("https://share.invalid/v1/shares", {
+    method: "POST", body: JSON.stringify({ shareId, expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(), itemCount: 1, totalBytes: 5 }),
+  }), env);
+  const session = await created.json();
+  const upload = byte => worker.fetch(new Request(session.uploadBaseUrl + objectName, {
+    method: "PUT", headers: { authorization: session.uploadAuthorization, "content-length": "21" }, body: new Uint8Array(21).fill(byte),
+  }), env);
+  assert.equal((await upload(1)).status, 500);
+  assert.equal(objects.has("shares/" + shareId + "/" + objectName), true);
+  assert.equal((await upload(2)).status, 409, "first retry detects and reconciles the stale orphan");
+  assert.equal(objects.has("shares/" + shareId + "/" + objectName), false);
+  assert.equal((await upload(3)).status, 201, "a valid next retry must recover without external lifecycle cleanup");
+});

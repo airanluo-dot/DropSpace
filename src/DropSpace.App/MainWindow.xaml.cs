@@ -122,6 +122,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             _displayLanguage = _viewModel.Language;
             DispatcherQueue.TryEnqueue(() =>
             {
+                if (_allowClose) return;
+                _mainPage.Retire();
                 _mainPage = _createMainPage();
                 RootContent.Content = _mainPage;
                 XamlResourceOverride.Apply(this, "MainWindow");
@@ -212,6 +214,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         _viewModel.PropertyChanged -= OnMediaSectionChanged;
         _media.SetPresentationVisible(this, false);
         _closeExplanationCancellation.Cancel();
+        Views.ContentDialogLifetime.RetireRoot(_mainPage.XamlRoot);
+        _mainPage.Retire();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();
         _tray?.Dispose();

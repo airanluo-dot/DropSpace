@@ -261,7 +261,11 @@ public sealed class ClipboardDeferredProviderNativeTests
                 provider = new HeldDataProvider(payload);
                 package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
                 package.SetDataProvider(format == "StorageItems" ? StandardDataFormats.StorageItems : StandardDataFormats.Bitmap, provider.OnRequested);
-                await ClipboardAccessPolicy.SetContentAsync(() => Clipboard.SetContent(package));
+                try { await ClipboardAccessPolicy.SetContentAsync(() => Clipboard.SetContent(package)); }
+                catch (COMException error)
+                {
+                    throw new InvalidOperationException($"Deferred {format} fixture SetContent failed with HRESULT 0x{error.HResult:X8}.", error);
+                }
             }).WaitAsync(TimeSpan.FromSeconds(8));
             await provider!.Entered.Task.WaitAsync(TimeSpan.FromSeconds(8));
             var before = capture.Status.CapturedItems;

@@ -33,6 +33,11 @@ on:
         default: false
         type: boolean
 
+      expected_commit:
+        description: Exact reviewed main commit required for publication
+        required: false
+        type: string
+
 concurrency:
   group: dropspace-release-${{ github.ref }}
   # A new PR revision invalidates its older validation bundle. Main and explicit
@@ -93,10 +98,14 @@ jobs:
           RELEASE_ACTOR: ${{ github.actor }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           AUTOMATION_ACTOR: github-actions[bot]
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          ACTUAL_COMMIT: ${{ github.sha }}
         run: |
           if ($env:PUBLISH_REQUESTED -ne "true") {
             exit 0
           }
+          . ./scripts/ReleaseVersion.ps1
+          Assert-DropSpacePublicationCommit $env:EXPECTED_COMMIT $env:ACTUAL_COMMIT
           if ($env:RELEASE_REF -ne "refs/heads/main") {
             throw "Release publication is only permitted from refs/heads/main."
           }

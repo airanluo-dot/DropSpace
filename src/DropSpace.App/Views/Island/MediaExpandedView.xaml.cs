@@ -22,6 +22,7 @@ public sealed partial class MediaExpandedView : UserControl
     private MediaViewModel? _view;
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekCommitTimer;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekAcknowledgementTimer;
     private uint? _activePointerId;
     private double? _queuedSeekSeconds;
     private string _trackIdentity = string.Empty;
@@ -33,6 +34,15 @@ public sealed partial class MediaExpandedView : UserControl
         _seekCommitTimer.Interval = TimeSpan.FromMilliseconds(120);
         _seekCommitTimer.IsRepeating = false;
         _seekCommitTimer.Tick += OnSeekCommitTimer;
+        _seekAcknowledgementTimer = DispatcherQueue.CreateTimer();
+        _seekAcknowledgementTimer.Interval = TimeSpan.FromSeconds(2);
+        _seekAcknowledgementTimer.IsRepeating = false;
+        _seekAcknowledgementTimer.Tick += (_, _) =>
+        {
+            if (!IsLoaded) return;
+            _seekInteraction.RejectPending();
+            Render();
+        };
         // Observe the whole slider, including track presses, even when its template
         // handles pointer events. Never depend on finding a Thumb before layout.
         Progress.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSeekPointerPressed), true);
@@ -130,6 +140,7 @@ public sealed partial class MediaExpandedView : UserControl
         if (_updating || !double.IsFinite(args.NewValue)) return;
         var value = Math.Clamp(args.NewValue, Progress.Minimum, Progress.Maximum);
         if (_seekInteraction.IsPendingTarget(value)) return;
+        _seekAcknowledgementTimer.Stop();
         _seekInteraction.Preview(value);
         UpdateTimelineLabels();
         if (_seekInteraction.IsDragging) return;
@@ -148,6 +159,7 @@ public sealed partial class MediaExpandedView : UserControl
         if (!Progress.IsEnabled || (!point.IsInContact && !point.Properties.IsLeftButtonPressed)) return;
         if (_activePointerId is not null) return;
         _activePointerId = args.Pointer.PointerId;
+        _seekAcknowledgementTimer.Stop();
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _seekInteraction.Begin(Progress.Value);
@@ -195,6 +207,9 @@ public sealed partial class MediaExpandedView : UserControl
         if (_view?.SeekCommand.CanExecute(seconds) == true)
         {
             _view.SeekCommand.Execute(seconds);
+            // Paused players may reject a seek without producing another media event.
+            _seekAcknowledgementTimer.Stop();
+            _seekAcknowledgementTimer.Start();
             return;
         }
 
@@ -204,6 +219,7 @@ public sealed partial class MediaExpandedView : UserControl
 
     private void CancelSeekInteraction()
     {
+        _seekAcknowledgementTimer.Stop();
         _seekCommitTimer.Stop();
         _queuedSeekSeconds = null;
         _activePointerId = null;

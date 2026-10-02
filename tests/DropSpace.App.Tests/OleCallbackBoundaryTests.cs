@@ -10,6 +10,35 @@ namespace DropSpace.App.Tests;
 public sealed class OleCallbackBoundaryTests
 {
     [TestMethod]
+    public async Task LateDropFailureCannotCancelAReplacementGesture()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var generation = 1;
+        var left = 0;
+        var visualCompletions = 0;
+        var callbackReached = false;
+        var target = CreateTarget(new DragActivationCallbacks(_ => { }, (_, _) => { }, _ => left++,
+            (_, _) => throw new AssertFailedException("Guarded callback must be used."),
+            CaptureGuard: () => { var captured = generation; return () => captured == generation; },
+            GuardedDropped: async (_, _, current) =>
+            {
+                callbackReached = true;
+                await release.Task;
+                if (current()) visualCompletions++;
+                throw new IOException("Delayed original drop failure.");
+            }));
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var guard = (Func<bool>)typeof(OleDropTargetRegistration).GetMethod("CaptureCompletionGuard", flags)!.Invoke(target, null)!;
+        var completion = (Task)typeof(OleDropTargetRegistration).GetMethod("CompleteDropAsync", flags)!.Invoke(target, [Array.Empty<string>(), guard])!;
+        Assert.IsTrue(callbackReached);
+        generation++;
+        release.SetResult();
+        await completion;
+        Assert.AreEqual(0, visualCompletions);
+        Assert.AreEqual(0, left);
+    }
+
+    [TestMethod]
     public void DragEnterCallbackFailureRejectsAndClearsNativeOwnership()
     {
         var target = CreateTarget(new DragActivationCallbacks(

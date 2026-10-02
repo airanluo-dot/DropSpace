@@ -121,29 +121,14 @@ public sealed class ItemSharingService(
     private static async Task AddFolderAsync(List<ShareSource> result, string root, CancellationToken cancellationToken)
     {
         var fullRoot = Path.GetFullPath(root);
-        if (!Directory.Exists(fullRoot)) throw new FileNotFoundException("The selected folder is unavailable.");
+        var files = await ShareFolderEnumeration.EnumerateAsync(fullRoot, cancellationToken).ConfigureAwait(false);
         var rootName = SafeName(Path.GetFileName(fullRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
-        var pending = new Queue<string>();
-        pending.Enqueue(fullRoot);
-        while (pending.Count > 0)
+        foreach (var entry in files)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var current = pending.Dequeue();
-            foreach (var entry in Directory.EnumerateFileSystemEntries(current))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var attributes = File.GetAttributes(entry);
-                if (attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
-                if (attributes.HasFlag(FileAttributes.Directory))
-                {
-                    pending.Enqueue(entry);
-                    continue;
-                }
-
-                var relative = Path.GetRelativePath(fullRoot, entry).Replace(Path.DirectorySeparatorChar, '/');
-                await AddFileAsync(result, entry, SafeName(string.Concat(rootName, " - ", relative.Replace('/', '_'))), cancellationToken).ConfigureAwait(false);
-                if (result.Count > 100) throw new InvalidDataException("The share item limit was exceeded.");
-            }
+            var relative = Path.GetRelativePath(fullRoot, entry).Replace(Path.DirectorySeparatorChar, '/');
+            await AddFileAsync(result, entry, SafeName(string.Concat(rootName, " - ", relative.Replace('/', '_'))), cancellationToken).ConfigureAwait(false);
+            if (result.Count > 100) throw new InvalidDataException("The share item limit was exceeded.");
         }
     }
 

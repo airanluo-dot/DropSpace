@@ -15,6 +15,7 @@ public sealed class MediaRegressionTests
     {
         await using var service = new WindowsMediaSessionService(NullLogger<WindowsMediaSessionService>.Instance);
         var view = new MediaViewModel(service, IdentityAppStringLocalizer.Instance, NullLogger<MediaViewModel>.Instance);
+        view.Settings = view.Settings with { Lyrics = view.Settings.Lyrics with { Enabled = true } };
         view.Session = MediaSessionSnapshot.Empty with { TrackTitle = "Song title" };
         var line = new DropSpace.Core.Lyrics.LyricsLine(TimeSpan.Zero, TimeSpan.FromSeconds(2), "Lyric text", null, []);
         view.SetLyricsDocument(new([line], DropSpace.Core.Models.LyricsProviderKind.LocalLrc));
