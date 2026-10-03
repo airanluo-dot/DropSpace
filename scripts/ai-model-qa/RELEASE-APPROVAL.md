@@ -10,10 +10,9 @@ candidate runs keep their original protocol, source, runtime and verdict.
 For this release only, `status: "owner-accepted-experimental-beta"` can authorize
 publication without claiming semantic approval. Ordinary releases and Stable still
 require the existing complete native capture and approved semantic review.
-The owner accepted the disclosed timeout, incomplete 7B validation, default-off AI
-and source/provider fallback in thread `01a0fe5b-d1da-7716-a8b3-b368757920f3`:
-“不用添加别的什么了，直接就按照现在的AI模型发布吧”; the later request increased the
-processing ceiling to ten minutes. This does not approve fabricated passes or waive
+The repository owner explicitly accepted the disclosed experimental limitations
+on 2026-10-03; the 600-second ceiling was requested separately.
+This does not approve fabricated passes or waive
 code, safety, cleanup, installation, upgrade, uninstall or package checks.
 
 Prepare a normal non-publishing Release validation from the final exact candidate
@@ -28,8 +27,10 @@ After that successful validation, record a repository review with the existing
 exact `scope`, timestamps/expiry, reviewer, summary, `openDefects: []`, limitation
 list, `runtimeManifest` and immutable `runtimeArtifact`. Set both `kind` and
 `verdict` to `owner-accepted-experimental-beta`, and `semanticApproved: false`.
-`userAcceptance` must contain the actual reference/time, `releaseVersion:
-"v0.3.1-beta.1"`, and `acceptsIncompleteModelValidation: true`.
+`userAcceptance` must contain a non-sensitive, auditable public owner-decision
+statement identifier and its actual time, `releaseVersion: "v0.3.1-beta.1"`, and
+`acceptsIncompleteModelValidation: true`. Do not publish private conversation
+content, thread/message identifiers or private identity metadata.
 
 Every shipping model retains its exact ID/hash/size, `verdict: "unverified"`, a
 limitation summary, and a `validation` array in this order: baseline/en,
@@ -139,7 +140,8 @@ can record a semantic review under `scripts/ai-model-qa/evidence/` with:
 - `acceptedLimitations: []`, or concrete `{id, kind, summary}` entries where
   `kind` is `quality` or `latency`
 - when limitations are accepted, a Beta release and `userAcceptance` containing
-  the actual `reference` and `acceptedAt`; never invent user acceptance
+  a non-sensitive public owner-decision statement `reference` and its actual
+  `acceptedAt`; never invent user acceptance or publish private conversation metadata
 - `runtimeManifest`: exact-byte repository evidence `{path, sha256}`
 - `runtimeArtifact`: the immutable producer/artifact contract below
 - `models`: exactly the shipping model list, in scope order, with identity,
