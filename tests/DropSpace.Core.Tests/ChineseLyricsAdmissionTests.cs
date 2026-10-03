@@ -41,8 +41,8 @@ public sealed class ChineseLyricsAdmissionTests
         var source = ChineseSource(true);
         source = source with { Lines = source.Lines.Skip(4).ToArray(), Match = null };
         CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 3);
-        var block = LyricsParser.Parse("我们带着蓝色雨伞\n\n山谷的石门\n我的小船停在岸边", LyricsProviderKind.NetEase);
-        CollectionAssert.AreEqual(new[] { "山谷的石门" }, LyricsLanguagePolicy.EligibleSegments(block.Lines[0], "zh-CN"));
+        var block = LyricsParser.Parse("我们带着蓝色雨伞\n\n山谷的纸船\n我的小船停在岸边", LyricsProviderKind.NetEase);
+        CollectionAssert.AreEqual(new[] { "山谷的纸船" }, LyricsLanguagePolicy.EligibleSegments(block.Lines[0], "zh-CN"));
     }
 
     [TestMethod]
@@ -102,10 +102,10 @@ public sealed class ChineseLyricsAdmissionTests
 
     private static LyricsDocument ChineseSource(bool timed)
     {
-        string[] text = ["甲歌手、乙歌手 - 合成曲 (with SingerB)", "作词：WriterX", "作曲：ComposerY/ComposerZ",
-            "SingerA:", "我们带着蓝色雨伞", "山谷的石门", "我的小船停在岸边", "晴"];
+        string[] text = ["SingerA、SingerB - 合成曲 (with SingerB)", "作词：WriterX", "作曲：ComposerY/ComposerZ",
+            "SingerA:", "我们带着蓝色雨伞", "山谷的纸船", "我的小船停在岸边", "晴"];
         var source = timed ? Document(text) : LyricsParser.Parse(string.Join("\n", text), LyricsProviderKind.NetEase);
-        return source with { Match = new("合成曲 (with SingerB)", "甲歌手、乙歌手", "合成专辑", 40, 12) };
+        return source with { Match = new("合成曲 (with SingerB)", "SingerA、SingerB", "合成专辑", 40, 12) };
     }
 
     private static LyricsDocument Document(params string[] text) => new(text.Select(Line).ToArray(), LyricsProviderKind.NetEase);

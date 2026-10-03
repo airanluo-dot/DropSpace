@@ -19,10 +19,9 @@ public readonly record struct LyricsLanguageEvidence(string? Language, double Co
 /// </summary>
 public static class LyricsLanguagePolicy
 {
-    public const string Version = "chinese-document-eligibility-v6";
-    private static readonly Regex PerformerLabel = new(@"^\s*[a-z][a-z0-9_.&/-]{0,31}\s*[:：]\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    public const string Version = "chinese-document-eligibility-v7";
+    private static readonly Regex ArtistNames = new(@"[,，、;&＆；]|\s+[/／]\s+", RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly Regex ChineseGrammar = new(@"[你妳]|(?:我|他|她)(?:真的|已经|已經|还是|還是|仍然|不|能|也|只|才)|还是|還是|只是|不过|不過", RegexOptions.None, TimeSpan.FromMilliseconds(100));
-    private static readonly Regex ChineseModifier = new(@"(?<!目)的(?!中|確|确)", RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Credit = new(@"^\s*(?:作\s*词|作\s*詞|作\s*曲|编\s*曲|編\s*曲|填词|填詞|词曲|詞曲|词|詞|曲|制作人|製作人|制作|製作|监制|監製|混音|母带|母帶|录音|錄音|演唱|原唱|和声|和聲|吉他|贝斯|貝斯|鼓|钢琴|鋼琴|出品|发行|發行|版权|版權|翻译|翻譯|译者|譯者|词作者|曲作者|lyrics(?: by)?|words(?: by)?|music(?: by)?|written by|composed by|composer|arranged by|arranger|producer|produced by|mixed by|mastered by|vocal(?:s)?|guitar|bass|drums)\s*[:：/／]|^\s*(?:written|composed|arranged|produced|mixed|mastered|lyrics|words|music)\s+by\s+\S", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Words = new(@"[a-z]+(?:['’][a-z]+)?", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     // Keep clause boundaries until each clause has supplied its own evidence.
@@ -88,9 +87,9 @@ public static class LyricsLanguagePolicy
             if (ChineseGrammar.IsMatch(text)) return new("zh-Hans", 0.95, LyricsLanguageEvidenceKind.Lexical);
             // These simplified forms differ from Japanese kanji; shared characters such
             // inside Japanese Han compounds are never independent language evidence.
-            var distinctive = "这们说觉远让听爱风梦时过轻满阳为与语记认顾谁该难边欢飞头经红纸乡渐离".Count(text.Contains);
+            var distinctive = "这们说觉远让听爱风梦时过轻满阳为与语记认顾谁该难边欢飞头经红纸乡渐离约".Count(text.Contains);
             if (distinctive >= 2) return new("zh-Hans", 0.92, LyricsLanguageEvidenceKind.Lexical);
-            if (ChineseModifier.IsMatch(text)) return new("zh-Hans", 0.65, LyricsLanguageEvidenceKind.Lexical);
+            if (distinctive == 1 && text.Contains('的')) return new("zh-Hans", 0.65, LyricsLanguageEvidenceKind.Lexical);
         }
         if (latin == letters.Length)
         {
@@ -124,18 +123,33 @@ public static class LyricsLanguagePolicy
     private static string[][] SourceParts(LyricsDocument document)
     {
         var parts = document.Lines.Select(line => line.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
-            .Split('\n', StringSplitOptions.TrimEntries).Select(part => PerformerLabel.Replace(part, string.Empty)).ToArray()).ToArray();
+            .Split('\n', StringSplitOptions.TrimEntries)).ToArray();
         // Some providers retain an artist/title header as the first original row. Require
         // accepted track metadata; an arbitrary Latin phrase must never become a header.
-        if (document.Match is { } match && parts.Length > 0 && parts[0].Length > 0)
+        if (document.Match is { Score: >= 4 } match)
         {
-            var header = LyricsMatcher.Normalize(parts[0][0]);
             var title = LyricsMatcher.Normalize(match.Title);
             var artist = LyricsMatcher.Normalize(match.Artist);
-            if (title.Length > 0 && artist.Length > 0 &&
-                document.Lines[0].Text.IndexOfAny(['-', '–', '—']) >= 0 &&
-                header.Contains(title, StringComparison.Ordinal) && header.Contains(artist, StringComparison.Ordinal))
-                parts[0][0] = string.Empty;
+            if (parts.Length > 0 && parts[0].Length > 0 && parts[0][0].Length <= 2048 && title.Length > 0 && artist.Length > 0)
+            {
+                var header = parts[0][0];
+                for (var i = 0; i < header.Length; i++)
+                {
+                    if (header[i] is not ('-' or '–' or '—')) continue;
+                    var left = LyricsMatcher.Normalize(header[..i]);
+                    var right = LyricsMatcher.Normalize(header[(i + 1)..]);
+                    if ((left == artist && right == title) || (left == title && right == artist))
+                    { parts[0][0] = string.Empty; break; }
+                }
+            }
+            // A colon alone is not performer evidence (e.g. a sung "Why:"). Require
+            // the complete label to name an artist in the accepted provider identity.
+            var names = ArtistNames.Split(match.Artist).Select(name => name.Trim())
+                .Append(match.Artist.Trim()).Where(name => name.Length > 0).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in parts)
+                for (var i = 0; i < row.Length; i++)
+                    if (row[i].Length > 1 && (row[i][^1] is ':' or '：') && names.Contains(row[i][..^1].Trim()))
+                        row[i] = string.Empty;
         }
         return parts;
     }
@@ -155,10 +169,15 @@ public static class LyricsLanguagePolicy
                 // majority vote over foreign verses. Explicit Japanese Han remains Japanese.
                 if (explicitLanguage.Length > 0 && !explicitLanguage.StartsWith("zh-", StringComparison.Ordinal) ||
                     !part.EnumerateRunes().Where(Rune.IsLetter).All(IsHan)) return null;
-                distinct[part] = Identify(part, document.Lines[i].SourceLanguage);
+                var lexical = Identify(part);
+                // Long Han units with no independent Chinese evidence may be foreign.
+                // Neither nearby Chinese lines nor inherited tags can erase that doubt.
+                if (!lexical.IsConfident && lexical.Confidence < 0.6 &&
+                    part.EnumerateRunes().Count(Rune.IsLetter) >= 4) return null;
+                distinct[part] = lexical;
             }
         }
-        var anchors = distinct.Values.Where(evidence => evidence.IsConfident &&
+        var anchors = distinct.Values.Where(evidence => evidence.IsConfident && evidence.Kind == LyricsLanguageEvidenceKind.Lexical &&
             evidence.Language!.StartsWith("zh-", StringComparison.Ordinal)).ToArray();
         // Repeated choruses and Latin names in credits cannot manufacture evidence.
         // A short all-Han/Japanese document with no Chinese anchors stays unknown.

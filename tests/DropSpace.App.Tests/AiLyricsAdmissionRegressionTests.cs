@@ -74,12 +74,12 @@ public sealed class AiLyricsAdmissionRegressionTests
     public async Task ChineseSongAndStaleAiRowsBypassBackendBeforeCacheOrPackageAccess(bool timed)
     {
         using var fixture = new Fixture();
-        string[] text = ["甲歌手、乙歌手 - 合成曲 (with SingerB)", "作词：WriterX", "作曲：ComposerY/ComposerZ",
-            "SingerA:", "我们带着蓝色雨伞", "山谷的石门", "我的小船停在岸边", "晴"];
+        string[] text = ["SingerA、SingerB - 合成曲 (with SingerB)", "作词：WriterX", "作曲：ComposerY/ComposerZ",
+            "SingerA:", "我们带着蓝色雨伞", "山谷的纸船", "我的小船停在岸边", "晴"];
         var source = timed ? new LyricsDocument(text.Select((part, id) => new LyricsLine(TimeSpan.FromSeconds(id * 3),
             TimeSpan.FromSeconds(id * 3 + 3), part, null, [])).ToArray(), LyricsProviderKind.NetEase)
             : LyricsParser.Parse(string.Join("\n", text), LyricsProviderKind.NetEase);
-        source = source with { Match = new("合成曲 (with SingerB)", "甲歌手、乙歌手", "合成专辑", 40, 12) };
+        source = source with { Match = new("合成曲 (with SingerB)", "SingerA、SingerB", "合成专辑", 40, 12) };
         var poisoned = source with { Lines = source.Lines.Select(line => line with
             { Secondary = "合成中文改写，", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "zh-CN" }).ToArray() };
         var result = await fixture.Service.TranslateIfAvailableAsync(Query, poisoned, Enabled, "zh-CN", default);
