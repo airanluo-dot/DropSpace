@@ -268,7 +268,7 @@ function experimentalExample(t) {
 
 test('owner-accepted Beta preserves timeout and unexecuted evidence without semantic approval', t => {
   const x = experimentalExample(t); x.validate();
-  assert.equal(x.scope.releaseVersion, 'v0.3.1-beta.2');
+  assert.equal(x.scope.releaseVersion, experimentalBetaVersion);
   assert.deepEqual(publicationDecision(x.root, { now }), { authorized: true, semanticApproved: false, mode: experimentalBetaStatus });
   assert.equal(x.configuration.executionLimits.wholeSongSeconds, 300);
   assert.equal(x.output.complete, false);
@@ -277,8 +277,8 @@ test('owner-accepted Beta preserves timeout and unexecuted evidence without sema
 });
 
 for (const [label, mutate, expected] of [
-  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.3'); x.scope.releaseVersion = 'v0.3.1-beta.3'; }, /only for v0.3.1-beta.2/],
-  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.2/],
+  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.4'); x.scope.releaseVersion = 'v0.3.1-beta.4'; }, /only for v0.3.1-beta.3/],
+  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.3/],
   ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
   ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],
   ['no incomplete-validation acceptance', x => { x.report.userAcceptance.acceptsIncompleteModelValidation = false; }, /Explicit acceptance/],
@@ -826,10 +826,10 @@ test('CLI fails closed for unknown arguments rather than skipping validation', (
 test('CI tests every PR while Release gates explicit publication with a second publisher check', () => {
   const workflow = fs.readFileSync(path.join(repository, '.github/workflows/release.yml'), 'utf8');
   const validate = workflow.split('\n  validate-release:')[1].split('\n  ai-model-diagnostics:')[0];
-  assert.match(validate, /- name: Test AI semantic release gate regressions\n        run: node --test scripts\/test-ai-release-approval.test.mjs/);
+  assert.match(validate, /- name: Test AI semantic release gate regressions\n        if: steps.ci-promotion.outputs.reuse != 'true'\n        run: node --test scripts\/test-ai-release-approval.test.mjs/);
   assert.match(validate, /- name: Enforce AI publication decision before building\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        run: node scripts\/test-ai-release-approval.mjs/);
   assert.match(validate, /- name: Bind AI publication decision to exact shipping runtime bytes\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        id: ai-release-approval/);
-  assert.match(validate, /--runtime-manifest artifacts\/ai-runtime\/win-x64\/runtime-manifest.json\n          if \(\$LASTEXITCODE -ne 0\)/);
+  assert.match(validate, /--runtime-manifest artifacts\/ai-runtime\/win-x64\/runtime-manifest.json\n          }\n          if \(\$LASTEXITCODE -ne 0\)/);
   assert.match(validate, /ai_semantic_approved: \$\{\{ steps.ai-release-approval.outputs.semantic_approved \}\}/);
   assert.match(validate, /ai_publication_authorized: \$\{\{ steps.ai-release-approval.outputs.authorized \}\}/);
   assert.match(validate, /node scripts\/test-ai-release-approval.mjs --github-output \$env:GITHUB_OUTPUT/);
@@ -844,15 +844,16 @@ test('CI tests every PR while Release gates explicit publication with a second p
   ]) {
     const step = validate.split(`- name: ${name}\n`)[1]?.split('\n      - name:')[0];
     assert.ok(step, `Required operational gate is missing: ${name}`);
-    assert.doesNotMatch(step, /\n\s+(?:if|continue-on-error):/, `Owner acceptance cannot bypass ${name}`);
+    assert.match(step, /if: steps.ci-promotion.outputs.reuse != 'true'/, `Only verified package reuse may skip ${name}`);
+    assert.doesNotMatch(step, /continue-on-error:/);
   }
   const publish = workflow.split('\n  publish-release:')[1];
   assert.match(publish, /needs.validate-release.outputs.ai_publication_authorized == 'true'/);
   assert.match(publish, /needs: \[validate-release, sign-release\]/);
   assert.match(publish, /- name: Recheck AI publication decision\n        run: node scripts\/test-ai-release-approval.mjs --release-bundle artifacts\/release\n\n      - name: Publish immutable/);
   assert.match(validate, /Assert-DropSpacePublicationCommit \$env:EXPECTED_COMMIT \$env:ACTUAL_COMMIT/);
-  assert.match(validate, /- name: Build verified offline AI inference runtime\n        if: \$\{\{ !\(github.event_name == 'workflow_dispatch' && inputs.publish == true\) \}\}/);
-  assert.match(validate, /- name: Retrieve the exact reviewed runtime\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true/);
+  assert.match(validate, /- name: Build verified offline AI inference runtime\n        if:.*ci-promotion.outputs.reuse != 'true'.*inputs.publish == true/);
+  assert.match(validate, /- name: Retrieve the exact reviewed runtime\n        if:.*ci-promotion.outputs.reuse != 'true'.*inputs.publish == true/);
   assert.match(validate, /Get-ReviewedAiRuntime.ps1/);
   assert.match(validate, /record-bundle artifacts\/release runtime-directory/);
   const ci = fs.readFileSync(path.join(repository, '.github/workflows/ci.yml'), 'utf8');

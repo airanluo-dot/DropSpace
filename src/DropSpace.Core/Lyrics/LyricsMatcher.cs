@@ -10,11 +10,22 @@ public static class LyricsMatcher
     private static readonly Regex PlayerSuffix = new(@"\s*[-|–]\s*(?:Apple Music|QQ\u97f3\u4e50|\u7f51\u6613\u4e91\u97f3\u4e50|\u9177\u72d7\u97f3\u4e50|Spotify|YouTube)\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex VersionLabels = new(@"(?:\(|\[|（|【)([^\)\]）】]*)(?:\)|\]|）|】)|\b(live|remix|acoustic|instrumental|karaoke|radio|extended|edit|demo|version|mono|stereo|original|concert|cover|sped\s*up|slowed)\b", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex FeaturedArtistDecoration = new(
-        @"(?:\s*(?:\(|\[|（|【)\s*(?:feat(?:uring)?|ft|with)\.?\s+[^\)\]）】]+(?:\)|\]|）|】)\s*|\s*[-–—:]\s*(?:feat(?:uring)?|ft|with)\.?\s+.+|\s+(?:feat(?:uring)?|ft)\.?\s+.+)$",
+        @"(?:\s*(?:\(|\[|（|【)\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+)[^\)\]）】]+(?:\)|\]|）|】)\s*|\s*[-–—:]\s*(?:feat(?:uring)?|ft|with)(?:\.\s*|\s+).+|\s+(?:feat(?:uring)?|ft)(?:\.\s*|\s+).+)$",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex ReleaseDecoration = new(
         @"(?:\s*(?:\(|\[|（|【)\s*(?:(?:\d{4}\s*)?remaster(?:ed)?(?:\s*\d{4})?|explicit|clean|album\s+version|single\s+version|original\s+motion\s+picture\s+soundtrack)(?:\)|\]|）|】)\s*|\s*[-–—:]\s*(?:(?:\d{4}\s*)?remaster(?:ed)?(?:\s*\d{4})?|explicit|clean|album\s+version|single\s+version|original\s+motion\s+picture\s+soundtrack))$",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    // Publisher descriptions are not part of the sung title. Keep language
+    // identity separately so cleaning a search cannot select another language.
+    private static readonly Regex SoundtrackDecoration = new(
+        @"\s*(?:\(|\[|（|【)\s*[^\)\]）】]*(?:\u4e3b\u9898\u66f2|\u4e3b\u984c\u66f2|\u7247\u5934\u66f2|\u7247\u982d\u66f2|\u7247\u5c3e\u66f2|\u63d2\u66f2|\u63a8\u5e7f\u66f2|\u63a8\u5ee3\u66f2)\s*(?:\)|\]|）|】)\s*$",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex LanguageDecoration = new(
+        @"\s*(?:\(|\[|（|【)\s*(\u4e2d\u6587|\u56fd\u8bed|\u570b\u8a9e|\u666e\u901a\u8bdd|\u666e\u901a\u8a71|\u82f1\u8bed|\u82f1\u8a9e|\u82f1\u6587|\u65e5\u8bed|\u65e5\u8a9e|\u65e5\u6587|\u97e9\u8bed|\u97d3\u8a9e|\u97e9\u6587|\u97d3\u6587|\u7ca4\u8bed|\u7cb5\u8a9e)(?:\u7248|\u7248\u672c)\s*(?:\)|\]|）|】)\s*$",
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex BilingualTitle = new(
+        @"^([\u3400-\u9fff]{2,})\s+[A-Za-z][A-Za-z0-9 '’,:!?\-]+$",
+        RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly Regex ArtistCreditSeparator = new(
         @"\s*(?:;|；|,|，|、|&|＆)\s*|\s+[/／]\s+|(?<=[^\u0000-\u007F])[/／]|[/／](?=[^\u0000-\u007F])|\s+(?:feat(?:uring)?|ft|with|x)\.?\s+",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
@@ -40,8 +51,16 @@ public static class LyricsMatcher
     public static string SearchTitle(string value)
     {
         var title = PlayerSuffix.Replace(Limit(value), string.Empty);
-        title = FeaturedArtistDecoration.Replace(title, string.Empty);
-        title = ReleaseDecoration.Replace(title, string.Empty);
+        // Process stacked decorations, e.g. feat followed by [Chinese version].
+        for (var pass = 0; pass < 4; pass++)
+        {
+            var before = title;
+            title = LanguageDecoration.Replace(title, string.Empty);
+            title = SoundtrackDecoration.Replace(title, string.Empty);
+            title = FeaturedArtistDecoration.Replace(title, string.Empty);
+            title = ReleaseDecoration.Replace(title, string.Empty);
+            if (title == before) break;
+        }
         return title.Trim();
     }
 
@@ -91,6 +110,14 @@ public static class LyricsMatcher
         // Some media publishers reverse title and artist fields.
         if (titleScore < 0.4 && TitleSimilarity(query.Title, artist) > 0.8 && ArtistSimilarity(query.ArtistCandidates, title) > 0.8)
         { (title, artist) = (artist, title); titleScore = TitleSimilarity(query.Title, title); }
+        // Catalogues can append the English title after the exact Chinese title.
+        // This recovery needs independent artist AND duration evidence; substring
+        // similarity alone must never authorize a different song or language.
+        var bilingualMatch = BilingualBaseMatches(query.Title, title);
+        if (bilingualMatch && ArtistSimilarity(query.ArtistCandidates, artist) >= 0.6 &&
+            query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
+            Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds))
+            titleScore = Math.Max(titleScore, 0.95);
         if (titleScore < 0.45) return 0;
         if (!query.HasDisambiguatingMetadata) return 0;
         if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album) &&
@@ -160,12 +187,19 @@ public static class LyricsMatcher
         return Math.Max(direct, EditSimilarity(a, b));
     }
 
+    private static bool BilingualBaseMatches(string left, string right)
+    {
+        var a = SearchTitle(left);
+        var b = SearchTitle(right);
+        var am = BilingualTitle.Match(a);
+        var bm = BilingualTitle.Match(b);
+        return bm.Success && Normalize(a) == Normalize(bm.Groups[1].Value) ||
+            am.Success && Normalize(b) == Normalize(am.Groups[1].Value);
+    }
+
     private static string ComparableTitle(string value)
     {
-        var limited = PlayerSuffix.Replace(Limit(value), string.Empty);
-        limited = FeaturedArtistDecoration.Replace(limited, string.Empty);
-        limited = ReleaseDecoration.Replace(limited, string.Empty);
-        return Normalize(limited);
+        return Normalize(SearchTitle(value));
     }
 
     private static double Similarity(string left, string right)
@@ -204,6 +238,10 @@ public static class LyricsMatcher
 
     public static bool HasVersionConflict(string requested, string candidate)
     {
+        var requestedLanguage = LanguageVersion(requested);
+        var candidateLanguage = LanguageVersion(candidate);
+        if (requestedLanguage is not null && candidateLanguage is not null && requestedLanguage != candidateLanguage)
+            return true;
         var requestedLabels = Labels(requested);
         var candidateLabels = Labels(candidate);
         if (requestedLabels.Count == 0)
@@ -215,6 +253,21 @@ public static class LyricsMatcher
         }
 
         return candidateLabels.Count == 0 || !requestedLabels.Overlaps(candidateLabels);
+    }
+
+    private static string? LanguageVersion(string value)
+    {
+        var match = LanguageDecoration.Match(PlayerSuffix.Replace(Limit(value), string.Empty));
+        if (!match.Success) return null;
+        return match.Groups[1].Value switch
+        {
+            "\u4e2d\u6587" or "\u56fd\u8bed" or "\u570b\u8a9e" or "\u666e\u901a\u8bdd" or "\u666e\u901a\u8a71" => "zh-Hans",
+            "\u82f1\u6587" or "\u82f1\u8bed" or "\u82f1\u8a9e" => "en",
+            "\u65e5\u6587" or "\u65e5\u8bed" or "\u65e5\u8a9e" => "ja",
+            "\u97e9\u6587" or "\u97d3\u6587" or "\u97e9\u8bed" or "\u97d3\u8a9e" => "ko",
+            "\u7ca4\u8bed" or "\u7cb5\u8a9e" => "yue",
+            _ => null,
+        };
     }
 
     private static HashSet<string> Labels(string value)

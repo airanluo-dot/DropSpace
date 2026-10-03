@@ -1,10 +1,7 @@
 name: Windows CI
 
 on:
-  # Branch revisions are validated once, through their PR. Keep the main lane
-  # for the actual merged tree and an explicit entry for branches without a PR.
-  push:
-    branches: [main]
+  # Validate each PR revision once; publication promotes an identical-tree bundle.
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -24,6 +21,7 @@ jobs:
     timeout-minutes: 60
     outputs:
       portable_artifact_id: ${{ steps.portable-artifact.outputs.artifact-id }}
+      release_parts_artifact_id: ${{ steps.release-parts.outputs.artifact-id }}
       handoff_sha256: ${{ steps.portable-handoff.outputs.handoff_sha256 }}
 
     steps:
@@ -85,7 +83,7 @@ jobs:
         run: ./scripts/Test-SecretHygiene.ps1
 
       - name: Test CI handoff and workflow contracts
-        run: node --test scripts/ci-portable-handoff.test.mjs scripts/ci-share-worker-scope.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs
+        run: node --test scripts/ci-portable-handoff.test.mjs scripts/ci-share-worker-scope.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs scripts/ci-release-promotion.test.mjs
 
       - name: Test AI semantic release gate regressions
         run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
@@ -111,14 +109,14 @@ jobs:
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
-      - name: Select approved Beta2 runtime reuse
+      - name: Select exact reviewed native runtime reuse
         id: reviewed-runtime
         shell: pwsh
         run: |
-          $reuse = (Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.2'
-          "reuse=$($reuse.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          node --input-type=module -e "import fs from 'node:fs'; import {readApprovedRuntimeContract} from './scripts/test-ai-release-approval.mjs'; let reuse=false; try { readApprovedRuntimeContract(process.cwd()); reuse=true; } catch(e) { console.log('No reusable current runtime decision: '+e.message); } fs.appendFileSync(process.env.GITHUB_OUTPUT, 'reuse='+reuse+'\n');"
+          if ($LASTEXITCODE -ne 0) { throw 'Native runtime selection failed.' }
 
-      - name: Retrieve exact reviewed Beta2 runtime
+      - name: Retrieve exact reviewed native runtime
         if: steps.reviewed-runtime.outputs.reuse == 'true'
         shell: pwsh
         env:
@@ -175,7 +173,7 @@ jobs:
 
       - name: Test install, in-place upgrade, and both uninstall modes
         shell: pwsh
-        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -212,6 +210,29 @@ jobs:
           path: artifacts/identity/DropSpace.Identity.msix
           if-no-files-found: error
           retention-days: 3
+
+      - name: Stage immutable release parts
+        shell: pwsh
+        run: |
+          New-Item artifacts/release-parts -ItemType Directory -Force | Out-Null
+          Copy-Item artifacts/installer/DropSpaceSetup.exe artifacts/release-parts/DropSpaceSetup.exe
+          $package = Get-ChildItem artifacts/msix -Recurse -File -Filter *.msix | Select-Object -First 1
+          if ($null -eq $package) { throw 'MSIX package missing.' }
+          Copy-Item $package.FullName artifacts/release-parts/DropSpace-x64.msix
+          Copy-Item artifacts/identity/DropSpace.Identity.msix artifacts/release-parts/DropSpace.Identity.msix
+          Copy-Item artifacts/runtime-inspection/installer.json artifacts/release-parts/installer-inspection.json
+          ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release-parts/DropSpace-x64.msix -OutputPath artifacts/release-parts/msix-inspection.json
+          node --input-type=module -e "import fs from 'node:fs'; import {directoryInventory} from './scripts/ai-runtime-publication.mjs'; fs.writeFileSync('artifacts/release-parts/runtime-reference.json', JSON.stringify({runtimeFiles:directoryInventory('artifacts/ai-runtime/win-x64')}));"
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime inventory failed.' }
+
+      - name: Upload this attempt's release parts
+        id: release-parts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dropspace-release-parts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/release-parts/*
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Record same-run portable handoff
         id: portable-handoff
@@ -282,13 +303,44 @@ jobs:
       - name: Smoke test portable EXE (en-US resource context)
         id: smoke-en
         shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US
+        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/release/portable-inspection.json
 
       - name: Smoke test portable EXE (zh-CN resource context)
         id: smoke-zh
         if: ${{ !cancelled() && steps.portable-verification.outcome == 'success' }}
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+
+      - name: Download same-run validated release parts
+        if: steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          artifact-ids: ${{ needs.produce-windows.outputs.release_parts_artifact_id }}
+          path: artifacts/release
+
+      - name: Bind packages and record immutable promotion receipt
+        if: steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'
+        shell: pwsh
+        run: |
+          node scripts/ai-runtime-publication.mjs record-bundle artifacts/release reference-binding artifacts/release/runtime-reference.json artifacts/release/portable-inspection.json artifacts/release/msix-inspection.json artifacts/release/installer-inspection.json
+          if ($LASTEXITCODE -ne 0) { throw 'CI package binding failed.' }
+          node scripts/ci-release-promotion.mjs record artifacts/release
+          if ($LASTEXITCODE -ne 0) { throw 'CI promotion receipt failed.' }
+
+      - name: Upload verified release promotion bundle
+        if: steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dropspace-release-promotion-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/release/DropSpace.exe
+            artifacts/release/DropSpaceSetup.exe
+            artifacts/release/DropSpace-x64.msix
+            artifacts/release/DropSpace.Identity.msix
+            artifacts/release/runtime-publication.json
+            artifacts/release/ci-release-receipt.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Install .NET 10 SDK for isolated crash diagnostics
         if: ${{ !cancelled() && (steps.smoke-en.outcome == 'failure' || steps.smoke-zh.outcome == 'failure') && steps.portable-verification.outcome == 'success' }}

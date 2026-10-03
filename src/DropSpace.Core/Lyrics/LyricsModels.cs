@@ -10,6 +10,8 @@ public sealed record LyricsQuery(
     string TrackIdentity = "",
     string AlbumArtist = "")
 {
+    public string? PreferredTranslationLanguage { get; init; }
+
     public IReadOnlyList<string> ArtistCandidates => LyricsMatcher.ExpandArtistCandidates(Artist, AlbumArtist);
 
     public bool HasDisambiguatingMetadata => ArtistCandidates.Count > 0 ||
@@ -23,7 +25,8 @@ public enum LyricsQueryStatus
     NotFound,
     Failed,
 }
-public sealed record LyricsQueryResult(LyricsDocument Document, LyricsQueryStatus Status);
+public sealed record LyricsQueryResult(LyricsDocument Document, LyricsQueryStatus Status,
+    bool TranslationLookupIncomplete = false);
 public sealed record LyricsMatchInfo(
     string Title,
     string Artist,
@@ -83,6 +86,14 @@ public interface ILyricsProvider
 {
     LyricsProviderKind Kind { get; }
     Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken);
+}
+
+// Providers that search multiple candidates can expose a usable original before
+// looking for a translated alternative. The service owns the shared time budget.
+public interface IProgressiveLyricsProvider : ILyricsProvider
+{
+    Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken,
+        Action<LyricsDocument> reportCandidate);
 }
 
 public sealed class LyricsTimelineEngine

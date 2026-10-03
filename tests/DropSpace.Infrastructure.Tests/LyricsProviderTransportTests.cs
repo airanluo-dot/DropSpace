@@ -12,6 +12,63 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class LyricsProviderTransportTests
 {
     [TestMethod]
+    [DataRow("零(《时光代理人 第三季》Part1片尾曲)", "饭卡", "零", "饭卡", 186)]
+    [DataRow("风的来信(feat.孙晔)[中文版]", "HOYO-MiX", "风的来信 A Letter From the Wind", "HOYO-MiX", 197)]
+    public async Task ChineseScreenshotTitlesReachLyricsThroughCatalogAndService(string requested, string artist, string catalog, string catalogArtist, int seconds)
+    {
+        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+            ? Json(JsonSerializer.Serialize(new { code=0, data=new { song=new { list=new[] {
+                new { songmid="verified", songname=catalog, albumname="", interval=seconds, singer=new[] { new { name=catalogArtist } } }
+            } } } }))
+            : Json(JsonSerializer.Serialize(new { code=0, lyric="[00:01.000]这是用于验证的原创歌词。" })));
+        using var client = new HttpClient(handler);
+        var result = await new LyricsService(new(new ILyricsProvider[] { new QqMusicLyricsProvider(new(client)) }))
+            .QueryDetailedAsync(new(requested,artist,"",TimeSpan.FromSeconds(seconds)) { PreferredTranslationLanguage="zh-Hans" },
+                new() { Enabled=true, Provider=LyricsProviderKind.QqMusic }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found,result.Status);
+        Assert.AreEqual("verified",result.Document.Match!.CandidateId);
+        Assert.IsNotEmpty(result.Document.Lines);
+    }
+
+    [TestMethod]
+    public async Task QqEmptyFirstCandidateDoesNotHideSecondCandidateLyrics()
+    {
+        var lyricCalls=0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search",StringComparison.Ordinal))
+                return Json("""{"data":{"song":{"list":[{"songmid":"one","songname":"歌","singer":[{"name":"歌手"}]},{"songmid":"two","songname":"歌","singer":[{"name":"歌手"}]}]}}}""");
+            lyricCalls++;
+            return Json(JsonSerializer.Serialize(new { lyric=request.RequestUri.Query.Contains("songmid=two",StringComparison.Ordinal)?"[00:01.000]这是用于验证的原创歌词。":"" }));
+        });
+        using var client = new HttpClient(handler);
+        var result=await new QqMusicLyricsProvider(new(client)).QueryAsync(new("歌","歌手","",TimeSpan.Zero),default);
+        Assert.AreEqual("two",result.Match!.CandidateId);
+        Assert.AreEqual(2,lyricCalls);
+    }
+
+    [TestMethod]
+    public async Task NetEasePrefersTranslatedMatchingCandidateOverFirstOriginal()
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]},{"id":2,"name":"Song","artists":[{"name":"Artist"}]}]}}""");
+            lyricCalls++;
+            return Json(JsonSerializer.Serialize(new { code = 200,
+                lrc = new { lyric = "[00:01.000]The night is full of stars." },
+                tlyric = new { lyric = request.RequestUri.Query.Contains("id=2", StringComparison.Ordinal) ? "[00:01.000]我们一起走向明天。" : "" } }));
+        });
+        using var client = new HttpClient(handler);
+        var query = new LyricsQuery("Song", "Artist", "", TimeSpan.Zero) { PreferredTranslationLanguage = "zh-Hans" };
+        var result = await new NetEaseLyricsProvider(new(client)).QueryAsync(query, default);
+        Assert.AreEqual(2, lyricCalls);
+        Assert.IsTrue(LyricsTranslationPolicy.HasMatchingProviderTranslation(result, "zh-Hans"));
+        Assert.AreEqual("2", result.Match!.CandidateId);
+    }
+
+    [TestMethod]
     public async Task NetEaseOpaqueSearchResponseIsFailureRatherThanCatalogMiss()
     {
         using var handler = new FixtureHandler(_ => Json("""{"code":200,"abroad":true,"result":"a1b2c3"}"""));

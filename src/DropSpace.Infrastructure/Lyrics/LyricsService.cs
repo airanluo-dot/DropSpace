@@ -43,9 +43,18 @@ public sealed class LyricsService
         // inherit a document fetched for a nearby duration merely because both durations were
         // truncated to the same whole second.
         var backup = OnlineBackup(settings, kind);
-        var key = JsonSerializer.Serialize(new
+        var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
+        // Non-translation callers retain the existing source cache/provenance
+        // contract. Target-aware lookups use a separate identity so an old
+        // original-only cache cannot short-circuit the translated-source search.
+        var key = target.Length == 0 ? JsonSerializer.Serialize(new
         {
             version = "source-v2", primary = kind, backup, settings.SearchRemainingProviders,
+            query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
+            durationTicks = query.Duration.Ticks,
+        }) : JsonSerializer.Serialize(new
+        {
+            version = "source-v3", primary = kind, backup, settings.SearchRemainingProviders, target,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
@@ -72,31 +81,36 @@ public sealed class LyricsService
         }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(24));
+        using var candidates = new CandidateSearch(query, target, deadline.Token);
+        var document = LyricsDocument.Empty;
+        var translationIncomplete = false;
         try
         {
-            var primary = await QueryProviderAsync(kind, query, deadline.Token).ConfigureAwait(false);
-            var document = Validate(primary.Document, query);
+            var primary = await QueryProviderAsync(kind, query, candidates.Token, candidates.Report, candidates.Token).ConfigureAwait(false);
+            document = PreferTranslation(Validate(primary.Document, query), candidates.Document, target);
             var fallbackFailed = false;
-            if (document.Lines.Count == 0 && backup is { } backupKind)
+            if (NeedsTranslationSearch(document, target) && backup is { } backupKind)
             {
-                var backupResult = await QueryProviderAsync(backupKind, query, deadline.Token).ConfigureAwait(false);
-                document = backupResult.Document;
+                var backupResult = await QueryProviderAsync(backupKind, query, candidates.Token, candidates.Report, candidates.Token).ConfigureAwait(false);
+                document = PreferTranslation(document, backupResult.Document, target);
                 fallbackFailed |= backupResult.Failed;
             }
-            if (document.Lines.Count == 0 && kind != LyricsProviderKind.LocalLrc && settings.SearchRemainingProviders)
+            if (NeedsTranslationSearch(document, target) && kind != LyricsProviderKind.LocalLrc && settings.SearchRemainingProviders)
             {
                 var excluded = backup is { } selectedBackup ? new HashSet<LyricsProviderKind> { kind, selectedBackup } : [kind];
-                var fallback = await QueryFallbacksAsync(excluded, query, deadline.Token).ConfigureAwait(false);
-                document = fallback.Document;
+                var fallback = await QueryFallbacksAsync(excluded, query, candidates.Token, candidates.Report).ConfigureAwait(false);
+                document = PreferTranslation(document, fallback.Document, target);
                 fallbackFailed |= fallback.Failed;
             }
+            document = PreferTranslation(document, candidates.Document, target);
             cancellationToken.ThrowIfCancellationRequested();
             // Any successful fresh read uses this service's current provider pipeline.
             // Stamp at the cache boundary too, so injected provider implementations
             // cannot turn an original-only response into perpetual cache misses.
             if (document.Provider == LyricsProviderKind.NetEase && document.Lines.Count > 0)
                 document = document with { ProviderDataRevision = NetEaseLyricsProvider.DataRevision };
-            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc)
+            translationIncomplete = NeedsTranslationSearch(document, target) && (primary.Failed || fallbackFailed);
+            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete)
             {
                 try
                 {
@@ -108,15 +122,67 @@ public sealed class LyricsService
                 catch (InvalidDataException) { }
             }
             var failed = document.Lines.Count == 0 && (primary.Failed || fallbackFailed);
-            return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound);
+            return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound, translationIncomplete);
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException)
-        { return new(LyricsDocument.Empty, LyricsQueryStatus.Failed); }
+        { document = PreferTranslation(document, candidates.Document, target); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)); }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { return new(LyricsDocument.Empty, LyricsQueryStatus.Failed); }
+        { document = PreferTranslation(document, candidates.Document, target); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)); }
     }
+    // One 1.5-second budget starts at the first validated original, including
+    // originals discovered inside a provider. Backup/candidate changes never reset it.
+    private sealed class CandidateSearch : IDisposable
+    {
+        private readonly object _gate = new();
+        private readonly LyricsQuery _query;
+        private readonly string _target;
+        private readonly CancellationTokenSource _budget;
+        private LyricsDocument _document = LyricsDocument.Empty;
+        private bool _started, _closed;
+        public CandidateSearch(LyricsQuery query, string target, CancellationToken token)
+        {
+            _query = query;
+            _target = target;
+            _budget = CancellationTokenSource.CreateLinkedTokenSource(token);
+            Token = _budget.Token;
+        }
+        public CancellationToken Token { get; }
+        public LyricsDocument Document { get { lock (_gate) return _document; } }
+        public void Report(LyricsDocument candidate)
+        {
+            var valid = Validate(candidate, _query);
+            if (valid.Lines.Count == 0) return;
+            lock (_gate)
+            {
+                if (_closed || Token.IsCancellationRequested) return;
+                _document = PreferTranslation(_document, valid, _target);
+                if (!_started && NeedsTranslationSearch(_document, _target))
+                {
+                    _started = true;
+                    _budget.CancelAfter(TimeSpan.FromMilliseconds(1500));
+                }
+            }
+        }
+        public void Dispose()
+        {
+            lock (_gate) { _closed = true; _budget.Dispose(); }
+        }
+    }
+
+    private static bool HasTargetTranslation(LyricsDocument document, string target) =>
+        target.Length > 0 && LyricsTranslationPolicy.HasMatchingProviderTranslation(
+            LyricsLanguagePolicy.IdentifyProviderTranslations(document), target);
+
+    private static bool NeedsTranslationSearch(LyricsDocument document, string target) =>
+        document.Lines.Count == 0 || target.Length > 0 && !HasTargetTranslation(document, target) &&
+        LyricsLanguagePolicy.EligibleIndices(document, target).Length > 0;
+
+    private static LyricsDocument PreferTranslation(LyricsDocument current, LyricsDocument candidate, string target) =>
+        candidate.Lines.Count > 0 && (current.Lines.Count == 0 ||
+            !HasTargetTranslation(current, target) && HasTargetTranslation(candidate, target)) ? candidate : current;
+
     private sealed record ProviderResult(LyricsDocument Document, bool Failed);
-    private async Task<ProviderResult> QueryProviderAsync(LyricsProviderKind kind, LyricsQuery query, CancellationToken token)
+    private async Task<ProviderResult> QueryProviderAsync(LyricsProviderKind kind, LyricsQuery query, CancellationToken token, Action<LyricsDocument> reportCandidate, CancellationToken presentationDeadline)
     {
         var cancellation = new ProviderCancellation(token, _providerTimeout);
         var requestToken = cancellation.Token;
@@ -130,7 +196,7 @@ public sealed class LyricsService
         {
             await gate.WaitAsync(presentationToken).ConfigureAwait(false);
             invocationOwnsCancellation = true;
-            invocation = InvokeProviderAsync(kind, query, requestToken, cancellation, gate);
+            invocation = InvokeProviderAsync(kind, query, requestToken, cancellation, gate, reportCandidate);
             var result = await invocation.WaitAsync(presentationToken).ConfigureAwait(false);
             presentationToken.ThrowIfCancellationRequested();
             token.ThrowIfCancellationRequested();
@@ -141,7 +207,7 @@ public sealed class LyricsService
             // Let cooperative HTTP/stream cleanup finish before returning, but keep a
             // bounded waiter if a transport ignores cancellation. The invocation still
             // owns its gate and timeout after this small retirement grace expires.
-            if (invocation is not null)
+            if (invocation is not null && !presentationDeadline.IsCancellationRequested)
             {
                 try { await invocation.WaitAsync(TimeSpan.FromMilliseconds(250)).ConfigureAwait(false); }
                 catch (TimeoutException) { }
@@ -154,30 +220,35 @@ public sealed class LyricsService
         finally { if (!invocationOwnsCancellation) await cancellation.CompleteAsync().ConfigureAwait(false); }
     }
     private async Task<ProviderResult> InvokeProviderAsync(LyricsProviderKind kind, LyricsQuery query,
-        CancellationToken token, ProviderCancellation cancellation, SemaphoreSlim gate)
+        CancellationToken token, ProviderCancellation cancellation, SemaphoreSlim gate, Action<LyricsDocument> reportCandidate)
     {
         try
         {
             token.ThrowIfCancellationRequested();
-            var document = await _providers.Get(kind).QueryAsync(query, token).ConfigureAwait(false);
+            var provider = _providers.Get(kind);
+            var document = provider is IProgressiveLyricsProvider progressive
+                ? await progressive.QueryAsync(query, token, reportCandidate).ConfigureAwait(false)
+                : await provider.QueryAsync(query, token).ConfigureAwait(false);
             // Cancellation wins even when a transport returns a stale success instead of throwing.
             token.ThrowIfCancellationRequested();
+            reportCandidate(document);
             return new(Validate(document, query), false);
         }
         catch (Exception error) when (error is not OutOfMemoryException) { return new(LyricsDocument.Empty, true); }
         finally { await cancellation.CompleteAsync().ConfigureAwait(false); gate.Release(); }
     }
 
-    private async Task<(LyricsDocument Document, bool Failed)> QueryFallbacksAsync(IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token)
+    private async Task<(LyricsDocument Document, bool Failed)> QueryFallbacksAsync(IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token, Action<LyricsDocument> reportCandidate)
     {
         token.ThrowIfCancellationRequested();
         var stage = CancellationTokenSource.CreateLinkedTokenSource(token);
         // At most four provider requests are active. Allow a short quality window
         // after the first usable result so a slower, stronger verified match can
         // win, then cancel and drain the rest.
-        var pending = OnlineProviders.Where(kind => !excluded.Contains(kind)).Select(kind => QueryProviderAsync(kind, query, stage.Token)).ToList();
+        var pending = OnlineProviders.Where(kind => !excluded.Contains(kind)).Select(kind => QueryProviderAsync(kind, query, stage.Token, reportCandidate, token)).ToList();
         var all = pending.ToArray();
         var candidates = new List<(LyricsDocument Document, int Index)>();
+        var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         var failed = false;
         Task? qualityWindow = null;
         try
@@ -202,9 +273,11 @@ public sealed class LyricsService
                 failed |= result.Failed;
                 if (document.Lines.Count == 0) continue;
                 candidates.Add((document, index));
-                qualityWindow ??= Task.Delay(TimeSpan.FromMilliseconds(300));
+                if (target.Length == 0 || HasTargetTranslation(document, target))
+                    qualityWindow ??= Task.Delay(TimeSpan.FromMilliseconds(300));
             }
-            return (candidates.OrderByDescending(candidate => candidate.Document.Match?.Score ?? 0)
+            return (candidates.OrderByDescending(candidate => HasTargetTranslation(candidate.Document, target))
+                .ThenByDescending(candidate => candidate.Document.Match?.Score ?? 0)
                 .ThenBy(candidate => candidate.Index).Select(candidate => candidate.Document).FirstOrDefault() ?? LyricsDocument.Empty, failed);
         }
         finally

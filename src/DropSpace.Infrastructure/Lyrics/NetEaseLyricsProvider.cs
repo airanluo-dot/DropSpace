@@ -5,17 +5,23 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvider
+public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
 {
     private const int MaximumLyricCandidates = 3;
     internal const int DataRevision = 2;
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
 
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
+        => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
+
+    public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken,
+        Action<LyricsDocument> reportCandidate)
     {
         var searches = LyricsMatcher.SearchTerms(query);
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var remaining = MaximumLyricCandidates;
+        var original = LyricsDocument.Empty;
+        var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
 
         foreach (var terms in searches)
         {
@@ -27,12 +33,15 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : ILyricsProvid
                 .Where(value => value.Score >= 4 && attempted.Add(value.Id))
                 .OrderByDescending(value => value.Score))
             {
-                if (remaining-- <= 0) return LyricsDocument.Empty;
+                if (remaining-- <= 0) return original;
                 var document = await ReadLyricsAsync(candidate, query, cancellationToken);
-                if (document.Lines.Count > 0) return document;
+                if (document.Lines.Count == 0) continue;
+                reportCandidate(document);
+                if (target.Length == 0 || LyricsLanguagePolicy.EligibleIndices(document, target).Length == 0 || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
+                if (original.Lines.Count == 0) original = document;
             }
         }
-        return LyricsDocument.Empty;
+        return original;
     }
 
     private async Task<LyricsDocument> ReadLyricsAsync(Candidate candidate, LyricsQuery query, CancellationToken token)
