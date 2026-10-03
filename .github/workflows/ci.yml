@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: windows-ci-${{ github.ref }}
@@ -29,6 +30,12 @@ jobs:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Verify reusable prior successful checks
+        id: prior-checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci-beta2-retry.mjs
+
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
@@ -37,18 +44,16 @@ jobs:
           cache-dependency-path: Directory.Packages.props
 
       - name: Verify committed brand assets on clean checkout
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Generate-BrandAssets.ps1 -Verify
 
       - name: Confirm brand verification did not mutate the checkout
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: |
           $status = git status --short --untracked-files=all
           if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
-
-      - name: Generate brand assets from canonical masters for build
-        shell: pwsh
-        run: ./scripts/Generate-BrandAssets.ps1
 
       - name: Validate Stable and Beta release metadata
         shell: pwsh
@@ -56,26 +61,31 @@ jobs:
           ./scripts/Test-ReleaseVersion.ps1
           ./scripts/Test-ReleaseConsistency.ps1
       - name: Enforce localization resource policy
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
       - name: Test frozen model prompt localization exceptions
+        if: steps.prior-checks.outputs.reuse != 'true'
         run: node --test scripts/test-localization-policy.test.mjs
 
       - name: Enforce Windows 10/11 compatibility baseline
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
 
       - name: Enforce hardcoding governance
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-HardcodingGovernance.ps1
 
       - name: Enforce secret hygiene
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: ./scripts/Test-SecretHygiene.ps1
 
       - name: Test CI handoff and workflow contracts
-        run: node --test scripts/ci-portable-handoff.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs
+        run: node --test scripts/ci-portable-handoff.test.mjs scripts/ci-share-worker-scope.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs
 
       - name: Test AI semantic release gate regressions
         run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
@@ -88,9 +98,11 @@ jobs:
           ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
 
       - name: Test expanded island scope and fullscreen behavior contracts
+        if: steps.prior-checks.outputs.reuse != 'true'
         run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
 
       - name: Test private translation helper protocol without model dependencies
+        if: steps.prior-checks.outputs.reuse != 'true'
         shell: pwsh
         run: |
           python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
@@ -99,16 +111,33 @@ jobs:
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
+      - name: Select approved Beta2 runtime reuse
+        id: reviewed-runtime
+        shell: pwsh
+        run: |
+          $reuse = (Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.2'
+          "reuse=$($reuse.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
+      - name: Retrieve exact reviewed Beta2 runtime
+        if: steps.reviewed-runtime.outputs.reuse == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/Get-ReviewedAiRuntime.ps1
+
       - name: Build verified offline AI inference runtime
+        if: steps.reviewed-runtime.outputs.reuse != 'true'
         shell: pwsh
         run: |
           ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
           ./scripts/Build-AiLyricsRuntime.ps1
 
       - name: Test core policies, SemVer, and channel selection
+        if: steps.prior-checks.outputs.reuse != 'true'
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
 
       - name: Test persistence, manifests, streaming downloads, and update coordination
+        if: steps.prior-checks.outputs.reuse != 'true'
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure.trx"
 
       - name: Test production evidence harness without native inference
@@ -217,19 +246,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  build-and-test:
-    # These two names are required by the main ruleset. A failed/cancelled
-    # producer must fail both checks, rather than become successful skipped jobs.
-    name: Build and test (x64, ${{ matrix.language }})
+  smoke-portable:
+    name: Validate portable startup in both languages
     needs: produce-windows
     if: ${{ always() }}
     runs-on: windows-2025
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [en-US, zh-CN]
-
     steps:
       - name: Require successful shared producer
         shell: pwsh
@@ -257,18 +279,25 @@ jobs:
           PORTABLE_ARTIFACT_ID: ${{ needs.produce-windows.outputs.portable_artifact_id }}
         run: node scripts/ci-portable-handoff.mjs verify artifacts/release
 
-      - name: Smoke test portable EXE (${{ matrix.language }} localized resource context)
+      - name: Smoke test portable EXE (en-US resource context)
+        id: smoke-en
         shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language ${{ matrix.language }}
+        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US
+
+      - name: Smoke test portable EXE (zh-CN resource context)
+        id: smoke-zh
+        if: ${{ !cancelled() && steps.portable-verification.outcome == 'success' }}
+        shell: pwsh
+        run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
 
       - name: Install .NET 10 SDK for isolated crash diagnostics
-        if: always() && matrix.language == 'zh-CN' && steps.portable-verification.outcome == 'success'
+        if: ${{ !cancelled() && (steps.smoke-en.outcome == 'failure' || steps.smoke-zh.outcome == 'failure') && steps.portable-verification.outcome == 'success' }}
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.401
 
       - name: Collect isolated native crash address evidence
-        if: always() && matrix.language == 'zh-CN' && steps.portable-download.outcome == 'success' && steps.portable-verification.outcome == 'success'
+        if: ${{ !cancelled() && (steps.smoke-en.outcome == 'failure' || steps.smoke-zh.outcome == 'failure') && steps.portable-download.outcome == 'success' && steps.portable-verification.outcome == 'success' }}
         shell: pwsh
         run: |
           if (-not (Test-Path -LiteralPath artifacts/release/DropSpace.exe -PathType Leaf)) {
@@ -283,10 +312,35 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: diagnostics-${{ matrix.language }}
+          name: diagnostics-windows-locales
           path: artifacts/diagnostics/**
           if-no-files-found: ignore
           retention-days: 14
+
+  build-and-test:
+    # Preserve the two ruleset contexts without a second Windows execution.
+    # These report the combined job's result, not invented per-locale test passes.
+    name: Build and test (x64, ${{ matrix.language }})
+    needs: [produce-windows, smoke-portable]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [en-US, zh-CN]
+    steps:
+      - name: Reflect the consolidated Windows validation result
+        shell: bash
+        env:
+          PRODUCER_RESULT: ${{ needs.produce-windows.result }}
+          SMOKE_RESULT: ${{ needs.smoke-portable.result }}
+        run: |
+          if [[ "$PRODUCER_RESULT" != success || "$SMOKE_RESULT" != success ]]; then
+            echo "Consolidated Windows validation did not succeed: producer=$PRODUCER_RESULT, smoke=$SMOKE_RESULT"
+            exit 1
+          fi
+          echo 'Required compatibility check: the shared producer and both-language smoke job succeeded. No additional tests ran in this check.' >> "$GITHUB_STEP_SUMMARY"
 
   share-worker:
     name: Test encrypted share worker
@@ -295,15 +349,43 @@ jobs:
 
     steps:
       - name: Check out source
+        id: checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 2
 
       - name: Install Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.x
 
-      - name: Syntax-check and test Worker coordinator
+      - name: Determine complete share-worker change scope
+        id: scope
+        run: node scripts/ci-share-worker-scope.mjs
+
+      - name: Syntax-check and test Worker coordinator when applicable
+        id: worker-tests
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && (steps.scope.outcome != 'success' || steps.scope.outputs.run_worker != 'false') }}
         working-directory: share-worker
         run: |
           node --check src/index.js
           npm test
+
+      - name: Require truthful share-worker outcome
+        if: ${{ always() }}
+        shell: bash
+        env:
+          SCOPE_RESULT: ${{ steps.scope.outcome }}
+          RUN_WORKER: ${{ steps.scope.outputs.run_worker }}
+          COMPLETE_DIFF: ${{ steps.scope.outputs.complete_diff }}
+          TEST_RESULT: ${{ steps.worker-tests.outcome }}
+        run: |
+          if [[ "$SCOPE_RESULT" != success ]]; then exit 1; fi
+          if [[ "$RUN_WORKER" == true && "$TEST_RESULT" == success ]]; then
+            echo 'Encrypted share worker tests executed successfully.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$RUN_WORKER" == false && "$COMPLETE_DIFF" == true && "$TEST_RESULT" == skipped ]]; then
+            echo 'Encrypted share worker tests: not-applicable after complete verified diff. No test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Invalid share-worker outcome: run=$RUN_WORKER, complete=$COMPLETE_DIFF, tests=$TEST_RESULT"
+            exit 1
+          fi

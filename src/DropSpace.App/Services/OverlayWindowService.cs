@@ -1358,6 +1358,7 @@ public sealed class OverlayWindowService : IDisposable
                 // Preserve existing WinUI input/content sites unless their monitor geometry changed.
                 if (_windows.Count == _surfaceMonitors.Count && SameMonitorTopology(_surfaceMonitors, monitors))
                 {
+                    foreach (var window in _windows) window.RefreshAnimationRefreshRate();
                     _logger.LogDebug("Display broadcast did not change monitor topology; existing island surfaces retained.");
                     return;
                 }

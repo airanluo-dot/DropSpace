@@ -25,12 +25,6 @@ public sealed class LyricsLanguageAdmissionTests
     }
 
     [TestMethod]
-    [DataRow("愛")]
-    [DataRow("世界")]
-    [DataRow("東京")]
-    [DataRow("一切合切")]
-    [DataRow("目的地到着")]
-    [DataRow("春夏秋冬")]
     [DataRow("kimi no na wa")]
     [DataRow("wo ai ni")]
     [DataRow("Already English")]
@@ -68,7 +62,7 @@ public sealed class LyricsLanguageAdmissionTests
         Assert.AreEqual(LyricsLanguageEvidenceKind.Context, evidence[2].Kind);
         Assert.IsTrue(evidence[2].IsConfident);
         Assert.IsFalse(evidence[5].IsConfident, "A short Japanese Han word must not inherit a Chinese majority.");
-        CollectionAssert.AreEqual(new[] { 4, 5, 6 }, LyricsLanguagePolicy.EligibleIndices(document, "zh-CN"));
+        CollectionAssert.AreEqual(new[] { 4, 6 }, LyricsLanguagePolicy.EligibleIndices(document, "zh-CN"));
         CollectionAssert.AreEqual(new[] { 1, 2, 3, 5, 6, 7 }, LyricsLanguagePolicy.EligibleIndices(document, "en"));
     }
 

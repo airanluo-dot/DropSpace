@@ -13,9 +13,18 @@ internal sealed class IslandGlowRasterizer
     internal const double InnerOverlapDips = 3;
     private const int AroundSteps = 512;
     private const int DistanceSteps = 160;
-    private readonly record struct Sample(int Pixel, int Lookup, float SimplifiedCoverage);
+    private const int GaussianStepsPerUnit = 256;
+    private static readonly double[] GaussianSamples = CreateGaussianSamples();
+    private static readonly DistanceProfile[] DistanceProfiles = CreateDistanceProfiles();
+    private readonly record struct DistanceProfile(double Distance, double Coverage, double BaseLight, double CoreLight);
+    private readonly record struct Sample(int Pixel, int Lookup, int SimplifiedLookup, float SimplifiedCoverage);
     private readonly Sample[] _samples;
     private readonly int[] _lookup = new int[AroundSteps * DistanceSteps];
+    private readonly double[] _frameBands = new double[6];
+    private double _lastPhase;
+    private double _lastBrightness;
+    private double _lastSimplification;
+    private bool _hasRenderedFrame;
 
     public IslandGlowRasterizer(int surfaceWidth, int surfaceHeight, int topRadius, int bottomRadius, double scale)
     {
@@ -62,12 +71,31 @@ internal sealed class IslandGlowRasterizer
                 var around = (position + .75) % 1;
                 var aroundIndex = Math.Min(AroundSteps - 1, (int)(around * AroundSteps));
                 var distanceIndex = Math.Clamp((int)((distance + InnerOverlapDips) * DistanceSteps / (PaddingDips + InnerOverlapDips)), 0, DistanceSteps - 1);
-                var fromBottom = Math.Min(position, 1 - position);
-                // Approximately the lower quarter of the perimeter, feathered
-                // through the last third of each end instead of a radial cut.
-                var coverage = Math.Clamp((.125 - fromBottom) / .04, 0, 1);
+                // The source covers the entire bottom tangent and 45 degrees of
+                // each lower corner, counted from its lowest point. Project that
+                // source downward; the endpoint feather belongs to the source,
+                // not a hard cut through the resulting light field.
+                var tangent = halfWidth - bottomRadius;
+                var sourceEndX = tangent + bottomRadius / Math.Sqrt(2);
+                var sourceX = Math.Min(Math.Abs(dx), sourceEndX);
+                var cornerX = Math.Max(0, sourceX - tangent);
+                var sourceY = halfHeight - bottomRadius + Math.Sqrt(Math.Max(0, bottomRadius * bottomRadius - cornerX * cornerX));
+                var sourceArc = sourceX <= tangent ? sourceX : tangent + bottomRadius * Math.Asin(cornerX / bottomRadius);
+                var projectedDistance = (dy - sourceY) / scale;
+                var projectedArc = dx >= 0 ? sourceArc : perimeter - sourceArc;
+                var projectedAround = (projectedArc / perimeter + .75) % 1;
+                var projectedAroundIndex = Math.Min(AroundSteps - 1, (int)(projectedAround * AroundSteps));
+                var projectedDistanceIndex = Math.Clamp((int)((projectedDistance + InnerOverlapDips) * DistanceSteps /
+                    (PaddingDips + InnerOverlapDips)), 0, DistanceSteps - 1);
+                var bottomCornerEnd = tangent + Math.PI * bottomRadius / 4;
+                var feather = Math.Max(scale, Math.PI * bottomRadius / 16);
+                var coverage = Math.Clamp((bottomCornerEnd + feather / 2 - sourceArc) / feather, 0, 1);
                 coverage = coverage * coverage * (3 - 2 * coverage);
-                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex, (float)coverage));
+                var lateral = Math.Max(0, Math.Abs(dx) - sourceEndX) / scale;
+                coverage *= Gaussian(lateral / (1.8 + .45 * Math.Max(0, projectedDistance)));
+                if (projectedDistance <= -InnerOverlapDips || projectedDistance >= PaddingDips - 1) coverage = 0;
+                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex,
+                    projectedAroundIndex * DistanceSteps + projectedDistanceIndex, (float)coverage));
             }
         }
         _samples = samples.ToArray();
@@ -78,102 +106,190 @@ internal sealed class IslandGlowRasterizer
     public int PaddingPixels { get; }
     public int[] Pixels { get; }
 
-    public void Render(double phase, double brightness, IReadOnlyList<double>? bands = null, double simplification = 0)
+    public bool Render(double phase, double brightness, IReadOnlyList<double>? bands = null, double simplification = 0)
     {
         brightness = double.IsFinite(brightness) ? Math.Clamp(brightness, 0, 1) : 0;
         if (brightness == 0)
         {
+            if (_hasRenderedFrame && _lastBrightness == 0) return false;
             Array.Clear(Pixels);
-            return;
+            _lastBrightness = 0;
+            _hasRenderedFrame = true;
+            return true;
         }
         phase = double.IsFinite(phase) ? phase : 0;
         simplification = double.IsFinite(simplification) ? Math.Clamp(simplification, 0, 1) : 0;
-        double Band(int i) => bands is not null && i % 6 < bands.Count && double.IsFinite(bands[i % 6])
-            ? Math.Clamp(bands[i % 6], 0, 1) : 0;
+        // Sub-byte opacity changes need no new bitmap/upload. This also lets
+        // settled reduced-motion frames remain idle while their envelope runs.
+        brightness = Math.Round(brightness * 1024) / 1024;
+        simplification = Math.Round(simplification * 1024) / 1024;
+        var sameBands = true;
+        for (var i = 0; i < _frameBands.Length; i++)
+        {
+            var value = bands is not null && i < bands.Count && double.IsFinite(bands[i]) ? Math.Clamp(bands[i], 0, 1) : 0;
+            sameBands &= _frameBands[i] == value;
+            _frameBands[i] = value;
+        }
+        if (_hasRenderedFrame && sameBands && phase == _lastPhase && brightness == _lastBrightness && simplification == _lastSimplification)
+            return false;
+        _lastPhase = phase;
+        _lastBrightness = brightness;
+        _lastSimplification = simplification;
+        _hasRenderedFrame = true;
+        double Band(int i) => _frameBands[i % 6];
         var peak = 0d;
         for (var index = 0; index < 6; index++) peak = Math.Max(peak, Band(index));
+        var colorTravel = phase * .095;
+        var centers = (Orange: .08 + colorTravel + .035 * Math.Sin(phase * .6),
+            Pink: .42 + colorTravel + .045 * Math.Sin(phase * .55 + 2),
+            Blue: .76 + colorTravel + .04 * Math.Sin(phase * .5 + 4));
+        var waveCenters = (Orange: .1 + phase * .07 + .1 * Math.Sin(phase * .35),
+            Pink: .43 + phase * .08 + .085 * Math.Sin(phase * .41 + 2),
+            Blue: .74 + phase * .055 + .09 * Math.Sin(phase * .3 + 4));
+        var bloomCenters = (Orange: .04 + phase * .045 + .07 * Math.Sin(phase * .28 + 1),
+            Pink: .38 + phase * .05 + .08 * Math.Sin(phase * .32 + 3),
+            Blue: .72 + phase * .04 + .07 * Math.Sin(phase * .26 + 5));
         for (var around = 0; around < AroundSteps; around++)
         {
             var theta = around * (2 * Math.PI / AroundSteps);
-            // Local audio controls both the visible crest displacement and light.
-            // Traveling phase distributes that real energy; silence cannot produce
-            // animated waves. The island itself never changes its physical contour.
+            // Audio changes the thickness and diffusion of light around a fixed
+            // edge. A broad wave sits inside that light, rather than becoming a
+            // separate, displaced outline. Silence has no traveling thickness wave.
             var bandPosition = around * 6d / AroundSteps;
             var bandIndex = (int)bandPosition;
             var fraction = bandPosition - bandIndex;
             fraction = fraction * fraction * (3 - 2 * fraction);
             var pulse = Band(bandIndex) * (1 - fraction) + Band(bandIndex + 1) * fraction;
-            var drive = Math.Clamp(.85 * pulse + .15 * peak, 0, 1);
-            var wave = .65 * Math.Sin(theta * 5 - phase * 5.2) + .35 * Math.Sin(theta * 8 + phase * 3.4);
-            // Perceptual gain preserves visible contour motion at ordinary listening
-            // levels without raising the global brightness or widening the halo.
+            var drive = Math.Clamp(.55 * pulse + .45 * peak, 0, 1);
             var motion = Math.Sqrt(drive);
-            var ribbonCenter = 3 + 2.2 * drive + 6 * motion * wave;
-            var broadCenter = Math.Max(0, ribbonCenter * .35);
-            var outerCenter = ribbonCenter + 3;
-            var broadWidth = 3 + .4 * drive + .32 * Math.Max(0, ribbonCenter);
-            var ribbonWidth = 1.6 + .7 * drive;
-            var localLight = .28 + .72 * Math.Sqrt(drive);
-            var broadColor = Palette(theta / (2 * Math.PI) - phase * 0.065);
-            var ribbonColor = Palette(theta / (2 * Math.PI) + 0.08 + phase * 0.085);
-            var outerColor = Palette(theta / (2 * Math.PI) + 0.24 - phase * 0.047);
+            var wave = .7 * Math.Sin(theta * 2 - phase * 1.1) + .3 * Math.Sin(theta * 3 - phase * .7);
+            var crest = .5 + .5 * wave;
+            // The wave fills outward from the fixed edge. Its broad crests vary
+            // in thickness; there is no displaced ribbon center or moving contour.
+            var waveWidth = 1.25 + 10 * motion * crest;
+            var bloomWidth = 3.2 + 7 * motion * crest;
+            var localLight = .7 + .3 * motion;
+            var waveStrength = Math.Min(.95, 1.65 * brightness * localLight *
+                (.2 + .8 * motion) * (.65 + .35 * motion * crest));
+            // Broad fields drift at separate speeds in the wave and diffusion.
+            // Their overlapping colors accumulate softly outside the fixed core.
+            var colorPosition = theta / (2 * Math.PI);
+            var baseColor = Palette(colorPosition, centers);
+            var waveColor = Palette(colorPosition, waveCenters);
+            var bloomColor = Palette(colorPosition, bloomCenters);
+            var haloColor = Palette(colorPosition - .08, bloomCenters);
+            var coreColor = (R: baseColor.R * .88 + 255 * .12,
+                G: baseColor.G * .88 + 255 * .12, B: baseColor.B * .88 + 255 * .12);
             for (var distance = 0; distance < DistanceSteps; distance++)
             {
-                var d = (distance + 0.5) * (PaddingDips + InnerOverlapDips) / DistanceSteps - InnerOverlapDips;
-                var broad = 0.20 * Gaussian((d - broadCenter) / broadWidth);
-                var ribbon = 0.52 * Gaussian((d - ribbonCenter) / ribbonWidth);
-                var outer = 0.08 * Gaussian((d - outerCenter) / 3.2);
-                var edge = 0.10 * Gaussian(d / 2.5);
-                var total = broad + ribbon + outer + edge;
-                // A smooth bounded tail reaches zero before the bitmap boundary.
-                var tail = Math.Clamp((PaddingDips - 1 - d) / 5, 0, 1);
-                tail = tail * tail * (3 - 2 * tail);
-                var inner = Math.Clamp((d + InnerOverlapDips) / 1.5, 0, 1);
-                inner = inner * inner * (3 - 2 * inner);
-                var alpha = Math.Clamp(total * brightness * localLight * tail * inner, 0, 1);
+                var profile = DistanceProfiles[distance];
+                var d = profile.Distance;
+                // Independent premultiplied layers, from the widest diffusion to
+                // the attached base light. Gaussian widths are in DIPs at every DPI.
+                double alpha = 0, red = 0, green = 0, blue = 0;
+                Composite(ref alpha, ref red, ref green, ref blue, haloColor,
+                    .16 * brightness * localLight * Gaussian(d / (8.5 + 1.5 * motion)));
+                Composite(ref alpha, ref red, ref green, ref blue, bloomColor,
+                    .32 * brightness * localLight * (.35 + .65 * motion * crest) * Gaussian(d / bloomWidth));
+                Composite(ref alpha, ref red, ref green, ref blue, waveColor,
+                    waveStrength * Gaussian(d / waveWidth));
+                Composite(ref alpha, ref red, ref green, ref blue, baseColor,
+                    .95 * brightness * profile.BaseLight);
+                Composite(ref alpha, ref red, ref green, ref blue, coreColor,
+                    .42 * brightness * profile.CoreLight);
+                var coverage = profile.Coverage;
+                alpha *= coverage;
                 var a = (int)Math.Round(255 * alpha);
-                var red = (broadColor.R * (broad + edge) + ribbonColor.R * ribbon + outerColor.R * outer) / total;
-                var green = (broadColor.G * (broad + edge) + ribbonColor.G * ribbon + outerColor.G * outer) / total;
-                var blue = (broadColor.B * (broad + edge) + ribbonColor.B * ribbon + outerColor.B * outer) / total;
                 // Premultiplication is essential: straight-alpha RGB leaves colored
                 // residue after fading and dark rectangles on a layered HWND.
-                var r = Math.Min(a, (int)Math.Round(red * alpha));
-                var g = Math.Min(a, (int)Math.Round(green * alpha));
-                var b = Math.Min(a, (int)Math.Round(blue * alpha));
+                var r = Math.Min(a, (int)Math.Round(red * coverage));
+                var g = Math.Min(a, (int)Math.Round(green * coverage));
+                var b = Math.Min(a, (int)Math.Round(blue * coverage));
                 _lookup[around * DistanceSteps + distance] = a << 24 | r << 16 | g << 8 | b;
             }
         }
         foreach (var sample in _samples)
         {
             var pixel = _lookup[sample.Lookup];
-            if (simplification == 0 || sample.SimplifiedCoverage == 1) { Pixels[sample.Pixel] = pixel; continue; }
-            var coverage = 1 - simplification + simplification * sample.SimplifiedCoverage;
+            if (simplification == 0) { Pixels[sample.Pixel] = pixel; continue; }
+            var projected = _lookup[sample.SimplifiedLookup];
+            var coverage = simplification * sample.SimplifiedCoverage;
             // Scale every premultiplied channel together; transparent endpoints
             // must not leave RGB residue when the mode switches repeatedly.
-            var a = (int)Math.Round(((uint)pixel >> 24) * coverage);
-            var r = (int)Math.Round(((pixel >> 16) & 255) * coverage);
-            var g = (int)Math.Round(((pixel >> 8) & 255) * coverage);
-            var b = (int)Math.Round((pixel & 255) * coverage);
+            var a = (int)Math.Round(((uint)pixel >> 24) * (1 - simplification) + ((uint)projected >> 24) * coverage);
+            var r = (int)Math.Round(((pixel >> 16) & 255) * (1 - simplification) + ((projected >> 16) & 255) * coverage);
+            var g = (int)Math.Round(((pixel >> 8) & 255) * (1 - simplification) + ((projected >> 8) & 255) * coverage);
+            var b = (int)Math.Round((pixel & 255) * (1 - simplification) + (projected & 255) * coverage);
             Pixels[sample.Pixel] = a << 24 | r << 16 | g << 8 | b;
         }
+        return true;
     }
 
     private static double HalfContourLength(double halfWidth, double halfHeight, double radius) =>
         halfWidth + halfHeight + (Math.PI / 2 - 2) * radius;
 
-    private static double Gaussian(double value) => Math.Exp(-0.5 * value * value);
-
-    private static (double R, double G, double B) Palette(double position)
+    private static double Gaussian(double value)
     {
-        position = (position - Math.Floor(position)) * 3;
-        var segment = (int)position;
-        var blend = position - segment;
-        blend = blend * blend * (3 - 2 * blend);
-        // The product-requested orange / pink / blue identity is decorative only.
-        var from = segment switch { 0 => (255d, 147d, 78d), 1 => (255d, 79d, 171d), _ => (69d, 137d, 255d) };
-        var to = segment switch { 0 => (255d, 79d, 171d), 1 => (69d, 137d, 255d), _ => (255d, 147d, 78d) };
-        return (from.Item1 + (to.Item1 - from.Item1) * blend,
-            from.Item2 + (to.Item2 - from.Item2) * blend,
-            from.Item3 + (to.Item3 - from.Item3) * blend);
+        value = Math.Abs(value);
+        if (value >= 8) return 0; // Below byte precision, including the bounded tail.
+        var position = value * GaussianStepsPerUnit;
+        var index = (int)position;
+        var blend = position - index;
+        return GaussianSamples[index] + (GaussianSamples[index + 1] - GaussianSamples[index]) * blend;
+    }
+
+    private static double[] CreateGaussianSamples()
+    {
+        var samples = new double[8 * GaussianStepsPerUnit + 1];
+        for (var i = 0; i < samples.Length; i++)
+        {
+            var value = i / (double)GaussianStepsPerUnit;
+            samples[i] = Math.Exp(-.5 * value * value);
+        }
+        return samples;
+    }
+
+    private static DistanceProfile[] CreateDistanceProfiles()
+    {
+        var profiles = new DistanceProfile[DistanceSteps];
+        for (var i = 0; i < profiles.Length; i++)
+        {
+            var distance = (i + .5) * (PaddingDips + InnerOverlapDips) / DistanceSteps - InnerOverlapDips;
+            var tail = Math.Clamp((PaddingDips - 1 - distance) / 6, 0, 1);
+            var inner = Math.Clamp((distance + InnerOverlapDips) / 1.5, 0, 1);
+            var coverage = tail * tail * (3 - 2 * tail) * inner * inner * (3 - 2 * inner);
+            profiles[i] = new(distance, coverage, Gaussian(distance / 1.6), Gaussian(distance / .9));
+        }
+        return profiles;
+    }
+
+    private static void Composite(ref double alpha, ref double red, ref double green, ref double blue,
+        (double R, double G, double B) color, double opacity)
+    {
+        var remaining = 1 - opacity;
+        alpha = opacity + alpha * remaining;
+        red = color.R * opacity + red * remaining;
+        green = color.G * opacity + green * remaining;
+        blue = color.B * opacity + blue * remaining;
+    }
+
+    private static (double R, double G, double B) Palette(double position, (double Orange, double Pink, double Blue) centers)
+    {
+        position -= Math.Floor(position);
+        static double Weight(double position, double center, double width)
+        {
+            center -= Math.Floor(center);
+            var distance = Math.Abs(position - center);
+            return Gaussian(Math.Min(distance, 1 - distance) / width);
+        }
+        // Large overlapping color fields move independently along the perimeter.
+        // Normalization keeps a continuous base underneath the soft thickness wave.
+        var orange = Weight(position, centers.Orange, .14);
+        var pink = Weight(position, centers.Pink, .16);
+        var blue = Weight(position, centers.Blue, .17);
+        var total = orange + pink + blue;
+        return ((255 * orange + 255 * pink + 69 * blue) / total,
+            (147 * orange + 79 * pink + 137 * blue) / total,
+            (78 * orange + 171 * pink + 255 * blue) / total);
     }
 }

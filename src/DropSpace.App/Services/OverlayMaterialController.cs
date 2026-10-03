@@ -18,6 +18,7 @@ internal sealed class OverlayMaterialController : IDisposable
     private readonly Brush? _normalFallbackBrush;
     private bool _disposed;
     private IslandAcrylicBackdrop? _acrylic;
+    private OverlayRegionSignature? _geometry;
 
     public OverlayMaterialController(
         SystemBackdropElement backdrop,
@@ -47,6 +48,7 @@ internal sealed class OverlayMaterialController : IDisposable
             if (canUseAcrylic)
             {
                 _acrylic ??= new IslandAcrylicBackdrop();
+                if (_geometry is { } geometry) _acrylic.SetGeometry(geometry);
                 _backdrop.SystemBackdrop ??= _acrylic;
                 _acrylic.SetEnabled(true);
             }
@@ -75,7 +77,8 @@ internal sealed class OverlayMaterialController : IDisposable
         }
         catch (Exception)
         {
-            _acrylic?.SetEnabled(false);
+            try { _acrylic?.SetEnabled(false); }
+            catch (Exception cleanupError) { System.Diagnostics.Trace.TraceError("Acrylic cleanup failed: {0}", cleanupError); }
             _backdrop.Visibility = Visibility.Collapsed;
             _fallback.Visibility = Visibility.Visible;
             _fallback.Background = _normalFallbackBrush;
@@ -90,19 +93,28 @@ internal sealed class OverlayMaterialController : IDisposable
 
     public void SetCornerRadius(CornerRadius radius)
     {
-        // XAML antialiasing and the integer native HRGN must not leave an
-        // uncovered pixel of the WinUI host between the material and the halo.
-        // Paint one physical pixel beyond that boundary; the unchanged native
-        // region still owns the visible contour and mouse hit area.
-        var scale = _backdrop.XamlRoot?.RasterizationScale ?? 1;
-        var bleed = 1 / (double.IsFinite(scale) && scale > 0 ? scale : 1);
-        var paintedRadius = new CornerRadius(radius.TopLeft + bleed, radius.TopRight + bleed,
-            radius.BottomRight + bleed, radius.BottomLeft + bleed);
-        _backdrop.Margin = new Thickness(-bleed);
-        _fallback.Margin = new Thickness(-bleed);
-        _backdrop.CornerRadius = paintedRadius;
-        _fallback.CornerRadius = paintedRadius;
+        // Transparent HWND backing preserves the actual antialiased edge.
+        // Overpainting into a hard HRGN would discard its fractional coverage.
+        _backdrop.Margin = new Thickness(0);
+        _fallback.Margin = new Thickness(0);
+        // The installed native Acrylic rounded clip is binary; coverage owns this edge.
+        _backdrop.CornerRadius = new CornerRadius(0);
+        _fallback.CornerRadius = radius;
     }
+
+    internal void SetGeometry(OverlayRegionSignature geometry)
+    {
+        _geometry = geometry;
+        _acrylic?.SetGeometry(geometry);
+    }
+
+    internal void SetMotion(IslandMotionBlurFrame frame)
+    {
+        if (!_disposed) _acrylic?.SetMotion(IsUsingDesktopAcrylic ? frame : IslandMotionBlurFrame.None);
+    }
+
+    internal object? CaptureMotionState() => _acrylic?.CaptureMotionState();
+    internal void PrepareMotion() { if (!_disposed && IsUsingDesktopAcrylic) _acrylic?.PrepareMotion(); }
 
     public void Dispose()
     {

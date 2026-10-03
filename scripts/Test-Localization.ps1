@@ -75,7 +75,7 @@ $languagePolicyLineHashes = @(
     '123ff1374ed5569a5aad2a9bf867ce8aa74fdba026d586a5a4d567c339cfb718'
     'f9ce14ff105eb6d848a4ecfcbaf0374aa58aff312bb3df5167a771b141587486'
     '0ec39eaf32fc5744d3d1e7a2c703249b5dd43e8e256ac525229f611daa429ab7'
-    '3f39a25c5777280fb90ab5e74e13433ca927649cae0cd4964adb7c32a607f10f'
+    '5f8af9b2d2b8b4a2bee94fd38db524e1a7d5fd6c1370909ca0266ee671ca39b8'
     '3542193c36ce62a424b45adac6726055b5c579c4c28250d33d58f6ee18e58db4'
 )
 function Get-LanguagePolicyLineHash([string]$Line) {

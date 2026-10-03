@@ -364,6 +364,10 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
                     session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist), settings.Lyrics, token, refresh).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
+            var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
+            // The initial view and every failure/retired-fence fallback share this cleaned source.
+            result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
+                LyricsLanguagePolicy.IdentifyProviderTranslations(result.Document), targetLanguage) };
             sourceResult = result;
             await _dispatcher.EnqueueAsync(() =>
             {
@@ -378,7 +382,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
             }).ConfigureAwait(false);
             if (IsLyricsRequestCurrent(session, settings, generation, token))
             {
-                var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
                 var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
                     session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);
                 var partialApplied = false;

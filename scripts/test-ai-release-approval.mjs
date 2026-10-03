@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compareInventory, directoryInventory, validateArtifactContract, validateInventory, validateRuntimeProducer, verifyReleaseBinding } from './ai-runtime-publication.mjs';
 
 export const approvalPath = 'scripts/ai-model-qa/release-approval.json';
-export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission.json';
+export const admissionPath = 'scripts/plain-hy-production-evidence/source48-admission-v8.json';
 export const fixturePath = 'scripts/ai-model-qa/inputs/source48.json';
 export const residentSourcePaths = Object.freeze([
   'tools/plain-lyrics-helper/CMakeLists.txt',
@@ -89,14 +89,42 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/ViewModels/MainViewModel.cs',
   'src/DropSpace.App/ViewModels/NativeSettingsEditor.cs',
   'src/DropSpace.App/Views/Music/MusicPage.cs',
+  'src/DropSpace.App/Views/Music/LyricsRowCollection.cs',
   'src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs',
   'src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs',
   'src/DropSpace.App/Views/Island/MediaCompactView.xaml',
   'src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs',
+  'src/DropSpace.App/Views/Island/MediaRenderQueue.cs',
   'src/DropSpace.App/Views/Island/MediaExpandedView.xaml',
   'src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs',
   'src/DropSpace.Core/Lyrics/LyricsGlowHandoff.cs',
   'src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs',
+  'src/DropSpace.App/Services/IslandGlowController.cs',
+  'src/DropSpace.App/Services/IslandGlowRasterizer.cs',
+  'src/DropSpace.App/Services/IslandGlowWindow.cs',
+  // Final Beta.2 overlay material, geometry and scheduling shipping inputs.
+  'src/DropSpace.App/OverlayWindow.xaml.cs',
+  'src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs',
+  'src/DropSpace.App/Services/AcrylicCoverageMask.cs',
+  'src/DropSpace.App/Services/AcrylicShutterBlur.cs',
+  'src/DropSpace.App/Services/CompositionEffectDescriptions.cs',
+  'src/DropSpace.App/Services/DisplayIdentityService.cs',
+  'src/DropSpace.App/Services/IslandAcrylicBackdrop.cs',
+  'src/DropSpace.App/Services/IslandMotionBlurPolicy.cs',
+  'src/DropSpace.App/Services/IslandTransparentBackdrop.cs',
+  'src/DropSpace.App/Services/MonitorLayoutService.cs',
+  'src/DropSpace.App/Services/OverlayMaterialController.cs',
+  'src/DropSpace.App/Services/OverlayMotionOrchestrator.cs',
+  'src/DropSpace.App/Services/OverlayNativeRegionController.cs',
+  'src/DropSpace.App/Services/OverlayTransparentHostController.cs',
+  'src/DropSpace.App/Services/OverlayWindowInterop.cs',
+  'src/DropSpace.App/Services/OverlayWindowService.cs',
+  'src/DropSpace.Core/Overlay/OverlayFrameGeometry.cs',
+  'src/DropSpace.Core/Overlay/OverlayFramePacer.cs',
+  'src/DropSpace.Core/Overlay/OverlayMotionController.cs',
+  'src/DropSpace.Core/Overlay/OverlayRegionSignature.cs',
+  'src/DropSpace.App/Strings/en-US/Resources.resw',
+  'src/DropSpace.App/Strings/zh-CN/Resources.resw',
   'src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs',
   'src/DropSpace.App/Services/Media/MediaApplicationIconService.cs',
   'src/DropSpace.App/Services/Media/MediaArtworkService.cs',
@@ -144,12 +172,25 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.1';
+export const experimentalBetaVersion = 'v0.3.1-beta.2';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
 const readText = (root, name) => fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\n/g, '\n');
 const readJson = (root, name) => JSON.parse(readText(root, name));
+// This checks the frozen fixture's admission, not model quality. Keep the
+// Core rule's bounded Han ranges and its explicit/weak evidence distinction.
+export function fixtureAdmissionDecision(text, target, { detectedLanguage, confidence }) {
+  const confident = detectedLanguage !== null && confidence >= 0.9;
+  if (confident && (detectedLanguage === target || detectedLanguage.startsWith('zh-') && target.startsWith('zh-'))) return 'SameLanguage';
+  const letters = [...text].filter(letter => /\p{L}/u.test(letter));
+  const pureHan = letters.length > 0 && letters.every(letter => {
+    const rune = letter.codePointAt(0);
+    return rune >= 0x3400 && rune <= 0x9fff || rune >= 0x20000 && rune <= 0x323af;
+  });
+  if ((!confident || detectedLanguage === 'mul') && target.startsWith('zh-') && pureHan) return 'Abstain';
+  return 'Translate';
+}
 const nonempty = (value, label) => assert.ok(typeof value === 'string' && value.trim().length > 0, `${label} is required`);
 
 function singleMatch(text, pattern, label) {
@@ -229,8 +270,12 @@ export function readScope(root) {
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
   const fixture = JSON.parse(fixtureBytes);
   assert.equal(admission.schemaVersion, 1, 'Unknown audited fixture admission schema');
+  assert.equal(admission.recordKind, 'host-fixture-admission-v8', 'Expected a current host admission computation');
+  assert.equal(admission.modelInferenceExecuted, false, 'Host admission cannot claim model inference');
+  assert.equal(admission.semanticApproved, false, 'Host admission cannot claim semantic approval');
   assert.equal(admission.fixtureSha256, sha256(fixtureBytes), 'Audited admission fixture is stale');
   assert.equal(admission.policyVersion, singleMatch(readText(root, 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs'), /public const string Version = "([^"]+)";/g, 'Admission policy version'), 'Admission audit must be renewed for policy changes');
+  assert.equal(admission.policySourceSha256, sha256(readText(root, 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs')), 'Fixture admission policy source hash is stale');
   assert.deepEqual(Object.keys(admission.targets).sort(), ['en', 'zh-Hans']);
   assert.deepEqual(admission.semanticLanguages, [
     { firstLineId: 0, lastLineId: 11, language: 'en' }, { firstLineId: 12, lastLineId: 23, language: 'ja' },
@@ -241,13 +286,15 @@ export function readScope(root) {
     for (const [id, row] of rows.entries()) {
       assert.equal(row.lineId, id); assert.equal(row.sourceText, fixture.Lines[id].Text);
       assert.ok(['Unknown', 'Lexical', 'Context', 'Explicit'].includes(row.evidenceKind));
+      assert.ok(Number.isFinite(row.confidence) && row.confidence >= 0 && row.confidence <= 1, 'Invalid admission confidence');
+      assert.ok(row.detectedLanguage === null || typeof row.detectedLanguage === 'string' && row.detectedLanguage.length > 0, 'Invalid detected language');
       assert.ok(typeof row.eligible === 'boolean');
       if (row.confidence >= 0.9) assert.equal(row.detectedLanguage, admission.semanticLanguages.find(group => id >= group.firstLineId && id <= group.lastLineId).language, 'Confident admission language conflicts with independent fixture annotation');
-      // The frozen fixture contains no credits. Unknown evidence remains eligible;
-      // only positive same-target evidence can exclude one of these lyric rows.
-      const expectedEligible = row.confidence < 0.9 || row.detectedLanguage !== target;
-      assert.equal(row.eligible, expectedEligible, 'Fixture audit cannot suppress an unknown or foreign lyric');
-      assert.equal(row.reason, row.eligible ? row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained' : 'same-target-language');
+      // The fixture has no credits: ambiguous pure Han can abstain only for a
+      // Chinese target. Unknown Latin/Kana and reliable foreign evidence remain eligible.
+      const decision = fixtureAdmissionDecision(row.sourceText, target, row);
+      assert.equal(row.eligible, decision === 'Translate', 'Fixture admission must match the v8 three-state policy');
+      assert.equal(row.reason, decision === 'SameLanguage' ? 'same-target-language' : decision === 'Abstain' ? 'no-eligible-segments' : row.confidence >= 0.9 ? 'identified-foreign-language' : 'unknown-language-retained');
       assert.deepEqual(row.segments, row.eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : []);
     }
   }
@@ -549,7 +596,7 @@ function timestamp(value, label) {
 }
 
 function validateExperimentalBeta(root, report, scope, reviewedAt) {
-  assert.equal(scope.releaseVersion, experimentalBetaVersion, 'Owner acceptance is only for v0.3.1-beta.1');
+  assert.equal(scope.releaseVersion, experimentalBetaVersion, `Owner acceptance is only for ${experimentalBetaVersion}`);
   assert.equal(report.semanticApproved, false, 'Experimental Beta must not claim semantic approval');
   assert.equal(scope.executionLimits.wholeSongSeconds, 600, 'Owner acceptance covers the 600-second processing ceiling');
   assert.equal(report.userAcceptance?.releaseVersion, experimentalBetaVersion, 'Owner acceptance must name this exact Beta');
@@ -696,7 +743,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         if (args[0] === '--github-output') fs.appendFileSync(args[1], `authorized=${decision.authorized}\nsemantic_approved=${decision.semanticApproved}\nmode=${decision.mode}\n`);
       }
       console.log(readJson(rootDirectory, approvalPath).status === experimentalBetaStatus
-        ? 'Owner-accepted experimental v0.3.1-beta.1 bindings are valid. Model validation remains unverified; no semantic approval is claimed.'
+        ? `Owner-accepted experimental ${experimentalBetaVersion} bindings are valid. Model validation remains unverified; no semantic approval is claimed.`
         : 'AI semantic approval and evidence bindings are valid. The recorded semantic review, not this structural check, establishes quality.');
     }
   } catch (error) {

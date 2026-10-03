@@ -3,6 +3,7 @@ using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using DropSpace.Core.Overlay;
 
 namespace DropSpace.App.Services;
 
@@ -10,11 +11,30 @@ namespace DropSpace.App.Services;
 internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
 {
     private ICompositionSupportsSystemBackdrop? _connectedTarget;
+    private AcrylicCoverageBackdropTarget? _coverageTarget;
+    private OverlayRegionSignature? _geometry;
     private DesktopAcrylicController? _controller;
     private SystemBackdropConfiguration? _configuration;
     private FrameworkElement? _root;
     private bool _enabled = true;
+    private bool _prepareMotionRequested;
     private bool _disposed;
+
+    internal void SetGeometry(OverlayRegionSignature geometry)
+    {
+        _geometry = geometry;
+        _coverageTarget?.UpdateGeometry(geometry);
+    }
+
+    internal object? CaptureCoverageState() => _coverageTarget?.Snapshot();
+    internal void SetMotion(IslandMotionBlurFrame frame) => _coverageTarget?.SetMotion(frame);
+    internal void PrepareMotion()
+    {
+        _prepareMotionRequested = true;
+        _coverageTarget?.PrepareMotion();
+    }
+    internal object? CaptureMotionState() => _coverageTarget?.CaptureMotionState();
+    internal byte[] Coverage => _coverageTarget?.Coverage ?? [];
 
     internal void SetEnabled(bool enabled)
     {
@@ -28,6 +48,8 @@ internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
     {
         base.OnTargetConnected(target, xamlRoot);
         _connectedTarget = target;
+        _coverageTarget = new AcrylicCoverageBackdropTarget(target);
+        if (_geometry is { } geometry) _coverageTarget.UpdateGeometry(geometry);
         _configuration = new SystemBackdropConfiguration { IsInputActive = true };
         _root = xamlRoot.Content as FrameworkElement;
         if (_root is not null) _root.ActualThemeChanged += OnThemeChanged;
@@ -37,13 +59,16 @@ internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
 
     private void AttachController()
     {
-        if (_controller is not null || _connectedTarget is null || _configuration is null) return;
+        if (_controller is not null || _coverageTarget is null || _configuration is null) return;
         var controller = new DesktopAcrylicController();
         _controller = controller;
         try
         {
             controller.SetSystemBackdropConfiguration(_configuration);
-            controller.AddSystemBackdropTarget(_connectedTarget);
+            if (!controller.AddSystemBackdropTarget(_coverageTarget))
+                throw new InvalidOperationException("The Acrylic controller rejected its coverage target.");
+            // A deferred XAML connection must warm its new graph before animation frames.
+            if (_prepareMotionRequested) _coverageTarget.PrepareMotion();
         }
         catch
         {
@@ -60,7 +85,7 @@ internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
         if (controller is null) return;
         try
         {
-            if (_connectedTarget is not null) controller.RemoveSystemBackdropTarget(_connectedTarget);
+            if (_coverageTarget is not null) controller.RemoveSystemBackdropTarget(_coverageTarget);
         }
         finally { controller.Dispose(); }
     }
@@ -78,27 +103,35 @@ internal sealed class IslandAcrylicBackdrop : SystemBackdrop, IDisposable
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop target)
     {
         var connectedTarget = _connectedTarget;
-        try { base.OnTargetDisconnected(target); }
+        var coverageTarget = _coverageTarget;
+        var errors = new List<Exception>();
+        void Clean(Action action) { try { action(); } catch (Exception error) { errors.Add(error); } }
+        try { Clean(() => base.OnTargetDisconnected(target)); }
         finally
         {
             if (_root is not null) _root.ActualThemeChanged -= OnThemeChanged;
             try
             {
-                DetachController();
+                Clean(DetachController);
+                if (coverageTarget is not null) Clean(coverageTarget.Dispose);
                 // The native backdrop link implements IClosable. Rooting prevents early
                 // collection, but its last projection may still finalize off-thread after
                 // disconnection. Close it on the owning XAML thread before unrooting.
-                (connectedTarget ?? target).As<IDisposable>().Dispose();
+                var targetClosed = false;
+                Clean(() => { (connectedTarget ?? target).As<IDisposable>().Dispose(); targetClosed = true; });
+                if (targetClosed && coverageTarget is not null) Clean(coverageTarget.ReleaseAfterTargetClosed);
             }
             finally
             {
                 _configuration = null;
                 _root = null;
                 _connectedTarget = null;
+                _coverageTarget = null;
                 GC.KeepAlive(connectedTarget);
                 GC.KeepAlive(target);
             }
         }
+        if (errors.Count != 0) throw new AggregateException("Acrylic target cleanup failed.", errors);
     }
 
     private void OnThemeChanged(FrameworkElement sender, object args) => ApplyTheme();

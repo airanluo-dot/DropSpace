@@ -10,6 +10,38 @@ public sealed class IslandGlowNativeWindowTests
 {
     [TestMethod]
     [TestCategory("WindowsNative")]
+    public void CachedStaticFrameStillObservesNativeVisibilityAndBodyDestruction()
+    {
+        var owner = CreateWindowEx(0x08000080, "STATIC", string.Empty, 0x80000000,
+            -30_000, -30_000, 400, 200, nint.Zero, nint.Zero, nint.Zero, nint.Zero);
+        Assert.AreNotEqual(nint.Zero, owner);
+        using var window = new IslandGlowWindow(owner);
+        try
+        {
+            var raster = new IslandGlowRasterizer(280, 60, 30, 30, 1);
+            raster.Render(1.2, .08);
+            Assert.IsFalse(window.CanPresent());
+            _ = ShowWindow(owner, 8);
+            Assert.IsTrue(window.CanPresent());
+            window.Present(raster, 20, 20);
+            var handle = window.WindowHandle;
+            Assert.IsFalse(raster.Render(1.2, .08));
+            _ = ShowWindow(owner, 0);
+            Assert.IsFalse(window.CanPresent());
+            Assert.IsFalse(IsWindowVisible(handle));
+            _ = ShowWindow(owner, 8);
+            Assert.IsTrue(window.CanPresent());
+            window.Present(raster, 20, 20);
+            Assert.IsTrue(IsWindowVisible(handle));
+            _ = DestroyWindow(owner); owner = nint.Zero;
+            Assert.ThrowsExactly<Win32Exception>(() => window.CanPresent());
+            Assert.IsFalse(IsWindow(handle));
+        }
+        finally { if (owner != nint.Zero) _ = DestroyWindow(owner); }
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsNative")]
     [DataRow(false)]
     [DataRow(true)]
     public void CompanionStaysBelowBodyWithoutChangingItsRegionAndFullyTearsDown(bool topmost)

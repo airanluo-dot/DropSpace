@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-accepted-experimental-beta",
-  "reason": "The repository owner accepted the disclosed limitations for v0.3.1-beta.1 only. This is a publication decision with exact source/model/runtime bindings and a successful producer, not semantic approval.",
+  "reason": "Exact Beta.2 owner-authorized experimental publication. Unfinished extra local acceptance was explicitly skipped; semantic approval is false and required repository/package/runtime checks remain enforced. Stable is not covered.",
   "scope": {
-    "releaseVersion": "v0.3.1-beta.1",
+    "releaseVersion": "v0.3.1-beta.2",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -144,7 +144,7 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
-          "sha256": "1e1aae3c4251a77bdfc297ee05b54c591e8b6a6bdde053154bb76a5e31b1c825"
+          "sha256": "20b0e71f5049d8a1701c6a21145bdd0695c28b20b2b551470fdc83d5b2c20070"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs",
@@ -164,7 +164,7 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/PlainHyLyricsProtocol.cs",
-          "sha256": "ebbe37aab8ff101ea623fbc6a6f9353f904f29db3b83939d78dd4b9c20d6ff79"
+          "sha256": "25e928184e7001e0efccf6912ee73827ee8c59c0b36f483466152d220306bf95"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs",
@@ -232,7 +232,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
-          "sha256": "7e0ee10f089051144be53e11a82f65f38fcb34ccead6acf52c70c75d42b3918f"
+          "sha256": "df24ef9a227661f8e012a0ca5d501275a6025a6ad3cc07575dd0d77296a9adca"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationProgress.cs",
@@ -244,7 +244,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
-          "sha256": "d5920d0fbfe1dfb8d7dd878ddc8124bc24e0bf9c47d7ac52b7fb04561ac9b6bb"
+          "sha256": "23a264d4687b198d7cb710d8f8c3a1301a5586a5ea221e24a5598670a0470994"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsParser.cs",
@@ -264,7 +264,7 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs",
-          "sha256": "656db1e41470aae5888fd9a9082fc72fb6c52edcbceb9f9c7c033b007feed1a0"
+          "sha256": "f6b0b9d71716a82006c3b5800bdd04e2150fcd8fd01cc0fb9a093a762a9e4151"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsMarqueePolicy.cs",
@@ -368,11 +368,11 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
-          "sha256": "e6d0a2cf08593e5659b7deacb5df5108b71d802186d11a5c9a0835c45df7c7f0"
+          "sha256": "2fa83714e9e5f9199463aa57129285c2ba0722d096965872e3348f609ae6fc7a"
         },
         {
           "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
-          "sha256": "ef475e410c85a213025b4f50eeba816b1fa6e1548ce960d4133a130dd53326e5"
+          "sha256": "704afefda6c98a0359da5330709ab0e38edbc14ec2b74632e55e25cf31d6e442"
         },
         {
           "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
@@ -412,7 +412,7 @@
         },
         {
           "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
-          "sha256": "75b4970737ca46d1a8ca3545154a31dc7ad704ed75e851deb873cfcf8377e113"
+          "sha256": "ce8e4f732f86be439f9fde79a1c5a7cf3dfb3af2f995131d8c5274d95fb151f9"
         },
         {
           "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
@@ -424,7 +424,11 @@
         },
         {
           "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
-          "sha256": "74c29714885ef335e173227fd1c66cc2218b4e8fbc85358ab8af8e1c34fec5f2"
+          "sha256": "b9c7e7226deb4bbc8211d378fcbe3970195fb75a124f49b4dceabd39a6588b4a"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Music/LyricsRowCollection.cs",
+          "sha256": "7ad337a9a62a955bbecf5e9211fcb090fa6c7b33180535054a302a0161debfc8"
         },
         {
           "path": "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs",
@@ -440,7 +444,11 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs",
-          "sha256": "97671f80ceb6ab3a6736b419faaa037c1b7d28f99e76134626dc86b503167aff"
+          "sha256": "b80d1c589c4bc5ecb9634b484324bbd198e99ce191dddebbc24d1aab8f518380"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+          "sha256": "6229438979a7be880765b66555f2356c4640476069b1fac42afe921e02d1726b"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml",
@@ -457,6 +465,106 @@
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs",
           "sha256": "a3c0c88075c0752ed15f4b56847fbc84e9d024a4988b9231152d533e3b26e960"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandGlowController.cs",
+          "sha256": "6989254e3df3d0bc5c157ca4d27541120c8b37c65dcd06e7935444a7d033a708"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandGlowRasterizer.cs",
+          "sha256": "41677f57440f04ddf55b9ddc37f3385acad028ed331e0080137d3ca65d3cb303"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandGlowWindow.cs",
+          "sha256": "f6527c0538021334d35761d0d6068afaebca1b03adaa65486ecf8dc87f219631"
+        },
+        {
+          "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+          "sha256": "15d9667b8b6c9b288f802fd2289a31a589f02c3ffeec6e1de137c7a14dcdbc2b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
+          "sha256": "e192484a1aa1b9c6f3c3ad7530660b62bd9c5baaafcff356021df2d50baae592"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AcrylicCoverageMask.cs",
+          "sha256": "c83fd49143debc8dccae9a2abf91b61a4e64b7a7fade25860f8c73bdcafdab4f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/AcrylicShutterBlur.cs",
+          "sha256": "263d60c797fa008a911bad61d67b3e1b273ca020c4eaf1c47747f7192830da89"
+        },
+        {
+          "path": "src/DropSpace.App/Services/CompositionEffectDescriptions.cs",
+          "sha256": "3bbed9238739bf4c3246d61c96e1db1c68a3865b5ae5c798b7b519c316842c8c"
+        },
+        {
+          "path": "src/DropSpace.App/Services/DisplayIdentityService.cs",
+          "sha256": "187ed0921f88225db00789783ec34885b9296afed46005c87a88bbc08580d71b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandAcrylicBackdrop.cs",
+          "sha256": "66e3ca8d86bf6e53c310ce08412c7c797be4132b4aabb5d6b5e035ce83a7288f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandMotionBlurPolicy.cs",
+          "sha256": "14defadc16bb939ea49a1e6bbfb5e4dc6d88f7429de8b98cc5b4756726a5c789"
+        },
+        {
+          "path": "src/DropSpace.App/Services/IslandTransparentBackdrop.cs",
+          "sha256": "bc8e35eb4c4325eecb7ef79aeca67af38a4a46f510b305105899030de27c473d"
+        },
+        {
+          "path": "src/DropSpace.App/Services/MonitorLayoutService.cs",
+          "sha256": "b4ea857a64c2044b70d3fc2256d8c39ce383518c625c381f8711009a4cf49fb0"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayMaterialController.cs",
+          "sha256": "d70bc027343c7892b6101ebdd5b8138da487aea7a58ca451ed7154be088ff5c1"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayMotionOrchestrator.cs",
+          "sha256": "4555c2408bb2c222c913b088120d3ea55242e2bceb4cc684d2023a16311b0dd2"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayNativeRegionController.cs",
+          "sha256": "17254d9026b13625345107d48112a97c4b6f7e68a97c5b80131deed44d3d29ba"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayTransparentHostController.cs",
+          "sha256": "cf30451385a332314c82cb79aa6de5c18ebc41d1d08747c082ff6e54330e7a4b"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayWindowInterop.cs",
+          "sha256": "fd7984f6f14173d93f1a29584efe3aee496623009d1777a02ebc82de48435299"
+        },
+        {
+          "path": "src/DropSpace.App/Services/OverlayWindowService.cs",
+          "sha256": "bb7724b87eb1bc4fe1a7291022d7cb68bdbf20e16a1c771a65a7acc349cf7914"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayFrameGeometry.cs",
+          "sha256": "0c55a84dfb3ac767b9a24ab32dbcb5480bfafc1e5567bdea2c611285a50e8e46"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayFramePacer.cs",
+          "sha256": "e83e85ae1817f4db0fce43baea39ba79ba1dff67196ee24a056e229102d2d108"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayMotionController.cs",
+          "sha256": "4d93a6066ec9b8012d9a7fe24fa01ba380d768ca55619b469ffb8aafb7ad3b30"
+        },
+        {
+          "path": "src/DropSpace.Core/Overlay/OverlayRegionSignature.cs",
+          "sha256": "bb47b8ff817b6c7802e5657c6664fc95f6e21f82188bc658c95a8eb8fd26f4cb"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+          "sha256": "fe3b93ad089265284e36ff998843dceb6fd149231562c17b448dde03fff3f3b9"
+        },
+        {
+          "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+          "sha256": "187dcca46aa4f086557596e93dc0336001b834950c5f11df3df5e868ea7d3ba3"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
@@ -488,7 +596,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
-          "sha256": "3e5a251437fa83e4b9a59fe205dd9e42efb8d9b5d3c1725f50c78b48c61edef2"
+          "sha256": "7f78a3f5500d13c0b418e8755a6406cc098a65ece0fa6d6153515af499e51c95"
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs",
@@ -512,7 +620,7 @@
         },
         {
           "path": "src/DropSpace.App/OverlayWindow.xaml",
-          "sha256": "aaea1f1c1b5284ae36a6d1a793b4402c71e960536d98938c213d48785c89d79d"
+          "sha256": "e4794dbb83d5d82ad4aa957e9b68a022a0a2607cd2a408b497ebd1203f20157d"
         },
         {
           "path": "scripts/ai-model-qa/profiles/minimal-target-only.json",
@@ -555,12 +663,12 @@
           "sha256": "1503d1efe3357845fe2542aa3ffe0e9f240ffad8c261d9f999ab650f15a99715"
         },
         {
-          "path": "scripts/plain-hy-production-evidence/source48-admission.json",
-          "sha256": "d5fdb10c757488f07c503ae9413b9d2a849c622fc7a79e0cb57c4e323aff4f97"
+          "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
+          "sha256": "50e203c100ac3412cf86f8e387b10d03d88cd6a2a24ebf8dfdc440fea054eaae"
         },
         {
           "path": "scripts/plain-hy-production-evidence/ContractTests.cs",
-          "sha256": "085d21a7c52546625709d4cd612ebb17958a66b8258ab7c93ac38569f7213efb"
+          "sha256": "6da085dd00c6f7ab6f2d95745c19ee1ad2af0ed9d63b4e083852a89f0c31fb39"
         },
         {
           "path": "scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1",
@@ -627,15 +735,21 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "073f621872f1197c45bec4a4daf039e90fe7a22da087696e25fbdcbe17872f8e"
+      "sha256": "8f8d6ba82bf1af8de810b918946b906e1eee2d363bff0855437235091d6b8ef2"
     },
     "fixtureAdmission": {
-      "path": "scripts/plain-hy-production-evidence/source48-admission.json",
-      "sha256": "d5fdb10c757488f07c503ae9413b9d2a849c622fc7a79e0cb57c4e323aff4f97",
+      "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
+      "sha256": "50e203c100ac3412cf86f8e387b10d03d88cd6a2a24ebf8dfdc440fea054eaae",
       "schemaVersion": 1,
+      "recordKind": "host-fixture-admission-v8",
       "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
-      "policyVersion": "lexical-context-eligibility-v5",
-      "reviewNotes": "Hand-authored original fixture has English rows 0–11, Japanese 12–23, Korean 24–35, Simplified Chinese 36–47. Labels describe the fixture; no labels or expectations enter the model prompt. Conservative unknown/weak evidence remains eligible even when a human knows the language. Explicit reviewed per-row policy expectations below must be renewed with policy changes; capture never regenerates them. Positive English function-word evidence recognizes rows 0, 1, 2, 3 and 7 without requiring a closed content-word vocabulary; the other English rows remain unknown. Mixed Latin clauses and romanization counterexamples, short-phrase same-target admission and credits/multisegment behavior are covered by separate fake-inference contract tests, not falsely claimed by this 48-line native fixture.",
+      "policyVersion": "han-abstention-eligibility-v8",
+      "policySourceSha256": "f6b0b9d71716a82006c3b5800bdd04e2150fcd8fd01cc0fb9a093a762a9e4151",
+      "policySourceHashNormalization": "UTF-8 with CRLF normalized to LF",
+      "modelInferenceExecuted": false,
+      "semanticApproved": false,
+      "computedWith": "PlainHyProductionEvidence --print-fixture-admission scripts/ai-model-qa/inputs/source48.json",
+      "reviewNotes": "Current host admission computation only, using the unchanged real 48-line source fixture. No model was loaded or run, and no translation quality or semantic approval is claimed. Original fixture annotations (English 0-11, Japanese 12-23, Korean 24-35, Simplified Chinese 36-47) are retained for classification consistency checks; they are not new semantic results. Unknown pure Han abstains for the Chinese target without acquiring a language identity; unknown Latin and reliable foreign evidence remain eligible, and the English target retains unknown Han. The historical v5 record source48-admission.json remains unchanged. Explicit foreign-tag, Kana, mixed-clause, metadata, and projection boundary cases are tested separately rather than claimed by this fixture.",
       "semanticLanguages": [
         {
           "firstLineId": 0,
@@ -1982,15 +2096,9 @@
             "detectedLanguage": null,
             "confidence": 0,
             "evidenceKind": "Unknown",
-            "eligible": true,
-            "reason": "unknown-language-retained",
-            "segments": [
-              {
-                "segmentIndex": 0,
-                "text": "我把晨光折进一只纸船。",
-                "sha256": "dc476b5ab588e500a27abe83c59b1c29a6114c9981724d1297676b3de5e83a3e"
-              }
-            ]
+            "eligible": false,
+            "reason": "no-eligible-segments",
+            "segments": []
           },
           {
             "lineId": 37,
@@ -2048,15 +2156,9 @@
             "detectedLanguage": null,
             "confidence": 0,
             "evidenceKind": "Unknown",
-            "eligible": true,
-            "reason": "unknown-language-retained",
-            "segments": [
-              {
-                "segmentIndex": 0,
-                "text": "如果你回来，请轻轻敲两下门。",
-                "sha256": "c2b2d8289f6f76fd5f2a1965afdb128804a1f156d307ad98cd1852ad1584cce7"
-              }
-            ]
+            "eligible": false,
+            "reason": "no-eligible-segments",
+            "segments": []
           },
           {
             "lineId": 43,
@@ -2064,15 +2166,9 @@
             "detectedLanguage": null,
             "confidence": 0,
             "evidenceKind": "Unknown",
-            "eligible": true,
-            "reason": "unknown-language-retained",
-            "segments": [
-              {
-                "segmentIndex": 0,
-                "text": "我听见火车，却看不见灯光。",
-                "sha256": "08cdaf367745edff8b31b5762784fbb5e1224a1d5ff5ca01efa3e35e3ba3b3cc"
-              }
-            ]
+            "eligible": false,
+            "reason": "no-eligible-segments",
+            "segments": []
           },
           {
             "lineId": 44,
@@ -2090,15 +2186,9 @@
             "detectedLanguage": null,
             "confidence": 0,
             "evidenceKind": "Unknown",
-            "eligible": true,
-            "reason": "unknown-language-retained",
-            "segments": [
-              {
-                "segmentIndex": 0,
-                "text": "带走红围巾，留下银钥匙。",
-                "sha256": "08a13110ea58313e8fc4d25075da4c8cccbccdae5b4e400dbefbf7d7e26c6fe3"
-              }
-            ]
+            "eligible": false,
+            "reason": "no-eligible-segments",
+            "segments": []
           },
           {
             "lineId": 46,
@@ -2129,7 +2219,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.1-owner-accepted-review.json",
-    "sha256": "3902c5f12ca17ddba778a6e13a3fe109085264fe3d1f2ca2dc89ffae9530fb1b"
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.2-owner-accepted-review.json",
+    "sha256": "9e470745769bd8df56b6e273e34699f943ba19b763410c347b46093e8bb2737d"
   }
 }

@@ -124,7 +124,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
 
       # Pending approval blocks publication, never ordinary PR validation.
-      # Only v0.3.1-beta.1 may use recorded owner acceptance without semantic approval.
+      # Only v0.3.1-beta.2 may use its exact recorded owner acceptance without semantic approval.
       - name: Enforce AI publication decision before building
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         run: node scripts/test-ai-release-approval.mjs
@@ -163,10 +163,6 @@ jobs:
         run: |
           $status = git status --short --untracked-files=all
           if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
-
-      - name: Generate brand assets from canonical masters for build
-        shell: pwsh
-        run: ./scripts/Generate-BrandAssets.ps1
 
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true

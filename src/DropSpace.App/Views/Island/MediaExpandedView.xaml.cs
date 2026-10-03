@@ -20,6 +20,7 @@ public sealed partial class MediaExpandedView : UserControl
         string.Equals(TranslatedLyric.Text, _view?.SecondaryLyricText, StringComparison.Ordinal);
 
     private MediaViewModel? _view;
+    private readonly MediaRenderQueue _renderQueue = new();
     private readonly MediaSeekInteraction _seekInteraction = new(TimeSpan.FromSeconds(2));
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekCommitTimer;
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _seekAcknowledgementTimer;
@@ -42,7 +43,7 @@ public sealed partial class MediaExpandedView : UserControl
         {
             if (!IsLoaded) return;
             _seekInteraction.RejectPending();
-            Render();
+            RequestRender();
         };
         // Observe the whole slider, including track presses, even when its template
         // handles pointer events. Never depend on finding a Thumb before layout.
@@ -51,6 +52,7 @@ public sealed partial class MediaExpandedView : UserControl
         Progress.AddHandler(PointerCanceledEvent, new PointerEventHandler(OnSeekPointerCanceled), true);
         Progress.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnSeekPointerCaptureLost), true);
         Loaded += OnLoaded; Unloaded += OnUnloaded;
+        RegisterPropertyChangedCallback(VisibilityProperty, OnVisibilityChanged);
     }
     public MediaViewModel? ViewModel
     {
@@ -60,20 +62,49 @@ public sealed partial class MediaExpandedView : UserControl
             if (_view is not null) _view.PropertyChanged -= OnChanged;
             _view = value; DataContext = value;
             if (IsLoaded && _view is not null) _view.PropertyChanged += OnChanged;
-            Render();
+            RequestRender();
         }
     }
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
-        if (_view is not null) _view.PropertyChanged += OnChanged;
-        Render();
+        if (_view is not null)
+        {
+            _view.PropertyChanged -= OnChanged;
+            _view.PropertyChanged += OnChanged;
+        }
+        RequestRender();
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         if (_view is not null) _view.PropertyChanged -= OnChanged;
+        CancelRender();
         CancelSeekInteraction();
     }
-    private void OnChanged(object? sender, PropertyChangedEventArgs args) => Render();
+    private void OnChanged(object? sender, PropertyChangedEventArgs args) => RequestRender();
+    private bool CanRender => IsLoaded && Visibility == Visibility.Visible;
+    private void RequestRender()
+    {
+        if (_renderQueue.Request(CanRender)) CompositionTarget.Rendering += OnRendering;
+    }
+    private void OnRendering(object? sender, object args)
+    {
+        CompositionTarget.Rendering -= OnRendering;
+        if (_renderQueue.BeginRender(CanRender)) Render();
+    }
+    private void CancelRender()
+    {
+        CompositionTarget.Rendering -= OnRendering;
+        _renderQueue.Cancel();
+    }
+    private void OnVisibilityChanged(DependencyObject sender, DependencyProperty property)
+    {
+        if (CanRender) RequestRender();
+        else
+        {
+            CancelRender();
+            CancelSeekInteraction();
+        }
+    }
     private void Render()
     {
         if (_view is null) return;
@@ -198,7 +229,7 @@ public sealed partial class MediaExpandedView : UserControl
         _seekInteraction.Preview(Progress.Value);
         var target = _seekInteraction.Complete(canceled, DateTimeOffset.UtcNow);
         if (target is { } seconds) ExecuteSeek(seconds);
-        else Render();
+        else RequestRender();
     }
 
     private void OnSeekCommitTimer(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
@@ -220,7 +251,7 @@ public sealed partial class MediaExpandedView : UserControl
         }
 
         _seekInteraction.RejectPending();
-        Render();
+        RequestRender();
     }
 
     private void CancelSeekInteraction()

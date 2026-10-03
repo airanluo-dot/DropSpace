@@ -12,7 +12,7 @@ on:
       - "website/**"
       - ".github/workflows/deploy-website.yml"
   release:
-    types: [published, released, prereleased]
+    types: [published]
   workflow_dispatch:
 
 permissions: {}
