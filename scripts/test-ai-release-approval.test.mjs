@@ -5,12 +5,68 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, fixturePath, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, publicationDecision } from './test-ai-release-approval.mjs';
+import { approvalPath, admissionPath, fixturePath, fixtureAdmissionDecision, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, publicationDecision } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const now = Date.parse('2026-10-02T00:00:00Z');
 const json = value => JSON.stringify(value, null, 2) + '\n';
+
+test('fixture admission retains unknown Latin and Kana, and abstains only from unconfirmed Han for a Chinese target', () => {
+  const unknown = { detectedLanguage: null, confidence: 0 };
+  for (const text of ['kimi no na wa', 'I love you je suis heureux', 'あ', '愛 I will wait', '\uf900']) {
+    assert.equal(fixtureAdmissionDecision(text, 'zh-Hans', unknown), 'Translate', text);
+  }
+  for (const text of ['愛', '山谷的石门', '我不関焉', '\u{20000}']) {
+    assert.equal(fixtureAdmissionDecision(text, 'zh-Hans', unknown), 'Abstain', text);
+    assert.equal(fixtureAdmissionDecision(text, 'en', unknown), 'Translate', text);
+  }
+  assert.deepEqual(unknown, { detectedLanguage: null, confidence: 0 }, 'Abstention must not invent a language identity.');
+});
+
+test('fixture admission preserves reliable Japanese evidence and the confidence boundary for pure Han', () => {
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 1 }), 'Translate');
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 0.9 }), 'Translate');
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'ja', confidence: 0.65 }), 'Abstain');
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'mul', confidence: 1 }), 'Abstain');
+  assert.equal(fixtureAdmissionDecision('世界', 'zh-Hans', { detectedLanguage: 'zh-Hant', confidence: 1 }), 'SameLanguage');
+  assert.equal(fixtureAdmissionDecision('I love you', 'en', { detectedLanguage: 'en', confidence: 0.95 }), 'SameLanguage');
+});
+
+for (const [label, target, id, eligible] of [
+  ['cannot relabel Chinese-target Han abstention as unknown translation', 'zh-Hans', 36, true],
+  ['cannot suppress unknown Latin for a Chinese target', 'zh-Hans', 4, false],
+  ['cannot suppress reliably identified Japanese', 'zh-Hans', 12, false],
+  ['cannot suppress unknown Han for an English target', 'en', 36, false],
+  ['cannot suppress unknown Latin for an English target', 'en', 4, false],
+]) {
+  test(`current fixture admission ${label}`, t => {
+    const x = example(t);
+    const filename = path.join(x.root, admissionPath);
+    const record = JSON.parse(fs.readFileSync(filename));
+    const row = record.targets[target][id];
+    row.eligible = eligible;
+    row.reason = eligible ? 'unknown-language-retained' : 'no-eligible-segments';
+    row.segments = eligible ? [{ segmentIndex: 0, text: row.sourceText, sha256: sha256(row.sourceText) }] : [];
+    fs.writeFileSync(filename, json(record));
+    assert.throws(() => readScope(x.root), /v8 three-state policy/);
+  });
+}
+
+for (const [label, mutate, expected] of [
+  ['model inference claim', record => record.modelInferenceExecuted = true, /cannot claim model inference/],
+  ['semantic approval claim', record => record.semanticApproved = true, /cannot claim semantic approval/],
+  ['stale policy bytes', record => record.policySourceSha256 = '0'.repeat(64), /policy source hash is stale/],
+]) {
+  test(`host admission computation rejects ${label}`, t => {
+    const x = example(t);
+    const filename = path.join(x.root, admissionPath);
+    const record = JSON.parse(fs.readFileSync(filename));
+    mutate(record);
+    fs.writeFileSync(filename, json(record));
+    assert.throws(() => readScope(x.root), expected);
+  });
+}
 
 // Synthetic approvals exist only in disposable temporary test repositories.
 // They are not model evaluations and cannot approve this repository's manifest.
@@ -609,7 +665,7 @@ for (const [name, mutate, expected] of [
 for (const name of sourcePaths) {
   test(`invalidates changed source: ${name}`, t => {
     const x = example(t);
-    fs.appendFileSync(path.join(x.root, name), name.endsWith('source48-admission.json') ? '\n' : '\n// changed after review\n');
+    fs.appendFileSync(path.join(x.root, name), name === admissionPath ? '\n' : '\n// changed after review\n');
     assert.throws(() => x.validate(), /stale/);
   });
 }
