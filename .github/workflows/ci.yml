@@ -1,16 +1,13 @@
 name: Windows CI
 
 on:
+  # Branch revisions are validated once, through their PR. Keep the main lane
+  # for the actual merged tree and an explicit entry for branches without a PR.
   push:
-    branches: [main, "agent/**"]
-    paths-ignore:
-      - "website/**"
-      - ".github/workflows/deploy-website.yml"
+    branches: [main]
   pull_request:
     branches: [main]
-    # Website PRs must still produce the required Windows matrix checks.
-    paths-ignore:
-      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,14 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build and test (x64, ${{ matrix.language }})
-    runs-on: windows-latest
+  produce-windows:
+    name: Build and validate shared Windows artifacts
+    runs-on: windows-2025
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [en-US, zh-CN]
+    outputs:
+      portable_artifact_id: ${{ steps.portable-artifact.outputs.artifact-id }}
+      handoff_sha256: ${{ steps.portable-handoff.outputs.handoff_sha256 }}
 
     steps:
       - name: Check out source
@@ -78,6 +74,28 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-SecretHygiene.ps1
 
+      - name: Test CI handoff and workflow contracts
+        run: node --test scripts/ci-portable-handoff.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs
+
+      - name: Test AI semantic release gate regressions
+        run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
+
+      - name: Test packaged runtime inspection regressions
+        shell: pwsh
+        run: |
+          ./scripts/Test-AiRuntimePayloadInspector.ps1
+          ./scripts/Test-ReviewedAiRuntimeArchive.ps1
+          ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
+
+      - name: Test expanded island scope and fullscreen behavior contracts
+        run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
+
+      - name: Test private translation helper protocol without model dependencies
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
+
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
@@ -92,6 +110,14 @@ jobs:
 
       - name: Test persistence, manifests, streaming downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure.trx"
+
+      - name: Test production evidence harness without native inference
+        shell: pwsh
+        run: |
+          dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -p:RestoreLockedMode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness locked restore failed.' }
+          dotnet run --project scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -c Release --no-restore -- --contract-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness contract tests failed.' }
 
       - name: Install locked Windows App Runtime for native tests
         timeout-minutes: 10
@@ -110,14 +136,6 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
-      - name: Upload portable EXE
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: dropspace-portable-win-x64-${{ matrix.language }}
-          path: artifacts/release/DropSpace.exe
-          if-no-files-found: error
-          retention-days: 3
-
       - name: Build pinned Inno Setup installer
         shell: pwsh
         run: ./scripts/Build-Installer.ps1
@@ -130,14 +148,10 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
 
-      - name: Smoke test portable EXE (${{ matrix.language }} localized resource context)
-        shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language ${{ matrix.language }}
-
       - name: Upload Windows installer
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: dropspace-setup-win-x64-${{ matrix.language }}
+          name: dropspace-setup-win-x64
           path: artifacts/installer/DropSpaceSetup.exe
           if-no-files-found: error
           retention-days: 3
@@ -157,7 +171,7 @@ jobs:
       - name: Upload unsigned MSIX package
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: dropspace-msix-unsigned-x64-${{ matrix.language }}
+          name: dropspace-msix-unsigned-x64
           path: artifacts/msix/**
           if-no-files-found: error
           retention-days: 3
@@ -165,8 +179,23 @@ jobs:
       - name: Upload unsigned identity package for signing pipeline
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: dropspace-identity-unsigned-x64-${{ matrix.language }}
+          name: dropspace-identity-unsigned-x64
           path: artifacts/identity/DropSpace.Identity.msix
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Record same-run portable handoff
+        id: portable-handoff
+        run: node scripts/ci-portable-handoff.mjs record artifacts/release
+
+      - name: Upload shared portable EXE
+        id: portable-artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dropspace-portable-win-x64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/release/DropSpace.exe
+            artifacts/release/ci-portable-handoff.json
           if-no-files-found: error
           retention-days: 3
 
@@ -174,13 +203,72 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: test-results-${{ matrix.language }}
+          name: test-results-windows
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Upload shared installer diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: diagnostics-windows-producer
+          path: artifacts/diagnostics/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  build-and-test:
+    # These two names are required by the main ruleset. A failed/cancelled
+    # producer must fail both checks, rather than become successful skipped jobs.
+    name: Build and test (x64, ${{ matrix.language }})
+    needs: produce-windows
+    if: ${{ always() }}
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [en-US, zh-CN]
+
+    steps:
+      - name: Require successful shared producer
+        shell: pwsh
+        env:
+          PRODUCER_RESULT: ${{ needs.produce-windows.result }}
+        run: |
+          if ($env:PRODUCER_RESULT -cne 'success') {
+            throw "Shared Windows producer did not succeed: $env:PRODUCER_RESULT"
+          }
+
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Download this attempt's shared portable EXE
+        id: portable-download
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          artifact-ids: ${{ needs.produce-windows.outputs.portable_artifact_id }}
+          path: artifacts/release
+
+      - name: Verify portable bytes and producer identity
+        id: portable-verification
+        env:
+          EXPECTED_HANDOFF_SHA256: ${{ needs.produce-windows.outputs.handoff_sha256 }}
+          PORTABLE_ARTIFACT_ID: ${{ needs.produce-windows.outputs.portable_artifact_id }}
+        run: node scripts/ci-portable-handoff.mjs verify artifacts/release
+
+      - name: Smoke test portable EXE (${{ matrix.language }} localized resource context)
+        shell: pwsh
+        run: ./scripts/Test-PortableSmoke.ps1 -Language ${{ matrix.language }}
+
+      - name: Install .NET 10 SDK for isolated crash diagnostics
+        if: always() && matrix.language == 'zh-CN' && steps.portable-verification.outcome == 'success'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+
       - name: Collect isolated native crash address evidence
-        if: always() && matrix.language == 'zh-CN' && steps.portable-publish.outcome == 'success'
+        if: always() && matrix.language == 'zh-CN' && steps.portable-download.outcome == 'success' && steps.portable-verification.outcome == 'success'
         shell: pwsh
         run: |
           if (-not (Test-Path -LiteralPath artifacts/release/DropSpace.exe -PathType Leaf)) {
