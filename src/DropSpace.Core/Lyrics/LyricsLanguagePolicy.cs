@@ -14,12 +14,15 @@ public readonly record struct LyricsLanguageEvidence(string? Language, double Co
 
 /// <summary>
 /// Bounded language evidence for translation admission. Script alone never identifies Han or Latin
-/// text. Unknown names, romanization and short Han lines stay unknown; a document majority never
-/// suppresses a foreign verse. Credits have neither language evidence nor an inference ID.
+/// text. Unknown names and romanization stay unknown. A fully Han document can support short
+/// lines only with independent Chinese evidence and no foreign evidence. Credits have no inference ID.
 /// </summary>
 public static class LyricsLanguagePolicy
 {
-    public const string Version = "lexical-context-eligibility-v5";
+    public const string Version = "chinese-document-eligibility-v6";
+    private static readonly Regex PerformerLabel = new(@"^\s*[a-z][a-z0-9_.&/-]{0,31}\s*[:：]\s*$", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex ChineseGrammar = new(@"[你妳]|(?:我|他|她)(?:真的|已经|已經|还是|還是|仍然|不|能|也|只|才)|还是|還是|只是|不过|不過", RegexOptions.None, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex ChineseModifier = new(@"(?<!目)的(?!中|確|确)", RegexOptions.None, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Credit = new(@"^\s*(?:作\s*词|作\s*詞|作\s*曲|编\s*曲|編\s*曲|填词|填詞|词曲|詞曲|词|詞|曲|制作人|製作人|制作|製作|监制|監製|混音|母带|母帶|录音|錄音|演唱|原唱|和声|和聲|吉他|贝斯|貝斯|鼓|钢琴|鋼琴|出品|发行|發行|版权|版權|翻译|翻譯|译者|譯者|词作者|曲作者|lyrics(?: by)?|words(?: by)?|music(?: by)?|written by|composed by|composer|arranged by|arranger|producer|produced by|mixed by|mastered by|vocal(?:s)?|guitar|bass|drums)\s*[:：/／]|^\s*(?:written|composed|arranged|produced|mixed|mastered|lyrics|words|music)\s+by\s+\S", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Words = new(@"[a-z]+(?:['’][a-z]+)?", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     // Keep clause boundaries until each clause has supplied its own evidence.
@@ -82,11 +85,12 @@ public static class LyricsLanguagePolicy
         {
             if (Traditional.Any(text.Contains)) return new("zh-Hant", 0.95, LyricsLanguageEvidenceKind.Lexical);
             if (Simplified.Any(text.Contains)) return new("zh-Hans", 0.95, LyricsLanguageEvidenceKind.Lexical);
+            if (ChineseGrammar.IsMatch(text)) return new("zh-Hans", 0.95, LyricsLanguageEvidenceKind.Lexical);
             // These simplified forms differ from Japanese kanji; shared characters such
             // inside Japanese Han compounds are never independent language evidence.
             var distinctive = "这们说觉远让听爱风梦时过轻满阳为与语记认顾谁该难边欢飞头经红纸乡渐离".Count(text.Contains);
             if (distinctive >= 2) return new("zh-Hans", 0.92, LyricsLanguageEvidenceKind.Lexical);
-            if (distinctive == 1 && text.Contains('的')) return new("zh-Hans", 0.65, LyricsLanguageEvidenceKind.Lexical);
+            if (ChineseModifier.IsMatch(text)) return new("zh-Hans", 0.65, LyricsLanguageEvidenceKind.Lexical);
         }
         if (latin == letters.Length)
         {
@@ -112,10 +116,57 @@ public static class LyricsLanguagePolicy
 
     public static IReadOnlyList<LyricsLanguageEvidence> SourceEvidence(LyricsDocument document)
     {
-        var evidence = document.Lines.Select(l => Identify(l.Text, l.SourceLanguage)).ToArray();
+        var evidence = document.Lines.Select(line => Identify(line.Text, line.SourceLanguage)).ToArray();
         return AddNeighbourContext(document.Lines.Select(line => line.Text).ToArray(), evidence,
             (before, after) => document.Lines[after].Start - document.Lines[before].End <= TimeSpan.FromSeconds(5));
     }
+
+    private static string[][] SourceParts(LyricsDocument document)
+    {
+        var parts = document.Lines.Select(line => line.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
+            .Split('\n', StringSplitOptions.TrimEntries).Select(part => PerformerLabel.Replace(part, string.Empty)).ToArray()).ToArray();
+        // Some providers retain an artist/title header as the first original row. Require
+        // accepted track metadata; an arbitrary Latin phrase must never become a header.
+        if (document.Match is { } match && parts.Length > 0 && parts[0].Length > 0)
+        {
+            var header = LyricsMatcher.Normalize(parts[0][0]);
+            var title = LyricsMatcher.Normalize(match.Title);
+            var artist = LyricsMatcher.Normalize(match.Artist);
+            if (title.Length > 0 && artist.Length > 0 &&
+                document.Lines[0].Text.IndexOfAny(['-', '–', '—']) >= 0 &&
+                header.Contains(title, StringComparison.Ordinal) && header.Contains(artist, StringComparison.Ordinal))
+                parts[0][0] = string.Empty;
+        }
+        return parts;
+    }
+
+    private static string? ChineseDocumentLanguage(LyricsDocument document, IReadOnlyList<string[]> parts)
+    {
+        // Only a provider document accepted for this track can supply whole-song context.
+        // Unbound fragments retain the existing unknown/blank/weak neighbour boundaries.
+        if (document.Match is not { Score: >= 4 }) return null;
+        var distinct = new Dictionary<string, LyricsLanguageEvidence>(StringComparer.Ordinal);
+        for (var i = 0; i < parts.Count; i++)
+        {
+            var explicitLanguage = LyricsTranslationPolicy.NormalizeLanguage(document.Lines[i].SourceLanguage);
+            foreach (var part in parts[i].Where(part => part.Any(char.IsLetter) && !IsCreditLine(part)))
+            {
+                // This is unanimous script compatibility plus lexical evidence, never a
+                // majority vote over foreign verses. Explicit Japanese Han remains Japanese.
+                if (explicitLanguage.Length > 0 && !explicitLanguage.StartsWith("zh-", StringComparison.Ordinal) ||
+                    !part.EnumerateRunes().Where(Rune.IsLetter).All(IsHan)) return null;
+                distinct[part] = Identify(part, document.Lines[i].SourceLanguage);
+            }
+        }
+        var anchors = distinct.Values.Where(evidence => evidence.IsConfident &&
+            evidence.Language!.StartsWith("zh-", StringComparison.Ordinal)).ToArray();
+        // Repeated choruses and Latin names in credits cannot manufacture evidence.
+        // A short all-Han/Japanese document with no Chinese anchors stays unknown.
+        return anchors.Length >= 2 && anchors.Length * 2 >= distinct.Count ? anchors[0].Language : null;
+    }
+
+    private static LyricsLanguageEvidence WithDocumentContext(LyricsLanguageEvidence evidence, string? language) =>
+        evidence.IsConfident || language is null ? evidence : new(language, 0.9, LyricsLanguageEvidenceKind.Context);
 
     private static LyricsLanguageEvidence[] AddNeighbourContext(IReadOnlyList<string> text,
         LyricsLanguageEvidence[] evidence, Func<int, int, bool> adjacent)
@@ -149,26 +200,50 @@ public static class LyricsLanguagePolicy
     {
         if (document.Lines.Count is 0 or > 500) return [];
         var evidence = SourceEvidence(document);
+        var segments = EligibleSegments(document, targetLanguage);
         var indices = Enumerable.Range(0, document.Lines.Count).Where(i =>
             !string.IsNullOrWhiteSpace(document.Lines[i].Text) && !IsCredit(document.Lines[i].Text) &&
             (PhysicalLines(document.Lines[i].Text).Length > 1 || !evidence[i].IsConfident ||
                 !SameSourceLanguage(evidence[i].Language, targetLanguage)) &&
-            EligibleSegments(document.Lines[i], targetLanguage).Length > 0).ToArray();
-        return indices.Sum(i => EligibleSegments(document.Lines[i], targetLanguage).Length) <= 500 ? indices : [];
+            segments[i].Length > 0).ToArray();
+        return indices.Sum(i => segments[i].Length) <= 500 ? indices : [];
     }
 
     // Keep the original display row/ID/timing intact. Only physical lyric segments
     // go to the fixed per-line model template; credits and same-target segments do not.
-    public static string[] EligibleSegments(LyricsLine line, string targetLanguage)
+    public static string[] EligibleSegments(LyricsLine line, string targetLanguage) =>
+        EligibleSegments(new LyricsDocument([line], Models.LyricsProviderKind.LocalLrc), targetLanguage)[0];
+
+    public static IReadOnlyList<string[]> EligibleSegments(LyricsDocument document, string targetLanguage)
     {
         // Preserve blank section boundaries while admitting physical segments. A CRLF
         // is one delimiter, not an artificial blank section between every two lines.
-        var text = line.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
-            .Split('\n', StringSplitOptions.TrimEntries);
-        var evidence = AddNeighbourContext(text, text.Select(part => Identify(part, line.SourceLanguage)).ToArray(),
-            static (_, _) => true);
-        return text.Where((part, i) => part.Length > 0 && !IsCreditLine(part) &&
-            (!evidence[i].IsConfident || !SameSourceLanguage(evidence[i].Language, targetLanguage))).ToArray();
+        var parts = SourceParts(document);
+        // Whole-document context is admission-only. SourceEvidence retains its bounded
+        // neighbour/section rules and never rewrites provider source-language identity.
+        var language = ChineseDocumentLanguage(document, parts);
+        return parts.Select((text, id) =>
+        {
+            var evidence = AddNeighbourContext(text, text.Select(part => part.Length == 0 ? default :
+                WithDocumentContext(Identify(part, document.Lines[id].SourceLanguage), language)).ToArray(), static (_, _) => true);
+            return text.Where((part, i) => part.Length > 0 && !IsCreditLine(part) &&
+                (!evidence[i].IsConfident || !SameSourceLanguage(evidence[i].Language, targetLanguage))).ToArray();
+        }).ToArray();
+    }
+
+    public static LyricsDocument RemoveIneligibleLocalTranslations(LyricsDocument document, string targetLanguage)
+    {
+        if (!document.Lines.Any(line => line.TranslationOrigin == LyricsTranslationOrigin.LocalAi)) return document;
+        var eligible = EligibleIndices(document, targetLanguage).ToHashSet();
+        LyricsLine[]? lines = null;
+        for (var i = 0; i < document.Lines.Count; i++)
+        {
+            if (document.Lines[i].TranslationOrigin != LyricsTranslationOrigin.LocalAi || eligible.Contains(i)) continue;
+            lines ??= document.Lines.ToArray();
+            lines[i] = lines[i] with { Secondary = null, TranslationOrigin = LyricsTranslationOrigin.None,
+                TranslationLanguage = null, TranslationLanguageIsExplicit = null };
+        }
+        return lines is null ? document : document with { Lines = lines };
     }
 
     internal static bool ProviderTranslationMatches(LyricsLine line, string normalizedTarget)

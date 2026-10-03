@@ -149,6 +149,7 @@ public sealed class AiLyricsService : IDisposable
         LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null)
     {
         document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
+        document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
         Func<bool> isCurrent = () => !token.IsCancellationRequested && (progress?.IsCurrent ?? true);
         if (!settings.Enabled || !settings.AiTranslationEnabled ||
             LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage) ||
@@ -214,6 +215,7 @@ public sealed class AiLyricsService : IDisposable
         if (!settings.Enabled || !settings.AiTranslationEnabled || document.Lines.Count == 0) return document;
         // The approved first version never fills gaps in a source-provided translation.
         document = LyricsLanguagePolicy.IdentifyProviderTranslations(document);
+        document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(document, targetLanguage);
         if (LyricsTranslationPolicy.HasMatchingProviderTranslation(document, targetLanguage) ||
             LyricsLanguagePolicy.EligibleIndices(document, targetLanguage).Length == 0) return document;
         // Validated cached data needs neither executable extraction nor a large model rehash.

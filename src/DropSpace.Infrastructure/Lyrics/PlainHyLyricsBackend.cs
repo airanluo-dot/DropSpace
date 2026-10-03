@@ -46,6 +46,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
     {
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
+        source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
         if (LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage)) return null;
         var indices = LyricsLanguagePolicy.EligibleIndices(source, targetLanguage);
         if (indices.Length == 0) return null;
@@ -77,6 +78,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         ArgumentNullException.ThrowIfNull(infer);
         token.ThrowIfCancellationRequested();
         source = LyricsLanguagePolicy.IdentifyProviderTranslations(source);
+        source = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(source, targetLanguage);
         if (cache.Generation != generation || progress?.IsCurrent == false ||
             LyricsTranslationPolicy.HasMatchingProviderTranslation(source, targetLanguage))
             return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
@@ -89,6 +91,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
         budget.CancelAfter(songBudget);
         var result = source;
+        var segments = LyricsLanguagePolicy.EligibleSegments(source, targetLanguage);
         var outputs = new Dictionary<int, string>(indices.Length);
         var pending = indices.ToHashSet();
         var finished = 0;
@@ -104,7 +107,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                 // restarting the request, losing earlier IDs or generating duplicate translations.
                 var id = NextLine(source, pending, progress?.Position ?? TimeSpan.MinValue);
                 var segmentOutputs = new List<string>();
-                foreach (var segment in LyricsLanguagePolicy.EligibleSegments(source.Lines[id], targetLanguage))
+                foreach (var segment in segments[id])
                 {
                     var prompt = PlainHyLyricsProtocol.BuildPrompt(segment, targetLanguage);
                     var segmentOutput = await infer(prompt, budget.Token).ConfigureAwait(false);
@@ -156,8 +159,9 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
     private static bool TryApplyEligibleOutput(string json, LyricsDocument source, IReadOnlyList<int> indices,
         string targetLanguage, out LyricsDocument result)
     {
-        var projected = source with { Lines = source.Lines.Select(line => line with
-            { Text = string.Join(" ", LyricsLanguagePolicy.EligibleSegments(line, targetLanguage)) }).ToArray() };
+        var segments = LyricsLanguagePolicy.EligibleSegments(source, targetLanguage);
+        var projected = source with { Lines = source.Lines.Select((line, id) => line with
+            { Text = string.Join(" ", segments[id]) }).ToArray() };
         if (!LyricsTranslationOutput.TryApply(json, projected, indices, targetLanguage, out var mapped))
         { result = source; return false; }
         result = mapped with { Lines = mapped.Lines.Select((line, id) => line with { Text = source.Lines[id].Text }).ToArray() };
