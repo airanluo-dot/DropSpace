@@ -41,12 +41,62 @@ test('worker implementation, dependencies, workflows and shared protocol changes
     'share-worker/test/coordinator.test.js', 'package-lock.json', '.npmrc', '.gitattributes',
     '.github/workflows/ci.yml', '.github/workflows/test-share.yml', '.github/actions/node/action.yml',
     'scripts/ci-share-worker-scope.mjs', 'scripts/ci-share-worker-scope.test.mjs',
-    'src/DropSpace.Infrastructure/Sharing/ShareCoordinator.cs', 'src/DropSpace.Core/Models/ShareSession.cs',
-    'src/DropSpace.Core/Abstractions/IShareCoordinator.cs', 'src/DropSpace.App/Services/SharingUseCase.cs']) {
+    'src/DropSpace.Infrastructure/Sharing/ShareUploadCoordinator.cs', 'src/DropSpace.Core/Transfer/TransferModels.cs',
+    'src/DropSpace.App/Services/SharingUseCase.cs', 'src/DropSpace.App/Services/SecureInternetShareService.cs',
+    'src/DropSpace.App/Services/ItemSharingService.cs', 'src/DropSpace.App/Services/ShareFolderEnumeration.cs',
+    'src/DropSpace.App/Services/ShareTargetActivationService.cs']) {
     assert.equal(affectsShareWorker(name), true, name);
   }
   for (const name of ['share-worker/README.md', 'docs/release.md', 'website/index.html',
-    'src/DropSpace.App/Services/WindowsMediaSessionService.cs']) assert.equal(affectsShareWorker(name), false, name);
+    'src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs',
+    'src/DropSpace.App/Services/AiLyricsService.cs', 'src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs']) {
+    assert.equal(affectsShareWorker(name), false, name);
+    const scope = determineScope('push', push(), head, () => names([name]));
+    assert.equal(scope.run, false, name);
+    assert.equal(scope.complete, true, name);
+  }
+});
+
+test('actual client and wire-contract edits require worker tests without filename-prefix guessing', () => {
+  for (const name of ['src/DropSpace.App/Services/SecureInternetShareService.cs',
+    'src/DropSpace.App/Services/ItemSharingService.cs', 'src/DropSpace.Core/Transfer/TransferModels.cs']) {
+    assert.ok(fs.existsSync(new URL(`../${name}`, import.meta.url)), name);
+    const scope = determineScope('push', push(), head, () => names([name]));
+    assert.equal(scope.run, true, name);
+    assert.equal(scope.complete, true, name);
+  }
+});
+
+test('real Git additions, deletions and renames of the two missed client files require tests', t => {
+  const repo = repository(t);
+  repo.write('docs/initial.md');
+  let before = repo.commit();
+  for (const name of ['src/DropSpace.App/Services/SecureInternetShareService.cs',
+    'src/DropSpace.App/Services/ItemSharingService.cs']) {
+    repo.write(name);
+    let after = repo.commit();
+    const read = range => readGitDiff(range, repo.git);
+    const check = (baseSha, headSha) => {
+      const scope = determineScope('push', push(baseSha, headSha), headSha, read);
+      assert.equal(scope.run, true, name);
+      assert.equal(scope.complete, true, name);
+    };
+    check(before, after);
+    before = after;
+    const renamed = `${name}.renamed`;
+    fs.renameSync(path.join(repo.root, name), path.join(repo.root, renamed));
+    after = repo.commit();
+    check(before, after); // Deleted old path remains part of --no-renames diff.
+    before = after;
+    fs.renameSync(path.join(repo.root, renamed), path.join(repo.root, name));
+    after = repo.commit();
+    check(before, after); // Added protocol path is recognized, too.
+    before = after;
+    fs.unlinkSync(path.join(repo.root, name));
+    after = repo.commit();
+    check(before, after);
+    before = after;
+  }
 });
 
 test('PR scope compares base with the actual tested merge tree, while push uses its complete range', () => {

@@ -9,12 +9,23 @@ export const limits = Object.freeze({ eventBytes: 2 * 1024 * 1024, diffBytes: 4 
 const sharedInputs = new Set(['package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb',
   '.npmrc', '.node-version', '.nvmrc', '.gitattributes', '.gitmodules', '.github/dependabot.yml', '.github/workflows/ci.yml',
   'scripts/ci-share-worker-scope.mjs', 'scripts/ci-share-worker-scope.test.mjs']);
+// Follow the actual Internet Share call chain, not a Share* filename convention.
+// SharingUseCase -> ItemSharingService -> SecureInternetShareService ->
+// Infrastructure/Sharing (client, crypto and authenticated revoke store).
+// TransferModels owns ShareLimits, the worker's wire/security constants.
+const shareClientInputs = new Set([
+  'src/DropSpace.App/Services/SharingUseCase.cs',
+  'src/DropSpace.App/Services/ItemSharingService.cs',
+  'src/DropSpace.App/Services/SecureInternetShareService.cs',
+  'src/DropSpace.App/Services/ShareFolderEnumeration.cs',
+  'src/DropSpace.App/Services/ShareTargetActivationService.cs',
+  'src/DropSpace.Core/Transfer/TransferModels.cs',
+]);
 
 export function affectsShareWorker(name) {
   return name.startsWith('share-worker/') && name !== 'share-worker/README.md' || sharedInputs.has(name) ||
     name.startsWith('.github/actions/') || /^\.github\/workflows\/[^/]*share[^/]*\.ya?ml$/i.test(name) ||
-    name.startsWith('src/DropSpace.Infrastructure/Sharing/') ||
-    /^src\/DropSpace\.(?:Core|App)\/.*\/I?Shar[^/]*\.cs$/.test(name);
+    name.startsWith('src/DropSpace.Infrastructure/Sharing/') || shareClientInputs.has(name);
 }
 
 export function parseDiff(bytes) {
