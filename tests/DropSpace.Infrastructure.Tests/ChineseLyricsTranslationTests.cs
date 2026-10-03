@@ -253,6 +253,54 @@ public sealed class ChineseLyricsTranslationTests
             "Provenance alone must not bypass a cleared cache generation.");
     }
 
+    [TestMethod]
+    [DataRow("Love", "SingerA", 3d)]
+    [DataRow("Different title", "SingerA", 12d)]
+    [DataRow("Love", "Different artist", 12d)]
+    [DataRow("Love", "SingerA、SingerB", 12d)]
+    public async Task SameRowIdWithChangedPhysicalProjectionMissesCacheAndUnchangedProjectionHits(
+        string initialTitle, string initialArtist, double initialScore)
+    {
+        using var fixture = new Fixture();
+        var query = new LyricsQuery("Love", "SingerA", "Synthetic album", TimeSpan.FromSeconds(40));
+        var raw = LyricsParser.Parse("SingerA - Love\n山谷的石门\nI will wait for you", LyricsProviderKind.NetEase);
+        var before = raw with { Match = new(initialTitle, initialArtist, "Synthetic album", 40, initialScore) };
+        var after = raw with { Match = new("Love", "SingerA", "Synthetic album", 40, 12) };
+        CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(before, "zh-CN"));
+        CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(after, "zh-CN"));
+        CollectionAssert.AreEqual(new[] { "SingerA - Love", "I will wait for you" },
+            LyricsLanguagePolicy.EligibleSegments(before, "zh-CN")[0]);
+        CollectionAssert.AreEqual(new[] { "I will wait for you" }, LyricsLanguagePolicy.EligibleSegments(after, "zh-CN")[0]);
+        Assert.AreEqual(LyricsTranslationPrompt.CacheKey(query, before, "zh-CN", Identity),
+            LyricsTranslationPrompt.CacheKey(query, after, "zh-CN", Identity), "The established document identity does not capture this projection change.");
+        var beforeKey = PlainHyLyricsProtocol.CacheKey(query, before, "zh-CN", Identity);
+        var afterKey = PlainHyLyricsProtocol.CacheKey(query, after, "zh-CN", Identity);
+        Assert.AreNotEqual(beforeKey, afterKey);
+        var calls = 0;
+        var initial = await fixture.Coordinator.TranslateAsync(query, before, "zh-CN", Identity, fixture.Cache.Generation,
+            (_, _) => Task.FromResult(++calls == 1 ? "合成旧标题译文" : "合成外语译文"), default);
+        Assert.AreEqual(2, calls);
+        Assert.AreEqual("合成旧标题译文 合成外语译文", initial.Document.Lines[0].Secondary);
+        var initialCache = await fixture.Cache.ReadAsync(beforeKey, default);
+        Assert.IsNotNull(initialCache);
+        Assert.IsNotNull(await fixture.Coordinator.TryGetCachedAsync(query, before, "zh-CN", Identity, default));
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(query, after, "zh-CN", Identity, default),
+            "Old header output must not be relabeled with the new single-segment provenance.");
+        calls = 0;
+        var current = await fixture.Coordinator.TranslateAsync(query, after, "zh-CN", Identity, fixture.Cache.Generation,
+            (prompt, _) => { calls++; Assert.AreEqual(PlainHyLyricsProtocol.BuildPrompt("I will wait for you", "zh-CN"), prompt);
+                return Task.FromResult("合成当前外语译文"); }, default);
+        Assert.AreEqual(1, calls);
+        Assert.AreEqual(raw.Lines[0].Text, current.Document.Lines[0].Text);
+        Assert.AreEqual("合成当前外语译文", current.Document.Lines[0].Secondary);
+        var sameProjection = after with { Match = after.Match! with { Score = 4, Album = "Updated album evidence" } };
+        Assert.AreEqual(afterKey, PlainHyLyricsProtocol.CacheKey(query, sameProjection, "zh-CN", Identity));
+        var hit = await fixture.Coordinator.TranslateAsync(query, sameProjection, "zh-CN", Identity, fixture.Cache.Generation,
+            (_, _) => throw new AssertFailedException("The same admitted projection should remain a cache hit."), default);
+        CollectionAssert.AreEqual(current.Document.Lines.ToArray(), hit.Document.Lines.ToArray());
+        Assert.AreEqual(initialCache, await fixture.Cache.ReadAsync(beforeKey, default));
+    }
+
     private static string OldKey(LyricsDocument source, int[] ids, string policy = "lexical-context-eligibility-v5") => Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
     {
         cache = "plain-hy-complete-song-v2", eligibility = policy,

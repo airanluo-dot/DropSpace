@@ -72,6 +72,7 @@ public static class PlainHyLyricsProtocol
         var documentKey = LyricsTranslationPrompt.CacheKey(query, originals, target, inferenceIdentity);
         return Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
         { cache = "plain-hy-complete-song-v2", eligibility = LyricsLanguagePolicy.Version, sourceLanguages = document.Lines.Select(line => line.SourceLanguage),
-            eligibleIds = LyricsLanguagePolicy.EligibleIndices(document, target), protocol = Version, documentKey })));
+            eligibleIds = LyricsLanguagePolicy.EligibleIndices(document, target),
+            admittedSegments = LyricsLanguagePolicy.EligibleSegments(document, target), protocol = Version, documentKey })));
     }
 }
