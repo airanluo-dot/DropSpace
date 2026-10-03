@@ -1,0 +1,62 @@
+name: Extract approved website screenshots
+on:
+  push:
+    branches: [qa/approved-website-images-20261003]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  extract:
+    if: github.event.created == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Download the existing verified artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          repository: airanluo-dot/DropSpace
+          run-id: 37093401511
+          artifact-ids: '11263752441'
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: original
+      - name: Verify provenance and select only the requested screenshots
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, shutil
+          root = pathlib.Path('original')
+          source = json.loads((root / 'source.json').read_text())
+          assert source['sourceCommit'] == '017c8aa4622aac1bf0e6e2fe128ed9655a4eacff'
+          assert source['websiteTree'] == '56fe559c9a3d8c77f49c7d03316b921613bceba9'
+          assert source['publication'] is False
+          for name in ['ai-lyrics-zh-cn-desktop.png', 'ai-lyrics-zh-cn-390.png', 'ai-lyrics-static-zh-cn.png']:
+              image = root / name
+              assert image.is_file(), name
+              assert image.stat().st_size + (root / 'source.json').stat().st_size < 31 * 1024 * 1024, name
+              target = pathlib.Path('selected') / image.stem
+              target.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(image, target / name)
+              shutil.copy2(root / 'source.json', target / 'source.json')
+          PY
+      - name: Preserve desktop image
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: approved-website-desktop-37093401511
+          path: selected/ai-lyrics-zh-cn-desktop/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve mobile image
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: approved-website-mobile-37093401511
+          path: selected/ai-lyrics-zh-cn-390/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve GPT static image
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: approved-website-static-37093401511
+          path: selected/ai-lyrics-static-zh-cn/
+          if-no-files-found: error
+          retention-days: 7
