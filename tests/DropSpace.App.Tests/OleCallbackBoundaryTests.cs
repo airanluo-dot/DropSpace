@@ -10,6 +10,35 @@ namespace DropSpace.App.Tests;
 public sealed class OleCallbackBoundaryTests
 {
     [TestMethod]
+    public async Task LateDropFailureCannotCancelAReplacementGesture()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var generation = 1;
+        var left = 0;
+        var visualCompletions = 0;
+        var callbackReached = false;
+        var target = CreateTarget(new DragActivationCallbacks(_ => { }, (_, _) => { }, _ => left++,
+            (_, _) => throw new AssertFailedException("Guarded callback must be used."),
+            CaptureGuard: () => { var captured = generation; return () => captured == generation; },
+            GuardedDropped: async (_, _, current) =>
+            {
+                callbackReached = true;
+                await release.Task;
+                if (current()) visualCompletions++;
+                throw new IOException("Delayed original drop failure.");
+            }));
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var guard = (Func<bool>)typeof(OleDropTargetRegistration).GetMethod("CaptureCompletionGuard", flags)!.Invoke(target, null)!;
+        var completion = (Task)typeof(OleDropTargetRegistration).GetMethod("CompleteDropAsync", flags)!.Invoke(target, [Array.Empty<string>(), guard])!;
+        Assert.IsTrue(callbackReached);
+        generation++;
+        release.SetResult();
+        await completion;
+        Assert.AreEqual(0, visualCompletions);
+        Assert.AreEqual(0, left);
+    }
+
+    [TestMethod]
     public void DragEnterCallbackFailureRejectsAndClearsNativeOwnership()
     {
         var target = CreateTarget(new DragActivationCallbacks(
@@ -98,6 +127,28 @@ public sealed class OleCallbackBoundaryTests
             Assert.AreEqual(1, notifications);
         }
         finally { lock (classGate) hosts.Remove(window); }
+    }
+
+    [TestMethod]
+    public void RetiredTargetRejectsAllLateNativeCallbacksWithoutReadingData()
+    {
+        var target = CreateTarget(new DragActivationCallbacks(
+            _ => Assert.Fail("Retired target must not reveal."),
+            (_, _) => Assert.Fail("Retired target must not update."),
+            _ => Assert.Fail("Retired target must not notify."),
+            (_, _) => throw new AssertFailedException("Retired target must not drop.")));
+        SetField(target, "_disposed", true);
+        SetField(target, "_canAccept", true);
+        uint effect = 1;
+        Assert.AreEqual(0, target.DragEnter(null!, 0, default, ref effect));
+        Assert.AreEqual(0u, effect);
+        effect = 1;
+        Assert.AreEqual(0, target.DragOver(0, default, ref effect));
+        Assert.AreEqual(0u, effect);
+        effect = 1;
+        Assert.AreEqual(0, target.Drop(null!, 0, default, ref effect));
+        Assert.AreEqual(0u, effect);
+        Assert.AreEqual(0, target.DragLeave());
     }
 
     private static OleDropTargetRegistration CreateTarget(DragActivationCallbacks callbacks)

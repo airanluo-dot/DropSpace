@@ -1,0 +1,1926 @@
+{
+  "schemaVersion": 2,
+  "kind": "production-runner-output",
+  "model": {
+    "id": "hy-mt2-18-q8-plain-beta",
+    "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+    "bytes": 1908528192
+  },
+  "targetLanguage": "zh-Hans",
+  "admissionPolicyVersion": "lexical-context-eligibility-v5",
+  "admission": [
+    {
+      "lineId": 0,
+      "sourceText": "I fold the morning into a paper boat.",
+      "detectedLanguage": "en",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "I fold the morning into a paper boat.",
+          "sha256": "03e9e32a4d6a67edd57578dbf793a536afe88b874c11f793957247e25062958f"
+        }
+      ]
+    },
+    {
+      "lineId": 1,
+      "sourceText": "Your blue cup waits beside the window.",
+      "detectedLanguage": "en",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "Your blue cup waits beside the window.",
+          "sha256": "81d9f463643bed1b5748993fb149c9233f436fe111c0f6d516217365bbd70e74"
+        }
+      ]
+    },
+    {
+      "lineId": 2,
+      "sourceText": "I did not promise to forget your name.",
+      "detectedLanguage": "en",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "I did not promise to forget your name.",
+          "sha256": "a07960ebaa5f26be6722a8588ee5072f4021c5b2061c622e21aab520d63eb8e6"
+        }
+      ]
+    },
+    {
+      "lineId": 3,
+      "sourceText": "You said the northern road was closed.",
+      "detectedLanguage": "en",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "You said the northern road was closed.",
+          "sha256": "b2183e8a6bc2a5a816e7b30cac53618abb6bb86494a099ab0d8b1f4e16a5ca86"
+        }
+      ]
+    },
+    {
+      "lineId": 4,
+      "sourceText": "We carry seven seeds across the bridge.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "We carry seven seeds across the bridge.",
+          "sha256": "ea0b12b7b81ff92951d4bb670bebd42d2dcf5501cb971c0b17a2eb404a829cb2"
+        }
+      ]
+    },
+    {
+      "lineId": 5,
+      "sourceText": "No lantern can replace the summer sun.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "No lantern can replace the summer sun.",
+          "sha256": "e051f541b14956ff095166d9fd56b07fdb345780eaca93eefb72cfd9de14543c"
+        }
+      ]
+    },
+    {
+      "lineId": 6,
+      "sourceText": "If you return, knock softly twice.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "If you return, knock softly twice.",
+          "sha256": "8f5e4861a7454d840efec782042d13e7aaab92f1b6bbc4a0de68343e9043641f"
+        }
+      ]
+    },
+    {
+      "lineId": 7,
+      "sourceText": "I hear the train but cannot see its lights.",
+      "detectedLanguage": "en",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "I hear the train but cannot see its lights.",
+          "sha256": "09eb03687fe22f1e83fdee0df1b1dc6dcabfac404fac54656e08dce338268ec0"
+        }
+      ]
+    },
+    {
+      "lineId": 8,
+      "sourceText": "The quiet room belongs to neither of us.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "The quiet room belongs to neither of us.",
+          "sha256": "4ed3db6804c4fd6a0b2161bc44b741d86a3e8abd146f6855c5257a3e42b753b1"
+        }
+      ]
+    },
+    {
+      "lineId": 9,
+      "sourceText": "Keep the red scarf; leave the silver key.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "Keep the red scarf; leave the silver key.",
+          "sha256": "0f463e6a028751fbe6b3ea8da2ed6c1b90b1660f02b4e706d8f68b709b108a92"
+        }
+      ]
+    },
+    {
+      "lineId": 10,
+      "sourceText": "Tomorrow I will choose a different path.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "Tomorrow I will choose a different path.",
+          "sha256": "6063cd441638da140fe359d9262d44d241772471ba3bffddedde713991ce59ab"
+        }
+      ]
+    },
+    {
+      "lineId": 11,
+      "sourceText": "Our little river still remembers rain.",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "Our little river still remembers rain.",
+          "sha256": "b79d75149d375841182c24d9afd02f19783d8f3596f622c556f60bfbef2e1910"
+        }
+      ]
+    },
+    {
+      "lineId": 12,
+      "sourceText": "朝の光を紙の舟に折る。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "朝の光を紙の舟に折る。",
+          "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+        }
+      ]
+    },
+    {
+      "lineId": 13,
+      "sourceText": "青いカップが窓辺で君を待つ。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "青いカップが窓辺で君を待つ。",
+          "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+        }
+      ]
+    },
+    {
+      "lineId": 14,
+      "sourceText": "君の名前を忘れるとは約束していない。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "君の名前を忘れるとは約束していない。",
+          "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+        }
+      ]
+    },
+    {
+      "lineId": 15,
+      "sourceText": "北へ続く道は閉じたと君は言った。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "北へ続く道は閉じたと君は言った。",
+          "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+        }
+      ]
+    },
+    {
+      "lineId": 16,
+      "sourceText": "七つの種を持って橋を渡る。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "七つの種を持って橋を渡る。",
+          "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+        }
+      ]
+    },
+    {
+      "lineId": 17,
+      "sourceText": "灯りは夏の太陽の代わりにはならない。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "灯りは夏の太陽の代わりにはならない。",
+          "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+        }
+      ]
+    },
+    {
+      "lineId": 18,
+      "sourceText": "戻るなら、そっと二回ノックして。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "戻るなら、そっと二回ノックして。",
+          "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+        }
+      ]
+    },
+    {
+      "lineId": 19,
+      "sourceText": "列車の音は聞こえるが、光は見えない。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "列車の音は聞こえるが、光は見えない。",
+          "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+        }
+      ]
+    },
+    {
+      "lineId": 20,
+      "sourceText": "静かな部屋は私たちのどちらのものでもない。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "静かな部屋は私たちのどちらのものでもない。",
+          "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+        }
+      ]
+    },
+    {
+      "lineId": 21,
+      "sourceText": "赤いスカーフを持って、銀の鍵を置いて。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "赤いスカーフを持って、銀の鍵を置いて。",
+          "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+        }
+      ]
+    },
+    {
+      "lineId": 22,
+      "sourceText": "明日は別の道を選ぶ。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "明日は別の道を選ぶ。",
+          "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+        }
+      ]
+    },
+    {
+      "lineId": 23,
+      "sourceText": "小さな川はまだ雨を覚えている。",
+      "detectedLanguage": "ja",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "小さな川はまだ雨を覚えている。",
+          "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+        }
+      ]
+    },
+    {
+      "lineId": 24,
+      "sourceText": "아침 햇살을 종이배에 접어 담아.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "아침 햇살을 종이배에 접어 담아.",
+          "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+        }
+      ]
+    },
+    {
+      "lineId": 25,
+      "sourceText": "파란 컵이 창가에서 너를 기다려.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "파란 컵이 창가에서 너를 기다려.",
+          "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+        }
+      ]
+    },
+    {
+      "lineId": 26,
+      "sourceText": "네 이름을 잊겠다고 약속하지 않았어.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "네 이름을 잊겠다고 약속하지 않았어.",
+          "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+        }
+      ]
+    },
+    {
+      "lineId": 27,
+      "sourceText": "북쪽 길이 닫혔다고 네가 말했어.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "북쪽 길이 닫혔다고 네가 말했어.",
+          "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+        }
+      ]
+    },
+    {
+      "lineId": 28,
+      "sourceText": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+          "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+        }
+      ]
+    },
+    {
+      "lineId": 29,
+      "sourceText": "등불은 여름 태양을 대신할 수 없어.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "등불은 여름 태양을 대신할 수 없어.",
+          "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+        }
+      ]
+    },
+    {
+      "lineId": 30,
+      "sourceText": "돌아오면 조용히 두 번 두드려.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "돌아오면 조용히 두 번 두드려.",
+          "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+        }
+      ]
+    },
+    {
+      "lineId": 31,
+      "sourceText": "기차 소리는 들리지만 불빛은 보이지 않아.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "기차 소리는 들리지만 불빛은 보이지 않아.",
+          "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+        }
+      ]
+    },
+    {
+      "lineId": 32,
+      "sourceText": "고요한 방은 우리 누구의 것도 아니야.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "고요한 방은 우리 누구의 것도 아니야.",
+          "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+        }
+      ]
+    },
+    {
+      "lineId": 33,
+      "sourceText": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+          "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+        }
+      ]
+    },
+    {
+      "lineId": 34,
+      "sourceText": "내일 나는 다른 길을 고를 거야.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "내일 나는 다른 길을 고를 거야.",
+          "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+        }
+      ]
+    },
+    {
+      "lineId": 35,
+      "sourceText": "작은 강은 아직 비를 기억해.",
+      "detectedLanguage": "ko",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": true,
+      "reason": "identified-foreign-language",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "작은 강은 아직 비를 기억해.",
+          "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+        }
+      ]
+    },
+    {
+      "lineId": 36,
+      "sourceText": "我把晨光折进一只纸船。",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "我把晨光折进一只纸船。",
+          "sha256": "dc476b5ab588e500a27abe83c59b1c29a6114c9981724d1297676b3de5e83a3e"
+        }
+      ]
+    },
+    {
+      "lineId": 37,
+      "sourceText": "你的蓝杯子仍在窗边等候。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 38,
+      "sourceText": "我并没有答应忘记你的名字。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 39,
+      "sourceText": "你说向北的路已经关闭。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.92,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 40,
+      "sourceText": "我们带着七粒种子走过桥。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 41,
+      "sourceText": "没有灯笼能代替夏天的太阳。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 42,
+      "sourceText": "如果你回来，请轻轻敲两下门。",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "如果你回来，请轻轻敲两下门。",
+          "sha256": "c2b2d8289f6f76fd5f2a1965afdb128804a1f156d307ad98cd1852ad1584cce7"
+        }
+      ]
+    },
+    {
+      "lineId": 43,
+      "sourceText": "我听见火车，却看不见灯光。",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "我听见火车，却看不见灯光。",
+          "sha256": "08cdaf367745edff8b31b5762784fbb5e1224a1d5ff5ca01efa3e35e3ba3b3cc"
+        }
+      ]
+    },
+    {
+      "lineId": 44,
+      "sourceText": "安静的房间不属于我们任何一个人。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 45,
+      "sourceText": "带走红围巾，留下银钥匙。",
+      "detectedLanguage": null,
+      "confidence": 0,
+      "evidenceKind": "Unknown",
+      "eligible": true,
+      "reason": "unknown-language-retained",
+      "segments": [
+        {
+          "segmentIndex": 0,
+          "text": "带走红围巾，留下银钥匙。",
+          "sha256": "08a13110ea58313e8fc4d25075da4c8cccbccdae5b4e400dbefbf7d7e26c6fe3"
+        }
+      ]
+    },
+    {
+      "lineId": 46,
+      "sourceText": "明天我会选择另一条路。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    },
+    {
+      "lineId": 47,
+      "sourceText": "我们的小河仍然记得雨。",
+      "detectedLanguage": "zh-Hans",
+      "confidence": 0.95,
+      "evidenceKind": "Lexical",
+      "eligible": false,
+      "reason": "same-target-language",
+      "segments": []
+    }
+  ],
+  "hostMemoryBefore": {
+    "observedAt": "2026-10-03T03:27:09Z",
+    "observation": "before-request; production performs its own admission again before every CPU load",
+    "availablePhysicalBytes": 13655175168,
+    "availableCommitBytes": 17016778752,
+    "requiredAvailableBytes": 4294967296,
+    "policy": "process-cap-plus-1GiB-reserve; conservative engineering allowance, not measured peak"
+  },
+  "finalDocument": null,
+  "outcome": null,
+  "complete": false,
+  "elapsedMilliseconds": 300152.1634,
+  "error": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at DropSpace.Infrastructure.Lyrics.PersistentPlainLyricsRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PersistentPlainLyricsRunner.cs:line 136\r\n   at PlainHyProductionEvidence.ObservedRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 580\r\n   at DropSpace.Infrastructure.Lyrics.PlainHyLyricsCoordinator.TranslateWithBudgetAsync(LyricsQuery query, LyricsDocument source, String targetLanguage, String identity, Int64 generation, Func`3 infer, CancellationToken token, TimeSpan songBudget, LyricsTranslationProgressContext progress) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PlainHyLyricsBackend.cs:line 110\r\n   at PlainHyProductionEvidence.Program.CaptureAsync(CaptureConfiguration config, String configPath) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 135",
+  "calls": [
+    {
+      "callIndex": 34,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 0,
+      "segmentIndex": 0,
+      "segmentSha256": "03e9e32a4d6a67edd57578dbf793a536afe88b874c11f793957247e25062958f",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "I fold the morning into a paper boat.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nI fold the morning into a paper boat.",
+      "output": "我把早晨折叠成一只纸船。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:09Z",
+      "elapsedMilliseconds": 9703.3986,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:27:18Z",
+        "workingSetBytes": 2232291328,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539663360
+      }
+    },
+    {
+      "callIndex": 35,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 1,
+      "segmentIndex": 0,
+      "segmentSha256": "81d9f463643bed1b5748993fb149c9233f436fe111c0f6d516217365bbd70e74",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "Your blue cup waits beside the window.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nYour blue cup waits beside the window.",
+      "output": "你的蓝色杯子放在窗边。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:18Z",
+      "elapsedMilliseconds": 7471.6656,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:27:26Z",
+        "workingSetBytes": 2232291328,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539663360
+      }
+    },
+    {
+      "callIndex": 36,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 2,
+      "segmentIndex": 0,
+      "segmentSha256": "a07960ebaa5f26be6722a8588ee5072f4021c5b2061c622e21aab520d63eb8e6",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "I did not promise to forget your name.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nI did not promise to forget your name.",
+      "output": "我并没有承诺会忘记你的名字。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:26Z",
+      "elapsedMilliseconds": 7891.1494,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:27:34Z",
+        "workingSetBytes": 2232291328,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539663360
+      }
+    },
+    {
+      "callIndex": 37,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 3,
+      "segmentIndex": 0,
+      "segmentSha256": "b2183e8a6bc2a5a816e7b30cac53618abb6bb86494a099ab0d8b1f4e16a5ca86",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "You said the northern road was closed.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nYou said the northern road was closed.",
+      "output": "你说北边的道路被封锁了。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:34Z",
+      "elapsedMilliseconds": 7713.1325,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:27:42Z",
+        "workingSetBytes": 2232242176,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 38,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 4,
+      "segmentIndex": 0,
+      "segmentSha256": "ea0b12b7b81ff92951d4bb670bebd42d2dcf5501cb971c0b17a2eb404a829cb2",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "We carry seven seeds across the bridge.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nWe carry seven seeds across the bridge.",
+      "output": "我们带着七颗种子穿过桥梁。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:42Z",
+      "elapsedMilliseconds": 7614.4019,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:27:49Z",
+        "workingSetBytes": 2232242176,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 39,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 5,
+      "segmentIndex": 0,
+      "segmentSha256": "e051f541b14956ff095166d9fd56b07fdb345780eaca93eefb72cfd9de14543c",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "No lantern can replace the summer sun.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nNo lantern can replace the summer sun.",
+      "output": "没有任何灯笼能替代夏日的阳光。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:49Z",
+      "elapsedMilliseconds": 7983.1295,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:27:57Z",
+        "workingSetBytes": 2232242176,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 40,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 6,
+      "segmentIndex": 0,
+      "segmentSha256": "8f5e4861a7454d840efec782042d13e7aaab92f1b6bbc4a0de68343e9043641f",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "If you return, knock softly twice.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nIf you return, knock softly twice.",
+      "output": "如果你回来，就轻轻敲两下门。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:27:57Z",
+      "elapsedMilliseconds": 8458.3701,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:06Z",
+        "workingSetBytes": 2232242176,
+        "peakWorkingSetBytes": 2233741312,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 41,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 7,
+      "segmentIndex": 0,
+      "segmentSha256": "09eb03687fe22f1e83fdee0df1b1dc6dcabfac404fac54656e08dce338268ec0",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "I hear the train but cannot see its lights.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nI hear the train but cannot see its lights.",
+      "output": "我听到火车的声音，但看不到它的灯光。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:06Z",
+      "elapsedMilliseconds": 8852.9207,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:14Z",
+        "workingSetBytes": 2234081280,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 42,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 8,
+      "segmentIndex": 0,
+      "segmentSha256": "4ed3db6804c4fd6a0b2161bc44b741d86a3e8abd146f6855c5257a3e42b753b1",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "The quiet room belongs to neither of us.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nThe quiet room belongs to neither of us.",
+      "output": "这个安静的房间不属于我们中的任何一个人。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:14Z",
+      "elapsedMilliseconds": 8461.6383,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:23Z",
+        "workingSetBytes": 2232631296,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 43,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 9,
+      "segmentIndex": 0,
+      "segmentSha256": "0f463e6a028751fbe6b3ea8da2ed6c1b90b1660f02b4e706d8f68b709b108a92",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "Keep the red scarf; leave the silver key.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nKeep the red scarf; leave the silver key.",
+      "output": "留下这条红色围巾，把那把银钥匙留下。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:23Z",
+      "elapsedMilliseconds": 9304.6234,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:32Z",
+        "workingSetBytes": 2232631296,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 44,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 10,
+      "segmentIndex": 0,
+      "segmentSha256": "6063cd441638da140fe359d9262d44d241772471ba3bffddedde713991ce59ab",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "Tomorrow I will choose a different path.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nTomorrow I will choose a different path.",
+      "output": "明天我会选择另一条道路。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:32Z",
+      "elapsedMilliseconds": 7256.4601,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:40Z",
+        "workingSetBytes": 2234081280,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 45,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 11,
+      "segmentIndex": 0,
+      "segmentSha256": "b79d75149d375841182c24d9afd02f19783d8f3596f622c556f60bfbef2e1910",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "Our little river still remembers rain.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\nOur little river still remembers rain.",
+      "output": "我们的小河流仍然记得那些雨水。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:40Z",
+      "elapsedMilliseconds": 7474.281,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:47Z",
+        "workingSetBytes": 2232631296,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 46,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 12,
+      "segmentIndex": 0,
+      "segmentSha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "朝の光を紙の舟に折る。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n朝の光を紙の舟に折る。",
+      "output": "将晨光折成纸船。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:47Z",
+      "elapsedMilliseconds": 8534.5346,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:28:56Z",
+        "workingSetBytes": 2199498752,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 47,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 13,
+      "segmentIndex": 0,
+      "segmentSha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "青いカップが窓辺で君を待つ。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n青いカップが窓辺で君を待つ。",
+      "output": "那个蓝色的杯子正在窗边等待着你。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:28:56Z",
+      "elapsedMilliseconds": 9506.3386,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:05Z",
+        "workingSetBytes": 2200145920,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 48,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 14,
+      "segmentIndex": 0,
+      "segmentSha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "君の名前を忘れるとは約束していない。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n君の名前を忘れるとは約束していない。",
+      "output": "我没有承诺会忘记你的名字。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:05Z",
+      "elapsedMilliseconds": 8491.5399,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:14Z",
+        "workingSetBytes": 2201964544,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 49,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 15,
+      "segmentIndex": 0,
+      "segmentSha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "北へ続く道は閉じたと君は言った。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n北へ続く道は閉じたと君は言った。",
+      "output": "你说过，通往北方的道路已经关闭了。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:14Z",
+      "elapsedMilliseconds": 9663.8202,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:23Z",
+        "workingSetBytes": 2201071616,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 50,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 16,
+      "segmentIndex": 0,
+      "segmentSha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "七つの種を持って橋を渡る。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n七つの種を持って橋を渡る。",
+      "output": "带着七种种子过桥。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:23Z",
+      "elapsedMilliseconds": 7935.6202,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:31Z",
+        "workingSetBytes": 2201272320,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 51,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 17,
+      "segmentIndex": 0,
+      "segmentSha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "灯りは夏の太陽の代わりにはならない。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n灯りは夏の太陽の代わりにはならない。",
+      "output": "灯光无法替代夏日的阳光。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:31Z",
+      "elapsedMilliseconds": 8633.7077,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:40Z",
+        "workingSetBytes": 2201575424,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 52,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 18,
+      "segmentIndex": 0,
+      "segmentSha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "戻るなら、そっと二回ノックして。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n戻るなら、そっと二回ノックして。",
+      "output": "如果要回去的话，就轻轻敲两下门吧。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:40Z",
+      "elapsedMilliseconds": 9825.1661,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:50Z",
+        "workingSetBytes": 2203291648,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 53,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 19,
+      "segmentIndex": 0,
+      "segmentSha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "列車の音は聞こえるが、光は見えない。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n列車の音は聞こえるが、光は見えない。",
+      "output": "可以听到火车的声音，但看不到光。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:50Z",
+      "elapsedMilliseconds": 9708.5677,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:29:59Z",
+        "workingSetBytes": 2202021888,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 54,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 20,
+      "segmentIndex": 0,
+      "segmentSha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "静かな部屋は私たちのどちらのものでもない。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n静かな部屋は私たちのどちらのものでもない。",
+      "output": "那个安静的房间并不属于我们任何一个人。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:29:59Z",
+      "elapsedMilliseconds": 9606.8309,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:30:09Z",
+        "workingSetBytes": 2202353664,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 55,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 21,
+      "segmentIndex": 0,
+      "segmentSha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "赤いスカーフを持って、銀の鍵を置いて。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n赤いスカーフを持って、銀の鍵を置いて。",
+      "output": "带上红色的丝带，把银钥匙放在那里。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:30:09Z",
+      "elapsedMilliseconds": 10024.2153,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:30:19Z",
+        "workingSetBytes": 2202636288,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 56,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 22,
+      "segmentIndex": 0,
+      "segmentSha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "明日は別の道を選ぶ。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n明日は別の道を選ぶ。",
+      "output": "明天会选择另一条路线。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:30:19Z",
+      "elapsedMilliseconds": 7413.8345,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:30:26Z",
+        "workingSetBytes": 2202767360,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 57,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 23,
+      "segmentIndex": 0,
+      "segmentSha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "小さな川はまだ雨を覚えている。",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n小さな川はまだ雨を覚えている。",
+      "output": "那条小河流仍然记得着雨的痕迹。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:30:26Z",
+      "elapsedMilliseconds": 9480.1237,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:30:36Z",
+        "workingSetBytes": 2190606336,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 58,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 24,
+      "segmentIndex": 0,
+      "segmentSha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "아침 햇살을 종이배에 접어 담아.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n아침 햇살을 종이배에 접어 담아.",
+      "output": "将晨光融入纸船之中。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:30:36Z",
+      "elapsedMilliseconds": 9140.2437,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:30:45Z",
+        "workingSetBytes": 2189623296,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 59,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 25,
+      "segmentIndex": 0,
+      "segmentSha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "파란 컵이 창가에서 너를 기다려.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n파란 컵이 창가에서 너를 기다려.",
+      "output": "蓝色的杯子在窗边等你。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:30:45Z",
+      "elapsedMilliseconds": 8373.9173,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:30:53Z",
+        "workingSetBytes": 2190020608,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 60,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 26,
+      "segmentIndex": 0,
+      "segmentSha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "네 이름을 잊겠다고 약속하지 않았어.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n네 이름을 잊겠다고 약속하지 않았어.",
+      "output": "你没有承诺要忘记你的名字。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:30:53Z",
+      "elapsedMilliseconds": 8381.8091,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:02Z",
+        "workingSetBytes": 2191765504,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 61,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 27,
+      "segmentIndex": 0,
+      "segmentSha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "북쪽 길이 닫혔다고 네가 말했어.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n북쪽 길이 닫혔다고 네가 말했어.",
+      "output": "你说北方的道路已经关闭了。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:31:02Z",
+      "elapsedMilliseconds": 9109.5186,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:11Z",
+        "workingSetBytes": 2192011264,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2541023232
+      }
+    },
+    {
+      "callIndex": 62,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 28,
+      "segmentIndex": 0,
+      "segmentSha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n우리는 씨앗 일곱 개를 들고 다리를 건너.",
+      "output": "我们带着七颗种子，跨过了那座桥。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:31:11Z",
+      "elapsedMilliseconds": 10869.2893,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:22Z",
+        "workingSetBytes": 2191245312,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 63,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 29,
+      "segmentIndex": 0,
+      "segmentSha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "등불은 여름 태양을 대신할 수 없어.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n등불은 여름 태양을 대신할 수 없어.",
+      "output": "灯笼无法替代夏日的阳光。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:31:22Z",
+      "elapsedMilliseconds": 8963.73,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:31Z",
+        "workingSetBytes": 2191515648,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 64,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 30,
+      "segmentIndex": 0,
+      "segmentSha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "돌아오면 조용히 두 번 두드려.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n돌아오면 조용히 두 번 두드려.",
+      "output": "回来后，轻轻敲两下。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:31:31Z",
+      "elapsedMilliseconds": 8690.9535,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:39Z",
+        "workingSetBytes": 2191765504,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 65,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 31,
+      "segmentIndex": 0,
+      "segmentSha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "기차 소리는 들리지만 불빛은 보이지 않아.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n기차 소리는 들리지만 불빛은 보이지 않아.",
+      "output": "能听到火车的声音，但看不到任何灯光。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:31:39Z",
+      "elapsedMilliseconds": 10075.2332,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:50Z",
+        "workingSetBytes": 2191982592,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 66,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 32,
+      "segmentIndex": 0,
+      "segmentSha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "고요한 방은 우리 누구의 것도 아니야.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n고요한 방은 우리 누구의 것도 아니야.",
+      "output": "这个安静的房间不属于我们任何人。",
+      "status": "returned",
+      "startedAt": "2026-10-03T03:31:50Z",
+      "elapsedMilliseconds": 8757.1501,
+      "error": null,
+      "nativeProcess": {
+        "id": 7968,
+        "startedAt": "2026-10-03T03:27:09.2678834Z",
+        "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+        "observedAt": "2026-10-03T03:31:58Z",
+        "workingSetBytes": 2192232448,
+        "peakWorkingSetBytes": 2234081280,
+        "privateMemoryBytes": 2539573248
+      }
+    },
+    {
+      "callIndex": 67,
+      "phase": "cold",
+      "targetLanguage": "zh-Hans",
+      "lineId": 33,
+      "segmentIndex": 0,
+      "segmentSha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6",
+      "verifiedModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "sourceText": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+      "prompt": "将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+      "output": null,
+      "status": "cancelled",
+      "startedAt": "2026-10-03T03:31:58Z",
+      "elapsedMilliseconds": 10647.9363,
+      "error": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at DropSpace.Infrastructure.Lyrics.PersistentPlainLyricsRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PersistentPlainLyricsRunner.cs:line 136\r\n   at PlainHyProductionEvidence.ObservedRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 580",
+      "nativeProcess": null
+    }
+  ],
+  "progressEvents": [
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 0,
+      "completedLineCount": 1,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 9709.0712
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 1,
+      "completedLineCount": 2,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 17183.8917
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 2,
+      "completedLineCount": 3,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 25080.7713
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 3,
+      "completedLineCount": 4,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 32795.8546
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 4,
+      "completedLineCount": 5,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 40413.2196
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 5,
+      "completedLineCount": 6,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 48404.9718
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 6,
+      "completedLineCount": 7,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 56868.372
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 7,
+      "completedLineCount": 8,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 65722.4343
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 8,
+      "completedLineCount": 9,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 74185.3093
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 9,
+      "completedLineCount": 10,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 83491.2715
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 10,
+      "completedLineCount": 11,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 90752.652
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 11,
+      "completedLineCount": 12,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 98231.8408
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 12,
+      "completedLineCount": 13,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 106771.0911
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 13,
+      "completedLineCount": 14,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 116282.3349
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 14,
+      "completedLineCount": 15,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 124778.7514
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 15,
+      "completedLineCount": 16,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 134447.3365
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 16,
+      "completedLineCount": 17,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 142384.3781
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 17,
+      "completedLineCount": 18,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 151019.3254
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 18,
+      "completedLineCount": 19,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 160851.4532
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 19,
+      "completedLineCount": 20,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 170565.0686
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 20,
+      "completedLineCount": 21,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 180173.1875
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 21,
+      "completedLineCount": 22,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 190203.1831
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 22,
+      "completedLineCount": 23,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 197621.8096
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 23,
+      "completedLineCount": 24,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 207106.8418
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 24,
+      "completedLineCount": 25,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 216248.4457
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 25,
+      "completedLineCount": 26,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 224623.5864
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 26,
+      "completedLineCount": 27,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 233008.5219
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 27,
+      "completedLineCount": 28,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 242126.9301
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 28,
+      "completedLineCount": 29,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 253001.3575
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 29,
+      "completedLineCount": 30,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 261969.1794
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 30,
+      "completedLineCount": 31,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 270664.9425
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 31,
+      "completedLineCount": 32,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 280741.5838
+    },
+    {
+      "requestIdentity": "production-evidence-zh-Hans",
+      "cacheGeneration": 0,
+      "lineId": 32,
+      "completedLineCount": 33,
+      "totalLineCount": 40,
+      "isEphemeral": true,
+      "isCurrent": true,
+      "elapsedMilliseconds": 289503.1151
+    }
+  ],
+  "playbackPositionSeconds": 0,
+  "residentProcessReuseConfirmed": false,
+  "firstProgressElapsedMilliseconds": 9709.0712,
+  "outputSemantics": "Exact PersistentPlainLyricsRunner.RunPlainAsync return values; not raw native stdout or JSON frames. The production runner removes its terminal marker and trims terminal whitespace."
+}

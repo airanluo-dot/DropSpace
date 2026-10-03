@@ -258,3 +258,88 @@ html[lang="zh-CN"] .hero-cinematic h1 { font-size:clamp(46px,6.3vw,90px); letter
 .nav .nav-download:hover { box-shadow:0 6px 26px #ec2b9133; filter:brightness(1.08); }
 @media(max-width:400px) { .nav { gap:8px; } .nav .language-switch { padding:0 8px; gap:4px; } .language-switch svg { width:14px; height:14px; margin-right:0; } .nav .nav-download { padding-inline:12px; } }
 @media(prefers-reduced-motion:reduce) { .nav .language-switch { transition:none; } .nav .language-switch:hover { transform:none; } }
+
+/* AI lyrics extends the existing editorial system. The canvas is an exterior-only
+   signed-distance halo: the physical Island never changes shape or gains an outline. */
+.lyrics-story { padding-block:64px 96px; }
+.lyrics-story .section-heading { margin-bottom:48px; }
+.lyrics-stage { overflow:hidden; position:relative; isolation:isolate; border:1px solid #292932; border-radius:26px; background:var(--showcase-background); padding:30px 40px 28px; }
+.lyrics-stage-top { display:flex; justify-content:space-between; gap:20px; color:#b0b4c2; font-size:10px; font-weight:550; letter-spacing:.12em; }
+.lyrics-stage-top>span:last-child { letter-spacing:.02em; color:#9a9daa; }
+.lyrics-island-wrap { position:relative; width:min(560px,100%); aspect-ratio:560 / 340; margin:74px auto 62px; }
+.lyrics-device { position:absolute; top:0; left:0; width:560px; height:340px; transform-origin:top left; isolation:isolate; }
+.lyrics-halo { position:absolute; left:-40px; top:-40px; width:calc(100% + 80px); height:calc(100% + 80px); z-index:-1; pointer-events:none; }
+.lyrics-island { width:560px; height:340px; border-radius:28px; padding:24px 28px 20px; background:var(--island-background); display:flex; flex-direction:column; min-width:0; }
+.lyrics-track { display:flex; align-items:center; gap:14px; }
+.lyrics-album { flex:0 0 54px; height:54px; border-radius:12px; background:linear-gradient(145deg,#ff934e,#ff4fab 53%,#4589ff); display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 0 0 1px #ffffff25; }
+.lyrics-album i { display:block; width:3px; height:16px; background:#fff9; border-radius:10px; }
+.lyrics-album i:nth-child(2) { height:27px; }
+.lyrics-album i:nth-child(3) { height:21px; }
+.lyrics-track>div { display:flex; flex-direction:column; min-width:0; }
+.lyrics-track small { font-size:9px; letter-spacing:.1em; color:#a5a5b0; }
+.lyrics-track strong { font-size:16px; font-weight:600; letter-spacing:-.02em; }
+.lyrics-track>div>span { font-size:11px; color:#a5a5b0; }
+.lyrics-local-badge { margin-left:auto; flex-shrink:0; font-size:10px; color:#bec3ce; padding:4px 8px; border-radius:6px; background:#ffffff0b; }
+.lyrics-lines { flex:1; display:flex; flex-direction:column; min-height:0; min-width:0; padding:12px 0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#555563 transparent; }
+.lyrics-lines-content { flex:0 0 auto; min-width:0; width:100%; margin-block:auto; }
+.lyrics-lines p { margin:0; line-height:1.3; overflow-wrap:anywhere; }
+.lyrics-previous,.lyrics-next { font-size:14px; color:#8d8d98; }
+.lyrics-lines .lyrics-current { margin-top:12px; font-size:27px; font-weight:600; letter-spacing:-.025em; }
+.lyrics-lines .lyrics-translation { margin-top:4px; color:#c3b7d0; font-size:18px; line-height:1.4; }
+.lyrics-lines .lyrics-next { margin-top:12px; }
+.lyrics-playback { flex:0 0 44px; display:flex; align-items:center; gap:22px; border-top:1px solid #ffffff13; padding-top:12px; }
+.lyrics-preview-transport { display:grid; place-items:center; width:34px; height:28px; color:#e6e4ed; }
+.lyrics-preview-transport svg { width:16px; height:16px; fill:currentColor; }
+.lyrics-waveform { display:flex; flex:1; align-items:center; gap:4px; height:24px; opacity:.7; }
+.lyrics-waveform i { display:block; width:3px; height:9px; background:#b7b2c9; border-radius:4px; }
+.lyrics-waveform i:nth-child(3n) { height:21px; }
+.lyrics-waveform i:nth-child(4n) { height:15px; }
+.lyrics-waveform i:nth-child(5n) { height:6px; }
+.lyrics-play { min-height:44px; border:1px solid #ffffff21; border-radius:999px; background:#ffffff07; color:#e6e4ed; padding:8px 14px; display:flex; align-items:center; gap:9px; font-size:11px; cursor:pointer; }
+.lyrics-play:hover { background:#ffffff12; }
+.lyrics-play svg { width:14px; height:14px; fill:currentColor; }
+.lyrics-play .pause-symbol,.lyrics-play[aria-pressed="true"] .play-symbol { display:none; }
+.lyrics-play[aria-pressed="true"] .pause-symbol { display:block; }
+.lyrics-demo-controls { display:flex; flex-wrap:wrap; gap:24px 30px; justify-content:center; align-items:center; }
+.lyrics-demo-controls fieldset { display:flex; gap:12px; align-items:center; border:0; padding:0; margin:0; min-width:0; }
+.lyrics-demo-controls legend { float:left; font-size:12px; color:#b7b9c4; padding:0; }
+.lyrics-demo-controls fieldset>div { display:flex; padding:3px; gap:3px; border:1px solid #ffffff1c; border-radius:12px; background:#070b1399; }
+.lyrics-demo-controls button { min-width:48px; min-height:40px; padding:7px 14px; cursor:pointer; color:#aeb3c1; border:1px solid transparent; border-radius:8px; background:transparent; font-size:12px; }
+.lyrics-demo-controls button[aria-pressed="true"] { color:#fff; border-color:#ffffff24; background:#ffffff10; }
+.lyrics-demo-controls button:hover { color:#fff; background:#ffffff14; }
+.lyrics-demo-controls>.lyrics-play { min-height:44px; padding-inline:16px; border:1px solid #ffffff30; border-radius:999px; background:#070b1399; }
+
+.lyrics-demo-status { margin:20px 0 8px; text-align:center; font-size:12px; color:#ccd0db; }
+.lyrics-demo-caption { max-width:670px; margin:0 auto; color:#a7afbe; font-size:11px; text-align:center; line-height:1.7; }
+.lyrics-benefits { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:44px; padding:42px 0 28px; }
+.lyrics-benefits article { border-top:1px solid var(--line); padding-top:22px; }
+.lyrics-feature-number { font-size:11px; font-weight:550; color:#b696b8; letter-spacing:.08em; }
+.lyrics-benefits h3 { margin:15px 0 12px; font-size:20px; font-weight:600; letter-spacing:-.03em; }
+.lyrics-benefits p { font-size:14px; line-height:1.8; color:var(--muted); margin:0; }
+.lyrics-accuracy { margin:0; max-width:840px; color:#a0a0ab; font-size:12px; line-height:1.8; }
+@media(max-width:980px) {
+ .lyrics-stage { padding-inline:28px; }
+ .lyrics-benefits { gap:26px; }
+ .lyrics-benefits h3 { font-size:18px; }
+}
+@media(max-width:680px) {
+ .lyrics-story { padding-block:24px 72px; }
+ .lyrics-story .section-heading { margin-bottom:32px; }
+ .lyrics-stage { padding:22px 26px 26px; border-radius:20px; }
+ .lyrics-stage-top { font-size:9px; gap:10px; }
+ .lyrics-stage-top>span:last-child { display:none; }
+ .lyrics-island-wrap { margin-block:58px 48px; }
+ /* The complete 560×340 Island, its type and halo scale as one object. */
+ .lyrics-demo-controls { gap:20px; }
+ .lyrics-demo-controls fieldset { gap:8px; }
+ .lyrics-demo-controls button { min-width:40px; padding-inline:11px; }
+ .lyrics-demo-controls legend { font-size:11px; }
+ .lyrics-benefits { grid-template-columns:1fr; gap:24px; padding-top:32px; }
+ .lyrics-benefits article { padding-top:18px; }
+ .lyrics-benefits h3 { font-size:20px; margin-top:10px; }
+}
+@media(forced-colors:active) {
+ .lyrics-halo,.lyrics-album { display:none; }
+ .lyrics-island { border:1px solid CanvasText; }
+ .lyrics-demo-controls button[aria-pressed="true"] { border:2px solid Highlight; }
+}

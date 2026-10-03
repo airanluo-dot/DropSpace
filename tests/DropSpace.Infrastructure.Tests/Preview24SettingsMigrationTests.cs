@@ -56,7 +56,7 @@ public sealed class Preview24SettingsMigrationTests
         _paths.EnsureCreated();
         await File.WriteAllTextAsync(_paths.Settings, """{"Version":11,"ClipboardPaused":true}""");
         var result = await new JsonSettingsService(_paths).LoadAsync();
-        Assert.IsTrue(result.Lyrics.Enabled);
+        Assert.IsFalse(result.Lyrics.Enabled); // Newly introduced online lyrics require explicit opt-in.
         Assert.AreEqual(LyricsProviderKind.NetEase, result.Lyrics.Provider);
         Assert.AreEqual(3_000, result.IslandAppearance.HideDelayMilliseconds);
         Assert.IsFalse(result.SystemActivities.ShowVolumeChanges);

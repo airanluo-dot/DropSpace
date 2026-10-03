@@ -19,6 +19,9 @@ public sealed class NeteaseEnhancementCard : UserControl
     private readonly ProgressBar _progress = new() { IsIndeterminate = true };
     private readonly Button _install, _update, _reinstall, _remove;
     private bool _dialogOpen;
+    private CancellationTokenSource? _lifetime;
+    private int _generation;
+    private Task _confirmation = Task.CompletedTask;
     private string _localError = string.Empty;
 
     public NeteaseEnhancementCard(NeteaseEnhancementViewModel view, IAppStringLocalizer strings)
@@ -56,19 +59,46 @@ public sealed class NeteaseEnhancementCard : UserControl
 
     private async void OnLoaded(object sender, RoutedEventArgs args)
     {
+        if (_lifetime is not null) return;
+        _lifetime = new CancellationTokenSource();
+        ++_generation;
         _view.PropertyChanged += Changed;
         await RunAsync(_view.InspectAsync);
     }
-    private void OnUnloaded(object sender, RoutedEventArgs args) => _view.PropertyChanged -= Changed;
-    private void Changed(object? sender, PropertyChangedEventArgs args) => Refresh();
-    private async void Install(object sender, RoutedEventArgs args) => await ConfirmInstallAsync(false);
-    private async void Reinstall(object sender, RoutedEventArgs args) => await ConfirmInstallAsync(true);
+    private void OnUnloaded(object sender, RoutedEventArgs args)
+    {
+        _view.PropertyChanged -= Changed;
+        var lifetime = _lifetime;
+        _lifetime = null;
+        ++_generation;
+        _dialogOpen = false;
+        lifetime?.Cancel();
+        _ = RetireConfirmationAsync(_confirmation, lifetime);
+    }
+    private static async Task RetireConfirmationAsync(Task task, CancellationTokenSource? lifetime)
+    {
+        try { await task.ConfigureAwait(false); }
+        catch (Exception error) when (error is not OutOfMemoryException) { Debug.WriteLine(error.GetType().Name); }
+        finally { lifetime?.Dispose(); }
+    }
+    private bool IsCurrent(int generation) => generation == _generation && _lifetime is { IsCancellationRequested: false };
+    private void Changed(object? sender, PropertyChangedEventArgs args) { if (_lifetime is not null) Refresh(); }
+    private async void Install(object sender, RoutedEventArgs args) => await StartConfirmationAsync(false);
+    private async void Reinstall(object sender, RoutedEventArgs args) => await StartConfirmationAsync(true);
     private async void Update(object sender, RoutedEventArgs args) => await RunAsync(() => _view.EnhanceAsync());
     private async void Remove(object sender, RoutedEventArgs args) => await RunAsync(_view.RemoveAsync);
 
+    private Task StartConfirmationAsync(bool reinstall)
+    {
+        if (_dialogOpen || _view.IsBusy || _lifetime is null) return Task.CompletedTask;
+        return _confirmation = ConfirmInstallAsync(reinstall);
+    }
+
     private async Task ConfirmInstallAsync(bool reinstall)
     {
-        if (_dialogOpen || _view.IsBusy) return;
+        if (_dialogOpen || _view.IsBusy || _lifetime is null) return;
+        var generation = _generation;
+        var token = _lifetime.Token;
         _localError = string.Empty; _dialogOpen = true; Refresh();
         try
         {
@@ -81,18 +111,21 @@ public sealed class NeteaseEnhancementCard : UserControl
                 PrimaryButtonText = _strings.Get("NeteaseEnhancementConfirm"),
                 DefaultButton = ContentDialogButton.Close,
             };
-            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-                await _view.EnhanceAsync(reinstall);
+            if (await ContentDialogLifetime.ShowAsync(dialog, token) == ContentDialogResult.Primary && IsCurrent(generation))
+                await _view.EnhanceAsync(reinstall); // Do not cancel an already approved deployment on navigation.
         }
-        catch (Exception exception) when (exception is not OutOfMemoryException) { ShowError(exception); }
-        finally { _dialogOpen = false; Refresh(); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is not OutOfMemoryException) { if (IsCurrent(generation)) ShowError(exception); }
+        finally { if (IsCurrent(generation)) { _dialogOpen = false; Refresh(); } }
     }
 
     private async Task RunAsync(Func<Task> action)
     {
+        if (_lifetime is null) return;
+        var generation = _generation;
         _localError = string.Empty;
         try { await action(); }
-        catch (Exception exception) when (exception is not OutOfMemoryException) { ShowError(exception); }
+        catch (Exception exception) when (exception is not OutOfMemoryException) { if (IsCurrent(generation)) ShowError(exception); }
     }
     private void ShowError(Exception exception)
     {

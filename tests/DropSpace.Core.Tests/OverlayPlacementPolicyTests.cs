@@ -18,11 +18,11 @@ public sealed class OverlayPlacementPolicyTests
             var center = resolved.HostLeftPixels + OverlayPlacementPolicy.HostWidthDips * dpi / 2;
             Assert.AreEqual(origin.Item1 + screen.Item1 / 2d, center, 0.51);
             Assert.AreEqual(origin.Item2, resolved.HostTopPixels);
-            Assert.AreEqual(8d, resolved.SurfaceTopOffsetDips);
+            Assert.AreEqual(OverlayPlacementPolicy.DynamicIslandTopGapDips, resolved.SurfaceTopOffsetDips);
             var scale = OverlayPlacementPolicy.FitContentScale(screen.Item1, screen.Item2, dpi, 560, 340, 2);
             Assert.IsTrue(scale > 0);
             Assert.IsTrue(560 * scale * dpi <= screen.Item1);
-            Assert.IsTrue((340 * scale + 8) * dpi <= screen.Item2);
+            Assert.IsTrue((340 * scale + resolved.SurfaceTopOffsetDips) * dpi <= screen.Item2);
         }
     }
 
@@ -187,5 +187,42 @@ public sealed class OverlayPlacementPolicyTests
             1.5);
 
         Assert.AreEqual(120, projected.Y, 0.001);
+    }
+
+    [TestMethod]
+    [DataRow(1d)]
+    [DataRow(1.25d)]
+    [DataRow(1.5d)]
+    [DataRow(2d)]
+    public void InvisibleRevealUsesResolvedAnchorWithoutChangingGenericHiddenOrCustomPosition(double dpi)
+    {
+        var request = new OverlayPlacementRequest(-1920, 48, 1920, 1080, dpi, FileDragWakeMode.Disabled);
+        var automatic = OverlayPlacementPolicy.Resolve(request, OverlayPlacementMode.Automatic, null);
+        var anchored = OverlayPlacementPolicy.AnchorInvisibleSurface(OverlayMotionValues.Hidden, automatic);
+        Assert.AreEqual(OverlayPlacementPolicy.DynamicIslandTopGapDips, anchored.TopOffset);
+        Assert.AreEqual(OverlayMotionValues.Hidden with { TopOffset = automatic.SurfaceTopOffsetDips }, anchored);
+        Assert.AreEqual(0d, OverlayMotionValues.Hidden.TopOffset, "Hidden must remain placement-independent.");
+        foreach (var customY in new[] { 0d, 24d, 80d })
+        {
+            var custom = OverlayPlacementPolicy.Resolve(request, OverlayPlacementMode.Custom, new(400, customY));
+            var customPose = OverlayPlacementPolicy.AnchorInvisibleSurface(anchored, custom);
+            Assert.AreEqual(0d, customPose.TopOffset, "Custom placement is in the host origin, not a fixed 18-DIP pose offset.");
+            Assert.AreEqual(48 + (int)Math.Round(customY * dpi), custom.HostTopPixels);
+            Assert.AreEqual(anchored.Opacity, customPose.Opacity);
+            Assert.AreEqual(anchored.Width, customPose.Width);
+            Assert.AreEqual(anchored.Height, customPose.Height);
+        }
+    }
+
+    [TestMethod]
+    public void AnchoringDoesNotResetVisibleFadeOrReversal()
+    {
+        var placement = new OverlayResolvedPlacement(0, 0, 18, false);
+        var visible = new OverlayMotionValues(280, 60, 11, 26, 26, 0.25, 0.2, 0, 0, 0.98);
+        Assert.AreEqual(visible, OverlayPlacementPolicy.AnchorInvisibleSurface(visible, placement));
+        var fading = visible with { Opacity = 0.002 };
+        Assert.AreEqual(fading, OverlayPlacementPolicy.AnchorInvisibleSurface(fading, placement));
+        var invisible = visible with { Opacity = 0 };
+        Assert.AreEqual(invisible with { TopOffset = 18 }, OverlayPlacementPolicy.AnchorInvisibleSurface(invisible, placement));
     }
 }

@@ -70,6 +70,8 @@ public sealed class JsonSettingsService : ISettingsService
                 settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
 
                 settings ??= CreateDefaults();
+                var beforePrivacyMigration = settings;
+                settings = MigratePrivacyChoice(document.RootElement, settings);
                 var migratedVersion = document.RootElement.EnumerateObject().Any(property =>
                     string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase) &&
                     (property.Value.ValueKind == JsonValueKind.Number ||
@@ -88,7 +90,7 @@ public sealed class JsonSettingsService : ISettingsService
                 }
 
                 var validated = settings.Validate();
-                if (migratedVersion)
+                if (migratedVersion || !ReferenceEquals(beforePrivacyMigration, settings))
                 {
                     try
                     {
@@ -217,8 +219,9 @@ public sealed class JsonSettingsService : ISettingsService
                 _paths.Settings,
                 cancellationToken)
             .ConfigureAwait(false);
-        var settings = JsonSerializer.Deserialize<AppSettings>(bytes, SerializerOptions);
-        return settings ?? CreateDefaults();
+        using var document = JsonDocument.Parse(bytes);
+        var settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
+        return settings is null ? CreateDefaults() : MigratePrivacyChoice(document.RootElement, settings);
     }
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)
@@ -255,7 +258,7 @@ public sealed class JsonSettingsService : ISettingsService
         {
             try
             {
-                var recovered = candidate with { Version = AppSettings.CurrentVersion };
+                var recovered = candidate with { Version = AppSettings.CurrentVersion, PrivacyChoicesCompleted = false };
                 recovered = recovered.WithSafeUiPreferences().Validate();
                 preserved = true;
                 return recovered;
@@ -269,6 +272,18 @@ public sealed class JsonSettingsService : ISettingsService
 
         preserved = false;
         return CreateDefaults();
+    }
+
+    private static AppSettings MigratePrivacyChoice(JsonElement root, AppSettings settings)
+    {
+        if (root.ValueKind != JsonValueKind.Object) return settings;
+        var fields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in root.EnumerateObject()) fields[property.Name] = property.Value;
+        if (fields.ContainsKey(nameof(AppSettings.PrivacyChoicesCompleted))) return settings;
+        // Preserve explicitly persisted legacy choices, never infer consent from mere file existence.
+        return fields.TryGetValue(nameof(AppSettings.ClipboardPaused), out var paused) && paused.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+            fields.TryGetValue(nameof(AppSettings.StartWithWindows), out var startup) && startup.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? settings with { PrivacyChoicesCompleted = true } : settings;
     }
 
     private AppSettings CreateDefaults() => new() { UpdateChannel = _freshUpdateChannel };

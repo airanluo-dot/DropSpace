@@ -6,6 +6,17 @@ using System.Text.Json;
 
 if (!OperatingSystem.IsWindows() || args.Length != 2) throw new ArgumentException("Windows: NativeCrashProbe EXE OUTPUT_JSON");
 if (Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT") is not { Length: > 0 }) throw new InvalidOperationException("An isolated test-data root is required.");
+// The debug fixture explicitly opts in inside its required isolated data root.
+var data = Path.Combine(Environment.GetEnvironmentVariable("DROPSPACE_TEST_DATA_ROOT")!, "data");
+Directory.CreateDirectory(data);
+var settingsPath = Path.Combine(data, "settings.json");
+var settings = File.Exists(settingsPath)
+    ? System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(settingsPath))!.AsObject()
+    : new System.Text.Json.Nodes.JsonObject();
+settings["PrivacyChoicesCompleted"] = true;
+if (!settings.ContainsKey("ClipboardPaused")) settings["ClipboardPaused"] = false;
+if (!settings.ContainsKey("StartWithWindows")) settings["StartWithWindows"] = true;
+File.WriteAllText(settingsPath, settings.ToJsonString());
 var records = new List<object>();
 var start = new Native.StartupInfo { cb = Marshal.SizeOf<Native.StartupInfo>() };
 var command = new StringBuilder($"\"{Path.GetFullPath(args[0])}\" --test-mode --smoke-test --smoke-language en-US");

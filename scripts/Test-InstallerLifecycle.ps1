@@ -5,7 +5,9 @@ param(
 
     [switch]$AllowUserDataMutation,
 
-    [string]$BaselineInstaller = ""
+    [string]$BaselineInstaller = "",
+
+    [string]$RuntimeInspectionOutput = ""
 )
 
 Set-StrictMode -Version Latest
@@ -263,6 +265,28 @@ if (-not (Test-Path $currentInstallerPath -PathType Leaf) -or -not (Test-Path $p
 {
     throw "Current installer or portable payload is missing."
 }
+$installerIdentity = [ordered]@{
+    name = [IO.Path]::GetFileName($currentInstallerPath)
+    sha256 = (Get-FileHash -LiteralPath $currentInstallerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    bytes = (Get-Item -LiteralPath $currentInstallerPath).Length
+}
+$portableIdentity = [ordered]@{
+    name = 'DropSpace.exe'
+    sha256 = (Get-FileHash -LiteralPath $portablePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    bytes = (Get-Item -LiteralPath $portablePath).Length
+}
+$runtimeInspectionPath = $null
+if (-not [string]::IsNullOrWhiteSpace($RuntimeInspectionOutput))
+{
+    $runtimeInspectionPath = if ([IO.Path]::IsPathRooted($RuntimeInspectionOutput)) { [IO.Path]::GetFullPath($RuntimeInspectionOutput) }
+        else { [IO.Path]::GetFullPath((Join-Path $repositoryRoot $RuntimeInspectionOutput)) }
+    if ([string]::Equals($runtimeInspectionPath, $currentInstallerPath, [StringComparison]::OrdinalIgnoreCase) -or
+        [string]::Equals($runtimeInspectionPath, $portablePath, [StringComparison]::OrdinalIgnoreCase))
+    {
+        throw 'RuntimeInspectionOutput must not overwrite the installer or portable executable.'
+    }
+}
+$installedPortableIdentity = $null
 
 New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
 $previousTestMode = $env:DROPSPACE_TEST_MODE
@@ -323,6 +347,16 @@ try
         throw "Custom installation path was not recorded."
     }
 
+    # This isolated lifecycle fixture explicitly chooses background behavior before
+    # launch; production first-run privacy is never bypassed by an application flag.
+    $fixtureData = Join-Path $dataRoot 'data'
+    New-Item $fixtureData -ItemType Directory -Force | Out-Null
+    $fixtureSettingsPath = Join-Path $fixtureData 'settings.json'
+    $fixtureSettings = if (Test-Path $fixtureSettingsPath) { Get-Content $fixtureSettingsPath -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
+    $fixtureSettings.PrivacyChoicesCompleted = $true
+    if (-not $fixtureSettings.ContainsKey('ClipboardPaused')) { $fixtureSettings.ClipboardPaused = $false }
+    if (-not $fixtureSettings.ContainsKey('StartWithWindows')) { $fixtureSettings.StartWithWindows = $true }
+    $fixtureSettings | ConvertTo-Json -Depth 30 | Set-Content $fixtureSettingsPath -Encoding utf8
     $runningProcess = Start-Process -FilePath $installedExe -WindowStyle Hidden -PassThru
     Wait-ForMaintenanceEndpoint $runningProcess
 
@@ -348,6 +382,16 @@ try
         throw "In-place upgrade did not replace the program version marker."
     }
     Assert-DropSpaceExecutableVersion -Path $installedExe -ReleaseInfo $releaseInfo
+    $installedPortableIdentity = [ordered]@{
+        name = 'DropSpace.exe'
+        sha256 = (Get-FileHash -LiteralPath $installedExe -Algorithm SHA256).Hash.ToLowerInvariant()
+        bytes = (Get-Item -LiteralPath $installedExe).Length
+    }
+    if ($installedPortableIdentity.sha256 -cne $portableIdentity.sha256 -or
+        $installedPortableIdentity.bytes -ne $portableIdentity.bytes)
+    {
+        throw 'Installed DropSpace.exe bytes do not match the release portable executable after upgrade.'
+    }
     if (-not (Test-Path $dataMarker)) { throw "In-place upgrade deleted user data." }
     if ([System.IO.Path]::GetFullPath((Get-ItemProperty $customRegistryPath).InstallPath) -ne [System.IO.Path]::GetFullPath($installPath))
     {
@@ -480,6 +524,34 @@ try
     if ($null -ne (Get-ItemProperty -Path $startupRegistryPath -Name "DropSpace" -ErrorAction SilentlyContinue))
     {
         throw "Complete uninstall left the DropSpace startup registration behind."
+    }
+
+    if ((Get-Item -LiteralPath $currentInstallerPath).Length -ne $installerIdentity.bytes -or
+        (Get-FileHash -LiteralPath $currentInstallerPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $installerIdentity.sha256)
+    {
+        throw 'Current installer changed during lifecycle verification.'
+    }
+    if ((Get-Item -LiteralPath $portablePath).Length -ne $portableIdentity.bytes -or
+        (Get-FileHash -LiteralPath $portablePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $portableIdentity.sha256)
+    {
+        throw 'Release portable executable changed during lifecycle verification.'
+    }
+    if ($null -ne $runtimeInspectionPath)
+    {
+        $runtimeInspection = [ordered]@{
+            schemaVersion = 1
+            kind = 'installer-payload'
+            package = $installerIdentity
+            installedPortable = $installedPortableIdentity
+        }
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($runtimeInspectionPath)) | Out-Null
+        $temporaryReport = $runtimeInspectionPath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+        try
+        {
+            [IO.File]::WriteAllText($temporaryReport, ($runtimeInspection | ConvertTo-Json -Depth 6) + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+            [IO.File]::Move($temporaryReport, $runtimeInspectionPath, $true)
+        }
+        finally { if ([IO.File]::Exists($temporaryReport)) { [IO.File]::Delete($temporaryReport) } }
     }
 
     Write-Host "Installer lifecycle passed: silent per-user install, x64 metadata, Installed Apps, custom path, graceful /UPDATE shutdown, automatic restart marker, installed smoke, preserve-data uninstall, complete uninstall, external sentinel protection."

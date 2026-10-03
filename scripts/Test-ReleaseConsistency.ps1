@@ -14,6 +14,12 @@ if ($firstLine -notmatch "^#\s+DropSpace\s+$([regex]::Escape($releaseInfo.Tag))(
     throw "Release notes must start with a heading for $($releaseInfo.Tag)."
 }
 
+# Also check current prose against the canonical package and release metadata.
+& node (Join-Path $PSScriptRoot "test-release-metadata.mjs") $repositoryRoot
+if ($LASTEXITCODE -ne 0) { throw "Release metadata consistency failed." }
+& node --test (Join-Path $PSScriptRoot "test-release-metadata.test.mjs")
+if ($LASTEXITCODE -ne 0) { throw "Release metadata regression tests failed." }
+
 $summary = Get-DropSpaceUpdateSummary -RepositoryRoot $repositoryRoot -Tag $releaseInfo.Tag
 foreach ($relativePath in @("README.md", "ROADMAP.md"))
 {

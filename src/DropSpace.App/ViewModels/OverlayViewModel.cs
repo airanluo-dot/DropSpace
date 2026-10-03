@@ -15,6 +15,7 @@ namespace DropSpace.App.ViewModels;
 
 public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisposable
 {
+    private long _dragGeneration;
     private readonly MainViewModel _mainViewModel;
     private readonly OverlayStateMachine _stateMachine;
     private readonly DispatcherQueue _dispatcher;
@@ -135,12 +136,14 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public void BeginDragApproach(string monitorId)
     {
+        ++_dragGeneration;
         ActiveMonitorId = monitorId;
         _stateMachine.BeginDragApproach();
     }
 
     public void BeginVisibleDragApproach(string monitorId)
     {
+        ++_dragGeneration;
         ActiveMonitorId = monitorId;
         _stateMachine.BeginVisibleDrag();
     }
@@ -153,29 +156,35 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
 
     public void SetDragReady(bool ready) => _stateMachine.SetDragReady(ready);
 
-    public void CancelDrag() => _stateMachine.CancelDrag();
+    public void CancelDrag() { ++_dragGeneration; _stateMachine.CancelDrag(); }
 
     public async Task<int> CompleteDropAsync(
         string monitorId,
         IEnumerable<string> paths,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Func<bool>? isCurrent = null)
     {
-        ActiveMonitorId = monitorId;
+        var generation = _dragGeneration;
+        var outer = isCurrent;
+        isCurrent = () => !_disposed && generation == _dragGeneration && (outer?.Invoke() ?? true);
+        if (isCurrent()) ActiveMonitorId = monitorId;
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
-        _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
+        if (isCurrent?.Invoke() ?? true) _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
         return accepted;
     }
 
     public async Task<int> CompleteVisibleDropAsync(
         string monitorId,
         IEnumerable<string> paths,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Func<bool>? isCurrent = null)
     {
-        ActiveMonitorId = monitorId;
+        var generation = _dragGeneration;
+        var outer = isCurrent;
+        isCurrent = () => !_disposed && generation == _dragGeneration && (outer?.Invoke() ?? true);
+        if (isCurrent()) ActiveMonitorId = monitorId;
         var accepted = await _mainViewModel.AddPathsAsync(paths, cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
-        _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+        if (isCurrent?.Invoke() ?? true) _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
         return accepted;
     }
 
@@ -184,10 +193,13 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         IEnumerable<string> paths,
         StagingLease lease,
         bool visibleTarget,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Func<bool>? isCurrent = null)
     {
         ArgumentNullException.ThrowIfNull(lease);
-        ActiveMonitorId = monitorId;
+        var generation = _dragGeneration;
+        var outer = isCurrent;
+        isCurrent = () => !_disposed && generation == _dragGeneration && (outer?.Invoke() ?? true);
+        if (isCurrent()) ActiveMonitorId = monitorId;
         var accepted = await _mainViewModel.AddOwnedPathsBatchAsync(
             paths,
             null,
@@ -198,11 +210,11 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
         await RefreshRecentItemsAsync(cancellationToken);
         if (visibleTarget)
         {
-            _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+            if (isCurrent?.Invoke() ?? true) _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
         }
         else
         {
-            _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
+            if (isCurrent?.Invoke() ?? true) _stateMachine.CompleteDrop(_mainViewModel.SpaceItemCount);
         }
         return accepted;
     }
@@ -210,12 +222,13 @@ public sealed class OverlayViewModel : ObservableObject, IDisposable, IAsyncDisp
     public async Task CompleteVisibleTextDropAsync(
         string monitorId,
         string text,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Func<bool>? isCurrent = null)
     {
-        ActiveMonitorId = monitorId;
+        var generation = _dragGeneration;
+        if (isCurrent?.Invoke() ?? true) ActiveMonitorId = monitorId;
         await _mainViewModel.AddTextToSpaceAsync(text, "overlay-text-url-drop", cancellationToken: cancellationToken);
         await RefreshRecentItemsAsync(cancellationToken);
-        _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
+        if (!_disposed && generation == _dragGeneration && (isCurrent?.Invoke() ?? true)) _stateMachine.CompleteVisibleDrop(_mainViewModel.SpaceItemCount);
     }
 
     public async Task ExpandAsync(CancellationToken cancellationToken = default)

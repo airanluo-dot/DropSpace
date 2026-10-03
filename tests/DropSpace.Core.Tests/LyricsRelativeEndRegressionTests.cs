@@ -14,7 +14,7 @@ public sealed class LyricsRelativeEndRegressionTests
             "<span begin=\"1s\" end=\"2s\">first</span>" +
             "<span begin=\"2s\" end=\"3s\">second</span>" +
             "</p></body></tt>";
-        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll, ttmlTiming: TtmlTimingMode.ParentRelative).Lines.Single();
 
         Assert.AreEqual(TimeSpan.FromSeconds(11), line.Words[0].Start);
         Assert.AreEqual(TimeSpan.FromSeconds(12), line.Words[0].End);

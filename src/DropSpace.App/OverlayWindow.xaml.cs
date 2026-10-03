@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DropSpace.App.Services;
@@ -5,6 +6,8 @@ using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Actions;
 using DropSpace.Core.Island;
+using DropSpace.Core.Lyrics;
+using DropSpace.Core.Media;
 using DropSpace.Core.Compatibility;
 using DropSpace.Core.DragDrop;
 using DropSpace.Core.Models;
@@ -53,6 +56,8 @@ public sealed partial class OverlayWindow : Window
     private readonly OverlayMaterialController _materialController;
     private readonly OverlayCompositionAnimator _compositionAnimator;
     private readonly OverlayNativeRegionController _nativeRegionController;
+    private readonly IslandGlowController _glow;
+    private bool _glowRefreshPending;
     private readonly OverlayMotionOrchestrator _motion;
     private OleDropTargetRegistration? _nativeDropTarget;
     private OverlayState _previousState = OverlayState.Hidden;
@@ -62,12 +67,19 @@ public sealed partial class OverlayWindow : Window
     private bool _hasFrameSubscription;
     private bool _hideWhenSettled;
     private bool _suppressedForFullscreen;
+    private bool _forceFullscreenPresentation;
+    private OverlayState _presentedState = OverlayState.Hidden;
+    private long _lastTopmostFailureLog;
     private long _regionFailureCount;
     private bool _nativeWindowSafeToShow;
+    private readonly bool _supportsModernDwmAttributes;
+    private long _lastNativeRecoveryAttempt;
     private readonly string _nativeConfigurationDiagnostics;
     private string _lastNativeFailureDiagnostics = "none";
     private readonly int _operatingSystemBuild;
     private bool _visualDragActive;
+    private long _visualDragGeneration;
+    private readonly CancellationTokenSource _windowLifetime = new();
     private OverlayResolvedPlacement _resolvedPlacement;
     private OverlayVisualPhase _visualPhase = OverlayVisualPhase.Invisible;
     private readonly OverlayPlacementEditSession _placementEdit = new();
@@ -89,6 +101,25 @@ public sealed partial class OverlayWindow : Window
     private readonly WidgetViewModel _widgetViewModel;
     private OverlaySnapshot? _presentationSnapshot;
     private bool _mediaGeometryRefreshPending;
+    private MediaSessionSnapshot? _lastGlowSession;
+    private IslandGlowTransfer? _glowTransfer;
+
+    internal IslandGlowTransfer? CaptureGlowHandoff()
+    {
+        if (!_isVisible || !GlowContinuationAllowed() || _lastGlowSession is not { } session ||
+            !session.IsSameTrack(_mediaViewModel.Session) || _glow.CaptureVisualState() is not { } state) return null;
+        return new(new LyricsGlowHandoff(MonitorId, session with { Artwork = null }, state), Stopwatch.GetTimestamp());
+    }
+
+    internal void StageGlowHandoff(IslandGlowTransfer transfer) => _glowTransfer = transfer;
+
+    private bool GlowContinuationAllowed()
+    {
+        var preferences = _visualPreferences.Current;
+        return !_closing && !_suppressedForPlacementEdit && !_placementEditActive && !_suppressedForFullscreen &&
+            _mediaViewModel.IsPlaying && _mediaViewModel.Settings.Lyrics.GlowMode is LyricsGlowMode.AiLyrics or LyricsGlowMode.Music &&
+            !preferences.HighContrast && preferences.AdvancedEffectsEnabled;
+    }
 
     public OverlayWindow(
         OverlayViewModel viewModel,
@@ -185,6 +216,11 @@ public sealed partial class OverlayWindow : Window
         AppWindow.IsShownInSwitchers = false;
         _windowHandle = WindowNative.GetWindowHandle(this);
         _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
+        _glow = new IslandGlowController(_windowHandle, _monitor.Scale, DispatcherQueue.GetForCurrentThread(), logger);
+        _mediaViewModel.PropertyChanged += OnGlowMediaChanged;
+        MusicCompact.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
+        MusicExpanded.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
+        _supportsModernDwmAttributes = capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes);
         var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
             _windowHandle,
             capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
@@ -274,6 +310,57 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
+    internal void VerifyTransientNativeRecoveryForSmoke()
+    {
+        var originalHandle = _windowHandle;
+        HideForNativeFailure();
+        _lastNativeRecoveryAttempt = Environment.TickCount64;
+        EnsureVisualHostShown(false);
+        if (_nativeWindowSafeToShow || _isVisible)
+            throw new InvalidOperationException("A backoff-protected native failure must remain hidden.");
+        _lastNativeRecoveryAttempt = 0;
+        EnsureVisualHostShown(false);
+        if (!_nativeWindowSafeToShow || !_nativeWindowShown || !_isVisible || _windowHandle != originalHandle)
+            throw new InvalidOperationException("A transient native failure did not recover on the same HWND.");
+        var wasClosing = _closing;
+        try
+        {
+            _closing = true;
+            if (TryRecoverNativeSurface()) throw new InvalidOperationException("Closing windows must not recover.");
+        }
+        finally { _closing = wasClosing; }
+        HideImmediately();
+        VerifyGlowHandoffLifecycleForSmoke();
+    }
+
+    private void VerifyGlowHandoffLifecycleForSmoke()
+    {
+        var wasSuppressed = _suppressedForFullscreen;
+        var snapshot = new LyricsGlowVisualState(.2, 3, .5, .3, .2, .1, .4, .5, .2);
+        IslandGlowTransfer Transfer() => new(new LyricsGlowHandoff(MonitorId, _mediaViewModel.Session, snapshot), Stopwatch.GetTimestamp());
+        try
+        {
+            // Exercise the actual native first-show order, including its initial
+            // transparent ApplyMotionFrame before _isVisible becomes true.
+            var pending = Transfer();
+            StageGlowHandoff(pending);
+            EnsureVisualHostShown(false);
+            if (!_isVisible || !ReferenceEquals(pending, _glowTransfer))
+                throw new InvalidOperationException("Pre-show geometry discarded the staged glow continuation.");
+            HideImmediately();
+            StageGlowHandoff(Transfer());
+            BeginFullscreenSuppression(_viewModel.Snapshot, FileDragWakeMode.Disabled);
+            if (_glowTransfer is not null)
+                throw new InvalidOperationException("Initial fullscreen suppression retained a stale glow continuation.");
+            _glow.VerifyFrameCaptureFenceForSmoke();
+        }
+        finally
+        {
+            _suppressedForFullscreen = wasSuppressed;
+            HideImmediately();
+        }
+    }
+
     internal VisibleWindowProbe ProbeVisibleCenter()
     {
         var values = _motion.Current.ProjectToSafeRange();
@@ -338,7 +425,7 @@ public sealed partial class OverlayWindow : Window
     internal bool TryEnsureNativeDropTargetForSmoke()
     {
         if (!_isVisible || !_nativeWindowSafeToShow ||
-            _viewModel.Snapshot.State is not (OverlayState.Compact or OverlayState.Expanded))
+            _presentedState is not (OverlayState.Compact or OverlayState.Expanded))
         {
             return false;
         }
@@ -474,9 +561,15 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
-        var suppressedForFullscreen = _mediaViewModel.Settings.SystemActivities.SuppressOverFullscreen && snapshot.State is not (OverlayState.DragApproaching or OverlayState.DragReady) &&
-                                      _monitorLayout.IsForegroundFullscreen(_monitor);
-        if (suppressedForFullscreen)
+        var settings = _mediaViewModel.Settings;
+        var fullscreen = FullscreenOverlayPolicy.Resolve(snapshot.State,
+            settings.IslandAppearance.ForceShowOverFullscreen,
+            settings.SystemActivities.SuppressOverFullscreen,
+            _monitorLayout.IsForegroundFullscreen(_monitor));
+        _forceFullscreenPresentation = fullscreen.KeepTopmost;
+        snapshot = snapshot with { State = fullscreen.State };
+        _presentedState = fullscreen.State;
+        if (fullscreen.Suppress)
         {
             BeginFullscreenSuppression(snapshot, wakeMode);
             return;
@@ -515,7 +608,13 @@ public sealed partial class OverlayWindow : Window
             target = Create(geometry.Width, geometry.Height, topOffset, geometry.Radius, 1, 0, 0);
         }
 
-        EnsureVisualHostShown(snapshot.State == OverlayState.Expanded);
+        // Hidden has TopOffset=0 because it is independent of monitor placement.
+        // Anchor it while the body is still transparent; otherwise opacity can lead
+        // the top-offset spring and expose a clipped halo during the first frames.
+        var anchored = OverlayPlacementPolicy.AnchorInvisibleSurface(_motion.Current, _resolvedPlacement);
+        if (anchored != _motion.Current) _motion.SnapTo(anchored);
+        EnsureVisualHostShown(fullscreen.AllowActivation);
+        MaintainFullscreenVisibility();
         _mediaViewModel.SetPresentationVisible(this, _isVisible && (snapshot.State == OverlayState.Compact && mediaCompact || snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Music));
         WidgetsExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Widgets);
         ClipboardExpanded.SetActive(snapshot.State == OverlayState.Expanded && page == DropSpace.Core.Island.IslandPage.Clipboard);
@@ -528,6 +627,7 @@ public sealed partial class OverlayWindow : Window
         _motion.SetTarget(target, IsReducedMotion());
         StartAnimationFrames();
         _previousState = snapshot.State;
+        UpdateGlowTarget();
     }
 
     private bool _closing;
@@ -535,7 +635,15 @@ public sealed partial class OverlayWindow : Window
     public void CloseForShutdown()
     {
         if (_closing) return;
+        _glowTransfer = null;
         _closing = true;
+        _windowLifetime.Cancel();
+        Views.ContentDialogLifetime.RetireRoot(Root.XamlRoot);
+        _mediaViewModel.PropertyChanged -= OnGlowMediaChanged;
+        MusicCompact.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged;
+        MusicExpanded.TranslationVisibilityChanged -= OnGlowTranslationVisibilityChanged;
+        _mediaViewModel.SetIslandGlowActive(this, false);
+        _glow.Dispose();
         _presentationSnapshot = null;
         _rightHoldTimer.Stop();
         _rightHoldPointer = null;
@@ -559,6 +667,100 @@ public sealed partial class OverlayWindow : Window
         Close();
     }
 
+    private void OnGlowMediaChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MediaViewModel.IsIslandGlowActive)) return;
+        if (_lastGlowSession is { } previous && !previous.IsSameTrack(_mediaViewModel.Session))
+            _glow.InvalidateFrameCapture();
+        // Observe invalidations immediately, so Off→On or A→B→A in one queued
+        // dispatcher turn cannot revive an obsolete transfer.
+        if (_glowTransfer is { } transfer)
+            transfer.State.Evaluate(MonitorId, _mediaViewModel.Session, GlowContinuationAllowed(), false, false,
+                Stopwatch.GetElapsedTime(transfer.Timestamp));
+        QueueGlowTargetRefresh();
+    }
+
+    private void OnGlowTranslationVisibilityChanged(object? sender, EventArgs args) => QueueGlowTargetRefresh();
+
+    private void QueueGlowTargetRefresh()
+    {
+        if (_closing || _glowRefreshPending) return;
+        _glowRefreshPending = true;
+        if (!DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+        {
+            _glowRefreshPending = false;
+            if (!_closing) UpdateGlowTarget();
+        })) _glowRefreshPending = false;
+    }
+
+    private void UpdateGlowTarget()
+    {
+        if (_closing) return;
+        var preferences = _visualPreferences.Current;
+        var visible = _isVisible && _isActiveWindow && _nativeWindowSafeToShow &&
+            !_suppressedForPlacementEdit && !_placementEditActive;
+        var eligibleSurface = visible && !_suppressedForFullscreen &&
+            _presentationSnapshot?.State is OverlayState.Compact or OverlayState.Expanded;
+        if (!visible || preferences.HighContrast || !preferences.AdvancedEffectsEnabled)
+        {
+            _glowTransfer = null;
+            _mediaViewModel.SetIslandGlowActive(this, false);
+            _glow.HideImmediately();
+            return;
+        }
+
+        var values = _motion.Current.ProjectToSafeRange();
+        var settings = _mediaViewModel.Settings;
+        var presentation = _mediaViewModel.LyricPresentation;
+        var compactLyricsVisible = MusicCompact.IsTranslationVisibleWithin(Surface) &&
+            CompactPanel.Visibility == Visibility.Visible && values.CompactContent > 0.01 &&
+            settings.IslandActivity.ShowLyricsInCompact;
+        var expandedLyricsVisible = MusicExpanded.IsTranslationActuallyVisible &&
+            ExpandedPanel.Visibility == Visibility.Visible && values.ExpandedContent > 0.01 &&
+            _pageTransition.Progress(IslandPage.Music) > 0.01;
+        var secondary = _mediaViewModel.SecondaryLyricText;
+        var translationVisible = (compactLyricsVisible || expandedLyricsVisible) &&
+            settings.Lyrics.Enabled && settings.Lyrics.SecondaryLyrics &&
+            !string.IsNullOrWhiteSpace(secondary);
+        var eligible = _glow.IsAvailable && LyricsGlowPolicy.IsEligible(settings.Lyrics.GlowMode,
+            _mediaViewModel.IsPlaying && !string.IsNullOrWhiteSpace(_mediaViewModel.Title),
+            eligibleSurface && values.Opacity > 0.01, translationVisible,
+            presentation.Line?.TranslationOrigin ?? LyricsTranslationOrigin.None, secondary);
+        if (_glowTransfer is { } pending)
+        {
+            var layoutReady = eligible || values.Opacity > 0.01 && Surface.ActualHeight > 0 &&
+                (values.CompactContent >= 0.99 || values.ExpandedContent >= 0.99);
+            if (pending.State.Evaluate(MonitorId, _mediaViewModel.Session, GlowContinuationAllowed(), layoutReady, eligible,
+                Stopwatch.GetElapsedTime(pending.Timestamp)) is { } restored)
+                _glow.RestoreVisualState(restored);
+            if (layoutReady) _glowTransfer = null;
+        }
+        _mediaViewModel.SetIslandGlowActive(this, eligible);
+
+        // Consume the existing selected-player loopback spectrum, never a microphone
+        // or an endpoint meter. Unavailable capture leaves only the quiet baseline.
+        var spectrum = _mediaViewModel.Spectrum;
+        var energy = 0d;
+        if (spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback && spectrum.Bands.Count > 0)
+        {
+            var peak = 0d;
+            foreach (var band in spectrum.Bands)
+            {
+                var level = double.IsFinite(band) ? Math.Clamp(band, 0, 1) : 0;
+                energy += level * level;
+                peak = Math.Max(peak, level);
+            }
+            // A vocal or transient in one band must not be divided away by five
+            // quiet bands while the adjacent meter visibly moves.
+            energy = .55 * Math.Sqrt(energy / spectrum.Bands.Count) + .45 * peak;
+        }
+        if (_lastGlowSession is null || !_lastGlowSession.IsSameTrack(_mediaViewModel.Session))
+            _glow.InvalidateFrameCapture();
+        _glow.SetTarget(eligible, energy, _mediaViewModel.IsReducedMotion || preferences.ReducedMotion,
+            spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback ? spectrum.Bands : null, settings.Lyrics.SimplifiedGlow);
+        _lastGlowSession = _mediaViewModel.Session;
+    }
+
     private void OnMediaGeometryChanged(object? sender, EventArgs args)
     {
         if (_closing || _mediaGeometryRefreshPending || _presentationSnapshot is null) return;
@@ -573,7 +775,7 @@ public sealed partial class OverlayWindow : Window
 
     private void EnsureVisualHostShown(bool allowActivation)
     {
-        if (!_nativeWindowSafeToShow)
+        if (!_nativeWindowSafeToShow && !TryRecoverNativeSurface())
         {
             _logger.LogError(
                 "Skipped showing overlay HWND {WindowHandle} on monitor {MonitorId} because native borderless setup failed.",
@@ -608,7 +810,9 @@ public sealed partial class OverlayWindow : Window
         }
 
         var failuresBeforeFrame = RegionFailureCount;
-        if (!ApplyMotionFrame(_motion.Current))
+        // This is pre-show geometry, not a decision to hide the new surface.
+        // Keep its staged handoff until real post-show visibility/layout is known.
+        if (!ApplyMotionFrame(_motion.Current, updateGlowTarget: false))
         {
             return;
         }
@@ -633,8 +837,39 @@ public sealed partial class OverlayWindow : Window
         }
     }
 
+    internal bool NeedsFullscreenPresentationRecovery =>
+        !_closing && _forceFullscreenPresentation && _isActiveWindow && !_nativeWindowSafeToShow &&
+        !_suppressedForPlacementEdit && !_placementEditActive &&
+        _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen;
+
+    // Called by the low-frequency fullscreen watcher, not by the animation loop.
+    // Reassert only a safe, visible surface; never activate or expose an empty host.
+    internal void MaintainFullscreenVisibility()
+    {
+        if (_closing || !_forceFullscreenPresentation || !_isActiveWindow || !_isVisible ||
+            !_nativeWindowSafeToShow || _suppressedForFullscreen || _suppressedForPlacementEdit ||
+            _placementEditActive || !_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen)
+            return;
+
+        if (!OverlayWindowInterop.MaintainTopmostNoActivate(_windowHandle, out var failure))
+        {
+            // Failure to win the Z order is not a reason to hide the island. The
+            // next foreground/timer event can retry within normal Win32 rules.
+            var now = Environment.TickCount64;
+            if (_lastTopmostFailureLog == 0 || now - _lastTopmostFailureLog >= 10_000)
+            {
+                _lastTopmostFailureLog = now;
+                LogNativeFailure(failure);
+            }
+        }
+    }
+
     private void HideImmediately()
     {
+        _glowTransfer = null;
+        _presentedState = OverlayState.Hidden;
+        _mediaViewModel.SetIslandGlowActive(this, false);
+        _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
@@ -657,8 +892,31 @@ public sealed partial class OverlayWindow : Window
         _visualPhase = OverlayVisualPhase.Invisible;
     }
 
+    private bool TryRecoverNativeSurface()
+    {
+        if (_closing) return false;
+        var now = Environment.TickCount64;
+        if (_lastNativeRecoveryAttempt != 0 && now - _lastNativeRecoveryAttempt < 1000) return false;
+        _lastNativeRecoveryAttempt = now;
+        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+        { LogNativeFailure(hideFailure); return false; }
+        var configuration = OverlayWindowInterop.ConfigureVisualWindow(_windowHandle, _supportsModernDwmAttributes);
+        foreach (var failure in configuration.Failures) LogNativeFailure(failure);
+        if (!configuration.IsSafeToShow || !PositionFixedHost()) return false;
+        if (!_nativeRegionController.ApplyEmpty(out var regionFailure))
+        { LogNativeFailure(regionFailure); return false; }
+        _noActivateApplied = null;
+        _nativeWindowShown = false;
+        _nativeWindowSafeToShow = true;
+        return true;
+    }
+
     private void HideForNativeFailure()
     {
+        _glowTransfer = null;
+        _presentedState = OverlayState.Hidden;
+        _mediaViewModel.SetIslandGlowActive(this, false);
+        _glow.HideImmediately();
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
@@ -687,6 +945,7 @@ public sealed partial class OverlayWindow : Window
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
+        _glowTransfer = null;
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
@@ -769,6 +1028,7 @@ public sealed partial class OverlayWindow : Window
             _positionedHostHeightPixels = height;
             _positionedHostLeftPixels = left;
             _positionedHostTopPixels = top;
+            _glow.RefreshPosition();
         }
 
         return matches;
@@ -899,6 +1159,7 @@ public sealed partial class OverlayWindow : Window
     {
         if (_closing) return;
         _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
+        UpdateGlowTarget();
         if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
         {
             ApplySnapshot(
@@ -932,7 +1193,7 @@ public sealed partial class OverlayWindow : Window
         offset.Y = _pageReducedMotion ? 0 : 4 * (1 - progress);
     }
 
-    private bool ApplyMotionFrame(OverlayMotionValues values)
+    private bool ApplyMotionFrame(OverlayMotionValues values, bool updateGlowTarget = true)
     {
         values = ProjectMotionToHostSurface(values.ProjectToSafeRange());
         _compositionAnimator.ApplyMotion(values);
@@ -988,6 +1249,9 @@ public sealed partial class OverlayWindow : Window
                 return false;
             }
 
+            _glow.SetGeometry(left, top, width, height,
+                ToPixels(values.TopRadius), ToPixels(values.BottomRadius), 0);
+            if (updateGlowTarget) UpdateGlowTarget();
             return true;
         }
 
@@ -1009,6 +1273,11 @@ public sealed partial class OverlayWindow : Window
             return false;
         }
 
+        // Apply the body's region before presenting its underlapping light, so a
+        // geometry transition cannot expose the next glow contour above the old body.
+        _glow.SetGeometry(left, top, width, height,
+            ToPixels(values.TopRadius), ToPixels(values.BottomRadius), values.Opacity);
+        if (updateGlowTarget) UpdateGlowTarget();
         return true;
     }
 
@@ -1361,15 +1630,32 @@ public sealed partial class OverlayWindow : Window
         if (_closing) return;
         try
         {
-            if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music) _experience.Open(DropSpace.Core.Island.IslandPage.Music);
-            else await _viewModel.ExpandAsync();
-            // The await can span a display rebuild or shutdown that retires this HWND.
+            if (_experience.Current.CompactContent == DropSpace.Core.Island.IslandContentKind.Music)
+                _experience.Open(DropSpace.Core.Island.IslandPage.Music);
+            else
+            {
+                await _viewModel.ExpandAsync();
+                if (_closing) return;
+                // An idle fullscreen surface is projected from Hidden, so the
+                // file state machine's item-only Expand cannot open it. This is
+                // an explicit click: open the ordinary manual panel instead.
+                if (_forceFullscreenPresentation && _experience.Current.State != OverlayState.Expanded)
+                    _experience.Open(DropSpace.Core.Island.IslandPage.Files);
+            }
+            // The await can span a display rebuild, setting change or shutdown.
             if (_closing) return;
+            var settings = _mediaViewModel.Settings;
+            var presentation = FullscreenOverlayPolicy.Resolve(OverlayState.Expanded,
+                settings.IslandAppearance.ForceShowOverFullscreen,
+                settings.SystemActivities.SuppressOverFullscreen,
+                _monitorLayout.IsForegroundFullscreen(_monitor));
+            if (!presentation.AllowActivation) return;
             if (!OverlayWindowInterop.SetNoActivate(_windowHandle, false, out var noActivateFailure))
             {
                 LogNativeFailure(noActivateFailure);
                 return;
             }
+            _noActivateApplied = false;
             Activate();
         }
         catch (Exception exception)
@@ -1485,7 +1771,7 @@ public sealed partial class OverlayWindow : Window
                 new ItemSelectionSnapshot([DropItemSnapshot.FromItem(quickAction.Card.Item)]),
                 quickAction.ActionId,
                 xamlRoot,
-                _windowHandle);
+                _windowHandle, _windowLifetime.Token);
             if (_closing || context is null)
             {
                 return;
@@ -1493,7 +1779,7 @@ public sealed partial class OverlayWindow : Window
 
             var result = await _viewModel.ExecuteQuickActionAsync(quickAction, context);
             if (_closing) return;
-            await _quickActionDialog.ShowResultAsync(result, xamlRoot);
+            await _quickActionDialog.ShowResultAsync(result, xamlRoot, _windowLifetime.Token);
         }
         catch (Exception exception)
         {
@@ -1532,7 +1818,7 @@ public sealed partial class OverlayWindow : Window
 
     private void OnSurfacePointerEntered(object sender, PointerRoutedEventArgs args)
     {
-        if (_viewModel.Snapshot.State == OverlayState.Compact)
+        if (_presentedState == OverlayState.Compact)
         {
             _motion.ApplyHover(true, IsReducedMotion());
         }
@@ -1553,7 +1839,7 @@ public sealed partial class OverlayWindow : Window
             args.Handled = true;
             return;
         }
-        if (_viewModel.Snapshot.State == OverlayState.Compact)
+        if (_presentedState == OverlayState.Compact)
         {
             _motion.ApplyPress(true, IsReducedMotion());
         }
@@ -1581,6 +1867,7 @@ public sealed partial class OverlayWindow : Window
         if (!_visualDragActive)
         {
             _visualDragActive = true;
+            ++_visualDragGeneration;
             _visualDragCallbacks.DragApproaching(_monitor.Id);
         }
         _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
@@ -1600,6 +1887,7 @@ public sealed partial class OverlayWindow : Window
             if (!_visualDragActive)
             {
                 _visualDragActive = true;
+                ++_visualDragGeneration;
                 _visualDragCallbacks.DragApproaching(_monitor.Id);
             }
             _visualDragCallbacks.DragReadyChanged(_monitor.Id, true);
@@ -1633,6 +1921,17 @@ public sealed partial class OverlayWindow : Window
         }
 
         args.Handled = true;
+        var generation = _visualDragGeneration;
+        var outer = _visualDragCallbacks.CaptureGuard?.Invoke();
+        bool Current() => !_closing && generation == _visualDragGeneration && (outer?.Invoke() ?? true);
+        // OLE can begin another gesture while this payload provider is still asynchronous.
+        _visualDragActive = false;
+        void Finish()
+        {
+            if (!Current()) return;
+            _visualDragActive = false;
+            _visualDragCallbacks.DragLeft(_monitor.Id);
+        }
         var deferral = args.GetDeferral();
         try
         {
@@ -1658,16 +1957,18 @@ public sealed partial class OverlayWindow : Window
                     paths.Length);
                 if (paths.Length == 0)
                 {
-                    ResetVisualDrag();
+                    Finish();
                     return;
                 }
 
-                await _visualDragCallbacks.Dropped(_monitor.Id, paths);
+                if (_visualDragCallbacks.GuardedDropped is { } guarded)
+                    await guarded(_monitor.Id, paths, Current);
+                else await _visualDragCallbacks.Dropped(_monitor.Id, paths);
                 // Use the same cleanup path as DragLeave. The drop callback normally clears
                 // ownership in OverlayWindowService, but keeping this local state transition
                 // explicit also covers direct/test callbacks and guarantees the visual target
                 // cannot remain in a drag-ready state after a successful drop.
-                ResetVisualDrag();
+                Finish();
                 return;
             }
 
@@ -1677,22 +1978,22 @@ public sealed partial class OverlayWindow : Window
                 var text = args.DataView.Contains(StandardDataFormats.WebLink)
                     ? (await args.DataView.GetWebLinkAsync()).AbsoluteUri
                     : await args.DataView.GetTextAsync();
-                await _viewModel.CompleteVisibleTextDropAsync(_monitor.Id, text);
+                await _viewModel.CompleteVisibleTextDropAsync(_monitor.Id, text, isCurrent: Current);
                 args.AcceptedOperation = DataPackageOperation.Copy;
                 // Text drops do not go through the file-drop callback's common cleanup path.
                 // Reset after completion so the completed drop is not immediately cancelled.
-                ResetVisualDrag();
+                Finish();
                 return;
             }
 
             args.AcceptedOperation = DataPackageOperation.None;
-            ResetVisualDrag();
+            Finish();
         }
         catch (Exception exception)
         {
             args.AcceptedOperation = DataPackageOperation.None;
             _logger.LogWarning(exception, "Visible Overlay StorageItems drop failed.");
-            ResetVisualDrag();
+            Finish();
         }
         finally { deferral.Complete(); }
     }

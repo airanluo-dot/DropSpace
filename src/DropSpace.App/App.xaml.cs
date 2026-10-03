@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using DropSpace.App.Services;
 using DropSpace.App.ViewModels;
@@ -15,6 +16,7 @@ using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Data;
 using DropSpace.Infrastructure.Content;
 using DropSpace.Infrastructure.Logging;
+using DropSpace.Infrastructure.Lyrics;
 using DropSpace.Infrastructure.Actions;
 using DropSpace.Infrastructure.Settings;
 using DropSpace.Infrastructure.Storage;
@@ -34,6 +36,8 @@ public partial class App : Application
 {
     private ServiceProvider? _services;
     private MainWindow? _window;
+    private bool _startupReady;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<AppActivationArguments> _pendingActivations = new();
     private OverlayWindowService? _overlayWindows;
     private Services.Media.MediaExperienceService? _mediaExperience;
     private SystemActivityExperienceService? _systemActivities;
@@ -58,6 +62,12 @@ public partial class App : Application
         try
         {
             var commandLine = Environment.GetCommandLineArgs();
+            if (Services.Diagnostics.MusicVisualSmoke.IsRequested(commandLine))
+            {
+                UnhandledException -= OnUnhandledException;
+                Environment.Exit(await Services.Diagnostics.MusicVisualSmoke.RunAsync(commandLine, BuildServices));
+                return;
+            }
             var shellIntake = ShellIntakeCommandLineParser.Parse(commandLine);
             if (commandLine.Contains("--shutdown-for-maintenance", StringComparer.OrdinalIgnoreCase))
             {
@@ -162,6 +172,7 @@ public partial class App : Application
                 _services.GetRequiredService<Services.Media.MediaExperienceService>(),
                 _services.GetRequiredService<Services.Media.MediaApplicationIconService>(),
                 _services.GetRequiredService<NeteaseEnhancementViewModel>());
+            _window.SetStartupInteractionEnabled(false);
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
             if (!isStartupLaunch && !isShareActivation && !isShellActivation)
@@ -173,7 +184,22 @@ public partial class App : Application
 
             try
             {
-                await viewModel.InitializeAsync();
+                if (!persistedSettings.PrivacyChoicesCompleted)
+                {
+                    var choices = await _window.ChooseInitialPrivacyAsync(persistedSettings, _appLifetimeCancellation.Token);
+                    if (choices is null)
+                    {
+                        await ShutdownAsync();
+                        return;
+                    }
+                    // Persist before startup registration or clipboard capture can begin.
+                    _appLifetimeCancellation.Token.ThrowIfCancellationRequested();
+                    await settingsService.SaveAsync(choices, _appLifetimeCancellation.Token);
+                }
+                _appLifetimeCancellation.Token.ThrowIfCancellationRequested();
+                await viewModel.InitializeAsync(_appLifetimeCancellation.Token);
+                _appLifetimeCancellation.Token.ThrowIfCancellationRequested();
+                _window.SetStartupInteractionEnabled(true);
                 try
                 {
                     await _services.GetRequiredService<StagingLeaseStore>().RecoverAbandonedAsync();
@@ -241,6 +267,8 @@ public partial class App : Application
                 _systemActivities = _services.GetRequiredService<SystemActivityExperienceService>();
                 _systemActivities.Initialize();
                 _services.GetRequiredService<MaintenanceShutdownService>().MarkReady();
+                _startupReady = true;
+                while (_pendingActivations.TryDequeue(out var pendingActivation)) OnInstanceActivated(this, pendingActivation);
                 if (isShellActivation)
                 {
                     await _services.GetRequiredService<ShellIntakeActivationService>()
@@ -296,6 +324,7 @@ public partial class App : Application
                     _startupUpdateTask = viewModel.CheckForUpdatesAtStartupAsync(_appLifetimeCancellation.Token);
                 }
             }
+            catch (OperationCanceledException) when (_appLifetimeCancellation.IsCancellationRequested) { }
             catch (Exception exception)
             {
                 WriteCrashMarker("startup", exception);
@@ -434,6 +463,7 @@ public partial class App : Application
         _fileLogger = fileLogger;
         var services = new ServiceCollection();
         services.AddSingleton(paths);
+        services.AddSingleton(new LyricsCache(paths.Lyrics));
         services.AddSingleton<IOsVersionPolicy, WindowsOsVersionPolicy>();
         services.AddSingleton<IApiAvailabilityService, WindowsApiAvailabilityService>();
         services.AddSingleton<IRuntimeDependencyProbe, WindowsAppRuntimeDependencyProbe>();
@@ -574,6 +604,21 @@ public partial class App : Application
         services.AddSingleton<Services.Widgets.NativeWidgetDataService>();
         services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<ClipboardIslandViewModel>();
+        services.AddSingleton(provider => new AiModelPackageService(
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models")));
+        services.AddSingleton(provider => new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
+        services.AddSingleton<IAiLyricsPackageResolver, PlainHyLyricsPackageResolver>();
+        services.AddSingleton(provider => new AiLyricsCache(provider.GetRequiredService<LyricsCache>()));
+        services.AddSingleton<PlainHyLyricsCoordinator>();
+        services.AddSingleton<AiLyricsRuntimeOptions>();
+        services.AddSingleton<PersistentPlainLyricsRunner>();
+        services.AddSingleton<IAiLyricsBackend>(provider => new PlainHyLyricsBackend(
+            provider.GetRequiredService<PlainHyLyricsCoordinator>(),
+            provider.GetRequiredService<PersistentPlainLyricsRunner>(),
+            provider.GetRequiredService<AiLyricsRuntimePackage>(),
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging")));
+        services.AddSingleton<Services.Media.AiLyricsService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();
@@ -602,11 +647,24 @@ public partial class App : Application
 
     private void OnInstanceActivated(object? sender, AppActivationArguments args)
     {
+        if (_appLifetimeCancellation.IsCancellationRequested) return;
         var dispatcher = _window?.DispatcherQueue;
-        dispatcher?.TryEnqueue(async () =>
+        if (dispatcher is null)
+        {
+            if (_pendingActivations.Count < 32) _pendingActivations.Enqueue(args);
+            return;
+        }
+        dispatcher.TryEnqueue(async () =>
         {
             try
             {
+                if (_appLifetimeCancellation.IsCancellationRequested) return;
+                if (!_startupReady)
+                {
+                    if (_pendingActivations.Count < 32) _pendingActivations.Enqueue(args);
+                    _window?.ShowAndActivate();
+                    return;
+                }
                 var shareTarget = _services?.GetService<ShareTargetActivationService>();
                 if (shareTarget?.CanHandle(args) == true)
                 {

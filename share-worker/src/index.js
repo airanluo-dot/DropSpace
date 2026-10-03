@@ -124,11 +124,9 @@ async function putObject(request, env, shareId, objectName) {
   const bytes = await readBody(request, length, length);
   const reservation = await coordinatorRequest(env, shareId, "reserve", descriptor);
   const key = objectKey(shareId, objectName);
-  let putStarted = false;
   try {
     const existing = await env.SHARES.head(key);
     if (existing) throw new HttpError("object-exists", 409);
-    putStarted = true;
     const stored = await env.SHARES.put(key, bytes, {
       // A reservation may expire while R2 is still accepting the request. An
       // older upload must never overwrite the same object's successful retry.
@@ -142,8 +140,10 @@ async function putObject(request, env, shareId, objectName) {
   } catch (error) {
     // Rollback and storage cleanup share the coordinator's reservation lock.
     // Otherwise lifecycle expiry can allow a retry between head and delete.
+    // Even a head conflict may be an orphan from a previous failed cleanup; the
+    // coordinator still protects committed and in-flight retry ownership.
     await coordinatorRequest(env, shareId, "rollback", {
-      reservationId: reservation.reservationId, objectName, cleanupStoredObject: putStarted,
+      reservationId: reservation.reservationId, objectName, cleanupStoredObject: true,
     }).catch(() => {});
     throw error;
   }
@@ -705,7 +705,14 @@ export class ShareUsageCoordinator {
       try {
         const key = objectKey(current.shareId, objectName);
         const stored = await this.env.SHARES.head(key);
-        if (stored?.customMetadata?.uploadReservationId === reservationId) await this.env.SHARES.delete(key);
+        const storedOwner = stored?.customMetadata?.uploadReservationId;
+        // With no committed or in-flight owner for this object, a different expired
+        // reservation is also an orphan. Otherwise a failed retry leaves its late
+        // predecessor in R2 forever and every later create-only put returns 409.
+        if (typeof storedOwner === "string" && storedOwner.length > 0 &&
+            (storedOwner === reservationId || !current.pending[storedOwner])) {
+          await this.env.SHARES.delete(key);
+        }
       } catch { /* Storage cleanup remains best effort after rollback. */ }
     }
     return coordinatorJson({ ok: true });

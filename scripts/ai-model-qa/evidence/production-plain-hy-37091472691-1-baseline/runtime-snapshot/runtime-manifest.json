@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "runtimeId": "llama-cpp-v0.5.0-cpu-win-x64",
+  "sourceRepository": "https://github.com/ggml-org/llama.cpp",
+  "sourceCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "executable": "llama-completion.exe",
+  "sha256": "fa4d676f9b07e7e60c575b8fa352668381369e42696e19b52eb35014d71025c5",
+  "bytes": 6727680,
+  "tokenizer": {
+    "executable": "llama-tokenize.exe",
+    "sha256": "7df0a0d2cb32bc7bc86fb3bd99004a3c24ed2771d39d990faa95abeed82875c8",
+    "bytes": 6511104
+  },
+  "avx2": {
+    "executable": "llama-completion-avx2.exe",
+    "sha256": "3259d35d07aac8597032166d15149b78cb4175b0d2501ca0ac0778149a55d923",
+    "bytes": 6858752
+  },
+  "resident": {
+    "protocol": 1,
+    "profile": "hy-q8-plain-resident-v1",
+    "sourceSha256": "9b6ddee0fb3238bf3341755a2f71ee76ccd82290118146a2a6328ce7e06276a2",
+    "cpu": {
+      "executable": "plain-lyrics-worker.exe",
+      "sha256": "7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec",
+      "bytes": 6665728
+    },
+    "avx2": {
+      "executable": "plain-lyrics-worker-avx2.exe",
+      "sha256": "1ec5a7ac717f06a94664af4a9c717d6b985f029999a93c74aa8e9377203540f1",
+      "bytes": 6797312
+    },
+    "vulkan": {
+      "executable": "plain-lyrics-worker-vulkan.exe",
+      "sha256": "62b5b37770351ad6351b6df04bff5fd0e21db05ceb487454e776641d969257db",
+      "bytes": 50860032
+    }
+  },
+  "build": {
+    "cpuOnly": false,
+    "legacyCompletionCpuOnly": true,
+    "residentGpuBackend": "vulkan",
+    "sharedLibraries": false,
+    "dynamicBackends": false,
+    "server": false,
+    "subprocess": false,
+    "openssl": false,
+    "openmp": false
+  },
+  "producer": {
+    "repository": "airanluo-dot/DropSpace",
+    "workflowPath": ".github/workflows/release.yml",
+    "runId": 37091472691,
+    "runAttempt": 1,
+    "headCommit": "017c8aa4622aac1bf0e6e2fe128ed9655a4eacff",
+    "checkoutCommit": "017c8aa4622aac1bf0e6e2fe128ed9655a4eacff"
+  }
+}

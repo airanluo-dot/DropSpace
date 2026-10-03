@@ -1,0 +1,1492 @@
+{
+  "schemaVersion": 1,
+  "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
+  "policyVersion": "lexical-context-eligibility-v5",
+  "reviewNotes": "Hand-authored original fixture has English rows 0–11, Japanese 12–23, Korean 24–35, Simplified Chinese 36–47. Labels describe the fixture; no labels or expectations enter the model prompt. Conservative unknown/weak evidence remains eligible even when a human knows the language. Explicit reviewed per-row policy expectations below must be renewed with policy changes; capture never regenerates them. Positive English function-word evidence recognizes rows 0, 1, 2, 3 and 7 without requiring a closed content-word vocabulary; the other English rows remain unknown. Mixed Latin clauses and romanization counterexamples, short-phrase same-target admission and credits/multisegment behavior are covered by separate fake-inference contract tests, not falsely claimed by this 48-line native fixture.",
+  "semanticLanguages": [
+    {
+      "firstLineId": 0,
+      "lastLineId": 11,
+      "language": "en"
+    },
+    {
+      "firstLineId": 12,
+      "lastLineId": 23,
+      "language": "ja"
+    },
+    {
+      "firstLineId": 24,
+      "lastLineId": 35,
+      "language": "ko"
+    },
+    {
+      "firstLineId": 36,
+      "lastLineId": 47,
+      "language": "zh-Hans"
+    }
+  ],
+  "targets": {
+    "en": [
+      {
+        "lineId": 0,
+        "sourceText": "I fold the morning into a paper boat.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 1,
+        "sourceText": "Your blue cup waits beside the window.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 2,
+        "sourceText": "I did not promise to forget your name.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 3,
+        "sourceText": "You said the northern road was closed.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 4,
+        "sourceText": "We carry seven seeds across the bridge.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "We carry seven seeds across the bridge.",
+            "sha256": "ea0b12b7b81ff92951d4bb670bebd42d2dcf5501cb971c0b17a2eb404a829cb2"
+          }
+        ]
+      },
+      {
+        "lineId": 5,
+        "sourceText": "No lantern can replace the summer sun.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "No lantern can replace the summer sun.",
+            "sha256": "e051f541b14956ff095166d9fd56b07fdb345780eaca93eefb72cfd9de14543c"
+          }
+        ]
+      },
+      {
+        "lineId": 6,
+        "sourceText": "If you return, knock softly twice.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "If you return, knock softly twice.",
+            "sha256": "8f5e4861a7454d840efec782042d13e7aaab92f1b6bbc4a0de68343e9043641f"
+          }
+        ]
+      },
+      {
+        "lineId": 7,
+        "sourceText": "I hear the train but cannot see its lights.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 8,
+        "sourceText": "The quiet room belongs to neither of us.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "The quiet room belongs to neither of us.",
+            "sha256": "4ed3db6804c4fd6a0b2161bc44b741d86a3e8abd146f6855c5257a3e42b753b1"
+          }
+        ]
+      },
+      {
+        "lineId": 9,
+        "sourceText": "Keep the red scarf; leave the silver key.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Keep the red scarf; leave the silver key.",
+            "sha256": "0f463e6a028751fbe6b3ea8da2ed6c1b90b1660f02b4e706d8f68b709b108a92"
+          }
+        ]
+      },
+      {
+        "lineId": 10,
+        "sourceText": "Tomorrow I will choose a different path.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Tomorrow I will choose a different path.",
+            "sha256": "6063cd441638da140fe359d9262d44d241772471ba3bffddedde713991ce59ab"
+          }
+        ]
+      },
+      {
+        "lineId": 11,
+        "sourceText": "Our little river still remembers rain.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Our little river still remembers rain.",
+            "sha256": "b79d75149d375841182c24d9afd02f19783d8f3596f622c556f60bfbef2e1910"
+          }
+        ]
+      },
+      {
+        "lineId": 12,
+        "sourceText": "朝の光を紙の舟に折る。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "朝の光を紙の舟に折る。",
+            "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+          }
+        ]
+      },
+      {
+        "lineId": 13,
+        "sourceText": "青いカップが窓辺で君を待つ。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "青いカップが窓辺で君を待つ。",
+            "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+          }
+        ]
+      },
+      {
+        "lineId": 14,
+        "sourceText": "君の名前を忘れるとは約束していない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "君の名前を忘れるとは約束していない。",
+            "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+          }
+        ]
+      },
+      {
+        "lineId": 15,
+        "sourceText": "北へ続く道は閉じたと君は言った。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "北へ続く道は閉じたと君は言った。",
+            "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+          }
+        ]
+      },
+      {
+        "lineId": 16,
+        "sourceText": "七つの種を持って橋を渡る。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "七つの種を持って橋を渡る。",
+            "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+          }
+        ]
+      },
+      {
+        "lineId": 17,
+        "sourceText": "灯りは夏の太陽の代わりにはならない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "灯りは夏の太陽の代わりにはならない。",
+            "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+          }
+        ]
+      },
+      {
+        "lineId": 18,
+        "sourceText": "戻るなら、そっと二回ノックして。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "戻るなら、そっと二回ノックして。",
+            "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+          }
+        ]
+      },
+      {
+        "lineId": 19,
+        "sourceText": "列車の音は聞こえるが、光は見えない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "列車の音は聞こえるが、光は見えない。",
+            "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+          }
+        ]
+      },
+      {
+        "lineId": 20,
+        "sourceText": "静かな部屋は私たちのどちらのものでもない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "静かな部屋は私たちのどちらのものでもない。",
+            "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+          }
+        ]
+      },
+      {
+        "lineId": 21,
+        "sourceText": "赤いスカーフを持って、銀の鍵を置いて。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "赤いスカーフを持って、銀の鍵を置いて。",
+            "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+          }
+        ]
+      },
+      {
+        "lineId": 22,
+        "sourceText": "明日は別の道を選ぶ。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "明日は別の道を選ぶ。",
+            "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 23,
+        "sourceText": "小さな川はまだ雨を覚えている。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "小さな川はまだ雨を覚えている。",
+            "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+          }
+        ]
+      },
+      {
+        "lineId": 24,
+        "sourceText": "아침 햇살을 종이배에 접어 담아.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "아침 햇살을 종이배에 접어 담아.",
+            "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+          }
+        ]
+      },
+      {
+        "lineId": 25,
+        "sourceText": "파란 컵이 창가에서 너를 기다려.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "파란 컵이 창가에서 너를 기다려.",
+            "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+          }
+        ]
+      },
+      {
+        "lineId": 26,
+        "sourceText": "네 이름을 잊겠다고 약속하지 않았어.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "네 이름을 잊겠다고 약속하지 않았어.",
+            "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+          }
+        ]
+      },
+      {
+        "lineId": 27,
+        "sourceText": "북쪽 길이 닫혔다고 네가 말했어.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "북쪽 길이 닫혔다고 네가 말했어.",
+            "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+          }
+        ]
+      },
+      {
+        "lineId": 28,
+        "sourceText": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+            "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+          }
+        ]
+      },
+      {
+        "lineId": 29,
+        "sourceText": "등불은 여름 태양을 대신할 수 없어.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "등불은 여름 태양을 대신할 수 없어.",
+            "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+          }
+        ]
+      },
+      {
+        "lineId": 30,
+        "sourceText": "돌아오면 조용히 두 번 두드려.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "돌아오면 조용히 두 번 두드려.",
+            "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+          }
+        ]
+      },
+      {
+        "lineId": 31,
+        "sourceText": "기차 소리는 들리지만 불빛은 보이지 않아.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "기차 소리는 들리지만 불빛은 보이지 않아.",
+            "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+          }
+        ]
+      },
+      {
+        "lineId": 32,
+        "sourceText": "고요한 방은 우리 누구의 것도 아니야.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "고요한 방은 우리 누구의 것도 아니야.",
+            "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+          }
+        ]
+      },
+      {
+        "lineId": 33,
+        "sourceText": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+            "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+          }
+        ]
+      },
+      {
+        "lineId": 34,
+        "sourceText": "내일 나는 다른 길을 고를 거야.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "내일 나는 다른 길을 고를 거야.",
+            "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+          }
+        ]
+      },
+      {
+        "lineId": 35,
+        "sourceText": "작은 강은 아직 비를 기억해.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "작은 강은 아직 비를 기억해.",
+            "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+          }
+        ]
+      },
+      {
+        "lineId": 36,
+        "sourceText": "我把晨光折进一只纸船。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我把晨光折进一只纸船。",
+            "sha256": "dc476b5ab588e500a27abe83c59b1c29a6114c9981724d1297676b3de5e83a3e"
+          }
+        ]
+      },
+      {
+        "lineId": 37,
+        "sourceText": "你的蓝杯子仍在窗边等候。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "你的蓝杯子仍在窗边等候。",
+            "sha256": "ec79763bbb2dd94fc565c7ea17a8beb40ab839e0db5da03dfab1c29778c852e3"
+          }
+        ]
+      },
+      {
+        "lineId": 38,
+        "sourceText": "我并没有答应忘记你的名字。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我并没有答应忘记你的名字。",
+            "sha256": "519f9da3221ded7e27146ad4091a238c9b2f22016fd7df1657f841f8c9c11fbd"
+          }
+        ]
+      },
+      {
+        "lineId": 39,
+        "sourceText": "你说向北的路已经关闭。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.92,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "你说向北的路已经关闭。",
+            "sha256": "a7676822074c4a63e2b8c4e935f4e23e9dc90e501122cbdd573fab26df59abf6"
+          }
+        ]
+      },
+      {
+        "lineId": 40,
+        "sourceText": "我们带着七粒种子走过桥。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我们带着七粒种子走过桥。",
+            "sha256": "d722d94e826f84ebb805062f9812065f30e4769585bf49adbe88538436a2162f"
+          }
+        ]
+      },
+      {
+        "lineId": 41,
+        "sourceText": "没有灯笼能代替夏天的太阳。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "没有灯笼能代替夏天的太阳。",
+            "sha256": "c0f87ca9c315b2d30023dba448b01fa7e9381ee50ef9e655a83d28c84bb7aff7"
+          }
+        ]
+      },
+      {
+        "lineId": 42,
+        "sourceText": "如果你回来，请轻轻敲两下门。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "如果你回来，请轻轻敲两下门。",
+            "sha256": "c2b2d8289f6f76fd5f2a1965afdb128804a1f156d307ad98cd1852ad1584cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 43,
+        "sourceText": "我听见火车，却看不见灯光。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我听见火车，却看不见灯光。",
+            "sha256": "08cdaf367745edff8b31b5762784fbb5e1224a1d5ff5ca01efa3e35e3ba3b3cc"
+          }
+        ]
+      },
+      {
+        "lineId": 44,
+        "sourceText": "安静的房间不属于我们任何一个人。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "安静的房间不属于我们任何一个人。",
+            "sha256": "b95d84b380739d10ab5ea4c3acb0c86f6493f80ba89336e5f5744d9d4b15d867"
+          }
+        ]
+      },
+      {
+        "lineId": 45,
+        "sourceText": "带走红围巾，留下银钥匙。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "带走红围巾，留下银钥匙。",
+            "sha256": "08a13110ea58313e8fc4d25075da4c8cccbccdae5b4e400dbefbf7d7e26c6fe3"
+          }
+        ]
+      },
+      {
+        "lineId": 46,
+        "sourceText": "明天我会选择另一条路。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "明天我会选择另一条路。",
+            "sha256": "11297bf6324d6ed250f39add634f1e10b0a1e0bfb6fb33c7c58b9edea19d88a2"
+          }
+        ]
+      },
+      {
+        "lineId": 47,
+        "sourceText": "我们的小河仍然记得雨。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我们的小河仍然记得雨。",
+            "sha256": "7c5dca97fee5841308f69e93f031a75a3d96357158dfd437542c6c06740606aa"
+          }
+        ]
+      }
+    ],
+    "zh-Hans": [
+      {
+        "lineId": 0,
+        "sourceText": "I fold the morning into a paper boat.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "I fold the morning into a paper boat.",
+            "sha256": "03e9e32a4d6a67edd57578dbf793a536afe88b874c11f793957247e25062958f"
+          }
+        ]
+      },
+      {
+        "lineId": 1,
+        "sourceText": "Your blue cup waits beside the window.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Your blue cup waits beside the window.",
+            "sha256": "81d9f463643bed1b5748993fb149c9233f436fe111c0f6d516217365bbd70e74"
+          }
+        ]
+      },
+      {
+        "lineId": 2,
+        "sourceText": "I did not promise to forget your name.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "I did not promise to forget your name.",
+            "sha256": "a07960ebaa5f26be6722a8588ee5072f4021c5b2061c622e21aab520d63eb8e6"
+          }
+        ]
+      },
+      {
+        "lineId": 3,
+        "sourceText": "You said the northern road was closed.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "You said the northern road was closed.",
+            "sha256": "b2183e8a6bc2a5a816e7b30cac53618abb6bb86494a099ab0d8b1f4e16a5ca86"
+          }
+        ]
+      },
+      {
+        "lineId": 4,
+        "sourceText": "We carry seven seeds across the bridge.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "We carry seven seeds across the bridge.",
+            "sha256": "ea0b12b7b81ff92951d4bb670bebd42d2dcf5501cb971c0b17a2eb404a829cb2"
+          }
+        ]
+      },
+      {
+        "lineId": 5,
+        "sourceText": "No lantern can replace the summer sun.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "No lantern can replace the summer sun.",
+            "sha256": "e051f541b14956ff095166d9fd56b07fdb345780eaca93eefb72cfd9de14543c"
+          }
+        ]
+      },
+      {
+        "lineId": 6,
+        "sourceText": "If you return, knock softly twice.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "If you return, knock softly twice.",
+            "sha256": "8f5e4861a7454d840efec782042d13e7aaab92f1b6bbc4a0de68343e9043641f"
+          }
+        ]
+      },
+      {
+        "lineId": 7,
+        "sourceText": "I hear the train but cannot see its lights.",
+        "detectedLanguage": "en",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "I hear the train but cannot see its lights.",
+            "sha256": "09eb03687fe22f1e83fdee0df1b1dc6dcabfac404fac54656e08dce338268ec0"
+          }
+        ]
+      },
+      {
+        "lineId": 8,
+        "sourceText": "The quiet room belongs to neither of us.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "The quiet room belongs to neither of us.",
+            "sha256": "4ed3db6804c4fd6a0b2161bc44b741d86a3e8abd146f6855c5257a3e42b753b1"
+          }
+        ]
+      },
+      {
+        "lineId": 9,
+        "sourceText": "Keep the red scarf; leave the silver key.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Keep the red scarf; leave the silver key.",
+            "sha256": "0f463e6a028751fbe6b3ea8da2ed6c1b90b1660f02b4e706d8f68b709b108a92"
+          }
+        ]
+      },
+      {
+        "lineId": 10,
+        "sourceText": "Tomorrow I will choose a different path.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Tomorrow I will choose a different path.",
+            "sha256": "6063cd441638da140fe359d9262d44d241772471ba3bffddedde713991ce59ab"
+          }
+        ]
+      },
+      {
+        "lineId": 11,
+        "sourceText": "Our little river still remembers rain.",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "Our little river still remembers rain.",
+            "sha256": "b79d75149d375841182c24d9afd02f19783d8f3596f622c556f60bfbef2e1910"
+          }
+        ]
+      },
+      {
+        "lineId": 12,
+        "sourceText": "朝の光を紙の舟に折る。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "朝の光を紙の舟に折る。",
+            "sha256": "11a091edc69ece594dde7d64d15ca43698eb7d5fb46db9b106bb83c0e27bac36"
+          }
+        ]
+      },
+      {
+        "lineId": 13,
+        "sourceText": "青いカップが窓辺で君を待つ。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "青いカップが窓辺で君を待つ。",
+            "sha256": "735c3422e7b23ea8054438c9ff46a812caf73fd825ba7147b39dc3ee5cb3ee63"
+          }
+        ]
+      },
+      {
+        "lineId": 14,
+        "sourceText": "君の名前を忘れるとは約束していない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "君の名前を忘れるとは約束していない。",
+            "sha256": "99c2f8c3ebe339e371fc66782d58d3a032e2dcc6b38c5791d003aadc981b971e"
+          }
+        ]
+      },
+      {
+        "lineId": 15,
+        "sourceText": "北へ続く道は閉じたと君は言った。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "北へ続く道は閉じたと君は言った。",
+            "sha256": "9826dece90d837d229668cc0b1d16d54ed06a1cc84ce8a9448d518d09d58d518"
+          }
+        ]
+      },
+      {
+        "lineId": 16,
+        "sourceText": "七つの種を持って橋を渡る。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "七つの種を持って橋を渡る。",
+            "sha256": "e33c309dde1c4125e0dba560c5a10b6b9c2b71f648c29ed02eb1606849d22cd3"
+          }
+        ]
+      },
+      {
+        "lineId": 17,
+        "sourceText": "灯りは夏の太陽の代わりにはならない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "灯りは夏の太陽の代わりにはならない。",
+            "sha256": "affdb5924ed05a589ed788a804a3eb78781085474ad6a0b147f3c4f5b935f833"
+          }
+        ]
+      },
+      {
+        "lineId": 18,
+        "sourceText": "戻るなら、そっと二回ノックして。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "戻るなら、そっと二回ノックして。",
+            "sha256": "569aa1fb6879a9e80fcd52acf9bf6923c51673783c4c28a7c7edf6b01dcecd2b"
+          }
+        ]
+      },
+      {
+        "lineId": 19,
+        "sourceText": "列車の音は聞こえるが、光は見えない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "列車の音は聞こえるが、光は見えない。",
+            "sha256": "dc1f5d0f3ecffeaa7b27ad24fe6395e60177cbbbe709d3dd065c16b0eb9df32b"
+          }
+        ]
+      },
+      {
+        "lineId": 20,
+        "sourceText": "静かな部屋は私たちのどちらのものでもない。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "静かな部屋は私たちのどちらのものでもない。",
+            "sha256": "b68f7b2bc2d9c4743d243bb3e44a793c31637af850f0c3c3de768a4259f7230b"
+          }
+        ]
+      },
+      {
+        "lineId": 21,
+        "sourceText": "赤いスカーフを持って、銀の鍵を置いて。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "赤いスカーフを持って、銀の鍵を置いて。",
+            "sha256": "c99b747ece19bfd0f2b7e6ae2c41419164d66c0dda95d5bef26ea0dc14f38447"
+          }
+        ]
+      },
+      {
+        "lineId": 22,
+        "sourceText": "明日は別の道を選ぶ。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "明日は別の道を選ぶ。",
+            "sha256": "444764e17ae35d068ed198ed8bbcf884e896a6cf4c6e21fef3d0a9c07906cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 23,
+        "sourceText": "小さな川はまだ雨を覚えている。",
+        "detectedLanguage": "ja",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "小さな川はまだ雨を覚えている。",
+            "sha256": "f053e8104c3075e946afe92c63bd20eb082f85a4fc545d62dc8edd4a08b8caa5"
+          }
+        ]
+      },
+      {
+        "lineId": 24,
+        "sourceText": "아침 햇살을 종이배에 접어 담아.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "아침 햇살을 종이배에 접어 담아.",
+            "sha256": "27cc182d18bfe3740c8abd013d9f03693a7ef0a3867a77e4f8fde3cdb058f9cd"
+          }
+        ]
+      },
+      {
+        "lineId": 25,
+        "sourceText": "파란 컵이 창가에서 너를 기다려.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "파란 컵이 창가에서 너를 기다려.",
+            "sha256": "b6f164bc480cf9933c512dfc14706bc4bb1fbe445e408d62dfc054bf92f60131"
+          }
+        ]
+      },
+      {
+        "lineId": 26,
+        "sourceText": "네 이름을 잊겠다고 약속하지 않았어.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "네 이름을 잊겠다고 약속하지 않았어.",
+            "sha256": "fe88492203d9b80e412d5af6cb8a754bc2ad35ecdb7cdc60a813dde95431a7c4"
+          }
+        ]
+      },
+      {
+        "lineId": 27,
+        "sourceText": "북쪽 길이 닫혔다고 네가 말했어.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "북쪽 길이 닫혔다고 네가 말했어.",
+            "sha256": "056b2d8c31816bed06c1d089f71b06a4fab2720280123ce23600f386ae84914b"
+          }
+        ]
+      },
+      {
+        "lineId": 28,
+        "sourceText": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+            "sha256": "4975a77f77f7aa4597a2ab720b97a8d1bd1bc70864c51fe75a955bac63f633af"
+          }
+        ]
+      },
+      {
+        "lineId": 29,
+        "sourceText": "등불은 여름 태양을 대신할 수 없어.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "등불은 여름 태양을 대신할 수 없어.",
+            "sha256": "777fe0301ff5b9e696c66cce4b624d5700cc49388991c8e5a6574078bd5536eb"
+          }
+        ]
+      },
+      {
+        "lineId": 30,
+        "sourceText": "돌아오면 조용히 두 번 두드려.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "돌아오면 조용히 두 번 두드려.",
+            "sha256": "f145e6fc2b43cb2e4f851fd71a91862ff5b4ba5f06e38299b77077c47af2ac20"
+          }
+        ]
+      },
+      {
+        "lineId": 31,
+        "sourceText": "기차 소리는 들리지만 불빛은 보이지 않아.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "기차 소리는 들리지만 불빛은 보이지 않아.",
+            "sha256": "ad00403f29203295e0181944d7e5368994fcd18426686403f62f9aabecc82641"
+          }
+        ]
+      },
+      {
+        "lineId": 32,
+        "sourceText": "고요한 방은 우리 누구의 것도 아니야.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "고요한 방은 우리 누구의 것도 아니야.",
+            "sha256": "6afc68e873c2566c88f9f2739a6b1a5bf5ddaf3e153cd8745bdf2aa4ad3dbbee"
+          }
+        ]
+      },
+      {
+        "lineId": 33,
+        "sourceText": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+            "sha256": "8e53fed0827d24451585390ff37d0fd6445d4f26ff6b91fc2a444807c553b0f6"
+          }
+        ]
+      },
+      {
+        "lineId": 34,
+        "sourceText": "내일 나는 다른 길을 고를 거야.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "내일 나는 다른 길을 고를 거야.",
+            "sha256": "b1aebb00b8b6b898746262d77b006dbe040aa4476a090b336b1bba7cac0d092c"
+          }
+        ]
+      },
+      {
+        "lineId": 35,
+        "sourceText": "작은 강은 아직 비를 기억해.",
+        "detectedLanguage": "ko",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": true,
+        "reason": "identified-foreign-language",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "작은 강은 아직 비를 기억해.",
+            "sha256": "a185919156106bbd0e1be0a41c415994fecc01971a4f7689ab724ac844521c93"
+          }
+        ]
+      },
+      {
+        "lineId": 36,
+        "sourceText": "我把晨光折进一只纸船。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我把晨光折进一只纸船。",
+            "sha256": "dc476b5ab588e500a27abe83c59b1c29a6114c9981724d1297676b3de5e83a3e"
+          }
+        ]
+      },
+      {
+        "lineId": 37,
+        "sourceText": "你的蓝杯子仍在窗边等候。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 38,
+        "sourceText": "我并没有答应忘记你的名字。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 39,
+        "sourceText": "你说向北的路已经关闭。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.92,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 40,
+        "sourceText": "我们带着七粒种子走过桥。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 41,
+        "sourceText": "没有灯笼能代替夏天的太阳。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 42,
+        "sourceText": "如果你回来，请轻轻敲两下门。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "如果你回来，请轻轻敲两下门。",
+            "sha256": "c2b2d8289f6f76fd5f2a1965afdb128804a1f156d307ad98cd1852ad1584cce7"
+          }
+        ]
+      },
+      {
+        "lineId": 43,
+        "sourceText": "我听见火车，却看不见灯光。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "我听见火车，却看不见灯光。",
+            "sha256": "08cdaf367745edff8b31b5762784fbb5e1224a1d5ff5ca01efa3e35e3ba3b3cc"
+          }
+        ]
+      },
+      {
+        "lineId": 44,
+        "sourceText": "安静的房间不属于我们任何一个人。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 45,
+        "sourceText": "带走红围巾，留下银钥匙。",
+        "detectedLanguage": null,
+        "confidence": 0,
+        "evidenceKind": "Unknown",
+        "eligible": true,
+        "reason": "unknown-language-retained",
+        "segments": [
+          {
+            "segmentIndex": 0,
+            "text": "带走红围巾，留下银钥匙。",
+            "sha256": "08a13110ea58313e8fc4d25075da4c8cccbccdae5b4e400dbefbf7d7e26c6fe3"
+          }
+        ]
+      },
+      {
+        "lineId": 46,
+        "sourceText": "明天我会选择另一条路。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      },
+      {
+        "lineId": 47,
+        "sourceText": "我们的小河仍然记得雨。",
+        "detectedLanguage": "zh-Hans",
+        "confidence": 0.95,
+        "evidenceKind": "Lexical",
+        "eligible": false,
+        "reason": "same-target-language",
+        "segments": []
+      }
+    ]
+  }
+}

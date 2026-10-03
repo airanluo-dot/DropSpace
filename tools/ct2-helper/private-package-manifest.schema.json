@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reviewed DropSpace private CT2 package manifest; separately pin exact manifest bytes",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sourceLanguage",
+    "targetLanguage",
+    "tokenizerProtocol",
+    "decoderProtocol",
+    "engineExecutable",
+    "sourceTokenizer",
+    "targetTokenizer",
+    "targetPrefix",
+    "engineFiles",
+    "modelFiles"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sourceLanguage": {
+      "enum": [
+        "ja",
+        "ko",
+        "zh",
+        "en"
+      ]
+    },
+    "targetLanguage": {
+      "enum": [
+        "en",
+        "zh"
+      ]
+    },
+    "tokenizerProtocol": {
+      "enum": [
+        "ArgosSentencePiece",
+        "HelsinkiSentencePiece"
+      ]
+    },
+    "decoderProtocol": {
+      "enum": [
+        "Argos",
+        "HelsinkiOpus"
+      ]
+    },
+    "engineExecutable": {
+      "$ref": "#/$defs/path"
+    },
+    "sourceTokenizer": {
+      "$ref": "#/$defs/path"
+    },
+    "targetTokenizer": {
+      "$ref": "#/$defs/path"
+    },
+    "targetPrefix": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^>>[A-Za-z][A-Za-z0-9_-]{0,59}<<$"
+        }
+      ]
+    },
+    "engineFiles": {
+      "$ref": "#/$defs/files"
+    },
+    "modelFiles": {
+      "$ref": "#/$defs/files"
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^[A-Za-z0-9_.+-]+(/[A-Za-z0-9_.+-]+)*$",
+      "description": "Relative to engine/ or model/ only; validator also rejects dot segments, reserved Windows names, excessive depth, trailing dots and reparse traversal."
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/path"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4294967296
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

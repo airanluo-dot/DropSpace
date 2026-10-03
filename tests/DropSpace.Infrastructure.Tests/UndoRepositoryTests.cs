@@ -124,6 +124,52 @@ public sealed class UndoRepositoryTests
     }
 
     [TestMethod]
+    public async Task RestartRecoveryRestoresUnexpiredItemsAndFinalizesOnlyExpiredItems()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var repository = CreateRepository();
+        var payloadStore = new FilePayloadStore(_paths);
+        await using var input = new MemoryStream([1, 2, 3, 4]);
+        var payload = await payloadStore.WriteFileAsync("images", ".bin", input, 1024);
+        var restorable = await repository.AddImageAsync(new ImageCandidate(
+            payload.ContentHash, 1, 1, payload.ByteLength, "image/png", false, payload));
+        await repository.SetPinnedAsync(restorable.Id, true);
+        var expired = await repository.AddSpaceTextAsync(
+            DropSpace.Core.Policies.ContentClassifier.CreateTextCandidate("expired"));
+        await repository.BeginPendingRemovalAsync([restorable.Id], "still-undoable", now.AddSeconds(8));
+        await repository.BeginPendingRemovalAsync([expired.Id], "already-expired", now.AddSeconds(-1));
+
+        var restarted = CreateRepository();
+        var result = await restarted.RecoverPendingRemovalsAsync(now);
+
+        Assert.AreEqual(1, result.RemovedCount);
+        Assert.IsNull(await restarted.GetAsync(expired.Id));
+        var restored = await restarted.GetAsync(restorable.Id);
+        Assert.IsNotNull(restored);
+        Assert.IsTrue(restored.IsPinned);
+        Assert.AreEqual(payload.Id, restored.Payload!.Id);
+        Assert.IsTrue(File.Exists(payloadStore.ResolvePath(payload.RelativePath)));
+        Assert.AreEqual(0, (await restarted.GetPendingPayloadDeletesAsync()).Count);
+        Assert.AreEqual(0, (await restarted.RecoverPendingRemovalsAsync(now.AddMinutes(1))).RemovedCount);
+        Assert.IsNotNull(await restarted.GetAsync(restorable.Id), "The old deadline must no longer hide or delete the restored item.");
+    }
+
+    [TestMethod]
+    public async Task NormalExpirySweepDoesNotRestoreAnActiveUndoWindow()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var repository = CreateRepository();
+        var item = await repository.AddSpaceTextAsync(
+            DropSpace.Core.Policies.ContentClassifier.CreateTextCandidate("active undo"));
+        await repository.BeginPendingRemovalAsync([item.Id], "active", now.AddSeconds(8));
+
+        Assert.AreEqual(0, (await repository.FinalizeExpiredPendingRemovalsAsync(now)).RemovedCount);
+        Assert.IsNull(await repository.GetAsync(item.Id));
+        Assert.AreEqual(1, await repository.UndoPendingRemovalAsync("active"));
+        Assert.IsNotNull(await repository.GetAsync(item.Id));
+    }
+
+    [TestMethod]
     public async Task SchemaVersionTwoMigratesToVersionSixWithPendingColumnsSearchIndexPeerTrustStateAndPayloadOutbox()
     {
         await CreateSchemaV2Async();

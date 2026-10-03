@@ -1,0 +1,21 @@
+{
+  "id": "m2m100-12b-direct-v1",
+  "status": "PENDING SEMANTIC REVIEW; candidate only",
+  "model": "facebook/m2m100_1.2B",
+  "revision": "7b36184180524c1a1bbfa37f120a608046250b98",
+  "license": "MIT",
+  "runtime": "Existing pinned Windows CPython3.11.9/CT2 4.8.2 CPU dependencies from ../marian-model-qa",
+  "conversion": "Separate sanitize and convert processes. Official ZIP torch weights_only/mmap path to sharded safetensors, then CT2 int8. Build RAM/disk preflight is separate from inference budgets.",
+  "budgets": {"jobMemoryMiB":3072,"cpuThreads":4,"perDirectionSeconds":60,"targetColdWarmCombinedSeconds":180,"cleanupSeconds":10,"buildMinimumFreeRamGiB":10,"buildMinimumFreeDiskGiB":18},
+  "sampler": {"beamSize":4,"maxBatchSize":12,"maxInputTokens":512,"maxDecodingLength":511,"requireEOS":true,"samplingTopK":1,"lengthPenalty":1,"repetitionPenalty":1},
+  "routes": "EN/JA/KO/ZH directly to EN or ZH; source-only bypass; no English pivot",
+  "tokens": "M2M100Tokenizer.src_lang supplies source language token plus EOS; per-row CT2 target_prefix is lang_code_to_token[target]. Verify and remove the returned target prefix, require final EOS, then decode.",
+  "chineseScript": "Official model has zh only, no Hans-specific token. Simplified-Chinese script and semantics must be reviewed in actual unmodified outputs; no automatic script-compliance claim.",
+  "routingLimit": "Known fixture language labels; automatic source detection untested",
+  "validation": "Original fixed screen IDs first; technical failure skips larger fixtures. Then frozen full48/holdout cold and warm, source-only, actual decode cancellation. Technical success does not imply semantic screen approval.",
+  "holdoutLimit": "Frozen original holdout retained unmodified; it is now a known benchmark across candidates. A new independently frozen holdout is required later, before final adoption.",
+  "source48Sha256":"63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
+  "holdout12Sha256":"88a30d2ddd52307ab5832b457400c4a50545800147ac6c9e8863dd71f96f8b56",
+  "quality": {"warnings":"Minor understandable lexical differences","blockers":"Wrong target language, foreign copy, clear overall meaning reversal"},
+  "publication":false
+}

@@ -26,3 +26,6 @@
 
 # Canonical brand-package files must retain their exact upstream bytes.
 branding/master/*.txt -text
+
+# Reviewed native evidence is hashed byte-for-byte, including Windows line endings.
+scripts/ai-model-qa/evidence/** -text

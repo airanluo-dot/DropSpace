@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using DropSpace.App.ViewModels;
+using DropSpace.Core.Island;
+using DropSpace.Core.Lyrics;
 using DropSpace.Core.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,6 +15,12 @@ public sealed partial class MediaCompactView : UserControl
     private bool _subscribed;
     private readonly TextBlock _measure = new() { FontSize = 13, TextWrapping = TextWrapping.NoWrap };
     private double _textWidth;
+    private double _secondaryTextWidth;
+    private readonly LyricsMarqueeSession _secondaryMarquee = new();
+    private bool _translationWasVisible;
+    private string _displayedTranslation = string.Empty;
+    private LyricsTranslationOrigin _displayedOrigin;
+    private bool _secondaryMeasureInvalid = true;
     private double _interludeOpacity;
     private long _lastPresentationTick;
     private double _primaryHeight = 28;
@@ -24,14 +32,37 @@ public sealed partial class MediaCompactView : UserControl
     private XamlRoot? _xamlRoot;
     public double IdealIslandWidth { get; private set; } = 280;
     public double IdealIslandHeight { get; private set; } = 40;
+    // The glow asks the rendered text surface, not only whether a translation exists.
+    internal bool IsTranslationActuallyVisible => IsLoaded && Visibility == Visibility.Visible &&
+        SecondaryViewport.Visibility == Visibility.Visible && SecondaryViewport.ActualWidth > 0 && SecondaryViewport.ActualHeight > 0 &&
+        SecondaryLine.Visibility == Visibility.Visible && SecondaryLine.Opacity > 0.01 &&
+        SecondaryLine.ActualWidth > 0 && SecondaryLine.ActualHeight > 0 &&
+        !string.IsNullOrWhiteSpace(SecondaryLine.Text) && TranslationIntersects(this) &&
+        string.Equals(SecondaryLine.Text, LyricsDisplayPolicy.CompactText(_view?.SecondaryLyricText), StringComparison.Ordinal);
+    internal bool IsTranslationVisibleWithin(FrameworkElement body) =>
+        IsTranslationActuallyVisible && TranslationIntersects(body);
+
+    private bool TranslationIntersects(FrameworkElement viewport)
+    {
+        var textBounds = SecondaryLine.TransformToVisual(viewport).TransformBounds(
+            new Rect(0, 0, SecondaryLine.ActualWidth, SecondaryLine.ActualHeight));
+        var clipBounds = SecondaryViewport.TransformToVisual(viewport).TransformBounds(
+            new Rect(0, 0, SecondaryViewport.ActualWidth, SecondaryViewport.ActualHeight));
+        var left = Math.Max(textBounds.Left, clipBounds.Left);
+        var top = Math.Max(textBounds.Top, clipBounds.Top);
+        return LyricsDisplayPolicy.IntersectsViewport(left, top,
+            Math.Min(textBounds.Right, clipBounds.Right) - left,
+            Math.Min(textBounds.Bottom, clipBounds.Bottom) - top, viewport.ActualWidth, viewport.ActualHeight);
+    }
     public event EventHandler? IdealWidthChanged;
+    public event EventHandler? TranslationVisibilityChanged;
     public MediaCompactView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         ActualThemeChanged += (_, _) => InvalidateTextMeasure();
-        Layout.SizeChanged += (_, _) => InvalidateTextMeasure();
+        LayoutUpdated += (_, _) => NotifyTranslationVisibility();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
@@ -45,6 +76,8 @@ public sealed partial class MediaCompactView : UserControl
     {
         DetachXamlRoot();
         Unsubscribe();
+        _secondaryMarquee.Reset();
+        NotifyTranslationVisibility();
     }
     public MediaViewModel? ViewModel
     {
@@ -76,26 +109,35 @@ public sealed partial class MediaCompactView : UserControl
     private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
     {
         AttachXamlRoot();
-        _textWidth = 0;
         InvalidateMeasure();
         Layout.InvalidateMeasure();
-        Refresh();
+        InvalidateTextMeasure();
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion)) Refresh();
+        if (args.PropertyName is nameof(MediaViewModel.Lyrics) or nameof(MediaViewModel.LyricsLines) or nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Spectrum) or nameof(MediaViewModel.Settings) or nameof(MediaViewModel.Session) or nameof(MediaViewModel.IsReducedMotion) or nameof(MediaViewModel.Position)) Refresh();
     }
     private void OnViewportSizeChanged(object sender, SizeChangedEventArgs args)
     {
         ViewportClip.Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height));
         RefreshHighlight();
     }
+    private void OnSecondaryViewportSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        SecondaryViewportClip.Rect = new Rect(0, 0, Math.Max(0, args.NewSize.Width), Math.Max(0, args.NewSize.Height));
+        RefreshHighlight();
+        NotifyTranslationVisibility();
+    }
     private void Refresh()
     {
         if (_view is null || BaseLine is null) return;
         var previousHeight = IdealIslandHeight;
         var settings = _view.Settings;
-        var text = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? _view.CurrentLyricText : _view.Title;
+        BaseLine.FontSize = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? settings.Lyrics.OriginalFontSize : 13;
+        HighlightLine.FontSize = BaseLine.FontSize;
+        SecondaryLine.FontSize = settings.Lyrics.TranslationFontSize;
+        var text = LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled
+            ? _view.CurrentLyricText : _view.Title);
         var fontFamily = BaseLine.FontFamily?.Source;
         var fontSize = BaseLine.FontSize;
         var fontWeight = BaseLine.FontWeight.Weight;
@@ -110,21 +152,37 @@ public sealed partial class MediaCompactView : UserControl
             LyricCanvas.Width = _textWidth;
             _primaryHeight = Math.Max(28, _measure.DesiredSize.Height);
             LyricViewport.Height = _primaryHeight;
+            LyricCanvas.Height = _measure.DesiredSize.Height;
+            Canvas.SetTop(LyricCanvas, Math.Max(0, (_primaryHeight - LyricCanvas.Height) / 2));
             _measuredFontFamily = fontFamily;
             _measuredFontSize = fontSize;
             _measuredFontWeight = fontWeight;
             _measuredRasterizationScale = rasterizationScale;
         }
-        var secondary = settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null;
-        SecondaryLine.Text = secondary ?? string.Empty;
+        var secondary = LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null);
+        if (_secondaryMeasureInvalid || SecondaryLine.Text != secondary ||
+            _secondaryMeasure.FontSize != SecondaryLine.FontSize || measureChanged)
+        {
+            SecondaryLine.Text = secondary;
+            _secondaryMeasure.FontFamily = SecondaryLine.FontFamily;
+            _secondaryMeasure.FontSize = SecondaryLine.FontSize;
+            _secondaryMeasure.FontWeight = SecondaryLine.FontWeight;
+            _secondaryMeasure.FontStyle = SecondaryLine.FontStyle;
+            _secondaryMeasure.CharacterSpacing = SecondaryLine.CharacterSpacing;
+            _secondaryMeasure.Language = SecondaryLine.Language;
+            _secondaryMeasure.FlowDirection = SecondaryLine.FlowDirection;
+            _secondaryMeasure.IsTextScaleFactorEnabled = SecondaryLine.IsTextScaleFactorEnabled;
+            _secondaryMeasure.Text = SecondaryLine.Text;
+            _secondaryMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            _secondaryTextWidth = _secondaryMeasure.DesiredSize.Width;
+            SecondaryLine.Width = _secondaryTextWidth;
+            SecondaryViewport.Height = _secondaryMeasure.DesiredSize.Height;
+            _secondaryMeasureInvalid = false;
+        }
         SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
-        _secondaryMeasure.FontFamily = SecondaryLine.FontFamily;
-        _secondaryMeasure.FontSize = SecondaryLine.FontSize;
-        _secondaryMeasure.FontWeight = SecondaryLine.FontWeight;
-        _secondaryMeasure.Text = SecondaryLine.Text;
-        _secondaryMeasure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        SecondaryViewport.Visibility = SecondaryLine.Visibility;
         var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryMeasure.DesiredSize.Height : 0;
-        IdealIslandHeight = Math.Max(40, _primaryHeight + secondaryHeight + 12);
+        IdealIslandHeight = IslandGeometry.MusicCompactHeight(_primaryHeight + secondaryHeight + 12);
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
         var spectrum = settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
@@ -138,6 +196,7 @@ public sealed partial class MediaCompactView : UserControl
         { IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();
         RefreshInterlude();
+        NotifyTranslationVisibility();
     }
     private void RefreshInterlude()
     {
@@ -163,6 +222,8 @@ public sealed partial class MediaCompactView : UserControl
     {
         _textWidth = 0;
         _measuredFontFamily = null;
+        _secondaryMeasureInvalid = true;
+        _secondaryMarquee.Reset();
         Refresh();
     }
     private void RefreshHighlight()
@@ -180,26 +241,42 @@ public sealed partial class MediaCompactView : UserControl
             highlight = 0;
             if (frame.WordIndex >= 0 && frame.WordIndex < line.Words.Count)
             {
-            var before = string.Concat(line.Words.Take(frame.WordIndex).Select(word => word.Text));
+            var before = LyricsDisplayPolicy.CompactText(string.Concat(line.Words.Take(frame.WordIndex).Select(word => word.Text)));
             var beforeWidth = Measure(before);
-            highlight = beforeWidth + (Measure(before + line.Words[frame.WordIndex].Text) - beforeWidth) * frame.WordProgress;
+            highlight = beforeWidth + (Measure(LyricsDisplayPolicy.CompactText(before + line.Words[frame.WordIndex].Text)) - beforeWidth) * frame.WordProgress;
             }
         }
         HighlightClip.Rect = new Rect(0, 0, Math.Max(0, highlight), Math.Max(28, BaseLine.ActualHeight));
-        var overflow = Math.Max(0, _textWidth - LyricViewport.ActualWidth);
         var scroll = 0d;
         if (_view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling && !_view.IsReducedMotion)
         {
-            scroll = frame.Line is { Words.Count: > 0 } ? highlight - LyricViewport.ActualWidth * 0.6 :
-                frame.Line is { } current
-                    ? (_view.Position - _view.Session.Timeline.Start - current.Start).TotalSeconds * 24 - LyricViewport.ActualWidth / 3
-                    : 0;
+            scroll = LyricsDisplayPolicy.CompactScrollOffset(frame.Line,
+                _view.Position - _view.Session.Timeline.Start, _view.Settings.Lyrics.DelayMilliseconds,
+                _view.Settings.Lyrics.WordSyncedHighlighting, highlight, _textWidth, LyricViewport.ActualWidth);
         }
-        LyricTranslation.TranslateX = -Math.Clamp(scroll, 0, overflow);
+        LyricTranslation.TranslateX = -scroll;
+        SecondaryTranslation.TranslateX = -_secondaryMarquee.Update(new(
+            _view.Session.TrackIdentity, presentation.Line?.Start.Ticks ?? 0, SecondaryLine.Text,
+            SecondaryLine.FontSize, XamlRoot?.RasterizationScale ?? 1, _secondaryTextWidth, SecondaryViewport.ActualWidth,
+            _view.Settings.Lyrics.Enabled && _view.Settings.IslandActivity.ShowLyricsInCompact && _view.Settings.Lyrics.Scrolling,
+            _view.IsReducedMotion), _view.Position);
+    }
+    private void NotifyTranslationVisibility()
+    {
+        var visible = IsTranslationActuallyVisible;
+        var origin = _view?.LyricPresentation.Line?.TranslationOrigin ?? LyricsTranslationOrigin.None;
+        if (_translationWasVisible == visible && _displayedTranslation == SecondaryLine.Text && _displayedOrigin == origin) return;
+        _translationWasVisible = visible;
+        _displayedTranslation = SecondaryLine.Text;
+        _displayedOrigin = origin;
+        TranslationVisibilityChanged?.Invoke(this, EventArgs.Empty);
     }
     private double Measure(string text)
     {
         _measure.FontFamily = BaseLine.FontFamily; _measure.FontSize = BaseLine.FontSize; _measure.FontWeight = BaseLine.FontWeight;
+        _measure.FontStyle = BaseLine.FontStyle; _measure.CharacterSpacing = BaseLine.CharacterSpacing;
+        _measure.Language = BaseLine.Language; _measure.FlowDirection = BaseLine.FlowDirection;
+        _measure.IsTextScaleFactorEnabled = BaseLine.IsTextScaleFactorEnabled;
         _measure.Text = text; _measure.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return _measure.DesiredSize.Width;
     }

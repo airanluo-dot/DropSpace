@@ -8,11 +8,12 @@ import { createLatestChangeApi, validateWebsiteReleaseData } from "./release-con
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const src = path.join(root, "src");
-const dist = path.join(root, "dist");
+const staticShowcase = process.env.SITE_VARIANT === "static";
+const dist = path.join(root, staticShowcase ? "dist-static" : "dist");
 const releases = validateWebsiteReleaseData(JSON.parse(await readFile(path.join(root, "data/releases.json"), "utf8")));
 const stable = releases.stable;
 const latestChange = createLatestChangeApi(releases.api);
-const siteOrigin = (process.env.SITE_ORIGIN ?? "https://airanluo-dot.github.io/DropSpace").replace(/\/$/, "");
+const siteOrigin = (process.env.SITE_ORIGIN ?? (staticShowcase ? "https://dropspace-static.arenvox.chatgpt.site" : "https://airanluo-dot.github.io/DropSpace")).replace(/\/$/, "");
 const basePath = new URL(`${siteOrigin}/`).pathname;
 
 const escapeHtml = (value = "") => String(value)
@@ -30,18 +31,21 @@ const formatDate = (value, locale) => new Intl.DateTimeFormat(locale, {
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(path.join(dist, "assets"), { recursive: true });
-await mkdir(path.join(dist, "api", "v1"), { recursive: true });
+if (!staticShowcase) await mkdir(path.join(dist, "api", "v1"), { recursive: true });
 
 const assetSources = {
   css: "styles.css",
   js: "script.js",
+  lyricsJs: "lyrics-demo.js",
+  lyricsAudio: "assets/lyrics-demo.wav",
   logo: "assets/dropspace-logo.png",
   favicon: "assets/favicon.png",
   og: "assets/og-image.png"
 };
 const assetUrls = {};
 for (const [key, relative] of Object.entries(assetSources)) {
-  const contents = await readFile(path.join(src, relative));
+  let contents = await readFile(path.join(src, relative));
+  if (staticShowcase && key === "js") contents = Buffer.from(contents.toString().replace(/\/\/ BEGIN LIVE RELEASE RUNTIME[\s\S]*?\/\/ END LIVE RELEASE RUNTIME/g, ""));
   const extension = path.extname(relative);
   const stem = path.basename(relative, extension);
   const outputName = `${stem}.${hash(contents)}${extension}`;
@@ -124,7 +128,7 @@ function releaseEntries(route) {
 function applyMetadata(document, route, kind) {
   const locale = site[route];
   const pageMeta = kind === "changelog" ? changelogMeta[route] : locale;
-  const suffix = kind === "changelog" ? "/changelog/" : "/";
+  const suffix = kind === "changelog" ? "/changelog/" : staticShowcase ? "/index.html" : "/";
   const canonical = `${siteOrigin}/${route}${suffix}`;
   document.documentElement.lang = locale.lang;
   document.title = pageMeta.title;
@@ -155,8 +159,9 @@ function applyMetadata(document, route, kind) {
     data.url = canonical;
     data.inLanguage = locale.lang;
     if (kind === "home") {
-      data.softwareVersion = stable.tag;
-      data.downloadUrl = stable.assets.installer;
+      if (!staticShowcase) data.softwareVersion = stable.tag;
+      else delete data.softwareVersion;
+      data.downloadUrl = staticShowcase ? "https://github.com/airanluo-dot/DropSpace/releases/latest/download/DropSpaceSetup.exe" : stable.assets.installer;
     } else {
       data.name = pageMeta.title;
       data.isPartOf = { "@type": "WebSite", name: "DropSpace", url: `${siteOrigin}/${route}/` };
@@ -171,8 +176,8 @@ function applyMetadata(document, route, kind) {
 }
 
 function rewriteLinks(document, route, kind) {
-  const home = `${basePath}${route}/`;
-  const changelog = `${home}changelog/`;
+  const home = `${basePath}${route}/${staticShowcase ? "index.html" : ""}`;
+  const changelog = `${basePath}${route}/changelog/`;
   for (const element of document.querySelectorAll("[href], [src], [poster]")) {
     for (const attribute of ["href", "src", "poster"]) {
       const value = element.getAttribute(attribute);
@@ -180,6 +185,8 @@ function rewriteLinks(document, route, kind) {
       const basename = value.split("/").pop();
       if (basename === "styles.css") element.setAttribute(attribute, assetUrls.css);
       else if (basename === "script.js") element.setAttribute(attribute, assetUrls.js);
+      else if (basename === "lyrics-demo.js") element.setAttribute(attribute, assetUrls.lyricsJs);
+      else if (basename === "lyrics-demo.wav") element.setAttribute(attribute, assetUrls.lyricsAudio);
       else if (basename === "dropspace-logo.png") element.setAttribute(attribute, assetUrls.logo);
       else if (basename === "favicon.png") element.setAttribute(attribute, assetUrls.favicon);
       else if (basename === "og-image.png") element.setAttribute(attribute, assetUrls.og);
@@ -199,7 +206,7 @@ function rewriteLinks(document, route, kind) {
   }
   const switchLink = document.querySelector("[data-language-switch]");
   if (switchLink) {
-    const suffix = kind === "changelog" ? "changelog/" : "";
+    const suffix = kind === "changelog" ? "changelog/" : staticShowcase ? "index.html" : "";
     switchLink.href = `${basePath}${site[route].switchRoute}/${suffix}`;
     switchLink.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><span class="locale-choice ${route === "zh-cn" ? "is-current" : ""}">中</span><span class="locale-divider" aria-hidden="true">/</span><span class="locale-choice ${route === "en" ? "is-current" : ""}">EN</span>`;
     switchLink.setAttribute("aria-label", site[route].switchAria);
@@ -222,30 +229,58 @@ async function render(templatePath, route, kind) {
   const { document } = dom.window;
   translateDocument(document, route);
   rewriteLinks(document, route, kind);
+  if (kind === "home") {
+    // Show a real source/target pair in both locales, without claiming this
+    // website performs AI inference. English App → English target, Chinese → Chinese.
+    const current = document.querySelector('.lyrics-current');
+    const translation = document.querySelector('.lyrics-translation');
+    if (current && translation) {
+      current.textContent = route === 'en' ? '留一点空间，自在呼吸。' : 'A little room to breathe.';
+      current.lang = route === 'en' ? 'zh-CN' : 'en';
+      for (const [selector, english, chinese] of [['.lyrics-previous', 'Let the busy world go by.', '让忙碌的世界缓缓经过。'], ['.lyrics-next', 'Keep this moment close.', '把这一刻，轻轻留住。']]) {
+        const line = document.querySelector(selector);
+        line.textContent = route === 'en' ? chinese : english;
+        line.lang = current.lang;
+      }
+      translation.textContent = route === 'en' ? 'A little room to breathe.' : '留一点空间，自在呼吸。';
+      translation.lang = route === 'en' ? 'en' : 'zh-CN';
+    }
+  }
+  if (staticShowcase) {
+    document.documentElement.dataset.siteVariant = 'static';
+    document.querySelectorAll('.stable-line, [data-stable-version], [data-latest-change]').forEach(node => node.remove());
+    const artifacts = { installer: 'DropSpaceSetup.exe', portable: 'DropSpace.exe', msix: 'DropSpace-x64.msix', checksums: 'SHA256SUMS.txt' };
+    for (const link of document.querySelectorAll('a[href]')) {
+      if (link.hasAttribute('data-download')) link.href = `https://github.com/airanluo-dot/DropSpace/releases/latest/download/${artifacts[link.dataset.download]}`;
+      else if (link.hasAttribute('data-release-url') || link.href.includes('/changelog/')) link.href = 'https://github.com/airanluo-dot/DropSpace/releases';
+    }
+  }
   applyMetadata(document, route, kind);
   return `<!doctype html>\n${document.documentElement.outerHTML}\n`.replace(/^[ \t]+$/gm, "");
 }
 
 for (const route of Object.keys(site)) {
-  await mkdir(path.join(dist, route, "changelog"), { recursive: true });
+  await mkdir(path.join(dist, route, ...(staticShowcase ? [] : ["changelog"])), { recursive: true });
   await writeFile(path.join(dist, route, "index.html"), await render("index.html", route, "home"));
-  await writeFile(path.join(dist, route, "changelog", "index.html"), await render("changelog/index.html", route, "changelog"));
+  if (!staticShowcase) await writeFile(path.join(dist, route, "changelog", "index.html"), await render("changelog/index.html", route, "changelog"));
 }
 
-const rootRedirect = `const route=(navigator.languages?.[0]??navigator.language??"").toLowerCase().startsWith("zh")?"zh-cn":"en";location.replace("${basePath}"+route+"/"+location.hash);`;
+const homeDocument = staticShowcase ? "index.html" : "";
+const rootRedirect = `const route=(navigator.languages?.[0]??navigator.language??"").toLowerCase().startsWith("zh")?"zh-cn":"en";location.replace("${basePath}"+route+"/${homeDocument}"+location.hash);`;
 const rootStyle = `:root{color-scheme:dark}*{box-sizing:border-box}html,body{min-height:100%;margin:0;background:#050506;color:#f7f7f8;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;place-items:center;padding:24px}main{width:min(420px,100%);text-align:center}img{width:88px;height:88px;border-radius:22px}h1{margin:22px 0 8px;font-size:34px}p{color:#a8a8b0;line-height:1.6}nav{display:flex;justify-content:center;gap:10px;margin-top:24px}a{border:1px solid #303038;border-radius:999px;padding:10px 16px;color:#fff;text-decoration:none;background:#141416}a:focus-visible{outline:3px solid #a98cff;outline-offset:3px}`;
 const rootScriptHash = createHash("sha256").update(rootRedirect).digest("base64");
 const rootStyleHash = createHash("sha256").update(rootStyle).digest("base64");
-await writeFile(path.join(dist, "index.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#050506"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-${rootScriptHash}'; style-src 'sha256-${rootStyleHash}'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><title>DropSpace</title><link rel="canonical" href="${siteOrigin}/en/"><style>${rootStyle}</style><script>${rootRedirect}</script></head><body><main><img src="${assetUrls.logo}" width="88" height="88" alt="DropSpace logo"><h1>DropSpace</h1><p>Choose your language · 选择语言</p><nav aria-label="Language"><a href="${basePath}en/">English</a><a href="${basePath}zh-cn/">简体中文</a></nav></main></body></html>\n`);
-await writeFile(path.join(dist, "404.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found — DropSpace</title><link rel="icon" href="${assetUrls.favicon}"><link rel="stylesheet" href="${assetUrls.css}"></head><body><main class="not-found shell"><div><img src="${assetUrls.logo}" width="96" height="96" alt="DropSpace logo"><p class="section-index">404</p><h1>Nothing dropped here.</h1><p>This page is not in Temporary Space.</p><a class="button button-primary" href="${basePath}en/">Back to DropSpace</a></div></main></body></html>\n`);
-await writeFile(path.join(dist, "release-data.json"), `${JSON.stringify(releases, null, 2)}\n`);
-await writeFile(path.join(dist, "api", "v1", "releases.json"), `${JSON.stringify(releases.api, null, 2)}\n`);
-await writeFile(path.join(dist, "api", "v1", "latest-change.json"), `${JSON.stringify(latestChange, null, 2)}\n`);
+await writeFile(path.join(dist, "index.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#050506"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-${rootScriptHash}'; style-src 'sha256-${rootStyleHash}'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><title>DropSpace</title><link rel="canonical" href="${siteOrigin}/en/${homeDocument}"><style>${rootStyle}</style><script>${rootRedirect}</script></head><body><main><img src="${assetUrls.logo}" width="88" height="88" alt="DropSpace logo"><h1>DropSpace</h1><p>Choose your language · 选择语言</p><nav aria-label="Language"><a href="${basePath}en/${homeDocument}">English</a><a href="${basePath}zh-cn/${homeDocument}">简体中文</a></nav></main></body></html>\n`);
+await writeFile(path.join(dist, "404.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found — DropSpace</title><link rel="icon" href="${assetUrls.favicon}"><link rel="stylesheet" href="${assetUrls.css}"></head><body><main class="not-found shell"><div><img src="${assetUrls.logo}" width="96" height="96" alt="DropSpace logo"><p class="section-index">404</p><h1>Nothing dropped here.</h1><p>This page is not in Temporary Space.</p><a class="button button-primary" href="${basePath}en/${homeDocument}">Back to DropSpace</a></div></main></body></html>\n`);
+if (!staticShowcase) await writeFile(path.join(dist, "release-data.json"), `${JSON.stringify(releases, null, 2)}\n`);
+if (!staticShowcase) await writeFile(path.join(dist, "api", "v1", "releases.json"), `${JSON.stringify(releases.api, null, 2)}\n`);
+if (!staticShowcase) await writeFile(path.join(dist, "api", "v1", "latest-change.json"), `${JSON.stringify(latestChange, null, 2)}\n`);
 await writeFile(path.join(dist, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${siteOrigin}/sitemap.xml\n`);
-await writeFile(path.join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${siteOrigin}/en/</loc></url><url><loc>${siteOrigin}/zh-cn/</loc></url><url><loc>${siteOrigin}/en/changelog/</loc></url><url><loc>${siteOrigin}/zh-cn/changelog/</loc></url></urlset>\n`);
+await writeFile(path.join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${siteOrigin}/en/${homeDocument}</loc></url><url><loc>${siteOrigin}/zh-cn/${homeDocument}</loc></url>${staticShowcase ? "" : `<url><loc>${siteOrigin}/en/changelog/</loc></url><url><loc>${siteOrigin}/zh-cn/changelog/</loc></url>`}</urlset>\n`);
 const manifest = JSON.parse(await readFile(path.join(src, "site.webmanifest"), "utf8"));
 manifest.start_url = basePath;
 manifest.icons = [{ src: assetUrls.favicon, sizes: "256x256", type: "image/png" }];
-manifest.version = stable.tag;
+if (!staticShowcase) manifest.version = stable.tag;
+else delete manifest.version;
 await writeFile(path.join(dist, "site.webmanifest"), `${JSON.stringify(manifest)}\n`);
-console.log(`Built atomic bilingual DropSpace website for ${stable.tag}.`);
+console.log(staticShowcase ? "Built bilingual static DropSpace showcase without live release data." : `Built atomic bilingual DropSpace website for ${stable.tag}.`);

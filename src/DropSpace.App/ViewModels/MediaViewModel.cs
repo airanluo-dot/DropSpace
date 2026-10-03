@@ -14,6 +14,7 @@ public sealed class MediaViewModel : ObservableObject
     private MediaSessionSnapshot _session = MediaSessionSnapshot.Empty;
     private LyricsHighlightFrame _lyrics = LyricsHighlightFrame.Empty;
     private LyricsDocument _lyricsDocument = LyricsDocument.Empty;
+    private string _lyricsDocumentTrackIdentity = string.Empty;
     private int _currentLyricIndex = -1;
     private LyricsQueryStatus _lyricsStatus = LyricsQueryStatus.Disabled;
     private SpectrumFrame _spectrum = SpectrumFrame.Empty;
@@ -26,6 +27,18 @@ public sealed class MediaViewModel : ObservableObject
     private readonly IAppStringLocalizer _strings;
     private readonly HashSet<object> _visibleOwners = [];
     private bool _presentationVisible;
+    // Only an actual island may request glow audio. Main-window Music presentation
+    // visibility must not accidentally light an off-screen island or start its capture.
+    private readonly HashSet<object> _islandGlowOwners = [];
+    private bool _islandGlowActive;
+    public bool IsIslandGlowActive => Volatile.Read(ref _islandGlowActive);
+    public void SetIslandGlowActive(object owner, bool active)
+    {
+        var wasActive = IsIslandGlowActive;
+        if (active) _islandGlowOwners.Add(owner); else _islandGlowOwners.Remove(owner);
+        Volatile.Write(ref _islandGlowActive, _islandGlowOwners.Count > 0);
+        if (wasActive != IsIslandGlowActive) OnPropertyChanged(nameof(IsIslandGlowActive));
+    }
     public bool IsPresentationVisible => Volatile.Read(ref _presentationVisible);
     public void SetPresentationVisible(object owner, bool visible)
     {
@@ -60,8 +73,15 @@ public sealed class MediaViewModel : ObservableObject
         get => _session;
         internal set
         {
+            var trackChanged = !string.Equals(_session.TrackIdentity, value.TrackIdentity, StringComparison.Ordinal);
             if (!SetProperty(ref _session, value)) return;
+            if (trackChanged)
+            {
+                SetProperty(ref _currentLyricIndex, -1, nameof(CurrentLyricIndex));
+                OnPropertyChanged(nameof(LyricsLines));
+            }
             OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
+            OnPropertyChanged(nameof(NextLyricText));
             OnPropertyChanged(nameof(SourceDisplayName));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
             OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
@@ -78,22 +98,27 @@ public sealed class MediaViewModel : ObservableObject
             var index = FindLyricIndex(value.Line);
             SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
             OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
+            OnPropertyChanged(nameof(NextLyricText));
         }
     }
 
-    public IReadOnlyList<LyricsLine> LyricsLines => _lyricsDocument.Lines;
+    public IReadOnlyList<LyricsLine> LyricsLines =>
+        string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal) ? _lyricsDocument.Lines : [];
     public int CurrentLyricIndex => _currentLyricIndex;
 
     internal void SetLyricsDocument(LyricsDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (ReferenceEquals(_lyricsDocument, document)) return;
+        if (ReferenceEquals(_lyricsDocument, document) &&
+            string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal)) return;
         _lyricsDocument = document;
+        _lyricsDocumentTrackIdentity = Session.TrackIdentity;
         var index = FindLyricIndex(_lyrics.Line);
         SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
         OnPropertyChanged(nameof(LyricsLines));
         OnPropertyChanged(nameof(CurrentLyricText));
         OnPropertyChanged(nameof(SecondaryLyricText));
+        OnPropertyChanged(nameof(NextLyricText));
     }
     public LyricsQueryStatus LyricsStatus
     {
@@ -113,6 +138,7 @@ public sealed class MediaViewModel : ObservableObject
         {
             if (!SetProperty(ref _settings, value)) return;
             OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText)); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
+            OnPropertyChanged(nameof(NextLyricText));
         }
     }
     public TimeSpan Position
@@ -122,6 +148,8 @@ public sealed class MediaViewModel : ObservableObject
         {
             if (!SetProperty(ref _position, value)) return;
             OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
+            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
+            OnPropertyChanged(nameof(NextLyricText));
         }
     }
     public string Title => Session.TrackTitle;
@@ -130,11 +158,29 @@ public sealed class MediaViewModel : ObservableObject
     public string ArtistAlbum => string.Join(" · ", new[] { Artist, Session.AlbumTitle }.Where(value => !string.IsNullOrWhiteSpace(value)));
     public string PlayPauseLabel => _strings.Get(IsPlaying ? "MediaPauseLabel" : "MediaPlayLabel");
     public string TimelineStatus => string.IsNullOrEmpty(Title) ? string.Empty : PositionEstimated ? _strings.Get("MediaEstimatedTimeline") : string.Empty;
-    public LyricsPresentation LyricPresentation => LyricsDisplayPolicy.Presentation(LyricsLines, Lyrics,
-        Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds);
+    public LyricsPresentation LyricPresentation
+    {
+        get
+        {
+            if (!string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal))
+                return new(false, null, false, false);
+            // Progressive translations replace a document before the next highlight frame.
+            // Always render the current document's text and origin at the stable original index.
+            var frame = CurrentLyricIndex >= 0 && CurrentLyricIndex < LyricsLines.Count
+                ? Lyrics with { Line = LyricsLines[CurrentLyricIndex] } : LyricsHighlightFrame.Empty;
+            return LyricsDisplayPolicy.Presentation(LyricsLines, frame,
+                Position - Session.Timeline.Start, Settings.Lyrics.DelayMilliseconds);
+        }
+    }
     public string CurrentLyricText => Settings.Lyrics.Enabled && LyricPresentation.HasLyrics
         ? LyricPresentation.Line?.Text ?? string.Empty : Title;
-    public string? SecondaryLyricText => LyricsDisplayPolicy.Secondary(LyricPresentation.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics);
+    public string? SecondaryLyricText => LyricsDisplayPolicy.SecondaryPresentation(LyricPresentation.Line, _strings.Culture.Name, Settings.Lyrics.Enabled && Settings.Lyrics.SecondaryLyrics, Settings.Lyrics.ShowAiLyricsLabel);
+    public string? NextLyricText => Settings.Lyrics.Enabled &&
+        string.Equals(_lyricsDocumentTrackIdentity, Session.TrackIdentity, StringComparison.Ordinal)
+            ? LyricsPreviewPolicy.NextLine(LyricsLines, Lyrics, Position - Session.Timeline.Start,
+                Settings.Lyrics.DelayMilliseconds)?.Text : null;
+    public string NextLyricLabel => _strings.Get("MediaNextLyricLabel");
+    public string CurrentLyricsLabel => _strings.Get("MusicLyricsSection");
     public string LyricsStatusText => string.IsNullOrEmpty(Title) || !Settings.Lyrics.Enabled ? string.Empty : LyricsStatus switch
     {
         LyricsQueryStatus.Loading => _strings.Get("LyricsLoading"),
@@ -158,7 +204,9 @@ public sealed class MediaViewModel : ObservableObject
         if (line is null) return -1;
         for (var index = 0; index < _lyricsDocument.Lines.Count; index++)
         {
-            if (ReferenceEquals(_lyricsDocument.Lines[index], line) || _lyricsDocument.Lines[index].Equals(line))
+            var candidate = _lyricsDocument.Lines[index];
+            if (ReferenceEquals(candidate, line) ||
+                (candidate.Start == line.Start && candidate.End == line.End && candidate.Text == line.Text))
             {
                 return index;
             }

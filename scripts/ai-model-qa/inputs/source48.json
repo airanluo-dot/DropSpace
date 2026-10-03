@@ -1,0 +1,438 @@
+{
+  "Lines": [
+    {
+      "Start": "00:00:00",
+      "End": "00:00:04",
+      "Text": "I fold the morning into a paper boat.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:04",
+      "End": "00:00:08",
+      "Text": "Your blue cup waits beside the window.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:08",
+      "End": "00:00:12",
+      "Text": "I did not promise to forget your name.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:12",
+      "End": "00:00:16",
+      "Text": "You said the northern road was closed.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:16",
+      "End": "00:00:20",
+      "Text": "We carry seven seeds across the bridge.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:20",
+      "End": "00:00:24",
+      "Text": "No lantern can replace the summer sun.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:24",
+      "End": "00:00:28",
+      "Text": "If you return, knock softly twice.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:28",
+      "End": "00:00:32",
+      "Text": "I hear the train but cannot see its lights.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:32",
+      "End": "00:00:36",
+      "Text": "The quiet room belongs to neither of us.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:36",
+      "End": "00:00:40",
+      "Text": "Keep the red scarf; leave the silver key.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:40",
+      "End": "00:00:44",
+      "Text": "Tomorrow I will choose a different path.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:44",
+      "End": "00:00:48",
+      "Text": "Our little river still remembers rain.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:48",
+      "End": "00:00:52",
+      "Text": "朝の光を紙の舟に折る。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:52",
+      "End": "00:00:56",
+      "Text": "青いカップが窓辺で君を待つ。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:00:56",
+      "End": "00:01:00",
+      "Text": "君の名前を忘れるとは約束していない。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:00",
+      "End": "00:01:04",
+      "Text": "北へ続く道は閉じたと君は言った。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:04",
+      "End": "00:01:08",
+      "Text": "七つの種を持って橋を渡る。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:08",
+      "End": "00:01:12",
+      "Text": "灯りは夏の太陽の代わりにはならない。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:12",
+      "End": "00:01:16",
+      "Text": "戻るなら、そっと二回ノックして。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:16",
+      "End": "00:01:20",
+      "Text": "列車の音は聞こえるが、光は見えない。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:20",
+      "End": "00:01:24",
+      "Text": "静かな部屋は私たちのどちらのものでもない。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:24",
+      "End": "00:01:28",
+      "Text": "赤いスカーフを持って、銀の鍵を置いて。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:28",
+      "End": "00:01:32",
+      "Text": "明日は別の道を選ぶ。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:32",
+      "End": "00:01:36",
+      "Text": "小さな川はまだ雨を覚えている。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:36",
+      "End": "00:01:40",
+      "Text": "아침 햇살을 종이배에 접어 담아.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:40",
+      "End": "00:01:44",
+      "Text": "파란 컵이 창가에서 너를 기다려.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:44",
+      "End": "00:01:48",
+      "Text": "네 이름을 잊겠다고 약속하지 않았어.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:48",
+      "End": "00:01:52",
+      "Text": "북쪽 길이 닫혔다고 네가 말했어.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:52",
+      "End": "00:01:56",
+      "Text": "우리는 씨앗 일곱 개를 들고 다리를 건너.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:01:56",
+      "End": "00:02:00",
+      "Text": "등불은 여름 태양을 대신할 수 없어.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:00",
+      "End": "00:02:04",
+      "Text": "돌아오면 조용히 두 번 두드려.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:04",
+      "End": "00:02:08",
+      "Text": "기차 소리는 들리지만 불빛은 보이지 않아.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:08",
+      "End": "00:02:12",
+      "Text": "고요한 방은 우리 누구의 것도 아니야.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:12",
+      "End": "00:02:16",
+      "Text": "빨간 목도리는 가져가고 은색 열쇠는 두고 가.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:16",
+      "End": "00:02:20",
+      "Text": "내일 나는 다른 길을 고를 거야.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:20",
+      "End": "00:02:24",
+      "Text": "작은 강은 아직 비를 기억해.",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:24",
+      "End": "00:02:28",
+      "Text": "我把晨光折进一只纸船。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:28",
+      "End": "00:02:32",
+      "Text": "你的蓝杯子仍在窗边等候。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:32",
+      "End": "00:02:36",
+      "Text": "我并没有答应忘记你的名字。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:36",
+      "End": "00:02:40",
+      "Text": "你说向北的路已经关闭。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:40",
+      "End": "00:02:44",
+      "Text": "我们带着七粒种子走过桥。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:44",
+      "End": "00:02:48",
+      "Text": "没有灯笼能代替夏天的太阳。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:48",
+      "End": "00:02:52",
+      "Text": "如果你回来，请轻轻敲两下门。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:52",
+      "End": "00:02:56",
+      "Text": "我听见火车，却看不见灯光。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:02:56",
+      "End": "00:03:00",
+      "Text": "安静的房间不属于我们任何一个人。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:03:00",
+      "End": "00:03:04",
+      "Text": "带走红围巾，留下银钥匙。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:03:04",
+      "End": "00:03:08",
+      "Text": "明天我会选择另一条路。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    },
+    {
+      "Start": "00:03:08",
+      "End": "00:03:12",
+      "Text": "我们的小河仍然记得雨。",
+      "Secondary": null,
+      "Words": [],
+      "TranslationOrigin": 0,
+      "TranslationLanguage": null
+    }
+  ],
+  "Provider": 5,
+  "Match": null
+}

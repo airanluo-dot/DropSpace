@@ -26,9 +26,11 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
     private readonly MediaViewModel _media;
     private NativeTrayService? _tray;
     private bool _allowClose;
+    private bool _startupInteractionEnabled = true;
     private bool _closeExplanationInProgress;
     private readonly CancellationTokenSource _closeExplanationCancellation = new();
     private Task? _closeExplanationTask;
+    private Task<AppSettings?>? _privacyChoicesTask;
 
     public MainWindow(
         MainViewModel viewModel,
@@ -120,6 +122,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             _displayLanguage = _viewModel.Language;
             DispatcherQueue.TryEnqueue(() =>
             {
+                if (_allowClose) return;
+                _mainPage.Retire();
                 _mainPage = _createMainPage();
                 RootContent.Content = _mainPage;
                 XamlResourceOverride.Apply(this, "MainWindow");
@@ -210,10 +214,50 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         _viewModel.PropertyChanged -= OnMediaSectionChanged;
         _media.SetPresentationVisible(this, false);
         _closeExplanationCancellation.Cancel();
+        Views.ContentDialogLifetime.RetireRoot(_mainPage.XamlRoot);
+        _mainPage.Retire();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.Dispose();
         _tray?.Dispose();
         _tray = null;
+    }
+
+    public void SetStartupInteractionEnabled(bool enabled)
+    {
+        _startupInteractionEnabled = enabled;
+        _mainPage.IsEnabled = enabled;
+    }
+
+    public Task<AppSettings?> ChooseInitialPrivacyAsync(AppSettings settings, CancellationToken token) =>
+        _privacyChoicesTask = ChooseInitialPrivacyCoreAsync(settings, token);
+
+    private async Task<AppSettings?> ChooseInitialPrivacyCoreAsync(AppSettings settings, CancellationToken token)
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _closeExplanationCancellation.Token);
+        token = lifetime.Token;
+        ShowAndActivate();
+        var root = await WaitForXamlRootAsync(token);
+        if (root is null) return null;
+        var capture = new CheckBox { Content = _strings.Get("FirstRunClipboardChoice"), IsChecked = false };
+        var startup = new CheckBox { Content = _strings.Get("FirstRunStartupChoice"), IsChecked = false };
+        var content = new StackPanel { Spacing = 12 };
+        content.Children.Add(new TextBlock { Text = _strings.Get("FirstRunPrivacyBody"), TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(capture);
+        content.Children.Add(startup);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root, Title = _strings.Get("FirstRunPrivacyTitle"), Content = content,
+            PrimaryButtonText = _strings.Get("FirstRunContinue"), CloseButtonText = _strings.Get("FirstRunSkip"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        var result = await Views.ContentDialogLifetime.ShowAsync(dialog, token);
+        token.ThrowIfCancellationRequested();
+        return settings with
+        {
+            PrivacyChoicesCompleted = true,
+            ClipboardPaused = result != ContentDialogResult.Primary || capture.IsChecked != true,
+            StartWithWindows = result == ContentDialogResult.Primary && startup.IsChecked == true,
+        };
     }
 
     public async Task<bool> ShowRecoveryAsync(CancellationToken cancellationToken = default)
@@ -289,6 +333,11 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         }
 
         args.Cancel = true;
+        if (!_startupInteractionEnabled)
+        {
+            ExitRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
         if (_viewModel.Settings.CloseBehavior == CloseBehavior.HideToTray && _tray?.IsAvailable == true)
         {
             if (!_viewModel.Settings.CloseExplanationShown && !_closeExplanationInProgress)
@@ -354,6 +403,11 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             }
         }
 
+        if (_privacyChoicesTask is not null)
+        {
+            try { await _privacyChoicesTask.ConfigureAwait(true); }
+            catch (OperationCanceledException) when (_closeExplanationCancellation.IsCancellationRequested) { }
+        }
         _closeExplanationCancellation.Dispose();
     }
 

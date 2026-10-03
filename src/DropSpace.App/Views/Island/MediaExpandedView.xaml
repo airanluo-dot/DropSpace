@@ -24,11 +24,13 @@
     <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
    </StackPanel>
   </Grid>
-  <StackPanel x:Name="LyricsArea" Grid.Row="1" Spacing="2" MaxHeight="112">
-   <TextBlock Text="{Binding CurrentLyricText}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite" />
-   <TextBlock Text="{Binding SecondaryLyricText}" FontSize="13" Opacity="0.72" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+  <ScrollViewer x:Name="CurrentLyricsViewport" Grid.Row="1" MaxHeight="112" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" ZoomMode="Disabled" IsTabStop="True" AutomationProperties.Name="{Binding CurrentLyricsLabel}">
+  <StackPanel x:Name="LyricsArea" Spacing="2">
+   <TextBlock x:Name="OriginalLyric" Text="{Binding CurrentLyricText}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+   <TextBlock x:Name="TranslatedLyric" Text="{Binding SecondaryLyricText}" FontSize="14" Opacity="0.72" TextWrapping="Wrap" />
    <TextBlock Text="{Binding LyricsStatusText}" FontSize="11" Opacity="0.72" TextWrapping="Wrap" />
   </StackPanel>
+  </ScrollViewer>
   <Grid x:Name="TimelineRow" Grid.Row="2" ColumnSpacing="12">
    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <TextBlock x:Name="ElapsedLabel" MinWidth="48" VerticalAlignment="Center"/>

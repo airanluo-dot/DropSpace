@@ -10,11 +10,16 @@ export default defineConfig({
     // local development continues to use Playwright's bundled Chromium.
     channel: process.env.CI ? "chrome" : undefined,
     viewport: { width: 1440, height: 900 },
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {},
     trace: "retain-on-failure"
   },
-  webServer: {
+  webServer: [{
     command: "node scripts/serve.mjs",
     url: "http://127.0.0.1:4173/DropSpace/en/",
     reuseExistingServer: true
-  }
+  }, {
+    command: "node scripts/build-static.mjs && node scripts/serve.mjs --static",
+    url: "http://127.0.0.1:4174/en/index.html",
+    reuseExistingServer: true
+  }]
 });

@@ -63,6 +63,9 @@ jobs:
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
+      - name: Test frozen model prompt localization exceptions
+        run: node --test scripts/test-localization-policy.test.mjs
+
       - name: Enforce Windows 10/11 compatibility baseline
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
@@ -77,6 +80,12 @@ jobs:
 
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
+
+      - name: Build verified offline AI inference runtime
+        shell: pwsh
+        run: |
+          ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
+          ./scripts/Build-AiLyricsRuntime.ps1
 
       - name: Test core policies, SemVer, and channel selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
@@ -97,6 +106,7 @@ jobs:
         run: dotnet build src/DropSpace.App/DropSpace.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:AppxPackageSigningEnabled=false -p:GenerateAppxPackageOnBuild=false
 
       - name: Publish portable self-contained EXE
+        id: portable-publish
         shell: pwsh
         run: ./scripts/Build-PortableExe.ps1
 
@@ -170,9 +180,12 @@ jobs:
           retention-days: 7
 
       - name: Collect isolated native crash address evidence
-        if: always() && matrix.language == 'zh-CN'
+        if: always() && matrix.language == 'zh-CN' && steps.portable-publish.outcome == 'success'
         shell: pwsh
         run: |
+          if (-not (Test-Path -LiteralPath artifacts/release/DropSpace.exe -PathType Leaf)) {
+            throw 'Portable publication succeeded without its required EXE; native crash diagnostics cannot run.'
+          }
           New-Item -ItemType Directory -Force artifacts/diagnostics | Out-Null
           $env:DROPSPACE_TEST_DATA_ROOT = Join-Path $env:RUNNER_TEMP ("DropSpace-native-probe-" + [guid]::NewGuid().ToString('N'))
           dotnet run --project tools/NativeCrashProbe/NativeCrashProbe.csproj -c Release -- artifacts/release/DropSpace.exe artifacts/diagnostics/native-address-evidence.json

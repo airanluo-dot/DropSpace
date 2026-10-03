@@ -17,12 +17,26 @@ public sealed record IslandActivitySettings
 
 public sealed record LyricsSettings
 {
-    public bool Enabled { get; init; } = true;
+    public long CacheMaximumBytes { get; init; } = 1L * 1024 * 1024 * 1024;
+    public bool AiTranslationEnabled { get; init; }
+    // AI itself remains opt-in. When enabled, prefer verified GPU acceleration with CPU fallback.
+    public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
+    public string AiModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
+    public Lyrics.LyricsGlowMode GlowMode { get; init; }
+    // Missing in older settings: keep the full surrounding halo.
+    public bool SimplifiedGlow { get; init; }
+    public double FontSize { get; init; } = 16;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double OriginalFontSize => FontSize;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double TranslationFontSize => FontSize * 0.875;
+    public bool Enabled { get; init; }
     public LyricsMode Mode { get; init; }
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.NetEase;
     public LyricsProviderKind? BackupProvider { get; init; }
     public bool SearchRemainingProviders { get; init; }
     public bool SecondaryLyrics { get; init; }
+    public bool ShowAiLyricsLabel { get; init; } = true;
     public bool WordSyncedHighlighting { get; init; } = true;
     public int DelayMilliseconds { get; init; }
     public bool Scrolling { get; init; } = true;
@@ -32,6 +46,9 @@ public sealed record LyricsSettings
 
 public sealed record IslandAppearanceSettings
 {
+    // Opt-in only. Missing fields in existing settings remain false; the old
+    // fullscreen suppression preference is retained and resumes when this is off.
+    public bool ForceShowOverFullscreen { get; init; }
     public bool AutoHide { get; init; } = true;
     public int HideDelayMilliseconds { get; init; } = 3_000;
     public double CompactScale { get; init; } = 1;

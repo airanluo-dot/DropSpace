@@ -8,6 +8,7 @@ namespace DropSpace.Infrastructure.Tests;
 [TestClass]
 public sealed class LyricsProviderStrategyNativeSmokeTests
 {
+    public TestContext TestContext { get; set; } = null!;
     private static readonly LyricsProviderKind[] OnlineProviders =
     [
         LyricsProviderKind.NetEase,
@@ -26,21 +27,71 @@ public sealed class LyricsProviderStrategyNativeSmokeTests
             Assert.Inconclusive("Set DROPSPACE_LYRICS_PROVIDER_NATIVE=1 to exercise the live online providers.");
         }
 
-        using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+        using var transport = new RecordingHttpHandler();
+        using var client = new HttpClient(transport)
         {
             Timeout = Timeout.InfiniteTimeSpan,
         };
         var real = new LyricsProviderRegistry(new LyricsHttpClient(client), Path.GetTempPath);
 
-        await VerifyAsync(real, new LyricsSettings(), [LyricsProviderKind.NetEase]);
-        await VerifyAsync(real, new LyricsSettings { BackupProvider = LyricsProviderKind.QqMusic },
-            [LyricsProviderKind.NetEase, LyricsProviderKind.QqMusic]);
-        await VerifyAsync(real, new LyricsSettings { SearchRemainingProviders = true }, OnlineProviders);
-        await VerifyAsync(real, new LyricsSettings
+        try
         {
-            BackupProvider = LyricsProviderKind.QqMusic,
-            SearchRemainingProviders = true,
-        }, OnlineProviders);
+            await VerifyAsync(real, new LyricsSettings { Enabled = true }, [LyricsProviderKind.NetEase]);
+            await VerifyAsync(real, new LyricsSettings { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic },
+                [LyricsProviderKind.NetEase, LyricsProviderKind.QqMusic]);
+            await VerifyAsync(real, new LyricsSettings { Enabled = true, SearchRemainingProviders = true }, OnlineProviders);
+            await VerifyAsync(real, new LyricsSettings
+            {
+                Enabled = true,
+                BackupProvider = LyricsProviderKind.QqMusic,
+                SearchRemainingProviders = true,
+            }, OnlineProviders);
+        }
+        finally { TestContext.WriteLine(System.Text.Json.JsonSerializer.Serialize(transport.Events)); }
+    }
+
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    public async Task PublicSongRequestReturnsActualTimedLyrics()
+    {
+        if (Environment.GetEnvironmentVariable("DROPSPACE_LYRICS_PROVIDER_NATIVE") != "1")
+        { Assert.Inconclusive("Set DROPSPACE_LYRICS_PROVIDER_NATIVE=1 for the real public-song provider gate."); return; }
+        using var transport = new RecordingHttpHandler();
+        using var client = new HttpClient(transport) { Timeout = Timeout.InfiniteTimeSpan };
+        var registry = new LyricsProviderRegistry(new LyricsHttpClient(client), Path.GetTempPath);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        try
+        {
+            var document = await registry.Get(LyricsProviderKind.Lrclib).QueryAsync(
+                new LyricsQuery("Shape of You", "Ed Sheeran", "", TimeSpan.FromSeconds(234)), deadline.Token);
+            TestContext.WriteLine($"Public catalog probe: provider=Lrclib; lines={document.Lines.Count}; timed={document.Lines.Count(line => line.Start > TimeSpan.Zero)}. Lyric text is not logged.");
+            Assert.IsTrue(document.Lines.Count > 0, "The real public-song gate requires returned lyrics, not merely a completed HTTP attempt.");
+            Assert.IsTrue(document.Lines.Any(line => line.Start > TimeSpan.Zero));
+        }
+        finally { TestContext.WriteLine(System.Text.Json.JsonSerializer.Serialize(transport.Events)); }
+    }
+
+    private sealed class RecordingHttpHandler : DelegatingHandler
+    {
+        internal readonly List<object> Events = [];
+        internal RecordingHttpHandler() : base(new HttpClientHandler { AllowAutoRedirect = false }) { }
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                var response = await base.SendAsync(request, cancellationToken);
+                lock (Events) Events.Add(new { host = request.RequestUri!.Host, path = request.RequestUri.AbsolutePath,
+                    status = (int)response.StatusCode, milliseconds = clock.ElapsedMilliseconds });
+                return response;
+            }
+            catch (Exception error)
+            {
+                lock (Events) Events.Add(new { host = request.RequestUri!.Host, path = request.RequestUri.AbsolutePath,
+                    error = error.GetType().Name, hresult = $"0x{error.HResult:X8}", milliseconds = clock.ElapsedMilliseconds });
+                throw;
+            }
+        }
     }
 
     private static async Task VerifyAsync(

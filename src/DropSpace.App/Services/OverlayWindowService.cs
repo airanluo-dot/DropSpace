@@ -32,6 +32,8 @@ public sealed class OverlayWindowService : IDisposable
     private readonly DragSessionDetector _dragSessionDetector;
     private readonly GlobalQuickPanelHotkeyService _quickPanelHotkey;
     private readonly DispatcherQueue _dispatcher;
+    private readonly DispatcherQueueTimer _fullscreenRefreshTimer;
+    private string? _lastFullscreenMonitorId;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<OverlayWindowService> _logger;
     private readonly CrashDiagnosticsService _crashDiagnostics;
@@ -45,10 +47,10 @@ public sealed class OverlayWindowService : IDisposable
     private Action? _openMainWindow;
     private DragTargetOwner _activeDragOwner;
     private long _activeSmartSessionId;
+    private long _dragGeneration;
     private DragScreenPoint _activeSmartSessionPoint;
     private FileDragWakeMode? _configuredWakeMode;
     private OverlayWindow? _placementEditingWindow;
-    private FileDragWakeMode? _placementInputRestoreMode;
     private bool _topologyRefreshPending;
     private bool _disposed;
     private bool _rebuildingSurfaces;
@@ -89,6 +91,10 @@ public sealed class OverlayWindowService : IDisposable
         _dragSessionDetector = dragSessionDetector;
         _quickPanelHotkey = quickPanelHotkey;
         _dispatcher = dispatcher;
+        _fullscreenRefreshTimer = dispatcher.CreateTimer();
+        _fullscreenRefreshTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _fullscreenRefreshTimer.IsRepeating = true;
+        _fullscreenRefreshTimer.Tick += OnFullscreenRefreshTick;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<OverlayWindowService>();
         _crashDiagnostics = crashDiagnostics;
@@ -131,6 +137,7 @@ public sealed class OverlayWindowService : IDisposable
         await _quickPanelHotkey.StartAsync(_viewModel.QuickPanelHotkey, cancellationToken);
         _dragSessionDetector.SetExcludedProcesses(_viewModel.SmartDragExcludedProcesses);
         ConfigureWakeMode(_viewModel.FileDragWakeMode);
+        UpdateFullscreenRefreshTimer();
         ApplySnapshot(_viewModel.Snapshot);
     }
 
@@ -149,6 +156,8 @@ public sealed class OverlayWindowService : IDisposable
         {
             ExerciseLifecycle();
         }
+
+        _windows[0].VerifyTransientNativeRecoveryForSmoke();
 
         var geometryStressCycles = 1_000;
         var regionFailures = _windows[0].RunGeometryStress(geometryStressCycles);
@@ -538,6 +547,8 @@ public sealed class OverlayWindowService : IDisposable
 
         // Retire before cleanup can synchronously publish media/input changes.
         _disposed = true;
+        _fullscreenRefreshTimer.Stop();
+        _fullscreenRefreshTimer.Tick -= OnFullscreenRefreshTick;
         _viewModel.SnapshotChanged -= OnSnapshotChanged;
         _experience.Changed -= OnExperienceChanged;
         _mediaViewModel.PropertyChanged -= OnMediaSettingsChanged;
@@ -623,7 +634,37 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnMediaSettingsChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings)) ApplySnapshot(_viewModel.Snapshot);
+        if (!_disposed && args.PropertyName == nameof(MediaViewModel.Settings))
+        {
+            UpdateFullscreenRefreshTimer();
+            ApplySnapshot(_viewModel.Snapshot);
+        }
+    }
+
+    private void UpdateFullscreenRefreshTimer()
+    {
+        if (_mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen && !_disposed)
+            _fullscreenRefreshTimer.Start();
+        else
+            _fullscreenRefreshTimer.Stop();
+    }
+
+    private string? GetForegroundFullscreenMonitorId() =>
+        _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen
+            ? _surfaceMonitors.FirstOrDefault(_monitorLayout.IsForegroundFullscreen)?.Id
+            : null;
+
+    private void OnFullscreenRefreshTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_disposed || _rebuildingSurfaces || _placementEditingWindow is not null) return;
+        var fullscreenMonitorId = GetForegroundFullscreenMonitorId();
+        // Alt+Enter/F11 can change fullscreen without changing the foreground HWND.
+        // Re-project only on a change, avoiding repeated animation/layout work.
+        if (!string.Equals(fullscreenMonitorId, _lastFullscreenMonitorId, StringComparison.Ordinal) ||
+            fullscreenMonitorId is not null && _windows.Any(window => window.NeedsFullscreenPresentationRecovery))
+            ApplySnapshot(_viewModel.Snapshot);
+        else
+            foreach (var window in _windows) window.MaintainFullscreenVisibility();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
@@ -710,7 +751,6 @@ public sealed class OverlayWindowService : IDisposable
                 host.SetEnabled(false);
             }
 
-            _placementInputRestoreMode = _configuredWakeMode ?? _viewModel.FileDragWakeMode;
             _placementEditingWindow = window;
             // Reset the serialized drag policy before arming the edit. The edit still needs the
             // Smart observer's global Escape hook, so restart it after the old session is gone.
@@ -799,12 +839,8 @@ public sealed class OverlayWindowService : IDisposable
 
     private void RestorePlacementInputMode()
     {
-        var restoreMode = _placementInputRestoreMode;
-        _placementInputRestoreMode = null;
-        if (restoreMode is { } mode && mode != FileDragWakeMode.SmartExperimental)
-        {
-            _dragSessionDetector.SetMode(mode);
-        }
+        // Settings may have changed while the temporary Escape observer was active.
+        ConfigureWakeMode(_viewModel.FileDragWakeMode, force: true);
     }
 
     private void ResumePlacementSuppressedWindows()
@@ -864,10 +900,18 @@ public sealed class OverlayWindowService : IDisposable
         var primaryOnly = _viewModel.MonitorPreference == OverlayMonitorPreference.Primary &&
                           !smartPointerDisplay;
         var activeMonitorId = primaryOnly ? _primaryMonitor.Id : _viewModel.ActiveMonitorId;
+        _lastFullscreenMonitorId = GetForegroundFullscreenMonitorId();
+        var forceFullscreen = _mediaViewModel.Settings.IslandAppearance.ForceShowOverFullscreen;
+        var isDragging = snapshot.State is OverlayState.DragApproaching or OverlayState.DragReady;
+        activeMonitorId = FullscreenOverlayPolicy.ResolveMonitorId(activeMonitorId,
+            _viewModel.MonitorPreference, forceFullscreen, _lastFullscreenMonitorId, isDragging);
+        var activePresentation = FullscreenOverlayPolicy.Resolve(snapshot.State, forceFullscreen,
+            _mediaViewModel.Settings.SystemActivities.SuppressOverFullscreen,
+            _lastFullscreenMonitorId is not null && activeMonitorId == _lastFullscreenMonitorId);
         foreach (var host in _activationHosts)
         {
             var monitorEnabled = !primaryOnly || host.MonitorId == _primaryMonitor.Id;
-            var visualSurfaceOwnsStableInput = snapshot.State is OverlayState.Compact or OverlayState.Expanded;
+            var visualSurfaceOwnsStableInput = activePresentation.State is OverlayState.Compact or OverlayState.Expanded;
             var activationEnabled = _activeDragOwner == DragTargetOwner.ActivationHost ||
                                     _activeDragOwner == DragTargetOwner.None && !visualSurfaceOwnsStableInput;
             host.SetEnabled(monitorEnabled && activationEnabled);
@@ -885,7 +929,8 @@ public sealed class OverlayWindowService : IDisposable
         }
     }
 
-    private void CreateMonitorSurfaces(IReadOnlyList<MonitorDescriptor>? snapshot = null)
+    private void CreateMonitorSurfaces(IReadOnlyList<MonitorDescriptor>? snapshot = null,
+        IReadOnlyDictionary<string, IslandGlowTransfer>? glowTransfers = null)
     {
         var monitors = snapshot ?? _monitorLayout.GetMonitors();
         _primaryMonitor = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
@@ -893,8 +938,11 @@ public sealed class OverlayWindowService : IDisposable
             OnVisibleDragApproaching,
             OnVisibleDragReadyChanged,
             OnVisibleDragLeft,
-            OnVisibleDroppedAsync,
-            OnVisibleOwnedDroppedAsync);
+            (monitor, paths) => OnVisibleDroppedAsync(monitor, paths),
+            (monitor, paths, lease) => OnVisibleOwnedDroppedAsync(monitor, paths, lease),
+            CaptureDragCompletionGuard,
+            (monitor, paths, current) => OnVisibleDroppedAsync(monitor, paths, current),
+            (monitor, paths, lease, current) => OnVisibleOwnedDroppedAsync(monitor, paths, lease, current));
         foreach (var monitor in monitors)
         {
             var window = new OverlayWindow(
@@ -914,6 +962,8 @@ public sealed class OverlayWindowService : IDisposable
                 _widgetViewModel,
                 _clipboardViewModel,
                 _systemActivityViewModel);
+            if (glowTransfers is not null && glowTransfers.TryGetValue(monitor.Id, out var transfer))
+                window.StageGlowHandoff(transfer);
             window.ApplyTheme(_mainViewModel.Theme);
             window.PlacementCommitted += OnPlacementCommitted;
             window.PlacementEditRequested += OnOverlayPlacementEditRequested;
@@ -952,16 +1002,19 @@ public sealed class OverlayWindowService : IDisposable
             _viewModel.CancelDrag();
         }
 
-        _dragSessionDetector.SetMode(mode);
+        _dragSessionDetector.SetMode(_placementEditingWindow is null ? mode : FileDragWakeMode.SmartExperimental);
         _configuredWakeMode = mode;
-        if (mode == FileDragWakeMode.ClassicTopEdge)
+        if (_placementEditingWindow is null && mode == FileDragWakeMode.ClassicTopEdge)
         {
             var callbacks = new DragActivationCallbacks(
                 OnDragApproaching,
                 OnDragReadyChanged,
                 OnDragLeft,
-                OnDroppedAsync,
-                OnOwnedDroppedAsync);
+                (monitor, paths) => OnDroppedAsync(monitor, paths),
+                (monitor, paths, lease) => OnOwnedDroppedAsync(monitor, paths, lease),
+                CaptureDragCompletionGuard,
+                (monitor, paths, current) => OnDroppedAsync(monitor, paths, current),
+                (monitor, paths, lease, current) => OnOwnedDroppedAsync(monitor, paths, lease, current));
             foreach (var monitor in _monitorLayout.GetMonitors())
             {
                 var host = _dragDropService.CreateActivationHost(monitor, callbacks);
@@ -990,6 +1043,7 @@ public sealed class OverlayWindowService : IDisposable
                 _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
             }
 
+            if (_activeSmartSessionId != candidate.SessionId) ++_dragGeneration;
             _activeSmartSessionId = candidate.SessionId;
             _activeSmartSessionPoint = candidate.Point;
             _logger.LogInformation(
@@ -1108,6 +1162,7 @@ public sealed class OverlayWindowService : IDisposable
 
     private void OnDragApproaching(string monitorId)
     {
+        ++_dragGeneration;
         _activeDragOwner = DragTargetOwner.ActivationHost;
         _logger.LogInformation(
             "Visual overlay reveal requested by drag activation on monitor {MonitorId}.",
@@ -1137,11 +1192,12 @@ public sealed class OverlayWindowService : IDisposable
         ApplySnapshot(_viewModel.Snapshot);
     }
 
-    private async Task OnDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnDroppedAsync(string monitorId, IReadOnlyList<string> paths, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            var accepted = await _viewModel.CompleteDropAsync(monitorId, paths);
+            var accepted = await _viewModel.CompleteDropAsync(monitorId, paths, isCurrent: current);
             _logger.LogInformation(
                 "Temporary Space activation-host drop completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}.",
                 monitorId,
@@ -1150,28 +1206,36 @@ public sealed class OverlayWindowService : IDisposable
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
     }
 
-    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
+    private async Task OnOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: false);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: false, isCurrent: current);
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
     }
 
     private void OnVisibleDragApproaching(string monitorId)
     {
+        ++_dragGeneration;
         if (_activeSmartSessionId != 0)
         {
             _dragDropService.CancelVerificationProbe(_activeSmartSessionId);
@@ -1210,11 +1274,12 @@ public sealed class OverlayWindowService : IDisposable
         ApplySnapshot(_viewModel.Snapshot);
     }
 
-    private async Task OnVisibleDroppedAsync(string monitorId, IReadOnlyList<string> paths)
+    private async Task OnVisibleDroppedAsync(string monitorId, IReadOnlyList<string> paths, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            var accepted = await _viewModel.CompleteVisibleDropAsync(monitorId, paths);
+            var accepted = await _viewModel.CompleteVisibleDropAsync(monitorId, paths, isCurrent: current);
             _logger.LogInformation(
                 "Visible Overlay direct drop completed on monitor {MonitorId}: offered {OfferedCount}, accepted {AcceptedCount}, resulting state {State}.",
                 monitorId,
@@ -1224,24 +1289,37 @@ public sealed class OverlayWindowService : IDisposable
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
     }
 
-    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease)
+    private async Task OnVisibleOwnedDroppedAsync(string monitorId, IReadOnlyList<string> paths, StagingLease lease, Func<bool>? current = null)
     {
+        current ??= CaptureDragCompletionGuard();
         try
         {
-            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: true);
+            await _viewModel.CompleteOwnedDropAsync(monitorId, paths, lease, visibleTarget: true, isCurrent: current);
         }
         finally
         {
-            _activeDragOwner = DragTargetOwner.None;
-            CompleteSmartDetectorSession();
-            ApplySnapshot(_viewModel.Snapshot);
+            if (current())
+            {
+                _activeDragOwner = DragTargetOwner.None;
+                CompleteSmartDetectorSession();
+                ApplySnapshot(_viewModel.Snapshot);
+            }
         }
+    }
+
+    private Func<bool> CaptureDragCompletionGuard()
+    {
+        var generation = _dragGeneration;
+        return () => !_disposed && generation == _dragGeneration;
     }
 
     private void CompleteSmartDetectorSession()
@@ -1293,6 +1371,10 @@ public sealed class OverlayWindowService : IDisposable
                 }
                 ResumePlacementSuppressedWindows();
 
+                var glowTransfers = new Dictionary<string, IslandGlowTransfer>(StringComparer.Ordinal);
+                foreach (var window in _windows)
+                    if (window.CaptureGlowHandoff() is { } transfer) glowTransfers[window.MonitorId] = transfer;
+
                 foreach (var window in _windows)
                 {
                     window.PlacementCommitted -= OnPlacementCommitted;
@@ -1309,7 +1391,7 @@ public sealed class OverlayWindowService : IDisposable
                 }
 
                 _activationHosts.Clear();
-                CreateMonitorSurfaces(monitors);
+                CreateMonitorSurfaces(monitors, glowTransfers);
                 ConfigureWakeMode(_viewModel.FileDragWakeMode, force: true);
                 if (_primaryMonitor is not null &&
                     !_windows.Any(window => string.Equals(

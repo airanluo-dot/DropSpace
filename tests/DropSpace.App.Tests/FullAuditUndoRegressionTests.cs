@@ -17,6 +17,41 @@ namespace DropSpace.App.Tests;
 public sealed class FullAuditUndoRegressionTests
 {
     [TestMethod]
+    public async Task StartupRecoveryRestoresRemovalWhoseUndoOwnerWasLost()
+    {
+        await WithRepositoryAsync(async (repository, paths) =>
+        {
+            var item = await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("crash during undo window"));
+            await repository.BeginPendingRemovalAsync([item.Id], "lost-process-token", DateTimeOffset.UtcNow.Add(UndoCoordinator.UndoWindow));
+            await using var restarted = CreateUndo(repository, paths);
+
+            await restarted.RecoverStaleAsync();
+
+            Assert.IsNotNull(await repository.GetAsync(item.Id));
+            Assert.IsNull(restarted.State);
+            Assert.AreEqual(0, ExpirationTasks(restarted).Count);
+        });
+    }
+
+    [TestMethod]
+    public async Task RecoveryDuringAnActiveUndoDoesNotRestoreItsRemoval()
+    {
+        await WithRepositoryAsync(async (repository, paths) =>
+        {
+            var item = await repository.AddTextAsync(ContentClassifier.CreateTextCandidate("current undo window"));
+            await using var undo = CreateUndo(repository, paths);
+            var active = await undo.BeginRemovalAsync([item.Id], UndoOperationKind.RemoveItem, "test");
+
+            await undo.RecoverStaleAsync();
+
+            Assert.IsNull(await repository.GetAsync(item.Id));
+            Assert.AreEqual(active, undo.State);
+            Assert.IsTrue(await undo.UndoAsync());
+            Assert.IsNotNull(await repository.GetAsync(item.Id));
+        });
+    }
+
+    [TestMethod]
     public async Task SubscriberFailureDoesNotPreventRemovalExpirationOwnership()
     {
         await WithRepositoryAsync(async (repository, paths) =>

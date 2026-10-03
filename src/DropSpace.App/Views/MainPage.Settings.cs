@@ -34,6 +34,14 @@ public sealed partial class MainPage
             else groups[uid == "DevicesSharingSection" ? "Devices" : uid == "UpdatesSection" ? "Updates" : "General"].Children.Add(section);
         }
         var island = new SettingsForm(editor, _strings);
+        var forceFullscreen = island.AddToggle("IslandForceShowOverFullscreen", s => s.IslandAppearance.ForceShowOverFullscreen,
+            (s, v) => s with { IslandAppearance = s.IslandAppearance with { ForceShowOverFullscreen = v } });
+        var fullscreenDescription = _strings.Get("IslandForceShowOverFullscreenDescription");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(forceFullscreen, fullscreenDescription);
+        island.Rows.Children.Add(new TextBlock
+        {
+            Text = fullscreenDescription, TextWrapping = TextWrapping.Wrap, Margin = new(14, 0, 14, 8),
+        });
         island.AddToggle("IslandAutoHide", s => s.IslandAppearance.AutoHide, (s,v) => s with { IslandAppearance = s.IslandAppearance with { AutoHide = v } });
         island.AddNumber("IslandHideDelay", 500, 30000, 500, s => s.IslandAppearance.HideDelayMilliseconds, (s,v) => s with { IslandAppearance = s.IslandAppearance with { HideDelayMilliseconds = (int)v } });
         island.AddNumber("IslandCompactScale", 0.5, 2, 0.1, s => s.IslandAppearance.CompactScale, (s,v) => s with { IslandAppearance = s.IslandAppearance with { CompactScale = v } });
@@ -44,7 +52,9 @@ public sealed partial class MainPage
         var activities = new SettingsForm(editor, _strings);
         activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } }, editor.CheckNotificationAccessAsync);
         activities.AddToggle("ActivitiesVolume", s => s.SystemActivities.ShowVolumeChanges, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowVolumeChanges = v } });
-        activities.AddToggle("ActivitiesFullscreen", s => s.SystemActivities.SuppressOverFullscreen, (s,v) => s with { SystemActivities = s.SystemActivities with { SuppressOverFullscreen = v } });
+        activities.AddToggle("ActivitiesFullscreen", s => s.SystemActivities.SuppressOverFullscreen,
+            (s,v) => s with { SystemActivities = s.SystemActivities with { SuppressOverFullscreen = v } },
+            isEnabled: s => !s.IslandAppearance.ForceShowOverFullscreen);
         groups["SystemActivities"].Children.Add(activities);
         var version = new TextBlock { FontSize = 22 };
         version.SetBinding(TextBlock.TextProperty, new Binding { Source = _viewModel, Path = new PropertyPath(nameof(MainViewModel.CurrentVersionDisplayText)) });

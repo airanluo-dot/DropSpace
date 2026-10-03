@@ -33,9 +33,19 @@ public sealed record LyricsMatchInfo(
     string? CandidateId = null,
     string TrackIdentity = "");
 public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
-public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words);
+public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
+{
+    public string? SourceLanguage { get; init; }
+    public LyricsTranslationOrigin TranslationOrigin { get; init; }
+    public string? TranslationLanguage { get; init; }
+    // null is legacy/unspecified provenance, false is inferred and must be
+    // re-evaluated by the current policy, true is the provider's explicit tag.
+    public bool? TranslationLanguageIsExplicit { get; init; }
+}
 public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProviderKind Provider, LyricsMatchInfo? Match = null)
 {
+    // Provider parser revision, persisted so previously dropped translations can be refreshed once.
+    public int ProviderDataRevision { get; init; }
     public static LyricsDocument Empty { get; } = new([], LyricsProviderKind.LocalLrc);
 
     public LyricsDocument Bind(LyricsQuery query, string title, string artist, string album, double durationSeconds,

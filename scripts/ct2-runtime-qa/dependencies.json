@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "python": "3.12.10",
+  "packages": [
+    {
+      "name": "ctranslate2",
+      "version": "4.8.2",
+      "file": "ctranslate2-4.8.2-cp312-cp312-win_amd64.whl",
+      "bytes": 19222069,
+      "sha256": "d94421d565d0de61c032998f737a18942b0f2bef40c0424b1846ec6f67300105"
+    },
+    {
+      "name": "sentencepiece",
+      "version": "0.2.2",
+      "file": "sentencepiece-0.2.2-cp312-cp312-win_amd64.whl",
+      "bytes": 1248030,
+      "sha256": "7c6e7bf684dc12145bfa685d3060beaea55139134ba848289bee514ed42e7383"
+    },
+    {
+      "name": "numpy",
+      "version": "2.4.6",
+      "file": "numpy-2.4.6-cp312-cp312-win_amd64.whl",
+      "bytes": 12321687,
+      "sha256": "d8e8286dd7cea7895157318d1b91cdacac64c479f3cbc8dce548331728484751"
+    },
+    {
+      "name": "pyyaml",
+      "version": "6.0.3",
+      "file": "pyyaml-6.0.3-cp312-cp312-win_amd64.whl",
+      "bytes": 154003,
+      "sha256": "5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b"
+    },
+    {
+      "name": "setuptools",
+      "version": "84.0.0",
+      "file": "setuptools-84.0.0-py3-none-any.whl",
+      "bytes": 818216,
+      "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670"
+    },
+    {
+      "name": "pyinstaller",
+      "version": "6.22.3",
+      "file": "pyinstaller-6.22.3-py3-none-win_amd64.whl",
+      "bytes": 1454907,
+      "sha256": "500bd58c7bf7e584a8435adccbd763a0b918d5c12b08d74ff50fd79b2915458b"
+    },
+    {
+      "name": "pyinstaller-hooks-contrib",
+      "version": "2026.8",
+      "file": "pyinstaller_hooks_contrib-2026.8-py3-none-any.whl",
+      "bytes": 462145,
+      "sha256": "6d21d65323ea4467753afc21f52d7d0e69416ae8101dd88269bf273ad48db084"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "file": "packaging-26.3-py3-none-any.whl",
+      "bytes": 129956,
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+    },
+    {
+      "name": "altgraph",
+      "version": "0.17.5",
+      "file": "altgraph-0.17.5-py2.py3-none-any.whl",
+      "bytes": 21228,
+      "sha256": "f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597"
+    },
+    {
+      "name": "pefile",
+      "version": "2024.8.26",
+      "file": "pefile-2024.8.26-py3-none-any.whl",
+      "bytes": 74766,
+      "sha256": "76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f"
+    },
+    {
+      "name": "pywin32-ctypes",
+      "version": "0.2.3",
+      "file": "pywin32_ctypes-0.2.3-py3-none-any.whl",
+      "bytes": 30756,
+      "sha256": "8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8"
+    }
+  ]
+}

@@ -1,12 +1,36 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.0-beta.32
+## Release target: v0.3.1-beta.1
+
+Prepare optional, off-by-default AI lyrics (Beta) using the single selectable
+Hy-MT2 1.8B Q8_0 plaintext model (about 1.9 GB). Preserve explicit model consent,
+provider-translation priority, local inference and original lyric timings/text.
+First-generation latency can be several minutes and meaning errors remain a disclosed
+Beta limitation, not a claim of semantic accuracy.
+
+Complete persistent caching for original lyrics, provider translations and AI results
+under one default 1 GiB budget, adjustable from 100 MiB to 5 GiB and excluding models.
+Keep manual refresh in Music; scope next-line/layout changes to the expanded island.
+Fullscreen visibility is an off-by-default override with no exclusive-game or secure
+desktop guarantee. Remove the redundant drag compatibility card without changing the
+actual drag behavior or claiming universal source-app compatibility.
+
+The latest-code review, known-bug remediation and exact-commit Windows build/package
+gates must complete before publication. Official Pages/API and the existing GPT static
+showcase synchronize only with the final App release, preserving the approved appearance.
+This target does not assert that a release is already published. See the
+[current release evidence](.github/release-notes/v0.3.1-beta.1.md) and
+[publication checklist](docs/release/v0.3.1-beta.1-checklist.md).
+
+## Delivered slice: v0.3.0-beta.32
 
 Harden overlay shutdown and monitor-surface replacement, upgrade the Windows App SDK,
 and improve redacted exception diagnostics. Validate both native Windows locales and
-installer upgrade paths against the final release commit. The observed UIInput.dll
-crash remains under investigation; the release mitigates verified lifecycle hazards
-without claiming every crash is resolved.
+installer upgrade paths against the final release commit. The hidden-window backdrop/GC
+crash was reproduced and its non-UI-thread native-link destruction path fixed; the
+original user-process dump was unavailable, so its exact external trigger remains
+unobserved. This does not claim every crash is resolved. See the
+[Beta 32 release evidence](.github/release-notes/v0.3.0-beta.32.md).
 
 ## Delivered slice: v0.3.0-beta.31
 
@@ -85,7 +109,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.0-beta.29
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.1
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -749,9 +773,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.0-beta.29` (Beta 29). All new prereleases use
+The current Beta target is `v0.3.1-beta.1` (Beta 1). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. Beta 28 is the immediate upgrade baseline and
+releases remain immutable. v0.3.0-beta.32 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

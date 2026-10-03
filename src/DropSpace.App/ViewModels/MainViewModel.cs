@@ -615,6 +615,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public string StorageSummaryText => _strings.Format("StorageSummary", StorageSummary);
 
+    public Task CopyTextAsync(string text, CancellationToken token = default) => _clipboard.CopyTextAsync(text, token);
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         Settings = await _settingsCoordinator.LoadAsync(cancellationToken);
@@ -1468,7 +1470,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 await RefreshFileAvailabilityAsync(card, cancellationToken);
             }
 
-            if (card.Item.File is not null && card.Item.Status == ItemStatus.Available)
+            if ((card.Item.File is not null || (card.Item.Kind == ItemKind.Image && card.Item.Payload is not null)) && card.Item.Status == ItemStatus.Available)
             {
                 card.DragStorageItem = await _dragStorageItems.ResolveAsync(card.Item, cancellationToken);
             }
@@ -1527,14 +1529,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
             {
                 var card = new ItemCardViewModel(item, _strings);
                 RefreshPrimaryQuickActions(card);
+                // Respect already paged history instead of collapsing it back to the live cap.
+                var retainedLimit = Math.Max(MaximumLiveClipboardItems, Items.Count);
                 Items.Insert(0, card);
                 TrackBackgroundTask(LoadThumbnailSafelyAsync(card, _lifetimeCancellation.Token), "thumbnail load");
-                while (Items.Count > MaximumLiveClipboardItems) Items.RemoveAt(Items.Count - 1);
+                TrimLiveClipboardProjection(retainedLimit);
             }
 
             ItemCount = Items.Count;
             IsEmpty = Items.Count == 0;
         }
+    }
+
+    private void TrimLiveClipboardProjection(int retainedLimit)
+    {
+        if (Items.Count <= retainedLimit) return;
+        while (Items.Count > retainedLimit) Items.RemoveAt(Items.Count - 1);
+        // Evicted rows still exist in storage. The next page must start after the
+        // retained tail rather than skip ahead using the pre-trim cursor.
+        var tail = Items[^1].Item;
+        _projectionCursor = new ItemQueryCursor(0, tail.CreatedAtUtc, tail.Id);
+        HasMoreItems = true;
+        Interlocked.Increment(ref _reloadRevision);
     }
 
     private void OnClipboardStatusChanged(object? sender, ClipboardCaptureStatus status)
@@ -1683,6 +1699,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken,
+            actionContext?.CancellationToken ?? CancellationToken.None, _lifetimeCancellation.Token);
+        cancellationToken = lifetime.Token;
+        cancellationToken.ThrowIfCancellationRequested();
         selection ??= ResolveActionSelection(card);
         var capability = _actions.Evaluate(selection)
             .FirstOrDefault(candidate => candidate.Descriptor.Id == actionId && candidate.IsAvailable);
@@ -1701,7 +1722,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
                 CancellationToken = cancellationToken,
             };
         var result = await _actions.ExecuteAsync(actionId, context, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(result.MessageResourceKey))
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_disposed && !string.IsNullOrWhiteSpace(result.MessageResourceKey))
         {
             StatusMessage = _strings.Get(result.MessageResourceKey);
         }

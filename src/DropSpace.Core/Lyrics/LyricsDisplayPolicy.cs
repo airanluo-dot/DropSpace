@@ -2,6 +2,32 @@ namespace DropSpace.Core.Lyrics;
 
 public static class LyricsDisplayPolicy
 {
+    // Compact owns two single-line marquees. Untimed provider blocks retain their
+    // full document text/IDs elsewhere; only these display strings lose line breaks.
+    public static string CompactText(string? text) => (text ?? string.Empty)
+        .Replace("\r\n", " ", StringComparison.Ordinal).Replace('\r', ' ').Replace('\n', ' ')
+        .Replace('\u0085', ' ').Replace('\u2028', ' ').Replace('\u2029', ' ');
+
+    public static double CompactScrollOffset(LyricsLine? line, TimeSpan position, int delayMilliseconds,
+        bool wordSyncedHighlighting, double highlightWidth, double textWidth, double viewportWidth)
+    {
+        if (line is null || !double.IsFinite(textWidth) || !double.IsFinite(viewportWidth) ||
+            !double.IsFinite(highlightWidth) || textWidth <= 0 || viewportWidth <= 0) return 0;
+        var overflow = Math.Max(0, textWidth - viewportWidth);
+        var effectiveMilliseconds = position.TotalMilliseconds + Math.Clamp(delayMilliseconds, -30_000, 30_000);
+        var scroll = wordSyncedHighlighting && line.Words.Count > 0
+            ? highlightWidth - viewportWidth * 0.6
+            : (effectiveMilliseconds - line.Start.TotalMilliseconds) / 1000 * 24 - viewportWidth / 3;
+        return Math.Clamp(scroll, 0, overflow);
+    }
+
+    public static bool IntersectsViewport(double left, double top, double width, double height,
+        double viewportWidth, double viewportHeight) =>
+        double.IsFinite(left) && double.IsFinite(top) && double.IsFinite(width) && double.IsFinite(height) &&
+        double.IsFinite(viewportWidth) && double.IsFinite(viewportHeight) &&
+        width > 0 && height > 0 && viewportWidth > 0 && viewportHeight > 0 &&
+        left + width > 0 && top + height > 0 && left < viewportWidth && top < viewportHeight;
+
     public static LyricsPresentation Presentation(IReadOnlyList<LyricsLine> lines,
         LyricsHighlightFrame frame, TimeSpan position, int delayMilliseconds)
     {
@@ -24,9 +50,25 @@ public static class LyricsDisplayPolicy
         return new(true, anchor, true, effective - gapStart >= 3_000);
     }
 
+    public static string? SecondaryPresentation(LyricsLine? line, string languageTag, bool enabled, bool showAiLabel = true)
+    {
+        var text = Secondary(line, languageTag, enabled);
+        return showAiLabel && text is not null && line?.TranslationOrigin == LyricsTranslationOrigin.LocalAi ? "AI · " + text : text;
+    }
+
     public static string? Secondary(LyricsLine? line, string languageTag, bool enabled)
     {
         if (!enabled || string.IsNullOrWhiteSpace(line?.Secondary)) return null;
+        if (!string.IsNullOrWhiteSpace(line.TranslationLanguage))
+            return LyricsTranslationPolicy.NormalizeLanguage(line.TranslationLanguage) ==
+                LyricsTranslationPolicy.NormalizeLanguage(languageTag) ? line.Secondary : null;
+        // An AI result without its target identity must never survive a language switch.
+        if (line.TranslationOrigin == LyricsTranslationOrigin.LocalAi) return null;
+        // An untimed provider block can contain several positively identified
+        // translation segments. Use the same whole-block match as AI admission.
+        if (line.TranslationOrigin == LyricsTranslationOrigin.Provider &&
+            LyricsLanguagePolicy.ProviderTranslationMatches(line, LyricsTranslationPolicy.NormalizeLanguage(languageTag)))
+            return line.Secondary;
         // Provider translations are optional. English mode must not present a
         // Chinese translation as though it matched the selected display language.
         if (languageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase) &&

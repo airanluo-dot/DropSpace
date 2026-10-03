@@ -1,0 +1,5 @@
+{
+  "status": "failed-or-incomplete",
+  "error": "System.IO.InvalidDataException: Capture did not complete all required technical checks. Preserved failures; no successful native-output envelope is permitted.\r\n   at PlainHyProductionEvidence.Program.Require(Boolean condition, String message) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 508\r\n   at PlainHyProductionEvidence.Program.CaptureAsync(CaptureConfiguration config, String configPath) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 203\r\n   at PlainHyProductionEvidence.Program.Main(String[] args) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 61",
+  "nativeEvidenceEmitted": false
+}

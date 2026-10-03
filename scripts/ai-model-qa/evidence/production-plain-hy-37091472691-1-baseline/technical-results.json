@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "status": "failed-or-incomplete",
+  "coldTargets": [],
+  "cacheTargets": [],
+  "cacheAdditionalInferenceCalls": 0,
+  "cancellationObserved": true,
+  "cleanupConfirmed": true,
+  "sourceIdentityUnchanged": true,
+  "modelIdentityUnchanged": true,
+  "runtimeIdentityUnchanged": true,
+  "configurationUnchanged": true,
+  "gpuDefaultProbeComplete": true,
+  "gpuDefaultProbeCleanupConfirmed": true,
+  "captureMethod": "PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync",
+  "backend": "PlainHyLyricsBackend",
+  "semanticStatus": "not-evaluated"
+}

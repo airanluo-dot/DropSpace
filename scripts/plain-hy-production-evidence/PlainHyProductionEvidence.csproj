@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(EvidenceRuntimeDirectory)' != ''">
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/runtime-manifest.json" LogicalName="DropSpace.AiLyricsRuntime.runtime-manifest.json" />
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/plain-lyrics-worker.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker.exe" />
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/plain-lyrics-worker-avx2.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker-avx2.exe" />
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/plain-lyrics-worker-vulkan.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker-vulkan.exe" />
+  </ItemGroup>
+</Project>

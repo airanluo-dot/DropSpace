@@ -1,0 +1,11 @@
+{
+  "name": "dropspace-vulkan-build-deps",
+  "version-string": "0.3.1-beta.1",
+  "builtin-baseline": "f05ff9f0adbd630c4fada9072b4a68eeeb7d738a",
+  "dependencies": [
+    "shaderc",
+    "spirv-headers",
+    "vulkan-headers",
+    "vulkan-loader"
+  ]
+}

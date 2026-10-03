@@ -138,11 +138,13 @@ public sealed class SettingsApplicationCoordinator(
                 {
                     ClipboardPaused = latest.ClipboardPaused,
                     LastUpdateCheckUtc = latest.LastUpdateCheckUtc,
+                    ClipboardPeerModes = latest.ClipboardPeerModes,
                 }, CancellationToken.None));
                 next = await settingsService.UpdateAsync(latest => next with
                 {
                     ClipboardPaused = latest.ClipboardPaused,
                     LastUpdateCheckUtc = latest.LastUpdateCheckUtc,
+                    ClipboardPeerModes = latest.ClipboardPeerModes,
                 }, cancellationToken);
                 logger.LogInformation("Settings operation {OperationId} committed.", operationId);
                 return next;

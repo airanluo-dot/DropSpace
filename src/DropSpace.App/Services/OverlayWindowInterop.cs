@@ -20,6 +20,7 @@ internal static class OverlayWindowInterop
     private const uint SetWindowPositionNoSize = 0x0001;
     private const uint SetWindowPositionNoMove = 0x0002;
     private const uint SetWindowPositionNoActivate = 0x0010;
+    private const uint SetWindowPositionNoOwnerZOrder = 0x0200;
     private const uint SetWindowPositionFrameChanged = 0x0020;
     private const int ShowNoActivate = 4;
     private const int ShowHide = 0;
@@ -207,6 +208,21 @@ internal static class OverlayWindowInterop
             return false;
         }
 
+        failure = null;
+        return true;
+    }
+
+    public static bool MaintainTopmostNoActivate(nint window, out OverlayNativeFailure? failure)
+    {
+        if (!IsValidWindow(window, out failure)) return false;
+        if (!IsWindowVisible(window)) return ShowNoActivateAndTopmost(window, out failure);
+        if (!TrySetWindowPos(window, Topmost,
+                SetWindowPositionNoMove | SetWindowPositionNoSize |
+                SetWindowPositionNoActivate | SetWindowPositionNoOwnerZOrder, out var error))
+        {
+            failure = new OverlayNativeFailure("SetWindowPos(maintain-topmost)", false, error);
+            return false;
+        }
         failure = null;
         return true;
     }

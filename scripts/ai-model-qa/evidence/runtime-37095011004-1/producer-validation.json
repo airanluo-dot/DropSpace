@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "verified-successful-producer",
+  "currentRuntime": {
+    "runId": 37095011004,
+    "runAttempt": 1,
+    "artifactId": 11264582019,
+    "archiveBytes": 30700874,
+    "archiveSha256": "9d2b8086347172d12366c19872f815c00f99cc6a521c62f3d03929e575ebe941",
+    "headCommit": "643186a647fc60871eafb877de6ba7031f7df315",
+    "checkoutCommit": "a23a712a9494cc0ecc6047c96833db67c1e13c3d",
+    "tree": "b4a06cc1f3343453eaa76712a895607d10414e4b",
+    "manifestSha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab",
+    "producerConclusion": "success",
+    "completedAt": "2026-10-03T04:50:04Z"
+  },
+  "historicalFailure": {
+    "runId": 37091472691,
+    "runAttempt": 1,
+    "artifactId": 11263198431,
+    "archiveBytes": 91082218,
+    "archiveSha256": "0ee512e1889f35c4744d30920beb52b18836a12bffd85c6d07d56e987c4ac52e",
+    "producerConclusion": "failure",
+    "wholeSongSeconds": 300,
+    "semanticApproved": false
+  },
+  "notes": "Historical failed captures disclose limitations only. They are not the shipping runtime producer or evidence of completed 600-second validation.",
+  "verifiedAt": "2026-10-03T04:52:04Z",
+  "unsignedBundle": {
+    "artifactId": 11265560074,
+    "runId": 37095011004,
+    "archiveBytes": 281705348,
+    "archiveSha256": "1f5a54f3ff8742678486b64de2d457f7106acda84666f87d70b7836ba0b22eca",
+    "inspected": "Metadata verified; archive was not re-downloaded for this acceptance-record task. Final publication must still verify release-bundle bindings."
+  }
+}

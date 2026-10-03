@@ -10,6 +10,8 @@ public static class NativeIslandSettingsPolicy
     public const int MaximumDelayMilliseconds = 30_000;
     public const int MinimumWidth = 80;
     public const int MaximumWidth = 600;
+    public const long MinimumLyricsCacheBytes = 100L * 1024 * 1024;
+    public const long MaximumLyricsCacheBytes = 5L * 1024 * 1024 * 1024;
 
     public static AppSettings Normalize(AppSettings settings)
     {
@@ -24,6 +26,7 @@ public static class NativeIslandSettingsPolicy
         var sources = (activity.AllowedMediaSourceAppIds ?? [])
             .Where(id => !string.IsNullOrWhiteSpace(id) && id.Length <= MaximumSourceLength)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(MaximumSources).ToArray();
+        var modelId = lyrics.AiModelId == "lightweight" ? Lyrics.AiLyricsModelCatalog.Compact.Id : lyrics.AiModelId;
         var normalized = settings with
         {
             IslandActivity = activity with
@@ -33,6 +36,10 @@ public static class NativeIslandSettingsPolicy
             },
             Lyrics = lyrics with
             {
+                CacheMaximumBytes = Math.Clamp(lyrics.CacheMaximumBytes, MinimumLyricsCacheBytes, MaximumLyricsCacheBytes),
+                AiModelId = Lyrics.AiLyricsModelCatalog.FindSelectable(modelId)?.Id ?? Lyrics.AiLyricsModelCatalog.ExperimentalPlain.Id,
+                GlowMode = Enum.IsDefined(lyrics.GlowMode) ? lyrics.GlowMode : Lyrics.LyricsGlowMode.Off,
+                FontSize = double.IsFinite(lyrics.FontSize) ? Math.Clamp(lyrics.FontSize, 12, 28) : 16,
                 Mode = Enum.IsDefined(lyrics.Mode) ? lyrics.Mode : LyricsMode.Online,
                 Provider = provider,
                 BackupProvider = backupProvider,

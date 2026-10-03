@@ -576,33 +576,6 @@
           <StackPanel Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="AppearanceSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
             <StackPanel x:Name="QuickActionsSettingsPanel" Spacing="10" />
-            <Border
-              Padding="16"
-              Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1"
-              CornerRadius="{StaticResource DropSpaceCardRadius}">
-              <StackPanel Spacing="10">
-                <TextBlock services:XamlResourceOverride.Uid="DropTrayCompatibilityTitle" FontWeight="SemiBold" />
-                <TextBlock
- services:XamlResourceOverride.Uid="DropTrayCompatibilityDescription"
-                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                  TextWrapping="Wrap" />
-                <TextBlock
-                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                  Text="{Binding WindowsShareIntegrationStatus}"
-                  TextWrapping="Wrap" />
-                <TextBlock
- services:XamlResourceOverride.Uid="DropTrayApiNotice"
-                  FontSize="12"
-                  Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                  TextWrapping="Wrap" />
-                <Button
- services:XamlResourceOverride.Uid="OpenDropTraySettingsButton"
-                  HorizontalAlignment="Left"
-                  Click="OnOpenDropTraySettingsClicked" />
-              </StackPanel>
-            </Border>
             <Grid ColumnSpacing="20">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -625,11 +598,6 @@
                 <ComboBoxItem services:XamlResourceOverride.Uid="FileDragWakeModeDisabled" Tag="Disabled" />
               </ComboBox>
             </Grid>
-            <InfoBar
- services:XamlResourceOverride.Uid="ExperimentalDragDetectionInfo"
-              IsClosable="False"
-              IsOpen="True"
-              Severity="Informational" />
             <Button services:XamlResourceOverride.Uid="CopyDragCompatibilityReportButton" HorizontalAlignment="Left" Click="OnCopyDragCompatibilityReportClicked" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>

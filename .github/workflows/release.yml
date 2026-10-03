@@ -14,22 +14,25 @@ on:
       - src/**
       - tests/**
   push:
-    branches: [main]
-    paths:
-      - RELEASE_VERSION
-      - .github/workflows/release.yml
-      - .github/release-notes/**
-      - branding/**
-      - scripts/**
-      - installer/**
-      - identity/**
-      - src/**
-      - tests/**
+    # No push path filter: creating the bounded QA branch at an already-existing
+    # reviewed commit must still schedule its one explicit non-publishing run.
+    branches: [main, qa/final-ai-review-031]
   workflow_dispatch:
     inputs:
       publish:
         description: Publish the validated release from main
         required: true
+        default: false
+        type: boolean
+
+      expected_commit:
+        description: Exact reviewed main commit required for publication
+        required: false
+        type: string
+
+      capture_ai_evidence:
+        description: Capture actual plain-Hy production evidence without publishing
+        required: false
         default: false
         type: boolean
 
@@ -45,9 +48,11 @@ jobs:
     # The release lane uses the named Windows Server 2025 image so a moving
     # windows-latest image cannot silently change produced bytes.
     runs-on: windows-2025
-    timeout-minutes: 80
+    # Final evidence adds a separately bounded 30-minute capture to normal validation.
+    timeout-minutes: ${{ (github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)) && 110 || 80 }}
     permissions:
       contents: read
+      actions: read
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -55,6 +60,10 @@ jobs:
       prerelease: ${{ steps.version.outputs.prerelease }}
       make_latest: ${{ steps.version.outputs.make_latest }}
       signing_required: ${{ steps.version.outputs.signing_required }}
+      ai_runtime_manifest_sha256: ${{ steps.ai-runtime-diagnostic-manifest.outputs.sha256 }}
+      ai_semantic_approved: ${{ steps.ai-release-approval.outputs.semantic_approved }}
+      ai_publication_authorized: ${{ steps.ai-release-approval.outputs.authorized }}
+      ai_publication_mode: ${{ steps.ai-release-approval.outputs.mode }}
 
     steps:
       - name: Check out clean source
@@ -93,10 +102,14 @@ jobs:
           RELEASE_ACTOR: ${{ github.actor }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           AUTOMATION_ACTOR: github-actions[bot]
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          ACTUAL_COMMIT: ${{ github.sha }}
         run: |
           if ($env:PUBLISH_REQUESTED -ne "true") {
             exit 0
           }
+          . ./scripts/ReleaseVersion.ps1
+          Assert-DropSpacePublicationCommit $env:EXPECTED_COMMIT $env:ACTUAL_COMMIT
           if ($env:RELEASE_REF -ne "refs/heads/main") {
             throw "Release publication is only permitted from refs/heads/main."
           }
@@ -107,6 +120,31 @@ jobs:
             throw "Release publication is restricted to the repository owner or the trusted publication bridge."
           }
 
+      - name: Test AI semantic release gate regressions
+        run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
+
+      - name: Test packaged runtime inspection regressions
+        shell: pwsh
+        run: |
+          ./scripts/Test-AiRuntimePayloadInspector.ps1
+          ./scripts/Test-ReviewedAiRuntimeArchive.ps1
+          ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
+
+      - name: Test expanded island scope and fullscreen behavior contracts
+        run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
+
+      - name: Test private translation helper protocol without model dependencies
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
+
+      # Pending approval blocks publication, never ordinary PR validation.
+      # Only v0.3.1-beta.1 may use recorded owner acceptance without semantic approval.
+      - name: Enforce AI publication decision before building
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        run: node scripts/test-ai-release-approval.mjs
+
       - name: Validate Stable and Beta release metadata
         shell: pwsh
         run: |
@@ -116,6 +154,9 @@ jobs:
       - name: Enforce localization resource policy
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
+
+      - name: Test frozen model prompt localization exceptions
+        run: node --test scripts/test-localization-policy.test.mjs
 
       - name: Enforce Windows 10/11 compatibility baseline
         shell: pwsh
@@ -146,11 +187,144 @@ jobs:
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
+      - name: Build verified offline AI inference runtime
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish == true) }}
+        shell: pwsh
+        run: |
+          ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
+          ./scripts/Build-AiLyricsRuntime.ps1
+
+      - name: Record immutable runtime producer identity
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish == true) }}
+        shell: pwsh
+        env:
+          PRODUCER_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $path = 'artifacts/ai-runtime/win-x64/runtime-manifest.json'
+          $manifest = Get-Content $path -Raw | ConvertFrom-Json
+          $checkout = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $checkout -cne $env:GITHUB_SHA) { throw 'Runtime producer checkout mismatch.' }
+          $producer = [ordered]@{
+            repository = $env:GITHUB_REPOSITORY
+            workflowPath = '.github/workflows/release.yml'
+            runId = [long]$env:GITHUB_RUN_ID
+            runAttempt = [int]$env:GITHUB_RUN_ATTEMPT
+            headCommit = $env:PRODUCER_HEAD_COMMIT
+            checkoutCommit = $checkout
+          }
+          $manifest | Add-Member -NotePropertyName producer -NotePropertyValue $producer
+          $json = ($manifest | ConvertTo-Json -Depth 8) -replace "`r`n", "`n"
+          [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE $path), $json + "`n", [Text.UTF8Encoding]::new($false))
+
+      - name: Retrieve the exact reviewed runtime
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/Get-ReviewedAiRuntime.ps1
+
+      - name: Bind AI publication decision to exact shipping runtime bytes
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        id: ai-release-approval
+        shell: pwsh
+        run: |
+          node scripts/test-ai-release-approval.mjs --runtime-manifest artifacts/ai-runtime/win-x64/runtime-manifest.json
+          if ($LASTEXITCODE -ne 0) { throw 'AI publication decision failed.' }
+          ./scripts/Test-AiLyricsRuntime.ps1
+          node scripts/test-ai-release-approval.mjs --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw 'AI publication decision output failed.' }
+
+      # Development-only handoff of this run's verified build. No model weights are uploaded.
+      - name: Record candidate diagnostic runtime identity
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.publish != true)
+        id: ai-runtime-diagnostic-manifest
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash artifacts/ai-runtime/win-x64/runtime-manifest.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Upload runtime for isolated candidate diagnostics
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.publish != true)
+        id: ai-runtime-artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/ai-runtime/win-x64/runtime-manifest.json
+            artifacts/ai-runtime/win-x64/llama-completion.exe
+            artifacts/ai-runtime/win-x64/llama-completion-avx2.exe
+            artifacts/ai-runtime/win-x64/llama-tokenize.exe
+            artifacts/ai-runtime/win-x64/plain-lyrics-worker.exe
+            artifacts/ai-runtime/win-x64/plain-lyrics-worker-avx2.exe
+            artifacts/ai-runtime/win-x64/plain-lyrics-worker-vulkan.exe
+            artifacts/ai-runtime/win-x64/LICENSE-llama.cpp
+          if-no-files-found: error
+          retention-days: 60
+
       - name: Test core policies, versions, and update selection
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core-release.trx"
 
       - name: Test persistence, manifests, downloads, and update coordination
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure-release.trx"
+
+      - name: Test production evidence harness without native inference
+        shell: pwsh
+        run: |
+          dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -p:RestoreLockedMode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness locked restore failed.' }
+          dotnet run --project scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -c Release --no-restore -- --contract-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness contract tests failed.' }
+
+      - name: Download pinned models for native AI smoke
+        shell: pwsh
+        run: ./scripts/Get-AiLyricsSmokeModel.ps1
+
+      - name: Validate native offline inference and cancellation
+        shell: pwsh
+        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
+
+      - name: Capture final plain-Hy production evidence on both runtime variants
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
+        timeout-minutes: 30
+        shell: pwsh
+        env:
+          RUNTIME_ARTIFACT_ID: ${{ steps.ai-runtime-artifact.outputs.artifact-id }}
+          RUNTIME_ARCHIVE_SHA256: ${{ steps.ai-runtime-artifact.outputs.artifact-digest }}
+        run: |
+          if (-not $env:RUNTIME_ARTIFACT_ID -or -not $env:RUNTIME_ARCHIVE_SHA256) { throw 'The exact licensed runtime artifact must be retained before capture.' }
+          $runtime = 'artifacts/ai-runtime/win-x64'
+          $output = 'artifacts/plain-hy-production-evidence'
+          New-Item $output -ItemType Directory -Force | Out-Null
+          $producer = (Get-Content "$runtime/runtime-manifest.json" -Raw | ConvertFrom-Json).producer
+          $files = @(Get-ChildItem $runtime -File | ForEach-Object {
+            [ordered]@{ path=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=$_.Length }
+          })
+          $contract = [ordered]@{
+            schemaVersion=1; repository=$producer.repository; workflowPath=$producer.workflowPath
+            runId=$producer.runId; runAttempt=$producer.runAttempt; headCommit=$producer.headCommit; checkoutCommit=$producer.checkoutCommit
+            artifactId=[long]$env:RUNTIME_ARTIFACT_ID; artifactName="ai-candidate-runtime-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)"
+            archiveSha256=$env:RUNTIME_ARCHIVE_SHA256; files=$files
+          }
+          $contract | ConvertTo-Json -Depth 8 | Set-Content "$output/runtime-artifact.json" -Encoding utf8
+          node scripts/ai-runtime-publication.mjs verify-contract "$output/runtime-artifact.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Retained runtime artifact contract is invalid.' }
+          foreach ($variant in @('Baseline', 'Avx2')) {
+            $name = "production-plain-hy-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)-$($variant.ToLowerInvariant())"
+            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -ModelId hy-mt2-18-q8-plain-beta -Variant $variant -OutputDirectory "$output/$name"
+            $captureSucceeded = $?
+            $captureExitCode = $LASTEXITCODE
+            if (-not $captureSucceeded -or $captureExitCode -ne 0) { throw "Production $variant capture failed; later variants will not be started." }
+          }
+
+      - name: Preserve final production evidence including failures
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true))
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: plain-hy-production-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/plain-hy-production-evidence/**
+          if-no-files-found: warn
+          retention-days: 60
 
       - name: Install locked Windows App Runtime for native tests
         timeout-minutes: 10
@@ -203,15 +377,19 @@ jobs:
 
       - name: Test installer /UPDATE, restart, upgrade, and uninstall lifecycle
         shell: pwsh
-        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
+        run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
 
       - name: Smoke test portable EXE (en-US resource context) without public network access
         shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US
+        run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
 
       - name: Smoke test portable EXE (zh-CN resource context) without public network access
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+
+      - name: Inspect runtime bytes inside the final MSIX
+        shell: pwsh
+        run: ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
 
       - name: Freeze unsigned bytes and generate release metadata
         shell: pwsh
@@ -232,6 +410,13 @@ jobs:
           ./scripts/New-UpdateManifest.ps1
           ./scripts/Test-UpdateManifest.ps1
           Get-ChildItem artifacts/release | Select-Object Name,Length
+
+      - name: Bind inspected runtime bytes to the unsigned release bundle
+        run: node scripts/ai-runtime-publication.mjs record-bundle artifacts/release runtime-directory artifacts/ai-runtime/win-x64 artifacts/runtime-inspection/portable.json artifacts/runtime-inspection/msix.json artifacts/runtime-inspection/installer.json
+
+      - name: Verify exact reviewed bytes in the completed unsigned release bundle
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
       - name: Record release build environment
         shell: pwsh
@@ -263,6 +448,7 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
+            artifacts/release/runtime-publication.json
           if-no-files-found: error
           retention-days: 2
 
@@ -304,7 +490,8 @@ jobs:
     if: >-
       needs.validate-release.result == 'success' &&
       needs.validate-release.outputs.signing_required == 'true' &&
-      github.event_name != 'pull_request'
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main'
     needs: validate-release
     runs-on: windows-2025
     timeout-minutes: 40
@@ -329,6 +516,13 @@ jobs:
         with:
           name: DropSpace-identity-unsigned-${{ needs.validate-release.outputs.tag }}
           path: artifacts/identity
+
+      - name: Verify and preserve unsigned runtime publication binding
+        shell: pwsh
+        run: |
+          node scripts/ai-runtime-publication.mjs verify-bundle artifacts/release
+          if ($LASTEXITCODE -ne 0) { throw 'Unsigned runtime publication binding failed.' }
+          Copy-Item artifacts/release/runtime-publication.json artifacts/unsigned-runtime-publication.json
 
       - name: Enforce stable signing configuration
         shell: pwsh
@@ -416,9 +610,13 @@ jobs:
       - name: Re-run final signed installer and portable smoke gates
         shell: pwsh
         run: |
-          ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation
-          ./scripts/Test-PortableSmoke.ps1 -Language en-US
+          ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
+          ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/runtime-inspection/portable.json
           ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
+
+      - name: Inspect runtime bytes inside the signed MSIX
+        shell: pwsh
+        run: ./scripts/Inspect-AiRuntimePayload.ps1 -MsixPath artifacts/release/DropSpace-x64.msix -OutputPath artifacts/runtime-inspection/msix.json
 
       - name: Freeze signed bytes and generate release metadata
         shell: pwsh
@@ -442,6 +640,13 @@ jobs:
           ./scripts/New-UpdateManifest.ps1
           ./scripts/Test-UpdateManifest.ps1
 
+      - name: Bind inspected runtime bytes to the signed release bundle
+        run: node scripts/ai-runtime-publication.mjs record-bundle artifacts/release reference-binding artifacts/unsigned-runtime-publication.json artifacts/runtime-inspection/portable.json artifacts/runtime-inspection/msix.json artifacts/runtime-inspection/installer.json
+
+      - name: Verify exact reviewed bytes in the completed signed release bundle
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
+
       - name: Upload signed release bundle
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -452,6 +657,7 @@ jobs:
             artifacts/release/DropSpace-x64.msix
             artifacts/release/SHA256SUMS.txt
             artifacts/release/update-manifest.json
+            artifacts/release/runtime-publication.json
           if-no-files-found: error
           retention-days: 2
 
@@ -473,6 +679,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.actor == github.repository_owner || github.actor == 'github-actions[bot]') &&
       needs.validate-release.result == 'success' &&
+      needs.validate-release.outputs.ai_publication_authorized == 'true' &&
       (needs.validate-release.outputs.signing_required != 'true' || needs.sign-release.result == 'success')
     needs: [validate-release, sign-release]
     runs-on: ubuntu-latest
@@ -505,6 +712,10 @@ jobs:
             echo "Tag ${tag} already exists; publication is immutable and cannot retarget it." >&2
             exit 1
           fi
+
+      # Recheck immediately before publication, including expiry and evidence hashes.
+      - name: Recheck AI publication decision
+        run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
       - name: Publish immutable Stable or Beta release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2

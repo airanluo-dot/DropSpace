@@ -23,7 +23,7 @@
   <data name="ClipboardListenerRegistrationFailed" xml:space="preserve"><value>The system clipboard listener could not be registered. See the diagnostic log.</value></data>
   <data name="ClipboardListenerUnavailable" xml:space="preserve"><value>The system clipboard listener is unavailable. See the diagnostic log.</value></data>
   <data name="ClipboardPaused" xml:space="preserve"><value>Clipboard recording paused.</value></data>
-  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>Clipboard recording remains paused from the previous session.</value></data>
+  <data name="ClipboardPausedAtStartup" xml:space="preserve"><value>Clipboard recording is paused. Resume it from Clipboard or the tray menu.</value></data>
   <data name="ClipboardPausedStatus" xml:space="preserve"><value>Recording paused</value></data>
   <data name="ClipboardRecording" xml:space="preserve"><value>Recording · {0} captured</value></data>
   <data name="ClipboardResumed" xml:space="preserve"><value>Clipboard recording resumed.</value></data>
@@ -39,8 +39,6 @@
   <data name="DeploymentPortable" xml:space="preserve"><value>Portable (downloads and verifies only; it will not install automatically)</value></data>
   <data name="DeploymentUnknown" xml:space="preserve"><value>Unknown deployment</value></data>
   <data name="DragCaptionAddToDropSpace" xml:space="preserve"><value>Add to DropSpace</value></data>
-  <data name="DropTraySettingsUnavailableContent" xml:space="preserve"><value>Open Windows Settings → System → Multitasking manually to review the Drop Tray option.</value></data>
-  <data name="DropTraySettingsUnavailableTitle" xml:space="preserve"><value>Unable to open system settings</value></data>
   <data name="EmptyClipboardDescription" xml:space="preserve"><value>Copy text, images, files, or folders and supported content will appear here.</value></data>
   <data name="EmptyClipboardTitle" xml:space="preserve"><value>No clipboard history</value></data>
   <data name="EmptyPinnedDescription" xml:space="preserve"><value>Pin items from Temporary Space or Clipboard and they will appear together here.</value></data>
@@ -112,7 +110,7 @@
   <data name="ShareItemsNotAdded" xml:space="preserve"><value>The files or folders could not be added to Temporary Space.</value></data>
   <data name="ShareNoAccessibleItems" xml:space="preserve"><value>The shared content contains no files or folders that DropSpace can access.</value></data>
   <data name="ShareProcessingFailed" xml:space="preserve"><value>DropSpace could not process this share. Try again or use the top-edge drop target.</value></data>
-  <data name="StartupRecoveryContent" xml:space="preserve"><value>Local data initialization failed. To avoid overwriting history, the app stopped writing. Keep the data directory and see the local diagnostic log.</value></data>
+  <data name="StartupRecoveryContent" xml:space="preserve"><value>DropSpace could not finish starting. Some background services may still be running. Exit the app before inspecting or restoring its data directory, and check the local diagnostic log.</value></data>
   <data name="StartupRecoveryTitle" xml:space="preserve"><value>DropSpace could not start safely</value></data>
   <data name="StorageCalculating" xml:space="preserve"><value>Calculating…</value></data>
   <data name="StorageSummary" xml:space="preserve"><value>Using: {0}</value></data>
@@ -226,20 +224,13 @@
   <data name="RetentionDaysLabel.Text" xml:space="preserve"><value>Maximum retention days</value></data>
   <data name="RetentionCountLabel.Text" xml:space="preserve"><value>Maximum unpinned items retained</value></data>
   <data name="AppearanceSection.Text" xml:space="preserve"><value>Appearance and window</value></data>
-  <data name="DropTrayCompatibilityTitle.Text" xml:space="preserve"><value>Top-edge drag compatibility</value></data>
-  <data name="DropTrayCompatibilityDescription.Text" xml:space="preserve"><value>Windows 11 Drop Tray and DropSpace use the same top-edge drag area. When system Drop Tray is enabled, it can receive files dragged to the top first and prevent the DropSpace panel from expanding automatically. Disable Drop Tray for the full “drag to top → DropSpace expands → drop into Temporary Space” experience.</value></data>
-  <data name="DropTrayApiNotice.Text" xml:space="preserve"><value>Windows does not offer a public, stable API to read the Drop Tray switch. DropSpace does not read internal feature flags or change system settings for you.</value></data>
-  <data name="OpenDropTraySettingsButton.Content" xml:space="preserve"><value>Open Windows Drop Tray settings</value></data>
-  <data name="OpenDropTraySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Open Windows Drop Tray settings</value></data>
   <data name="FileDragWakeModeTitle.Text" xml:space="preserve"><value>File drag wake mode</value></data>
   <data name="FileDragWakeModeDescription.Text" xml:space="preserve"><value>Smart detection does not occupy the top edge while idle. Classic mode may be more compatible but keeps an invisible top input area active.</value></data>
-  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>Smart detection (experimental)</value></data>
+  <data name="FileDragWakeModeSmart.Content" xml:space="preserve"><value>Smart detection</value></data>
   <data name="FileDragWakeModeClassic.Content" xml:space="preserve"><value>Classic top-edge zone (compatible)</value></data>
   <data name="FileDragWakeModeDisabled.Content" xml:space="preserve"><value>Disable automatic wake</value></data>
-  <data name="ExperimentalDragDetectionInfo.Title" xml:space="preserve"><value>Experimental drag detection</value></data>
-  <data name="ExperimentalDragDetectionInfo.Message" xml:space="preserve"><value>Smart detection currently prioritizes real file and folder drags from Explorer and the desktop. Some third-party apps, virtual files, or sources without standard signals may not wake it automatically; the visible DropSpace panel can still receive standard file drops directly.</value></data>
   <data name="StartWithWindowsTitle.Text" xml:space="preserve"><value>Start with Windows</value></data>
-  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Enabled by default. Uses the current-user startup entry and does not require administrator privileges.</value></data>
+  <data name="StartWithWindowsDescription.Text" xml:space="preserve"><value>Choose this during first setup or in Settings. Uses the current-user startup entry without administrator privileges.</value></data>
   <data name="StartWithWindowsToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="LanguageTitle.Text" xml:space="preserve"><value>Display language</value></data>
   <data name="LanguageDescription.Text" xml:space="preserve"><value>Uses the Windows display language when set to System default.</value></data>
@@ -523,11 +514,12 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsEnabled" xml:space="preserve"><value>Enable lyrics</value></data>
   <data name="LyricsLoading" xml:space="preserve"><value>Loading lyrics…</value></data>
   <data name="LyricsNotFound" xml:space="preserve"><value>No verified lyrics found for this track.</value></data>
-  <data name="LyricsFailed" xml:space="preserve"><value>Lyrics could not be loaded. Check the connection or try again.</value></data>
+  <data name="LyricsFailed" xml:space="preserve"><value>Lyrics are temporarily unavailable. Select Refresh to try again.</value></data>
   <data name="WidgetDropFailed" xml:space="preserve"><value>This widget could not be dropped here. Try a grid cell or use the position controls.</value></data>
   <data name="WidgetRemove" xml:space="preserve"><value>Remove widget</value></data>
   <data name="SettingsPageIsland" xml:space="preserve"><value>Island</value></data>
   <data name="ClearLyricsCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
+  <data name="LyricsCacheSize" xml:space="preserve"><value>Lyrics cache limit (MiB)</value></data>
   <data name="WidgetSelect" xml:space="preserve"><value>Select a widget to edit its position and size.</value></data>
   <data name="LyricsProviderLrclib" xml:space="preserve"><value>LRCLIB</value></data>
   <data name="SettingsPageGeneral" xml:space="preserve"><value>General</value></data>
@@ -618,4 +610,103 @@ Nothing will be opened automatically.</value></data>
   <data name="WidgetApplyLayout" xml:space="preserve"><value>Apply layout</value></data>
   <data name="WidgetUndo" xml:space="preserve"><value>Undo</value></data>
   <data name="WidgetMove" xml:space="preserve"><value>Move</value></data>
+  <data name="LyricsOriginalFontSize" xml:space="preserve"><value>Original lyric size</value></data>
+  <data name="LyricsTranslationFontSize" xml:space="preserve"><value>Translation size</value></data>
+  <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
+  <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Preview of translated lyrics</value></data>
+  <data name="LyricsResetFonts" xml:space="preserve"><value>Reset lyric sizes</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics (Beta)</value></data>
+  <data name="AiLyricsDescription" xml:space="preserve"><value>Translate missing lyrics into the app’s language on this computer. Matching source translations take priority. The first full translation may take several minutes, depending on your device and lyric length. Completed translations appear line by line. AI may mistranslate the meaning; lyrics are not uploaded for AI translation.</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation (Beta)</value></data>
+  <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU acceleration</value></data>
+  <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Prefer a compatible GPU for AI translation. If GPU acceleration is unavailable or fails, the app uses the CPU instead. Turn this off to use only the CPU. Changing this preference does not turn on AI or download a model.</value></data>
+  <data name="AiLyricsModel" xml:space="preserve"><value>Translation model</value></data>
+  <data name="AiLyricsStandardModel" xml:space="preserve"><value>Previous standard model (Q4)</value></data>
+  <data name="AiLyricsSmallerModel" xml:space="preserve"><value>Previous compact model (IQ3)</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0 (Beta)</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0 (Beta)</value></data>
+  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>Optional larger model (7.98 GB). Requires more memory and, with GPU acceleration, more video memory than 1.8B. It may be slower; better translation quality or speed is not guaranteed. Existing model downloads remain until you remove them.</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>Tencent Q8 model for local lyric translation (Beta). The first full translation may take several minutes, depending on your device and lyric length. Translations may contain meaning errors.</value></data>
+  <data name="AiLyricsLegacyModels" xml:space="preserve"><value>Previous model files</value></data>
+  <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>These older model files are no longer used for translation. You can remove them to free disk space.</value></data>
+  <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>Delete {0}</value></data>
+  <data name="AiLyricsModelSize" xml:space="preserve"><value>{0} GB ({1} bytes)</value></data>
+  <data name="AiLyricsModelDetails" xml:space="preserve"><value>{0}
+Download size: {1}
+Source: {2}</value></data>
+  <data name="AiLyricsDownloadProgress" xml:space="preserve"><value>Translation model download progress</value></data>
+  <data name="AiLyricsModelProgress" xml:space="preserve"><value>{0} model download progress</value></data>
+  <data name="AiLyricsDownload" xml:space="preserve"><value>Download model</value></data>
+  <data name="AiLyricsCancelDownload" xml:space="preserve"><value>Cancel download</value></data>
+  <data name="AiLyricsResumeDownload" xml:space="preserve"><value>Retry / resume download</value></data>
+  <data name="AiLyricsDownloadHelp" xml:space="preserve"><value>You can download either model while AI is off and keep both. Only the selected model is used. Interrupted downloads resume when possible.</value></data>
+  <data name="AiLyricsConfirmTitle" xml:space="preserve"><value>Download a translation model?</value></data>
+  <data name="AiLyricsConfirmBody" xml:space="preserve"><value>{0}
+{1}
+{2}
+Source: {3}
+
+This downloads a model to this computer. Your internet connection is used only for this download; lyrics are not sent to the model source. Translation then runs locally. You can cancel and resume later.</value></data>
+  <data name="AiLyricsConfirmDownload" xml:space="preserve"><value>Download</value></data>
+  <data name="AiLyricsNotNow" xml:space="preserve"><value>Not now</value></data>
+  <data name="AiLyricsChecking" xml:space="preserve"><value>Checking downloaded models…</value></data>
+  <data name="AiLyricsReady" xml:space="preserve"><value>Downloaded · ready to use</value></data>
+  <data name="AiLyricsNeedsDownload" xml:space="preserve"><value>Download this model before turning on AI translation.</value></data>
+  <data name="AiLyricsDownloading" xml:space="preserve"><value>Downloading the model… Previous progress is resumed when available.</value></data>
+  <data name="AiLyricsVerifying" xml:space="preserve"><value>Download received. Checking the model…</value></data>
+  <data name="AiLyricsDownloadComplete" xml:space="preserve"><value>Model downloaded and verified. Ready to use.</value></data>
+  <data name="AiLyricsDownloadCanceled" xml:space="preserve"><value>Download canceled. Retry to resume the saved progress.</value></data>
+  <data name="AiLyricsDownloadFailed" xml:space="preserve"><value>The download could not finish. Check your connection and free disk space, then retry. Saved progress will resume when possible; a model that fails verification is downloaded again.</value></data>
+  <data name="AiLyricsInspectFailed" xml:space="preserve"><value>Downloaded models could not be checked. Check that the app’s data folder is accessible, then reopen this page.</value></data>
+  <data name="AiLyricsOperationFailed" xml:space="preserve"><value>This change could not be completed. Please try again.</value></data>
+  <data name="LyricsGlowTitle" xml:space="preserve"><value>Island glow</value></data>
+  <data name="LyricsSimplifiedGlow" xml:space="preserve"><value>Simplified glow</value></data>
+  <data name="LyricsSimplifiedGlowHelp" xml:space="preserve"><value>Follow approximately the lower quarter of the island’s outline with a soft glow and naturally fading ends. Turn off to surround the island.</value></data>
+  <data name="LyricsGlowOff" xml:space="preserve"><value>Off</value></data>
+  <data name="LyricsGlowAi" xml:space="preserve"><value>AI lyrics</value></data>
+  <data name="LyricsGlowMusic" xml:space="preserve"><value>Music</value></data>
+  <data name="LyricsGlowDescription" xml:space="preserve"><value>AI lyrics glows when an AI translation is shown. Music glows during playback, even with AI off. Turning AI on selects AI lyrics; turning it off selects Off. You can change this here.</value></data>
+  <data name="LyricsGlowKeyboardHelp" xml:space="preserve"><value>Use the arrow keys to choose Off, AI lyrics, or Music. Home selects Off; End selects Music.</value></data>
+  <data name="LyricsGlowAccessibleValue" xml:space="preserve"><value>Island glow: {0}</value></data>
+  <data name="AiLyricsDownloadHelpSingle" xml:space="preserve"><value>You can download a model while AI is off. Interrupted downloads resume when possible.</value></data>
+  <data name="AiLyricsStandardHelp" xml:space="preserve"><value>Previous Tencent Q4 model. Kept only for inspecting and removing old downloads.</value></data>
+  <data name="AiLyricsCompactHelp" xml:space="preserve"><value>Previous third-party IQ3 model. Kept only for inspecting and removing old downloads.</value></data>
+  <data name="LyricsFontSize" xml:space="preserve"><value>Lyric size</value></data>
+  <data name="LyricsFontSizeNumber" xml:space="preserve"><value>Lyric size, 12 to 28</value></data>
+  <data name="LyricsFontSizeHelp" xml:space="preserve"><value>Drag or enter a size from 12 to 28. Decimals are welcome. Original lyrics and translations scale together.</value></data>
+  <data name="LyricsFontSizeKeyboardHelp" xml:space="preserve"><value>Use the arrow keys for 0.1 steps, Page Up or Page Down for 1, or type a precise size in the numeric field.</value></data>
+  <data name="LyricsFontSizeInvalid" xml:space="preserve"><value>Enter a number from 12 to 28. The preview keeps the last valid size.</value></data>
+  <data name="LyricsFontSizeRestored" xml:space="preserve"><value>The last valid size was restored. Enter a number from 12 to 28.</value></data>
+  <data name="AiLyricsTranslationPaused" xml:space="preserve"><value>AI translation paused after three consecutive failures. Original lyrics are unchanged. Resume when you are ready to try again.</value></data>
+  <data name="AiLyricsResumeTranslation" xml:space="preserve"><value>Resume AI translation</value></data>
+  <data name="AiLyricsDeleteModel" xml:space="preserve"><value>Delete model</value></data>
+  <data name="AiLyricsClearCache" xml:space="preserve"><value>Clear lyrics cache</value></data>
+  <data name="AiLyricsDeleteConfirm" xml:space="preserve"><value>Delete {0} and its partial download? If this model is enabled, AI translation will be turned off. Other models and original lyrics are kept.</value></data>
+  <data name="AiLyricsModelDeleted" xml:space="preserve"><value>Model removed. You can download it again later.</value></data>
+  <data name="AiLyricsClearCacheConfirm" xml:space="preserve"><value>Remove cached original lyrics, provider translations, and AI translations? Current inference will stop. Downloaded models and your lyric files are kept.</value></data>
+  <data name="AiLyricsCacheCleared" xml:space="preserve"><value>Lyrics cache cleared.</value></data>
+  <data name="AiLyricsRuntimeIncluded" xml:space="preserve"><value>The offline runtime is included in the App; no additional runtime download is required. Runtime extraction uses up to approximately {0} MiB of additional disk space. Allow an extra 64 MiB of free disk space for model download and recovery.</value></data>
+  <data name="AiLyricsTranslating" xml:space="preserve"><value>Translating locally… The first full translation may take several minutes. Completed translations appear line by line; unfinished lines keep the original lyrics.</value></data>
+  <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI translation is temporarily unavailable. Original lyrics are unchanged.</value></data>
+  <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI translation ready.</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Online lyrics sends the current song title, artist, album and duration to your selected lyric provider. It is off on a fresh installation until you enable lyrics. Choose Local LRC to read your own lyric files without provider requests. AI translation itself stays on this device.</value></data>
+  <data name="AiLyricsClearingCache" xml:space="preserve"><value>Clearing AI translation cache…</value></data>
+  <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>Choose what runs in the background</value></data>
+  <data name="FirstRunPrivacyBody" xml:space="preserve"><value>Temporary Space works without clipboard recording. If enabled, DropSpace saves copied text, images and file references locally, including while its window is closed to the tray. You can pause recording, clear history and change retention in Clipboard and Settings. Closing to the tray does not exit; use Exit to stop DropSpace. These choices can be changed later.</value></data>
+  <data name="FirstRunClipboardChoice" xml:space="preserve"><value>Enable local clipboard recording</value></data>
+  <data name="FirstRunStartupChoice" xml:space="preserve"><value>Start DropSpace when I sign in to Windows</value></data>
+  <data name="FirstRunContinue" xml:space="preserve"><value>Save choices and continue</value></data>
+  <data name="FirstRunSkip" xml:space="preserve"><value>Continue with both off</value></data>
+  <data name="LyricsCacheClearFailed" xml:space="preserve"><value>Lyrics cache could not be cleared. Try again.</value></data>
+  <data name="LyricsCacheMigrationFailed" xml:space="preserve"><value>Some old lyrics cache files could not be removed. Clear the lyrics cache to retry. Downloaded models and your lyric files are kept.</value></data>
+  <data name="MusicRefresh" xml:space="preserve"><value>Refresh music</value></data>
+  <data name="MusicRefreshHelp" xml:space="preserve"><value>Reconnect music, artwork and lyrics without restarting DropSpace. Settings and cached lyrics are kept.</value></data>
+  <data name="MusicReconnecting" xml:space="preserve"><value>Reconnecting music…</value></data>
+  <data name="MusicReconnected" xml:space="preserve"><value>Music reconnected</value></data>
+  <data name="MusicReconnectFailed" xml:space="preserve"><value>Couldn’t reconnect music. Try the refresh button again.</value></data>
+  <data name="MediaNextLyricLabel" xml:space="preserve"><value>Upcoming lyric</value></data>
+  <data name="IslandForceShowOverFullscreen" xml:space="preserve"><value>Force Dynamic Island over fullscreen</value></data>
+  <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
+  <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
+  <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
 </root>

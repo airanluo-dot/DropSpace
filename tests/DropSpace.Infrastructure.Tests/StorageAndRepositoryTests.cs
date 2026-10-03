@@ -37,6 +37,19 @@ public sealed class StorageAndRepositoryTests
     }
 
     [TestMethod]
+    public async Task SpaceReferenceDeduplicationUsesUnicodeWindowsPathComparison()
+    {
+        Directory.CreateDirectory(_root);
+        var sourcePath = Path.Combine(_root, "Résumé.txt");
+        await File.WriteAllTextAsync(sourcePath, "same file");
+        var candidate = await new LocalFileReferenceService().InspectAsync(sourcePath);
+        var repository = CreateRepository();
+        var first = await repository.AddFileAsync(candidate);
+        var second = await repository.AddFileAsync(candidate with { NormalizedPath = candidate.NormalizedPath.ToUpperInvariant() });
+        Assert.AreEqual(first.Id, second.Id);
+    }
+
+    [TestMethod]
     public async Task Settings_RoundTripTypedValuesAtomically()
     {
         var service = new JsonSettingsService(_paths);
@@ -85,6 +98,7 @@ public sealed class StorageAndRepositoryTests
             IslandActivity = expected.IslandActivity with { AllowedMediaSourceAppIds = actual.IslandActivity.AllowedMediaSourceAppIds },
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
+            ClipboardPeerModes = actual.ClipboardPeerModes,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
         }, actual);
         Assert.AreEqual(new OverlayCustomPlacement(640, 24), actual.CustomOverlayPlacements["DISPLAY-1"]);
@@ -335,6 +349,7 @@ public sealed class StorageAndRepositoryTests
         {
             CustomOverlayPlacements = actual.CustomOverlayPlacements,
             OverlayPlacements = actual.OverlayPlacements,
+            ClipboardPeerModes = actual.ClipboardPeerModes,
             SmartDragExcludedProcesses = actual.SmartDragExcludedProcesses,
         }, actual);
         Assert.IsTrue(service.LastLoadRecovery.Recovered);

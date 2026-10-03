@@ -1,0 +1,21 @@
+{
+  "cold": [
+    {
+      "targetLanguage": "en",
+      "outcome": null,
+      "complete": false,
+      "calls": 33,
+      "elapsedMilliseconds": 300172.6267,
+      "error": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at DropSpace.Infrastructure.Lyrics.PersistentPlainLyricsRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PersistentPlainLyricsRunner.cs:line 136\r\n   at PlainHyProductionEvidence.ObservedRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 580\r\n   at DropSpace.Infrastructure.Lyrics.PlainHyLyricsCoordinator.TranslateWithBudgetAsync(LyricsQuery query, LyricsDocument source, String targetLanguage, String identity, Int64 generation, Func`3 infer, CancellationToken token, TimeSpan songBudget, LyricsTranslationProgressContext progress) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PlainHyLyricsBackend.cs:line 110\r\n   at PlainHyProductionEvidence.Program.CaptureAsync(CaptureConfiguration config, String configPath) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 135"
+    },
+    {
+      "targetLanguage": "zh-Hans",
+      "outcome": null,
+      "complete": false,
+      "calls": 34,
+      "elapsedMilliseconds": 300152.1634,
+      "error": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at DropSpace.Infrastructure.Lyrics.PersistentPlainLyricsRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PersistentPlainLyricsRunner.cs:line 136\r\n   at PlainHyProductionEvidence.ObservedRunner.RunPlainAsync(String executablePath, String modelPath, String prompt, String stagingDirectory, CancellationToken cancellationToken, String verifiedModelSha256) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 580\r\n   at DropSpace.Infrastructure.Lyrics.PlainHyLyricsCoordinator.TranslateWithBudgetAsync(LyricsQuery query, LyricsDocument source, String targetLanguage, String identity, Int64 generation, Func`3 infer, CancellationToken token, TimeSpan songBudget, LyricsTranslationProgressContext progress) in D:\\a\\DropSpace\\DropSpace\\src\\DropSpace.Infrastructure\\Lyrics\\PlainHyLyricsBackend.cs:line 110\r\n   at PlainHyProductionEvidence.Program.CaptureAsync(CaptureConfiguration config, String configPath) in D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Program.cs:line 135"
+    }
+  ],
+  "cache": []
+}

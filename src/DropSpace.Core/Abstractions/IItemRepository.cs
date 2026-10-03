@@ -111,6 +111,15 @@ public interface IItemRepository
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Recovers removals whose in-memory undo owner was lost at restart. Expired removals
+    /// are finalized; still-undoable items are restored so they cannot remain hidden forever.
+    /// Call only before admitting new undo operations.
+    /// </summary>
+    Task<FinalizedRemovalResult> RecoverPendingRemovalsAsync(
+        DateTimeOffset nowUtc,
+        CancellationToken cancellationToken = default);
+
     Task<ClearResult> ClearClipboardAsync(
         DateTimeOffset? fromUtc,
         bool includePinned,

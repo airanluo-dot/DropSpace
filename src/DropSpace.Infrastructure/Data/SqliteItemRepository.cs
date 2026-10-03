@@ -881,15 +881,37 @@ public sealed class SqliteItemRepository(
         }
     }
 
-    public async Task<FinalizedRemovalResult> FinalizeExpiredPendingRemovalsAsync(
+    public Task<FinalizedRemovalResult> FinalizeExpiredPendingRemovalsAsync(
         DateTimeOffset nowUtc,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RecoverPendingRemovalsCoreAsync(nowUtc, restoreUnexpired: false, cancellationToken);
+
+    public Task<FinalizedRemovalResult> RecoverPendingRemovalsAsync(
+        DateTimeOffset nowUtc,
+        CancellationToken cancellationToken = default) =>
+        RecoverPendingRemovalsCoreAsync(nowUtc, restoreUnexpired: true, cancellationToken);
+
+    private async Task<FinalizedRemovalResult> RecoverPendingRemovalsCoreAsync(
+        DateTimeOffset nowUtc,
+        bool restoreUnexpired,
+        CancellationToken cancellationToken)
     {
         await database.WriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await using var connection = await database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            if (restoreUnexpired)
+            {
+                // A crash loses the UndoCoordinator's token/timer. Preserve the user's
+                // remaining undo opportunity by restoring these records atomically with
+                // expired-token cleanup, rather than leaving invisible orphaned items.
+                await using var restore = connection.CreateCommand();
+                restore.Transaction = (SqliteTransaction)transaction;
+                restore.CommandText = "UPDATE items SET pending_delete_token = NULL, pending_delete_expires_at_utc = NULL WHERE pending_delete_token IS NOT NULL AND (pending_delete_expires_at_utc IS NULL OR pending_delete_expires_at_utc > @now);";
+                restore.Parameters.AddWithValue("@now", ToTimestamp(nowUtc));
+                await restore.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
             await using var tokenCommand = connection.CreateCommand();
             tokenCommand.Transaction = (SqliteTransaction)transaction;
             tokenCommand.CommandText = "SELECT DISTINCT pending_delete_token FROM items WHERE pending_delete_token IS NOT NULL AND pending_delete_expires_at_utc <= @now;";
@@ -1239,7 +1261,7 @@ public sealed class SqliteItemRepository(
             FROM file_references f
             JOIN items i ON i.id = f.item_id
             WHERE i.source = @source
-              AND f.normalized_path = @path COLLATE NOCASE
+              AND f.normalized_path = @path COLLATE DROPSPACE_PATH
               AND i.pending_delete_token IS NULL
             LIMIT 1;
             """;

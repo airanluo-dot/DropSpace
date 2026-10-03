@@ -1,0 +1,71 @@
+{
+  "status": "preregistered-not-executed",
+  "createdUtc": "2026-10-02T05:14:00Z",
+  "purpose": "Finite generic prompt ablation after 61596 AVX2 fixed-screen failures; no release approval",
+  "modelId": "qwen3-17-q4",
+  "modelManifest": "scripts/ai-model-qa/candidates.json",
+  "runtimeCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "variant": "Avx2",
+  "sampling": {
+    "seed": 42,
+    "temperature": 0.1,
+    "topK": 20,
+    "topP": 0.8,
+    "minP": 0.05,
+    "repeatPenalty": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0
+  },
+  "limits": {
+    "memoryMiB": 3072,
+    "secondsPerInvocation": 60,
+    "contextTokens": 4096,
+    "generationTokens": 2048,
+    "threads": 4,
+    "fullSongSecondsBaseline": 180
+  },
+  "schema": "Unchanged production OutputSchema(ids); raw output must pass TryApply without truncation",
+  "prompts": [
+    {
+      "target": "en-US",
+      "ids": [
+        38,
+        40,
+        41,
+        42,
+        44,
+        45
+      ],
+      "file": "en-US.minimal-json.prompt.txt",
+      "sha256": "49e9d63ebcfdec0179751e70d1e3216bdf3c618b65cdc82c80e5102fe1c28abe"
+    },
+    {
+      "target": "zh-CN",
+      "ids": [
+        14,
+        16,
+        26,
+        29,
+        32,
+        33
+      ],
+      "file": "zh-CN.minimal-json.prompt.txt",
+      "sha256": "ccc733494b0ec04e4a342fc70e60c1d6732992201a18a0d0fa6518984a02b4b4"
+    }
+  ],
+  "changes": [
+    "Remove metadata and background",
+    "Shorten generic translation instruction",
+    "Repeat target full name after input"
+  ],
+  "attributionLimit": "Combined prompt simplification; cannot attribute any improvement to one component alone",
+  "attempts": 1,
+  "holdout": "Not read or used. Advance only after complete fixed-screen semantic review, then evaluate untouched holdout and whole48 under original budgets.",
+  "failureRule": "Preserve all raw failures. No seed/word-specific retries. Wrong language, action/polarity reversal, changed quantities/objects block quality.",
+  "notRun": [
+    "No new inference",
+    "No new weights",
+    "No production/catalog/gate changes"
+  ],
+  "officialSamplingNote": "Qwen card recommends non-thinking temperature0.7/minP0; deliberately keep prior protocol to isolate prompt. This experiment does not establish best possible model quality."
+}

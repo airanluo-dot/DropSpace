@@ -7,6 +7,8 @@ using DropSpace.Core.Models;
 
 namespace DropSpace.Core.Lyrics;
 
+public enum TtmlTimingMode { Automatic, Absolute, ParentRelative }
+
 public static class LyricsParser
 {
     public const int MaximumCharacters = 2 * 1024 * 1024;
@@ -17,12 +19,12 @@ public static class LyricsParser
     private static readonly Regex YrcHeader = new(@"^\[(\d+),(\d+)\]", RegexOptions.None, TimeSpan.FromMilliseconds(200));
     private static readonly Regex YrcWord = new(@"\((\d+),(\d+),\d+\)", RegexOptions.None, TimeSpan.FromMilliseconds(200));
 
-    public static LyricsDocument Parse(string text, LyricsProviderKind provider, string? secondary = null)
+    public static LyricsDocument Parse(string text, LyricsProviderKind provider, string? secondary = null, TtmlTimingMode ttmlTiming = TtmlTimingMode.Automatic)
     {
         if (text.Length > MaximumCharacters) throw new InvalidDataException("Lyrics exceed the content limit.");
         var lines = LooksLikeTtml(text)
-            ? ParseTtml(text) : ParseTimedText(text);
-        var translations = (string.IsNullOrEmpty(secondary) ? [] : LooksLikeTtml(secondary) ? ParseTtml(secondary) : ParseTimedText(secondary))
+            ? ParseTtml(text, provider, ttmlTiming) : ParseTimedText(text);
+        var translations = (string.IsNullOrEmpty(secondary) ? [] : LooksLikeTtml(secondary) ? ParseTtml(secondary, provider, ttmlTiming) : ParseTimedText(secondary))
             .OrderBy(line => line.Start).ToArray();
         var ordered = lines.OrderBy(line => line.Start).Take(MaximumLines).ToArray();
         var translationIndices = AlignTranslations(ordered, translations);
@@ -40,9 +42,19 @@ public static class LyricsParser
             {
                 End = word.End > word.Start ? (word.End > end ? end : word.End) : end,
             }).Where(word => word.End > word.Start).ToArray();
-            ordered[index] = line with { End = end, Secondary = translation, Words = words };
+            ordered[index] = line with
+            {
+                End = end, Secondary = translation, Words = words,
+                TranslationOrigin = translationIndex >= 0 && !string.IsNullOrWhiteSpace(translation)
+                    ? LyricsTranslationOrigin.Provider : line.TranslationOrigin,
+                // External TTML carries the translated text's own primary language.
+                // Unlabelled LRC remains unknown until conservative document classification.
+                TranslationLanguage = translationIndex >= 0 ? translations[translationIndex].SourceLanguage : line.TranslationLanguage,
+                TranslationLanguageIsExplicit = translationIndex >= 0
+                    ? !string.IsNullOrWhiteSpace(translations[translationIndex].SourceLanguage) : line.TranslationLanguageIsExplicit,
+            };
         }
-        return new(ordered, provider);
+        return LyricsLanguagePolicy.IdentifyProviderTranslations(new(ordered, provider));
     }
 
     private static int[] AlignTranslations(LyricsLine[] lines, LyricsLine[] translations)
@@ -77,11 +89,18 @@ public static class LyricsParser
         if (text.Length > MaximumCharacters) throw new InvalidDataException("Lyrics exceed the content limit.");
         var output = new List<LyricsLine>();
         var plainLines = new List<string>();
+        var emptyBoundaries = new List<TimeSpan>();
         double offset = 0;
         foreach (var raw in text.Split('\n').Take(MaximumLines))
         {
             var value = raw.Trim().TrimStart('\uFEFF');
-            if (value.Length == 0) continue;
+            if (value.Length == 0)
+            {
+                // Keep internal section boundaries for an untimed display block.
+                // They also prevent language context from crossing a blank verse.
+                if (plainLines.Count > 0) plainLines.Add(string.Empty);
+                continue;
+            }
             if (value.StartsWith("[offset:", StringComparison.OrdinalIgnoreCase) && value.EndsWith(']'))
             { if (double.TryParse(value[8..^1], CultureInfo.InvariantCulture, out var milliseconds) && double.IsFinite(milliseconds)) offset = Math.Clamp(milliseconds, -30_000, 30_000); continue; }
             var yrc = YrcHeader.Match(value);
@@ -117,7 +136,11 @@ public static class LyricsParser
                 timedWords.Add(new(content[(stamp.Index + stamp.Length)..(index + 1 < wordTimes.Count ? wordTimes[index + 1].Index : content.Length)], start, end));
             }
             var plain = WordStamp.Replace(content, string.Empty).Trim();
-            if (plain.Length == 0) continue;
+            if (plain.Length == 0)
+            {
+                emptyBoundaries.AddRange(times.Cast<Match>().Take(64).Select(stamp => Timestamp(stamp.Groups[1].Value)));
+                continue;
+            }
             foreach (Match stamp in times.Cast<Match>().Take(64))
             {
                 var start = Timestamp(stamp.Groups[1].Value);
@@ -134,7 +157,22 @@ public static class LyricsParser
             if (output.Count >= MaximumLines) break;
         }
         if (output.Count == 0 && plainLines.Count > 0)
-            output.Add(new(TimeSpan.Zero, TimeSpan.FromHours(24), string.Join(Environment.NewLine, plainLines), null, []));
+            output.Add(new(TimeSpan.Zero, TimeSpan.FromHours(24), string.Join(Environment.NewLine, plainLines).TrimEnd(), null, []));
+        // Empty timestamped lines explicitly end a lyric before an instrumental gap.
+        // Keep their timing evidence without displaying or aligning translations to blank rows.
+        emptyBoundaries.Sort();
+        for (var index = 0; index < output.Count && emptyBoundaries.Count > 0; index++)
+        {
+            var line = output[index];
+            var boundaryIndex = emptyBoundaries.BinarySearch(line.Start);
+            if (boundaryIndex < 0) boundaryIndex = ~boundaryIndex;
+            else while (boundaryIndex < emptyBoundaries.Count && emptyBoundaries[boundaryIndex] <= line.Start) boundaryIndex++;
+            if (boundaryIndex < emptyBoundaries.Count &&
+                (line.End <= line.Start || emptyBoundaries[boundaryIndex] < line.End))
+                output[index] = line with { End = emptyBoundaries[boundaryIndex] };
+        }
+        if (offset < 0)
+            output.RemoveAll(line => line.End > line.Start && line.End.TotalMilliseconds + offset <= 0);
         if (offset != 0)
             for (var index = 0; index < output.Count; index++)
             {
@@ -145,7 +183,7 @@ public static class LyricsParser
         return output;
     }
 
-    private static List<LyricsLine> ParseTtml(string text)
+    private static List<LyricsLine> ParseTtml(string text, LyricsProviderKind provider, TtmlTimingMode timingMode)
     {
         var settings = new XmlReaderSettings
         {
@@ -169,23 +207,42 @@ public static class LyricsParser
 
         using var reader = XmlReader.Create(new StringReader(text), settings);
         var document = XDocument.Load(reader);
+        // AMLL/Apple lyric documents use media-absolute word stamps. Standard
+        // TTML offset expressions are relative to their parent's time container.
+        // Callers can state the dialect explicitly; never infer it from numeric ordering.
+        var absolute = timingMode == TtmlTimingMode.Absolute ||
+            (timingMode == TtmlTimingMode.Automatic && (provider == LyricsProviderKind.Amll ||
+            document.Root?.Attributes().Any(attribute => attribute.IsNamespaceDeclaration &&
+                attribute.Value.Contains("itunes.apple.com", StringComparison.OrdinalIgnoreCase)) == true));
         var output = new List<LyricsLine>();
         foreach (var paragraph in document.Descendants().Where(element => element.Name.LocalName == "p").Take(MaximumLines))
         {
-            var start = Timestamp(paragraph.Attribute("begin")?.Value ?? "0s");
-            var end = ResolveEnd(paragraph, start, TimeSpan.FromSeconds(5));
+            var parentStart = absolute ? TimeSpan.Zero : paragraph.Ancestors()
+                .Aggregate(TimeSpan.Zero, (time, element) => time + Timestamp(element.Attribute("begin")?.Value ?? "0s"));
+            var start = parentStart + Timestamp(paragraph.Attribute("begin")?.Value ?? "0s");
+            var end = ResolveEnd(paragraph, start, TimeSpan.FromSeconds(5), parentStart);
             var words = new List<LyricsWord>();
             var primary = new StringBuilder();
-            var translation = new StringBuilder();
-            foreach (var node in paragraph.Nodes()) ReadTtmlNode(node, start, end, primary, translation, words);
+            var translations = new List<(string Text, string? Language)>();
+            var romanization = new StringBuilder();
+            foreach (var node in paragraph.Nodes()) ReadTtmlNode(node, start, end, primary, translations, romanization, words, absolute);
             var textValue = primary.ToString().Trim();
-            if (textValue.Length > 0) output.Add(new(start, end, textValue, translation.Length == 0 ? null : translation.ToString().Trim(), words));
+            var translation = string.Concat(translations.Select(value => value.Text)).Trim();
+            var secondary = translation.Length > 0 ? translation : romanization.ToString().Trim();
+            var languages = translations.Select(value => value.Language).Distinct(StringComparer.Ordinal).ToArray();
+            if (textValue.Length > 0) output.Add(new(start, end, textValue, secondary.Length == 0 ? null : secondary, words)
+            {
+                SourceLanguage = ExplicitSourceLanguage(paragraph),
+                TranslationOrigin = translation.Length > 0 ? LyricsTranslationOrigin.Provider : LyricsTranslationOrigin.None,
+                TranslationLanguage = translation.Length > 0 && languages.Length == 1 ? languages[0] : null,
+                TranslationLanguageIsExplicit = translation.Length > 0 && languages.Length == 1 && !string.IsNullOrWhiteSpace(languages[0]),
+            });
         }
         return output;
     }
 
     private static void ReadTtmlNode(XNode node, TimeSpan parentStart, TimeSpan parentEnd, StringBuilder primary,
-        StringBuilder translation, List<LyricsWord> words)
+        List<(string Text, string? Language)> translations, StringBuilder romanization, List<LyricsWord> words, bool absolute)
     {
         if (node is XText literal) { primary.Append(literal.Value); return; }
         if (node is not XElement element) return;
@@ -204,11 +261,16 @@ public static class LyricsParser
         if (ruby is not null &&
             (ruby.Equals("text", StringComparison.OrdinalIgnoreCase) ||
              ruby.Equals("textContainer", StringComparison.OrdinalIgnoreCase))) return;
-        var isTranslation = role.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Any(IsTranslationRole);
-        if (isTranslation) { translation.Append(element.Value); return; }
-        var start = ResolveNestedTime(element.Attribute("begin")?.Value, parentStart);
-        var end = ResolveNestedEnd(element, start, parentStart, parentEnd);
+        var roles = role.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        if (roles.Any(IsRomanizationRole)) { romanization.Append(element.Value); return; }
+        if (roles.Any(IsTranslationRole))
+        {
+            if (!string.IsNullOrWhiteSpace(element.Value))
+                translations.Add((element.Value, ExplicitTranslationLanguage(element)));
+            return;
+        }
+        var start = ResolveNestedTime(element.Attribute("begin")?.Value, parentStart, absolute);
+        var end = ResolveNestedEnd(element, start, parentStart, parentEnd, absolute);
         var children = element.Nodes().ToArray();
         if (children.All(child => child is XText))
         {
@@ -218,51 +280,96 @@ public static class LyricsParser
                 words.Add(new(value.Trim(), start, end));
             return;
         }
-        foreach (var child in children) ReadTtmlNode(child, start, end, primary, translation, words);
+        foreach (var child in children) ReadTtmlNode(child, start, end, primary, translations, romanization, words, absolute);
     }
 
     private static bool IsTranslationRole(string value)
     {
-        if (value.Equals("x-translation", StringComparison.OrdinalIgnoreCase) ||
-            value.Equals("x-roman", StringComparison.OrdinalIgnoreCase) ||
-            value.Equals("x-transliteration", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
         var normalized = value.Replace("-", string.Empty, StringComparison.Ordinal)
             .Replace("_", string.Empty, StringComparison.Ordinal);
-        return normalized.Contains("translation", StringComparison.OrdinalIgnoreCase) ||
+        return normalized.Contains("translation", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsRomanizationRole(string value)
+    {
+        var normalized = value.Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace("_", string.Empty, StringComparison.Ordinal);
+        return normalized.Equals("xroman", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("transliteration", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("romanization", StringComparison.OrdinalIgnoreCase) ||
             normalized.Equals("pinyin", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static TimeSpan ResolveEnd(XElement element, TimeSpan start, TimeSpan defaultDuration)
+    private static string? ExplicitSourceLanguage(XElement paragraph)
+    {
+        var languages = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var text in paragraph.DescendantNodes().OfType<XText>().Where(t => t.Value.Any(char.IsLetter)))
+        {
+            var ancestors = text.Ancestors().ToArray();
+            if (ancestors.TakeWhile(e => e != paragraph).Any(e =>
+            {
+                var roles = e.Attributes().FirstOrDefault(a => a.Name.LocalName.Equals("role", StringComparison.OrdinalIgnoreCase))?.Value ?? string.Empty;
+                var ruby = e.Attributes().FirstOrDefault(a => a.Name.LocalName.Equals("ruby", StringComparison.OrdinalIgnoreCase))?.Value;
+                return roles.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Any(r => IsTranslationRole(r) || IsRomanizationRole(r)) ||
+                    ruby is not null && (ruby.Equals("text", StringComparison.OrdinalIgnoreCase) || ruby.Equals("textContainer", StringComparison.OrdinalIgnoreCase));
+            })) continue;
+            var declaration = ancestors.Select(e => e.Attribute(XNamespace.Xml + "lang")?.Value).FirstOrDefault(v => v is not null);
+            var language = LyricsTranslationPolicy.NormalizeLanguage(declaration);
+            if (language.Length == 0) return null;
+            languages.Add(language);
+        }
+        return languages.Count == 1 ? languages.Single() : languages.Count > 1 ? "mul" : null;
+    }
+
+    private static string? ExplicitTranslationLanguage(XElement translation)
+    {
+        string? language = null;
+        foreach (var text in translation.DescendantNodes().OfType<XText>().Where(text => !string.IsNullOrWhiteSpace(text.Value)))
+        {
+            string? declared = null;
+            for (var current = text.Parent; current is not null; current = current.Parent)
+            {
+                if (current.Attribute(XNamespace.Xml + "lang") is { } attribute)
+                {
+                    declared = attribute.Value;
+                    break;
+                }
+                // A language on the source paragraph/document does not identify an
+                // unlabelled translation. Only declarations within its span count.
+                if (current == translation) break;
+            }
+            var normalized = LyricsTranslationPolicy.NormalizeLanguage(declared);
+            if (normalized.Length == 0 || (language is not null && language != normalized)) return null;
+            language = normalized;
+        }
+        return language;
+    }
+
+    private static TimeSpan ResolveEnd(XElement element, TimeSpan start, TimeSpan defaultDuration, TimeSpan parentStart)
     {
         if (element.Attribute("end") is { } end)
         {
-            var parsed = Timestamp(end.Value);
+            var parsed = parentStart + Timestamp(end.Value);
             return parsed > start ? parsed : start;
         }
         if (element.Attribute("dur") is { } duration) return start + Timestamp(duration.Value);
         return start + defaultDuration;
     }
 
-    private static TimeSpan ResolveNestedTime(string? value, TimeSpan parentStart)
+    private static TimeSpan ResolveNestedTime(string? value, TimeSpan parentStart, bool absolute)
     {
         if (string.IsNullOrWhiteSpace(value)) return parentStart;
         var parsed = Timestamp(value);
-        return parentStart > TimeSpan.Zero && parsed < parentStart ? parentStart + parsed : parsed;
+        return absolute ? parsed : parentStart + parsed;
     }
 
-    private static TimeSpan ResolveNestedEnd(XElement element, TimeSpan start, TimeSpan parentStart, TimeSpan parentEnd)
+    private static TimeSpan ResolveNestedEnd(XElement element, TimeSpan start, TimeSpan parentStart, TimeSpan parentEnd, bool absolute)
     {
         if (element.Attribute("end") is { } end)
         {
             // Relative begin/end values share their parent's origin; only dur
             // is added to the child start. Apple-style absolute times still pass through.
-            var resolved = ResolveNestedTime(end.Value, parentStart);
+            var resolved = ResolveNestedTime(end.Value, parentStart, absolute);
             return resolved > start ? resolved : start;
         }
         if (element.Attribute("dur") is { } duration) return start + Timestamp(duration.Value);

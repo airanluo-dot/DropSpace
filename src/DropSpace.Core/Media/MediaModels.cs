@@ -42,6 +42,13 @@ public sealed record MediaSessionSnapshot(
     /// <summary>Runtime-only key that excludes position and volatile timeline metadata.</summary>
     public string TrackIdentity => string.Join('\u001f', SessionId, SourceAppUserModelId, TrackTitle, Artist, AlbumArtist, AlbumTitle, TrackNumber);
 
+    /// <summary>Persistent lyric identity excludes the random runtime session id.</summary>
+    public string LyricsCacheIdentity => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        SourceAppUserModelId, TrackTitle, Artist, AlbumArtist, AlbumTitle, TrackNumber,
+        durationTicks = Timeline.Duration.Ticks,
+    });
+
     /// <summary>
     /// Compares track metadata while treating a temporarily missing duration as unknown. Media
     /// sessions can briefly publish a zero timeline while Apple Music refreshes its metadata.

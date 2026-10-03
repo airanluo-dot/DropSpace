@@ -19,6 +19,10 @@ public sealed class DeviceHandoffUseCase(DeviceHandoffService service)
     public Task<IReadOnlyList<DeviceDescriptor>> DiscoverAsync(TimeSpan timeout, CancellationToken cancellationToken = default) =>
         service.DiscoverAsync(timeout, cancellationToken);
 
+    public Task<IReadOnlyList<(PeerDevice Peer, Uri Endpoint)>> DiscoverTrustedPeersAsync(
+        TimeSpan timeout, CancellationToken cancellationToken = default) =>
+        service.DiscoverTrustedPeersAsync(timeout, cancellationToken);
+
     public Task<PeerDevice> PairAsync(
         DeviceDescriptor descriptor,
         Func<int, CancellationToken, Task<bool>>? confirmSas = null,

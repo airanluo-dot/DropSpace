@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "runtimeId": "llama-cpp-v0.5.0-cpu-win-x64",
+  "runtimeSourceCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "models": [
+    {
+      "repo": "ggml-org/Qwen3-1.7B-GGUF",
+      "revision": "daeb8e2d528a760970442092f6bf1e55c3b659eb",
+      "license": "apache-2.0",
+      "provenance": "GGUF quantization published by llama.cpp maintainers, not Qwen first-party weights repository",
+      "file": "Qwen3-1.7B-Q4_K_M.gguf",
+      "bytes": 1282439264,
+      "sha256": "d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5",
+      "url": "https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/daeb8e2d528a760970442092f6bf1e55c3b659eb/Qwen3-1.7B-Q4_K_M.gguf",
+      "id": "qwen3-17-q4"
+    },
+    {
+      "repo": "Qwen/Qwen3-1.7B-GGUF",
+      "revision": "90862c4b9d2787eaed51d12237eafdfe7c5f6077",
+      "license": "apache-2.0",
+      "file": "Qwen3-1.7B-Q8_0.gguf",
+      "bytes": 1834426016,
+      "sha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a",
+      "url": "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/90862c4b9d2787eaed51d12237eafdfe7c5f6077/Qwen3-1.7B-Q8_0.gguf",
+      "id": "qwen3-17-q8"
+    },
+    {
+      "repo": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+      "revision": "7cdf86ccd1f1bb3491c9b7017b033f2e51367397",
+      "license": "apache-2.0",
+      "file": "granite-3.3-2b-instruct-Q4_K_M.gguf",
+      "bytes": 1545303328,
+      "sha256": "ac71e9e32c0bea919b409c5918f69ca74339854b0319c5065e4e9fb6d95c4852",
+      "url": "https://huggingface.co/ibm-granite/granite-3.3-2b-instruct-GGUF/resolve/7cdf86ccd1f1bb3491c9b7017b033f2e51367397/granite-3.3-2b-instruct-Q4_K_M.gguf",
+      "id": "granite33-2-q4"
+    },
+    {
+      "repo": "tencent/Hy-MT2-1.8B-GGUF",
+      "revision": "a0c709d9fac510f2c807aa3af52872340dc37a4a",
+      "license": "apache-2.0",
+      "provenance": "Author-official Tencent GGUF; ungated",
+      "file": "Hy-MT2-1.8B-Q8_0.gguf",
+      "bytes": 1908528192,
+      "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+      "url": "https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF/resolve/a0c709d9fac510f2c807aa3af52872340dc37a4a/Hy-MT2-1.8B-Q8_0.gguf",
+      "id": "hy-mt2-18-q8"
+    }
+  ],
+  "sourceFixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549"
+}

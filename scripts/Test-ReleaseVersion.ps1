@@ -115,3 +115,25 @@ if ($appProject -notmatch '(?s)Name="PrepareDropSpacePackageManifest".*?XmlPoke'
 {
     throw "The packaged app manifest is not bound to the shared release package version."
 }
+
+# Crossing into a new patch Beta must not invent a never-published stable baseline.
+$baselineFixture = Join-Path ([IO.Path]::GetTempPath()) ("dropspace-baseline-" + [Guid]::NewGuid().ToString('N'))
+try {
+    New-Item $baselineFixture -ItemType Directory | Out-Null
+    foreach ($tag in @('v0.2.1', 'v0.3.0-beta.31', 'v0.3.0-beta.32', 'v0.3.1-beta.1', 'v0.4.0-beta.1')) {
+        Set-Content (Join-Path $baselineFixture "$tag.md") '# Fixture'
+    }
+    Assert-Equal (Get-DropSpaceLifecycleBaselineVersion (Get-DropSpaceReleaseInfo 'v0.3.1-beta.1') -NotesRoot $baselineFixture) '0.3.0-beta.32' 'New patch selects actual preceding Beta'
+    Set-Content (Join-Path $baselineFixture 'v0.3.0.md') '# Fixture'
+    Assert-Equal (Get-DropSpaceLifecycleBaselineVersion (Get-DropSpaceReleaseInfo 'v0.3.1-beta.1') -NotesRoot $baselineFixture) '0.3.0' 'Published stable is preferred when documented'
+}
+finally { if (Test-Path $baselineFixture) { Remove-Item $baselineFixture -Recurse -Force } }
+
+
+$reviewedCommit = 'a' * 40
+Assert-DropSpacePublicationCommit $reviewedCommit $reviewedCommit
+foreach ($invalidExpected in @('', 'main', ('b' * 40))) {
+    $denied = $false
+    try { Assert-DropSpacePublicationCommit $invalidExpected $reviewedCommit } catch { $denied = $true }
+    Assert-Equal $denied $true 'Reject missing, symbolic, or advanced publication commit'
+}

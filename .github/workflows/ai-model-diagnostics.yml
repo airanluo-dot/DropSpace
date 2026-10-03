@@ -1,0 +1,137 @@
+name: AI model diagnostics (no publication)
+
+on:
+  push:
+    branches: [qa/hy-q8-031]
+    # This candidate failed full-song acceptance. Rerun only on its explicit experiment branch.
+    # Approval records, documentation and unrelated UI changes must not repeat a model experiment.
+    paths:
+      - scripts/ai-model-qa/Program.cs
+      - scripts/ai-model-qa/Run-WindowsModelQa.ps1
+      - scripts/ai-model-qa/Get-PinnedDiagnosticRuntime.ps1
+      - scripts/ai-model-qa/WindowsModelQa.csproj
+      - scripts/ai-model-qa/packages.lock.json
+      - scripts/ai-model-qa/candidates.json
+      - scripts/ai-model-qa/inputs/**
+      - scripts/ai-model-qa/profiles/**
+      - src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs
+      - src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs
+      - src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs
+      - src/DropSpace.Core/Lyrics/LyricsModels.cs
+      - src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs
+      - src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs
+      - src/DropSpace.Infrastructure/Storage/ReparseSafePathPolicy.cs
+  # Once present on the default branch, this also permits deliberate configuration-only reruns.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ai-model-diagnostics-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ai-model-diagnostics:
+    name: Hy Q8 holdout and full-song candidate validation
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the same candidate source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+
+      - name: Retrieve and verify the fixed reviewed runtime artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/ai-model-qa/Get-PinnedDiagnosticRuntime.ps1
+
+      - name: Parse QA PowerShell without executing its body
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/ai-model-qa/Run-WindowsModelQa.ps1'),
+            [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List; throw 'QA script syntax check failed.' }
+
+      - name: Validate Hy Q8 holdout, full songs, cache and cancellation on AVX2
+        id: hyq8
+        continue-on-error: true
+        timeout-minutes: 18
+        shell: pwsh
+        env:
+          EXPECTED_RUNTIME_MANIFEST_SHA256: '406dfe47bd7c938936a4f57dd0ac4ecba910d8c5fd893aa72877ca172e26b212'
+        run: |
+          ./scripts/ai-model-qa/Run-WindowsModelQa.ps1 -RuntimeDirectory artifacts/ai-candidate-runtime `
+            -ExpectedRuntimeManifestSha256 $env:EXPECTED_RUNTIME_MANIFEST_SHA256 `
+            -ModelDirectory artifacts/ai-candidate-models -ModelIds hy-mt2-18-q8 `
+            -Variant Avx2 -MemoryMiB 3072 -PromptProfile production -AcceptanceSuite -DownloadMissing `
+            -OutputDirectory artifacts/ai-model-diagnostics/hy-mt2-18-q8
+
+      - name: Record technical outcomes and pending content review
+        if: always()
+        shell: pwsh
+        env:
+          HY_Q8_OUTCOME: ${{ steps.hyq8.outcome }}
+        run: |
+          New-Item artifacts/ai-model-diagnostics -ItemType Directory -Force | Out-Null
+          $record = [ordered]@{
+            sourceSha = '${{ github.sha }}'
+            runtimeBuildSourceSha = '61596fcb6e757de2e6496613be3791a38142e04d'
+            runtimeBuildRunId = 36965634264
+            runtimeArtifactId = 11210435635
+            runId = '${{ github.run_id }}'
+            runAttempt = '${{ github.run_attempt }}'
+            evaluationMode = 'acceptance'
+            qualityCriterion = 'User practical standard 2026-10-02T05:53:34Z: minor wording differences warn; wrong-language/copying/clear overall reversals block'
+            hyQ8TechnicalOutcome = $env:HY_Q8_OUTCOME
+            hyQ8PromptProfile = 'production'
+            hyQ8Interpretation = 'Candidate acceptance evidence only; content still awaits review; not quantization-causality proof'
+            priorProductionProfileQuality = 'FAILED; original evidence retained'
+            graniteStatus = 'NOT SCHEDULED; previous fixed-screen quality failure retained'
+            semanticStatus = 'PENDING SEMANTIC REVIEW: record actual reviewer identity; no automatic quality approval.'
+            releaseApproval = $false
+          }
+          $record | ConvertTo-Json | Set-Content artifacts/ai-model-diagnostics/ci-outcomes.json -Encoding utf8
+          @(
+            '## Hy Q8 holdout and full-song candidate evidence',
+            'Original frozen holdout and full48, production prompt/schema, fixed QA sampler and resource budgets. No catalog change.',
+            'Prior baseline timeout evidence remains failed. AVX2 results do not establish support on CPUs without AVX2/FMA/F16C.',
+            "Hy MT2 Q8 (production prompt) technical outcome: $env:HY_Q8_OUTCOME",
+            'Hy Q8 is a candidate screen, not proof that quantization caused earlier Q4 errors.',
+            'Content: PENDING SEMANTIC REVIEW. Minor understandable wording differences warn; clear overall reversal or wrong target language blocks.',
+            'Loading failures have no semantic verdict. Read original stdout/stderr and exit/peak-memory records.',
+            'This job records holdout/full-song/cache/source-only/cancellation evidence. It does not itself grant release approval.'
+          ) -join "`n`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload candidate diagnostic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-model-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ai-model-diagnostics/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce truthful technical diagnostic status
+        if: always()
+        shell: pwsh
+        env:
+          HY_Q8_OUTCOME: ${{ steps.hyq8.outcome }}
+        run: |
+          if ($env:HY_Q8_OUTCOME -ne 'success') {
+            throw 'Candidate diagnostics failed or were incomplete. See the evidence artifact; semantic quality remains unapproved.'
+          }
+          Write-Host 'Hy Q8 acceptance suite completed technically. Content still awaits semantic review.'

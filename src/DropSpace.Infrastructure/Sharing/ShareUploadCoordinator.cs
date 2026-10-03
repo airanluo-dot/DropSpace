@@ -27,7 +27,9 @@ public sealed class InternetShareClient(
     IShareBackendClient backend,
     TransferLimits? transferLimits = null,
     AppStoragePaths? storagePaths = null,
-    StagingLeaseStore? stagingLeases = null)
+    StagingLeaseStore? stagingLeases = null,
+    Func<Guid, ShareBackendUploadSession, DateTimeOffset, Task>? sessionCreated = null,
+    Func<Guid, Task>? sessionRevoked = null)
 {
     private readonly TransferLimits _limits = (transferLimits ?? new TransferLimits()).Validate();
     private readonly AppStoragePaths? _storagePaths = storagePaths;
@@ -90,6 +92,9 @@ public sealed class InternetShareClient(
             var session = await backend.CreateAsync(shareId, expires, sources.Count, totalBytes, cancellationToken).ConfigureAwait(false);
             ShareBackendSessionPolicy.Validate(session);
             createdSession = session;
+            // Persist recovery capability before any encrypted user data leaves this process.
+            if (sessionCreated is not null) await sessionCreated(shareId, session, expires).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             await backend.UploadAsync(session, "manifest.bin", ShareCryptoService.PackManifestWire(encryptedManifest.Nonce, encryptedManifest.Ciphertext, encryptedManifest.Tag), "application/octet-stream", cancellationToken).ConfigureAwait(false);
 
             foreach (var (source, item) in encryptedFiles)
@@ -114,9 +119,11 @@ public sealed class InternetShareClient(
             {
                 try
                 {
-                    await backend.RevokeAsync(createdSession, shareId, CancellationToken.None).ConfigureAwait(false);
+                    using var cleanupDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                    await backend.RevokeAsync(createdSession, shareId, cleanupDeadline.Token).ConfigureAwait(false);
+                    if (sessionRevoked is not null) await sessionRevoked(shareId).ConfigureAwait(false);
                 }
-                catch (Exception cleanupException) when (cleanupException is HttpRequestException or IOException or InvalidOperationException or UnauthorizedAccessException)
+                catch (Exception cleanupException) when (cleanupException is HttpRequestException or IOException or InvalidOperationException or UnauthorizedAccessException or OperationCanceledException)
                 {
                     // Preserve the original upload failure. The backend's explicit revoke
                     // endpoint remains available for an operator retry if cleanup failed.

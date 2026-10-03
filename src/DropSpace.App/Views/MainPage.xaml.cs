@@ -52,6 +52,7 @@ public sealed partial class MainPage : Page
     private readonly Dictionary<Guid, PairedPeer> _pairedPeers = [];
     private readonly Dictionary<QuickActionProfile, QuickActionSettingsControls> _quickActionControls = [];
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
+    private CancellationTokenSource _dialogLifetime = new();
     private bool _syncingNavigation;
     private bool _syncingSettings;
     private bool _quickActionsSettingsBuilt;
@@ -110,12 +111,46 @@ public sealed partial class MainPage : Page
         settingsAccelerator.Invoked += OnSettingsAccelerator;
         KeyboardAccelerators.Add(settingsAccelerator);
 
+        ApplySettingsAutomationNames();
         DataContext = viewModel;
         MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement);
         BuildSettingsPages(settingsEditor);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+    }
+
+    private void ApplySettingsAutomationNames()
+    {
+        AutomationProperties.SetName(PauseToggle, _strings.Get("PauseRecordingTitle.Text"));
+        AutomationProperties.SetName(CaptureImagesToggle, _strings.Get("CaptureImagesTitle.Text"));
+        AutomationProperties.SetName(MaxImageMegabytesNumber, _strings.Get("MaxImageMegabytesLabel.Text"));
+        AutomationProperties.SetName(MaxImageMegapixelsNumber, _strings.Get("MaxImageMegapixelsLabel.Text"));
+        AutomationProperties.SetName(CaptureFilesToggle, _strings.Get("CaptureFilesTitle.Text"));
+        AutomationProperties.SetName(CaptureFoldersToggle, _strings.Get("CaptureFoldersTitle.Text"));
+        AutomationProperties.SetName(MaxClipboardFileItemsNumber, _strings.Get("MaxClipboardFileItemsLabel.Text"));
+        AutomationProperties.SetName(MaxClipboardFileMegabytesNumber, _strings.Get("MaxClipboardFileMegabytesLabel.Text"));
+        AutomationProperties.SetName(MaxClipboardFileTotalMegabytesNumber, _strings.Get("MaxClipboardFileTotalMegabytesLabel.Text"));
+        AutomationProperties.SetName(DeviceHandoffToggle, _strings.Get("DeviceHandoffTitle.Text"));
+        AutomationProperties.SetName(CrossDeviceClipboardToggle, _strings.Get("CrossDeviceClipboardTitle.Text"));
+        AutomationProperties.SetName(DefaultClipboardSyncModeCombo, _strings.Get("DefaultClipboardSyncModeTitle.Text"));
+        AutomationProperties.SetName(NearbySharingToggle, _strings.Get("NearbySharingTitle.Text"));
+        AutomationProperties.SetName(InternetSharingToggle, _strings.Get("InternetSharingTitle.Text"));
+        AutomationProperties.SetName(RetentionDaysNumber, _strings.Get("RetentionDaysLabel.Text"));
+        AutomationProperties.SetName(RetentionCountNumber, _strings.Get("RetentionCountLabel.Text"));
+        AutomationProperties.SetName(FileDragWakeModeCombo, _strings.Get("FileDragWakeModeTitle.Text"));
+        AutomationProperties.SetName(StartWithWindowsToggle, _strings.Get("StartWithWindowsTitle.Text"));
+        AutomationProperties.SetName(LanguageCombo, _strings.Get("LanguageTitle.Text"));
+        AutomationProperties.SetName(ThemeCombo, _strings.Get("ThemeTitle.Text"));
+        AutomationProperties.SetName(OverlayMotionCombo, _strings.Get("MotionTitle.Text"));
+        AutomationProperties.SetName(OverlayMonitorCombo, _strings.Get("MonitorTitle.Text"));
+        AutomationProperties.SetName(OverlayPlacementModeCombo, _strings.Get("IslandPlacementTitle.Text"));
+        AutomationProperties.SetName(OverlayPlacementMonitorCombo, _strings.Get("MonitorTitle.Text"));
+        AutomationProperties.SetName(CloseBehaviorCombo, _strings.Get("CloseBehaviorTitle.Text"));
+        AutomationProperties.SetName(AutoCheckUpdatesToggle, _strings.Get("AutoCheckUpdatesTitle.Text"));
+        AutomationProperties.SetName(AutoDownloadUpdatesToggle, _strings.Get("AutoDownloadUpdatesTitle.Text"));
+        AutomationProperties.SetName(AutoInstallUpdatesToggle, _strings.Get("AutoInstallUpdatesTitle.Text"));
+        AutomationProperties.SetName(UpdateChannelCombo, _strings.Get("UpdateChannelTitle.Text"));
     }
 
     public async Task ConfirmClearAsync(ClearRange range)
@@ -148,6 +183,7 @@ public sealed partial class MainPage : Page
 
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
+        if (_dialogLifetime.IsCancellationRequested) { _dialogLifetime.Dispose(); _dialogLifetime = new(); }
         if (!_subscriptionsAttached)
         {
             _dropLinkHost.TransferOffered += OnTransferOfferedAsync;
@@ -163,8 +199,11 @@ public sealed partial class MainPage : Page
         UpdateSectionChrome();
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs args)
+    private void OnUnloaded(object sender, RoutedEventArgs args) => Retire();
+
+    internal void Retire()
     {
+        _dialogLifetime.Cancel();
         if (!_subscriptionsAttached)
         {
             return;
@@ -292,7 +331,7 @@ public sealed partial class MainPage : Page
                 CloseButtonText = _strings.Get("Cancel"),
                 DefaultButton = ContentDialogButton.Primary,
             };
-            if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(editor.Text))
+            if (await ShowOwnedDialogAsync(dialog) == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(editor.Text))
                 await _viewModel.AddTextToSpaceAsync(editor.Text, "manual-text-url");
         });
     }
@@ -463,7 +502,7 @@ public sealed partial class MainPage : Page
                 selection,
                 quickAction.ActionId,
                 xamlRoot,
-                _windowHandle);
+                _windowHandle, _dialogLifetime.Token);
             if (context is null)
             {
                 return;
@@ -563,7 +602,7 @@ public sealed partial class MainPage : Page
         await RunAsync(async () =>
         {
             var peer = await _deviceHandoff.PairAsync(descriptor, (sas, token) => ConfirmPairingSasAsync(descriptor.DisplayName, sas, token));
-            _crossDeviceClipboard.ConfigurePeer(peer, descriptor.Endpoint, _viewModel.DefaultClipboardSyncMode);
+            await _crossDeviceClipboard.ConfigurePeerAsync(peer, descriptor.Endpoint, _viewModel.DefaultClipboardSyncMode);
             _pairedPeers[peer.Id] = new PairedPeer(peer, descriptor.Endpoint);
             DeviceStatusText.Text = _strings.Format("PairedDevice", peer.DisplayName);
         });
@@ -584,7 +623,7 @@ public sealed partial class MainPage : Page
             CloseButtonText = _strings.Get("CommonCancel"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        return await ContentDialogLifetime.ShowAsync(dialog, cancellationToken) == ContentDialogResult.Primary;
+        return await ShowOwnedDialogAsync(dialog, cancellationToken) == ContentDialogResult.Primary;
     }
 
     private async Task<bool> OnHandoffOfferedAsync(IncomingHandoffOffer offer, CancellationToken cancellationToken)
@@ -612,7 +651,7 @@ public sealed partial class MainPage : Page
                 CloseButtonText = _strings.Get("IncomingTransferReject"),
                 DefaultButton = ContentDialogButton.Primary,
             };
-            if (await ContentDialogLifetime.ShowAsync(dialog, cancellationToken) != ContentDialogResult.Primary) return false;
+            if (await ShowOwnedDialogAsync(dialog, cancellationToken) != ContentDialogResult.Primary) return false;
 
             // Explicit handoff is committed to Temporary Space only. It deliberately
             // does not call ClipboardCaptureService or mutate the Windows clipboard.
@@ -698,7 +737,7 @@ public sealed partial class MainPage : Page
             CloseButtonText = _strings.Get("IncomingTransferReject"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        return await ContentDialogLifetime.ShowAsync(dialog, cancellationToken) == ContentDialogResult.Primary;
+        return await ShowOwnedDialogAsync(dialog, cancellationToken) == ContentDialogResult.Primary;
     }
 
     private async void OnPreviewItemClicked(object sender, RoutedEventArgs args)
@@ -738,7 +777,7 @@ public sealed partial class MainPage : Page
                 Content = content,
                 CloseButtonText = _strings.Get("CommonClose"),
             };
-            await dialog.ShowAsync();
+            await ShowOwnedDialogAsync(dialog);
         }
         finally
         {
@@ -1065,7 +1104,7 @@ public sealed partial class MainPage : Page
                 selection,
                 action,
                 xamlRoot,
-                _windowHandle);
+                _windowHandle, _dialogLifetime.Token);
             if (context is null)
             {
                 return;
@@ -1086,7 +1125,7 @@ public sealed partial class MainPage : Page
 
             var available = action switch
             {
-                ItemActionId.SendToDevice => _viewModel.EnableDeviceHandoff && _pairedPeers.Count > 0,
+                ItemActionId.SendToDevice => _viewModel.EnableDeviceHandoff,
                 ItemActionId.CreateNearbyLink => _viewModel.EnableNearbySharing,
                 ItemActionId.CreateSecureInternetLink => _viewModel.EnableInternetSharing && _sharing.IsInternetConfigured,
                 _ => _viewModel.EvaluateQuickActions(card, ResolveActionSelection(card)).More.Any(
@@ -1152,6 +1191,11 @@ public sealed partial class MainPage : Page
 
     private async Task<PairedPeer?> SelectPairedPeerAsync()
     {
+        // Resolve fresh endpoints against persisted, fingerprint-pinned trust rather
+        // than relying on this page having initiated the original pairing.
+        var reachable = await _deviceHandoff.DiscoverTrustedPeersAsync(TimeSpan.FromSeconds(3), _dialogLifetime.Token);
+        _pairedPeers.Clear();
+        foreach (var peer in reachable) _pairedPeers[peer.Peer.Id] = new PairedPeer(peer.Peer, peer.Endpoint);
         if (_pairedPeers.Count == 0)
         {
             await ShowMessageAsync(_strings.Get("NoPairedDevicesTitle"), _strings.Get("NoPairedDevicesContent"));
@@ -1174,7 +1218,7 @@ public sealed partial class MainPage : Page
             CloseButtonText = _strings.Get("CommonCancel"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary || combo.SelectedItem is not PeerDevice selected)
+        if (await ShowOwnedDialogAsync(dialog) != ContentDialogResult.Primary || combo.SelectedItem is not PeerDevice selected)
         {
             return null;
         }
@@ -1228,12 +1272,10 @@ public sealed partial class MainPage : Page
             CloseButtonText = _strings.Get("CommonClose"),
             DefaultButton = ContentDialogButton.Primary,
         };
-        var result = await dialog.ShowAsync();
+        var result = await ShowOwnedDialogAsync(dialog);
         if (result == ContentDialogResult.Primary)
         {
-            var package = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
-            package.SetText(descriptor.Url.ToString());
-            Clipboard.SetContent(package);
+            await _viewModel.CopyTextAsync(descriptor.Url.ToString(), _dialogLifetime.Token);
         }
         else if (result == ContentDialogResult.Secondary)
         {
@@ -1250,13 +1292,13 @@ public sealed partial class MainPage : Page
             var qr = new Image { Source = bitmap, MaxWidth = 320, MaxHeight = 320 };
             try
             {
-                await new ContentDialog
+                await ShowOwnedDialogAsync(new ContentDialog
                 {
                     XamlRoot = XamlRoot,
                     Title = _strings.Get("OpenShareQr"),
                     Content = qr,
                     CloseButtonText = _strings.Get("CommonClose"),
-                }.ShowAsync();
+                });
             }
             finally { qr.Source = null; }
         }
@@ -1504,21 +1546,8 @@ public sealed partial class MainPage : Page
     private async void OnViewReleaseNotesClicked(object sender, RoutedEventArgs args) =>
         await RunAsync(async () => _ = await _viewModel.OpenUpdateReleaseNotesAsync());
 
-    private async void OnOpenDropTraySettingsClicked(object sender, RoutedEventArgs args)
-    {
-        await RunAsync(async () =>
-        {
-            if (!await _viewModel.OpenDropTraySettingsAsync())
-            {
-                await ShowMessageAsync(
-                    _strings.Get("DropTraySettingsUnavailableTitle"),
-                    _strings.Get("DropTraySettingsUnavailableContent"));
-            }
-        });
-    }
-
-    private void OnCopyDragCompatibilityReportClicked(object sender, RoutedEventArgs args) =>
-        _viewModel.CopyDragCompatibilityReport();
+    private async void OnCopyDragCompatibilityReportClicked(object sender, RoutedEventArgs args) =>
+        await RunAsync(() => { _viewModel.CopyDragCompatibilityReport(); return Task.CompletedTask; });
 
     private async void OnClipboardLimitsChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
@@ -1754,7 +1783,7 @@ public sealed partial class MainPage : Page
     private async void OnSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
-        if (_viewModel.IsSettingsVisible)
+        if (_viewModel.IsSettingsVisible || _viewModel.IsMusicVisible)
         {
             await RunAsync(() => SelectSectionAsync("Space"));
         }
@@ -2209,9 +2238,15 @@ public sealed partial class MainPage : Page
             .FirstOrDefault(item => string.Equals(item.Tag as string, tag, StringComparison.Ordinal));
     }
 
+    private async Task<ContentDialogResult> ShowOwnedDialogAsync(ContentDialog dialog, CancellationToken token = default)
+    {
+        using var owner = CancellationTokenSource.CreateLinkedTokenSource(token, _dialogLifetime.Token);
+        return await ContentDialogLifetime.ShowAsync(dialog, owner.Token);
+    }
+
     private async Task<bool> ShowConfirmationAsync(string title, string content, string primaryText)
     {
-        await _dialogGate.WaitAsync();
+        await _dialogGate.WaitAsync(_dialogLifetime.Token);
         try
         {
             var dialog = new ContentDialog
@@ -2223,7 +2258,7 @@ public sealed partial class MainPage : Page
                 CloseButtonText = _strings.Get("CommonCancel"),
                 DefaultButton = ContentDialogButton.Close,
             };
-            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+            return await ShowOwnedDialogAsync(dialog) == ContentDialogResult.Primary;
         }
         finally
         {
@@ -2233,9 +2268,10 @@ public sealed partial class MainPage : Page
 
     private async Task ShowMessageAsync(string title, string content)
     {
-        await _dialogGate.WaitAsync();
+        var entered = false;
         try
         {
+            await _dialogGate.WaitAsync(_dialogLifetime.Token); entered = true;
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot,
@@ -2243,16 +2279,18 @@ public sealed partial class MainPage : Page
                 Content = content,
                 CloseButtonText = _strings.Get("CommonAcknowledge"),
             };
-            await dialog.ShowAsync();
+            await ShowOwnedDialogAsync(dialog);
         }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { _logger.LogDebug("Error dialog unavailable ({Category}).", error.GetType().Name); }
         finally
         {
-            _dialogGate.Release();
+            if (entered) _dialogGate.Release();
         }
     }
 
     private Task ShowActionResultAsync(ItemActionResult result) =>
-        _quickActionDialog.ShowResultAsync(result, XamlRoot);
+        _quickActionDialog.ShowResultAsync(result, XamlRoot, _dialogLifetime.Token);
 
     private async Task ApplySettingChangeAsync(
         Func<AppSettings, AppSettings> update,
@@ -2286,6 +2324,7 @@ public sealed partial class MainPage : Page
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "A main-page operation failed.");
+            if (_dialogLifetime.IsCancellationRequested || XamlRoot is null) return;
             if (exception is SettingsUpdateException settingsFailure)
             {
                 SyncSettingsControls();
@@ -2308,6 +2347,35 @@ public sealed partial class MainPage : Page
         VerifyResourceValue(SettingsNavigationItem.Content, "NavSettings.Content");
         VerifyResourceValue(SearchBox.PlaceholderText, "SearchBox.PlaceholderText");
         VerifyResourceValue(AddButton.Content, "AddButton.Content");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(PauseToggle)?.GetName(), "PauseRecordingTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CaptureImagesToggle)?.GetName(), "CaptureImagesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxImageMegabytesNumber)?.GetName(), "MaxImageMegabytesLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxImageMegapixelsNumber)?.GetName(), "MaxImageMegapixelsLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CaptureFilesToggle)?.GetName(), "CaptureFilesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CaptureFoldersToggle)?.GetName(), "CaptureFoldersTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxClipboardFileItemsNumber)?.GetName(), "MaxClipboardFileItemsLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxClipboardFileMegabytesNumber)?.GetName(), "MaxClipboardFileMegabytesLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(MaxClipboardFileTotalMegabytesNumber)?.GetName(), "MaxClipboardFileTotalMegabytesLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(DeviceHandoffToggle)?.GetName(), "DeviceHandoffTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CrossDeviceClipboardToggle)?.GetName(), "CrossDeviceClipboardTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(DefaultClipboardSyncModeCombo)?.GetName(), "DefaultClipboardSyncModeTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(NearbySharingToggle)?.GetName(), "NearbySharingTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(InternetSharingToggle)?.GetName(), "InternetSharingTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RetentionDaysNumber)?.GetName(), "RetentionDaysLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(RetentionCountNumber)?.GetName(), "RetentionCountLabel.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(FileDragWakeModeCombo)?.GetName(), "FileDragWakeModeTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(StartWithWindowsToggle)?.GetName(), "StartWithWindowsTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(LanguageCombo)?.GetName(), "LanguageTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(ThemeCombo)?.GetName(), "ThemeTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayMotionCombo)?.GetName(), "MotionTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayMonitorCombo)?.GetName(), "MonitorTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayPlacementModeCombo)?.GetName(), "IslandPlacementTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(OverlayPlacementMonitorCombo)?.GetName(), "MonitorTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(CloseBehaviorCombo)?.GetName(), "CloseBehaviorTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(AutoCheckUpdatesToggle)?.GetName(), "AutoCheckUpdatesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(AutoDownloadUpdatesToggle)?.GetName(), "AutoDownloadUpdatesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(AutoInstallUpdatesToggle)?.GetName(), "AutoInstallUpdatesTitle.Text");
+        VerifyResourceValue(Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(UpdateChannelCombo)?.GetName(), "UpdateChannelTitle.Text");
     }
 
     private void VerifyResourceValue(object? actual, string key)

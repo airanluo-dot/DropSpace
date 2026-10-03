@@ -8,6 +8,41 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsParserTests
 {
     [TestMethod]
+    [DataRow(-3000, 1)]
+    [DataRow(-2000, 1)]
+    [DataRow(-1500, 2)]
+    public void NegativeOffsetDoesNotReviveAnExplicitlyEndedLine(int offset, int count)
+    {
+        var parsed = LyricsParser.Parse($"[offset:{offset}]\n[00:01]first\n[00:02]\n[00:10]second", LyricsProviderKind.LocalLrc);
+        Assert.AreEqual(count, parsed.Lines.Count);
+        if (count == 1) Assert.AreEqual("second", parsed.Lines[0].Text);
+        else Assert.AreEqual(TimeSpan.FromMilliseconds(500), parsed.Lines[0].End);
+    }
+
+    [TestMethod]
+    [DataRow(1, 2, 3)]
+    [DataRow(2, 2, 3)]
+    public void ExplicitRelativeTtmlNeverGuessesFromNumericOrder(int parent, int child, int end)
+    {
+        var xml = $"<tt><body><p begin=\"{parent}s\" dur=\"10s\"><span begin=\"{child}s\" end=\"{end}s\">word</span></p></body></tt>";
+        var line = LyricsParser.Parse(xml, LyricsProviderKind.LocalLrc, ttmlTiming: TtmlTimingMode.ParentRelative).Lines.Single();
+        Assert.AreEqual(TimeSpan.FromSeconds(parent + child), line.Words.Single().Start);
+        Assert.AreEqual(TimeSpan.FromSeconds(parent + end), line.Words.Single().End);
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(500)]
+    public void EmptyLrcTimestampEndsSungLineWithoutDisplayingBlank(int offset)
+    {
+        var document = LyricsParser.Parse($"[offset:{offset}]\n[00:01]first\n[00:02]\n[00:10]second", LyricsProviderKind.LocalLrc);
+        Assert.HasCount(2, document.Lines);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(2000 + offset), document.Lines[0].End);
+        Assert.IsNull(new LyricsTimelineEngine().GetFrame(document, TimeSpan.FromSeconds(5), 0).Line);
+        Assert.AreEqual("second", new LyricsTimelineEngine().GetFrame(document, TimeSpan.FromMilliseconds(10000 + offset), 0).Line!.Text);
+    }
+
+    [TestMethod]
     public void ZeroTimeYrcCreditsDoNotReuseTheFirstSungTranslation()
     {
         var document = LyricsParser.Parse(
@@ -96,7 +131,7 @@ public sealed class LyricsParserTests
     {
         const string ttml = "<tt><body><p begin=\"10s\" end=\"20s\"><span begin=\"1s\" dur=\"2s\">word</span></p></body></tt>";
 
-        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll, ttmlTiming: TtmlTimingMode.ParentRelative).Lines.Single();
 
         Assert.AreEqual(TimeSpan.FromSeconds(11), line.Words[0].Start);
         Assert.AreEqual(TimeSpan.FromSeconds(13), line.Words[0].End);
@@ -134,5 +169,58 @@ public sealed class LyricsParserTests
 
         Assert.AreEqual(TimeSpan.FromSeconds(3723.5), line.Start);
         Assert.AreEqual(TimeSpan.FromSeconds(3724.5), line.Words[0].End);
+    }
+
+    [TestMethod]
+    [DataRow("Bonjour")]
+    [DataRow("東京")]
+    public void ExternalProviderTranslationDoesNotGuessLanguageFromScript(string translation)
+    {
+        var line = LyricsParser.Parse("[00:01]Original", LyricsProviderKind.NetEase, "[00:01]" + translation).Lines.Single();
+        Assert.AreEqual(translation, line.Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, line.TranslationOrigin);
+        Assert.IsNull(line.TranslationLanguage);
+    }
+
+    [TestMethod]
+    public void TtmlKeepsExplicitTranslationLanguageWithoutMixingRomanization()
+    {
+        const string ttml = """
+            <tt xmlns:ttm="http://www.w3.org/ns/ttml#metadata" xml:lang="ja"><body>
+              <p begin="1s" end="3s"><span>原文</span><span ttm:role="x-roman" xml:lang="en">genbun</span><span ttm:role="x-translation" xml:lang="en-US"><span>Original text</span></span></p>
+            </body></tt>
+            """;
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        Assert.AreEqual("原文", line.Text);
+        Assert.AreEqual("Original text", line.Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, line.TranslationOrigin);
+        Assert.AreEqual("en", line.TranslationLanguage);
+    }
+
+    [TestMethod]
+    [DataRow("x-roman")]
+    [DataRow("x-transliteration")]
+    [DataRow("x-romanization")]
+    [DataRow("pinyin")]
+    public void TtmlRomanizationIsNotATargetLanguageTranslation(string role)
+    {
+        var ttml = "<tt><body><p begin=\"1s\" end=\"3s\">原文<span role=\"" + role + "\" xml:lang=\"en\">genbun</span></p></body></tt>";
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        Assert.AreEqual("原文", line.Text);
+        Assert.AreEqual("genbun", line.Secondary);
+        Assert.AreEqual(LyricsTranslationOrigin.None, line.TranslationOrigin);
+        Assert.IsNull(line.TranslationLanguage);
+    }
+
+    [TestMethod]
+    [DataRow("<span role=\"x-translation\">Hello</span>")]
+    [DataRow("<span role=\"x-translation\" xml:lang=\"en\">Hello<span xml:lang=\"fr\">bonjour</span></span>")]
+    [DataRow("<span role=\"x-translation\" xml:lang=\"en\">Hello</span><span role=\"x-translation\">bonjour</span>")]
+    public void TtmlUnlabelledOrMixedTranslationKeepsLanguageUnknown(string spans)
+    {
+        var ttml = "<tt xml:lang=\"en\"><body><p begin=\"1s\" end=\"3s\">原文" + spans + "</p></body></tt>";
+        var line = LyricsParser.Parse(ttml, LyricsProviderKind.Amll).Lines.Single();
+        Assert.AreEqual(LyricsTranslationOrigin.Provider, line.TranslationOrigin);
+        Assert.IsNull(line.TranslationLanguage);
     }
 }

@@ -2,12 +2,95 @@
 
 ## Beta 28 media identity and passive installation inspection
 
+### Local translation backend boundary
+
+`AiLyricsService` receives a contextual verified package resolver and an inference backend through
+DI. Cache preflight belongs to that backend; one strategy cannot consume another strategy's cache.
+The default AI model for this Beta remains pinned Tencent Hy-MT2 1.8B Q8_0. A separately pinned
+Tencent Hy-MT2 7B Q8_0 is available as an optional explicit-consent download; it does not replace
+the default or automatically download on selection while AI is off. Both use the same frozen
+official per-line plaintext template and sampler. AI remains off by default. Older Standard/Compact
+settings normalize to Q8 without downloading or deleting anything; their descriptors remain only
+for local artifact inspection/removal. The legacy JSON runner/backend implementation is retained but
+is not selected by production DI or offered as an approved alternative.
+
+`PlainHyLyricsProtocol` versions the exact target/source template, sampler, host mapping, acceptance
+policy, selected Q8 model digest, trusted embedded runtime-manifest digest, and app-owned track/provider/timing
+identity. No IDs, JSON schema, context/reviewer metadata, or gold source-language labels reach the
+model. `RunPlainAsync` uses a single code-owned argument builder, no `-j`, four CPU threads, the
+shared native admission gate, a model-specific process memory budget (3 GiB for the default 1.8B;
+12 GiB only for the verified 7B profile), 60-second line deadline, and retained
+process cleanup ownership. Before every new CPU process, after prior-owner exit and while holding
+that gate, the host requires both available physical RAM and available commit to exceed or equal the
+selected process budget plus 1 GiB (4 GiB for 1.8B; 13 GiB for 7B). Missing measurements or insufficient
+memory leave source lyrics available without starting CPU inference. GPU fallback takes a fresh
+measurement; an existing resident is reused without demanding a second model allocation. These
+conservative thresholds are not measured peaks or a guarantee for a 16 GB machine. Vocabulary-only
+tokenization does not inherit the whole-model admission requirement.
+The whole-song processing ceiling is 600 seconds (10 minutes), independent of audio duration.
+Track changes, disabling AI and user cancellation still cancel immediately. A timeout restores
+source/provider lyrics and never caches a partial song; the ceiling is not a performance claim.
+First generation can take several minutes; known semantic errors remain possible under the Beta label.
+Host admission excludes recognized credits and same-target original lines using explicit TTML
+language or conservative lexical evidence. Confidence values describe deterministic rules, not
+calibrated language probabilities. Ambiguous Han, names, romanization and mixed-language lines
+remain eligible; nearby context can strengthen weak positive evidence but document majority cannot
+suppress a foreign verse. No fixture gold labels reach production. Original line IDs remain stable
+across cache, progress and final publication, and the admission version binds the cache key.
+Any valid matching source translation bypasses AI for the whole document before cache/resolver
+activity, including old source-v2 cache entries after conservative reclassification; blank source
+translation lines remain blank. Unchanged names/same-target/unknown output is neutral. Invalid, missing, multiline,
+cancelled, or failed output never becomes a complete translation or persistent partial-song cache.
+No-useful complete outcomes are memoized only in a bounded 64-entry, ten-minute session cache tied to
+the current clear generation. Existing matching provider translations take precedence.
+
+The 7B cache and resolved-package identities include its own verified model hash. Model changes
+cancel and drain the previous native owner before replacement; the native worker confirms the
+selected resource profile and applies separate current-free-memory GPU admission. Existing 1.8B
+identity serialization and launch arguments remain unchanged, while any changed runtime-manifest
+digest still invalidates prior cache identity. CI rebuilds the private worker from the candidate
+checkout before embedding its freshly verified binaries; publication additionally requires exact
+reviewed runtime and per-model evidence. Header/source compatibility and synthetic process tests
+are distinct from real 7B quality, latency or 16 GB GPU qualification. See the
+[optional 7B integration record](docs/dev/hy-mt2-7b-optional-profile.md).
+
+The unregistered CT2 candidate resolver/backend remains independently executable with explicitly
+injected reviewed route references and a source identifier. Its safe default always abstains on
+unknown or mixed-language documents rather than guessing from script. The resolved request binds
+source/target, detector policy, direct/pivot route, manifest, engine/runtime/model/tokenizer/decoder
+identities. The helper re-verifies expected package identity under retained file leases before launch.
+Every bounded batch/route leg must validate before whole-document publication or caching. No CT2
+model, detector, download URL, catalog selection, or deletion UI is enabled.
+
+CT2 archives stream to private disk staging under exact reviewed size/hash bounds. Strict inventory,
+raw-path/reparse validation and post-extraction private-package verification precede an atomic
+same-volume move to a package-ID/manifest-digest directory; different reviewed versions never
+overwrite installed payloads. Root-wide install exclusion, cancellation rollback and cleanup gate
+release have managed coverage. All selected-backend model/cache maintenance remains fenced by
+`AiLyricsWorkLifetime` through actual native exit. The unified cache retains its 1 GiB default and
+100 MiB–5 GiB quota bounds. Managed/fake/POSIX checks are distinct from native Windows and real-model
+execution evidence; structural smoke success is not semantic-quality approval.
+
 `LyricsQuery` carries generic Windows media evidence, including track and album artist; provider
 adapters share bounded search terms and the Core matcher remains the only acceptance authority.
 The media experience may retry when the same track gains duration but never branches on a player
 name. `LyricsService` executes preferred → optional backup sequentially, then starts the bounded
 remaining-provider quality race only when enabled; the strategy is part of the cache key. Local
-mode never enters the online chain. NetEase passive inspection is separate from update preparation and live capability
+mode never enters the online chain. Online documents (including provider translations) and local-AI
+translations share an app-owned persistent lyrics cache. Its identity includes track evidence,
+provider strategy, target language, pinned model hash, source content, and translation prompt version.
+The cache uses atomic replacement, generation-fenced clearing, access-time LRU eviction, and a
+settings-bounded 100 MiB–5 GiB quota (1 GiB by default); user LRC files and model packages are outside
+this directory and are never cache eviction targets. Persistent lyric identity excludes the random
+SMTC session identifier while retaining player, track metadata, track number, and exact duration;
+the runtime identity still controls song-change publication. Incompatible pre-unified AI cache
+entries are retired by strict owned-name cleanup and regenerated on demand. Cleanup runs off the
+UI thread, rejects reparse traversal, and exposes retryable failures without blocking startup.
+Valid model output with no useful LocalAi secondary is a neutral result, not a successful
+translation. It is suppressed only in a bounded 64-entry, ten-minute session cache keyed by the
+full versioned identity and clear generation; invalid, timed-out, and canceled work is not
+suppressed this way. This check does not assess language or semantic translation quality.
+NetEase passive inspection is separate from update preparation and live capability
 verification: committed managed files are hash-checked locally, while independent loader/plugin
 presence can project an Installed state without projecting Enhanced capability.
 

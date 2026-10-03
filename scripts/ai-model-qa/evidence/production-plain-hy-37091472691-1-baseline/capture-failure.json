@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "status": "failed-or-incomplete",
+  "error": "Native capture failed or was incomplete (exit 1); retain all output, no automatic rerun.",
+  "details": "at <ScriptBlock>, D:\\a\\DropSpace\\DropSpace\\scripts\\plain-hy-production-evidence\\Run-WindowsProductionEvidence.ps1: line 178\r\nat <ScriptBlock>, D:\\a\\_temp\\8dbadccb-f1ec-412e-a195-ab3adf3a981c.ps1: line 21\r\nat <ScriptBlock>, <No file>: line 1",
+  "semanticStatus": "not-evaluated",
+  "releaseApprovalWritten": false
+}

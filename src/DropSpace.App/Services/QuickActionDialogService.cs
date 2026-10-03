@@ -19,9 +19,11 @@ public sealed class QuickActionDialogService(
     IAppStringLocalizer strings,
     IItemContentResolver contentResolver,
     ClipboardCaptureService clipboard,
-    ILogger<QuickActionDialogService> logger) : IDisposable
+    ILogger<QuickActionDialogService> logger) : IDisposable, IAsyncDisposable
 {
     private readonly SemaphoreSlim _dialogGate = new(1, 1);
+    private readonly CancellationTokenSource _shutdown = new();
+    private int _disposed;
 
     public async Task<ItemActionContext?> RequestAsync(
         ItemSelectionSnapshot selection,
@@ -32,18 +34,23 @@ public sealed class QuickActionDialogService(
     {
         ArgumentNullException.ThrowIfNull(selection);
         ArgumentNullException.ThrowIfNull(xamlRoot);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         cancellationToken.ThrowIfCancellationRequested();
+        var ownerToken = cancellationToken;
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdown.Token);
+        cancellationToken = lifetime.Token;
 
         if (!RequiresParameters(actionId))
         {
-            return new ItemActionContext(selection, CancellationToken: cancellationToken);
+            return new ItemActionContext(selection, CancellationToken: ownerToken);
         }
 
         await _dialogGate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {
-            return await ShowParametersAsync(selection, actionId, xamlRoot, ownerHandle, cancellationToken)
-                .ConfigureAwait(true);
+            var result = await ShowParametersAsync(selection, actionId, xamlRoot, ownerHandle, cancellationToken).ConfigureAwait(true);
+            cancellationToken.ThrowIfCancellationRequested();
+            return result is null ? null : result with { CancellationToken = ownerToken };
         }
         finally
         {
@@ -58,6 +65,9 @@ public sealed class QuickActionDialogService(
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(xamlRoot);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdown.Token);
+        cancellationToken = lifetime.Token;
         await _dialogGate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {
@@ -100,7 +110,18 @@ public sealed class QuickActionDialogService(
         }
     }
 
-    public void Dispose() => _dialogGate.Dispose();
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0) _shutdown.Cancel();
+        // Async owners may still release the managed semaphore; never dispose it underneath them.
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+        if (await _dialogGate.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false)) _dialogGate.Release();
+        else logger.LogWarning("A retiring action dialog did not finish before the bounded shutdown wait; its cancellation remains active.");
+    }
 
     private async Task<ItemActionContext?> ShowParametersAsync(
         ItemSelectionSnapshot selection,
@@ -109,6 +130,7 @@ public sealed class QuickActionDialogService(
         nint ownerHandle,
         CancellationToken cancellationToken)
     {
+        ContentDialog? dialog = null;
         var destination = new TextBox
         {
             Header = strings.Get("QuickActionDestination"),
@@ -220,15 +242,19 @@ public sealed class QuickActionDialogService(
                     InitializeWithWindow.Initialize(picker, ownerHandle);
                 }
 
-                var folder = await picker.PickSingleFolderAsync();
+                var folder = await picker.PickSingleFolderAsync().AsTask(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (dialog?.IsLoaded != true) return;
                 if (folder is not null)
                 {
                     destination.Text = folder.Path;
                     error.Text = string.Empty;
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
             catch (Exception exception)
             {
+                if (dialog?.IsLoaded != true || cancellationToken.IsCancellationRequested) return;
                 logger.LogWarning(exception, "The quick-action export folder picker failed.");
                 error.Text = strings.Get("QuickActionFolderPickerFailed");
             }
@@ -259,7 +285,7 @@ public sealed class QuickActionDialogService(
         }
 
         content.Children.Add(error);
-        var dialog = new ContentDialog
+        dialog = new ContentDialog
         {
             XamlRoot = xamlRoot,
             Title = strings.Get(actionId == ItemActionId.ResizeImage ? "ActionResizeImageMenuItem.Text" : "ActionConvertImage.Text"),

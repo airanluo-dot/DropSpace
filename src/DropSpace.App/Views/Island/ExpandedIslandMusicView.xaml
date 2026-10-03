@@ -1,0 +1,63 @@
+<UserControl x:Class="DropSpace.App.Views.Island.ExpandedIslandMusicView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:services="using:DropSpace.App.Services">
+ <Grid Padding="28,24,28,16" RowSpacing="12">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid ColumnSpacing="18">
+   <Grid.ColumnDefinitions><ColumnDefinition x:Name="ArtworkColumn" Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Border x:Name="ArtworkHost" Height="100" CornerRadius="16" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
+    <Image Source="{Binding Artwork}" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw"/>
+   </Border>
+   <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+    <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding ArtistAlbum}" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+    <TextBlock Text="{Binding SourceDisplayName}" FontSize="12" Opacity="0.55" TextTrimming="CharacterEllipsis"/>
+    <TextBlock x:Name="EmptyText" services:XamlResourceOverride.Uid="MediaNoSession" TextWrapping="Wrap"/>
+   </StackPanel>
+   <StackPanel x:Name="Spectrum" Grid.Column="2" Orientation="Horizontal" Spacing="3" Height="24" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw">
+    <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+    <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+    <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+    <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+    <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+    <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+   </StackPanel>
+  </Grid>
+  <Grid x:Name="LyricsArea" Grid.Row="1" RowSpacing="8">
+   <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <!-- Keep larger text inside the lyric viewport instead of pushing playback off the island. -->
+   <ScrollViewer x:Name="CurrentLyricsViewport" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" ZoomMode="Disabled" IsTabStop="True" AutomationProperties.Name="{Binding CurrentLyricsLabel}">
+    <StackPanel Spacing="2">
+     <TextBlock x:Name="OriginalLyric" Text="{Binding CurrentLyricText}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+     <TextBlock x:Name="TranslatedLyric" Text="{Binding SecondaryLyricText}" FontSize="14" Opacity="0.72" TextWrapping="Wrap" />
+     <TextBlock x:Name="LyricsStatus" Text="{Binding LyricsStatusText}" FontSize="11" Opacity="0.72" TextWrapping="Wrap" />
+    </StackPanel>
+   </ScrollViewer>
+   <Border x:Name="NextLyricPreview" Grid.Row="1" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" Padding="0,6,0,0" Visibility="Collapsed">
+    <Grid ColumnSpacing="8">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+     <FontIcon Glyph="&#xE70D;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw"/>
+     <TextBlock x:Name="NextLyric" Grid.Column="1" Text="{Binding NextLyricText}" FontSize="13" FontWeight="Normal" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="NoWrap" MaxLines="1" TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Off"/>
+    </Grid>
+   </Border>
+  </Grid>
+  <StackPanel Grid.Row="2" Spacing="12">
+  <Grid x:Name="TimelineRow" ColumnSpacing="12">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBlock x:Name="ElapsedLabel" MinWidth="48" VerticalAlignment="Center"/>
+   <Slider x:Name="Progress" services:XamlResourceOverride.Uid="MediaSeek" Grid.Column="1" Minimum="0" IsThumbToolTipEnabled="False" ValueChanged="OnSeekChanged"/>
+   <TextBlock x:Name="RemainingLabel" Grid.Column="2" MinWidth="48" VerticalAlignment="Center"/>
+  </Grid>
+  <StackPanel x:Name="ControlsRow" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
+   <Button services:XamlResourceOverride.Uid="MediaPrevious" Command="{Binding PreviousCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE892;"/></Button>
+   <Button x:Name="PlayPause" Command="{Binding PlayPauseCommand}" Width="56" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="{Binding PlaybackGlyph}" FontSize="28"/></Button>
+   <Button services:XamlResourceOverride.Uid="MediaNext" Command="{Binding NextCommand}" Width="48" Height="44" Background="Transparent" BorderThickness="0"><FontIcon Glyph="&#xE893;"/></Button>
+  </StackPanel>
+  <StackPanel x:Name="PlaybackStatus" Spacing="2" Visibility="Collapsed">
+   <TextBlock x:Name="TimelineStatus" Text="{Binding TimelineStatus}" FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+   <TextBlock x:Name="ControlError" Text="{Binding ControlError}" FontSize="11" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+  </StackPanel>
+  </StackPanel>
+ </Grid>
+</UserControl>
