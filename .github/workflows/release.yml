@@ -164,10 +164,6 @@ jobs:
           $status = git status --short --untracked-files=all
           if ($status) { throw "Brand verification mutated the clean checkout:`n$status" }
 
-      - name: Generate brand assets from canonical masters for build
-        shell: pwsh
-        run: ./scripts/Generate-BrandAssets.ps1
-
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
