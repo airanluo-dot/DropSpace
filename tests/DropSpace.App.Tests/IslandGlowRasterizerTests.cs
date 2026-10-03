@@ -204,7 +204,7 @@ public sealed class IslandGlowRasterizerTests
     [DataRow(1.25d)]
     [DataRow(1.5d)]
     [DataRow(2d)]
-    public void SimplifiedLightFollowsLowerQuarterOfContourWithSoftEndsAndNoRadialCone(double scale)
+    public void SimplifiedLightCoversBottomAndLocal45DegreeCornersWithDownwardSoftEnds(double scale)
     {
         foreach (var shape in new[] { (280, 60, 26), (560, 340, 28), (120, 120, 60) })
         {
@@ -225,7 +225,8 @@ public sealed class IslandGlowRasterizerTests
                 var index = y * raster.Width + x;
                 var all = (uint)full[index] >> 24;
                 var lower = (uint)simplified[index] >> 24;
-                Assert.IsTrue(lower <= all);
+                Assert.IsTrue((simplified[index] & 255) <= lower &&
+                    ((simplified[index] >> 8) & 255) <= lower && ((simplified[index] >> 16) & 255) <= lower);
                 var dx = x + .5 - centerX;
                 var dy = y + .5 - centerY;
                 if (dy <= 0) Assert.AreEqual(0u, lower, "Simplified light belongs to the lower contour, not the upper island.");
@@ -236,6 +237,23 @@ public sealed class IslandGlowRasterizerTests
             }
             Assert.IsTrue(retainedPixels > 0);
             Assert.IsTrue(featherPixels.All(count => count > 0), "Both endpoints must fade along the outline, not form a hard cut.");
+            // Check the entire straight bottom, including its ends, at every
+            // shape/DPI. A total-perimeter-quarter mask fails this wide-pill case.
+            var radius = (int)(shape.Item3 * scale);
+            var below = raster.PaddingPixels + height + (int)(2 * scale);
+            for (var x = raster.PaddingPixels + radius; x < raster.PaddingPixels + width - radius; x++)
+                Assert.IsGreaterThan(0u, Alpha(raster, x, below), "The complete bottom tangent must emit light.");
+            for (var side = -1; side <= 1; side += 2)
+            {
+                var cornerCenterX = side < 0 ? raster.PaddingPixels + radius : raster.PaddingPixels + width - radius;
+                var cornerCenterY = raster.PaddingPixels + height - radius;
+                var endX = cornerCenterX + side * radius / Math.Sqrt(2);
+                var endY = cornerCenterY + radius / Math.Sqrt(2);
+                var x = (int)Math.Round(endX + side * 2 * scale);
+                var y = (int)Math.Round(endY + 8 * scale);
+                Assert.IsGreaterThan(0u, Alpha(raster, x, y), "The corner endpoint must diffuse downward beyond its source boundary.");
+                Assert.AreEqual(0u, Alpha(raster, x, (int)Math.Round(endY - 8 * scale)), "Corner light must not project upward.");
+            }
             if (shape.Item1 > shape.Item2 * 3)
             {
                 var offset = (int)(40 * scale);
@@ -260,7 +278,9 @@ public sealed class IslandGlowRasterizerTests
                 for (var i = 0; i < raster.Pixels.Length; i++)
                 {
                     var alpha = (uint)raster.Pixels[i] >> 24;
-                    Assert.IsTrue(alpha >= ((uint)simplified[i] >> 24) && alpha <= ((uint)full[i] >> 24));
+                    var low = Math.Min((uint)simplified[i] >> 24, (uint)full[i] >> 24);
+                    var high = Math.Max((uint)simplified[i] >> 24, (uint)full[i] >> 24);
+                    Assert.IsTrue(alpha >= low && alpha <= high);
                     Assert.IsTrue(((raster.Pixels[i] >> 16) & 255) <= alpha);
                     Assert.IsTrue(((raster.Pixels[i] >> 8) & 255) <= alpha);
                     Assert.IsTrue((raster.Pixels[i] & 255) <= alpha);
