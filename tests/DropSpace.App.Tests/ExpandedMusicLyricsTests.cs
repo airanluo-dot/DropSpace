@@ -94,7 +94,7 @@ public sealed class ExpandedMusicLyricsTests
     }
 
     [TestMethod]
-    public void PreviewBindingIsNotifiedForClockOffsetFrameDocumentAndSessionChanges()
+    public void PreviewBindingIsNotifiedOnlyWhenItsDisplayedValueChanges()
     {
         var view = CreateView();
         var count = 0;
@@ -104,8 +104,33 @@ public sealed class ExpandedMusicLyricsTests
         view.Lyrics = new(view.LyricsLines[0], 0, .5, 1);
         view.SetLyricsDocument(LyricsDocument.Empty);
         view.Session = view.Session with { TrackTitle = "Another song" };
-        Assert.AreEqual(5, count);
+        Assert.AreEqual(1, count, "Only clearing the document changes the displayed preview; equivalent frames and track switches must not fan out redundant text notifications.");
         Assert.IsNull(view.NextLyricText);
+    }
+
+    [TestMethod]
+    public void SteadyWordAndPositionFramesKeepProgressWithoutRepeatingLyricTextNotifications()
+    {
+        var view = CreateView();
+        var line = view.LyricsLines[0];
+        view.Lyrics = new(line, 0, 0, 1);
+        var texts = 0; var positions = 0; var highlights = 0; var labels = 0;
+        view.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(MediaViewModel.CurrentLyricText) or nameof(MediaViewModel.SecondaryLyricText) or nameof(MediaViewModel.NextLyricText)) texts++;
+            if (args.PropertyName == nameof(MediaViewModel.PositionSeconds)) positions++;
+            if (args.PropertyName == nameof(MediaViewModel.Lyrics)) highlights++;
+            if (args.PropertyName is nameof(MediaViewModel.ElapsedText) or nameof(MediaViewModel.RemainingText)) labels++;
+        };
+        for (var index = 1; index <= 30; index++)
+        {
+            view.Position = TimeSpan.FromSeconds(10) + TimeSpan.FromMilliseconds(33 * index);
+            view.Lyrics = new(line, 0, index / 30d, index + 1);
+        }
+        Assert.AreEqual(0, texts);
+        Assert.AreEqual(30, positions);
+        Assert.AreEqual(30, highlights);
+        Assert.IsTrue(labels <= 2, "Second-resolution labels must not be invalidated on every clock frame.");
     }
 
     private static MediaViewModel CreateView()

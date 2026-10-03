@@ -24,6 +24,9 @@ public sealed class MediaViewModel : ObservableObject
     private string _controlError = string.Empty;
     private bool _isReducedMotion;
     private bool _positionEstimated = true;
+    private string _notifiedCurrentLyricText = string.Empty;
+    private string? _notifiedSecondaryLyricText;
+    private string? _notifiedNextLyricText;
     private readonly IAppStringLocalizer _strings;
     private readonly HashSet<object> _visibleOwners = [];
     private bool _presentationVisible;
@@ -80,8 +83,8 @@ public sealed class MediaViewModel : ObservableObject
                 SetProperty(ref _currentLyricIndex, -1, nameof(CurrentLyricIndex));
                 OnPropertyChanged(nameof(LyricsLines));
             }
-            OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist)); OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
-            OnPropertyChanged(nameof(NextLyricText));
+            OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Artist));
+            NotifyLyricTextChanges();
             OnPropertyChanged(nameof(SourceDisplayName));
             OnPropertyChanged(nameof(IsPlaying)); OnPropertyChanged(nameof(DurationSeconds)); OnPropertyChanged(nameof(PlaybackGlyph));
             OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
@@ -97,8 +100,7 @@ public sealed class MediaViewModel : ObservableObject
             if (!SetProperty(ref _lyrics, value)) return;
             var index = FindLyricIndex(value.Line);
             SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
-            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
-            OnPropertyChanged(nameof(NextLyricText));
+            NotifyLyricTextChanges();
         }
     }
 
@@ -116,9 +118,7 @@ public sealed class MediaViewModel : ObservableObject
         var index = FindLyricIndex(_lyrics.Line);
         SetProperty(ref _currentLyricIndex, index, nameof(CurrentLyricIndex));
         OnPropertyChanged(nameof(LyricsLines));
-        OnPropertyChanged(nameof(CurrentLyricText));
-        OnPropertyChanged(nameof(SecondaryLyricText));
-        OnPropertyChanged(nameof(NextLyricText));
+        NotifyLyricTextChanges();
     }
     public LyricsQueryStatus LyricsStatus
     {
@@ -126,7 +126,7 @@ public sealed class MediaViewModel : ObservableObject
         internal set
         {
             if (!SetProperty(ref _lyricsStatus, value)) return;
-            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(LyricsStatusText));
+            NotifyLyricTextChanges(); OnPropertyChanged(nameof(LyricsStatusText));
         }
     }
     public SpectrumFrame Spectrum { get => _spectrum; internal set => SetProperty(ref _spectrum, value); }
@@ -137,8 +137,7 @@ public sealed class MediaViewModel : ObservableObject
         internal set
         {
             if (!SetProperty(ref _settings, value)) return;
-            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText)); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
-            OnPropertyChanged(nameof(NextLyricText));
+            NotifyLyricTextChanges(); OnPropertyChanged(nameof(LyricsStatusText)); OnPropertyChanged(nameof(TimelineStatus));
         }
     }
     public TimeSpan Position
@@ -146,10 +145,14 @@ public sealed class MediaViewModel : ObservableObject
         get => _position;
         internal set
         {
+            var oldElapsed = DisplaySeconds(Position - Session.Timeline.Start);
+            var oldRemaining = DisplaySeconds(Session.Timeline.End - Position);
             if (!SetProperty(ref _position, value)) return;
-            OnPropertyChanged(nameof(PositionSeconds)); OnPropertyChanged(nameof(ElapsedText)); OnPropertyChanged(nameof(RemainingText));
-            OnPropertyChanged(nameof(CurrentLyricText)); OnPropertyChanged(nameof(SecondaryLyricText));
-            OnPropertyChanged(nameof(NextLyricText));
+            OnPropertyChanged(nameof(PositionSeconds));
+            if (oldElapsed != DisplaySeconds(Position - Session.Timeline.Start)) OnPropertyChanged(nameof(ElapsedText));
+            if (Session.Timeline.Duration > TimeSpan.Zero && oldRemaining != DisplaySeconds(Session.Timeline.End - Position))
+                OnPropertyChanged(nameof(RemainingText));
+            NotifyLyricTextChanges();
         }
     }
     public string Title => Session.TrackTitle;
@@ -202,11 +205,13 @@ public sealed class MediaViewModel : ObservableObject
     private int FindLyricIndex(LyricsLine? line)
     {
         if (line is null) return -1;
+        // The active original index usually survives both clock frames and AI progress.
+        if (_currentLyricIndex >= 0 && _currentLyricIndex < _lyricsDocument.Lines.Count &&
+            SameOriginal(_lyricsDocument.Lines[_currentLyricIndex], line)) return _currentLyricIndex;
         for (var index = 0; index < _lyricsDocument.Lines.Count; index++)
         {
             var candidate = _lyricsDocument.Lines[index];
-            if (ReferenceEquals(candidate, line) ||
-                (candidate.Start == line.Start && candidate.End == line.End && candidate.Text == line.Text))
+            if (ReferenceEquals(candidate, line) || SameOriginal(candidate, line))
             {
                 return index;
             }
@@ -215,9 +220,19 @@ public sealed class MediaViewModel : ObservableObject
         return -1;
     }
 
+    private void NotifyLyricTextChanges()
+    {
+        SetProperty(ref _notifiedCurrentLyricText, CurrentLyricText, nameof(CurrentLyricText));
+        SetProperty(ref _notifiedSecondaryLyricText, SecondaryLyricText, nameof(SecondaryLyricText));
+        SetProperty(ref _notifiedNextLyricText, NextLyricText, nameof(NextLyricText));
+    }
+
+    private static bool SameOriginal(LyricsLine left, LyricsLine right) =>
+        left.Start == right.Start && left.End == right.End && left.Text == right.Text;
+    private static long DisplaySeconds(TimeSpan time) => Math.Max(0, (long)time.TotalSeconds);
     private static string FormatTime(TimeSpan time)
     {
-        var seconds = Math.Max(0, (long)time.TotalSeconds);
+        var seconds = DisplaySeconds(time);
         return $"{seconds / 60}:{seconds % 60:00}";
     }
 }
