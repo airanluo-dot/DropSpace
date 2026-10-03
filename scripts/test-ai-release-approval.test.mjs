@@ -765,7 +765,7 @@ test('CLI fails closed for unknown arguments rather than skipping validation', (
   assert.match(result.stderr, /AI release blocked/);
 });
 
-test('workflow tests every PR but gates only explicit publication, with a second publisher check', () => {
+test('CI tests every PR while Release gates explicit publication with a second publisher check', () => {
   const workflow = fs.readFileSync(path.join(repository, '.github/workflows/release.yml'), 'utf8');
   const validate = workflow.split('\n  validate-release:')[1].split('\n  ai-model-diagnostics:')[0];
   assert.match(validate, /- name: Test AI semantic release gate regressions\n        run: node --test scripts\/test-ai-release-approval.test.mjs/);
@@ -797,7 +797,10 @@ test('workflow tests every PR but gates only explicit publication, with a second
   assert.match(validate, /- name: Retrieve the exact reviewed runtime\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true/);
   assert.match(validate, /Get-ReviewedAiRuntime.ps1/);
   assert.match(validate, /record-bundle artifacts\/release runtime-directory/);
-  assert.match(workflow, /branches: \[main, qa\/final-ai-review-031\]/);
+  const ci = fs.readFileSync(path.join(repository, '.github/workflows/ci.yml'), 'utf8');
+  assert.match(ci, /pull_request:\n    branches: \[main\]/);
+  assert.match(ci, /run: node --test scripts\/test-ai-release-approval.test.mjs/);
+  assert.doesNotMatch(workflow, /\n  (?:push|pull_request):/);
   assert.match(validate, /Capture final plain-Hy production evidence on both runtime variants/);
   assert.match(validate, /foreach \(\$variant in @\('Baseline', 'Avx2'\)\)/);
   assert.match(validate, /Run-WindowsProductionEvidence.ps1 -RuntimeDirectory \$runtime -ModelPath \$env:DROPSPACE_AI_SMOKE_MODEL/);
