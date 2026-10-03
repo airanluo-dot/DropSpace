@@ -252,7 +252,7 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
-          "sha256": "acb8a52fbb0d8d5f1f4b370fb5e125e8746578d840ef7d597d657e9701b37fdb"
+          "sha256": "85f20b8fab37ff124f9888d2407c61c45e5455b4b9527e39fa29beda5373f70e"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs",
@@ -739,7 +739,7 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "2af5cfbf9b3cb9bb6a4ca0d7a8b2d26d5853e30e972cbe81b6dbd9dde55d2a14"
+      "sha256": "98c8cdecfded4090db8da7b326c5a90fdc70d1ed6b33a2ea4bfb1f75de5596bd"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2224,6 +2224,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.3-owner-accepted-review.json",
-    "sha256": "f26f60538fce30745a4f778dc06aa5d53baaae26608aa02fe1eaaad0ee38c882"
+    "sha256": "35de3940004b23074354fecd935007bc146f71221fb83b7cb63e5f1f5157d0e3"
   }
 }

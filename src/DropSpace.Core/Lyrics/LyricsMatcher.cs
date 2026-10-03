@@ -18,10 +18,10 @@ public static class LyricsMatcher
     // Publisher descriptions are not part of the sung title. Keep language
     // identity separately so cleaning a search cannot select another language.
     private static readonly Regex SoundtrackDecoration = new(
-        @"\s*(?:\(|\[|（|【)\s*[^\)\]）】]*(?:主题曲|主題曲|片头曲|片頭曲|片尾曲|插曲|推广曲|推廣曲)\s*(?:\)|\]|）|】)\s*$",
+        @"\s*(?:\(|\[|（|【)\s*[^\)\]）】]*(?:\u4e3b\u9898\u66f2|\u4e3b\u984c\u66f2|\u7247\u5934\u66f2|\u7247\u982d\u66f2|\u7247\u5c3e\u66f2|\u63d2\u66f2|\u63a8\u5e7f\u66f2|\u63a8\u5ee3\u66f2)\s*(?:\)|\]|）|】)\s*$",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex LanguageDecoration = new(
-        @"\s*(?:\(|\[|（|【)\s*(中文|国语|國語|普通话|普通話|英语|英語|英文|日语|日語|日文|韩语|韓語|韩文|韓文|粤语|粵語)(?:版|版本)\s*(?:\)|\]|）|】)\s*$",
+        @"\s*(?:\(|\[|（|【)\s*(\u4e2d\u6587|\u56fd\u8bed|\u570b\u8a9e|\u666e\u901a\u8bdd|\u666e\u901a\u8a71|\u82f1\u8bed|\u82f1\u8a9e|\u82f1\u6587|\u65e5\u8bed|\u65e5\u8a9e|\u65e5\u6587|\u97e9\u8bed|\u97d3\u8a9e|\u97e9\u6587|\u97d3\u6587|\u7ca4\u8bed|\u7cb5\u8a9e)(?:\u7248|\u7248\u672c)\s*(?:\)|\]|）|】)\s*$",
         RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private static readonly Regex BilingualTitle = new(
         @"^([\u3400-\u9fff]{2,})\s+[A-Za-z][A-Za-z0-9 '’,:!?\-]+$",
@@ -261,11 +261,11 @@ public static class LyricsMatcher
         if (!match.Success) return null;
         return match.Groups[1].Value switch
         {
-            "中文" or "国语" or "國語" or "普通话" or "普通話" => "zh-Hans",
-            "英文" or "英语" or "英語" => "en",
-            "日文" or "日语" or "日語" => "ja",
-            "韩文" or "韓文" or "韩语" or "韓語" => "ko",
-            "粤语" or "粵語" => "yue",
+            "\u4e2d\u6587" or "\u56fd\u8bed" or "\u570b\u8a9e" or "\u666e\u901a\u8bdd" or "\u666e\u901a\u8a71" => "zh-Hans",
+            "\u82f1\u6587" or "\u82f1\u8bed" or "\u82f1\u8a9e" => "en",
+            "\u65e5\u6587" or "\u65e5\u8bed" or "\u65e5\u8a9e" => "ja",
+            "\u97e9\u6587" or "\u97d3\u6587" or "\u97e9\u8bed" or "\u97d3\u8a9e" => "ko",
+            "\u7ca4\u8bed" or "\u7cb5\u8a9e" => "yue",
             _ => null,
         };
     }
