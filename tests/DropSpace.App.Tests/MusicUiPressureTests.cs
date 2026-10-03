@@ -20,7 +20,7 @@ public sealed class MusicUiPressureTests
         var originals = Enumerable.Range(0, rows.Count).Select(index => rows[index]).ToArray();
         for (var index = 0; index < 64; index++)
         {
-            lines = lines.ToArray();
+            lines = lines.Select(line => line with { }).ToArray();
             lines[index] = lines[index] with { Secondary = $"Translation {index}", TranslationOrigin = LyricsTranslationOrigin.LocalAi };
             Assert.IsFalse(rows.Update(lines, "track", "options"), "AI progress cannot invalidate row structure or scroll anchoring.");
         }
@@ -29,6 +29,45 @@ public sealed class MusicUiPressureTests
         for (var index = 0; index < rows.Count; index++) Assert.AreSame(originals[index], rows[index]);
         Assert.IsFalse(rows.Update(lines, "track", "options"));
         Assert.AreEqual(64, updated);
+        Assert.IsFalse(rows.Update(lines.Select(line => line with { }).ToArray(), "track", "options"));
+        Assert.AreEqual(64, updated, "An all-clone publication with unchanged values must do no row presentation work.");
+    }
+
+    [TestMethod]
+    public void OriginLanguageAndOptionsStillUpdateReusedRows()
+    {
+        var created = 0; var updated = 0;
+        var rows = new LyricsRowCollection<Row>(2000,
+            line => { created++; return new(line); },
+            (row, line) => { updated++; row.Line = line; });
+        var line = Line(0) with { Secondary = "Translation" };
+        var lines = new[] { line, Line(1) };
+        rows.Update(lines, "track", "options");
+        var first = rows[0]; var second = rows[1];
+        lines = lines.Select(value => value with { }).ToArray();
+        Assert.IsFalse(rows.Update(lines, "track", "options"));
+        Assert.AreEqual(0, updated);
+
+        lines = lines.Select(value => value with { }).ToArray();
+        lines[0] = lines[0] with { TranslationOrigin = LyricsTranslationOrigin.LocalAi };
+        Assert.IsFalse(rows.Update(lines, "track", "options"));
+        Assert.AreEqual(1, updated);
+        Assert.AreEqual(LyricsTranslationOrigin.LocalAi, rows[0].Line.TranslationOrigin);
+        lines = lines.Select(value => value with { }).ToArray();
+        lines[0] = lines[0] with { TranslationLanguage = "en-US" };
+        Assert.IsFalse(rows.Update(lines, "track", "options"));
+        Assert.AreEqual(2, updated);
+        Assert.AreEqual("en-US", rows[0].Line.TranslationLanguage);
+        lines = lines.Select(value => value with { }).ToArray();
+        lines[0] = lines[0] with { TranslationLanguage = "zh-CN" };
+        Assert.IsFalse(rows.Update(lines, "track", "options"));
+        Assert.AreEqual(3, updated);
+        Assert.AreEqual("zh-CN", rows[0].Line.TranslationLanguage);
+        Assert.IsFalse(rows.Update(lines, "track", "new-font-and-label-options"));
+        Assert.AreEqual(5, updated, "Options must restyle both rows even when every line value is unchanged.");
+        Assert.AreSame(first, rows[0]);
+        Assert.AreSame(second, rows[1]);
+        Assert.AreEqual(2, created);
     }
 
     [TestMethod]

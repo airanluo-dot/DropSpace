@@ -42,9 +42,11 @@ internal sealed class LyricsRowCollection<TRow>(int maximumRows, Func<LyricsLine
                     _rows[index] = new(line, create(line));
                     structureChanged = true;
                 }
-                else if (optionsChanged || !ReferenceEquals(entry.Line, line))
+                else
                 {
-                    update(entry.Row, line);
+                    // PlainHy progress clones every record while retaining Words. Equal
+                    // clones need no text/style work, but retain the latest source record.
+                    if (optionsChanged || !Equals(entry.Line, line)) update(entry.Row, line);
                     entry.Line = line;
                 }
             }
