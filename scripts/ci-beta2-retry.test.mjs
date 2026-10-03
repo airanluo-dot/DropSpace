@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateReuse,priorHead,priorRun,reusableSteps} from './ci-beta2-retry.mjs';
+const valid=()=>({version:'v0.3.1-beta.2',changed:['scripts/plain-hy-production-evidence/ContractTests.cs'],run:{id:priorRun,head_sha:priorHead,event:'pull_request',status:'completed',repository:{full_name:'airanluo-dot/DropSpace'}},jobs:[{name:'Build and validate shared Windows artifacts',run_id:priorRun,status:'completed',steps:Object.values(reusableSteps).map(name=>({name,conclusion:'success'}))}]});
+test('reuse successful unaffected steps, not failed aggregate',()=>assert.equal(validateReuse(valid()),true));
+for(const [name,change] of Object.entries({source:x=>x.changed.push('src/DropSpace.Core/Models/Item.cs'),differentRun:x=>x.run.id++,differentHead:x=>x.run.head_sha='0'.repeat(40),repository:x=>x.run.repository.full_name='other/repo',running:x=>x.run.status='in_progress',failedStep:x=>x.jobs[0].steps[0].conclusion='failure',missingStep:x=>x.jobs[0].steps.pop(),wrongJob:x=>x.jobs[0].run_id++,differentRelease:x=>x.version='v0.3.1-beta.3'}))test(`reject ${name}`,()=>{const x=valid();change(x);assert.equal(validateReuse(x),false);});

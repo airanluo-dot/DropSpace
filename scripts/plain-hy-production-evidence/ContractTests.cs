@@ -130,10 +130,11 @@ internal static class ContractTests
             var failures = Path.Combine(temporary, "failure");
             Directory.CreateDirectory(failures);
             using var failing = new ObservedRunner(new FakeRunner((_, _, _) => throw new IOException("contract failure")), failures);
-            failing.Begin("contract-failure", "zh-Hans", source);
+            var failureSource = Source("An original line");
+            failing.Begin("contract-failure", "zh-Hans", failureSource);
             try
             {
-                await failing.RunPlainAsync("unused", "unused", PlainHyLyricsProtocol.BuildPrompt(source.Lines[0].Text, "zh-Hans"),
+                await failing.RunPlainAsync("unused", "unused", PlainHyLyricsProtocol.BuildPrompt(failureSource.Lines[0].Text, "zh-Hans"),
                     failures, default, AiLyricsModelCatalog.ExperimentalPlain.Sha256).ConfigureAwait(false);
                 throw new InvalidDataException("Runner failure was swallowed.");
             }

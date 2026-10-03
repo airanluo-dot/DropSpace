@@ -3,10 +3,10 @@
   "kind": "owner-accepted-experimental-beta",
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
-  "reviewedBy": "Codex (repository-owner-authorized release evidence consistency review)",
-  "reviewedAt": "2026-10-03T17:57:32Z",
-  "expiresAt": "2026-10-10T17:57:32Z",
-  "summary": "Owner-authorized exact v0.3.1-beta.2 publication after final integration, with unfinished extra local visual/input/GPU acceptance explicitly skipped. Both models remain unverified and semanticApproved=false. Historical inference failures and not-run entries are preserved. Reuse only the unchanged native runtime from successful producer 37095011004 attempt 1. The final App required checks and package/runtime identity gates remain mandatory; this review does not claim those pending checks passed.",
+  "reviewedBy": "Vox (repository-owner-authorized release consistency review)",
+  "reviewedAt": "2026-10-03T18:57:39Z",
+  "expiresAt": "2026-10-10T18:57:39Z",
+  "summary": "Owner-authorized exact v0.3.1-beta.2 publication after final integration, with unfinished extra local visual/input/GPU acceptance explicitly skipped. Both models remain unverified and semanticApproved=false. Historical inference failures and not-run entries are preserved. Reuse only the unchanged native runtime from successful producer 37095011004 attempt 1. The final App required checks and package/runtime identity gates remain mandatory; this review does not claim those pending checks passed. Targeted retry corrects only the contract failure fixture to an admitted English source. No shipping model, prompt, native runtime or App source changed; prior passing checks are reused only with verified unchanged inputs.",
   "scope": {
     "releaseVersion": "v0.3.1-beta.2",
     "shippingModels": [
@@ -673,7 +673,7 @@
         },
         {
           "path": "scripts/plain-hy-production-evidence/ContractTests.cs",
-          "sha256": "085d21a7c52546625709d4cd612ebb17958a66b8258ab7c93ac38569f7213efb"
+          "sha256": "6da085dd00c6f7ab6f2d95745c19ee1ad2af0ed9d63b4e083852a89f0c31fb39"
         },
         {
           "path": "scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1",
@@ -740,7 +740,7 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "5b6901b95752aa57ba0ad43342a670069795b548da5b551beb23793e628be166"
+      "sha256": "8f8d6ba82bf1af8de810b918946b906e1eee2d363bff0855437235091d6b8ef2"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",

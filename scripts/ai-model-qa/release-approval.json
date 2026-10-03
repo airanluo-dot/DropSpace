@@ -668,7 +668,7 @@
         },
         {
           "path": "scripts/plain-hy-production-evidence/ContractTests.cs",
-          "sha256": "085d21a7c52546625709d4cd612ebb17958a66b8258ab7c93ac38569f7213efb"
+          "sha256": "6da085dd00c6f7ab6f2d95745c19ee1ad2af0ed9d63b4e083852a89f0c31fb39"
         },
         {
           "path": "scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1",
@@ -735,7 +735,7 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "5b6901b95752aa57ba0ad43342a670069795b548da5b551beb23793e628be166"
+      "sha256": "8f8d6ba82bf1af8de810b918946b906e1eee2d363bff0855437235091d6b8ef2"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2220,6 +2220,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.2-owner-accepted-review.json",
-    "sha256": "fcfdb83849530a8791952192ce30ba26f666c4f81be2a7ab00bc08e57ea07b22"
+    "sha256": "9e470745769bd8df56b6e273e34699f943ba19b763410c347b46093e8bb2737d"
   }
 }
