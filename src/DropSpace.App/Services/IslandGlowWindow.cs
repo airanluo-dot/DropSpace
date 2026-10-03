@@ -26,7 +26,7 @@ internal sealed class IslandGlowWindow : IDisposable
 
     internal nint WindowHandle => _window;
 
-    public void Present(IslandGlowRasterizer rasterizer, int surfaceLeft, int surfaceTop)
+    internal bool CanPresent()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (!IsWindow(_island))
@@ -39,8 +39,14 @@ internal sealed class IslandGlowWindow : IDisposable
         if (!IsWindowVisible(_island) || IsIconic(_island))
         {
             Hide();
-            return;
+            return false;
         }
+        return true;
+    }
+
+    public void Present(IslandGlowRasterizer rasterizer, int surfaceLeft, int surfaceTop)
+    {
+        if (!CanPresent()) return;
         EnsureWindow();
         EnsureBitmap(rasterizer.Width, rasterizer.Height);
         Marshal.Copy(rasterizer.Pixels, 0, _bits, rasterizer.Pixels.Length);
