@@ -28,7 +28,7 @@ function bash(t, script, values) {
 
 test('PR revisions have one Windows pipeline and always emit the required checks', () => {
   const events = triggers(ci);
-  assert.match(events, /\n  push:\n    branches: \[main\]/);
+  assert.doesNotMatch(events, /\n  push:/, 'Do not repeat PR builds after merge');
   assert.match(events, /\n  pull_request:\n    branches: \[main\]/);
   assert.match(events, /\n  workflow_dispatch:/);
   assert.doesNotMatch(events, /agent\/|paths(?:-ignore)?:/);

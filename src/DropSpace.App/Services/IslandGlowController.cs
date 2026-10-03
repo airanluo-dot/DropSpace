@@ -12,6 +12,7 @@ internal sealed record IslandGlowTransfer(LyricsGlowHandoff State, long Timestam
 internal sealed class IslandGlowController : IDisposable
 {
     private readonly LyricsGlowEnvelope _envelope = new();
+    private readonly LyricsGlowAudioResponse _audioResponse = new();
     private readonly IslandGlowWindow _window;
     private readonly DispatcherQueueTimer _timer;
     private readonly ILogger _logger;
@@ -54,6 +55,7 @@ internal sealed class IslandGlowController : IDisposable
     {
         _captureCurrentFrame = false;
         _captureTargetFresh = false;
+        _audioResponse.Reset();
     }
 
     // Called only after current-window policy and layout authorize the continuation.
@@ -116,7 +118,9 @@ internal sealed class IslandGlowController : IDisposable
     private void AdvanceFrame(TimeSpan elapsed)
     {
         if (elapsed <= TimeSpan.Zero) return;
-        _envelope.Advance(_eligible, _energy, elapsed, _reducedMotion, _bands, _simplifiedGlow);
+        if (_eligible && !_reducedMotion) _audioResponse.Advance(_energy, _bands, elapsed);
+        else _audioResponse.Reset();
+        _envelope.Advance(_eligible, _audioResponse.Energy, elapsed, _reducedMotion, _audioResponse.Bands, _simplifiedGlow);
         _captureCurrentFrame = _captureTargetFresh;
         Render();
         if (!_eligible && _envelope.Brightness == 0) _timer.Stop();

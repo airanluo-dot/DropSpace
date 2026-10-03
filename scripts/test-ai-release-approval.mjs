@@ -97,6 +97,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/Views/Island/MediaRenderQueue.cs',
   'src/DropSpace.App/Views/Island/MediaExpandedView.xaml',
   'src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs',
+  'src/DropSpace.Core/Lyrics/LyricsGlowAudioResponse.cs',
   'src/DropSpace.Core/Lyrics/LyricsGlowHandoff.cs',
   'src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs',
   'src/DropSpace.App/Services/IslandGlowController.cs',
@@ -172,7 +173,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.2';
+export const experimentalBetaVersion = 'v0.3.1-beta.3';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
