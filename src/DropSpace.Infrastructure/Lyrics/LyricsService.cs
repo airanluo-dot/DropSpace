@@ -79,7 +79,7 @@ public sealed class LyricsService
         try
         {
             var primary = await QueryProviderAsync(kind, query, candidates.Token, candidates.Report, candidates.Token).ConfigureAwait(false);
-            document = Validate(primary.Document, query);
+            document = PreferTranslation(Validate(primary.Document, query), candidates.Document, target);
             var fallbackFailed = false;
             if (NeedsTranslationSearch(document, target) && backup is { } backupKind)
             {
@@ -94,6 +94,7 @@ public sealed class LyricsService
                 document = PreferTranslation(document, fallback.Document, target);
                 fallbackFailed |= fallback.Failed;
             }
+            document = PreferTranslation(document, candidates.Document, target);
             cancellationToken.ThrowIfCancellationRequested();
             // Any successful fresh read uses this service's current provider pipeline.
             // Stamp at the cache boundary too, so injected provider implementations

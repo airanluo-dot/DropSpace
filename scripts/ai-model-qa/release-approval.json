@@ -344,7 +344,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
-          "sha256": "6cd10bdd5e94632b62b2d08883c23c464c646656316c060843178070085777e7"
+          "sha256": "ad6ebabd5993e55687ce5ff56065e2e352792ce7c3cd0f2f7f99b9fec6480b84"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
@@ -739,7 +739,7 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "98c8cdecfded4090db8da7b326c5a90fdc70d1ed6b33a2ea4bfb1f75de5596bd"
+      "sha256": "c0138a523fca83bdd3471f80fba6f307fcb8a0c4ce2a8a31a903dc08b06bfb8e"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2224,6 +2224,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.3-owner-accepted-review.json",
-    "sha256": "35de3940004b23074354fecd935007bc146f71221fb83b7cb63e5f1f5157d0e3"
+    "sha256": "8acd80c343ed3044ab95530f9df4b46401a64ee4fb41ec262b78f6e95c246107"
   }
 }

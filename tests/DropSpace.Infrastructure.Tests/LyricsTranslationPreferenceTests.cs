@@ -122,6 +122,16 @@ public sealed class LyricsTranslationPreferenceTests
         Assert.IsTrue(result.TranslationLookupIncomplete);
         late.SetResult(LyricsDocument.Empty);
     }
+    [TestMethod]
+    public async Task OriginalDiscoveredInsideProviderSurvivesImmediateLaterFailure()
+    {
+        var provider = new Progressive(Task.FromException<LyricsDocument>(new HttpRequestException("Second candidate failed")));
+        var result = await new LyricsService(new([provider])).QueryDetailedAsync(Query, new() { Enabled=true }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.IsNotEmpty(result.Document.Lines);
+        Assert.IsTrue(result.TranslationLookupIncomplete);
+    }
+
     private sealed class Progressive(Task<LyricsDocument> pending) : IProgressiveLyricsProvider
     {
         public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
