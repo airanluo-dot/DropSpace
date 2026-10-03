@@ -44,7 +44,15 @@ public sealed class LyricsService
         // truncated to the same whole second.
         var backup = OnlineBackup(settings, kind);
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
-        var key = JsonSerializer.Serialize(new
+        // Non-translation callers retain the existing source cache/provenance
+        // contract. Target-aware lookups use a separate identity so an old
+        // original-only cache cannot short-circuit the translated-source search.
+        var key = target.Length == 0 ? JsonSerializer.Serialize(new
+        {
+            version = "source-v2", primary = kind, backup, settings.SearchRemainingProviders,
+            query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
+            durationTicks = query.Duration.Ticks,
+        }) : JsonSerializer.Serialize(new
         {
             version = "source-v3", primary = kind, backup, settings.SearchRemainingProviders, target,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,

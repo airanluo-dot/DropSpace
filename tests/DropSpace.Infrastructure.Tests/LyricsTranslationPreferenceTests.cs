@@ -132,6 +132,44 @@ public sealed class LyricsTranslationPreferenceTests
         Assert.IsTrue(result.TranslationLookupIncomplete);
     }
 
+    [TestMethod]
+    public async Task LegacySourceCacheProvenanceStillRequiresRefetchForUnprovenTranslationTags()
+    {
+        var root=Path.Combine(Path.GetTempPath(),"DropSpace-provenance-"+Guid.NewGuid().ToString("N"));
+        try
+        {
+            var query=Query with { PreferredTranslationLanguage=null };
+            var settings=new LyricsSettings { Enabled=true };
+            var provider=new Provider(LyricsProviderKind.NetEase,()=>throw new HttpRequestException("Offline"));
+            var cache=new LyricsCache(root);
+            var source=Doc(LyricsProviderKind.NetEase,true) with { ProviderDataRevision=NetEaseLyricsProvider.DataRevision };
+            source=source with { Lines=source.Lines.Select(line=>line with { TranslationLanguage="en", TranslationLanguageIsExplicit=null }).ToArray() };
+            var key=System.Text.Json.JsonSerializer.Serialize(new {
+                version="source-v2",primary=LyricsProviderKind.NetEase,backup=(LyricsProviderKind?)null,settings.SearchRemainingProviders,
+                query.TrackIdentity,query.Title,query.Artist,query.AlbumArtist,query.Album,durationTicks=query.Duration.Ticks });
+            await cache.WriteDocumentAsync(key,source,cache.Generation,default);
+            var result=await new LyricsService(new([provider]),cache).QueryDetailedAsync(query,settings,default);
+            Assert.AreEqual(LyricsQueryStatus.Failed,result.Status);
+            Assert.IsEmpty(result.Document.Lines);
+            Assert.AreEqual(1,provider.Calls);
+        }
+        finally { if(Directory.Exists(root)) Directory.Delete(root,true); }
+    }
+
+    [TestMethod]
+    public async Task TargetAwareSearchDoesNotReuseOriginalOnlyNonTranslationCache()
+    {
+        var a=new Provider(LyricsProviderKind.NetEase,()=>Task.FromResult(Doc(LyricsProviderKind.NetEase)));
+        var b=new Provider(LyricsProviderKind.QqMusic,()=>Task.FromResult(Doc(LyricsProviderKind.QqMusic,true)));
+        var service=new LyricsService(new([a,b]));
+        var settings=new LyricsSettings { Enabled=true,BackupProvider=LyricsProviderKind.QqMusic };
+        var original=await service.QueryDetailedAsync(Query with { PreferredTranslationLanguage=null },settings,default);
+        Assert.AreEqual(LyricsProviderKind.NetEase,original.Document.Provider);
+        var translated=await service.QueryDetailedAsync(Query,settings,default);
+        Assert.AreEqual(LyricsProviderKind.QqMusic,translated.Document.Provider);
+        Assert.AreEqual(1,b.Calls);
+    }
+
     private sealed class Progressive(Task<LyricsDocument> pending) : IProgressiveLyricsProvider
     {
         public LyricsProviderKind Kind => LyricsProviderKind.NetEase;

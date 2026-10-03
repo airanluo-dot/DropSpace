@@ -349,7 +349,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
-          "sha256": "ad6ebabd5993e55687ce5ff56065e2e352792ce7c3cd0f2f7f99b9fec6480b84"
+          "sha256": "569852006a909ece20bb95d190852e4bc2033a9d2ac8d1a0fcbb9c256462c853"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
@@ -744,7 +744,7 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "c0138a523fca83bdd3471f80fba6f307fcb8a0c4ce2a8a31a903dc08b06bfb8e"
+      "sha256": "84d5cb97c2600192414d45851cd78208da3b479a71de3fd1f5e6a834c3d5b847"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
