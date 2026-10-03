@@ -128,6 +128,10 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         });
     }
 
+    // Internal initialization seam for deterministic unavailable-view native tests.
+    // Production always reads on the existing OLE/dispatcher owner.
+    internal Func<DataPackageView> ClipboardViewReader { get; init; } = Clipboard.GetContent;
+
     public event EventHandler<ClipboardCaptureStatus>? StatusChanged;
 
     public event EventHandler<DropItem>? ItemCaptured;
@@ -181,11 +185,11 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             _initialized, Volatile.Read(ref _disposeStarted) != 0, _worker?.Status);
     }
 
-    private void RecordDiagnostic(ClipboardDiagnosticDecision decision, CaptureSignal? signal = null, Exception? exception = null, int? readAttempt = null)
+    private void RecordDiagnostic(ClipboardDiagnosticDecision decision, CaptureSignal? signal = null, Exception? exception = null, int? readAttempt = null, int? formatCount = null)
     {
         if (!_diagnostics.IsEnabled) return;
         _diagnostics.Record(decision, CreateDiagnosticState(), signal?.ClipboardSequenceNumber, signal?.Attempt,
-            readAttempt, ClipboardDiagnosticTrace.Classify(exception), exception?.HResult);
+            readAttempt, ClipboardDiagnosticTrace.Classify(exception), exception?.HResult, formatCount);
     }
 
     private bool TryQueueSignal(CaptureSignal signal)
@@ -995,6 +999,7 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             if (delays[attempt] > TimeSpan.Zero)
             {
                 await Task.Delay(delays[attempt], cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 var currentSequence = GetClipboardSequenceNumber();
                 if (signal.ClipboardSequenceNumber != 0 &&
                     currentSequence != 0 &&
@@ -1017,13 +1022,19 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
                     "Clipboard snapshot read started for sequence {SequenceNumber}, attempt {Attempt}.",
                     signal.ClipboardSequenceNumber,
                     attempt + 1);
-                var snapshot = await ReadSnapshotAsync(signal, cancellationToken).ConfigureAwait(false);
+                var snapshot = await ReadSnapshotAsync(signal, cancellationToken, retryEmptyView: attempt < 2).ConfigureAwait(false);
                 RecordDiagnostic(ClipboardDiagnosticDecision.ReadCompleted, signal);
                 _logger.LogInformation(
                     "Clipboard snapshot read completed for sequence {SequenceNumber}; format {Format}.",
                     signal.ClipboardSequenceNumber,
                     snapshot?.FilePaths is not null ? "files" : snapshot?.Text is not null ? "text" : snapshot?.ImageBytes is not null ? "image" : "unsupported");
                 return snapshot;
+            }
+            catch (EmptyClipboardViewException)
+            {
+                // GetContent can temporarily expose no formats without throwing.
+                // Only the first two attempts retry this state; a still-empty third
+                // view is consumed normally, without a permanent busy/error status.
             }
             catch (Exception exception) when (exception is COMException or UnauthorizedAccessException)
             {
@@ -1046,11 +1057,12 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private async Task<ClipboardSnapshot?> ReadSnapshotAsync(
         CaptureSignal signal,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool retryEmptyView)
     {
         RecordDiagnostic(ClipboardDiagnosticDecision.DispatcherQueued, signal);
         var source = await _dispatcher.EnqueueAsync(
-                () => ReadClipboardSnapshotSourceAsync(signal, cancellationToken))
+                () => ReadClipboardSnapshotSourceAsync(signal, cancellationToken, retryEmptyView))
             .ConfigureAwait(false);
         if (source.Snapshot is not null)
         {
@@ -1082,11 +1094,12 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
 
     private async Task<ClipboardReadResult> ReadClipboardSnapshotSourceAsync(
         CaptureSignal signal,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool retryEmptyView)
     {
         cancellationToken.ThrowIfCancellationRequested();
         RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewReadStarted, signal);
-        var view = Clipboard.GetContent();
+        var view = ClipboardViewReader();
         RecordDiagnostic(ClipboardDiagnosticDecision.ClipboardViewRead, signal);
 
         if (view.Contains(StandardDataFormats.StorageItems))
@@ -1201,7 +1214,13 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
             }
         }
 
-        RecordDiagnostic(ClipboardDiagnosticDecision.UnsupportedFormat, signal);
+        var formatCount = view.AvailableFormats.Count;
+        if (formatCount == 0 && retryEmptyView)
+        {
+            RecordDiagnostic(ClipboardDiagnosticDecision.EmptyViewRetry, signal, formatCount: 0);
+            throw new EmptyClipboardViewException();
+        }
+        RecordDiagnostic(ClipboardDiagnosticDecision.UnsupportedFormat, signal, formatCount: formatCount);
         return new ClipboardReadResult(
             CreateRejectedSnapshot(signal, "unsupported-format"),
             null);
@@ -1890,6 +1909,8 @@ public sealed class ClipboardCaptureService : IAsyncDisposable
         int Attempt = 0);
 
     private sealed record SelfWriteMarker(long Id, string Fingerprint, DateTimeOffset ExpiresUtc);
+
+    private sealed class EmptyClipboardViewException : Exception { }
 
     private sealed record ClipboardReadResult(
         ClipboardSnapshot? Snapshot,

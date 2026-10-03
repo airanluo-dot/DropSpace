@@ -308,6 +308,265 @@ public sealed class ClipboardDeferredProviderNativeTests
         Assert.AreEqual(2, attempts, "Both attempts must execute on the initialized owner thread.");
     }
 
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    public Task TwoEmptyViewsRecoverMixedFilesWithoutAnotherClipboardWrite() =>
+        VerifyEmptyClipboardViewAsync(EmptyViewScenario.RecoverMixedFiles);
+
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    public Task ATrulyEmptyClipboardIsRejectedAfterExactlyTwoRetries() =>
+        VerifyEmptyClipboardViewAsync(EmptyViewScenario.RemainEmpty);
+
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    public Task ANonemptyUnsupportedClipboardViewIsNotRetried() =>
+        VerifyEmptyClipboardViewAsync(EmptyViewScenario.UnsupportedNonempty);
+
+    [TestMethod]
+    [TestCategory("NativeSmoke")]
+    public Task ANewSequenceDuringAnEmptyViewProbeNeverCapturesTheOldFiles() =>
+        VerifyEmptyClipboardViewAsync(EmptyViewScenario.Superseded);
+
+    private enum EmptyViewScenario { RecoverMixedFiles, RemainEmpty, UnsupportedNonempty, Superseded }
+
+    private async Task VerifyEmptyClipboardViewAsync(EmptyViewScenario scenario)
+    {
+        var paths = new AppStoragePaths(Path.Combine(Path.GetTempPath(), "DropSpace-empty-view", Guid.NewGuid().ToString("N")));
+        var repository = new SqliteItemRepository(new SqliteDatabase(paths, NullLogger<SqliteDatabase>.Instance), NullLogger<SqliteItemRepository>.Instance);
+        var consumer = new NativeOwner(heartbeat: true);
+        var producer = new NativeOwner(heartbeat: false);
+        var notifications = new ClipboardNotificationService(NullLogger<ClipboardNotificationService>.Instance);
+        var targetSequence = 0u;
+        var targetReadAttempts = 0;
+        var replacement = "DropSpaceEmptyViewReplacement-" + Guid.NewGuid().ToString("N");
+        var baselineText = "DropSpaceEmptyViewBaseline-" + Guid.NewGuid().ToString("N");
+        // Packages backing synthetic views remain strongly owned until teardown.
+        var syntheticPackages = new List<DataPackage>();
+        DataPackage? publishedPackage = null;
+        var cleanupFailures = new List<Exception>();
+        Exception? originalFailure = null;
+        var capture = new ClipboardCaptureService(repository, new JsonSettingsService(paths),
+            new FilePayloadStore(paths), new FilePreviewCache(paths), new LocalFileReferenceService(),
+            notifications, consumer.Queue, IdentityAppStringLocalizer.Instance, NullLogger<ClipboardCaptureService>.Instance)
+        {
+            ClipboardViewReader = () =>
+            {
+                Assert.IsTrue(consumer.Queue.HasThreadAccess, "Every probe must run on the real OLE consumer owner.");
+                var sequence = GetClipboardSequenceNumber();
+                if (sequence != Volatile.Read(ref targetSequence) || sequence == 0)
+                    return Clipboard.GetContent();
+
+                var attempt = Interlocked.Increment(ref targetReadAttempts);
+                if (scenario == EmptyViewScenario.RecoverMixedFiles && attempt <= 2)
+                    return EmptyView();
+                if (scenario == EmptyViewScenario.Superseded && attempt == 1)
+                {
+                    // The producer is an independent OLE owner. Complete publication
+                    // before returning this empty view, guaranteeing that the pending
+                    // old signal sees sequence advancement before its next probe.
+                    PublishEagerAsync(producer, replacement).GetAwaiter().GetResult();
+                    return EmptyView();
+                }
+
+                return Clipboard.GetContent();
+            },
+        };
+
+        try
+        {
+            await consumer.InitializeAsync();
+            await producer.InitializeAsync();
+            await consumer.Queue.EnqueueAsync(() => { notifications.Initialize(consumer.Window); return Task.CompletedTask; })
+                .WaitAsync(TimeSpan.FromSeconds(8));
+            await repository.InitializeAsync();
+            await capture.InitializeAsync();
+            capture.BeginDiagnosticSession();
+            await PublishEagerAsync(producer, baselineText);
+            await WaitForAsync(() => capture.Status.CapturedItems > 0 &&
+                    capture.DiagnosticCurrentState.LastProcessedSequence == GetClipboardSequenceNumber(),
+                "baseline capture and sequence consumption");
+            Assert.AreEqual(1, await CountTextAsync(repository, baselineText));
+
+            var fileRoot = Path.Combine(paths.Root, "fixture");
+            Directory.CreateDirectory(fileRoot);
+            var filePath = Path.Combine(fileRoot, "first.txt");
+            var secondPath = Path.Combine(fileRoot, "second.bin");
+            var folderPath = Path.Combine(fileRoot, "folder");
+            await File.WriteAllTextAsync(filePath, "fixture");
+            await File.WriteAllBytesAsync(secondPath, [1, 2, 3, 4]);
+            Directory.CreateDirectory(folderPath);
+            // Dedicated queues have no managed synchronization context. Resolve all
+            // StorageItems before entering the synchronous publication callback.
+            IStorageItem[] items =
+            [
+                await StorageFile.GetFileFromPathAsync(filePath).AsTask().WaitAsync(TimeSpan.FromSeconds(8)),
+                await StorageFile.GetFileFromPathAsync(secondPath).AsTask().WaitAsync(TimeSpan.FromSeconds(8)),
+                await StorageFolder.GetFolderFromPathAsync(folderPath).AsTask().WaitAsync(TimeSpan.FromSeconds(8)),
+            ];
+            var before = capture.Status;
+            capture.BeginDiagnosticStage(ClipboardSmokeStage.FileWrite);
+            await PublishWithConsumerBarrierAsync(() =>
+            {
+                if (scenario == EmptyViewScenario.RemainEmpty)
+                {
+                    Clipboard.Clear();
+                }
+                else
+                {
+                    publishedPackage = new DataPackage { RequestedOperation = DataPackageOperation.Copy };
+                    if (scenario == EmptyViewScenario.UnsupportedNonempty)
+                        publishedPackage.SetData("DropSpace.Test.Unsupported", "fixture");
+                    else
+                        publishedPackage.SetStorageItems(items, readOnly: true);
+                    Clipboard.SetContent(publishedPackage);
+                    Clipboard.Flush();
+                }
+                Volatile.Write(ref targetSequence, GetClipboardSequenceNumber());
+            });
+            Assert.AreNotEqual(0u, targetSequence, "The native publication must have a real sequence.");
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(8);
+            capture.BeginDiagnosticStage(ClipboardSmokeStage.FileCapture);
+
+            if (scenario == EmptyViewScenario.RecoverMixedFiles)
+            {
+                await WaitForAsync(() => capture.Status.CapturedItems >= before.CapturedItems + 3,
+                    "mixed files after two empty views", deadline);
+                Assert.AreEqual(before.CapturedItems + 3, capture.Status.CapturedItems);
+                Assert.AreEqual(targetSequence, GetClipboardSequenceNumber(), "Recovery must not depend on another clipboard publication.");
+                var rows = await repository.QueryAsync(new ItemQuery(Source: ItemSource.Clipboard, Limit: 100));
+                foreach (var path in new[] { filePath, secondPath, folderPath })
+                    Assert.AreEqual(1, rows.Count(item => string.Equals(item.File?.OriginalPath, path, StringComparison.OrdinalIgnoreCase)),
+                        "Each original file/folder must reach the real repository exactly once.");
+                // The first two views are controlled; the real third native read
+                // may encounter a legitimate COM retry without invalidating recovery.
+                Assert.IsTrue(Volatile.Read(ref targetReadAttempts) >= 3);
+                AssertTargetDecision(ClipboardDiagnosticDecision.EmptyViewRetry, 2);
+                Assert.IsTrue(capture.DiagnosticSnapshot.Events.Count(entry =>
+                    entry.SignalSequence == targetSequence && entry.Decision == ClipboardDiagnosticDecision.StorageItemsRead) >= 1);
+                AssertTargetDecision(ClipboardDiagnosticDecision.UnsupportedFormat, 0);
+                Assert.IsFalse(capture.DiagnosticSnapshot.Events.Any(entry =>
+                    entry.SignalSequence == targetSequence && entry.Decision == ClipboardDiagnosticDecision.ReadFailed &&
+                    entry.ReadAttempt is 1 or 2), "The two controlled empty views must never be counted as COM failures.");
+            }
+            else if (scenario == EmptyViewScenario.Superseded)
+            {
+                await WaitForAsync(() => capture.Status.CapturedItems > before.CapturedItems,
+                    "replacement after empty-view supersession", deadline);
+                Assert.AreEqual(before.CapturedItems + 1, capture.Status.CapturedItems);
+                Assert.AreEqual(1, await CountTextAsync(repository, replacement));
+                var rows = await repository.QueryAsync(new ItemQuery(Source: ItemSource.Clipboard, Limit: 100));
+                var oldPaths = new[] { filePath, secondPath, folderPath };
+                Assert.AreEqual(0, rows.Count(item => item.File is { OriginalPath: { } path } && oldPaths.Contains(path, StringComparer.OrdinalIgnoreCase)));
+                Assert.AreEqual(1, Volatile.Read(ref targetReadAttempts), "The old sequence must not be read after advancement.");
+                AssertTargetDecision(ClipboardDiagnosticDecision.EmptyViewRetry, 1);
+                AssertTargetDecision(ClipboardDiagnosticDecision.RetrySequenceAdvanced, 1);
+                AssertTargetDecision(ClipboardDiagnosticDecision.StorageItemsRead, 0);
+                AssertTargetDecision(ClipboardDiagnosticDecision.RepositoryCommitStarted, 0);
+            }
+            else
+            {
+                await WaitForAsync(() => capture.DiagnosticSnapshot.Events.Any(entry =>
+                        entry.SignalSequence == targetSequence && entry.Decision == ClipboardDiagnosticDecision.NoItemsCommitted),
+                    "terminal rejected view", deadline);
+                Assert.AreEqual(before.CapturedItems, capture.Status.CapturedItems);
+                Assert.AreEqual(scenario == EmptyViewScenario.RemainEmpty ? 3 : 1, Volatile.Read(ref targetReadAttempts));
+                AssertTargetDecision(ClipboardDiagnosticDecision.EmptyViewRetry, scenario == EmptyViewScenario.RemainEmpty ? 2 : 0);
+                AssertTargetDecision(ClipboardDiagnosticDecision.UnsupportedFormat, 1);
+                var unsupported = capture.DiagnosticSnapshot.Events.Single(entry =>
+                    entry.SignalSequence == targetSequence && entry.Decision == ClipboardDiagnosticDecision.UnsupportedFormat);
+                if (scenario == EmptyViewScenario.RemainEmpty)
+                    Assert.AreEqual(0, unsupported.FormatCount);
+                else
+                    Assert.IsTrue(unsupported.FormatCount > 0, "A genuinely advertised unsupported format must not be treated as empty.");
+                Assert.AreEqual(targetSequence, capture.DiagnosticCurrentState.LastProcessedSequence);
+                // A terminal rejected view still breaks the consecutive-text run.
+                // Re-copying the baseline must therefore create its second row.
+                await PublishEagerAsync(producer, baselineText);
+                await WaitForAsync(() => capture.Status.CapturedItems > before.CapturedItems,
+                    "same text after a rejected view");
+                Assert.AreEqual(2, await CountTextAsync(repository, baselineText));
+            }
+
+            if (scenario != EmptyViewScenario.RecoverMixedFiles)
+                Assert.AreEqual(before.FailedReads, capture.Status.FailedReads, "An empty view is not a failed COM read.");
+            Assert.AreEqual(ClipboardRecordingState.Recording, capture.Status.State);
+            Assert.IsFalse(capture.DiagnosticSnapshot.Events.Any(entry => entry.SignalSequence == targetSequence &&
+                entry.Decision == ClipboardDiagnosticDecision.CaptureFailed));
+            if (scenario != EmptyViewScenario.RecoverMixedFiles)
+                Assert.IsFalse(capture.DiagnosticSnapshot.Events.Any(entry => entry.SignalSequence == targetSequence &&
+                    entry.Decision == ClipboardDiagnosticDecision.ReadFailed));
+        }
+        catch (Exception exception)
+        {
+            originalFailure = exception;
+            TestContext.WriteLine(JsonSerializer.Serialize(capture.DiagnosticSnapshot, JsonOptions));
+            throw;
+        }
+        finally
+        {
+            // Stop capture first so cleanup Clear cannot start another controlled probe.
+            await CleanupAsync(() => capture.DisposeAsync().AsTask());
+            await CleanupAsync(() => consumer.Queue.EnqueueAsync(() => { notifications.Dispose(); return Task.CompletedTask; })
+                .WaitAsync(TimeSpan.FromSeconds(8)));
+            await CleanupAsync(() => producer.Queue.EnqueueAsync(() => { Clipboard.Clear(); return Task.CompletedTask; })
+                .WaitAsync(TimeSpan.FromSeconds(8)));
+            await CleanupAsync(() => producer.DisposeAsync().AsTask());
+            await CleanupAsync(() => consumer.DisposeAsync().AsTask());
+            GC.KeepAlive(publishedPackage);
+            GC.KeepAlive(syntheticPackages);
+            SqliteConnection.ClearAllPools();
+            await CleanupAsync(() => { if (Directory.Exists(paths.Root)) Directory.Delete(paths.Root, true); return Task.CompletedTask; });
+            foreach (var failure in cleanupFailures)
+                TestContext.WriteLine($"Empty-view fixture cleanup failed: {failure.GetType().Name} (HRESULT {failure.HResult}).");
+            if (originalFailure is null && cleanupFailures.Count > 0)
+                Assert.Fail("Empty-view fixture cleanup failed; see test output.");
+        }
+
+        DataPackageView EmptyView()
+        {
+            var package = new DataPackage();
+            syntheticPackages.Add(package);
+            return package.GetView();
+        }
+
+        void AssertTargetDecision(ClipboardDiagnosticDecision decision, int count) =>
+            Assert.AreEqual(count, capture.DiagnosticSnapshot.Events.Count(entry =>
+                entry.SignalSequence == targetSequence && entry.Decision == decision), decision.ToString());
+
+        async Task CleanupAsync(Func<Task> action)
+        {
+            try { await action(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException) { cleanupFailures.Add(exception); }
+        }
+
+        async Task PublishWithConsumerBarrierAsync(Action publish)
+        {
+            // Pause the independent consumer only while the producer publishes and
+            // records its final post-Flush sequence. Release before the eight-second
+            // capture budget. This prevents arming against an intermediate sequence.
+            using var release = new ManualResetEventSlim();
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var held = consumer.Queue.EnqueueAsync(() =>
+            {
+                entered.TrySetResult();
+                if (!release.Wait(TimeSpan.FromSeconds(8)))
+                    throw new TimeoutException("The producer did not release the controlled consumer barrier.");
+                return Task.CompletedTask;
+            });
+            try
+            {
+                await entered.Task.WaitAsync(TimeSpan.FromSeconds(8));
+                await producer.SetContentAsync(publish).WaitAsync(TimeSpan.FromSeconds(8));
+            }
+            finally
+            {
+                release.Set();
+                await held.WaitAsync(TimeSpan.FromSeconds(8));
+            }
+        }
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

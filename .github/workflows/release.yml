@@ -272,6 +272,56 @@ jobs:
           dotnet run --project scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -c Release --no-restore -- --contract-self-test
           if ($LASTEXITCODE -ne 0) { throw 'Production evidence harness contract tests failed.' }
 
+      - name: Download pinned models for native AI smoke
+        shell: pwsh
+        run: ./scripts/Get-AiLyricsSmokeModel.ps1
+
+      - name: Validate native offline inference and cancellation
+        shell: pwsh
+        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
+
+      - name: Capture final plain-Hy production evidence on both runtime variants
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
+        timeout-minutes: 30
+        shell: pwsh
+        env:
+          RUNTIME_ARTIFACT_ID: ${{ steps.ai-runtime-artifact.outputs.artifact-id }}
+          RUNTIME_ARCHIVE_SHA256: ${{ steps.ai-runtime-artifact.outputs.artifact-digest }}
+        run: |
+          if (-not $env:RUNTIME_ARTIFACT_ID -or -not $env:RUNTIME_ARCHIVE_SHA256) { throw 'The exact licensed runtime artifact must be retained before capture.' }
+          $runtime = 'artifacts/ai-runtime/win-x64'
+          $output = 'artifacts/plain-hy-production-evidence'
+          New-Item $output -ItemType Directory -Force | Out-Null
+          $producer = (Get-Content "$runtime/runtime-manifest.json" -Raw | ConvertFrom-Json).producer
+          $files = @(Get-ChildItem $runtime -File | ForEach-Object {
+            [ordered]@{ path=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=$_.Length }
+          })
+          $contract = [ordered]@{
+            schemaVersion=1; repository=$producer.repository; workflowPath=$producer.workflowPath
+            runId=$producer.runId; runAttempt=$producer.runAttempt; headCommit=$producer.headCommit; checkoutCommit=$producer.checkoutCommit
+            artifactId=[long]$env:RUNTIME_ARTIFACT_ID; artifactName="ai-candidate-runtime-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)"
+            archiveSha256=$env:RUNTIME_ARCHIVE_SHA256; files=$files
+          }
+          $contract | ConvertTo-Json -Depth 8 | Set-Content "$output/runtime-artifact.json" -Encoding utf8
+          node scripts/ai-runtime-publication.mjs verify-contract "$output/runtime-artifact.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Retained runtime artifact contract is invalid.' }
+          foreach ($variant in @('Baseline', 'Avx2')) {
+            $name = "production-plain-hy-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)-$($variant.ToLowerInvariant())"
+            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -ModelId hy-mt2-18-q8-plain-beta -Variant $variant -OutputDirectory "$output/$name"
+            $captureSucceeded = $?
+            $captureExitCode = $LASTEXITCODE
+            if (-not $captureSucceeded -or $captureExitCode -ne 0) { throw "Production $variant capture failed; later variants will not be started." }
+          }
+
+      - name: Preserve final production evidence including failures
+        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true))
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: plain-hy-production-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/plain-hy-production-evidence/**
+          if-no-files-found: warn
+          retention-days: 60
+
       - name: Install locked Windows App Runtime for native tests
         timeout-minutes: 10
         shell: pwsh
@@ -332,53 +382,6 @@ jobs:
       - name: Smoke test portable EXE (zh-CN resource context) without public network access
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
-
-      - name: Download pinned models for native AI smoke
-        shell: pwsh
-        run: ./scripts/Get-AiLyricsSmokeModel.ps1
-
-      - name: Validate native offline inference and cancellation
-        shell: pwsh
-        run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-build --no-restore --filter FullyQualifiedName~AiLyricsNativeRuntimeSmokeTests --logger "trx;LogFileName=ai-native-runtime.trx"
-
-      - name: Capture final plain-Hy production evidence on both runtime variants
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
-        timeout-minutes: 30
-        shell: pwsh
-        env:
-          RUNTIME_ARTIFACT_ID: ${{ steps.ai-runtime-artifact.outputs.artifact-id }}
-          RUNTIME_ARCHIVE_SHA256: ${{ steps.ai-runtime-artifact.outputs.artifact-digest }}
-        run: |
-          if (-not $env:RUNTIME_ARTIFACT_ID -or -not $env:RUNTIME_ARCHIVE_SHA256) { throw 'The exact licensed runtime artifact must be retained before capture.' }
-          $runtime = 'artifacts/ai-runtime/win-x64'
-          $output = 'artifacts/plain-hy-production-evidence'
-          New-Item $output -ItemType Directory -Force | Out-Null
-          $producer = (Get-Content "$runtime/runtime-manifest.json" -Raw | ConvertFrom-Json).producer
-          $files = @(Get-ChildItem $runtime -File | ForEach-Object {
-            [ordered]@{ path=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=$_.Length }
-          })
-          $contract = [ordered]@{
-            schemaVersion=1; repository=$producer.repository; workflowPath=$producer.workflowPath
-            runId=$producer.runId; runAttempt=$producer.runAttempt; headCommit=$producer.headCommit; checkoutCommit=$producer.checkoutCommit
-            artifactId=[long]$env:RUNTIME_ARTIFACT_ID; artifactName="ai-candidate-runtime-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)"
-            archiveSha256=$env:RUNTIME_ARCHIVE_SHA256; files=$files
-          }
-          $contract | ConvertTo-Json -Depth 8 | Set-Content "$output/runtime-artifact.json" -Encoding utf8
-          node scripts/ai-runtime-publication.mjs verify-contract "$output/runtime-artifact.json"
-          if ($LASTEXITCODE -ne 0) { throw 'Retained runtime artifact contract is invalid.' }
-          foreach ($variant in @('Baseline', 'Avx2')) {
-            $name = "production-plain-hy-$($env:GITHUB_RUN_ID)-$($env:GITHUB_RUN_ATTEMPT)-$($variant.ToLowerInvariant())"
-            ./scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1 -RuntimeDirectory $runtime -ModelPath $env:DROPSPACE_AI_SMOKE_MODEL -ModelId hy-mt2-18-q8-plain-beta -Variant $variant -OutputDirectory "$output/$name"
-          }
-
-      - name: Preserve final production evidence including failures
-        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/qa/final-ai-review-031') || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true))
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: plain-hy-production-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/plain-hy-production-evidence/**
-          if-no-files-found: warn
-          retention-days: 60
 
       - name: Inspect runtime bytes inside the final MSIX
         shell: pwsh

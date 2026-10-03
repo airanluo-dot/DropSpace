@@ -52,6 +52,21 @@ public sealed class ClipboardDiagnosticsTests
     }
 
     [TestMethod]
+    public void EmptyViewDiagnosticsContainOnlyBoundedFormatCount()
+    {
+        var trace = new ClipboardDiagnosticTrace();
+        trace.Enable();
+        trace.Record(ClipboardDiagnosticDecision.EmptyViewRetry, State(), signalSequence: 12, formatCount: 0);
+        trace.Record(ClipboardDiagnosticDecision.UnsupportedFormat, State(), signalSequence: 13, formatCount: 1);
+        var snapshot = trace.Snapshot(State());
+        Assert.AreEqual(0, snapshot.Events[0].FormatCount);
+        Assert.AreEqual(1, snapshot.Events[1].FormatCount);
+        Assert.AreEqual(ClipboardDiagnosticFailure.None, snapshot.Events[0].Failure);
+        Assert.AreEqual(0L, snapshot.Current.Counters.FailedReads);
+        Assert.IsFalse(snapshot.Failed);
+    }
+
+    [TestMethod]
     public void DiagnosticWriteFailureDoesNotReplaceTheSmokeFailure()
     {
         var path = Path.Combine(Path.GetTempPath(), "DropSpace-diagnostics-" + Guid.NewGuid().ToString("N"));

@@ -23,7 +23,7 @@ internal enum ClipboardDiagnosticDecision
     SnapshotUnavailable, StaleSequence, SelfWriteSuppressed, CommitGateWaiting,
     CommitGateAcquired, RepositoryCommitStarted, RepositoryCommitCompleted,
     ConsecutiveSuppressed, NoItemsCommitted, ItemsCaptured, CaptureFailed,
-    WorkerStarted, WorkerCancelled, WorkerFailed, WorkerCompleted,
+    WorkerStarted, WorkerCancelled, WorkerFailed, WorkerCompleted, EmptyViewRetry,
 }
 
 internal enum ClipboardDiagnosticFailure { None, Cancelled, Timeout, InvalidOperation, Win32, Com, Access, Io, Other }
@@ -43,7 +43,7 @@ internal sealed record ClipboardDiagnosticState(
 internal sealed record ClipboardDiagnosticEvent(
     long Index, ClipboardSmokeProfile Profile, int Cycle, ClipboardSmokeStage Stage, ClipboardDiagnosticDecision Decision,
     uint? SignalSequence, int? SignalAttempt, int? ReadAttempt, ClipboardDiagnosticFailure Failure,
-    int? HResult, ClipboardDiagnosticState State);
+    int? HResult, ClipboardDiagnosticState State, int? FormatCount = null);
 
 internal sealed record ClipboardDiagnosticStep(
     ClipboardSmokeProfile Profile, int Cycle, ClipboardSmokeStage Stage, ClipboardDiagnosticState Started, ClipboardDiagnosticState Latest);
@@ -107,15 +107,15 @@ internal sealed class ClipboardDiagnosticTrace
 
     internal void Record(ClipboardDiagnosticDecision decision, ClipboardDiagnosticState state,
         uint? signalSequence = null, int? signalAttempt = null, int? readAttempt = null,
-        ClipboardDiagnosticFailure failure = ClipboardDiagnosticFailure.None, int? hResult = null)
+        ClipboardDiagnosticFailure failure = ClipboardDiagnosticFailure.None, int? hResult = null, int? formatCount = null)
     {
-        lock (_gate) RecordCore(decision, state, signalSequence, signalAttempt, readAttempt, failure, hResult);
+        lock (_gate) RecordCore(decision, state, signalSequence, signalAttempt, readAttempt, failure, hResult, formatCount);
     }
 
     private void RecordCore(ClipboardDiagnosticDecision decision, ClipboardDiagnosticState state,
-        uint? signalSequence, int? signalAttempt, int? readAttempt, ClipboardDiagnosticFailure failure, int? hResult)
+        uint? signalSequence, int? signalAttempt, int? readAttempt, ClipboardDiagnosticFailure failure, int? hResult, int? formatCount = null)
     {
-        var entry = new ClipboardDiagnosticEvent(++_nextIndex, _profile, _cycle, _stage, decision, signalSequence, signalAttempt, readAttempt, failure, hResult, state);
+        var entry = new ClipboardDiagnosticEvent(++_nextIndex, _profile, _cycle, _stage, decision, signalSequence, signalAttempt, readAttempt, failure, hResult, state, formatCount);
         if (_events.Count == EventCapacity) { _events.Dequeue(); _discarded++; }
         _events.Enqueue(entry);
         if (_steps.Count > 0) _steps[^1] = _steps[^1] with { Latest = state };
