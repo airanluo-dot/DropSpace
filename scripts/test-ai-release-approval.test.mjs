@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, fixturePath, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, publicationDecision } from './test-ai-release-approval.mjs';
+import { approvalPath, fixturePath, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, experimentalBetaVersion, publicationDecision } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -181,7 +181,7 @@ function experimentalExample(t) {
       { id: 'synthetic-timeout', kind: 'latency', summary: 'SYNTHETIC TEST ONLY: historical 300-second timeout; 600 seconds unverified.' },
       { id: 'synthetic-unverified', kind: 'quality', summary: 'SYNTHETIC TEST ONLY: both models lack complete semantic approval.' },
     ],
-    userAcceptance: { releaseVersion: 'v0.3.1-beta.1', acceptsIncompleteModelValidation: true,
+    userAcceptance: { releaseVersion: experimentalBetaVersion, acceptsIncompleteModelValidation: true,
       reference: 'SYNTHETIC TEST ONLY; not actual owner acceptance', acceptedAt: '2026-09-30T00:00:00Z' },
     models: x.scope.shippingModels.map(model => ({ ...model, verdict: 'unverified', summary: 'SYNTHETIC TEST ONLY: incomplete model validation.',
       validation: ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => ({
@@ -212,6 +212,7 @@ function experimentalExample(t) {
 
 test('owner-accepted Beta preserves timeout and unexecuted evidence without semantic approval', t => {
   const x = experimentalExample(t); x.validate();
+  assert.equal(x.scope.releaseVersion, 'v0.3.1-beta.2');
   assert.deepEqual(publicationDecision(x.root, { now }), { authorized: true, semanticApproved: false, mode: experimentalBetaStatus });
   assert.equal(x.configuration.executionLimits.wholeSongSeconds, 300);
   assert.equal(x.output.complete, false);
@@ -220,11 +221,12 @@ test('owner-accepted Beta preserves timeout and unexecuted evidence without sema
 });
 
 for (const [label, mutate, expected] of [
-  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.2'); x.scope.releaseVersion = 'v0.3.1-beta.2'; }, /only for v0.3.1-beta.1/],
+  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.3'); x.scope.releaseVersion = 'v0.3.1-beta.3'; }, /only for v0.3.1-beta.2/],
+  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.2/],
   ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
   ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],
   ['no incomplete-validation acceptance', x => { x.report.userAcceptance.acceptsIncompleteModelValidation = false; }, /Explicit acceptance/],
-  ['wrong accepted release', x => { x.report.userAcceptance.releaseVersion = 'v0.3.1-beta.2'; }, /exact Beta/],
+  ['wrong accepted release', x => { x.report.userAcceptance.releaseVersion = 'v0.3.1-beta.1'; }, /exact Beta/],
   ['semantic pass claim', x => { x.report.semanticApproved = true; }, /must not claim/],
   ['approved model claim', x => { x.report.models[1].verdict = 'approved'; }, /unverified model/],
   ['missing model', x => { x.report.models.pop(); }, /Every shipping model/],

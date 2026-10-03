@@ -1,26 +1,23 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.1
+## Release target: v0.3.1-beta.2
 
-Prepare optional, off-by-default AI lyrics (Beta) using the single selectable
-Hy-MT2 1.8B Q8_0 plaintext model (about 1.9 GB). Preserve explicit model consent,
-provider-translation priority, local inference and original lyric timings/text.
-First-generation latency can be several minutes and meaning errors remain a disclosed
-Beta limitation, not a claim of semantic accuracy.
+Prepare the media reconnect and progressive lyric-rendering fixes. Integrate the final
+language and glow patches only after the parent task supplies them. Verify the requested
+glow appearance and real-App behavior, and resolve all release-blocking bugs before
+executing the owner's conditional publication instruction.
 
-Complete persistent caching for original lyrics, provider translations and AI results
-under one default 1 GiB budget, adjustable from 100 MiB to 5 GiB and excluding models.
-Keep manual refresh in Music; scope next-line/layout changes to the expanded island.
-Fullscreen visibility is an off-by-default override with no exclusive-game or secure
-desktop guarantee. Remove the redundant drag compatibility card without changing the
-actual drag behavior or claiming universal source-app compatibility.
+Retain optional/off-by-default AI lyrics, the pinned 1.8B and optional 7B Q8 models,
+provider priority, original lyric timings and the shared cache. Models remain unverified;
+quality/latency limitations and the historical failed/not-run captures stay unchanged.
+No final Beta.2 source scope, acceptance report or model-validation pass is prepared yet.
 
 The latest-code review, known-bug remediation and exact-commit Windows build/package
 gates must complete before publication. Official Pages/API and the existing GPT static
 showcase synchronize only with the final App release, preserving the approved appearance.
 This target does not assert that a release is already published. See the
-[current release evidence](.github/release-notes/v0.3.1-beta.1.md) and
-[publication checklist](docs/release/v0.3.1-beta.1-checklist.md).
+[current release draft](.github/release-notes/v0.3.1-beta.2.md) and
+[publication checklist](docs/release/v0.3.1-beta.2-checklist.md).
 
 ## Delivered slice: v0.3.0-beta.32
 
@@ -109,7 +106,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.1
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.2
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -773,9 +770,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.1` (Beta 1). All new prereleases use
+The current Beta target is `v0.3.1-beta.2` (Beta 2). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.0-beta.32 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.1 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
