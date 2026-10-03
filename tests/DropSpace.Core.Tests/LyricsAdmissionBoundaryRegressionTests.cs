@@ -15,7 +15,7 @@ public sealed class LyricsAdmissionBoundaryRegressionTests
         if (accepted) source = source with { Match = Match() };
         Assert.IsNull(LyricsLanguagePolicy.Identify(source.Lines[1].Text).Language);
         Assert.IsFalse(LyricsLanguagePolicy.SourceEvidence(source)[1].IsConfident);
-        CollectionAssert.AreEqual(new[] { 1, 3 }, LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
+        CollectionAssert.AreEqual(new[] { 3 }, LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
     }
 
     [TestMethod]
@@ -23,11 +23,12 @@ public sealed class LyricsAdmissionBoundaryRegressionTests
     [DataRow("文学的表現")]
     [DataRow("目的地到着")]
     [DataRow("山谷的石门")]
-    public void OpaqueLongHanVetoesWholeSongPromotionWithoutAWordBlacklist(string opaque)
+    public void OpaqueHanAndShortHanAbstainWithoutWholeSongPromotion(string opaque)
     {
         var source = Document("我们带着蓝色雨伞", "我的小船停在岸边", opaque, "晴") with { Match = Match() };
-        CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 2);
-        CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 3);
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
+        Assert.IsNull(LyricsLanguagePolicy.SourceEvidence(source)[2].Language);
+        Assert.IsNull(LyricsLanguagePolicy.SourceEvidence(source)[3].Language);
     }
 
     [TestMethod]
@@ -63,7 +64,8 @@ public sealed class LyricsAdmissionBoundaryRegressionTests
             source.Lines[1] with { SourceLanguage = "zh-CN" },
             source.Lines[2] with { Start = separated ? TimeSpan.FromSeconds(90) : source.Lines[2].Start,
                 End = separated ? TimeSpan.FromSeconds(93) : source.Lines[2].End }] };
-        CollectionAssert.AreEqual(new[] { 2 }, LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
+        Assert.IsNull(LyricsLanguagePolicy.SourceEvidence(source)[2].Language);
         Assert.AreEqual(LyricsLanguageEvidenceKind.Explicit, LyricsLanguagePolicy.SourceEvidence(source)[0].Kind);
         Assert.AreEqual("zh-CN", source.Lines[1].SourceLanguage);
     }

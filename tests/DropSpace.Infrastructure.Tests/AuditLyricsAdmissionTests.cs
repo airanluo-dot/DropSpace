@@ -37,7 +37,7 @@ public sealed class AuditLyricsAdmissionTests
     [TestMethod]
     [DataRow("作词：某人\nI love you\n作曲：另一人\n君の声が聞こえる", "zh-CN", "I love you", "君の声が聞こえる")]
     [DataRow("I love you\n作曲：另一人\nkimi no na wa", "en-US", "kimi no na wa", null)]
-    [DataRow("作词：某人\n我的世界充满阳光\nI need you\n作曲：另一人\n愛", "zh-CN", "I need you", "愛")]
+    [DataRow("作词：某人\n我的世界充满阳光\nI need you\n作曲：另一人\n愛", "zh-CN", "I need you", null)]
     public async Task UntimedPhysicalSegmentsUseFixedPromptsAndOneStableDisplayIdAcrossProgressCacheAndFinal(
         string text, string target, string first, string? second)
     {
@@ -117,7 +117,7 @@ public sealed class AuditLyricsAdmissionTests
     {
         using var fixture = new Fixture();
         var source = LyricsParser.Parse("作词：某人\nkimi no na wa\n作曲：另一人\n愛", LyricsProviderKind.NetEase);
-        var segments = new[] { "kimi no na wa", "愛" };
+        var segments = new[] { "kimi no na wa" };
         var inferenceCalls = 0;
         var progressCalls = 0;
         var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true, (update, _) =>
@@ -134,7 +134,7 @@ public sealed class AuditLyricsAdmissionTests
                 Assert.AreEqual(PlainHyLyricsProtocol.BuildPrompt(segment, "zh-CN"), prompt);
                 return Task.FromResult(surroundingWhitespace ? " " + segment + " " : segment);
             }, default, progress);
-        Assert.AreEqual(2, inferenceCalls);
+        Assert.AreEqual(1, inferenceCalls);
         Assert.AreEqual(1, progressCalls);
         Assert.AreEqual(LyricsTranslationOutcome.NoUsefulTranslation, result.Outcome);
         CollectionAssert.AreEqual(source.Lines.ToArray(), result.Document.Lines.ToArray());

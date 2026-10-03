@@ -104,7 +104,7 @@ public sealed class ChineseLyricsTranslationTests
     }
 
     [TestMethod]
-    public async Task JapaneseHanRemainsAdmittedBesideChineseAndRejectsVersion6PartialCoverage()
+    public async Task UnknownHanAbstainsBesideChineseWhileKanaRemainsAdmitted()
     {
         using var fixture = new Fixture();
         string[] text = ["我会把木箱搬给你", "圧倒的存在", "你们守在小桥旁", "川の水が揺れる"];
@@ -117,11 +117,11 @@ public sealed class ChineseLyricsTranslationTests
         var prompts = new List<string>();
         var result = await fixture.Coordinator.TranslateAsync(Query, source, "zh-CN", Identity, fixture.Cache.Generation,
             (prompt, _) => { prompts.Add(prompt); return Task.FromResult("合成外语译文" + prompts.Count); }, default);
-        CollectionAssert.AreEqual(new[] { PlainHyLyricsProtocol.BuildPrompt(text[1], "zh-CN"),
-            PlainHyLyricsProtocol.BuildPrompt(text[3], "zh-CN") }, prompts);
+        CollectionAssert.AreEqual(new[] { PlainHyLyricsProtocol.BuildPrompt(text[3], "zh-CN") }, prompts);
         Assert.AreEqual(source.Lines[0], result.Document.Lines[0]);
         Assert.AreEqual(source.Lines[2], result.Document.Lines[2]);
-        foreach (var id in new[] { 1, 3 }) Assert.AreEqual(LyricsTranslationOrigin.LocalAi, result.Document.Lines[id].TranslationOrigin);
+        Assert.AreEqual(source.Lines[1], result.Document.Lines[1]);
+        Assert.AreEqual(LyricsTranslationOrigin.LocalAi, result.Document.Lines[3].TranslationOrigin);
         var cached = await fixture.Coordinator.TryGetCachedAsync(Query, source, "zh-CN", Identity, default);
         Assert.IsNotNull(cached);
         CollectionAssert.AreEqual(result.Document.Lines.ToArray(), cached.Document.Lines.ToArray());
@@ -152,10 +152,9 @@ public sealed class ChineseLyricsTranslationTests
         var prompts = new List<string>();
         var result = await fixture.Coordinator.TranslateAsync(Query, source, "zh-CN", Identity, fixture.Cache.Generation,
             (prompt, _) => { prompts.Add(prompt); return Task.FromResult("合成外语译文" + prompts.Count); }, default);
-        CollectionAssert.AreEqual(new[] { PlainHyLyricsProtocol.BuildPrompt("圧倒的存在", "zh-CN"),
-            PlainHyLyricsProtocol.BuildPrompt("川の水が揺れる", "zh-CN") }, prompts);
+        CollectionAssert.AreEqual(new[] { PlainHyLyricsProtocol.BuildPrompt("川の水が揺れる", "zh-CN") }, prompts);
         Assert.AreEqual(source.Lines[0].Text, result.Document.Lines[0].Text);
-        Assert.AreEqual("合成外语译文1 合成外语译文2", result.Document.Lines[0].Secondary);
+        Assert.AreEqual("合成外语译文1", result.Document.Lines[0].Secondary);
         var provider = source with { Lines = [source.Lines[0] with { Secondary = "提供方完整译文", TranslationOrigin = LyricsTranslationOrigin.Provider }] };
         Assert.AreSame(provider, LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(provider, "zh-CN"));
     }
@@ -173,6 +172,85 @@ public sealed class ChineseLyricsTranslationTests
             (prompt, _) => { prompts.Add(prompt); return Task.FromResult("合成外语译文" + prompts.Count); }, default);
         CollectionAssert.AreEqual(text.Select(part => PlainHyLyricsProtocol.BuildPrompt(part, "zh-CN")).ToArray(), prompts);
         for (var id = 0; id < source.Lines.Count; id++) Assert.AreEqual(text[id], result.Document.Lines[id].Text);
+    }
+
+    [TestMethod]
+    [DataRow("lexical-context-eligibility-v5")]
+    [DataRow("chinese-document-eligibility-v6")]
+    [DataRow("chinese-document-eligibility-v7")]
+    public async Task AbstainingIdsRejectOldAndInjectedCurrentCacheAcrossProgressAndFinal(string previousPolicy)
+    {
+        using var fixture = new Fixture();
+        var source = LyricsParser.Parse("[00:01]山谷的石门\n[00:04]晴\n[00:07]I will wait for you", LyricsProviderKind.NetEase);
+        var previous = OldKey(source, [0, 1, 2], previousPolicy);
+        const string poison = "[{\"id\":0,\"text\":\"旧长行改写\"},{\"id\":1,\"text\":\"旧短行改写\"},{\"id\":2,\"text\":\"旧译文\"}]";
+        await fixture.Cache.WriteAsync(previous, poison, default);
+        var current = PlainHyLyricsProtocol.CacheKey(Query, source, "zh-CN", Identity);
+        Assert.AreNotEqual(previous, current);
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(Query, source, "zh-CN", Identity, default));
+        await fixture.Cache.WriteAsync(current, poison, default);
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(Query, source, "zh-CN", Identity, default));
+        var calls = 0;
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true, (update, _) =>
+        {
+            Assert.AreEqual(2, update.LineId);
+            Assert.AreEqual(1, update.TotalLineCount);
+            Assert.IsNull(update.Document.Lines[0].Secondary);
+            Assert.IsNull(update.Document.Lines[1].Secondary);
+            return Task.CompletedTask;
+        });
+        var result = await fixture.Coordinator.TranslateAsync(Query, source, "zh-CN", Identity, fixture.Cache.Generation,
+            (prompt, _) => { calls++; Assert.AreEqual(PlainHyLyricsProtocol.BuildPrompt(source.Lines[2].Text, "zh-CN"), prompt);
+                return Task.FromResult("合成外语译文"); }, default, progress);
+        Assert.AreEqual(1, calls);
+        Assert.AreEqual(source.Lines[0], result.Document.Lines[0]);
+        Assert.AreEqual(source.Lines[1], result.Document.Lines[1]);
+        using var saved = JsonDocument.Parse((await fixture.Cache.ReadAsync(current, default))!);
+        Assert.AreEqual(1, saved.RootElement.GetArrayLength());
+        Assert.AreEqual(2, saved.RootElement[0].GetProperty("id").GetInt32());
+        Assert.AreEqual(poison, await fixture.Cache.ReadAsync(previous, default));
+    }
+
+    [TestMethod]
+    public async Task OldMixedAiIsClearedAndFreshForeignProjectionRemainsReusableWithBoundProvenance()
+    {
+        using var fixture = new Fixture();
+        var original = LyricsParser.Parse("山谷的石门\n晴\nI will wait for you\n川の水が揺れる", LyricsProviderKind.NetEase);
+        var old = original with { Lines = [original.Lines[0] with { Secondary = "旧中文改写混合译文",
+            TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "zh-CN" }] };
+        var prompts = new List<string>();
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true, (update, _) =>
+        {
+            Assert.AreEqual("合成译文1 合成译文2", update.Document.Lines[0].Secondary);
+            Assert.IsNotNull(update.Document.Lines[0].LocalAiAdmissionKey);
+            Assert.AreSame(update.Document, LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(update.Document, "zh-CN"));
+            return Task.CompletedTask;
+        });
+        var result = await fixture.Coordinator.TranslateAsync(Query, old, "zh-CN", Identity, fixture.Cache.Generation,
+            (prompt, _) => { prompts.Add(prompt); return Task.FromResult("合成译文" + prompts.Count); }, default, progress);
+        CollectionAssert.AreEqual(new[] { "I will wait for you", "川の水が揺れる" }
+            .Select(part => PlainHyLyricsProtocol.BuildPrompt(part, "zh-CN")).ToArray(), prompts);
+        Assert.AreEqual(original.Lines[0].Text, result.Document.Lines[0].Text);
+        Assert.AreSame(original.Lines[0].Words, result.Document.Lines[0].Words);
+        Assert.AreSame(result.Document, LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(result.Document, "zh-CN"));
+        var cached = await fixture.Coordinator.TryGetCachedAsync(Query, original, "zh-CN", Identity, default);
+        Assert.IsNotNull(cached);
+        CollectionAssert.AreEqual(result.Document.Lines.ToArray(), cached.Document.Lines.ToArray());
+        var changed = result.Document with { Lines = [result.Document.Lines[0] with { Text = "山谷的石门\n晴\nDifferent foreign source" }] };
+        Assert.IsNull(LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(changed, "zh-CN").Lines[0].Secondary);
+        var wrongTarget = result.Document with { Lines = [result.Document.Lines[0] with { TranslationLanguage = "zh-TW" }] };
+        Assert.IsNull(LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(wrongTarget, "zh-TW").Lines[0].Secondary);
+        var oldVersion = result.Document with { Lines = [result.Document.Lines[0] with { LocalAiAdmissionKey = "v7-unbound" }] };
+        Assert.IsNull(LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(oldVersion, "zh-CN").Lines[0].Secondary);
+        var reused = await fixture.Coordinator.TranslateAsync(Query, result.Document, "zh-CN", Identity, fixture.Cache.Generation,
+            (_, _) => throw new AssertFailedException("A complete current admitted projection must remain reusable without inference."), default);
+        CollectionAssert.AreEqual(result.Document.Lines.ToArray(), reused.Document.Lines.ToArray());
+        Assert.AreEqual(LyricsTranslationOutcome.Translated, reused.Outcome);
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(Query, result.Document, "zh-CN",
+            PlainHyLyricsProtocol.InferenceIdentity(new string('b', 64)), default), "Reuse must retain the runtime/model identity fence.");
+        await fixture.Cache.ClearAsync(default);
+        Assert.IsNull(await fixture.Coordinator.TryGetCachedAsync(Query, result.Document, "zh-CN", Identity, default),
+            "Provenance alone must not bypass a cleared cache generation.");
     }
 
     private static string OldKey(LyricsDocument source, int[] ids, string policy = "lexical-context-eligibility-v5") => Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new

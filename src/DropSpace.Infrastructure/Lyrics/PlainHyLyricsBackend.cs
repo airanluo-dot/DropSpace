@@ -164,7 +164,14 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             { Text = string.Join(" ", segments[id]) }).ToArray() };
         if (!LyricsTranslationOutput.TryApply(json, projected, indices, targetLanguage, out var mapped))
         { result = source; return false; }
-        result = mapped with { Lines = mapped.Lines.Select((line, id) => line with { Text = source.Lines[id].Text }).ToArray() };
+        result = mapped with { Lines = mapped.Lines.Select((line, id) => line with
+        {
+            Text = source.Lines[id].Text,
+            LocalAiAdmissionKey = indices.Contains(id)
+                ? line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+                    ? LyricsLanguagePolicy.LocalAiAdmissionKey(source.Lines[id], targetLanguage, segments[id]) : null
+                : line.LocalAiAdmissionKey,
+        }).ToArray() };
         return true;
     }
 

@@ -20,7 +20,7 @@ public sealed class ChineseLyricsAdmissionTests
                 "Whole-song admission must not change bounded source-language evidence.");
         var isolated = Document("晴");
         Assert.IsFalse(LyricsLanguagePolicy.Identify("晴").IsConfident);
-        CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(isolated, "zh-CN"));
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(isolated, "zh-CN"));
         Assert.IsNotEmpty(LyricsLanguagePolicy.EligibleIndices(source, "en-US"));
     }
 
@@ -32,7 +32,7 @@ public sealed class ChineseLyricsAdmissionTests
         var source = credits ? Document("作词：我们带着蓝色雨伞", "作曲：我的小船停在岸边", "晴")
             : Document("我们带着蓝色雨伞", "我们带着蓝色雨伞", "晴");
         source = source with { Match = new("合成曲", "甲歌手", "合成专辑", 40, 12) };
-        CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 2);
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
     }
 
     [TestMethod]
@@ -40,9 +40,9 @@ public sealed class ChineseLyricsAdmissionTests
     {
         var source = ChineseSource(true);
         source = source with { Lines = source.Lines.Skip(4).ToArray(), Match = null };
-        CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 3);
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"));
         var block = LyricsParser.Parse("我们带着蓝色雨伞\n\n山谷的纸船\n我的小船停在岸边", LyricsProviderKind.NetEase);
-        CollectionAssert.AreEqual(new[] { "山谷的纸船" }, LyricsLanguagePolicy.EligibleSegments(block.Lines[0], "zh-CN"));
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleSegments(block.Lines[0], "zh-CN"));
     }
 
     [TestMethod]
@@ -57,7 +57,7 @@ public sealed class ChineseLyricsAdmissionTests
         source = source with { Lines = [.. source.Lines, Line(foreign, 8)] };
         var eligible = LyricsLanguagePolicy.EligibleIndices(source, "zh-CN");
         CollectionAssert.Contains(eligible, 8);
-        CollectionAssert.Contains(eligible, 7, "Unknown Han cannot inherit a Chinese majority in a mixed song.");
+        CollectionAssert.DoesNotContain(eligible, 7, "Unknown Han abstains without inheriting a Chinese majority.");
         CollectionAssert.DoesNotContain(eligible, 0, "Matched artist/title metadata is not a lyric.");
         CollectionAssert.DoesNotContain(eligible, 3, "A standalone performer label is not a lyric.");
         var untimed = LyricsParser.Parse(string.Join("\n", source.Lines.Select(line => line.Text)), LyricsProviderKind.NetEase)
@@ -73,7 +73,7 @@ public sealed class ChineseLyricsAdmissionTests
     public void SharedHanStaysUnknownAndExplicitJapaneseNeverInheritsChinese(string text)
     {
         Assert.IsFalse(LyricsLanguagePolicy.Identify(text).IsConfident);
-        CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(Document(text), "zh-CN"));
+        Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(Document(text), "zh-CN"));
         var source = ChineseSource(true);
         source = source with { Lines = [.. source.Lines, Line(text, 8) with { SourceLanguage = "ja" }] };
         CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 8);
@@ -84,9 +84,11 @@ public sealed class ChineseLyricsAdmissionTests
     [TestMethod]
     [DataRow("我真的搬不动木箱")]
     [DataRow("还是不适应你离开")]
-    public void ChineseClauseGrammarBypassesWithoutBorrowingDocumentMetadata(string text)
+    public void SharedClauseGrammarAbstainsWithoutClaimingChineseIdentity(string text)
     {
-        Assert.IsTrue(LyricsLanguagePolicy.Identify(text).IsConfident);
+        var evidence = LyricsLanguagePolicy.Identify(text);
+        Assert.IsFalse(evidence.IsConfident);
+        Assert.AreEqual(LyricsTranslationAdmission.Abstain, LyricsLanguagePolicy.GetAdmission(text, "zh-CN", evidence));
         Assert.IsEmpty(LyricsLanguagePolicy.EligibleIndices(Document(text), "zh-CN"));
         CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(Document(text), "en-US"));
     }
@@ -97,7 +99,7 @@ public sealed class ChineseLyricsAdmissionTests
         var source = ChineseSource(true);
         source = source with { Lines = [source.Lines[0] with { Text = "I will watch the boats with you" }, .. source.Lines.Skip(1)] };
         CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 0);
-        CollectionAssert.Contains(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 7);
+        CollectionAssert.DoesNotContain(LyricsLanguagePolicy.EligibleIndices(source, "zh-CN"), 7);
     }
 
     private static LyricsDocument ChineseSource(bool timed)
