@@ -69,6 +69,32 @@ public sealed class AiLyricsAdmissionRegressionTests
     }
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task ChineseSongAndStaleAiRowsBypassBackendBeforeCacheOrPackageAccess(bool timed)
+    {
+        using var fixture = new Fixture();
+        string[] text = ["SingerA、SingerB - 合成曲 (with SingerB)", "作词：WriterX", "作曲：ComposerY/ComposerZ",
+            "SingerA:", "我们带着蓝色雨伞", "山谷的纸船", "我的小船停在岸边", "晴"];
+        var source = timed ? new LyricsDocument(text.Select((part, id) => new LyricsLine(TimeSpan.FromSeconds(id * 3),
+            TimeSpan.FromSeconds(id * 3 + 3), part, null, [])).ToArray(), LyricsProviderKind.NetEase)
+            : LyricsParser.Parse(string.Join("\n", text), LyricsProviderKind.NetEase);
+        source = source with { Match = new("合成曲 (with SingerB)", "SingerA、SingerB", "合成专辑", 40, 12) };
+        var poisoned = source with { Lines = source.Lines.Select(line => line with
+            { Secondary = "合成中文改写，", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "zh-CN" }).ToArray() };
+        var result = await fixture.Service.TranslateIfAvailableAsync(Query, poisoned, Enabled, "zh-CN", default);
+        for (var id = 0; id < source.Lines.Count; id++)
+        {
+            Assert.AreEqual(source.Lines[id].Text, result.Lines[id].Text);
+            Assert.AreEqual(source.Lines[id].Start, result.Lines[id].Start);
+            Assert.AreEqual(source.Lines[id].End, result.Lines[id].End);
+            Assert.AreSame(source.Lines[id].Words, result.Lines[id].Words);
+            Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(result.Lines[id], "zh-CN", true));
+        }
+        fixture.AssertNoAiCalls();
+    }
+
+    [TestMethod]
     [DataRow("[00:01]kimi no na wa", "zh-CN")]
     [DataRow("[00:01]愛", "zh-CN")]
     [DataRow("[00:01]君の声が聞こえる", "zh-CN")]
@@ -93,6 +119,47 @@ public sealed class AiLyricsAdmissionRegressionTests
             """, LyricsProviderKind.Amll);
         var result = await fixture.Service.TranslateIfAvailableAsync(Query, source, Enabled, "en", default);
         Assert.AreEqual("World", result.Lines.Single().Secondary);
+        fixture.AssertNoAiCalls();
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task AmbiguousHanPublicationIsCleanAndReadyWithoutCacheResolverOrProgress(bool accepted)
+    {
+        using var fixture = new Fixture();
+        var source = LyricsParser.Parse("[00:01]山谷的石门\n[00:04]晴\n[00:07]我不関焉", LyricsProviderKind.NetEase);
+        if (accepted) source = source with { Match = new("合成曲", "SingerA", "合成专辑", 40, 12) };
+        source = source with { Lines = source.Lines.Select(line => line with { Secondary = "旧中文改写",
+            TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "zh-CN" }).ToArray() };
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true,
+            (_, _) => throw new AssertFailedException("Abstention must not publish AI progress."));
+        var publication = await fixture.Service.TranslateForPublicationAsync(Query, source, Enabled, "zh-CN", default, progress);
+        Assert.IsTrue(publication.IsCurrent);
+        Assert.AreEqual(AiLyricsTranslationState.Ready, fixture.Service.TranslationState);
+        for (var id = 0; id < source.Lines.Count; id++)
+        {
+            Assert.IsNull(LyricsDisplayPolicy.SecondaryPresentation(publication.Document.Lines[id], "zh-CN", true));
+            Assert.AreEqual(source.Lines[id].Text, publication.Document.Lines[id].Text);
+            Assert.AreSame(source.Lines[id].Words, publication.Document.Lines[id].Words);
+        }
+        fixture.AssertNoAiCalls();
+    }
+
+    [TestMethod]
+    public async Task DisabledAiPublicationStillDiscardsUnboundMixedSecondaryAndKeepsProvider()
+    {
+        using var fixture = new Fixture();
+        var source = LyricsParser.Parse("[00:01]山谷的石门\n[00:04]I will wait for you", LyricsProviderKind.NetEase);
+        source = source with { Lines = [source.Lines[0] with { Text = "山谷的石门\nI will wait for you",
+            Secondary = "旧中文改写混合译文", TranslationOrigin = LyricsTranslationOrigin.LocalAi, TranslationLanguage = "zh-CN" },
+            source.Lines[1] with { Secondary = "提供方原译文", TranslationOrigin = LyricsTranslationOrigin.Provider,
+                TranslationLanguage = "zh-CN", TranslationLanguageIsExplicit = true }] };
+        var publication = await fixture.Service.TranslateForPublicationAsync(Query, source,
+            Enabled with { AiTranslationEnabled = false }, "zh-CN", default);
+        Assert.IsNull(publication.Document.Lines[0].Secondary);
+        Assert.AreEqual(source.Lines[0].Text, publication.Document.Lines[0].Text);
+        Assert.AreSame(source.Lines[1], publication.Document.Lines[1]);
         fixture.AssertNoAiCalls();
     }
 

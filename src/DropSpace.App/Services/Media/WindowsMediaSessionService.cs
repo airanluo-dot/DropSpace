@@ -212,6 +212,13 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         catch (OperationCanceledException) when (token.IsCancellationRequested) { firstRefresh?.TrySetCanceled(token); }
         catch (Exception exception)
         {
+            // Unexpected faults remain visible to restart readiness and diagnostics, but
+            // a stopped consumer must never leave the previous song looking current.
+            IsAvailable = false;
+            AvailabilityReason = exception.GetType().Name;
+            InvalidateMetadata();
+            Publish(MediaSessionSnapshot.Empty);
+            logger.LogWarning(exception, "SMTC refresh consumer stopped unexpectedly.");
             firstRefresh?.TrySetException(exception);
             throw;
         }
@@ -587,13 +594,13 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
 
     private static async Task<NativeTrack> ReadNativeTrackAsync(GlobalSystemMediaTransportControlsSession session, CancellationToken token)
     {
-        var properties = await AwaitNativeAsync(session.TryGetMediaPropertiesAsync(), token).ConfigureAwait(false);
+        var properties = RequireNativeValue(await AwaitNativeAsync(session.TryGetMediaPropertiesAsync(), token).ConfigureAwait(false), "media properties");
         token.ThrowIfCancellationRequested();
-        var playback = session.GetPlaybackInfo();
+        var playback = RequireNativeValue(session.GetPlaybackInfo(), "playback information");
         token.ThrowIfCancellationRequested();
-        var timeline = session.GetTimelineProperties();
+        var timeline = RequireNativeValue(session.GetTimelineProperties(), "timeline");
         token.ThrowIfCancellationRequested();
-        var controls = playback.Controls;
+        var controls = RequireNativeValue(playback.Controls, "playback controls");
         return new(new(string.Empty, Bound(session.SourceAppUserModelId), string.Empty,
             Bound(properties.Title), Bound(properties.Artist), Bound(properties.AlbumTitle), null,
             playback.PlaybackStatus switch
@@ -660,7 +667,15 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
     {
         _lifetime?.Cancel();
         _refresh?.Writer.TryComplete();
-        await _consumer;
+        try { await _consumer; }
+        catch (OperationCanceledException) when (_lifetime?.IsCancellationRequested == true) { }
+        catch (Exception exception)
+        {
+            // Observe the finished consumer's fault without skipping subscription/state
+            // cleanup. Native operation pools retain ownership until actual completion.
+            logger.LogDebug(exception, "Retiring a faulted SMTC refresh consumer.");
+        }
+        _consumer = Task.CompletedTask;
         await _sessionGate.WaitAsync();
         try
         {
@@ -672,6 +687,7 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
             _refresh = null;
             _lifetime?.Dispose();
             _lifetime = null;
+            InvalidateMetadata();
             IsAvailable = false;
             AvailabilityReason = "Disabled";
             AvailableSources = [];
@@ -805,11 +821,18 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         if (!ReferenceEquals(sender, _session)) return;
         RequestRefresh();
     }
-    private static bool IsPlaying(GlobalSystemMediaTransportControlsSession value)
+    private static bool IsPlaying(GlobalSystemMediaTransportControlsSession? value) =>
+        IsPlaying(value, static session => session.GetPlaybackInfo()?.PlaybackStatus);
+
+    internal static bool IsPlaying<T>(T? value, Func<T, GlobalSystemMediaTransportControlsSessionPlaybackStatus?> read) where T : class
     {
-        try { return value.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
+        if (value is null) return false;
+        try { return read(value) == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
         catch (Exception exception) when (IsRecoverable(exception)) { return false; }
     }
+
+    internal static T RequireNativeValue<T>(T? value, string category) where T : class =>
+        value ?? throw new InvalidOperationException($"The media session has no {category}.");
     private string? TryReadSource(GlobalSystemMediaTransportControlsSession value)
     {
         try

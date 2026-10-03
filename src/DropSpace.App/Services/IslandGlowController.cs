@@ -31,6 +31,7 @@ internal sealed class IslandGlowController : IDisposable
     private bool _failed;
     private bool _captureCurrentFrame;
     private bool _captureTargetFresh;
+    private bool _presentationDirty = true;
 
     public IslandGlowController(nint owner, double scale, DispatcherQueue dispatcher, ILogger logger)
     {
@@ -75,11 +76,13 @@ internal sealed class IslandGlowController : IDisposable
         _left = left;
         _top = top;
         _surfaceOpacity = double.IsFinite(opacity) ? Math.Clamp(opacity, 0, 1) : 0;
+        _presentationDirty |= changed;
         if (changed && _envelope.Brightness > 0) Render();
     }
 
     public void RefreshPosition()
     {
+        _presentationDirty = true;
         if (IsAvailable && _envelope.Brightness > 0) Render();
     }
 
@@ -147,14 +150,26 @@ internal sealed class IslandGlowController : IDisposable
         if (_envelope.Brightness == 0 || _surfaceOpacity <= 0.001 || _shape.Width <= 0 || _shape.Height <= 0)
         {
             _window.Hide();
+            _presentationDirty = true;
             return;
         }
         try
         {
+            // Even a cached static frame must observe native hide/destruction.
+            // Returning visibility also forces the existing pixels to be shown again.
+            if (!_window.CanPresent())
+            {
+                _presentationDirty = true;
+                return;
+            }
             _rasterizer ??= new IslandGlowRasterizer(_shape.Width, _shape.Height,
                 _shape.TopRadius, _shape.BottomRadius, _scale);
-            _rasterizer.Render(_envelope.Phase, _envelope.Brightness * _surfaceOpacity, _envelope.Bands, _envelope.Simplification);
-            _window.Present(_rasterizer, _left, _top);
+            var changed = _rasterizer.Render(_envelope.Phase, _envelope.Brightness * _surfaceOpacity, _envelope.Bands, _envelope.Simplification);
+            if (changed || _presentationDirty)
+            {
+                _window.Present(_rasterizer, _left, _top);
+                _presentationDirty = false;
+            }
         }
         catch (Exception exception) when (exception is Win32Exception or OverflowException or ArgumentException)
         {
@@ -174,6 +189,7 @@ internal sealed class IslandGlowController : IDisposable
         _timer.Stop();
         _envelope.Advance(false, 0, TimeSpan.FromSeconds(5));
         _window.Hide();
+        _presentationDirty = true;
     }
 
     public void Dispose()

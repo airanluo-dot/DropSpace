@@ -130,7 +130,7 @@ public sealed class AuditLyricsAdmissionTests
     [TestMethod]
     [DataRow("作词：某人\nI love you\n作曲：另一人\n君の声が聞こえる", "zh-CN", "I love you", "君の声が聞こえる")]
     [DataRow("I love you\n作曲：另一人\nkimi no na wa", "en-US", "kimi no na wa", null)]
-    [DataRow("作词：某人\n我的世界充满阳光\nI need you\n作曲：另一人\n愛", "zh-CN", "I need you", "愛")]
+    [DataRow("作词：某人\n我的世界充满阳光\nI need you\n作曲：另一人\n愛", "zh-CN", "I need you", null)]
     public void UntimedMixedDocumentKeepsDisplayBlockButAdmitsOnlyEligiblePhysicalSegments(
         string text, string target, string first, string? second)
     {
@@ -207,21 +207,21 @@ public sealed class AuditLyricsAdmissionTests
     }
 
     [TestMethod]
-    [DataRow("我的世界充满阳光\nI love you\n远方的天空\n你的温柔让我难忘", "I love you", "远方的天空")]
-    [DataRow("我的世界充满阳光\n春夏秋冬\n远方的天空\n你的温柔让我难忘", "春夏秋冬", "远方的天空")]
-    [DataRow("我的世界充满阳光\n\n远方的天空\n你的温柔让我难忘", "远方的天空", null)]
-    [DataRow("我的世界充满阳光\n远方的天空\n\n你的温柔让我难忘", "远方的天空", null)]
-    [DataRow("我的世界充满阳光\n远方的天空", "远方的天空", null)]
-    [DataRow("我的世界充满阳光\n远方的天空\n夏天的风\n你的温柔让我难忘", "远方的天空", "夏天的风")]
-    public void UntimedNeighborContextCannotCrossForeignUnknownBlankOrWeakBoundaries(
-        string text, string first, string? second)
+    [DataRow("我的世界充满阳光\nI love you\n远方的天空\n你的温柔让我难忘", "I love you")]
+    [DataRow("我的世界充满阳光\n春夏秋冬\n远方的天空\n你的温柔让我难忘", null)]
+    [DataRow("我的世界充满阳光\n\n远方的天空\n你的温柔让我难忘", null)]
+    [DataRow("我的世界充满阳光\n远方的天空\n\n你的温柔让我难忘", null)]
+    [DataRow("我的世界充满阳光\n远方的天空", null)]
+    [DataRow("我的世界充满阳光\n远方的天空\n夏天的风\n你的温柔让我难忘", null)]
+    public void UntimedHanAbstentionPreservesBlankAndWeakBoundaries(string text, string? foreign)
     {
         var document = LyricsParser.Parse(text, LyricsProviderKind.NetEase);
         Assert.HasCount(1, document.Lines);
         Assert.AreEqual(string.Join(Environment.NewLine, text.Split('\n')), document.Lines[0].Text,
             "The parser must preserve a physical blank section boundary for admission.");
-        CollectionAssert.AreEqual(second is null ? new[] { first } : new[] { first, second },
-            LyricsLanguagePolicy.EligibleSegments(document.Lines[0], "zh-CN"));
-        CollectionAssert.AreEqual(new[] { 0 }, LyricsLanguagePolicy.EligibleIndices(document, "zh-CN"));
+        var expected = foreign is null ? Array.Empty<string>() : new[] { foreign };
+        CollectionAssert.AreEqual(expected, LyricsLanguagePolicy.EligibleSegments(document.Lines[0], "zh-CN"));
+        CollectionAssert.AreEqual(expected.Length == 0 ? Array.Empty<int>() : new[] { 0 },
+            LyricsLanguagePolicy.EligibleIndices(document, "zh-CN"));
     }
 }

@@ -43,8 +43,10 @@ public sealed class MusicPage : UserControl
     private CancellationTokenSource? _iconStop;
     private Task _iconJob = Task.CompletedTask;
     private string _sourcesKey = string.Empty;
-    private IReadOnlyList<DropSpace.Core.Lyrics.LyricsLine> _renderedLyrics = [];
-    private string _renderedLyricsOptions = string.Empty;
+    private readonly LyricsRowCollection<StackPanel> _lyricRowCache;
+    private readonly MediaRenderQueue _refreshQueue = new();
+    private string _lyricsTrackIdentity = string.Empty;
+    private int _lastHighlightedLyric = -1;
     private int _lastCenteredLyric = -1;
     public MusicPage(NativeSettingsEditor editor, MediaViewModel media, WindowsMediaSessionService sessions,
         MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle,
@@ -52,6 +54,7 @@ public sealed class MusicPage : UserControl
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
         _enhancement = enhancement; _experience = experience;
+        _lyricRowCache = new(MaximumDisplayedLyricsLines, CreateLyricRow, UpdateLyricRow);
         _nowPlaying = new MediaExpandedView { ViewModel = media, MinHeight = 280, Height = 380 };
         // This action belongs only to the main Music page, never the shared island player.
         _refreshMusic = new Button
@@ -171,6 +174,7 @@ public sealed class MusicPage : UserControl
         scroll.SizeChanged += (_, _) => _body.Width = Math.Clamp(scroll.ActualWidth - 48, 0, 780);
         Content = scroll;
         Loaded += OnLoaded; Unloaded += OnUnloaded;
+        RegisterPropertyChangedCallback(VisibilityProperty, OnVisibilityChanged);
     }
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
@@ -181,11 +185,12 @@ public sealed class MusicPage : UserControl
         _editor.PropertyChanged += OnSettings;
         _media.PropertyChanged += OnMedia;
         _enhancement.PropertyChanged += OnEnhancement;
-        Refresh();
+        RequestRefresh();
         UpdateEnhancementPlacement();
     }
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
+        CancelRefresh();
         var pageStop = _pageStop;
         _pageStop = null; ++_pageGeneration;
         pageStop?.Cancel();
@@ -231,15 +236,34 @@ public sealed class MusicPage : UserControl
     private bool IsCurrentPage(long generation) =>
         generation == _pageGeneration && _pageStop is { IsCancellationRequested: false };
 
-    private void OnSettings(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) Refresh(); }
+    private void OnSettings(object? sender, PropertyChangedEventArgs args) { if (args.PropertyName == nameof(NativeSettingsEditor.Settings)) RequestRefresh(); }
     private void OnEnhancement(object? sender, PropertyChangedEventArgs args) => UpdateEnhancementPlacement();
     private void OnMedia(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName is nameof(MediaViewModel.Session) or nameof(MediaViewModel.LyricsLines) or
             nameof(MediaViewModel.CurrentLyricIndex) or nameof(MediaViewModel.LyricsStatus) or nameof(MediaViewModel.Settings))
         {
-            Refresh();
+            RequestRefresh();
         }
+    }
+    private bool CanRefresh => IsLoaded && _pageStop is not null && Visibility == Visibility.Visible;
+    private void RequestRefresh()
+    {
+        if (_refreshQueue.Request(CanRefresh)) CompositionTarget.Rendering += OnRendering;
+    }
+    private void OnRendering(object? sender, object args)
+    {
+        CompositionTarget.Rendering -= OnRendering;
+        if (_refreshQueue.BeginRender(CanRefresh)) Refresh();
+    }
+    private void CancelRefresh()
+    {
+        CompositionTarget.Rendering -= OnRendering;
+        _refreshQueue.Cancel();
+    }
+    private void OnVisibilityChanged(DependencyObject sender, DependencyProperty property)
+    {
+        if (CanRefresh) RequestRefresh(); else CancelRefresh();
     }
     private void Refresh()
     {
@@ -320,51 +344,31 @@ public sealed class MusicPage : UserControl
             _strings.Culture.Name, "|",
             _media.Settings.Lyrics.Enabled, "|",
             _media.Settings.Lyrics.SecondaryLyrics, "|", _media.Settings.Lyrics.ShowAiLyricsLabel, "|", _media.Settings.Lyrics.OriginalFontSize, "|", _media.Settings.Lyrics.TranslationFontSize);
-        if (!ReferenceEquals(_renderedLyrics, lines) || !string.Equals(_renderedLyricsOptions, lyricsOptions, StringComparison.Ordinal))
+        var trackChanged = !string.Equals(_lyricsTrackIdentity, _media.Session.TrackIdentity, StringComparison.Ordinal);
+        var structureChanged = _lyricRowCache.Update(lines, _media.Session.TrackIdentity, lyricsOptions);
+        if (structureChanged)
         {
-            _lyricsRows.Children.Clear();
-            foreach (var line in lines.Take(MaximumDisplayedLyricsLines))
+            while (_lyricsRows.Children.Count > _lyricRowCache.Count)
+                _lyricsRows.Children.RemoveAt(_lyricsRows.Children.Count - 1);
+            for (var index = 0; index < _lyricRowCache.Count; index++)
             {
-                var row = new StackPanel { Spacing = 2 };
-                row.Children.Add(new TextBlock
-                {
-                    Text = line.Text,
-                    TextWrapping = TextWrapping.Wrap,
-                    FontSize = _media.Settings.Lyrics.OriginalFontSize,
-                });
-                var secondary = LyricsDisplayPolicy.SecondaryPresentation(
-                    line,
-                    _strings.Culture.Name,
-                    _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics, _media.Settings.Lyrics.ShowAiLyricsLabel);
-                if (secondary is { Length: > 0 })
-                {
-                    row.Children.Add(new TextBlock
-                    {
-                        Text = secondary,
-                        TextWrapping = TextWrapping.Wrap,
-                        FontSize = _media.Settings.Lyrics.TranslationFontSize,
-                        Opacity = 0.72,
-                    });
-                }
-                _lyricsRows.Children.Add(row);
+                var row = _lyricRowCache[index];
+                if (index == _lyricsRows.Children.Count) _lyricsRows.Children.Add(row);
+                else if (!ReferenceEquals(_lyricsRows.Children[index], row)) _lyricsRows.Children[index] = row;
             }
-
-            _renderedLyrics = lines;
-            _renderedLyricsOptions = lyricsOptions;
+        }
+        if (trackChanged)
+        {
+            _lyricsTrackIdentity = _media.Session.TrackIdentity;
             _lastCenteredLyric = -1;
         }
 
         var current = _media.CurrentLyricIndex;
-        for (var index = 0; index < _lyricsRows.Children.Count; index++)
+        if (current != _lastHighlightedLyric || structureChanged)
         {
-            if (_lyricsRows.Children[index] is not StackPanel row || row.Children.FirstOrDefault() is not TextBlock text)
-            {
-                continue;
-            }
-
-            var active = index == current;
-            text.FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal;
-            row.Opacity = active ? 1 : 0.58;
+            SetLyricActive(_lastHighlightedLyric, false);
+            SetLyricActive(current, true);
+            _lastHighlightedLyric = current;
         }
 
         if (current < 0 || current >= _lyricsRows.Children.Count || current == _lastCenteredLyric || !_lyricsScroll.IsLoaded)
@@ -386,6 +390,43 @@ public sealed class MusicPage : UserControl
             Debug.WriteLine($"DropSpace lyrics scroll positioning failed: {exception.GetType().Name}");
         }
     }
+    private StackPanel CreateLyricRow(LyricsLine line)
+    {
+        var row = new StackPanel { Spacing = 2, Opacity = 0.58 };
+        row.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap });
+        UpdateLyricRow(row, line);
+        return row;
+    }
+
+    private void UpdateLyricRow(StackPanel row, LyricsLine line)
+    {
+        var original = (TextBlock)row.Children[0];
+        if (original.Text != line.Text) original.Text = line.Text;
+        if (original.FontSize != _media.Settings.Lyrics.OriginalFontSize)
+            original.FontSize = _media.Settings.Lyrics.OriginalFontSize;
+        var secondary = LyricsDisplayPolicy.SecondaryPresentation(line, _strings.Culture.Name,
+            _media.Settings.Lyrics.Enabled && _media.Settings.Lyrics.SecondaryLyrics, _media.Settings.Lyrics.ShowAiLyricsLabel);
+        if (row.Children.Count == 1 && !string.IsNullOrEmpty(secondary))
+            row.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
+        if (row.Children.Count > 1)
+        {
+            var translation = (TextBlock)row.Children[1];
+            var text = secondary ?? string.Empty;
+            if (translation.Text != text) translation.Text = text;
+            if (translation.FontSize != _media.Settings.Lyrics.TranslationFontSize)
+                translation.FontSize = _media.Settings.Lyrics.TranslationFontSize;
+            translation.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+        }
+    }
+
+    private void SetLyricActive(int index, bool active)
+    {
+        if (index < 0 || index >= _lyricRowCache.Count) return;
+        var row = _lyricRowCache[index];
+        ((TextBlock)row.Children[0]).FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal;
+        row.Opacity = active ? 1 : 0.58;
+    }
+
     private async Task LoadIconsAsync(Task previous, CancellationTokenSource? oldStop, List<(string Source, Image Image)> images, CancellationToken token)
     {
         try

@@ -64,9 +64,15 @@ public static class PlainHyLyricsProtocol
     {
         // Use the full established app-owned track/provider/timing identity, then independently
         // version this protocol. An old JSON strategy can never supply a plaintext cache hit.
-        var documentKey = LyricsTranslationPrompt.CacheKey(query, document, target, inferenceIdentity);
+        // Derived AI presentation is not provider source identity. A current bound projection
+        // can reuse its original cache entry while keeping the model/runtime and cache fences.
+        var originals = document with { Lines = document.Lines.Select(line => line.TranslationOrigin == LyricsTranslationOrigin.LocalAi
+            ? line with { Secondary = null, TranslationOrigin = LyricsTranslationOrigin.None, TranslationLanguage = null,
+                TranslationLanguageIsExplicit = null, LocalAiAdmissionKey = null } : line).ToArray() };
+        var documentKey = LyricsTranslationPrompt.CacheKey(query, originals, target, inferenceIdentity);
         return Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
         { cache = "plain-hy-complete-song-v2", eligibility = LyricsLanguagePolicy.Version, sourceLanguages = document.Lines.Select(line => line.SourceLanguage),
-            eligibleIds = LyricsLanguagePolicy.EligibleIndices(document, target), protocol = Version, documentKey })));
+            eligibleIds = LyricsLanguagePolicy.EligibleIndices(document, target),
+            admittedSegments = LyricsLanguagePolicy.EligibleSegments(document, target), protocol = Version, documentKey })));
     }
 }

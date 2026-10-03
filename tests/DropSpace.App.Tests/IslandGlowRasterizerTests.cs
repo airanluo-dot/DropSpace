@@ -100,7 +100,7 @@ public sealed class IslandGlowRasterizerTests
     }
 
     [TestMethod]
-    public void RealBandsChangeContourAtFixedPhaseAndEqualBrightness()
+    public void RealBandsChangeDiffusionAtFixedPhaseAndEqualBrightness()
     {
         var raster = new IslandGlowRasterizer(280, 60, 26, 26, 1);
         raster.Render(0, 0.4, [0, 0, 0, 0, 0, 0]);
@@ -108,7 +108,7 @@ public sealed class IslandGlowRasterizerTests
         var quietExtent = TopExtent(raster);
         raster.Render(0, 0.4, [1, 1, 1, 1, 1, 1]);
         Assert.IsTrue(TopExtent(raster) > quietExtent + 0.5,
-            "Audio must move the alpha contour, not only rotate colors or change brightness.");
+            "Audio must expand the soft light, not only rotate colors or change brightness.");
         Assert.IsFalse(quiet.SequenceEqual(raster.Pixels));
         raster.Render(0, 0.4, [1, 0, 0, 0, 0, 0]);
         var lowBand = raster.Pixels.ToArray();
@@ -119,7 +119,7 @@ public sealed class IslandGlowRasterizerTests
     [TestMethod]
     [DataRow(.3)]
     [DataRow(.8)]
-    public void AudibleBandsProduceVisibleTravelingPeaksAndSilenceHasNoShapeAnimation(double level)
+    public void AudibleBandsBlendSlowWavesIntoAttachedDiffuseLightAndSilenceHasNoShapeAnimation(double level)
     {
         var raster = new IslandGlowRasterizer(280, 60, 26, 26, 1);
         static double Extent(IslandGlowRasterizer r, int x)
@@ -139,17 +139,50 @@ public sealed class IslandGlowRasterizerTests
         CollectionAssert.AreEqual(quiet, positions.Select(x => Extent(raster, x + raster.PaddingPixels)).ToArray());
         var spread = 0d;
         var travel = 0d;
+        var visibleSpread = 0d;
+        var visibleTravel = 0d;
         double[]? previous = null;
-        foreach (var phase in new[] { 0d, .25, .5, .75, 1d })
+        double[]? previousWidths = null;
+        foreach (var phase in new[] { 0d, 1d, 2d, 3d, 4d })
         {
             raster.Render(phase, .4, [level, level, level, level, level, level]);
             var extents = positions.Select(x => Extent(raster, x + raster.PaddingPixels)).ToArray();
+            var widths = new List<double>();
+            foreach (var x in positions)
+            {
+                var column = x + raster.PaddingPixels;
+                var profile = Enumerable.Range(0, raster.PaddingPixels - 1)
+                    .Select(offset => Alpha(raster, column, raster.PaddingPixels + 60 + offset)).ToArray();
+                var peak = profile.Max();
+                Assert.IsTrue(Array.IndexOf(profile, peak) <= 3, "The brightest light must stay attached to the body, not become a detached snake line.");
+                widths.Add(Array.FindLastIndex(profile, alpha => alpha >= peak * .3) + .5);
+            }
             spread = Math.Max(spread, extents.Max() - extents.Min());
+            visibleSpread = Math.Max(visibleSpread, widths.Max() - widths.Min());
             if (previous is not null) travel = Math.Max(travel, extents.Zip(previous, (a, b) => Math.Abs(a - b)).Max());
+            if (previousWidths is not null) visibleTravel = Math.Max(visibleTravel, widths.Zip(previousWidths, (a, b) => Math.Abs(a - b)).Max());
             previous = extents;
+            previousWidths = widths.ToArray();
         }
-        Assert.IsGreaterThan(2d, spread, "The glow must have visibly distinct crests and troughs, not a uniformly straight ring.");
-        Assert.IsGreaterThan(1d, travel, "A visible audio-driven crest must move along the contour.");
+        Assert.IsGreaterThan(2d, visibleSpread, "At normal scale the 30%-of-core light must visibly vary by more than two DIPs along the edge.");
+        Assert.IsGreaterThan(1d, visibleTravel, "A broad crest must visibly move, not only change color within an equal-width ring.");
+        Assert.IsTrue(spread < 7 && travel < 4, "The broad light must remain soft while its fixed core stays attached.");
+    }
+
+    [TestMethod]
+    public void StaticFramesSkipRasterWorkAndVisibleInputChangesInvalidateTheFrame()
+    {
+        var raster = new IslandGlowRasterizer(280, 60, 30, 30, 1);
+        Assert.IsTrue(raster.Render(1.2, .4, [.6, .2, .5, .3, .8, .4]));
+        var first = raster.Pixels.ToArray();
+        Assert.IsFalse(raster.Render(1.2, .40001, [.6, .2, .5, .3, .8, .4]));
+        CollectionAssert.AreEqual(first, raster.Pixels);
+        Assert.IsTrue(raster.Render(1.2, .4, [0, 0, 0, 0, 0, 0]));
+        Assert.IsFalse(first.SequenceEqual(raster.Pixels));
+        Assert.IsTrue(raster.Render(1.2, .4, [0, 0, 0, 0, 0, 0], 1));
+        Assert.IsTrue(raster.Render(0, 0));
+        Assert.IsFalse(raster.Render(0, 0));
+        Assert.IsTrue(raster.Pixels.All(pixel => pixel == 0));
     }
 
     [TestMethod]

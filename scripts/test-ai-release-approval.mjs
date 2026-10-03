@@ -89,14 +89,19 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.App/ViewModels/MainViewModel.cs',
   'src/DropSpace.App/ViewModels/NativeSettingsEditor.cs',
   'src/DropSpace.App/Views/Music/MusicPage.cs',
+  'src/DropSpace.App/Views/Music/LyricsRowCollection.cs',
   'src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs',
   'src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs',
   'src/DropSpace.App/Views/Island/MediaCompactView.xaml',
   'src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs',
+  'src/DropSpace.App/Views/Island/MediaRenderQueue.cs',
   'src/DropSpace.App/Views/Island/MediaExpandedView.xaml',
   'src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs',
   'src/DropSpace.Core/Lyrics/LyricsGlowHandoff.cs',
   'src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs',
+  'src/DropSpace.App/Services/IslandGlowController.cs',
+  'src/DropSpace.App/Services/IslandGlowRasterizer.cs',
+  'src/DropSpace.App/Services/IslandGlowWindow.cs',
   'src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs',
   'src/DropSpace.App/Services/Media/MediaApplicationIconService.cs',
   'src/DropSpace.App/Services/Media/MediaArtworkService.cs',
@@ -144,7 +149,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.1';
+export const experimentalBetaVersion = 'v0.3.1-beta.2';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -549,7 +554,7 @@ function timestamp(value, label) {
 }
 
 function validateExperimentalBeta(root, report, scope, reviewedAt) {
-  assert.equal(scope.releaseVersion, experimentalBetaVersion, 'Owner acceptance is only for v0.3.1-beta.1');
+  assert.equal(scope.releaseVersion, experimentalBetaVersion, `Owner acceptance is only for ${experimentalBetaVersion}`);
   assert.equal(report.semanticApproved, false, 'Experimental Beta must not claim semantic approval');
   assert.equal(scope.executionLimits.wholeSongSeconds, 600, 'Owner acceptance covers the 600-second processing ceiling');
   assert.equal(report.userAcceptance?.releaseVersion, experimentalBetaVersion, 'Owner acceptance must name this exact Beta');
@@ -696,7 +701,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         if (args[0] === '--github-output') fs.appendFileSync(args[1], `authorized=${decision.authorized}\nsemantic_approved=${decision.semanticApproved}\nmode=${decision.mode}\n`);
       }
       console.log(readJson(rootDirectory, approvalPath).status === experimentalBetaStatus
-        ? 'Owner-accepted experimental v0.3.1-beta.1 bindings are valid. Model validation remains unverified; no semantic approval is claimed.'
+        ? `Owner-accepted experimental ${experimentalBetaVersion} bindings are valid. Model validation remains unverified; no semantic approval is claimed.`
         : 'AI semantic approval and evidence bindings are valid. The recorded semantic review, not this structural check, establishes quality.');
     }
   } catch (error) {

@@ -41,6 +41,8 @@ public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, strin
     // null is legacy/unspecified provenance, false is inferred and must be
     // re-evaluated by the current policy, true is the provider's explicit tag.
     public bool? TranslationLanguageIsExplicit { get; init; }
+    // Current admitted source projection, set only after host output validation.
+    public string? LocalAiAdmissionKey { get; init; }
 }
 public sealed record LyricsDocument(IReadOnlyList<LyricsLine> Lines, LyricsProviderKind Provider, LyricsMatchInfo? Match = null)
 {
