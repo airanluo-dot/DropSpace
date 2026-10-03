@@ -27,7 +27,9 @@ memory leave source lyrics available without starting CPU inference. GPU fallbac
 measurement; an existing resident is reused without demanding a second model allocation. These
 conservative thresholds are not measured peaks or a guarantee for a 16 GB machine. Vocabulary-only
 tokenization does not inherit the whole-model admission requirement.
-The whole-song inference ceiling is 300 seconds, not a performance claim.
+The whole-song processing ceiling is 600 seconds (10 minutes), independent of audio duration.
+Track changes, disabling AI and user cancellation still cancel immediately. A timeout restores
+source/provider lyrics and never caches a partial song; the ceiling is not a performance claim.
 First generation can take several minutes; known semantic errors remain possible under the Beta label.
 Host admission excludes recognized credits and same-target original lines using explicit TTML
 language or conservative lexical evidence. Confidence values describe deterministic rules, not

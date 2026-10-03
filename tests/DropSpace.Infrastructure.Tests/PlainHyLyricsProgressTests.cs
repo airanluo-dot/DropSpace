@@ -112,6 +112,27 @@ public sealed class PlainHyLyricsProgressTests
     }
 
     [TestMethod]
+    public async Task ProcessingTimeoutAfterPartialRetiresSnapshotAndNeverCaches()
+    {
+        using var fixture = new Fixture();
+        LyricsTranslationProgress? partial = null;
+        var progress = new LyricsTranslationProgressContext(() => TimeSpan.Zero, () => true,
+            (update, _) => { partial = update; return Task.CompletedTask; });
+        var calls = 0;
+        await Assert.ThrowsAsync<OperationCanceledException>(() => fixture.Coordinator.TranslateWithBudgetAsync(
+            Fixture.Query, fixture.Source, "en", Fixture.Identity, fixture.Cache.Generation, async (_, token) =>
+            {
+                if (++calls == 1) return "translated";
+                await Task.Delay(Timeout.Infinite, token); return "unreachable";
+            }, default, TimeSpan.FromMilliseconds(100), progress));
+        Assert.IsNotNull(partial); Assert.IsFalse(partial.IsCurrent);
+        Assert.AreEqual(2, calls);
+        Assert.IsNull(await fixture.Cache.ReadAsync(fixture.Key, default));
+        Assert.AreEqual(LyricsTranslationOutcome.Translated,
+            (await fixture.Translate((_, _) => Task.FromResult("retry translated"), null)).Outcome);
+    }
+
+    [TestMethod]
     public async Task MatchingProviderTranslationBypassesEveryPartialCallback()
     {
         using var fixture = new Fixture();

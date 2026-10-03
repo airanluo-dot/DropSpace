@@ -53,7 +53,7 @@ Each invocation schedules exactly:
    `vulkan` execution, observed worker, output and confirmed cleanup
 7. Before/after source, model and runtime identity checks
 
-A target has the production 300-second whole-song budget and each actual native
+A target has the production 600-second whole-song processing budget (independent of audio duration) and each actual native
 call has its production 60-second limit. The model-specific process cap is 3 GiB
 for 1.8B or 12 GiB for 7B. Production CPU admission (including GPU-to-CPU fallback)
 requires available physical memory and available commit of at least that cap plus

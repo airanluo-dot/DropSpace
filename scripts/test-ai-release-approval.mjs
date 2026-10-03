@@ -143,6 +143,8 @@ export const productionPromptProfile = 'production-plain-hy';
 export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
+export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
+export const experimentalBetaVersion = 'v0.3.1-beta.1';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -546,17 +548,72 @@ function timestamp(value, label) {
   return parsed;
 }
 
+function validateExperimentalBeta(root, report, scope, reviewedAt) {
+  assert.equal(scope.releaseVersion, experimentalBetaVersion, 'Owner acceptance is only for v0.3.1-beta.1');
+  assert.equal(report.semanticApproved, false, 'Experimental Beta must not claim semantic approval');
+  assert.equal(scope.executionLimits.wholeSongSeconds, 600, 'Owner acceptance covers the 600-second processing ceiling');
+  assert.equal(report.userAcceptance?.releaseVersion, experimentalBetaVersion, 'Owner acceptance must name this exact Beta');
+  assert.equal(report.userAcceptance?.acceptsIncompleteModelValidation, true, 'Explicit acceptance of incomplete model validation is required');
+  assert.ok(report.acceptedLimitations.length > 0, 'Experimental Beta needs disclosed limitations');
+  assert.deepEqual(scope.shippingModels.map(model => model.id), ['hy-mt2-18-q8-plain-beta', 'hy-mt2-7b-q8-plain-beta'], 'Owner acceptance covers only the existing Q8 models');
+  assert.match(readText(root, 'src/DropSpace.Core/Models/NativeIslandSettings.cs'), /public bool AiTranslationEnabled \{ get; init; \}\s*\n/, 'AI must remain off by default');
+  assert.deepEqual(report.models?.map(({ id, sha256, bytes }) => ({ id, sha256, bytes })), scope.shippingModels, 'Every shipping model needs an honest validation record');
+  for (const model of report.models) {
+    assert.equal(model.verdict, 'unverified', 'Owner acceptance cannot mark an unverified model approved');
+    nonempty(model.summary, `Model ${model.id} limitations`);
+    assert.deepEqual(model.validation?.map(({ variant, targetLanguage }) => ({ variant, targetLanguage })),
+      ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => ({ variant, targetLanguage }))),
+      'Record both targets and CPU variants, including unexecuted validation');
+    for (const observation of model.validation) {
+      assert.ok(['not-run', 'timed-out', 'incomplete', 'complete-unreviewed'].includes(observation.status), 'Experimental validation cannot be labeled pass or approved');
+      if (observation.status === 'not-run') {
+        for (const key of ['configuration', 'runnerOutput', 'technicalResults'])
+          assert.equal(observation[key], null, 'Unexecuted validation must not claim captured evidence');
+        continue;
+      }
+      // Historical failed captures retain their own source/runtime/budget. They
+      // disclose limitations; they never qualify the new shipping inputs.
+      const configuration = JSON.parse(readEvidence(root, observation.configuration, 'Experimental capture configuration').toString('utf8').replace(/^\uFEFF/, ''));
+      const output = JSON.parse(readEvidence(root, observation.runnerOutput, 'Experimental runner output').toString('utf8').replace(/^\uFEFF/, ''));
+      assert.equal(configuration.schemaVersion, 3, 'Experimental capture configuration schema mismatch');
+      assert.equal(configuration.captureMethod, productionCaptureMethod, 'Experimental capture must use the production path');
+      assert.deepEqual({ id: configuration.modelId, sha256: configuration.modelSha256, bytes: configuration.modelBytes },
+        { id: model.id, sha256: model.sha256, bytes: model.bytes }, 'Experimental capture model mismatch');
+      assert.equal(configuration.runtimeVariant, observation.variant, 'Experimental capture variant mismatch');
+      for (const key of ['sourceFingerprintSha256', 'runtimeManifestSha256']) assert.match(configuration[key] ?? '', hashPattern, 'Captured input identity is required');
+      assert.ok([300, 600].includes(configuration.executionLimits?.wholeSongSeconds), 'Preserve the actual historical or current processing budget');
+      assert.equal(output.schemaVersion, 2, 'Experimental runner schema mismatch');
+      assert.equal(output.kind, 'production-runner-output', 'Preserve actual runner output');
+      assert.deepEqual(output.model, { id: model.id, sha256: model.sha256, bytes: model.bytes }, 'Experimental output model mismatch');
+      assert.equal(output.targetLanguage, observation.targetLanguage, 'Experimental output target mismatch');
+      assert.equal(output.complete, observation.status === 'complete-unreviewed', 'Incomplete output cannot be relabeled complete');
+      if (output.complete) assert.ok(['Translated', 'NoUsefulTranslation'].includes(output.outcome), 'Completed output must retain its actual outcome');
+      if (observation.status === 'timed-out') {
+        assert.match(output.error ?? '', /OperationCanceledException|TaskCanceledException|TimeoutException/, 'Timeout needs the original cancellation/timeout failure');
+        assert.ok(output.elapsedMilliseconds >= configuration.executionLimits.wholeSongSeconds * 1000, 'Timeout predates the captured processing ceiling');
+      }
+      const technical = JSON.parse(readEvidence(root, observation.technicalResults, 'Experimental operational checks').toString('utf8').replace(/^\uFEFF/, ''));
+      assert.equal(technical.schemaVersion, 1, 'Experimental operational schema mismatch');
+      assert.equal(technical.semanticStatus, 'not-evaluated', 'Operational checks do not establish semantic approval');
+      for (const key of ['cancellationObserved', 'cleanupConfirmed', 'sourceIdentityUnchanged', 'modelIdentityUnchanged', 'runtimeIdentityUnchanged', 'configurationUnchanged'])
+        assert.equal(technical[key], true, `Experimental acceptance cannot waive operational check: ${key}`);
+    }
+  }
+  assert.ok(timestamp(report.userAcceptance.acceptedAt, 'User acceptance time') <= reviewedAt, 'User acceptance postdates the review');
+}
+
 export function validateApproval(root, { now = Date.now(), runtimeManifestPath, releaseBundleDirectory, expectedCommit } = {}) {
   const approval = readJson(root, approvalPath);
   assert.equal(approval.schemaVersion, 1, 'Unsupported AI approval schema');
-  assert.equal(approval.status, 'approved', 'AI semantic release approval is pending or absent; structural success is not approval');
+  const experimental = approval.status === experimentalBetaStatus;
+  assert.ok(approval.status === 'approved' || experimental, 'AI semantic release approval is pending or absent; structural success is not approval');
   const scope = readScope(root);
   nonempty(scope.releaseVersion, 'Release version');
   assert.deepEqual(approval.scope, scope, 'AI approval is stale: shipping model, runtime, prompt/parser sources, release or fixture changed');
   const report = JSON.parse(readEvidence(root, approval.review, 'Semantic review').toString('utf8'));
   assert.equal(report.schemaVersion, 1, 'Unsupported semantic review schema');
-  assert.equal(report.kind, 'semantic-review', 'Native diagnostics are not a semantic review');
-  assert.equal(report.verdict, 'approved', 'Semantic review has not approved release');
+  assert.equal(report.kind, experimental ? experimentalBetaStatus : 'semantic-review', 'Native diagnostics are not a semantic review or owner acceptance');
+  assert.equal(report.verdict, experimental ? experimentalBetaStatus : 'approved', 'Semantic review has not approved release or owner acceptance is absent');
   assert.deepEqual(report.scope, scope, 'Semantic review is bound to different release inputs');
   // Accountability metadata within the trusted repository, not identity authentication.
   nonempty(report.reviewedBy, 'Recorded semantic reviewer identity');
@@ -579,15 +636,18 @@ export function validateApproval(root, { now = Date.now(), runtimeManifestPath, 
     assert.ok(timestamp(report.userAcceptance.acceptedAt, 'User acceptance time') <= reviewedAt, 'User acceptance postdates the review');
   }
   const reviewedRuntime = readReviewedRuntime(root, report, scope);
-  assert.ok(Array.isArray(report.models), 'Per-model semantic reviews are required');
-  assert.deepEqual(report.models.map(model => ({ id: model.id, sha256: model.sha256, bytes: model.bytes })), scope.shippingModels, 'Every shipping model needs semantic approval');
-  for (const model of report.models) {
-    assert.equal(model.verdict, 'approved', `Model ${model.id} is not semantically approved`);
-    nonempty(model.summary, `Model ${model.id} review rationale`);
-    assert.ok(Array.isArray(model.evidence) && model.evidence.length > 0, `Model ${model.id} needs native evidence`);
-    const variants = new Set(model.evidence.map(evidence =>
-      validateNativeEvidence(root, evidence, model, scope, reviewedRuntime, reviewedAt)));
-    assert.deepEqual([...variants].sort(), ['avx2', 'baseline'], `Model ${model.id} needs both shipping CPU runtime variants; Vulkan execution is separate coverage`);
+  if (experimental) validateExperimentalBeta(root, report, scope, reviewedAt);
+  else {
+    assert.ok(Array.isArray(report.models), 'Per-model semantic reviews are required');
+    assert.deepEqual(report.models.map(model => ({ id: model.id, sha256: model.sha256, bytes: model.bytes })), scope.shippingModels, 'Every shipping model needs semantic approval');
+    for (const model of report.models) {
+      assert.equal(model.verdict, 'approved', `Model ${model.id} is not semantically approved`);
+      nonempty(model.summary, `Model ${model.id} review rationale`);
+      assert.ok(Array.isArray(model.evidence) && model.evidence.length > 0, `Model ${model.id} needs native evidence`);
+      const variants = new Set(model.evidence.map(evidence =>
+        validateNativeEvidence(root, evidence, model, scope, reviewedRuntime, reviewedAt)));
+      assert.deepEqual([...variants].sort(), ['avx2', 'baseline'], `Model ${model.id} needs both shipping CPU runtime variants; Vulkan execution is separate coverage`);
+    }
   }
 
   if (runtimeManifestPath !== undefined) {
@@ -609,6 +669,12 @@ export function readApprovedRuntimeContract(root, options = {}) {
   return report.runtimeArtifact;
 }
 
+export function publicationDecision(root, options = {}) {
+  validateApproval(root, options);
+  const status = readJson(root, approvalPath).status;
+  return { authorized: true, semanticApproved: status === 'approved', mode: status === 'approved' ? 'semantic-approved' : experimentalBetaStatus };
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
@@ -616,19 +682,22 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       // Read-only preparation aid. It never writes or approves a manifest.
       console.log(JSON.stringify(readScope(rootDirectory), null, 2));
     } else {
-      assert.ok(args.length === 0 || (args.length === 2 && ['--runtime-manifest', '--release-bundle', '--export-runtime-contract'].includes(args[0])), 'Usage: node scripts/test-ai-release-approval.mjs [--runtime-manifest PATH | --release-bundle DIRECTORY | --export-runtime-contract PATH | --print-scope]');
+      assert.ok(args.length === 0 || (args.length === 2 && ['--runtime-manifest', '--release-bundle', '--export-runtime-contract', '--github-output'].includes(args[0])), 'Usage: node scripts/test-ai-release-approval.mjs [--runtime-manifest PATH | --release-bundle DIRECTORY | --export-runtime-contract PATH | --github-output PATH | --print-scope]');
       if (args[0] === '--export-runtime-contract') {
         const contract = readApprovedRuntimeContract(rootDirectory);
         fs.mkdirSync(path.dirname(path.resolve(args[1])), { recursive: true });
         fs.writeFileSync(args[1], JSON.stringify(contract, null, 2) + '\n');
       } else {
-        validateApproval(rootDirectory, {
+        const decision = publicationDecision(rootDirectory, {
           runtimeManifestPath: args[0] === '--runtime-manifest' ? args[1] : undefined,
           releaseBundleDirectory: args[0] === '--release-bundle' ? args[1] : undefined,
           expectedCommit: process.env.GITHUB_SHA,
         });
+        if (args[0] === '--github-output') fs.appendFileSync(args[1], `authorized=${decision.authorized}\nsemantic_approved=${decision.semanticApproved}\nmode=${decision.mode}\n`);
       }
-      console.log('AI semantic approval and evidence bindings are valid. The recorded semantic review, not this structural check, establishes quality.');
+      console.log(readJson(rootDirectory, approvalPath).status === experimentalBetaStatus
+        ? 'Owner-accepted experimental v0.3.1-beta.1 bindings are valid. Model validation remains unverified; no semantic approval is claimed.'
+        : 'AI semantic approval and evidence bindings are valid. The recorded semantic review, not this structural check, establishes quality.');
     }
   } catch (error) {
     console.error(`AI release blocked: ${error.message}`);

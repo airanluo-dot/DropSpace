@@ -215,6 +215,32 @@ public sealed class AiLyricsOutcomeRegressionTests
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task ProcessingTimeoutRestoresSourceOrExistingProviderTranslation(bool hasProviderTranslation)
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new AppStoragePaths(root);
+            var source = new LyricsDocument([new(TimeSpan.Zero, TimeSpan.FromSeconds(2), "source",
+                hasProviderTranslation ? "existing provider translation" : null, [])
+                { TranslationOrigin = hasProviderTranslation ? LyricsTranslationOrigin.Provider : LyricsTranslationOrigin.None,
+                  TranslationLanguage = hasProviderTranslation ? "ja" : null }], LyricsProviderKind.LocalLrc);
+            using var models = new AiModelPackageService(Path.Combine(root, "models"));
+            using var backend = new FakeBackend(LyricsDocument.Empty) { Error = new OperationCanceledException("Whole-song processing deadline expired.") };
+            using var service = new AiLyricsService(paths, new LyricsCache(paths.Lyrics), NullLogger<AiLyricsService>.Instance,
+                models, new FakeResolver(), backend);
+            var result = await service.TranslateCoreAsync(new("song", "artist", "", TimeSpan.FromSeconds(2)), source,
+                new() { Enabled = true, AiTranslationEnabled = true }, "zh", default);
+            Assert.AreSame(source, result);
+            Assert.AreEqual(1, backend.Calls);
+            Assert.AreEqual(AiLyricsTranslationState.Unavailable, service.TranslationState);
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
     private sealed class FakeResolver : IAiLyricsPackageResolver
     {
         public Task<AiLyricsResolvedPackage?> ResolveAsync(string selectionId, LyricsQuery query, LyricsDocument source, string targetLanguage, CancellationToken token) =>

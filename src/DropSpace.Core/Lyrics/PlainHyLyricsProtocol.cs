@@ -14,7 +14,8 @@ public static class PlainHyLyricsProtocol
     public const string SamplerIdentity = "seed42-temp0.1-topk20-topp0.8-minp0.05-repeat1-frequency0-presence0-t4-tb4-c4096-n2048";
     public const int MaximumPromptBytes = 1800;
     public const int MaximumOutputBytes = 16_384;
-    public const int WholeSongSeconds = 300;
+    // Processing ceiling; independent of the audio duration and external cancellation.
+    public const int WholeSongSeconds = 600;
     public const string EnglishTarget = "英语";
     public const string ChineseTarget = "简体中文";
     public const string Template = "将以下文本翻译为{0}，注意只需要输出翻译后的结果，不要额外解释：\n{1}";

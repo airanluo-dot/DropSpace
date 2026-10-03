@@ -21,7 +21,7 @@ public sealed class PlainHyLyricsBackendTests
 #pragma warning disable MSTEST0032 // Intentional frozen public protocol/budget contract checks.
         Assert.AreEqual("official-plain-per-line-v1", PlainHyLyricsProtocol.Version);
         Assert.AreEqual("host-mapped-id-text-v1", PlainHyLyricsProtocol.HostMappingVersion);
-        Assert.AreEqual(300, PlainHyLyricsProtocol.WholeSongSeconds);
+        Assert.AreEqual(600, PlainHyLyricsProtocol.WholeSongSeconds);
 #pragma warning restore MSTEST0032
         Assert.ThrowsExactly<ArgumentException>(() => PlainHyLyricsProtocol.BuildPrompt("original", "zh-Hant"));
         Assert.ThrowsExactly<InvalidDataException>(() => PlainHyLyricsProtocol.BuildPrompt(new string('x', 2000), "en"));
@@ -100,6 +100,38 @@ public sealed class PlainHyLyricsBackendTests
         Assert.IsNull(await f.Cache.ReadAsync(f.Key(source), default));
         Assert.AreEqual(LyricsTranslationOutcome.Translated,
             (await f.Translate(source, (_, _) => Task.FromResult("translated"))).Outcome);
+    }
+
+    [TestMethod]
+    [DataRow(90)]
+    [DataRow(900)]
+    public async Task TenMinuteProcessingBudgetIsAcceptedRegardlessOfAudioDuration(int audioSeconds)
+    {
+        using var f = new Fixture(); var source = Source("original");
+        var query = Query with { Duration = TimeSpan.FromSeconds(audioSeconds) };
+        var result = await f.Coordinator.TranslateWithBudgetAsync(query, source, "en", Identity,
+            f.Cache.Generation, (_, _) => Task.FromResult("translated"), default, TimeSpan.FromSeconds(600));
+        Assert.AreEqual(LyricsTranslationOutcome.Translated, result.Outcome);
+        await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(() =>
+            f.Coordinator.TranslateWithBudgetAsync(query, source, "en", Identity, f.Cache.Generation,
+                (_, _) => throw new AssertFailedException("An excessive budget must be rejected before inference."),
+                default, TimeSpan.FromSeconds(601)));
+    }
+
+    [TestMethod]
+    public async Task ExternalCancellationInterruptsPendingInferenceWithTenMinuteBudget()
+    {
+        using var f = new Fixture(); var source = Source("original");
+        using var stop = new CancellationTokenSource();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var work = f.Translate(source, async (_, token) =>
+        {
+            entered.SetResult(); await Task.Delay(Timeout.Infinite, token); return "unreachable";
+        }, stop.Token);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        stop.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => work.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.IsNull(await f.Cache.ReadAsync(f.Key(source), default));
     }
 
     [TestMethod]

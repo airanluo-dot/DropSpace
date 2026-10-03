@@ -61,7 +61,9 @@ jobs:
       make_latest: ${{ steps.version.outputs.make_latest }}
       signing_required: ${{ steps.version.outputs.signing_required }}
       ai_runtime_manifest_sha256: ${{ steps.ai-runtime-diagnostic-manifest.outputs.sha256 }}
-      ai_semantic_approved: ${{ steps.ai-release-approval.outputs.approved }}
+      ai_semantic_approved: ${{ steps.ai-release-approval.outputs.semantic_approved }}
+      ai_publication_authorized: ${{ steps.ai-release-approval.outputs.authorized }}
+      ai_publication_mode: ${{ steps.ai-release-approval.outputs.mode }}
 
     steps:
       - name: Check out clean source
@@ -137,8 +139,9 @@ jobs:
           python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
 
-      # A pending semantic review blocks publication, never ordinary PR validation.
-      - name: Enforce AI semantic publication approval before building
+      # Pending approval blocks publication, never ordinary PR validation.
+      # Only v0.3.1-beta.1 may use recorded owner acceptance without semantic approval.
+      - name: Enforce AI publication decision before building
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         run: node scripts/test-ai-release-approval.mjs
 
@@ -213,26 +216,27 @@ jobs:
           $json = ($manifest | ConvertTo-Json -Depth 8) -replace "`r`n", "`n"
           [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE $path), $json + "`n", [Text.UTF8Encoding]::new($false))
 
-      - name: Retrieve the exact semantically reviewed runtime
+      - name: Retrieve the exact reviewed runtime
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
 
-      - name: Bind semantic approval to exact shipping runtime bytes
+      - name: Bind AI publication decision to exact shipping runtime bytes
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         id: ai-release-approval
         shell: pwsh
         run: |
           node scripts/test-ai-release-approval.mjs --runtime-manifest artifacts/ai-runtime/win-x64/runtime-manifest.json
-          if ($LASTEXITCODE -ne 0) { throw 'AI semantic publication approval failed.' }
+          if ($LASTEXITCODE -ne 0) { throw 'AI publication decision failed.' }
           ./scripts/Test-AiLyricsRuntime.ps1
-          "approved=true" >> $env:GITHUB_OUTPUT
+          node scripts/test-ai-release-approval.mjs --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw 'AI publication decision output failed.' }
 
       # Development-only handoff of this run's verified build. No model weights are uploaded.
       - name: Record candidate diagnostic runtime identity
-        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.publish != true)
         id: ai-runtime-diagnostic-manifest
         shell: pwsh
         run: |
@@ -240,7 +244,7 @@ jobs:
           "sha256=$hash" >> $env:GITHUB_OUTPUT
 
       - name: Upload runtime for isolated candidate diagnostics
-        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.capture_ai_evidence == true && inputs.publish != true)
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/qa/final-ai-review-031' || (github.event_name == 'workflow_dispatch' && inputs.publish != true)
         id: ai-runtime-artifact
         continue-on-error: true
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -675,7 +679,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.actor == github.repository_owner || github.actor == 'github-actions[bot]') &&
       needs.validate-release.result == 'success' &&
-      needs.validate-release.outputs.ai_semantic_approved == 'true' &&
+      needs.validate-release.outputs.ai_publication_authorized == 'true' &&
       (needs.validate-release.outputs.signing_required != 'true' || needs.sign-release.result == 'success')
     needs: [validate-release, sign-release]
     runs-on: ubuntu-latest
@@ -710,7 +714,7 @@ jobs:
           fi
 
       # Recheck immediately before publication, including expiry and evidence hashes.
-      - name: Recheck AI semantic publication approval
+      - name: Recheck AI publication decision
         run: node scripts/test-ai-release-approval.mjs --release-bundle artifacts/release
 
       - name: Publish immutable Stable or Beta release

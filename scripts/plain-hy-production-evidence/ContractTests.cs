@@ -47,11 +47,12 @@ internal static class ContractTests
                     promptVersion = PlainHyLyricsProtocol.Version, backendId = PlainHyLyricsBackend.BackendId,
                     acceptanceVersion = PlainHyLyricsProtocol.AcceptanceVersion, samplerIdentity = PlainHyLyricsProtocol.SamplerIdentity,
                     captureMethod = Program.CaptureMethod, loadOnly = false, runtimeVariant = "baseline", gpuEnabled = false,
-                    executionLimits = new ExecutionLimits(300, 60, model == AiLyricsModelCatalog.ExperimentalLargePlain ? 12288 : 3072, 1800, 16384),
+                    executionLimits = new ExecutionLimits(PlainHyLyricsProtocol.WholeSongSeconds, 60, model == AiLyricsModelCatalog.ExperimentalLargePlain ? 12288 : 3072, 1800, 16384),
                     nativeArguments = Program.NativeArguments(model.Id), logicalEvidenceRoot = "scripts/ai-model-qa/evidence/contract-only",
                 }, Program.Json), Program.Json)!;
                 Program.ValidateConfiguration(config);
                 foreach (var invalid in new[] { config with { SchemaVersion = 2 }, config with { ModelSha256 = new string('0', 64) },
+                    config with { ExecutionLimits = config.ExecutionLimits with { WholeSongSeconds = 300 } },
                     config with { ExecutionLimits = config.ExecutionLimits with { MemoryMiB = config.ExecutionLimits.MemoryMiB - 1 } } })
                 {
                     var rejectedConfig = false;

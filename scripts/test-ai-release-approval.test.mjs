@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { approvalPath, fixturePath, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval } from './test-ai-release-approval.mjs';
+import { approvalPath, fixturePath, readScope, sha256, sourcePaths, residentSourcePaths, productionPromptProfile, productionOutputSchema, productionCaptureMethod, validateApproval, experimentalBetaStatus, publicationDecision } from './test-ai-release-approval.mjs';
 import { fileIdentity, writeReleaseBinding } from './ai-runtime-publication.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -172,6 +172,102 @@ function example(t) {
 
 test('synthetic current approval with complete bound evidence passes', t => example(t).validate());
 
+function experimentalExample(t) {
+  const x = example(t);
+  x.approval.status = experimentalBetaStatus;
+  Object.assign(x.report, {
+    kind: experimentalBetaStatus, verdict: experimentalBetaStatus, semanticApproved: false,
+    acceptedLimitations: [
+      { id: 'synthetic-timeout', kind: 'latency', summary: 'SYNTHETIC TEST ONLY: historical 300-second timeout; 600 seconds unverified.' },
+      { id: 'synthetic-unverified', kind: 'quality', summary: 'SYNTHETIC TEST ONLY: both models lack complete semantic approval.' },
+    ],
+    userAcceptance: { releaseVersion: 'v0.3.1-beta.1', acceptsIncompleteModelValidation: true,
+      reference: 'SYNTHETIC TEST ONLY; not actual owner acceptance', acceptedAt: '2026-09-30T00:00:00Z' },
+    models: x.scope.shippingModels.map(model => ({ ...model, verdict: 'unverified', summary: 'SYNTHETIC TEST ONLY: incomplete model validation.',
+      validation: ['baseline', 'avx2'].flatMap(variant => ['en', 'zh-Hans'].map(targetLanguage => ({
+        variant, targetLanguage, status: 'not-run', configuration: null, runnerOutput: null, technicalResults: null,
+      }))),
+    })),
+  });
+  // Retain a historical failed packet; never rewrite it to the new source or budget.
+  const configuration = structuredClone(x.configurations[0]);
+  configuration.executionLimits.wholeSongSeconds = 300;
+  configuration.sourceFingerprintSha256 = 'f'.repeat(64);
+  const output = structuredClone(x.outputPackets[0]);
+  Object.assign(output, { outcome: null, complete: false, error: 'SYNTHETIC OperationCanceledException', elapsedMilliseconds: 300100 });
+  const technical = { schemaVersion: 1, status: 'failed-or-incomplete', semanticStatus: 'not-evaluated', cancellationObserved: true,
+    cleanupConfirmed: true, sourceIdentityUnchanged: true, modelIdentityUnchanged: true, runtimeIdentityUnchanged: true, configurationUnchanged: true };
+  const observation = x.report.models[0].validation[0];
+  observation.status = 'timed-out';
+  const saveObservation = () => {
+    for (const [key, packet] of [['configuration', configuration], ['runnerOutput', output], ['technicalResults', technical]]) {
+      const name = `scripts/ai-model-qa/evidence/SYNTHETIC-EXPERIMENTAL-${key}.json`;
+      x.write(name, json(packet)); observation[key] = { path: name, sha256: sha256(json(packet)) };
+    }
+    x.save();
+  };
+  saveObservation();
+  return { ...x, observation, configuration, output, technical, saveObservation };
+}
+
+test('owner-accepted Beta preserves timeout and unexecuted evidence without semantic approval', t => {
+  const x = experimentalExample(t); x.validate();
+  assert.deepEqual(publicationDecision(x.root, { now }), { authorized: true, semanticApproved: false, mode: experimentalBetaStatus });
+  assert.equal(x.configuration.executionLimits.wholeSongSeconds, 300);
+  assert.equal(x.output.complete, false);
+  assert.equal(x.scope.executionLimits.wholeSongSeconds, 600);
+  assert.equal(x.report.models[1].validation[0].status, 'not-run');
+});
+
+for (const [label, mutate, expected] of [
+  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.2'); x.scope.releaseVersion = 'v0.3.1-beta.2'; }, /only for v0.3.1-beta.1/],
+  ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
+  ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],
+  ['no incomplete-validation acceptance', x => { x.report.userAcceptance.acceptsIncompleteModelValidation = false; }, /Explicit acceptance/],
+  ['wrong accepted release', x => { x.report.userAcceptance.releaseVersion = 'v0.3.1-beta.2'; }, /exact Beta/],
+  ['semantic pass claim', x => { x.report.semanticApproved = true; }, /must not claim/],
+  ['approved model claim', x => { x.report.models[1].verdict = 'approved'; }, /unverified model/],
+  ['missing model', x => { x.report.models.pop(); }, /Every shipping model/],
+  ['missing variant', x => { x.report.models[1].validation.pop(); }, /both targets and CPU variants/],
+  ['fabricated pass', x => { x.observation.status = 'pass'; }, /cannot be labeled pass/],
+  ['unrun with evidence', x => { x.report.models[1].validation[0].runnerOutput = x.observation.runnerOutput; }, /Unexecuted validation/],
+  ['cleanup defect waiver', x => { x.report.openDefects = ['cleanup failed']; }, /not a bug waiver/],
+  ['operational limitation waiver', x => { x.report.acceptedLimitations[0].kind = 'cleanup'; }, /quality or latency/],
+  ['missing runtime binding', x => { x.report.runtimeManifest = null; }, /reference is required/],
+]) test(`experimental Beta rejects ${label}`, t => {
+  const x = experimentalExample(t); mutate(x); x.save(); assert.throws(() => x.validate(), expected);
+});
+
+for (const [label, mutate, expected] of [
+  ['timeout relabeled complete', x => { x.output.complete = true; }, /cannot be relabeled/],
+  ['timeout relabeled unreviewed completion', x => { x.observation.status = 'complete-unreviewed'; }, /cannot be relabeled/],
+  ['old budget overwritten', x => { x.configuration.executionLimits.wholeSongSeconds = 600; }, /predates/],
+  ['wrong model identity', x => { x.output.model.sha256 = '0'.repeat(64); }, /model mismatch/],
+  ['missing captured source identity', x => { delete x.configuration.sourceFingerprintSha256; }, /Captured input identity/],
+  ['unconfirmed cancellation', x => { x.technical.cancellationObserved = false; }, /cannot waive operational/],
+  ['unconfirmed cleanup', x => { x.technical.cleanupConfirmed = false; }, /cannot waive operational/],
+  ['mutated model', x => { x.technical.modelIdentityUnchanged = false; }, /cannot waive operational/],
+]) test(`experimental Beta preserves failed capture: ${label}`, t => {
+  const x = experimentalExample(t); mutate(x); x.saveObservation(); assert.throws(() => x.validate(), expected);
+});
+
+test('experimental Beta still rejects changed current sources, runtime and exact release bindings', t => {
+  const x = experimentalExample(t);
+  x.runtimePayload['runtime-manifest.json'] += ' ';
+  const directory = path.join(x.root, 'shipping-runtime');
+  for (const [name, bytes] of Object.entries(x.runtimePayload)) x.write(`shipping-runtime/${name}`, bytes);
+  assert.throws(() => x.validate({ runtimeManifestPath: path.join(directory, 'runtime-manifest.json') }), /differs from reviewed bytes/);
+  assert.throws(() => x.validate({ releaseBundleDirectory: directory }), /Exact publication commit/);
+  fs.appendFileSync(path.join(x.root, sourcePaths[0]), '\n// modified after acceptance\n');
+  assert.throws(() => x.validate(), /stale/);
+});
+
+test('experimental owner acceptance cannot be promoted to ordinary semantic approval', t => {
+  const x = experimentalExample(t); x.approval.status = 'approved'; x.save();
+  assert.throws(() => x.validate(), /not a semantic review/);
+  assert.equal(publicationDecision(example(t).root, { now }).semanticApproved, true);
+});
+
 test('resident digest matches the actual PowerShell producer across LF and CRLF source files', t => {
   const x = example(t);
   const producer = fs.readFileSync(path.join(repository, 'scripts/Build-AiLyricsRuntime.ps1'), 'utf8');
@@ -227,7 +323,7 @@ test('scope selects both pinned plaintext Q8 profiles with separate resource arg
   assert.equal(x.scope.promptVersion, 'official-plain-per-line-v1');
   assert.equal(x.scope.outputSchema, 'host-mapped-id-text-v1');
   assert.equal(x.scope.backendId, 'hy-q8-plain-beta-v1');
-  assert.equal(x.scope.executionLimits.wholeSongSeconds, 300);
+  assert.equal(x.scope.executionLimits.wholeSongSeconds, 600);
   assert.equal(x.scope.executionLimits.perLineSeconds, 60);
   assert.equal(x.scope.executionLimits.memoryMiB, 3072);
   assert.deepEqual(x.scope.nativeArguments, ['--model', '$MODEL', '--mode', 'cpu']);
@@ -339,7 +435,7 @@ test('unchanged copied lines remain neutral structural evidence rather than an i
 test('repository manifest is never approved by these synthetic tests', () => {
   const record = JSON.parse(fs.readFileSync(path.join(repository, approvalPath), 'utf8'));
   assert.equal(record.schemaVersion, 1);
-  assert.ok(['pending', 'approved'].includes(record.status));
+  assert.ok(['pending', 'approved', experimentalBetaStatus].includes(record.status));
   if (record.status === 'pending') assert.throws(() => validateApproval(repository), /pending or absent/);
   // An approved record can become stale or expire during development. Only
   // publication checks its live validity; ordinary PR regression tests still run.
@@ -673,17 +769,32 @@ test('workflow tests every PR but gates only explicit publication, with a second
   const workflow = fs.readFileSync(path.join(repository, '.github/workflows/release.yml'), 'utf8');
   const validate = workflow.split('\n  validate-release:')[1].split('\n  ai-model-diagnostics:')[0];
   assert.match(validate, /- name: Test AI semantic release gate regressions\n        run: node --test scripts\/test-ai-release-approval.test.mjs/);
-  assert.match(validate, /- name: Enforce AI semantic publication approval before building\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        run: node scripts\/test-ai-release-approval.mjs/);
-  assert.match(validate, /- name: Bind semantic approval to exact shipping runtime bytes\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        id: ai-release-approval/);
+  assert.match(validate, /- name: Enforce AI publication decision before building\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        run: node scripts\/test-ai-release-approval.mjs/);
+  assert.match(validate, /- name: Bind AI publication decision to exact shipping runtime bytes\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true\n        id: ai-release-approval/);
   assert.match(validate, /--runtime-manifest artifacts\/ai-runtime\/win-x64\/runtime-manifest.json\n          if \(\$LASTEXITCODE -ne 0\)/);
-  assert.match(validate, /ai_semantic_approved: \$\{\{ steps.ai-release-approval.outputs.approved \}\}/);
+  assert.match(validate, /ai_semantic_approved: \$\{\{ steps.ai-release-approval.outputs.semantic_approved \}\}/);
+  assert.match(validate, /ai_publication_authorized: \$\{\{ steps.ai-release-approval.outputs.authorized \}\}/);
+  assert.match(validate, /node scripts\/test-ai-release-approval.mjs --github-output \$env:GITHUB_OUTPUT/);
+  assert.ok(!validate.includes('"approved=true"'), 'Authorization must not fabricate semantic approval');
+  for (const name of [
+    'Validate native offline inference and cancellation',
+    'Test installer /UPDATE, restart, upgrade, and uninstall lifecycle',
+    'Smoke test portable EXE (en-US resource context) without public network access',
+    'Smoke test portable EXE (zh-CN resource context) without public network access',
+    'Inspect runtime bytes inside the final MSIX',
+    'Enforce secret hygiene',
+  ]) {
+    const step = validate.split(`- name: ${name}\n`)[1]?.split('\n      - name:')[0];
+    assert.ok(step, `Required operational gate is missing: ${name}`);
+    assert.doesNotMatch(step, /\n\s+(?:if|continue-on-error):/, `Owner acceptance cannot bypass ${name}`);
+  }
   const publish = workflow.split('\n  publish-release:')[1];
-  assert.match(publish, /needs.validate-release.outputs.ai_semantic_approved == 'true'/);
+  assert.match(publish, /needs.validate-release.outputs.ai_publication_authorized == 'true'/);
   assert.match(publish, /needs: \[validate-release, sign-release\]/);
-  assert.match(publish, /- name: Recheck AI semantic publication approval\n        run: node scripts\/test-ai-release-approval.mjs --release-bundle artifacts\/release\n\n      - name: Publish immutable/);
+  assert.match(publish, /- name: Recheck AI publication decision\n        run: node scripts\/test-ai-release-approval.mjs --release-bundle artifacts\/release\n\n      - name: Publish immutable/);
   assert.match(validate, /Assert-DropSpacePublicationCommit \$env:EXPECTED_COMMIT \$env:ACTUAL_COMMIT/);
   assert.match(validate, /- name: Build verified offline AI inference runtime\n        if: \$\{\{ !\(github.event_name == 'workflow_dispatch' && inputs.publish == true\) \}\}/);
-  assert.match(validate, /- name: Retrieve the exact semantically reviewed runtime\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true/);
+  assert.match(validate, /- name: Retrieve the exact reviewed runtime\n        if: github.event_name == 'workflow_dispatch' && inputs.publish == true/);
   assert.match(validate, /Get-ReviewedAiRuntime.ps1/);
   assert.match(validate, /record-bundle artifacts\/release runtime-directory/);
   assert.match(workflow, /branches: \[main, qa\/final-ai-review-031\]/);

@@ -331,7 +331,7 @@ internal static class Program
             config.PromptVersion == PlainHyLyricsProtocol.Version && config.BackendId == PlainHyLyricsBackend.BackendId &&
             config.AcceptanceVersion == PlainHyLyricsProtocol.AcceptanceVersion && config.SamplerIdentity == PlainHyLyricsProtocol.SamplerIdentity &&
             config.CaptureMethod == CaptureMethod && !config.LoadOnly, "Configuration does not select the production plain Hy profile.");
-        Require(config.ExecutionLimits == new ExecutionLimits(300, 60, model == AiLyricsModelCatalog.ExperimentalLargePlain ? 12288 : 3072, 1800, 16384), "Production execution limits differ.");
+        Require(config.ExecutionLimits == new ExecutionLimits(PlainHyLyricsProtocol.WholeSongSeconds, 60, model == AiLyricsModelCatalog.ExperimentalLargePlain ? 12288 : 3072, 1800, 16384), "Production execution limits differ.");
         Require(config.RuntimeVariant is "baseline" or "avx2" && !config.GpuEnabled, "An explicit CPU baseline/avx2 runtime with GPU disabled is required.");
         Require(config.NativeArguments.SequenceEqual(NativeArguments(config.ModelId)), "Native arguments differ from production PersistentPlainLyricsRunner.BuildArguments.");
         Require(config.LogicalEvidenceRoot.StartsWith("scripts/ai-model-qa/evidence/", StringComparison.Ordinal) &&

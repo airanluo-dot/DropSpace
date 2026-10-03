@@ -1,5 +1,5 @@
-# Release-only consumption of the exact artifact named by a validated semantic
-# review. There is no latest-artifact, source rebuild, or alternate-download fallback.
+# Release-only consumption of the exact artifact named by a validated publication
+# decision. There is no latest-artifact, source rebuild, or alternate-download fallback.
 [CmdletBinding()]
 param([string]$OutputDirectory = 'artifacts/ai-runtime/win-x64')
 
@@ -13,7 +13,7 @@ $work = Join-Path $root ('artifacts/runtime-retrieval-' + [Guid]::NewGuid().ToSt
 New-Item $work -ItemType Directory | Out-Null
 $contractPath = Join-Path $work 'contract.json'
 & node (Join-Path $PSScriptRoot 'test-ai-release-approval.mjs') --export-runtime-contract $contractPath
-if ($LASTEXITCODE -ne 0) { throw 'A current semantic review of an exact runtime artifact is required.' }
+if ($LASTEXITCODE -ne 0) { throw 'A current publication decision bound to an exact runtime artifact is required.' }
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 if ($env:GITHUB_REPOSITORY -cne $contract.repository) { throw 'Runtime artifact repository mismatch.' }
 $headers = @{ Authorization="Bearer $env:GH_TOKEN"; Accept='application/vnd.github+json'; 'X-GitHub-Api-Version'='2022-11-28' }

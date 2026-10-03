@@ -5,11 +5,58 @@ capture and release review exist. Native startup, valid output, a passing build,
 or a candidate experiment does not create semantic approval. Previously retained
 candidate runs keep their original protocol, source, runtime and verdict.
 
+## Owner-accepted experimental v0.3.1-beta.1
+
+For this release only, `status: "owner-accepted-experimental-beta"` can authorize
+publication without claiming semantic approval. Ordinary releases and Stable still
+require the existing complete native capture and approved semantic review.
+The owner accepted the disclosed timeout, incomplete 7B validation, default-off AI
+and source/provider fallback in thread `01a0fe5b-d1da-7716-a8b3-b368757920f3`:
+“不用添加别的什么了，直接就按照现在的AI模型发布吧”; the later request increased the
+processing ceiling to ten minutes. This does not approve fabricated passes or waive
+code, safety, cleanup, installation, upgrade, uninstall or package checks.
+
+Prepare a normal non-publishing Release validation from the final exact candidate
+with `capture_ai_evidence=false`. It builds and retains a fresh runtime artifact
+and runs the existing native smoke/cancellation, managed tests, WinUI build and
+installer/portable/MSIX gates. Do not reuse the runtime artifact from the failed
+300-second capture run: artifact retrieval still requires a successful producer
+run/attempt. A failed optional capture remains a failed run, with its output intact.
+No extra model tuning or capture is required to accept unverified model limitations.
+
+After that successful validation, record a repository review with the existing
+exact `scope`, timestamps/expiry, reviewer, summary, `openDefects: []`, limitation
+list, `runtimeManifest` and immutable `runtimeArtifact`. Set both `kind` and
+`verdict` to `owner-accepted-experimental-beta`, and `semanticApproved: false`.
+`userAcceptance` must contain the actual reference/time, `releaseVersion:
+"v0.3.1-beta.1"`, and `acceptsIncompleteModelValidation: true`.
+
+Every shipping model retains its exact ID/hash/size, `verdict: "unverified"`, a
+limitation summary, and a `validation` array in this order: baseline/en,
+baseline/zh-Hans, avx2/en, avx2/zh-Hans. Each observation has `variant`,
+`targetLanguage`, and one honest `status`: `not-run`, `timed-out`, `incomplete`, or
+`complete-unreviewed`. `not-run` requires null `configuration`, `runnerOutput` and
+`technicalResults`. Executed observations require exact-byte `{path, sha256}`
+references to their original configuration, runner output and operational results.
+Keep historical source/runtime fingerprints and the actual 300-second budget;
+never rewrite old evidence to 600 seconds. Timeouts/incomplete outputs must retain
+`complete: false`. Cancellation, cleanup and unchanged-input checks must be true;
+accepted limitations cannot waive those failures. The known 1.8B baseline English
+32/43 and Chinese 33/40 timeouts remain failures; 7B completion remains unverified.
+
+The live approval remains pending until this real record and successful runtime
+artifact exist. This preparation changes no approval to a synthetic pass. The
+workflow records `ai_publication_authorized` separately from
+`ai_semantic_approved`; the experimental path sets only the former true. Final
+runtime inventories, release file hashes, exact commit, main/actor restrictions,
+expiry and immediate pre-publication checks apply to both paths. The existing
+publication bridge remains the sole bridge to the canonical Release workflow.
+
 ## Shipping scope
 
 The scope is derived from the actual catalog `All` list. It currently contains
-only `AiLyricsModelCatalog.ExperimentalPlain` (`hy-mt2-18-q8-plain-beta`), the pinned
-Tencent Hy Q8 file. `Standard` and `Compact` remain legacy descriptors for local
+`AiLyricsModelCatalog.ExperimentalPlain` (`hy-mt2-18-q8-plain-beta`) and
+`ExperimentalLargePlain` (`hy-mt2-7b-q8-plain-beta`), the existing pinned Tencent Hy Q8 files. `Standard` and `Compact` remain legacy descriptors for local
 inspection/removal; they are not shipping selections and need no new model approval.
 
 The production contract is explicit:
@@ -27,8 +74,8 @@ shared resident `BuildArguments` implementation and compiled helper sampler vect
 release version and original `inputs/source48.json`. Resident startup arguments normalize only the model path to `$MODEL`.
 The separately recorded `samplerArguments` come from the fixed native helper
 source; its LF-normalized CMake/header/C++ source digest is also manifest-bound. No JSON grammar is
-used by this profile. The current whole-song limit is 300 seconds; each native
-call remains bounded at 60 seconds with the production 3 GiB model budget.
+used by this profile. The current whole-song processing limit is 600 seconds, independent of audio duration; each native
+call remains bounded at 60 seconds with the production 3 GiB (1.8B) or 12 GiB (7B) model budget.
 
 The model sees only the actual official target/source template. Host IDs are
 attached after inference. Unknown or same-target copied lines remain neutral;
