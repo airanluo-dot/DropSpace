@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "repository": "airanluo-dot/DropSpace",
+  "workflowPath": ".github/workflows/release.yml",
+  "runId": 37091472691,
+  "runAttempt": 1,
+  "headCommit": "017c8aa4622aac1bf0e6e2fe128ed9655a4eacff",
+  "checkoutCommit": "017c8aa4622aac1bf0e6e2fe128ed9655a4eacff",
+  "artifactId": 11263666426,
+  "artifactName": "ai-candidate-runtime-37091472691-1",
+  "archiveSha256": "c3572770b0f83b7b10ae937b1d8f3e04167524f0aff89bd58c1b403be5d71ac1",
+  "files": [
+    {
+      "path": "LICENSE-llama.cpp",
+      "sha256": "03c07ba3cbfe0108dcbd5911d6d63f51754514abedb12b128a21a4c8cf316f35",
+      "bytes": 150940
+    },
+    {
+      "path": "llama-completion-avx2.exe",
+      "sha256": "3259d35d07aac8597032166d15149b78cb4175b0d2501ca0ac0778149a55d923",
+      "bytes": 6858752
+    },
+    {
+      "path": "llama-completion.exe",
+      "sha256": "fa4d676f9b07e7e60c575b8fa352668381369e42696e19b52eb35014d71025c5",
+      "bytes": 6727680
+    },
+    {
+      "path": "llama-tokenize.exe",
+      "sha256": "7df0a0d2cb32bc7bc86fb3bd99004a3c24ed2771d39d990faa95abeed82875c8",
+      "bytes": 6511104
+    },
+    {
+      "path": "plain-lyrics-worker-avx2.exe",
+      "sha256": "1ec5a7ac717f06a94664af4a9c717d6b985f029999a93c74aa8e9377203540f1",
+      "bytes": 6797312
+    },
+    {
+      "path": "plain-lyrics-worker-vulkan.exe",
+      "sha256": "62b5b37770351ad6351b6df04bff5fd0e21db05ceb487454e776641d969257db",
+      "bytes": 50860032
+    },
+    {
+      "path": "plain-lyrics-worker.exe",
+      "sha256": "7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec",
+      "bytes": 6665728
+    },
+    {
+      "path": "runtime-manifest.json",
+      "sha256": "a637cddc1d792becb1a3950e35fba162577f7b43cadef0daa81db0a545845a95",
+      "bytes": 1930
+    }
+  ]
+}

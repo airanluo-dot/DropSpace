@@ -1,0 +1,20 @@
+{
+  "cancellationObserved": true,
+  "cleanupConfirmed": true,
+  "observedProcess": {
+    "id": 7056,
+    "startedAt": "2026-10-03T03:32:09.4298976Z",
+    "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+    "observedAt": "2026-10-03T03:32:09Z",
+    "workingSetBytes": 2433024,
+    "peakWorkingSetBytes": 2433024,
+    "privateMemoryBytes": 1376256
+  },
+  "cancellationRequestedAt": "2026-10-03T03:32:09Z",
+  "caughtCancellation": true,
+  "drainCompleted": true,
+  "observedProcessStillAlive": false,
+  "promptsRemoved": true,
+  "elapsedMilliseconds": 214.3413,
+  "error": null
+}

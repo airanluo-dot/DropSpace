@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "production-gpu-default-probe",
+  "gpuEnabled": true,
+  "complete": true,
+  "actualBackend": "cpu",
+  "usedCpuFallback": true,
+  "deviceVendor": "unverified",
+  "targetLanguage": "en",
+  "fixtureLineId": 12,
+  "sourceText": "朝の光を紙の舟に折る。",
+  "prompt": "将以下文本翻译为英语，注意只需要输出翻译后的结果，不要额外解释：\n朝の光を紙の舟に折る。",
+  "output": "Fold the morning light into a paper boat.",
+  "outcome": "Translated",
+  "elapsedMilliseconds": 11085.9368,
+  "cleanupConfirmed": true,
+  "observedProcess": {
+    "id": 7412,
+    "startedAt": "2026-10-03T03:32:10.2109985Z",
+    "executable": "D:\\a\\DropSpace\\DropSpace\\artifacts\\plain-hy-production-evidence\\production-plain-hy-37091472691-1-baseline\\runtime-cache\\llama-cpp-v0.5.0-cpu-win-x64\\7c32538ff54f33bdeb2b77fc3f7b2a20eeaee5d5e4ee5c811905f16b808bceec\\plain-lyrics-worker.exe",
+    "observedAt": "2026-10-03T03:32:20Z",
+    "workingSetBytes": 2232238080,
+    "peakWorkingSetBytes": 2233688064,
+    "privateMemoryBytes": 2539679744
+  },
+  "runtimeManifestSha256": "a637cddc1d792becb1a3950e35fba162577f7b43cadef0daa81db0a545845a95",
+  "model": {
+    "id": "hy-mt2-18-q8-plain-beta",
+    "sha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+    "bytes": 1908528192
+  },
+  "fixtureSha256": "63266d20dbcd7ce93249f1b1a808a56317fa981c1bf3146a9750ffc53bc26549",
+  "sourceFingerprintSha256": "ae766e4906e4883baea7764e761af03531263d2c016225d88a2b65f87676e22f",
+  "residentSourceSha256": "9b6ddee0fb3238bf3341755a2f71ee76ccd82290118146a2a6328ce7e06276a2",
+  "error": null,
+  "hostMemoryBefore": {
+    "observedAt": "2026-10-03T03:32:09Z",
+    "observation": "before-request; production performs its own admission again before every CPU load",
+    "availablePhysicalBytes": 13817577472,
+    "availableCommitBytes": 17260183552,
+    "requiredAvailableBytes": 4294967296,
+    "policy": "process-cap-plus-1GiB-reserve; conservative engineering allowance, not measured peak"
+  }
+}
