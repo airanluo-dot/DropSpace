@@ -126,6 +126,10 @@ public sealed class OverlayMotionController
 
     public bool IsAnimating => _channels.Any(channel => !channel.IsSettled);
 
+    public bool IsGeometryAnimating =>
+        !_channels[0].IsSettled || !_channels[1].IsSettled || !_channels[2].IsSettled ||
+        !_channels[3].IsSettled || !_channels[4].IsSettled;
+
     public OverlayMotionProfileSet Profiles => _profiles;
 
     public void SetTarget(OverlayMotionValues target, bool reducedMotion)
