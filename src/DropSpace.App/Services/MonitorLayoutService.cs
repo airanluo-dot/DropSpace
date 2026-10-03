@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Text;
 using DropSpace.Core.Overlay;
 using Microsoft.Extensions.Logging;
@@ -38,10 +39,17 @@ public sealed class MonitorLayoutService(
     private const int StyleIndex = -16;
     private const int ExtendedStyleIndex = -20;
     private const int DwmWindowAttributeCloaked = 14;
+    private IReadOnlyDictionary<string, double> _refreshRates =
+        new Dictionary<string, double>(StringComparer.Ordinal);
+
+    // This lookup never enumerates displays or calls a native API.
+    public double? GetCachedRefreshRateHz(string monitorId) =>
+        Volatile.Read(ref _refreshRates).TryGetValue(monitorId, out var rate) ? rate : null;
 
     public IReadOnlyList<MonitorDescriptor> GetMonitors()
     {
         var monitors = new List<MonitorDescriptor>();
+        var refreshRates = new Dictionary<string, double>(StringComparer.Ordinal);
         EnumDisplayMonitors(nint.Zero, nint.Zero, (monitor, _, _, _) =>
         {
             var info = new MonitorInfoEx
@@ -56,6 +64,11 @@ public sealed class MonitorLayoutService(
 
             var dpi = GetMonitorDpi(monitor);
             var identity = displayIdentity.Resolve(monitor, info.DeviceName);
+            if (identity.RefreshRateHz is { } rate && double.IsFinite(rate) && rate > 0)
+            {
+                refreshRates[identity.Id] = rate;
+            }
+
             monitors.Add(new MonitorDescriptor(
                 identity.Id,
                 monitor,
@@ -78,6 +91,9 @@ public sealed class MonitorLayoutService(
             throw new InvalidOperationException("Windows did not report an active display.");
         }
 
+        // Publish a completed immutable-by-convention snapshot. Subsequent enumerations
+        // replace it; they never mutate a dictionary being read by animation callbacks.
+        Volatile.Write(ref _refreshRates, refreshRates);
         return monitors;
     }
 

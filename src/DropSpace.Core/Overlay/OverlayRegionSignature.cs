@@ -42,13 +42,16 @@ public readonly record struct OverlayRegionSignature(
         OverlayShapeMode shapeMode = OverlayShapeMode.AsymmetricRounded)
     {
         var scale = double.IsFinite(dpiScale) && dpiScale > 0 ? dpiScale : 1;
+        var width = DipToPixels(widthDip, scale);
+        var height = DipToPixels(heightDip, scale);
+        var maximumRadius = Math.Min(width / 2, height / 2);
         return new OverlayRegionSignature(
             leftPixels,
             topPixels,
-            DipToPixels(widthDip, scale),
-            DipToPixels(heightDip, scale),
-            DipToPixels(topRadiusDip, scale),
-            DipToPixels(bottomRadiusDip, scale),
+            width,
+            height,
+            Math.Min(DipToPixels(topRadiusDip, scale), maximumRadius),
+            Math.Min(DipToPixels(bottomRadiusDip, scale), maximumRadius),
             (int)Math.Clamp(Math.Round(scale * 1_000, MidpointRounding.AwayFromZero), 1, int.MaxValue),
             shapeMode);
     }
@@ -74,7 +77,9 @@ public readonly record struct OverlayRegionSignature(
             return 0;
         }
 
-        return (int)Math.Clamp(Math.Round(dip * scale, MidpointRounding.AwayFromZero), 1, int.MaxValue);
+        // Match the host's existing ToPixels policy, including half-pixel ties. Do not
+        // invent a one-pixel radius when a positive subpixel radius rounds to zero.
+        return (int)Math.Clamp(Math.Round(dip * scale, MidpointRounding.ToEven), 0, int.MaxValue);
     }
 }
 

@@ -52,6 +52,7 @@ public sealed partial class OverlayWindow : Window
     private readonly OleDragDropService _dragDropService;
     private readonly QuickActionDialogService _quickActionDialog;
     private readonly nint _windowHandle;
+    private readonly OverlayTransparentHostController _transparentHost;
     private readonly SystemVisualPreferenceService _visualPreferences;
     private readonly OverlayMaterialController _materialController;
     private readonly OverlayCompositionAnimator _compositionAnimator;
@@ -62,9 +63,16 @@ public sealed partial class OverlayWindow : Window
     private OleDropTargetRegistration? _nativeDropTarget;
     private OverlayState _previousState = OverlayState.Hidden;
     private long _lastFrameTimestamp;
+    private long _lastAnimationGlowRefresh;
     private bool _isActiveWindow;
     private bool _isVisible;
     private bool _hasFrameSubscription;
+    private bool _displayAnimationFrames;
+    private readonly OverlayFramePacer _framePacer = new();
+    private readonly IslandMotionBlurPolicy _motionBlurPolicy = new();
+    // Private diagnostic control; no settings or steady-state polling.
+    private bool _motionBlurEnabled = true;
+    private IslandMotionPhase _motionBlurPhase;
     private bool _hideWhenSettled;
     private bool _suppressedForFullscreen;
     private bool _forceFullscreenPresentation;
@@ -139,133 +147,159 @@ public sealed partial class OverlayWindow : Window
         ClipboardIslandViewModel clipboardViewModel,
         SystemActivityViewModel systemActivityViewModel)
     {
-        _viewModel = viewModel;
-        _widgetViewModel = widgetViewModel;
-        _strings = strings;
-        _monitor = monitor;
-        _monitorLayout = monitorLayout;
-        _openMainWindow = openMainWindow;
         _logger = logger;
-        _visualDragCallbacks = dragCallbacks;
-        _dragDropService = dragDropService;
-        _quickActionDialog = quickActionDialog;
-        _visualPreferences = visualPreferences;
-        _experience = experience; _mediaViewModel = mediaViewModel;
-        _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
-        _animationTimerHandler = OnAnimationFrame;
-        _animationTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
-        _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
-        _animationTimer.IsRepeating = true;
-        _animationTimer.Tick += _animationTimerHandler;
         try
         {
-            InitializeComponent();
-        }
-        catch (Exception exception)
-        {
-            throw new InvalidOperationException("Overlay-window XAML initialization failed.", exception);
-        }
+            _windowHandle = WindowNative.GetWindowHandle(this);
+            _transparentHost = new OverlayTransparentHostController(_windowHandle);
+            Closed += OnTransparentHostClosed;
+            _viewModel = viewModel;
+            _widgetViewModel = widgetViewModel;
+            _strings = strings;
+            _monitor = monitor;
+            _monitorLayout = monitorLayout;
+            _openMainWindow = openMainWindow;
+            _visualDragCallbacks = dragCallbacks;
+            _dragDropService = dragDropService;
+            _quickActionDialog = quickActionDialog;
+            _visualPreferences = visualPreferences;
+            _experience = experience; _mediaViewModel = mediaViewModel;
+            _operatingSystemBuild = capabilities.Snapshot.OperatingSystem.Build;
+            _animationTimerHandler = OnTimerAnimationFrame;
+            _animationTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+            _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
+            _animationTimer.IsRepeating = true;
+            _animationTimer.Tick += _animationTimerHandler;
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidOperationException("Overlay-window XAML initialization failed.", exception);
+            }
 
-        XamlResourceOverride.Apply(this, "OverlayWindow");
-        Root.DataContext = viewModel;
-        _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
-        _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
-        _rightHoldTimer.IsRepeating = false;
-        _rightHoldTimer.Tick += (_, _) =>
-        {
-            if (_rightHoldPointer is not null && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove)
-                PlacementEditRequested?.Invoke(this, MonitorId);
-        };
-        Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
-        Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
-        Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => { _rightHoldTimer.Stop(); _rightHoldPointer = null; }), true);
-        Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
-        {
-            if (_placementEditActive) return;
-            _rightHoldTimer.Stop(); _rightHoldPointer = null;
-        }), true);
-        MusicCompact.ViewModel = mediaViewModel;
-        MusicExpanded.ViewModel = mediaViewModel;
-        WidgetsExpanded.ViewModel = widgetViewModel;
-        WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
-        ClipboardExpanded.ViewModel = clipboardViewModel;
-        ActivityCompact.DataContext = systemActivityViewModel;
-        MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
-        _materialController = new OverlayMaterialController(
-            AcrylicBackdrop,
-            FallbackSurface,
-            capabilities);
-        _compositionAnimator = new OverlayCompositionAnimator(
-            Surface,
-            CompactPanel,
-            DragPanel,
-            ExpandedPanel,
-            SurfaceContent,
-            InteractionTintOverlay);
-        _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
-        _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));
-        _visualPreferences.Changed += OnSystemVisualPreferencesChanged;
+            XamlResourceOverride.Apply(this, "OverlayWindow");
+            Root.DataContext = viewModel;
+            _rightHoldTimer = DispatcherQueue.GetForCurrentThread().CreateTimer();
+            _rightHoldTimer.Interval = OverlayPlacementEditSession.HoldDuration;
+            _rightHoldTimer.IsRepeating = false;
+            _rightHoldTimer.Tick += (_, _) =>
+            {
+                if (_rightHoldPointer is not null && _mediaViewModel.Settings.IslandAppearance.RightClickHoldToMove)
+                    PlacementEditRequested?.Invoke(this, MonitorId);
+            };
+            Surface.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnSurfacePointerPressed), true);
+            Surface.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnSurfacePointerReleased), true);
+            Surface.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => { _rightHoldTimer.Stop(); _rightHoldPointer = null; }), true);
+            Surface.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((_, _) =>
+            {
+                if (_placementEditActive) return;
+                _rightHoldTimer.Stop(); _rightHoldPointer = null;
+            }), true);
+            MusicCompact.ViewModel = mediaViewModel;
+            MusicExpanded.ViewModel = mediaViewModel;
+            WidgetsExpanded.ViewModel = widgetViewModel;
+            WidgetsExpanded.PinnedRequested += (_, _) => { _openMainWindow(); _experience.Collapse(); _viewModel.Collapse(); };
+            ClipboardExpanded.ViewModel = clipboardViewModel;
+            ActivityCompact.DataContext = systemActivityViewModel;
+            MusicCompact.IdealWidthChanged += OnMediaGeometryChanged;
+            _materialController = new OverlayMaterialController(
+                AcrylicBackdrop,
+                FallbackSurface,
+                capabilities);
+            _compositionAnimator = new OverlayCompositionAnimator(
+                Surface,
+                CompactPanel,
+                DragPanel,
+                ExpandedPanel,
+                SurfaceContent,
+                InteractionTintOverlay);
+            _motion = new OverlayMotionOrchestrator(OverlayMotionValues.Hidden, _compositionAnimator);
+            _materialController.Apply(_visualPreferences.Resolve(viewModel.MotionPreference));
+            _visualPreferences.Changed += OnSystemVisualPreferencesChanged;
 
-        var presenter = OverlappedPresenter.Create();
-        presenter.SetBorderAndTitleBar(false, false);
-        presenter.IsAlwaysOnTop = true;
-        presenter.IsResizable = false;
-        presenter.IsMaximizable = false;
-        presenter.IsMinimizable = false;
-        AppWindow.SetPresenter(presenter);
-        AppWindow.IsShownInSwitchers = false;
-        _windowHandle = WindowNative.GetWindowHandle(this);
-        _nativeRegionController = new OverlayNativeRegionController(_windowHandle, _monitor.Scale);
-        _glow = new IslandGlowController(_windowHandle, _monitor.Scale, DispatcherQueue.GetForCurrentThread(), logger);
-        _mediaViewModel.PropertyChanged += OnGlowMediaChanged;
-        MusicCompact.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
-        MusicExpanded.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
-        _supportsModernDwmAttributes = capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes);
-        var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
-            _windowHandle,
-            capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
-        foreach (var failure in nativeConfiguration.Failures)
-        {
-            LogNativeFailure(failure);
-        }
-        _nativeConfigurationDiagnostics = nativeConfiguration.Failures.Count == 0
-            ? "none"
-            : string.Join(
-                "|",
-                nativeConfiguration.Failures.Select(failure =>
-                    $"{failure.Operation}:critical={failure.Critical},win32={failure.Win32Error},hr=0x{failure.HResult:X8}"));
-        _resolvedPlacement = ResolvePlacement(
-            FileDragWakeMode.SmartExperimental,
-            new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
-        var hostGeometrySafe = PositionFixedHost();
-        // A newly-created WinUI HWND can report its pre-layout client size until the first
-        // show/layout pass. Keep the native configuration result authoritative here and
-        // revalidate the fixed client surface immediately before every visible transition.
-        _nativeWindowSafeToShow = nativeConfiguration.IsSafeToShow;
-        if (!hostGeometrySafe)
-        {
-            _logger.LogWarning(
-                "Overlay HWND {WindowHandle} on monitor {MonitorId} did not report its fixed client geometry during initial construction; it will be revalidated before showing.",
+            var presenter = AppWindow.Presenter as OverlappedPresenter
+                ?? throw new InvalidOperationException("Overlay window requires its existing overlapped presenter.");
+            presenter.SetBorderAndTitleBar(false, false);
+            presenter.IsAlwaysOnTop = true;
+            presenter.IsResizable = false;
+            presenter.IsMaximizable = false;
+            presenter.IsMinimizable = false;
+            AppWindow.IsShownInSwitchers = false;
+            SystemBackdrop = new IslandTransparentBackdrop();
+            _nativeRegionController = new OverlayNativeRegionController(_windowHandle);
+            _glow = new IslandGlowController(_windowHandle, _monitor.Scale, DispatcherQueue.GetForCurrentThread(), logger);
+            _mediaViewModel.PropertyChanged += OnGlowMediaChanged;
+            MusicCompact.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
+            MusicExpanded.TranslationVisibilityChanged += OnGlowTranslationVisibilityChanged;
+            _supportsModernDwmAttributes = capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes);
+            var nativeConfiguration = OverlayWindowInterop.ConfigureVisualWindow(
                 _windowHandle,
-                _monitor.Id);
+                capabilities.IsAvailable(WindowsCapability.ModernDwmAttributes));
+            foreach (var failure in nativeConfiguration.Failures)
+            {
+                LogNativeFailure(failure);
+            }
+            _nativeConfigurationDiagnostics = nativeConfiguration.Failures.Count == 0
+                ? "none"
+                : string.Join(
+                    "|",
+                    nativeConfiguration.Failures.Select(failure =>
+                        $"{failure.Operation}:critical={failure.Critical},win32={failure.Win32Error},hr=0x{failure.HResult:X8}"));
+            _resolvedPlacement = ResolvePlacement(
+                FileDragWakeMode.SmartExperimental,
+                new OverlayMonitorPlacement(OverlayPlacementMode.Automatic, 0, 0));
+            var hostGeometrySafe = PositionFixedHost();
+            // A newly-created WinUI HWND can report its pre-layout client size until the first
+            // show/layout pass. Keep the native configuration result authoritative here and
+            // revalidate the fixed client surface immediately before every visible transition.
+            _nativeWindowSafeToShow = nativeConfiguration.IsSafeToShow;
+            if (!hostGeometrySafe)
+            {
+                _logger.LogWarning(
+                    "Overlay HWND {WindowHandle} on monitor {MonitorId} did not report its fixed client geometry during initial construction; it will be revalidated before showing.",
+                    _windowHandle,
+                    _monitor.Id);
+            }
+            if (!nativeConfiguration.IsSafeToShow)
+            {
+                _logger.LogError(
+                    "Overlay HWND {WindowHandle} on monitor {MonitorId} will remain hidden because its borderless native configuration was not safe to show.",
+                    _windowHandle,
+                    _monitor.Id);
+            }
+            if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
+            {
+                LogNativeFailure(emptyRegionFailure);
+                _nativeWindowSafeToShow = false;
+            }
+            if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
+            {
+                LogNativeFailure(hideFailure);
+                _nativeWindowSafeToShow = false;
+            }
         }
-        if (!nativeConfiguration.IsSafeToShow)
+        catch
         {
-            _logger.LogError(
-                "Overlay HWND {WindowHandle} on monitor {MonitorId} will remain hidden because its borderless native configuration was not safe to show.",
-                _windowHandle,
-                _monitor.Id);
+            StopAnimationFrames();
+            Closed -= OnTransparentHostClosed;
+            try { _transparentHost?.Dispose(); }
+            catch (Win32Exception exception) { _logger.LogError(exception, "Overlay erase-hook cleanup failed during construction."); }
+            try { Close(); }
+            catch (Exception exception) { _logger.LogError(exception, "Failed to close an incompletely initialized overlay."); }
+            throw;
         }
-        if (!_nativeRegionController.ApplyEmpty(out var emptyRegionFailure))
-        {
-            LogNativeFailure(emptyRegionFailure);
-            _nativeWindowSafeToShow = false;
-        }
-        if (!OverlayWindowInterop.Hide(_windowHandle, out var hideFailure))
-        {
-            LogNativeFailure(hideFailure);
-            _nativeWindowSafeToShow = false;
-        }
+    }
+
+    private void OnTransparentHostClosed(object sender, WindowEventArgs args)
+    {
+        _windowClosed = true;
+        _closing = true;
+        StopAnimationFrames();
+        Closed -= OnTransparentHostClosed;
+        try { _transparentHost?.Dispose(); }
+        catch (Win32Exception exception) { _logger.LogError(exception, "Overlay erase-hook cleanup failed; the callback remains retained until HWND destruction."); }
     }
 
     public string MonitorId => _monitor.Id;
@@ -624,19 +658,34 @@ public sealed partial class OverlayWindow : Window
             _motion.PulseDropTarget(OverlayMotionTokens.DropConfirmationScale);
         }
 
-        _motion.SetTarget(target, IsReducedMotion());
-        StartAnimationFrames();
+        var reducedMotion = IsReducedMotion();
+        var expandedTransition = (_previousState == OverlayState.Expanded) != (snapshot.State == OverlayState.Expanded);
+        if (expandedTransition && !reducedMotion)
+        {
+            ResetMotionBlur();
+            if (_motionBlurEnabled) _materialController.PrepareMotion();
+            _motionBlurPhase = snapshot.State == OverlayState.Expanded
+                ? IslandMotionPhase.Opening : IslandMotionPhase.Closing;
+        }
+        else if (reducedMotion) ResetMotionBlur();
+        _motion.SetTarget(target, reducedMotion);
+        StartAnimationFrames(preferDisplayCadence: !reducedMotion && expandedTransition);
         _previousState = snapshot.State;
         UpdateGlowTarget();
     }
 
     private bool _closing;
+    private bool _shutdownStarted;
+    private bool _windowClosed;
 
     public void CloseForShutdown()
     {
-        if (_closing) return;
+        if (_shutdownStarted) return;
+        _shutdownStarted = true;
         _glowTransfer = null;
         _closing = true;
+        StopAnimationFrames();
+        _animationTimer.Tick -= _animationTimerHandler;
         _windowLifetime.Cancel();
         Views.ContentDialogLifetime.RetireRoot(Root.XamlRoot);
         _mediaViewModel.PropertyChanged -= OnGlowMediaChanged;
@@ -652,9 +701,6 @@ public sealed partial class OverlayWindow : Window
             EndPlacementEditVisuals();
         }
         _suppressedForPlacementEdit = false;
-        StopAnimationFrames();
-        _animationTimer.Stop();
-        _animationTimer.Tick -= _animationTimerHandler;
         RevokeNativeDropTarget();
         _visualPreferences.Changed -= OnSystemVisualPreferencesChanged;
         _motion.Dispose();
@@ -664,7 +710,7 @@ public sealed partial class OverlayWindow : Window
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
-        Close();
+        if (!_windowClosed) Close();
     }
 
     private void OnGlowMediaChanged(object? sender, PropertyChangedEventArgs args)
@@ -866,6 +912,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideImmediately()
     {
+        StopAnimationFrames();
         _glowTransfer = null;
         _presentedState = OverlayState.Hidden;
         _mediaViewModel.SetIslandGlowActive(this, false);
@@ -873,7 +920,6 @@ public sealed partial class OverlayWindow : Window
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
-        StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
@@ -913,6 +959,7 @@ public sealed partial class OverlayWindow : Window
 
     private void HideForNativeFailure()
     {
+        StopAnimationFrames();
         _glowTransfer = null;
         _presentedState = OverlayState.Hidden;
         _mediaViewModel.SetIslandGlowActive(this, false);
@@ -921,7 +968,6 @@ public sealed partial class OverlayWindow : Window
         ClipboardExpanded.SetActive(false);
         _mediaViewModel.SetPresentationVisible(this, false);
         _nativeWindowSafeToShow = false;
-        StopAnimationFrames();
         CompactPanel.Visibility = Visibility.Collapsed;
         DragPanel.Visibility = Visibility.Collapsed;
         ExpandedPanel.Visibility = Visibility.Collapsed;
@@ -945,6 +991,7 @@ public sealed partial class OverlayWindow : Window
 
     private void BeginFullscreenSuppression(OverlaySnapshot snapshot, FileDragWakeMode wakeMode)
     {
+        ResetMotionBlur();
         _glowTransfer = null;
         WidgetsExpanded.SetActive(false);
         ClipboardExpanded.SetActive(false);
@@ -989,6 +1036,8 @@ public sealed partial class OverlayWindow : Window
             return true;
         }
 
+        // Host/DPI changes invalidate the continuous physical pose history.
+        ResetMotionBlur();
         // The animated HRGN is expressed in client coordinates. ResizeClient keeps that
         // coordinate space exact even when Windows reports a presenter-specific outer frame;
         // Move uses independent screen coordinates for the host's origin. During a display/DPI
@@ -1048,31 +1097,66 @@ public sealed partial class OverlayWindow : Window
                 HostContentScale),
             placement);
 
-    private void StartAnimationFrames()
+    internal void RefreshAnimationRefreshRate() =>
+        _framePacer.SetRefreshRate(_monitorLayout.GetCachedRefreshRateHz(MonitorId));
+
+    private void StartAnimationFrames(bool preferDisplayCadence = false)
     {
+        if (_closing) return;
         _motionSettled ??= new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var useDisplayCadence = preferDisplayCadence && !IsReducedMotion() && _motion.IsGeometryAnimating;
         if (_hasFrameSubscription)
         {
+            if (useDisplayCadence && !_displayAnimationFrames) UseDisplayAnimationFrames();
             return;
         }
 
         _lastFrameTimestamp = Stopwatch.GetTimestamp();
+        _hasFrameSubscription = true;
+        if (useDisplayCadence)
+        {
+            UseDisplayAnimationFrames();
+            return;
+        }
+        UseTimerAnimationFrames();
+    }
+
+    private void UseDisplayAnimationFrames()
+    {
+        if (_displayAnimationFrames) return;
+        _animationTimer.Stop();
+        RefreshAnimationRefreshRate();
+        _framePacer.Reset();
+        _displayAnimationFrames = true;
+        CompositionTarget.Rendering += OnDisplayAnimationFrame;
+    }
+
+    private void UseTimerAnimationFrames()
+    {
+        ResetMotionBlur();
+        if (_displayAnimationFrames)
+        {
+            CompositionTarget.Rendering -= OnDisplayAnimationFrame;
+            _displayAnimationFrames = false;
+            _framePacer.Reset();
+        }
         _animationTimer.Interval = AnimationTimerInterval;
         if (!_animationTimer.IsRunning)
         {
             _animationTimer.Start();
         }
-        _hasFrameSubscription = true;
     }
 
     private void StopAnimationFrames()
     {
-        if (!_hasFrameSubscription)
+        ResetMotionBlur();
+        _animationTimer?.Stop();
+        if (_displayAnimationFrames)
         {
-            return;
+            CompositionTarget.Rendering -= OnDisplayAnimationFrame;
+            _displayAnimationFrames = false;
         }
-
-        _animationTimer.Stop();
+        _framePacer.Reset();
         _hasFrameSubscription = false;
     }
 
@@ -1093,22 +1177,62 @@ public sealed partial class OverlayWindow : Window
         settled?.TrySetResult(null);
     }
 
+    private void OnTimerAnimationFrame(DispatcherQueueTimer sender, object args)
+    {
+        if (!_displayAnimationFrames) OnAnimationFrame(sender, args);
+    }
+
+    private void OnDisplayAnimationFrame(object? sender, object args)
+    {
+        if (_displayAnimationFrames) OnAnimationFrame(sender, args);
+    }
+
     private void OnAnimationFrame(object? sender, object args)
     {
+        if (_closing || !_hasFrameSubscription) return;
+        try { ApplyAnimationFrame(); }
+        catch
+        {
+            StopAnimationFrames();
+            throw;
+        }
+    }
+
+    private void ApplyAnimationFrame()
+    {
         var now = Stopwatch.GetTimestamp();
+        if (_displayAnimationFrames && !_framePacer.ShouldRender(now)) return;
         var elapsed = Stopwatch.GetElapsedTime(_lastFrameTimestamp, now);
         _lastFrameTimestamp = now;
+        var previousBlurGeometry = ProjectMotionBlurGeometry(_motion.Current);
         _motion.Step(elapsed);
+        var blurFrame = _motionBlurPolicy.Update(
+            previousBlurGeometry, ProjectMotionBlurGeometry(_motion.Current), elapsed, _motionBlurPhase,
+            enabled: _motionBlurEnabled && _displayAnimationFrames,
+            visible: _isVisible && !_hideWhenSettled,
+            animated: _motion.IsGeometryAnimating, reducedMotion: IsReducedMotion());
         _pageTransition.Step(elapsed);
         ApplyPageTransition();
 
-        if (!ApplyMotionFrame(_motion.Current))
+        // A display-rate geometry driver does not raise the cadence of media/glow
+        // eligibility polling. Its existing independent glow timer is unchanged.
+        var refreshGlowTarget = !_displayAnimationFrames ||
+            Stopwatch.GetElapsedTime(_lastAnimationGlowRefresh, now) >= AnimationTimerInterval ||
+            (!_motion.IsAnimating && !_pageTransition.IsAnimating);
+        if (refreshGlowTarget) _lastAnimationGlowRefresh = now;
+        if (!ApplyMotionFrame(_motion.Current, updateGlowTarget: refreshGlowTarget))
         {
+            StopAnimationFrames();
             return;
         }
 
+        // Publish the shutter only after XAML, the AA mask and native region succeeded.
+        _materialController.SetMotion(blurFrame);
+
         if (_motion.IsAnimating || _pageTransition.IsAnimating)
         {
+            if (_displayAnimationFrames && (!_motion.IsGeometryAnimating || IsReducedMotion()))
+                UseTimerAnimationFrames();
             return;
         }
 
@@ -1158,6 +1282,7 @@ public sealed partial class OverlayWindow : Window
     private void OnSystemVisualPreferencesChanged(object? sender, EventArgs args)
     {
         if (_closing) return;
+        ResetMotionBlur();
         _materialController.Apply(_visualPreferences.Resolve(_viewModel.MotionPreference));
         UpdateGlowTarget();
         if (_presentationSnapshot is { State: not OverlayState.Hidden } snapshot)
@@ -1197,24 +1322,35 @@ public sealed partial class OverlayWindow : Window
     {
         values = ProjectMotionToHostSurface(values.ProjectToSafeRange());
         _compositionAnimator.ApplyMotion(values);
-        Surface.Width = values.Width;
-        Surface.Height = values.Height;
-        Surface.CornerRadius = new CornerRadius(
-            values.TopRadius,
-            values.TopRadius,
-            values.BottomRadius,
-            values.BottomRadius);
-        _materialController.SetCornerRadius(Surface.CornerRadius);
-        InteractionTintOverlay.CornerRadius = Surface.CornerRadius;
-        SurfaceTransform.TranslateY = values.TopOffset;
-        SurfaceTransform.ScaleX = values.DropTargetScale;
-        SurfaceTransform.ScaleY = values.DropTargetScale;
+        var geometry = OverlayFrameGeometry.Create(values, HostWidth, _monitor.Scale);
+        var signature = geometry.Region;
+        Surface.Width = geometry.WidthDips;
+        Surface.Height = geometry.HeightDips;
+        var radius = new CornerRadius(geometry.TopRadiusDips,
+            geometry.TopRadiusDips, geometry.BottomRadiusDips, geometry.BottomRadiusDips);
+        Surface.CornerRadius = new CornerRadius(0);
+        _materialController.SetCornerRadius(radius);
+        InteractionTintOverlay.CornerRadius = radius;
+        SurfaceTransform.ScaleX = geometry.SurfaceScale;
+        SurfaceTransform.ScaleY = geometry.SurfaceScale;
         CollapseInvisibleContent(values);
 
-        var width = ToPixels(values.Width * values.DropTargetScale);
-        var height = ToPixels(values.Height * values.DropTargetScale);
-        var left = (ToPixels(HostWidth) - width) / 2;
-        var top = ToPixels(values.TopOffset + values.Height * (1 - values.DropTargetScale) / 2);
+        // Width/Height setters invalidate arrange; the native region and mask otherwise
+        // advance ahead of the allocated backdrop during a resize frame. Resolve only
+        // a changed allocation before publishing that frame's physical coverage.
+        if (Root.ActualWidth > 0 &&
+            (Math.Abs(Surface.ActualWidth - geometry.WidthDips) > 0.01 ||
+             Math.Abs(Surface.ActualHeight - geometry.HeightDips) > 0.01))
+            Surface.UpdateLayout();
+        var rootWidth = Root.ActualWidth > 0 ? Root.ActualWidth : HostWidth;
+        SurfaceTransform.TranslateX = geometry.TranslationXDips(rootWidth);
+        SurfaceTransform.TranslateY = geometry.TranslationYDips;
+        _materialController.SetGeometry(signature);
+
+        var width = signature.WidthPixels;
+        var height = signature.HeightPixels;
+        var left = signature.LeftPixels;
+        var top = signature.TopPixels;
         var hostWidth = ToPixels(HostWidth);
         var hostHeight = ToPixels(HostHeight);
         if (left < 0 || top < 0 || width <= 0 || height <= 0 ||
@@ -1250,18 +1386,13 @@ public sealed partial class OverlayWindow : Window
             }
 
             _glow.SetGeometry(left, top, width, height,
-                ToPixels(values.TopRadius), ToPixels(values.BottomRadius), 0);
+                signature.TopRadiusPixels, signature.BottomRadiusPixels, 0);
             if (updateGlowTarget) UpdateGlowTarget();
             return true;
         }
 
         if (!_nativeRegionController.Apply(
-                left,
-                top,
-                width,
-                height,
-                values.TopRadius,
-                values.BottomRadius,
+                signature,
                 out var regionFailure))
         {
             Interlocked.Increment(ref _regionFailureCount);
@@ -1276,9 +1407,28 @@ public sealed partial class OverlayWindow : Window
         // Apply the body's region before presenting its underlapping light, so a
         // geometry transition cannot expose the next glow contour above the old body.
         _glow.SetGeometry(left, top, width, height,
-            ToPixels(values.TopRadius), ToPixels(values.BottomRadius), values.Opacity);
+            signature.TopRadiusPixels, signature.BottomRadiusPixels, values.Opacity);
         if (updateGlowTarget) UpdateGlowTarget();
         return true;
+    }
+
+    private void ResetMotionBlur()
+    {
+        _motionBlurPhase = IslandMotionPhase.Stable;
+        _motionBlurPolicy.Reset();
+        _materialController?.SetMotion(IslandMotionBlurFrame.None);
+    }
+
+    private IslandMotionGeometry ProjectMotionBlurGeometry(OverlayMotionValues values)
+    {
+        values = ProjectMotionToHostSurface(values.ProjectToSafeRange());
+        var scale = Math.Min(values.DropTargetScale, 1);
+        var width = values.Width * scale * _monitor.Scale;
+        var height = values.Height * scale * _monitor.Scale;
+        return new IslandMotionGeometry(
+            (HostWidth * _monitor.Scale - width) / 2,
+            (values.TopOffset + values.Height * (1 - scale) / 2) * _monitor.Scale,
+            width, height);
     }
 
     private OverlayMotionValues ProjectMotionToHostSurface(OverlayMotionValues values)
@@ -1466,6 +1616,7 @@ public sealed partial class OverlayWindow : Window
 
     public void BeginPlacementEdit(OverlayCustomPlacement savedOriginal, OverlayCustomPlacement projectedStart)
     {
+        ResetMotionBlur();
         _suppressedForPlacementEdit = false;
         _placementEdit.Arm(savedOriginal, projectedStart);
         _placementEditActive = true;

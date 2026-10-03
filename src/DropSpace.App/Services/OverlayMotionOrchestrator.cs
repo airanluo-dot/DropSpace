@@ -30,6 +30,8 @@ internal sealed class OverlayMotionOrchestrator : IDisposable
 
     public bool IsAnimating => Controller.IsAnimating;
 
+    public bool IsGeometryAnimating => Controller.IsGeometryAnimating;
+
     public long Generation { get; private set; }
 
     public void SetTarget(OverlayMotionValues target, bool reducedMotion)

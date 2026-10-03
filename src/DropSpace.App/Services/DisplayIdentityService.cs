@@ -6,7 +6,8 @@ namespace DropSpace.App.Services;
 public sealed record DisplayIdentityResolution(
     string Id,
     bool IsPersistent,
-    string? DevicePath);
+    string? DevicePath,
+    double? RefreshRateHz = null);
 
 /// <summary>
 /// Resolves a runtime HMONITOR to the active DisplayConfig target device path. The path is hashed
@@ -21,15 +22,17 @@ public sealed class DisplayIdentityService
 
     public DisplayIdentityResolution Resolve(nint monitorHandle, string? gdiDeviceName)
     {
-        var devicePath = string.IsNullOrWhiteSpace(gdiDeviceName)
+        var target = string.IsNullOrWhiteSpace(gdiDeviceName)
             ? null
             : TryResolveTargetPath(gdiDeviceName);
-        return devicePath is not null
-            ? new DisplayIdentityResolution(DisplayIdentity.CreatePersistentId(devicePath), true, devicePath)
+        return target is { } resolved
+            ? new DisplayIdentityResolution(
+                DisplayIdentity.CreatePersistentId(resolved.DevicePath), true,
+                resolved.DevicePath, resolved.RefreshRateHz)
             : new DisplayIdentityResolution(DisplayIdentity.CreateRuntimeFallbackId(monitorHandle), false, null);
     }
 
-    private static string? TryResolveTargetPath(string gdiDeviceName)
+    private static (string DevicePath, double? RefreshRateHz)? TryResolveTargetPath(string gdiDeviceName)
     {
         try
         {
@@ -99,10 +102,18 @@ public sealed class DisplayIdentityService
                             MonitorFriendlyDeviceName = string.Empty,
                             MonitorDevicePath = string.Empty,
                         };
-                        return DisplayConfigGetDeviceInfo(ref targetName) == 0 &&
-                               !string.IsNullOrWhiteSpace(targetName.MonitorDevicePath)
-                            ? targetName.MonitorDevicePath
+                        if (DisplayConfigGetDeviceInfo(ref targetName) != 0 ||
+                            string.IsNullOrWhiteSpace(targetName.MonitorDevicePath))
+                        {
+                            return null;
+                        }
+
+                        var refreshRate = path.TargetInfo.RefreshRate;
+                        double? refreshRateHz = path.TargetInfo.TargetAvailable != 0 &&
+                                                refreshRate.Numerator != 0 && refreshRate.Denominator != 0
+                            ? refreshRate.Numerator / (double)refreshRate.Denominator
                             : null;
+                        return (targetName.MonitorDevicePath, refreshRateHz);
                     }
 
                     return null;

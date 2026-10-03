@@ -9,13 +9,11 @@ namespace DropSpace.App.Services;
 internal sealed class OverlayNativeRegionController
 {
     private readonly nint _windowHandle;
-    private readonly double _scale;
     private readonly OverlayRegionUpdatePolicy _policy = new();
 
-    public OverlayNativeRegionController(nint windowHandle, double scale)
+    public OverlayNativeRegionController(nint windowHandle)
     {
         _windowHandle = windowHandle;
-        _scale = scale;
     }
 
     public long FailureCount { get; private set; }
@@ -25,22 +23,9 @@ internal sealed class OverlayNativeRegionController
     public OverlayRegionSignature? LastApplied => _policy.LastApplied;
 
     public bool Apply(
-        int left,
-        int top,
-        int width,
-        int height,
-        double topRadiusDip,
-        double bottomRadiusDip,
+        OverlayRegionSignature signature,
         out OverlayNativeFailure? failure)
     {
-        var signature = OverlayRegionSignature.Create(
-            left,
-            top,
-            width / _scale,
-            height / _scale,
-            topRadiusDip,
-            bottomRadiusDip,
-            _scale);
         if (!_policy.ShouldApply(signature))
         {
             failure = null;
@@ -57,10 +42,10 @@ internal sealed class OverlayNativeRegionController
 
         if (!OverlayWindowInterop.ApplyVisualRegion(
                 _windowHandle,
-                left,
-                top,
-                width,
-                height,
+                signature.LeftPixels,
+                signature.TopPixels,
+                signature.WidthPixels,
+                signature.HeightPixels,
                 signature.TopRadiusPixels,
                 signature.BottomRadiusPixels,
                 out failure))

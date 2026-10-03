@@ -17,7 +17,7 @@ internal sealed class IslandGlowRasterizer
     private static readonly double[] GaussianSamples = CreateGaussianSamples();
     private static readonly DistanceProfile[] DistanceProfiles = CreateDistanceProfiles();
     private readonly record struct DistanceProfile(double Distance, double Coverage, double BaseLight, double CoreLight);
-    private readonly record struct Sample(int Pixel, int Lookup, float SimplifiedCoverage);
+    private readonly record struct Sample(int Pixel, int Lookup, int SimplifiedLookup, float SimplifiedCoverage);
     private readonly Sample[] _samples;
     private readonly int[] _lookup = new int[AroundSteps * DistanceSteps];
     private readonly double[] _frameBands = new double[6];
@@ -71,12 +71,31 @@ internal sealed class IslandGlowRasterizer
                 var around = (position + .75) % 1;
                 var aroundIndex = Math.Min(AroundSteps - 1, (int)(around * AroundSteps));
                 var distanceIndex = Math.Clamp((int)((distance + InnerOverlapDips) * DistanceSteps / (PaddingDips + InnerOverlapDips)), 0, DistanceSteps - 1);
-                var fromBottom = Math.Min(position, 1 - position);
-                // Approximately the lower quarter of the perimeter, feathered
-                // through the last third of each end instead of a radial cut.
-                var coverage = Math.Clamp((.125 - fromBottom) / .04, 0, 1);
+                // The source covers the entire bottom tangent and 45 degrees of
+                // each lower corner, counted from its lowest point. Project that
+                // source downward; the endpoint feather belongs to the source,
+                // not a hard cut through the resulting light field.
+                var tangent = halfWidth - bottomRadius;
+                var sourceEndX = tangent + bottomRadius / Math.Sqrt(2);
+                var sourceX = Math.Min(Math.Abs(dx), sourceEndX);
+                var cornerX = Math.Max(0, sourceX - tangent);
+                var sourceY = halfHeight - bottomRadius + Math.Sqrt(Math.Max(0, bottomRadius * bottomRadius - cornerX * cornerX));
+                var sourceArc = sourceX <= tangent ? sourceX : tangent + bottomRadius * Math.Asin(cornerX / bottomRadius);
+                var projectedDistance = (dy - sourceY) / scale;
+                var projectedArc = dx >= 0 ? sourceArc : perimeter - sourceArc;
+                var projectedAround = (projectedArc / perimeter + .75) % 1;
+                var projectedAroundIndex = Math.Min(AroundSteps - 1, (int)(projectedAround * AroundSteps));
+                var projectedDistanceIndex = Math.Clamp((int)((projectedDistance + InnerOverlapDips) * DistanceSteps /
+                    (PaddingDips + InnerOverlapDips)), 0, DistanceSteps - 1);
+                var bottomCornerEnd = tangent + Math.PI * bottomRadius / 4;
+                var feather = Math.Max(scale, Math.PI * bottomRadius / 16);
+                var coverage = Math.Clamp((bottomCornerEnd + feather / 2 - sourceArc) / feather, 0, 1);
                 coverage = coverage * coverage * (3 - 2 * coverage);
-                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex, (float)coverage));
+                var lateral = Math.Max(0, Math.Abs(dx) - sourceEndX) / scale;
+                coverage *= Gaussian(lateral / (1.8 + .45 * Math.Max(0, projectedDistance)));
+                if (projectedDistance <= -InnerOverlapDips || projectedDistance >= PaddingDips - 1) coverage = 0;
+                samples.Add(new Sample(y * Width + x, aroundIndex * DistanceSteps + distanceIndex,
+                    projectedAroundIndex * DistanceSteps + projectedDistanceIndex, (float)coverage));
             }
         }
         _samples = samples.ToArray();
@@ -192,14 +211,15 @@ internal sealed class IslandGlowRasterizer
         foreach (var sample in _samples)
         {
             var pixel = _lookup[sample.Lookup];
-            if (simplification == 0 || sample.SimplifiedCoverage == 1) { Pixels[sample.Pixel] = pixel; continue; }
-            var coverage = 1 - simplification + simplification * sample.SimplifiedCoverage;
+            if (simplification == 0) { Pixels[sample.Pixel] = pixel; continue; }
+            var projected = _lookup[sample.SimplifiedLookup];
+            var coverage = simplification * sample.SimplifiedCoverage;
             // Scale every premultiplied channel together; transparent endpoints
             // must not leave RGB residue when the mode switches repeatedly.
-            var a = (int)Math.Round(((uint)pixel >> 24) * coverage);
-            var r = (int)Math.Round(((pixel >> 16) & 255) * coverage);
-            var g = (int)Math.Round(((pixel >> 8) & 255) * coverage);
-            var b = (int)Math.Round((pixel & 255) * coverage);
+            var a = (int)Math.Round(((uint)pixel >> 24) * (1 - simplification) + ((uint)projected >> 24) * coverage);
+            var r = (int)Math.Round(((pixel >> 16) & 255) * (1 - simplification) + ((projected >> 16) & 255) * coverage);
+            var g = (int)Math.Round(((pixel >> 8) & 255) * (1 - simplification) + ((projected >> 8) & 255) * coverage);
+            var b = (int)Math.Round((pixel & 255) * (1 - simplification) + (projected & 255) * coverage);
             Pixels[sample.Pixel] = a << 24 | r << 16 | g << 8 | b;
         }
         return true;

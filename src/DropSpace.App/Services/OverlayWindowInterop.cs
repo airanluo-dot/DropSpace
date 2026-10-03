@@ -24,7 +24,6 @@ internal static class OverlayWindowInterop
     private const uint SetWindowPositionFrameChanged = 0x0020;
     private const int ShowNoActivate = 4;
     private const int ShowHide = 0;
-    private const int RegionOr = 2;
     private const int DwmWindowAttributeNonClientRenderingPolicy = 2;
     private const int DwmWindowAttributeCornerPreference = 33;
     private const int DwmWindowAttributeBorderColor = 34;
@@ -354,7 +353,7 @@ internal static class OverlayWindowInterop
                 checked(top + clientOrigin.Y - windowBounds.Top),
                 width,
                 height,
-                Math.Max(topRadius, 1),
+                topRadius,
                 bottomRadius,
                 out var creationFailure);
             if (region == nint.Zero)
@@ -418,7 +417,10 @@ internal static class OverlayWindowInterop
         out OverlayNativeFailure? failure)
     {
         failure = null;
-        if (width <= 0 || height <= 0)
+        const int minimumCoordinate = -(1 << 26);
+        const int maximumCoordinate = (1 << 26) - 1;
+        if (width <= 0 || height <= 0 || left < minimumCoordinate || top < minimumCoordinate ||
+            (long)left + width > maximumCoordinate || (long)top + height > maximumCoordinate)
         {
             failure = new OverlayNativeFailure("Validate overlay HRGN geometry", true, 87);
             return nint.Zero;
@@ -426,63 +428,65 @@ internal static class OverlayWindowInterop
 
         topRadius = Math.Clamp(topRadius, 0, Math.Min(width / 2, height / 2));
         bottomRadius = Math.Clamp(bottomRadius, 0, Math.Min(width / 2, height / 2));
-        var destination = CreateRectRgn(
-            left,
-            top + topRadius,
-            left + width,
-            Math.Max(top + topRadius + 1, top + height - bottomRadius));
-        var topPart = topRadius == 0
-            ? CreateRectRgn(left, top, left + width, top + 1)
-            : CreateRoundRectRgn(
-                left,
-                top,
-                left + width,
-                top + topRadius * 2,
-                topRadius * 2,
-                topRadius * 2);
-        var bottomPart = bottomRadius == 0
-            ? CreateRectRgn(left, top + height - 1, left + width, top + height)
-            : CreateRoundRectRgn(
-            left,
-                Math.Max(top, top + height - bottomRadius * 2),
-            left + width,
-                top + height,
-                bottomRadius * 2,
-                bottomRadius * 2);
-        if (destination == nint.Zero || topPart == nint.Zero || bottomPart == nint.Zero)
+        var right = left + width;
+        var bottom = top + height;
+        var rectangles = new List<NativeRectangle>();
+        for (var y = 0; y < topRadius; y++)
+            AddSpan(CoverageInset(topRadius, topRadius - y - 1), y, y + 1);
+        if (topRadius < height - bottomRadius)
+            AddSpan(0, topRadius, height - bottomRadius);
+        for (var y = height - bottomRadius; y < height; y++)
+            AddSpan(CoverageInset(bottomRadius, y - (height - bottomRadius)), y, y + 1);
+
+        // RGNDATAHEADER (32 bytes), followed by sorted, non-overlapping RECTs.
+        // An included cell has positive-area intersection with the ideal body.
+        // HRGN is still binary: this retains material AA support, not its alpha.
+        var data = new int[8 + rectangles.Count * 4];
+        data[0] = 32;
+        data[1] = 1; // RDH_RECTANGLES
+        data[2] = rectangles.Count;
+        data[3] = rectangles.Count * 16;
+        data[4] = left; data[5] = top; data[6] = right; data[7] = bottom;
+        for (var index = 0; index < rectangles.Count; index++)
         {
-            if (destination != nint.Zero)
-            {
-                DeleteObject(destination);
-            }
-
-            if (topPart != nint.Zero)
-            {
-                DeleteObject(topPart);
-            }
-
-            if (bottomPart != nint.Zero)
-            {
-                _ = DeleteObject(bottomPart);
-            }
-
-            failure = new OverlayNativeFailure("Create overlay HRGN components", true, Marshal.GetLastWin32Error());
-            return nint.Zero;
+            var rectangle = rectangles[index];
+            var offset = 8 + index * 4;
+            data[offset] = rectangle.Left; data[offset + 1] = rectangle.Top;
+            data[offset + 2] = rectangle.Right; data[offset + 3] = rectangle.Bottom;
         }
+        var region = ExtCreateRegion(nint.Zero, checked((uint)(data.Length * sizeof(int))), data);
+        if (region == nint.Zero)
+            failure = new OverlayNativeFailure("ExtCreateRegion(coverage-region)", true, Marshal.GetLastWin32Error());
+        return region;
 
-        if (CombineRgn(destination, destination, topPart, RegionOr) == 0 ||
-            CombineRgn(destination, destination, bottomPart, RegionOr) == 0)
+        void AddSpan(int inset, int firstRow, int lastRow)
         {
-            _ = DeleteObject(destination);
-            _ = DeleteObject(topPart);
-            _ = DeleteObject(bottomPart);
-            failure = new OverlayNativeFailure("CombineRgn(overlay-region)", true, Marshal.GetLastWin32Error());
-            return nint.Zero;
+            var span = new NativeRectangle { Left = left + inset, Top = top + firstRow,
+                Right = right - inset, Bottom = top + lastRow };
+            if (rectangles.Count > 0)
+            {
+                var previous = rectangles[^1];
+                if (previous.Left == span.Left && previous.Right == span.Right && previous.Bottom == span.Top)
+                {
+                    previous.Bottom = span.Bottom;
+                    rectangles[^1] = previous;
+                    return;
+                }
+            }
+            rectangles.Add(span);
         }
+    }
 
-        _ = DeleteObject(topPart);
-        _ = DeleteObject(bottomPart);
-        return destination;
+    private static int CoverageInset(int radius, int nearestYDistance)
+    {
+        // Strict square/circle intersection: q^2 < r^2 - d^2. Use an integer
+        // corrected root so a tangent-only corner cell stays excluded, even
+        // when double sqrt rounds a near-square value to an integer.
+        var squaredReach = (long)radius * radius - (long)nearestYDistance * nearestYDistance;
+        var reach = (int)Math.Sqrt(squaredReach);
+        while ((long)reach * reach < squaredReach) reach++;
+        while (reach > 0 && (long)(reach - 1) * (reach - 1) >= squaredReach) reach--;
+        return radius - reach;
     }
 
     public static bool TryGetClientSize(nint window, out int width, out int height)
@@ -659,17 +663,8 @@ internal static class OverlayWindowInterop
     [DllImport("gdi32.dll")]
     private static extern nint CreateRectRgn(int left, int top, int right, int bottom);
 
-    [DllImport("gdi32.dll")]
-    private static extern nint CreateRoundRectRgn(
-        int left,
-        int top,
-        int right,
-        int bottom,
-        int ellipseWidth,
-        int ellipseHeight);
-
-    [DllImport("gdi32.dll")]
-    private static extern int CombineRgn(nint destination, nint source1, nint source2, int mode);
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern nint ExtCreateRegion(nint transform, uint byteCount, [In] int[] data);
 
     [DllImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

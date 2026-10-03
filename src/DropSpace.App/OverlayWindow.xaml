@@ -15,13 +15,14 @@
     Background="Transparent">
     <Border
       x:Name="Surface"
+      UseLayoutRounding="False"
       HorizontalAlignment="Center"
       VerticalAlignment="Top"
       Width="{StaticResource DropSpaceOverlayCompactWidth}"
       Height="{StaticResource DropSpaceOverlayCompactHeight}"
       Background="Transparent"
       BorderThickness="0"
-      CornerRadius="{StaticResource DropSpaceOverlayRadius}"
+      CornerRadius="0"
       AllowDrop="True"
       DragEnter="OnSurfaceDragEnter"
       DragOver="OnSurfaceDragOver"
@@ -36,25 +37,28 @@
         <CompositeTransform x:Name="SurfaceTransform" />
       </Border.RenderTransform>
 
-      <Grid>
+      <Grid UseLayoutRounding="False">
         <controls:SystemBackdropElement
           x:Name="AcrylicBackdrop"
+          UseLayoutRounding="False"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
-          CornerRadius="{StaticResource DropSpaceOverlayRadius}"
+          CornerRadius="0"
           Visibility="Collapsed" />
         <Border
           x:Name="FallbackSurface"
+          UseLayoutRounding="False"
           Background="{StaticResource DropSpaceOverlayFallbackBrush}"
           CornerRadius="{StaticResource DropSpaceOverlayRadius}"
           IsHitTestVisible="False" />
         <Border
           x:Name="InteractionTintOverlay"
+          UseLayoutRounding="False"
           Background="{StaticResource DropSpaceOverlayInteractionBrush}"
           CornerRadius="{StaticResource DropSpaceOverlayRadius}"
           IsHitTestVisible="False"
           Opacity="0" />
-        <Grid x:Name="SurfaceContent">
+        <Grid x:Name="SurfaceContent" UseLayoutRounding="True">
         <Grid>
         <Button
           x:Name="CompactPanel"
