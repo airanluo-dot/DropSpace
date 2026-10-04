@@ -25,7 +25,7 @@ Save("identity", new {
     diagnosticOnly = true, observedAtUtc = DateTimeOffset.UtcNow, model.Id, model.DownloadUri, model.Sha256, model.Bytes,
     runtime = manifestJson.RootElement.Clone(), runtimeArtifactId = Environment.GetEnvironmentVariable("RUNTIME_ARTIFACT_ID"),
     archiveSha256 = Environment.GetEnvironmentVariable("RUNTIME_ARCHIVE_SHA256"),
-    artifactName = $"ai-selection-runtime-{Environment.GetEnvironmentVariable("GITHUB_RUN_ID")}-{Environment.GetEnvironmentVariable("GITHUB_RUN_ATTEMPT")}",
+    artifactName = $"ai-candidate-runtime-{Environment.GetEnvironmentVariable("GITHUB_RUN_ID")}-{Environment.GetEnvironmentVariable("GITHUB_RUN_ATTEMPT")}",
     processArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
     scope = "Three hand-annotated metadata fixtures, no provider traffic or private lyrics. CPU only; no semantic release approval.",
     selectionDeadlineMilliseconds = 500, preparationSeconds = 60, memoryPolicy = "Production 1.8B admission and resident monitor; no override",
