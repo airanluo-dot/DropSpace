@@ -5,11 +5,13 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
+public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? timeProvider = null) : IProgressiveLyricsProvider, ILyricsResponseCache
 {
+    private readonly NetEaseResponseCache _responses = new(http, timeProvider);
     private const int MaximumLyricCandidates = 3;
     internal const int DataRevision = 2;
     public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
+    public void ClearResponseCache() => _responses.Clear();
 
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
         => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
@@ -27,9 +29,9 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
         foreach (var terms in searches)
         {
             if (remaining == 0) break;
-            using var search = await http.GetAsync(
+            using var search = await _responses.GetAsync(
                 $"https://music.163.com/api/search/get/web?s={Escape(terms)}&type=1&offset=0&total=true&limit=30",
-                cancellationToken);
+                cancellationToken, query.BypassProviderResponseCache);
             ThrowIfRejected(search.RootElement);
             foreach (var candidate in Candidates(search.RootElement, query)
                 .Where(value => value.Score >= 4 && attempted.Add(value.Id))
@@ -50,9 +52,9 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
 
     private async Task<LyricsDocument> ReadLyricsAsync(Candidate candidate, LyricsQuery query, CancellationToken token)
     {
-        using var lyric = await http.GetAsync(
+        using var lyric = await _responses.GetAsync(
             $"https://music.163.com/api/song/lyric?id={Escape(candidate.Id)}&lv=1&kv=1&tv=-1&yv=1&ytv=1",
-            token);
+            token, query.BypassProviderResponseCache);
         var root = lyric.RootElement;
         ThrowIfRejected(root);
         var yrc = NestedText(root, "yrc", "lyric");
@@ -133,7 +135,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
     private static void ThrowIfRejected(JsonElement root)
     {
         var code = Number(root, "code");
-        if (code > 0 && code != 200) throw new LyricsProviderRejectedException("NetEase lyrics API rejected the request.");
+        if (code > 0 && code != 200) throw new LyricsProviderRejectedException("NetEase lyrics API rejected the request.", (int)code);
     }
 
     private sealed record Candidate(string Id, string Title, string Artist, string Album, double Duration, double Score);

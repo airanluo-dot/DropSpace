@@ -37,4 +37,7 @@ internal sealed class LyricsCandidateRequests
 
 // API status codes are provider-specific and may indicate an access or rate-limit
 // block. Do not treat them as a broken recording and probe other candidates.
-internal sealed class LyricsProviderRejectedException(string message) : HttpRequestException(message);
+internal sealed class LyricsProviderRejectedException(string message, int? apiCode = null) : HttpRequestException(message)
+{
+    public int? ApiCode { get; } = apiCode;
+}

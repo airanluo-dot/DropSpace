@@ -12,17 +12,20 @@ public sealed class LyricsService
     private readonly LyricsProviderRegistry _providers;
     private readonly LyricsCache? _cache;
     private readonly MemoryCache _memory = new();
+    private readonly Action<LyricsDiagnostic>? _diagnostic;
     private readonly TimeSpan _providerTimeout = TimeSpan.FromSeconds(8);
     private readonly System.Collections.Concurrent.ConcurrentDictionary<LyricsProviderKind, SemaphoreSlim> _providerGates = new();
 
     // Compatibility callers retain a bounded process-memory cache; production injects
     // the shared persistent store explicitly. No temporary directory is owned here.
-    public LyricsService(LyricsProviderRegistry providers) => _providers = providers;
+    public LyricsService(LyricsProviderRegistry providers, Action<LyricsDiagnostic>? diagnostic = null)
+    { _providers = providers; _diagnostic = diagnostic; }
 
-    public LyricsService(LyricsProviderRegistry providers, LyricsCache cache)
+    public LyricsService(LyricsProviderRegistry providers, LyricsCache cache, Action<LyricsDiagnostic>? diagnostic = null)
     {
         _providers = providers;
         _cache = cache;
+        _diagnostic = diagnostic;
     }
     internal LyricsService(LyricsProviderRegistry providers, TimeSpan providerTimeout)
     {
@@ -36,6 +39,7 @@ public sealed class LyricsService
     public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (refresh) query = query with { BypassProviderResponseCache = true };
         if (!settings.Enabled || string.IsNullOrWhiteSpace(query.Title)) return new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
         var kind = settings.Mode == LyricsMode.LocalLrc ? LyricsProviderKind.LocalLrc : settings.Provider;
         // Keep sub-second duration differences in the cache key. A same-metadata Apple Music
@@ -199,6 +203,7 @@ public sealed class LyricsService
     private sealed record ProviderResult(LyricsDocument Document, bool Failed);
     private async Task<ProviderResult> QueryProviderAsync(LyricsProviderKind kind, LyricsQuery query, CancellationToken token, Action<LyricsDocument> reportCandidate, CancellationToken presentationDeadline)
     {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var cancellation = new ProviderCancellation(token, _providerTimeout);
         var requestToken = cancellation.Token;
         var presentationToken = cancellation.PresentationToken;
@@ -219,6 +224,9 @@ public sealed class LyricsService
         }
         catch (OperationCanceledException)
         {
+            LyricsDiagnostics.Report(_diagnostic, new(kind, LyricsDiagnosticStage.Query,
+                token.IsCancellationRequested ? LyricsDiagnosticOutcome.Cancelled : LyricsDiagnosticOutcome.Timeout,
+                (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds));
             // Let cooperative HTTP/stream cleanup finish before returning, but keep a
             // bounded waiter if a transport ignores cancellation. The invocation still
             // owns its gate and timeout after this small retirement grace expires.
@@ -237,6 +245,7 @@ public sealed class LyricsService
     private async Task<ProviderResult> InvokeProviderAsync(LyricsProviderKind kind, LyricsQuery query,
         CancellationToken token, ProviderCancellation cancellation, SemaphoreSlim gate, Action<LyricsDocument> reportCandidate)
     {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             token.ThrowIfCancellationRequested();
@@ -247,9 +256,23 @@ public sealed class LyricsService
             // Cancellation wins even when a transport returns a stale success instead of throwing.
             token.ThrowIfCancellationRequested();
             reportCandidate(document);
-            return new(Validate(document, query), false);
+            var validated = Validate(document, query);
+            LyricsDiagnostics.Report(_diagnostic, new(kind, LyricsDiagnosticStage.Query,
+                validated.Lines.Count > 0 ? LyricsDiagnosticOutcome.Found : LyricsDiagnosticOutcome.NoMatch,
+                (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                validated.Lines.Count, validated.Lines.Count(line => !string.IsNullOrWhiteSpace(line.Secondary))));
+            return new(validated, false);
         }
-        catch (Exception error) when (error is not OutOfMemoryException) { return new(LyricsDocument.Empty, true); }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            if (error is not OperationCanceledException)
+                LyricsDiagnostics.Report(_diagnostic, new(kind, LyricsDiagnosticStage.Query,
+                LyricsDiagnostics.Classify(error, token.IsCancellationRequested),
+                (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                ApiCode: (error as LyricsProviderRejectedException)?.ApiCode,
+                HttpStatus: error is HttpRequestException httpError ? (int?)httpError.StatusCode : null));
+            return new(LyricsDocument.Empty, true);
+        }
         finally { await cancellation.CompleteAsync().ConfigureAwait(false); gate.Release(); }
     }
 
@@ -381,9 +404,11 @@ public sealed class LyricsService
     }
     public void ClearCache()
     {
+        ClearResponseCaches();
         if (_cache is null) _memory.Clear();
         else _cache.Clear();
     }
+    public void ClearResponseCaches() => _providers.ClearResponseCaches();
 
     private sealed class MemoryCache
     {

@@ -277,7 +277,8 @@ public sealed class LyricsProviderTransportTests
         Assert.AreEqual("The night is full of stars.", result.Document.Lines.Single().Text);
         Assert.AreEqual(3, lyricCalls);
         await service.QueryDetailedAsync(query, settings, default);
-        Assert.AreEqual(6, lyricCalls, "The incomplete search must not become a successful cache entry.");
+        Assert.AreEqual(netEase ? 5 : 6, lyricCalls,
+            "Retry failed candidates; NetEase may reuse the one successful original response without caching an incomplete source result.");
     }
 
     [TestMethod]

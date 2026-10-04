@@ -3,13 +3,52 @@ using System.Text.Json;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class LyricsHttpClient(HttpClient client)
+public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>? diagnostic = null)
 {
     private const int MaximumResponseBytes = 3 * 1024 * 1024;
+    internal void ReportNetEaseReuse() => LyricsDiagnostics.Report(diagnostic,
+        new(DropSpace.Core.Models.LyricsProviderKind.NetEase, LyricsDiagnosticStage.Reuse, LyricsDiagnosticOutcome.Found, 0));
     private static readonly HashSet<string> Hosts = new(StringComparer.OrdinalIgnoreCase)
     { "music.163.com", "c.y.qq.com", "lyrics.kugou.com", "songsearch.kugou.com", "lrclib.net", "api.amll.dev" };
 
     public async Task<JsonDocument> GetAsync(string url, CancellationToken token, string? referer = null)
+    {
+        var uri = new Uri(url);
+        var provider = uri.Host.ToLowerInvariant() switch
+        {
+            "music.163.com" => DropSpace.Core.Models.LyricsProviderKind.NetEase,
+            "c.y.qq.com" => DropSpace.Core.Models.LyricsProviderKind.QqMusic,
+            "lyrics.kugou.com" or "songsearch.kugou.com" => DropSpace.Core.Models.LyricsProviderKind.Kugou,
+            "lrclib.net" => DropSpace.Core.Models.LyricsProviderKind.Lrclib,
+            _ => DropSpace.Core.Models.LyricsProviderKind.Amll,
+        };
+        var stage = uri.AbsolutePath.Contains("search", StringComparison.OrdinalIgnoreCase)
+            ? LyricsDiagnosticStage.Search : LyricsDiagnosticStage.Lyric;
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
+            var (document, status) = await GetCoreAsync(url, token, referer).ConfigureAwait(false);
+            var code = Number(document.RootElement, "code");
+            var rejected = provider == DropSpace.Core.Models.LyricsProviderKind.NetEase && code > 0 && code != 200;
+            LyricsDiagnostics.Report(diagnostic, new(provider, stage,
+                code == 405 && rejected ? LyricsDiagnosticOutcome.RateLimited :
+                rejected ? LyricsDiagnosticOutcome.Rejected : LyricsDiagnosticOutcome.Found,
+                (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                HttpStatus: status, ApiCode: document.RootElement.ValueKind == JsonValueKind.Object &&
+                    document.RootElement.TryGetProperty("code", out _) && code >= int.MinValue && code <= int.MaxValue ? (int)code : null));
+            return document;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            LyricsDiagnostics.Report(diagnostic, new(provider, stage,
+                LyricsDiagnostics.Classify(error, token.IsCancellationRequested),
+                (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                HttpStatus: error is HttpRequestException httpError ? (int?)httpError.StatusCode : null));
+            throw;
+        }
+    }
+
+    private async Task<(JsonDocument Document, int Status)> GetCoreAsync(string url, CancellationToken token, string? referer)
     {
         var uri = new Uri(url);
         if (uri.Scheme != "https" || !Hosts.Contains(uri.Host) || !uri.IsDefaultPort || !string.IsNullOrEmpty(uri.UserInfo)) throw new InvalidDataException("Untrusted lyrics host.");
@@ -47,7 +86,7 @@ public sealed class LyricsHttpClient(HttpClient client)
             if (begin < 0 || end <= begin) throw new InvalidDataException("Invalid lyrics response.");
             json = json[(begin + 1)..end];
         }
-        return JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 });
+        return (JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 }), (int)response.StatusCode);
     }
 
     // The production transport disables automatic redirects. Follow only bounded,
