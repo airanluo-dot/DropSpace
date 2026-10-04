@@ -197,13 +197,13 @@ public static class LyricsMatcher
         var b = SearchTitle(right);
         var am = BilingualTitle.Match(a);
         var bm = BilingualTitle.Match(b);
-        return bm.Success && Normalize(a) == Normalize(bm.Groups[1].Value) ||
-            am.Success && Normalize(b) == Normalize(am.Groups[1].Value);
+        return bm.Success && ArtistCreditOrthography.Fold(a) == ArtistCreditOrthography.Fold(bm.Groups[1].Value) ||
+            am.Success && ArtistCreditOrthography.Fold(b) == ArtistCreditOrthography.Fold(am.Groups[1].Value);
     }
 
     private static string ComparableTitle(string value)
     {
-        return Normalize(SearchTitle(value));
+        return ArtistCreditOrthography.Fold(SearchTitle(value));
     }
 
     private static double Similarity(string left, string right)

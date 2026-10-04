@@ -7,6 +7,21 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsArtistMatchingTests
 {
     [TestMethod]
+    public void GeneralTitleOrthographyPreservesRecordingIdentityGuards()
+    {
+        var query = new LyricsQuery("小幸运", "田馥甄", "", TimeSpan.FromSeconds(260));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent(query.Title, "小幸運"));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "小幸運", "田馥甄", "", 260));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent("爱与诚", "愛與誠"));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent("爱与诚 [国语版]", "愛與誠 [國語版]"));
+        Assert.IsFalse(LyricsMatcher.AreTitlesEquivalent("爱与诚 [国语版]", "愛與誠 [粵語版]"));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "小幸運 (Live)", "田馥甄", "", 260));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "小幸運", "Other Artist", "", 260));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "小幸運", "田馥甄", "", 100));
+        Assert.IsFalse(LyricsMatcher.AreTitlesEquivalent("乾杯", "干杯")); // Ambiguous dictionary mapping stays distinct.
+    }
+
+    [TestMethod]
     public void GeneralArtistOrthographyAndSourceAliasesPreserveIdentityConflicts()
     {
         foreach (var pair in new[] { ("邓紫棋", "鄧紫棋"), ("张学友", "張學友"), ("陈奕迅", "陳奕迅"), ("郑秀文", "鄭秀文") })
