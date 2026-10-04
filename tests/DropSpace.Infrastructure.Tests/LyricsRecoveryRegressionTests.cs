@@ -10,7 +10,7 @@ public sealed class LyricsRecoveryRegressionTests
 {
     private static readonly TimeSpan Budget = TimeSpan.FromSeconds(3);
     private static readonly LyricsQuery Query = new("Track", "Artist", "", TimeSpan.Zero);
-    private static readonly LyricsSettings Settings = new() { Enabled = true };
+    private static readonly LyricsSettings Settings = new() { Enabled = true, SearchRemainingProviders = false };
 
     [TestMethod]
     public async Task RapidTrackChanges_CancelOldRequests_KeepProviderAndLatestCache()

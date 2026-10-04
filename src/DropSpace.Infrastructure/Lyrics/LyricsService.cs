@@ -129,7 +129,7 @@ public sealed class LyricsService
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { document = PreferTranslation(document, candidates.Document, target); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)); }
     }
-    // One 1.5-second budget starts at the first validated original, including
+    // One 3-second budget starts at the first validated original, including
     // originals discovered inside a provider. Backup/candidate changes never reset it.
     private sealed class CandidateSearch : IDisposable
     {
@@ -159,7 +159,7 @@ public sealed class LyricsService
                 if (!_started && NeedsTranslationSearch(_document, _target))
                 {
                     _started = true;
-                    _budget.CancelAfter(TimeSpan.FromMilliseconds(1500));
+                    _budget.CancelAfter(TimeSpan.FromSeconds(3));
                 }
             }
         }

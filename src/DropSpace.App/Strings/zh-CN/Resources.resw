@@ -615,18 +615,18 @@
   <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>静夜里，歌声仍在继续。</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>恢复默认歌词字号</value></data>
-  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词（Beta）</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI 歌词</value></data>
   <data name="AiLyricsDescription" xml:space="preserve"><value>在本机将缺失的译文补充为 App 当前语言，优先使用语言匹配的歌词源译文。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。已完成的译文会逐行显示。AI 可能误译含义；不会为 AI 翻译上传歌词。</value></data>
-  <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译（Beta）</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>启用 AI 歌词翻译</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU 加速</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>优先使用兼容的 GPU 加速 AI 翻译；GPU 不可用或运行失败时自动改用 CPU。关闭后仅使用 CPU。调整此选项不会启用 AI 或下载模型。</value></data>
   <data name="AiLyricsModel" xml:space="preserve"><value>翻译模型</value></data>
   <data name="AiLyricsStandardModel" xml:space="preserve"><value>标准模型（旧版 Q4）</value></data>
   <data name="AiLyricsSmallerModel" xml:space="preserve"><value>精简模型（旧版 IQ3）</value></data>
-  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0（Beta）</value></data>
-  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0（Beta）</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0</value></data>
   <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>可选的较大模型（7.98 GB）。比 1.8B 占用更多内存，启用 GPU 加速时也需要更多显存。运行可能更慢，不保证翻译质量或速度有所提升。已有模型下载会保留，需手动删除以释放空间。</value></data>
-  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>用于本地歌词翻译的腾讯 Q8 模型（Beta）。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。译文可能出现含义错误。</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>用于本地歌词翻译的腾讯 Q8 模型。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。译文可能出现含义错误。</value></data>
   <data name="AiLyricsLegacyModels" xml:space="preserve"><value>旧版模型文件</value></data>
   <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>这些旧版模型文件已不再用于翻译，可删除以释放磁盘空间。</value></data>
   <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>删除{0}</value></data>
@@ -689,7 +689,7 @@
   <data name="AiLyricsTranslating" xml:space="preserve"><value>正在本地翻译，首次完成整首歌词翻译可能需要几分钟。已完成的译文会逐行显示，未完成的部分继续显示原歌词。</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>暂时无法进行 AI 翻译，原歌词不受影响。</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI 译文已就绪。</value></data>
-  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>在线歌词会将当前歌曲名、歌手、专辑和时长发送给你选择的歌词来源。全新安装时默认关闭，启用歌词后才查询。选择本地 LRC 可读取自己的歌词文件，不请求在线来源；AI 翻译本身始终在本机运行。</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>在线歌词会将当前歌曲名、歌手、专辑和时长发送给当前设置允许查询的歌词来源。全新安装时默认开启：首选网易云，无备用来源，并开启查找其余未选择来源。可随时关闭歌词或调整来源。选择本地 LRC 可读取自己的歌词文件，不请求在线来源；AI 翻译本身始终在本机运行。</value></data>
   <data name="AiLyricsClearingCache" xml:space="preserve"><value>正在清理 AI 翻译缓存…</value></data>
   <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>选择后台功能</value></data>
   <data name="FirstRunPrivacyBody" xml:space="preserve"><value>无需开启剪贴板记录，也能使用临时空间。开启后，DropSpace 会在本地保存复制的文本、图片和文件引用，窗口关闭到托盘后仍会记录。你可以在剪贴板和设置中暂停、清理记录或修改保留期限。关闭到托盘不等于退出；选择“退出”才会停止 DropSpace。这些选项之后都能修改。</value></data>

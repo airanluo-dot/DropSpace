@@ -7,6 +7,22 @@ namespace DropSpace.Core.Tests;
 public sealed class AiLyricsSettingsTests
 {
     [TestMethod]
+    public void FreshInstallEnablesOnlineLyricsAndRemainingSourcesButNotAi()
+    {
+        var settings = new AppSettings().Validate().Lyrics;
+        Assert.IsTrue(settings.Enabled);
+        Assert.AreEqual(LyricsMode.Online, settings.Mode);
+        Assert.AreEqual(LyricsProviderKind.NetEase, settings.Provider);
+        Assert.IsNull(settings.BackupProvider);
+        Assert.IsTrue(settings.SearchRemainingProviders);
+        Assert.IsFalse(settings.AiTranslationEnabled);
+        var existing = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
+            "{\"Lyrics\":{\"Enabled\":false,\"SearchRemainingProviders\":false}}")!.Validate().Lyrics;
+        Assert.IsFalse(existing.Enabled);
+        Assert.IsFalse(existing.SearchRemainingProviders);
+    }
+
+    [TestMethod]
     [DataRow(12.0)]
     [DataRow(17.375)]
     [DataRow(28.0)]

@@ -163,6 +163,22 @@ public sealed class AiLyricsAdmissionRegressionTests
         fixture.AssertNoAiCalls();
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task OriginalOnlyFallbackEntersAiAfterIncompleteProviderSearch(bool incomplete)
+    {
+        using var fixture = new Fixture();
+        var document = LyricsParser.Parse("[00:01]The night is full of stars", LyricsProviderKind.NetEase);
+        var source = new LyricsQueryResult(document, LyricsQueryStatus.Found, incomplete);
+        Assert.IsTrue(LyricsTranslationPolicy.CanOfferLocalFallback(source));
+        var publication = await fixture.Service.TranslateForPublicationAsync(Query, source.Document, Enabled,
+            "zh-CN", default);
+        Assert.AreEqual(1, fixture.Backend.CacheCalls, "A supplemental lookup timeout must still reach AI admission.");
+        Assert.IsTrue(publication.IsCurrent);
+        Assert.AreEqual(LyricsTranslationOrigin.LocalAi, publication.Document.Lines[0].TranslationOrigin);
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "DropSpace-admission-" + Guid.NewGuid().ToString("N"));

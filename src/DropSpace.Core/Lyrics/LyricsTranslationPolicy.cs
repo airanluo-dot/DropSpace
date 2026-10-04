@@ -13,6 +13,11 @@ public enum LyricsTranslationDecision
 
 public static class LyricsTranslationPolicy
 {
+    /// <summary>A usable original can enter AI admission even when supplemental lookup timed out.
+    /// Language, existing translation, user settings and model checks remain in AI admission.</summary>
+    public static bool CanOfferLocalFallback(LyricsQueryResult result) =>
+        result.Status == LyricsQueryStatus.Found && result.Document.Lines.Count > 0;
+
     public static string ResolveTarget(AppLanguagePreference preference, IEnumerable<string?> systemLanguages) =>
         AppLanguagePolicy.ResolveEffectiveLanguageTag(preference, systemLanguages);
 

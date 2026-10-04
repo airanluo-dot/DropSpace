@@ -615,18 +615,18 @@ Nothing will be opened automatically.</value></data>
   <data name="LyricsOriginalFontPreview" xml:space="preserve"><value>The song goes on through the quiet night.</value></data>
   <data name="LyricsTranslationFontPreview" xml:space="preserve"><value>Preview of translated lyrics</value></data>
   <data name="LyricsResetFonts" xml:space="preserve"><value>Reset lyric sizes</value></data>
-  <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics (Beta)</value></data>
+  <data name="AiLyricsTitle" xml:space="preserve"><value>AI lyrics</value></data>
   <data name="AiLyricsDescription" xml:space="preserve"><value>Translate missing lyrics into the app’s language on this computer. Matching source translations take priority. The first full translation may take several minutes, depending on your device and lyric length. Completed translations appear line by line. AI may mistranslate the meaning; lyrics are not uploaded for AI translation.</value></data>
-  <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation (Beta)</value></data>
+  <data name="AiLyricsEnabled" xml:space="preserve"><value>Use AI lyric translation</value></data>
   <data name="AiLyricsGpuAcceleration" xml:space="preserve"><value>GPU acceleration</value></data>
   <data name="AiLyricsGpuAccelerationHelp" xml:space="preserve"><value>Prefer a compatible GPU for AI translation. If GPU acceleration is unavailable or fails, the app uses the CPU instead. Turn this off to use only the CPU. Changing this preference does not turn on AI or download a model.</value></data>
   <data name="AiLyricsModel" xml:space="preserve"><value>Translation model</value></data>
   <data name="AiLyricsStandardModel" xml:space="preserve"><value>Previous standard model (Q4)</value></data>
   <data name="AiLyricsSmallerModel" xml:space="preserve"><value>Previous compact model (IQ3)</value></data>
-  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0 (Beta)</value></data>
-  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0 (Beta)</value></data>
+  <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0</value></data>
+  <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0</value></data>
   <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>Optional larger model (7.98 GB). Requires more memory and, with GPU acceleration, more video memory than 1.8B. It may be slower; better translation quality or speed is not guaranteed. Existing model downloads remain until you remove them.</value></data>
-  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>Tencent Q8 model for local lyric translation (Beta). The first full translation may take several minutes, depending on your device and lyric length. Translations may contain meaning errors.</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>Tencent Q8 model for local lyric translation. The first full translation may take several minutes, depending on your device and lyric length. Translations may contain meaning errors.</value></data>
   <data name="AiLyricsLegacyModels" xml:space="preserve"><value>Previous model files</value></data>
   <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>These older model files are no longer used for translation. You can remove them to free disk space.</value></data>
   <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>Delete {0}</value></data>
@@ -689,7 +689,7 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsTranslating" xml:space="preserve"><value>Translating locally… The first full translation may take several minutes. Completed translations appear line by line; unfinished lines keep the original lyrics.</value></data>
   <data name="AiLyricsTemporarilyUnavailable" xml:space="preserve"><value>AI translation is temporarily unavailable. Original lyrics are unchanged.</value></data>
   <data name="AiLyricsTranslationComplete" xml:space="preserve"><value>AI translation ready.</value></data>
-  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Online lyrics sends the current song title, artist, album and duration to your selected lyric provider. It is off on a fresh installation until you enable lyrics. Choose Local LRC to read your own lyric files without provider requests. AI translation itself stays on this device.</value></data>
+  <data name="LyricsOnlinePrivacyHelp" xml:space="preserve"><value>Online lyrics sends the current song title, artist, album and duration to the lyric providers allowed by your settings. Fresh installations enable online lyrics with NetEase first, no backup, and remaining-provider search enabled. You can disable lyrics or change providers at any time. Choose Local LRC to read your own lyric files without provider requests. AI translation itself stays on this device.</value></data>
   <data name="AiLyricsClearingCache" xml:space="preserve"><value>Clearing AI translation cache…</value></data>
   <data name="FirstRunPrivacyTitle" xml:space="preserve"><value>Choose what runs in the background</value></data>
   <data name="FirstRunPrivacyBody" xml:space="preserve"><value>Temporary Space works without clipboard recording. If enabled, DropSpace saves copied text, images and file references locally, including while its window is closed to the tray. You can pause recording, clear history and change retention in Clipboard and Settings. Closing to the tray does not exit; use Exit to stop DropSpace. These choices can be changed later.</value></data>
