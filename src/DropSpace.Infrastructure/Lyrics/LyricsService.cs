@@ -36,7 +36,8 @@ public sealed class LyricsService
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken) =>
         (await QueryDetailedAsync(query, settings, cancellationToken).ConfigureAwait(false)).Document;
 
-    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false)
+    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false,
+        Action<LyricsDocument>? reportOriginal = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (refresh) query = query with { BypassProviderResponseCache = true };
@@ -100,7 +101,7 @@ public sealed class LyricsService
         }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(24));
-        using var candidates = new CandidateSearch(query, target, deadline.Token, kind, backup);
+        using var candidates = new CandidateSearch(query, target, deadline.Token, kind, backup, reportOriginal);
         var document = LyricsDocument.Empty;
         var translationIncomplete = false;
         try
@@ -184,13 +185,15 @@ public sealed class LyricsService
         private readonly LyricsProviderKind? _backup;
         private readonly CancellationTokenSource _budget;
         private LyricsDocument _document = LyricsDocument.Empty;
-        private bool _started, _closed;
+        private bool _started, _closed, _originalReported;
+        private readonly Action<LyricsDocument>? _reportOriginal;
         private readonly TaskCompletionSource _originalAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task OriginalAvailable => _originalAvailable.Task;
         private readonly TaskCompletionSource _preferredTranslationAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task PreferredTranslationAvailable => _preferredTranslationAvailable.Task;
-        public CandidateSearch(LyricsQuery query, string target, CancellationToken token, LyricsProviderKind primary, LyricsProviderKind? backup)
+        public CandidateSearch(LyricsQuery query, string target, CancellationToken token, LyricsProviderKind primary, LyricsProviderKind? backup, Action<LyricsDocument>? reportOriginal)
         {
+            _reportOriginal = reportOriginal;
             _query = query;
             _primary = primary;
             _backup = backup;
@@ -204,9 +207,11 @@ public sealed class LyricsService
         {
             var valid = Validate(candidate, _query);
             if (valid.Lines.Count == 0) return;
+            LyricsDocument? publish = null;
             lock (_gate)
             {
                 if (_closed || Token.IsCancellationRequested) return;
+                if (!_originalReported) { _originalReported = true; publish = valid; }
                 _document = SelectTranslation(_document, valid, _target, _primary, _backup);
                 if (valid.Provider == _primary && HasTargetTranslation(valid, _target))
                     _preferredTranslationAvailable.TrySetResult();
@@ -214,8 +219,13 @@ public sealed class LyricsService
                 {
                     _started = true;
                     _budget.CancelAfter(TimeSpan.FromSeconds(3));
-                    _originalAvailable.TrySetResult();
                 }
+            }
+            if (publish is not null)
+            {
+                try { _reportOriginal?.Invoke(publish); }
+                catch (Exception error) when (error is not OutOfMemoryException) { }
+                finally { _originalAvailable.TrySetResult(); }
             }
         }
         public void Dispose()

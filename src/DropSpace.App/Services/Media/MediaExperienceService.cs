@@ -424,6 +424,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private async Task LoadLyricsAsync(MediaSessionSnapshot session, AppSettings settings, long generation, CancellationToken token, bool refresh)
     {
         LyricsQueryResult? sourceResult = null;
+        var previewClosed = 0;
         var started = Stopwatch.GetTimestamp();
         try
         {
@@ -435,8 +436,20 @@ public sealed class MediaExperienceService : IAsyncDisposable
             var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics, token, refresh).ConfigureAwait(false)
+                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics, token, refresh,
+                    original => _dispatcher.TryEnqueue(() =>
+                    {
+                        // Validate freshness after dispatch; a fast skip may retire the callback in the queue.
+                        if (Volatile.Read(ref previewClosed) != 0 || !IsLyricsRequestCurrent(session, settings, generation, token)) return;
+                        var cleaned = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
+                            LyricsLanguagePolicy.IdentifyProviderTranslations(original), targetLanguage);
+                        _document = cleaned;
+                        _view.SetLyricsDocument(cleaned);
+                        _view.LyricsStatus = LyricsQueryStatus.Found;
+                        RenderFrame();
+                    })).ConfigureAwait(false)
                 : new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
+            Interlocked.Exchange(ref previewClosed, 1);
             // The initial view and every failure/retired-fence fallback share this cleaned source.
             result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
                 LyricsLanguagePolicy.IdentifyProviderTranslations(result.Document), targetLanguage) };
@@ -513,9 +526,10 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     }).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { Interlocked.Exchange(ref previewClosed, 1); }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
+            Interlocked.Exchange(ref previewClosed, 1);
             _logger.LogDebug("Lyrics unavailable ({Category}).", exception.GetType().Name);
             try
             {
