@@ -269,7 +269,10 @@ public sealed class LyricsService
         }
         catch (OperationCanceledException)
         {
-            LyricsDiagnostics.Report(_diagnostic, new(kind, LyricsDiagnosticStage.Query,
+            // Admission failure means no provider/HTTP invocation started. Keep it
+            // distinguishable from a transport timeout or upstream rejection.
+            LyricsDiagnostics.Report(_diagnostic, new(kind,
+                invocation is null ? LyricsDiagnosticStage.Admission : LyricsDiagnosticStage.Query,
                 token.IsCancellationRequested ? LyricsDiagnosticOutcome.Cancelled : LyricsDiagnosticOutcome.Timeout,
                 (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds));
             // Let cooperative HTTP/stream cleanup finish before returning, but keep a

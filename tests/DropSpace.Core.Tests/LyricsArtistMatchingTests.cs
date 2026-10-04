@@ -7,6 +7,23 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsArtistMatchingTests
 {
     [TestMethod]
+    public void VerifiedBilingualGemCreditsMatchAppleMusicWithoutWeakeningWrongArtistProtection()
+    {
+        var query = new LyricsQuery("唯一", "邓紫棋", "T.I.M.E. - EP", TimeSpan.Zero);
+        foreach (var artist in new[] { "邓紫棋", "鄧紫棋", "G.E.M.邓紫棋", "G.E.M. 鄧紫棋" })
+        {
+            Assert.IsTrue(LyricsMatcher.AreArtistCreditsCompatible(query.Artist, artist), artist);
+            Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "唯一", artist, "T.I.M.E.", 253), artist);
+        }
+        foreach (var artist in new[] { "告五人", "邓紫棋乐队", "Other 邓紫棋", "G.E.M.", "AC/DC" })
+            Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", artist, "T.I.M.E.", 253), artist);
+        Assert.IsFalse(LyricsMatcher.AreArtistCreditsCompatible("AC", "AC/DC"));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一 (Live)", "G.E.M.邓紫棋", "T.I.M.E.", 253));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query with { Duration = TimeSpan.FromSeconds(253) },
+            "唯一", "G.E.M.鄧紫棋", "T.I.M.E.", 350));
+    }
+
+    [TestMethod]
     public void FeaturedArtistNameDoesNotBecomeAVersionLabel()
     {
         var query = new LyricsQuery("Night Drive (feat. Oliver)", "Artist", "", TimeSpan.FromSeconds(200));

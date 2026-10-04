@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -234,6 +235,38 @@ public sealed class NetEaseRequestReuseTests
         clock.Now += TimeSpan.FromSeconds(2);
         using var retry = await cache.GetAsync(url, default, translationTarget: "en");
         Assert.AreEqual(3, handler.Calls);
+    }
+
+    [TestMethod]
+    public async Task AppleMusicWeiyiMetadataCanReadSyntheticGemCatalogueOriginal()
+    {
+        using var handler = new GemCatalogHandler();
+        using var client = new HttpClient(handler);
+        var query = new LyricsQuery("唯一", "邓紫棋", "T.I.M.E. - EP", TimeSpan.Zero)
+            { PreferredTranslationLanguage = "zh-Hans" };
+        var service = new LyricsService(new([new NetEaseLyricsProvider(new(client))]));
+        var result = await service.QueryDetailedAsync(query,
+            new() { Enabled = true, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.AreEqual(LyricsProviderKind.NetEase, result.Document.Provider);
+        Assert.AreEqual("G.E.M.邓紫棋", result.Document.Match!.Artist);
+        Assert.AreEqual("我们在这里等你", result.Document.Lines[0].Text);
+        Assert.AreEqual(2, handler.Calls);
+        Assert.IsFalse(result.TranslationLookupIncomplete);
+    }
+
+    private sealed class GemCatalogHandler : HttpMessageHandler
+    {
+        public int Calls;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            Interlocked.Increment(ref Calls);
+            var payload = request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+                ? """{"code":200,"result":{"songs":[{"id":1,"name":"唯一","artists":[{"name":"G.E.M.邓紫棋"}],"album":{"name":"T.I.M.E."},"duration":253000}]}}"""
+                : """{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你"}}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            { RequestMessage = request, Content = new StringContent(payload, Encoding.UTF8, "application/json") });
+        }
     }
 
     private sealed class ChangingTranslationHandler : HttpMessageHandler

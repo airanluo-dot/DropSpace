@@ -173,7 +173,20 @@ public static class LyricsMatcher
     }
 
     private static string[] ArtistCredits(string value) => ArtistCreditSeparator.Split(Limit(value))
-        .Select(Normalize).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+        .Select(ArtistCreditIdentity).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+
+    private static string ArtistCreditIdentity(string value)
+    {
+        // Whole-credit aliases verified against the artist's own bilingual release
+        // pages: https://cn.iamgem.com/time/ and https://www.iamgem.com/time/.
+        // Do not strip arbitrary Latin prefixes or accept suffix/substring matches.
+        // Bare G.E.M. remains ambiguous without the corroborating Chinese name.
+        return Normalize(value) switch
+        {
+            "邓紫棋" or "鄧紫棋" or "gem邓紫棋" or "gem鄧紫棋" => "邓紫棋",
+            var identity => identity,
+        };
+    }
 
     private static double TitleSimilarity(string left, string right)
     {

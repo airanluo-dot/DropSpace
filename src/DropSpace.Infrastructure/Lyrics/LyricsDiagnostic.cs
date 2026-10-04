@@ -2,7 +2,7 @@ using DropSpace.Core.Models;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public enum LyricsDiagnosticStage { Search, Lyric, Query, Source, Reuse }
+public enum LyricsDiagnosticStage { Search, Lyric, Query, Source, Reuse, Admission }
 public enum LyricsDiagnosticOutcome { Found, NoMatch, RateLimited, Rejected, TransportFailure, Timeout, Cancelled, Malformed, Disabled }
 
 // No titles, artists, track IDs, URLs, response messages, lyrics or model data.
