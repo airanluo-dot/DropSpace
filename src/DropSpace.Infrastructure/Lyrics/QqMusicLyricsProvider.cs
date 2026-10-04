@@ -84,7 +84,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
             if (!root.TryGetProperty(property, out var value)) continue;
             if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var code))
                 throw new InvalidDataException("QQ returned an unsupported status code.");
-            if (code != 0) throw new LyricsProviderRejectedException("QQ lyrics API rejected the request.");
+            if (code != 0) throw new LyricsProviderRejectedException("QQ lyrics API rejected the request.", code);
         }
     }
 }

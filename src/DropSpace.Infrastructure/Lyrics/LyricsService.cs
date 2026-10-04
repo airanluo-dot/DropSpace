@@ -91,6 +91,9 @@ public sealed class LyricsService
             // refetch each old revision once, leaving other providers unchanged.
             if (cached is { Provider: LyricsProviderKind.NetEase } &&
                 cached.ProviderDataRevision < NetEaseLyricsProvider.DataRevision) cached = null;
+            // LRC-only Kugou cache entries predate native translation/word support.
+            if (cached is { Provider: LyricsProviderKind.Kugou } &&
+                cached.ProviderDataRevision < KugouLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target))
                 return new(validated, LyricsQueryStatus.Found);
@@ -143,6 +146,8 @@ public sealed class LyricsService
             // cannot turn an original-only response into perpetual cache misses.
             if (document.Provider == LyricsProviderKind.NetEase && document.Lines.Count > 0)
                 document = document with { ProviderDataRevision = NetEaseLyricsProvider.DataRevision };
+            if (document.Provider == LyricsProviderKind.Kugou && document.Lines.Count > 0)
+                document = document with { ProviderDataRevision = KugouLyricsProvider.DataRevision };
             translationIncomplete = NeedsTranslationSearch(document, target) && (primary.Failed || fallbackFailed);
             // A lower-priority success must not permanently hide a preferred provider
             // that failed transiently. Target-aware v5 retires legacy such decisions.
