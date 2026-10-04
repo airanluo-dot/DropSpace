@@ -189,8 +189,9 @@ lifetime. They do not download, wait for a busy global inference slot or block c
 publication. Preparation is keyed/cancelled by configuration, not by a song; warm models avoid
 rehashing. A cold load already admitted can briefly own the shared model slot while cancellation
 and cleanup finish when translation arrives. Zero-wait admission cannot promise zero resource
-impact of prewarming. GPU preparation failure leaves rules; it does not silently cold-load CPU
-inside the selection budget or change the translation failure circuit.
+impact of prewarming. Recoverable GPU preparation failure can try CPU only in the background,
+after confirmed GPU exit/cleanup and zero-wait admission with the existing CPU memory policy.
+Failure keeps rules; no CPU cold load occurs inside selection or changes the translation circuit.
 
 Native helper protocol 2 is independently advertised in the handshake: selector input 8192
 bytes, output 128 bytes and 32 generated tokens, within the same fixed 4096-token context. Data

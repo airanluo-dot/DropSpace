@@ -169,10 +169,21 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             }
             else
             {
+                if (_lastGpuSetting != _options.GpuEnabled || _lastModelSha256 != modelHash) _gpuFailed = false;
                 _lastGpuSetting = _options.GpuEnabled;
                 _lastModelSha256 = modelHash;
-                _gpuFailed = false;
-                await StartSessionAsync(verifiedModelPath, model, _options.GpuEnabled, stop.Token, nonblocking: true).ConfigureAwait(false);
+                var gpu = _options.GpuEnabled && !_gpuFailed;
+                try { await StartSessionAsync(verifiedModelPath, model, gpu, stop.Token, nonblocking: true).ConfigureAwait(false); }
+                catch (Exception error) when (gpu && _session is not null && !stop.IsCancellationRequested &&
+                    error is not (OutOfMemoryException or InvalidDataException or JsonException or KeyNotFoundException))
+                {
+                    // Preparation may recover from an unavailable GPU in the background.
+                    // Exit/cleanup precedes CPU admission; neither attempt queues for a gate.
+                    await StopSessionAsync().ConfigureAwait(false);
+                    stop.Token.ThrowIfCancellationRequested();
+                    _gpuFailed = true;
+                    await StartSessionAsync(verifiedModelPath, model, false, stop.Token, nonblocking: true).ConfigureAwait(false);
+                }
             }
             stop.Token.ThrowIfCancellationRequested();
             if (_session is not { } ready || !CanSelect(ready, modelHash))
@@ -213,6 +224,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             deadline.CancelAfter(TimeSpan.FromMilliseconds(500));
             using var registration = deadline.Token.Register(() =>
             { Interlocked.Exchange(ref session.StopRequested, 1); _ = session.Child.TerminateAndWaitForExitAsync(); });
+            Volatile.Write(ref _lastExecutionBackend, null);
+            _lastExecutionUsedCpuFallback = false;
             try
             {
                 // The native helper clears KV memory and resets the sampler per request.
@@ -230,6 +243,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                 if (Encoding.UTF8.GetByteCount(output) > LyricsCandidateSelectionProtocol.MaximumOutputBytes)
                     throw new InvalidDataException("Selection output exceeds budget.");
                 deadline.Token.ThrowIfCancellationRequested();
+                Volatile.Write(ref _lastExecutionBackend, session.Gpu ? "vulkan" : "cpu");
+                _lastExecutionUsedCpuFallback = _options.GpuEnabled && !session.Gpu;
                 _ = ReleaseWhenIdleAsync(++_generation);
                 return output;
             }

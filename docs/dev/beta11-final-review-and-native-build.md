@@ -25,6 +25,15 @@ does not establish admission. The runtime independently caps any selection reque
 Presentation can return rules before native cleanup, whose owner retains operation/global gate
 until exit and cleanup settle. No force-release was introduced.
 
+The same pass also found selection-only preparation could repeatedly fail on a GPU-less host
+with the default GPU preference, despite an available CPU path. Recoverable GPU startup failures
+now permit background CPU preparation after confirmed GPU cleanup and another zero-wait gate
+admission. The GPU-failed state persists for the same model/preference, so a delayed gate release
+does not restart a GPU failure on each later attempt. Integrity/protocol errors and cancelled
+preparation do not trigger this fallback; existing CPU memory admission still applies. The
+foreground selector continues to use only an already warm worker. Real hardware recovery is
+unverified and must not be described as tested GPU/CPU inference.
+
 New selector/KRC/artist-folding sources and the pinned dictionary/license are now mandatory
 code-owned shipping-source fingerprint inputs. This strengthens coverage; it does not extend
 prepare-corrective-release's reviewed-source override or edit approval/evidence records.
