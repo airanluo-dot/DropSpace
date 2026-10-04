@@ -196,6 +196,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         finally { _operation.Release(); }
     }
 
+    public bool CanPrepareSelection => !_disposed && Volatile.Read(ref _translationWaiters) == 0 &&
+        _operation.CurrentCount > 0 && _cleanup.IsCompletedSuccessfully;
+
     public async Task<string?> TryRunSelectionAsync(string modelHash, string prompt, CancellationToken token)
     {
         if (Encoding.UTF8.GetByteCount(prompt) is 0 or > LyricsCandidateSelectionProtocol.MaximumPromptBytes ||
@@ -207,6 +210,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             session.Cancellation.Dispose();
             if (!CanSelect(session, modelHash)) return null;
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
+            deadline.CancelAfter(TimeSpan.FromMilliseconds(500));
             using var registration = deadline.Token.Register(() =>
             { Interlocked.Exchange(ref session.StopRequested, 1); _ = session.Child.TerminateAndWaitForExitAsync(); });
             try

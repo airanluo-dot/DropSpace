@@ -74,6 +74,7 @@ public sealed class LyricsCandidateRuntimeTests
 
     private sealed class Runtime : ILyricsSelectionRuntime
     {
+        public bool CanPrepareSelection => true;
         public int Calls;
         public string Output = "{\"id\":\"c1\"}";
         public bool Block;

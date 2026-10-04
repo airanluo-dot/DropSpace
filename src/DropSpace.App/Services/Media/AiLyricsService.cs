@@ -233,6 +233,7 @@ public sealed class AiLyricsService : IDisposable
         lock (_preparationGate)
         {
             if (_selectionConfiguration == key && !_selectionPreparation.IsCompleted) return;
+            if (_selectionConfiguration == key && settings.SelectionMode != LyricsSelectionMode.Rules && !runtime.CanPrepareSelection) return;
             var selectedModel = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
             if (_selectionConfiguration == key && selectedModel is not null && runtime.IsSelectionWarm(selectedModel.Sha256)) return;
             if (_selectionConfiguration != key)
@@ -253,6 +254,7 @@ public sealed class AiLyricsService : IDisposable
                     if (!Current() || !prepare) return;
                     await _work.RunAsync(async cancellation =>
                     {
+                        if (!runtime.CanPrepareSelection) return false;
                         var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
                         if (model is null) return false;
                         var path = await _models.GetInstalledPathAsync(model.Id, cancellation).ConfigureAwait(false);

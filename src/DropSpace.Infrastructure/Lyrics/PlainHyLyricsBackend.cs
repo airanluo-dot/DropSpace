@@ -258,6 +258,7 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
     }
     public Task DrainCleanupAsync(CancellationToken token) => runner.DrainCleanupAsync(token);
     public bool IsSelectionWarm(string modelHash) => runner is ILyricsSelectionRuntime selection && selection.IsSelectionWarm(modelHash);
+    public bool CanPrepareSelection => runner is ILyricsSelectionRuntime selection && selection.CanPrepareSelection;
     public Task<bool> PrepareSelectionAsync(string verifiedModelPath, string modelHash, CancellationToken token) =>
         runner is ILyricsSelectionRuntime selection ? selection.PrepareSelectionAsync(verifiedModelPath, modelHash, token) : Task.FromResult(false);
     public Task<string?> TryRunSelectionAsync(string modelHash, string prompt, CancellationToken token) =>

@@ -220,3 +220,12 @@ or Windows inference host; real artist/recording decision accuracy, actual warm-
 latency, GPU/CPU behaviour and fast-switch stability are unverified. The opt-in UI explicitly
 labels both AI modes experimental and states that selection accuracy is not yet validated; it
 never labels a rules fallback as an AI-selected recording. Parent owns the release decision.
+
+Final reverse review additionally prevents busy/cleanup preparation from hashing the large model
+before admission rejection and adds an independent 500 ms runtime ceiling. New selector, KRC,
+general artist folding and dictionary/license files are mandatory source-fingerprint inputs;
+no reviewed-source override or existing evidence was altered. See
+[final audit and minimum native build](beta11-final-review-and-native-build.md) for the conditional
+static-library reuse route, current missing build-tree limitation, exact artifact/manifest delta
+and small real-model verification plan. The shipping pipeline cannot use an old helper as protocol
+2 merely because the unchanged engine/model already has historical evidence.
