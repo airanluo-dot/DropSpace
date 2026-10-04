@@ -43,16 +43,21 @@ public sealed partial class WidgetsExpandedView : UserControl
         foreach (var placement in _view.Layout.Expanded)
         {
             _placements[placement.Id] = placement;
-            var title = new TextBlock { FontSize = 11, Opacity = 0.7, TextTrimming = TextTrimming.CharacterEllipsis };
+            var title = new TextBlock { FontSize = 11, Opacity = 0.7, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.None };
             XamlResourceOverride.Apply(title, "Widget" + placement.Id);
             var value = new TextBlock { FontSize = placement.ColumnSpan == 1 ? 13 : placement.RowSpan == 1 ? 14 : placement.Id == NativeWidgetId.Clock ? 26 : 16, TextWrapping = TextWrapping.Wrap };
-            var content = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+            var content = new StackPanel { Spacing = placement.ColumnSpan == 1 ? 2 : 4, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch };
             content.Children.Add(title); content.Children.Add(value);
             FrameworkElement tile;
             if (placement.Id is NativeWidgetId.Calculator or NativeWidgetId.PinnedItems)
             {
-                var button = new Button { Content = content, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+                var button = new Button { Content = content, MinWidth = 0, MinHeight = 0, Padding = new(4), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                 value.Text = placement.Id == NativeWidgetId.Calculator ? "± × ÷" : "★";
+                value.TextWrapping = TextWrapping.NoWrap;
+                value.TextAlignment = TextAlignment.Center;
+                title.TextAlignment = TextAlignment.Center;
+                content.Children.Remove(value);
+                content.Children.Add(new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = value, HorizontalAlignment = HorizontalAlignment.Stretch });
                 button.Click += async (_, _) =>
                 {
                     try
@@ -101,7 +106,7 @@ public sealed partial class WidgetsExpandedView : UserControl
                     _clipboardButton = new Button { Command = _view.ClipboardPauseCommand, Content = new FontIcon { Glyph = "\uE77F", FontSize = 18 }, Padding = new(4), HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
                     tile = _clipboardButton;
                 }
-                else tile = new Border { CornerRadius = new(14), Padding = new(8), Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"], Child = content };
+                else tile = new Border { CornerRadius = new(14), Padding = new(placement.ColumnSpan == 1 ? 4 : 8), Background = (Brush)Application.Current.Resources["ControlFillColorSecondaryBrush"], Child = content };
             }
             ToolTipService.SetToolTip(tile, _view.Text(placement.Id == NativeWidgetId.Settings ? "WidgetSettingsName" : "Widget" + placement.Id + ".Text"));
             Grid.SetColumn(tile, placement.Column); Grid.SetRow(tile, placement.Row);

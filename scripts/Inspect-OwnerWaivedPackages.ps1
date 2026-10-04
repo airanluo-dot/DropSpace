@@ -1,8 +1,8 @@
-# Exact owner-authorized beta6 packaging-only lane; no functional test verdict.
+# Exact owner-authorized owner-waived packaging-only lane; no functional test verdict.
 param([ValidateSet('Installer','Portable')][string]$Kind)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if ((Get-Content RELEASE_VERSION -Raw).Trim() -cne 'v0.3.1-beta.6') { throw 'Packaging-only exception is limited to beta6.' }
+if (@('v0.3.1-beta.6','v0.3.1-beta.7') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'Use only the isolated CI runner.' }
 function Identity([string]$Path,[string]$Name) {
     return [ordered]@{name=$Name;bytes=(Get-Item -LiteralPath $Path).Length;sha256=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -10,7 +10,7 @@ function Identity([string]$Path,[string]$Name) {
 $exe=[IO.Path]::GetFullPath('artifacts/release/DropSpace.exe')
 if ($Kind -eq 'Installer') {
     $installer=[IO.Path]::GetFullPath('artifacts/installer/DropSpaceSetup.exe')
-    $dest=Join-Path $env:RUNNER_TEMP ('beta6-payload-'+[Guid]::NewGuid().ToString('N'))
+    $dest=Join-Path $env:RUNNER_TEMP ('owner-waived-payload-'+[Guid]::NewGuid().ToString('N'))
     try {
         $p=Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$dest`"",'/TASKS=') -PassThru -Wait
         if ($p.ExitCode -ne 0) { throw 'Installer extraction failed.' }
@@ -25,7 +25,7 @@ if ($Kind -eq 'Installer') {
         if(Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait }
     }
 } else {
-    $root=Join-Path $env:RUNNER_TEMP ('beta6-bundle-'+[Guid]::NewGuid().ToString('N'))
+    $root=Join-Path $env:RUNNER_TEMP ('owner-waived-bundle-'+[Guid]::NewGuid().ToString('N'))
     $old=$env:DOTNET_BUNDLE_EXTRACT_BASE_DIR
     $p=$null
     try {

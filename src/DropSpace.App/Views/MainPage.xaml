@@ -474,7 +474,6 @@
 
           <StackPanel Spacing="12">
             <TextBlock services:XamlResourceOverride.Uid="DevicesSharingSection" Style="{StaticResource DropSpaceSectionTitleStyle}" />
-            <TextBlock services:XamlResourceOverride.Uid="DevicesSharingDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
             <Grid ColumnSpacing="24">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -606,7 +605,6 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock services:XamlResourceOverride.Uid="StartWithWindowsTitle" />
-                <TextBlock services:XamlResourceOverride.Uid="StartWithWindowsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="StartWithWindowsToggle" services:XamlResourceOverride.Uid="StartWithWindowsToggle" Grid.Column="1" Toggled="OnStartWithWindowsToggled" />
             </Grid>
@@ -669,7 +667,6 @@
             <Border Padding="14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource DropSpaceCardRadius}">
               <StackPanel Spacing="10">
                 <TextBlock services:XamlResourceOverride.Uid="IslandPlacementTitle" FontWeight="SemiBold" />
-                <TextBlock services:XamlResourceOverride.Uid="IslandPlacementDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                 <TextBlock x:Name="OverlayPlacementPersistenceWarningText" services:XamlResourceOverride.Uid="OverlayPlacementPersistenceWarning" Foreground="{ThemeResource SystemFillColorCautionBrush}" TextWrapping="Wrap" Visibility="Collapsed" />
                 <ComboBox x:Name="OverlayPlacementModeCombo" SelectionChanged="OnOverlayPlacementModeChanged">
                   <ComboBoxItem services:XamlResourceOverride.Uid="IslandPlacementAutomatic" Tag="Automatic" />
@@ -732,7 +729,6 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock services:XamlResourceOverride.Uid="AutoCheckUpdatesTitle" />
-                <TextBlock services:XamlResourceOverride.Uid="AutoCheckUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="AutoCheckUpdatesToggle" Grid.Column="1" Toggled="OnAutoCheckUpdatesToggled" />
             </Grid>
@@ -743,7 +739,6 @@
               </Grid.ColumnDefinitions>
               <StackPanel>
                 <TextBlock services:XamlResourceOverride.Uid="AutoDownloadUpdatesTitle" />
-                <TextBlock services:XamlResourceOverride.Uid="AutoDownloadUpdatesDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
               </StackPanel>
               <ToggleSwitch x:Name="AutoDownloadUpdatesToggle" Grid.Column="1" Toggled="OnAutoDownloadUpdatesToggled" />
             </Grid>

@@ -52,7 +52,6 @@ public sealed class LyricsFontSizeControl : UserControl
         _debounce.Tick += OnDebounce;
         var body = new StackPanel { Spacing = 10 };
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsFontSize"), FontWeight = FontWeights.SemiBold });
-        body.Children.Add(new TextBlock { Text = strings.Get("LyricsFontSizeHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         AutomationProperties.SetName(_slider, strings.Get("LyricsFontSize"));
         AutomationProperties.SetAutomationId(_slider, "LyricsFontSizeSlider");
         AutomationProperties.SetHelpText(_slider, strings.Get("LyricsFontSizeKeyboardHelp"));

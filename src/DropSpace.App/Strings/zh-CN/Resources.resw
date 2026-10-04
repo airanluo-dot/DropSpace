@@ -151,8 +151,8 @@
   <data name="UpdateServiceValidationFailed" xml:space="preserve"><value>更新响应无法通过验证。</value></data>
   <data name="UpdateUntrustedAutoInstall" xml:space="preserve"><value>更新发布者不受信任，无法无人值守安装。</value></data>
   <data name="UpdateUpToDate" xml:space="preserve"><value>DropSpace 已是最新版本。</value></data>
-  <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>DropSpace 已拥有 Package Identity，并已声明为 Windows 分享目标。是否直接显示在 Drop Tray 建议区由 Windows 版本和系统相关性排序决定；可通过“更多”打开完整分享界面。</value></data>
-  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>当前部署没有可信 Package Identity，Windows 分享集成不可用；顶部拖放和已显示灵动岛直接拖放仍然可用。正式签名安装包会自动启用分享目标。</value></data>
+  <data name="WindowsSharePackagedStatus" xml:space="preserve"><value>可通过 Windows 分享菜单发送到 DropSpace。</value></data>
+  <data name="WindowsSharePortableStatus" xml:space="preserve"><value>此版本不支持 Windows 分享菜单，可拖入文件。</value></data>
 
   <!-- XAML 界面文本，包括辅助功能名称。 -->
   <data name="MainWindow.Title" xml:space="preserve"><value>DropSpace</value></data>
@@ -346,7 +346,7 @@
   <data name="DevicesSharingSection.Text" xml:space="preserve"><value>设备与分享</value></data>
   <data name="DevicesSharingDescription.Text" xml:space="preserve"><value>Windows 到 Windows 的设备交接和剪贴板同步默认关闭。附近链接仅限私有网络；互联网分享需要明确配置 HTTPS 后端。</value></data>
   <data name="DeviceHandoffTitle.Text" xml:space="preserve"><value>设备交接</value></data>
-  <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>配对可信 Windows 设备后，可在审批和完整性校验下发送文件、文件夹、文本和网址。</value></data>
+  <data name="DeviceHandoffDescription.Text" xml:space="preserve"><value>向已配对的设备发送内容。</value></data>
   <data name="DeviceHandoffToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用 Windows 设备交接</value></data>
   <data name="CrossDeviceClipboardTitle.Text" xml:space="preserve"><value>跨设备剪贴板</value></data>
   <data name="CrossDeviceClipboardDescription.Text" xml:space="preserve"><value>仅与已配对的 Windows 设备同步。开启时同时启用设备连接；关闭设备连接也会停止同步。</value></data>
@@ -358,10 +358,10 @@
   <data name="ClipboardSyncModeTextUrl.Content" xml:space="preserve"><value>自动同步文本和网址</value></data>
   <data name="ClipboardSyncModeTextUrlImage.Content" xml:space="preserve"><value>自动同步文本、网址和图像</value></data>
   <data name="NearbySharingTitle.Text" xml:space="preserve"><value>附近浏览器分享</value></data>
-  <data name="NearbySharingDescription.Text" xml:space="preserve"><value>通过带令牌、可过期的私有网络 HTTP 链接，让浏览器接收选定内容。</value></data>
+  <data name="NearbySharingDescription.Text" xml:space="preserve"><value>让同一网络内的设备通过浏览器接收。</value></data>
   <data name="NearbySharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用附近浏览器分享</value></data>
   <data name="InternetSharingTitle.Text" xml:space="preserve"><value>安全互联网分享</value></data>
-  <data name="InternetSharingDescription.Text" xml:space="preserve"><value>文件会在本机加密后上传。只有配置 HTTPS 后端（DROPSPACE_SHARE_BACKEND_URL）后，分享才可用。</value></data>
+  <data name="InternetSharingDescription.Text" xml:space="preserve"><value>文件加密后上传，需要先配置分享服务。</value></data>
   <data name="InternetSharingToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>启用安全互联网分享</value></data>
   <data name="RefreshDevicesButton.Content" xml:space="preserve"><value>查找设备</value></data>
   <data name="PairDeviceButton.Content" xml:space="preserve"><value>配对选中设备</value></data>
@@ -625,8 +625,8 @@
   <data name="AiLyricsSmallerModel" xml:space="preserve"><value>精简模型（旧版 IQ3）</value></data>
   <data name="AiLyricsPlainBetaModel" xml:space="preserve"><value>Hy-MT2 1.8B Q8_0</value></data>
   <data name="AiLyricsLargePlainBetaModel" xml:space="preserve"><value>Hy-MT2 7B Q8_0</value></data>
-  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>可选的较大模型（7.98 GB）。比 1.8B 占用更多内存，启用 GPU 加速时也需要更多显存。运行可能更慢，不保证翻译质量或速度有所提升。已有模型下载会保留，需手动删除以释放空间。</value></data>
-  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>用于本地歌词翻译的腾讯 Q8 模型。首次完成整首歌词翻译可能需要几分钟，具体取决于设备和歌词长度。译文可能出现含义错误。</value></data>
+  <data name="AiLyricsLargePlainBetaHelp" xml:space="preserve"><value>更大模型，需要更多内存和显存。</value></data>
+  <data name="AiLyricsPlainBetaHelp" xml:space="preserve"><value>本地翻译模型。</value></data>
   <data name="AiLyricsLegacyModels" xml:space="preserve"><value>旧版模型文件</value></data>
   <data name="AiLyricsLegacyModelsHelp" xml:space="preserve"><value>这些旧版模型文件已不再用于翻译，可删除以释放磁盘空间。</value></data>
   <data name="AiLyricsDeleteLegacyModel" xml:space="preserve"><value>删除{0}</value></data>

@@ -133,10 +133,11 @@ public sealed partial class MediaCompactView : UserControl
         if (_view is null || BaseLine is null) return;
         var previousHeight = IdealIslandHeight;
         var settings = _view.Settings;
+        var showDots = settings.Lyrics.Enabled && settings.IslandActivity.ShowLyricsInCompact && _view.LyricPresentation.IsInterlude;
         BaseLine.FontSize = settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled ? settings.Lyrics.OriginalFontSize : 13;
         HighlightLine.FontSize = BaseLine.FontSize;
         SecondaryLine.FontSize = settings.Lyrics.TranslationFontSize;
-        var text = LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled
+        var text = showDots ? string.Empty : LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact && settings.Lyrics.Enabled
             ? _view.CurrentLyricText : _view.Title);
         var fontFamily = BaseLine.FontFamily?.Source;
         var fontSize = BaseLine.FontSize;
@@ -159,7 +160,7 @@ public sealed partial class MediaCompactView : UserControl
             _measuredFontWeight = fontWeight;
             _measuredRasterizationScale = rasterizationScale;
         }
-        var secondary = LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null);
+        var secondary = showDots ? string.Empty : LyricsDisplayPolicy.CompactText(settings.IslandActivity.ShowLyricsInCompact ? _view.SecondaryLyricText : null);
         if (_secondaryMeasureInvalid || SecondaryLine.Text != secondary ||
             _secondaryMeasure.FontSize != SecondaryLine.FontSize || measureChanged)
         {
@@ -182,7 +183,8 @@ public sealed partial class MediaCompactView : UserControl
         SecondaryLine.Visibility = string.IsNullOrWhiteSpace(secondary) ? Visibility.Collapsed : Visibility.Visible;
         SecondaryViewport.Visibility = SecondaryLine.Visibility;
         var secondaryHeight = SecondaryLine.Visibility == Visibility.Visible ? _secondaryMeasure.DesiredSize.Height : 0;
-        IdealIslandHeight = IslandGeometry.MusicCompactHeight(_primaryHeight + secondaryHeight + 12);
+        IdealIslandHeight = showDots ? 40 : IslandGeometry.MusicCompactHeight(_primaryHeight + secondaryHeight + 12);
+        LyricViewport.Height = showDots ? 28 : _primaryHeight;
         ArtworkHost.Visibility = settings.IslandActivity.ShowArtwork ? Visibility.Visible : Visibility.Collapsed;
         var spectrum = settings.IslandActivity.ShowSpectrum && _view.Spectrum.CaptureMode == AudioCaptureMode.ProcessLoopback;
         SpectrumBars.Visibility = spectrum ? Visibility.Visible : Visibility.Collapsed;
@@ -191,7 +193,7 @@ public sealed partial class MediaCompactView : UserControl
             bands[index].Height = 2 + 20 * Math.Clamp(_view.Spectrum.Bands.ElementAtOrDefault(index), 0, 1);
         var textWidth = settings.IslandActivity.CompactDynamicWidth ? Math.Clamp(Math.Max(_textWidth, _secondaryMeasure.DesiredSize.Width), 80, settings.Lyrics.ScrollingMaxWidth) : 180;
         var width = 28 + textWidth + (settings.IslandActivity.ShowArtwork ? 36 : 12) + (spectrum ? 45 : 12);
-        width = Math.Clamp(width, 180, 460);
+        width = showDots ? 280 : Math.Clamp(width, 180, 460);
         if (Math.Abs(width - IdealIslandWidth) > 0.5 || Math.Abs(previousHeight - IdealIslandHeight) > 0.5)
         { IdealIslandWidth = width; IdealWidthChanged?.Invoke(this, EventArgs.Empty); }
         RefreshHighlight();
