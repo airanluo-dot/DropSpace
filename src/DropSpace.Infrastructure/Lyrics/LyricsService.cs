@@ -58,7 +58,7 @@ public sealed class LyricsService
             durationTicks = query.Duration.Ticks,
         }) : JsonSerializer.Serialize(new
         {
-            version = "source-v4", primary = kind, backup, settings.SearchRemainingProviders, target,
+            version = "source-v5", primary = kind, backup, settings.SearchRemainingProviders, target,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
@@ -80,7 +80,7 @@ public sealed class LyricsService
             if (cached is { Provider: LyricsProviderKind.NetEase } &&
                 cached.ProviderDataRevision < NetEaseLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
-            if (validated.Lines.Count > 0)
+            if (validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target))
                 return new(validated, LyricsQueryStatus.Found);
         }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -100,15 +100,21 @@ public sealed class LyricsService
             if (kind != LyricsProviderKind.LocalLrc && settings.SearchRemainingProviders)
                 allowed.UnionWith(OnlineProviders.Where(value => value != kind));
             var first = primaryTask.IsCompletedSuccessfully ? primaryTask.Result.Document : candidates.Document;
+            using var supplementalStop = CancellationTokenSource.CreateLinkedTokenSource(candidates.Token);
             Task<(LyricsDocument Document, bool Failed)>? supplemental = null;
             if (NeedsTranslationSearch(first, target) && allowed.Count > 0)
             {
                 var excluded = OnlineProviders.Where(value => !allowed.Contains(value)).ToHashSet();
-                supplemental = QueryFallbacksAsync(excluded, query, candidates.Token, candidates.Report, backup);
+                supplemental = QuerySupplementalSafelyAsync(excluded, query, supplementalStop.Token, candidates.Report, backup, kind);
             }
             // Own both tasks until they retire, including the cancellation path.
             if (supplemental is not null)
-                await Task.WhenAll(primaryTask, supplemental).ConfigureAwait(false);
+            {
+                var all = Task.WhenAll(primaryTask, supplemental);
+                if (await Task.WhenAny(all, candidates.PreferredTranslationAvailable).ConfigureAwait(false) != all)
+                    await supplementalStop.CancelAsync().ConfigureAwait(false);
+                await all.ConfigureAwait(false);
+            }
             var primary = await primaryTask.ConfigureAwait(false);
             document = SelectTranslation(Validate(primary.Document, query), candidates.Document, target, kind, backup);
             var fallbackFailed = false;
@@ -126,7 +132,12 @@ public sealed class LyricsService
             if (document.Provider == LyricsProviderKind.NetEase && document.Lines.Count > 0)
                 document = document with { ProviderDataRevision = NetEaseLyricsProvider.DataRevision };
             translationIncomplete = NeedsTranslationSearch(document, target) && (primary.Failed || fallbackFailed);
-            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete)
+            // A lower-priority success must not permanently hide a preferred provider
+            // that failed transiently. Target-aware v5 retires legacy such decisions.
+            var selectionComplete = document.Provider == kind || !primary.Failed &&
+                (document.Provider == backup || backup is null || !fallbackFailed);
+            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
+                !NeedsTranslationSearch(document, target) && (target.Length == 0 || selectionComplete))
             {
                 try
                 {
@@ -159,6 +170,8 @@ public sealed class LyricsService
         private bool _started, _closed;
         private readonly TaskCompletionSource _originalAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task OriginalAvailable => _originalAvailable.Task;
+        private readonly TaskCompletionSource _preferredTranslationAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task PreferredTranslationAvailable => _preferredTranslationAvailable.Task;
         public CandidateSearch(LyricsQuery query, string target, CancellationToken token, LyricsProviderKind primary, LyricsProviderKind? backup)
         {
             _query = query;
@@ -178,6 +191,8 @@ public sealed class LyricsService
             {
                 if (_closed || Token.IsCancellationRequested) return;
                 _document = SelectTranslation(_document, valid, _target, _primary, _backup);
+                if (valid.Provider == _primary && HasTargetTranslation(valid, _target))
+                    _preferredTranslationAvailable.TrySetResult();
                 if (!_started && NeedsTranslationSearch(_document, _target))
                 {
                     _started = true;
@@ -293,6 +308,71 @@ public sealed class LyricsService
             return new(LyricsDocument.Empty, true);
         }
         finally { await cancellation.CompleteAsync().ConfigureAwait(false); gate.Release(); }
+    }
+
+    private async Task<(LyricsDocument Document, bool Failed)> QuerySupplementalSafelyAsync(
+        IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token,
+        Action<LyricsDocument> reportCandidate, LyricsProviderKind? backup, LyricsProviderKind primary)
+    {
+        try { return await QuerySupplementalAsync(excluded, query, token, reportCandidate, backup, primary).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return (LyricsDocument.Empty, true); }
+    }
+
+    private async Task<(LyricsDocument Document, bool Failed)> QuerySupplementalAsync(
+        IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token,
+        Action<LyricsDocument> reportCandidate, LyricsProviderKind? backup, LyricsProviderKind primary)
+    {
+        var original = LyricsDocument.Empty;
+        var failed = false;
+        var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
+        if (backup is { } backupKind)
+        {
+            // Give the backup first admission, never the whole translation budget.
+            // A progressive original, completion or 150 ms hedge admits remaining
+            // sources while the backup continues, under the same three-second budget.
+            var available = new TaskCompletionSource<LyricsDocument>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var backupTask = QueryProviderAsync(backupKind, query, token, document =>
+            {
+                reportCandidate(document);
+                var valid = Validate(document, query);
+                if (valid.Lines.Count > 0) available.TrySetResult(valid);
+            }, token);
+            var admissionWindow = Task.Delay(TimeSpan.FromMilliseconds(150), token);
+            await Task.WhenAny(backupTask, available.Task, admissionWindow).ConfigureAwait(false);
+            var remainingExcluded = excluded.Append(backupKind).ToHashSet();
+            using var remainingStop = CancellationTokenSource.CreateLinkedTokenSource(token);
+            Task<(LyricsDocument Document, bool Failed)>? remaining = null;
+            var first = backupTask.IsCompletedSuccessfully ? backupTask.Result.Document :
+                available.Task.IsCompletedSuccessfully ? available.Task.Result : LyricsDocument.Empty;
+            if (NeedsTranslationSearch(first, target))
+                remaining = QueryFallbacksAsync(remainingExcluded, query, remainingStop.Token, reportCandidate, null);
+            try
+            {
+                var result = await backupTask.ConfigureAwait(false);
+                original = result.Document;
+                failed = result.Failed;
+                if (HasTargetTranslation(original, target))
+                    await remainingStop.CancelAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                // Retain every supplemental presentation task even when the parent or
+                // preferred winner cancels while the backup is still retiring.
+                if (remaining is not null)
+                {
+                    try
+                    {
+                        var rest = await remaining.ConfigureAwait(false);
+                        original = SelectTranslation(original, rest.Document, target, primary, backup);
+                        failed |= rest.Failed;
+                    }
+                    catch (OperationCanceledException) when (remainingStop.IsCancellationRequested)
+                    { if (!HasTargetTranslation(original, target)) failed = true; }
+                }
+            }
+            return (original, failed);
+        }
+        return await QueryFallbacksAsync(excluded, query, token, reportCandidate, null).ConfigureAwait(false);
     }
 
     private async Task<(LyricsDocument Document, bool Failed)> QueryFallbacksAsync(IReadOnlySet<LyricsProviderKind> excluded, LyricsQuery query, CancellationToken token, Action<LyricsDocument> reportCandidate, LyricsProviderKind? backup)

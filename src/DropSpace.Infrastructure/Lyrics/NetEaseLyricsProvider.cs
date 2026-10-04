@@ -31,7 +31,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             if (remaining == 0) break;
             using var search = await _responses.GetAsync(
                 $"https://music.163.com/api/search/get/web?s={Escape(terms)}&type=1&offset=0&total=true&limit=30",
-                cancellationToken, query.BypassProviderResponseCache);
+                cancellationToken, query.BypassProviderResponseCache, query.PreferredTranslationLanguage);
             ThrowIfRejected(search.RootElement);
             foreach (var candidate in Candidates(search.RootElement, query)
                 .Where(value => value.Score >= 4 && attempted.Add(value.Id))
@@ -54,9 +54,15 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
     {
         using var lyric = await _responses.GetAsync(
             $"https://music.163.com/api/song/lyric?id={Escape(candidate.Id)}&lv=1&kv=1&tv=-1&yv=1&ytv=1",
-            token, query.BypassProviderResponseCache);
+            token, query.BypassProviderResponseCache, query.PreferredTranslationLanguage);
         var root = lyric.RootElement;
         ThrowIfRejected(root);
+        return ParseLyrics(root).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
+            candidate.Duration, candidate.Score, candidate.Id);
+    }
+
+    internal static LyricsDocument ParseLyrics(JsonElement root)
+    {
         var yrc = NestedText(root, "yrc", "lyric");
         var lrc = NestedText(root, "lrc", "lyric");
         var yrcTranslation = NestedText(root, "ytlrc", "lyric");
@@ -65,22 +71,21 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         // accidentally matching timestamp must not make a mixed YRC/tlyric pair
         // appear usable while silently dropping the rest of the translation.
         var document = string.IsNullOrWhiteSpace(yrc)
-            ? LyricsParser.Parse(lrc, Kind, lrcTranslation)
-            : LyricsParser.Parse(yrc, Kind, yrcTranslation);
+            ? LyricsParser.Parse(lrc, LyricsProviderKind.NetEase, lrcTranslation)
+            : LyricsParser.Parse(yrc, LyricsProviderKind.NetEase, yrcTranslation);
         // Credit-only translations do not cover the sung lyrics. Genuine partial
         // YRC translations retain priority; otherwise try the paired LRC document.
         if (!string.IsNullOrWhiteSpace(yrc) && !string.IsNullOrWhiteSpace(lrc) &&
             (document.Lines.Count == 0 || !HasProviderTranslation(document)))
         {
-            var pairedLrc = LyricsParser.Parse(lrc, Kind, lrcTranslation);
+            var pairedLrc = LyricsParser.Parse(lrc, LyricsProviderKind.NetEase, lrcTranslation);
             if (document.Lines.Count == 0 || HasProviderTranslation(pairedLrc))
                 document = pairedLrc;
         }
-        return (document with { ProviderDataRevision = DataRevision }).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
-            candidate.Duration, candidate.Score, candidate.Id);
+        return document with { ProviderDataRevision = DataRevision };
     }
 
-    private static bool HasProviderTranslation(LyricsDocument document) => document.Lines.Any(line =>
+    internal static bool HasProviderTranslation(LyricsDocument document) => document.Lines.Any(line =>
         line.TranslationOrigin == LyricsTranslationOrigin.Provider && !LyricsLanguagePolicy.IsCredit(line.Text) &&
         !string.IsNullOrWhiteSpace(line.Secondary));
 

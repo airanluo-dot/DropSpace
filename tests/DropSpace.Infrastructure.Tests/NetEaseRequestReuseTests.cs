@@ -17,7 +17,7 @@ public sealed class NetEaseRequestReuseTests
         using var client = new HttpClient(handler);
         var provider = new NetEaseLyricsProvider(new(client), clock);
         await provider.QueryAsync(Query(false), default);
-        clock.Now += TimeSpan.FromSeconds(10);
+        clock.Now += TimeSpan.FromMinutes(10);
         await provider.QueryAsync(Query(true), default);
         Assert.AreEqual(2, handler.Searches);
         await provider.QueryAsync(Query(true) with { BypassProviderResponseCache = true }, default);
@@ -94,12 +94,12 @@ public sealed class NetEaseRequestReuseTests
         first.Dispose();
         Assert.AreEqual(200, second.RootElement.GetProperty("code").GetInt32());
         Assert.AreEqual(1, handler.Searches);
-        for (var index = 0; index < 16; index++)
+        for (var index = 0; index < 128; index++)
         {
             using var item = await cache.GetAsync(url + index, default);
         }
         using var evicted = await cache.GetAsync(url, default);
-        Assert.AreEqual(18, handler.Searches);
+        Assert.AreEqual(130, handler.Searches);
     }
 
     [TestMethod]
@@ -157,6 +157,92 @@ public sealed class NetEaseRequestReuseTests
         await Task.WhenAll(provider.QueryAsync(Query(false), default), provider.QueryAsync(Query(true), default));
         Assert.AreEqual(1, handler.Searches);
         Assert.AreEqual(1, handler.Lyrics);
+    }
+
+    [TestMethod]
+    public async Task OptionalNullFieldsAndTrackRevisitsReuseCompleteSuccessfulPayload()
+    {
+        using var handler = new PayloadHandler("""{"code":200,"lrc":{"lyric":"[00:01]Hello"},"tlyric":{"lyric":"[00:01]你好"},"yrc":null,"ytlrc":{}}""");
+        using var client = new HttpClient(handler);
+        var clock = new ManualClock();
+        var cache = new NetEaseResponseCache(new(client), clock);
+        const string url = "https://music.163.com/api/song/lyric?id=1";
+        using var first = await cache.GetAsync(url, default);
+        clock.Now += TimeSpan.FromSeconds(45);
+        using var second = await cache.GetAsync(url, default);
+        Assert.AreEqual(first.RootElement.GetRawText(), second.RootElement.GetRawText());
+        Assert.AreEqual(1, handler.Calls);
+    }
+
+    [TestMethod]
+    public async Task ConcurrentRejectionIsSharedButNextIndependentCallIsFresh()
+    {
+        using var handler = new SharedRejectionHandler();
+        using var client = new HttpClient(handler);
+        var cache = new NetEaseResponseCache(new(client));
+        const string url = "https://music.163.com/api/search/get/web?s=Track";
+        var owner = cache.GetAsync(url, default);
+        await handler.Started.Task;
+        var waiter = cache.GetAsync(url, default);
+        handler.Release.TrySetResult();
+        using var first = await owner;
+        using var second = await waiter;
+        Assert.AreEqual(405, second.RootElement.GetProperty("code").GetInt32());
+        Assert.AreEqual(1, handler.Calls);
+        using var retry = await cache.GetAsync(url, default);
+        Assert.AreEqual(2, handler.Calls);
+    }
+
+    [TestMethod]
+    public async Task MissingTargetTranslationRefetchesAfterOneSecondWhileTranslationStaysReusable()
+    {
+        using var handler = new ChangingTranslationHandler();
+        using var client = new HttpClient(handler);
+        var clock = new ManualClock();
+        var cache = new NetEaseResponseCache(new(client), clock);
+        const string url = "https://music.163.com/api/song/lyric?id=1";
+        using var original = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        clock.Now += TimeSpan.FromMilliseconds(500);
+        using var handoff = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(1, handler.Calls);
+        clock.Now += TimeSpan.FromMilliseconds(501);
+        using var translated = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(2, handler.Calls);
+        Assert.IsTrue(translated.RootElement.TryGetProperty("tlyric", out _));
+        clock.Now += TimeSpan.FromMinutes(2);
+        using var revisit = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(2, handler.Calls);
+        using var changedTarget = await cache.GetAsync(url, default, translationTarget: "ja");
+        Assert.AreEqual(3, handler.Calls);
+    }
+
+    private sealed class ChangingTranslationHandler : HttpMessageHandler
+    {
+        public int Calls;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            var count = Interlocked.Increment(ref Calls);
+            var payload = count == 1
+                ? """{"code":200,"lrc":{"lyric":"[00:01]The night is full of stars."}}"""
+                : """{"code":200,"lrc":{"lyric":"[00:01]The night is full of stars."},"tlyric":{"lyric":"[00:01]我们一起走向明天。"}}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            { RequestMessage = request, Content = new StringContent(payload, Encoding.UTF8, "application/json") });
+        }
+    }
+
+    private sealed class SharedRejectionHandler : HttpMessageHandler
+    {
+        public int Calls;
+        public readonly TaskCompletionSource Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            Interlocked.Increment(ref Calls);
+            Started.TrySetResult();
+            await Release.Task.WaitAsync(token);
+            return new(HttpStatusCode.OK) { RequestMessage = request,
+                Content = new StringContent("""{"code":405}""", Encoding.UTF8, "application/json") };
+        }
     }
 
     private static LyricsQuery Query(bool rich) => new("Track", "Artist", rich ? "Album" : "",
