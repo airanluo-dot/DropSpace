@@ -190,7 +190,7 @@ public sealed class LyricsService
 
     private static bool NeedsTranslationSearch(LyricsDocument document, string target) =>
         document.Lines.Count == 0 || target.Length > 0 && !HasTargetTranslation(document, target) &&
-        LyricsLanguagePolicy.EligibleIndices(document, target).Length > 0;
+        LyricsTranslationPolicy.NeedsProviderTranslation(document, target);
 
     private static LyricsDocument PreferTranslation(LyricsDocument current, LyricsDocument candidate, string target) =>
         candidate.Lines.Count > 0 && (current.Lines.Count == 0 ||

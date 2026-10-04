@@ -156,7 +156,7 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs",
-          "sha256": "4a684033cff2261f2cf5d2b402bc573f0c655e56c8f4db955825d8ab3ba6c068"
+          "sha256": "a32ae0e8f0e282ce8f61178db239323a5aa44f9bbded8427239488d2f574c017"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsInferenceCircuit.cs",
@@ -320,7 +320,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs",
-          "sha256": "e1dc32d8e2c73ed9737e4f68016f6cd1f8810841c8260465f19bddc5b74f19ab"
+          "sha256": "848a0fc13621ecab110861f2970a27dfbace4d9f0e2e0f5c0d71c2b33d6c7225"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs",
@@ -332,19 +332,19 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
-          "sha256": "079175a5e4c35f3f471265f2e492f58ce4ca9fc328c9b2c3334aca3c5564bfe4"
+          "sha256": "27a9c1f680ef48c93729e9797ae61fc73ab8f3705522cbe87ddedfee2e069911"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs",
-          "sha256": "7bf39033fd6569d173cd010a7b5d14a5172fde5d6e71b898c3f89d92216c761c"
+          "sha256": "89b905d5a5d3c9e68651efd9e41438c0265fdd99fc976a9432869d8ced95e516"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
-          "sha256": "0ea8a36b585b3f7bf79bac29191c2d9c9d042e384713f74d40ca4037abfff9ed"
+          "sha256": "38ef1ba20a544fa7beb85ef8c421756e0c7d1eef5787aec57c7c8de2d99db953"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
-          "sha256": "53eed88ee6df7a9ac235ad2dff8cb5710c788fffef386f744fab1858d3d45013"
+          "sha256": "32a48bef3255a8cb2c959c7ce505badc910f220178afd30da5d65e8090ae11b9"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs",
@@ -743,7 +743,7 @@
           "sha256": "6d4ca949aab918d452606102637b99bab77372f67dbf8a09f5d5ac58924fcb84"
         }
       ],
-      "sha256": "417f666ea13e825f0e77e61c929f3b76a2bce794c26a8c92801991dedd339544"
+      "sha256": "aa1b355f6b622edbe703f93cb8c60a858cfeb13698eacb9d16ffe5cb2cb297bd"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2228,6 +2228,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.8-owner-accepted-review.json",
-    "sha256": "d035bd04b044221ef588452bb60415b1d0a51e503e537c7ecb90b931adf76544"
+    "sha256": "e1e1c35a743666fde41b62a0a0ec0aa3e2ee67efb6f507bc57cc272cc1cefb30"
   }
 }

@@ -4,11 +4,17 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class AmllLyricsProvider(LyricsHttpClient http) : ILyricsProvider
+public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
 {
     public LyricsProviderKind Kind => LyricsProviderKind.Amll;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
+        => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
+
+    public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken,
+        Action<LyricsDocument> reportCandidate)
     {
+        var original = LyricsDocument.Empty;
+        var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         // Player and catalogue credits are not guaranteed to use the same artist/album
         // semantics. Search broadly by normalized title, then apply the shared multi-signal
         // identity matcher to the bounded result set.
@@ -64,9 +70,13 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : ILyricsProvider
                 return LyricsParser.Parse(NestedText(lyric.RootElement, "data", "lyrics"), Kind)
                     .Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, best.Id);
             });
-            if (document.Lines.Count > 0) return document;
+            if (document.Lines.Count == 0) continue;
+            reportCandidate(document);
+            if (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
+                LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
+            if (original.Lines.Count == 0) original = document;
         }
         requests.ThrowIfFailed();
-        return LyricsDocument.Empty;
+        return original;
     }
 }
