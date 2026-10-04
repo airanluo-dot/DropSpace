@@ -5,7 +5,24 @@ public sealed class AiLyricsWorkLifetime : IDisposable
 {
     private readonly object _sync = new();
     private readonly SemaphoreSlim _maintenanceGate = new(1, 1);
-    private readonly HashSet<CancellationTokenSource> _active = [];
+    private sealed class ActiveWork(CancellationToken token)
+    {
+        public CancellationTokenSource Source { get; } = CancellationTokenSource.CreateLinkedTokenSource(token);
+        public Task Callbacks { get; private set; } = Task.CompletedTask;
+        public bool Closed { get; set; }
+        private bool _requested;
+        // Called under _sync. User/native callbacks execute outside the owner lock.
+        public Task RequestStop()
+        {
+            if (!Closed && !_requested)
+            {
+                _requested = true;
+                Callbacks = Source.CancelAsync();
+            }
+            return Callbacks;
+        }
+    }
+    private readonly HashSet<ActiveWork> _active = [];
     private readonly Func<CancellationToken, Task>? _drainNativeCleanup;
     private TaskCompletionSource _idle = Completed();
     private bool _maintaining, _disposed;
@@ -15,24 +32,35 @@ public sealed class AiLyricsWorkLifetime : IDisposable
 
     public async Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> action, T unavailable, CancellationToken token)
     {
-        CancellationTokenSource stop;
+        ActiveWork stop;
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             token.ThrowIfCancellationRequested();
             if (_maintaining) return unavailable;
-            stop = CancellationTokenSource.CreateLinkedTokenSource(token);
+            stop = new ActiveWork(token);
             if (_active.Count == 0) _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
             _active.Add(stop);
         }
-        try { return await action(stop.Token).ConfigureAwait(false); }
+        try { return await action(stop.Source.Token).ConfigureAwait(false); }
         finally
         {
+            Task callbacks;
             lock (_sync)
             {
-                _active.Remove(stop);
-                stop.Dispose();
-                if (_active.Count == 0) _idle.TrySetResult();
+                stop.Closed = true;
+                callbacks = stop.Callbacks;
+            }
+            try { await callbacks.ConfigureAwait(false); }
+            catch (Exception error) when (error is not OutOfMemoryException) { /* Maintenance observes callback errors separately. */ }
+            finally
+            {
+                lock (_sync)
+                {
+                    _active.Remove(stop);
+                    stop.Source.Dispose();
+                    if (_active.Count == 0) _idle.TrySetResult();
+                }
             }
         }
     }
@@ -43,14 +71,15 @@ public sealed class AiLyricsWorkLifetime : IDisposable
         try
         {
             Task idle;
+            Task[] callbacks;
             lock (_sync)
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
                 _maintaining = true;
-                // Cancel only controlled inference callbacks; active scopes retire under the same lock.
-                foreach (var stop in _active.ToArray()) stop.Cancel();
+                callbacks = _active.Select(stop => stop.RequestStop()).ToArray();
                 idle = _idle.Task;
             }
+            await Task.WhenAll(callbacks).WaitAsync(token).ConfigureAwait(false);
             await idle.WaitAsync(token).ConfigureAwait(false);
             // A bounded inference cancellation may return before OS-confirmed exit. Keep
             // maintenance fenced until that separately owned native cleanup is confirmed.
@@ -71,7 +100,7 @@ public sealed class AiLyricsWorkLifetime : IDisposable
         {
             if (_disposed) return;
             _disposed = true;
-            foreach (var stop in _active.ToArray()) stop.Cancel();
+            foreach (var stop in _active) stop.RequestStop();
         }
     }
 

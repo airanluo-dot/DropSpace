@@ -14,7 +14,7 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : ILyricsProvider
         // identity matcher to the bounded result set.
         var searchUrl = $"https://api.amll.dev/v1/lyrics/search?musicName={Escape(LyricsMatcher.SearchTitle(query.Title))}&pageSize=100";
         using var search = await http.GetAsync(searchUrl, cancellationToken);
-        var best = Array(search.RootElement, "data", "items")
+        var candidates = Array(search.RootElement, "data", "items")
             .Select(item => new
             {
                 Item = item,
@@ -50,17 +50,23 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : ILyricsProvider
                     Score = title.Score,
                 };
             })
+            .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(candidate.Id) && !string.IsNullOrWhiteSpace(candidate.Title))
             .OrderByDescending(candidate => candidate.Score)
-            .FirstOrDefault();
-        if (best is null || best.Score < 4 || string.IsNullOrWhiteSpace(best.Id) || string.IsNullOrWhiteSpace(best.Title))
+            .DistinctBy(candidate => candidate.Id)
+            .Take(3);
+        var requests = new LyricsCandidateRequests();
+        foreach (var best in candidates)
         {
-            return LyricsDocument.Empty;
+            var document = await requests.TryAsync(async () =>
+            {
+                using var lyric = await http.GetAsync(
+                    $"https://api.amll.dev/v1/lyrics/get?id={Escape(best.Id)}", cancellationToken);
+                return LyricsParser.Parse(NestedText(lyric.RootElement, "data", "lyrics"), Kind)
+                    .Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, best.Id);
+            });
+            if (document.Lines.Count > 0) return document;
         }
-
-        using var lyric = await http.GetAsync(
-            $"https://api.amll.dev/v1/lyrics/get?id={Escape(best.Id)}",
-            cancellationToken);
-        return LyricsParser.Parse(NestedText(lyric.RootElement, "data", "lyrics"), Kind)
-            .Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, best.Id);
+        requests.ThrowIfFailed();
+        return LyricsDocument.Empty;
     }
 }

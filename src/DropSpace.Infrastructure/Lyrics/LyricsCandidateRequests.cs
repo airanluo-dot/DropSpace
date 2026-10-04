@@ -1,6 +1,7 @@
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
+using System.Xml;
 using DropSpace.Core.Lyrics;
 
 namespace DropSpace.Infrastructure.Lyrics;
@@ -29,7 +30,7 @@ internal sealed class LyricsCandidateRequests
         LyricsProviderRejectedException => false,
         HttpRequestException { StatusCode: null or HttpStatusCode.NotFound or HttpStatusCode.RequestTimeout } => true,
         HttpRequestException { StatusCode: { } status } when (int)status is >= 500 and <= 599 => true,
-        JsonException or InvalidDataException or IOException => true,
+        JsonException or XmlException or FormatException or InvalidDataException or IOException => true,
         _ => false,
     };
 }

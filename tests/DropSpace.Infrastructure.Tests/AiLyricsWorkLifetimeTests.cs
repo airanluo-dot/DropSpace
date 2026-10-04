@@ -6,6 +6,42 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class AiLyricsWorkLifetimeTests
 {
     [TestMethod]
+    public async Task MaintenanceDoesNotRunCancellationCallbacksOnItsCaller()
+    {
+        using var lifetime = new AiLyricsWorkLifetime();
+        using var release = new ManualResetEventSlim();
+        var callbackEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callReturned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var work = lifetime.RunAsync(async token =>
+        {
+            using var registration = token.Register(() => { callbackEntered.TrySetResult(); release.Wait(); });
+            ready.TrySetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            return 1;
+        }, 0, default);
+        await ready.Task;
+        var maintenance = Task.Run(async () =>
+        {
+            var pending = lifetime.MaintainAsync(_ => Task.CompletedTask, default);
+            callReturned.TrySetResult();
+            await pending;
+        });
+        try
+        {
+            await callbackEntered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            await callReturned.Task.WaitAsync(TimeSpan.FromSeconds(1));
+            Assert.IsFalse(maintenance.IsCompleted, "Maintenance must still retain cancellation cleanup ownership.");
+        }
+        finally
+        {
+            release.Set();
+            await maintenance.WaitAsync(TimeSpan.FromSeconds(3));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => work);
+        }
+    }
+
+    [TestMethod]
     public async Task MaintenanceDoesNotDeleteAfterPublicCancellationReturnsWithNativeCleanupPending()
     {
         using var runner = new LlamaCompletionRunner(TestInferenceMemory.Sufficient);

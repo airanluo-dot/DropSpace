@@ -1,14 +1,12 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.4
+## Release target: v0.3.1-beta.5
 
-Restore user-enabled AI fallback after incomplete or timed-out provider translation searches.
-Extend the single supplemental translation-search budget to 3 seconds after the first usable
-original. Remove AI lyrics Beta UI labels while preserving model identities and settings.
-The owner authorized these three changes and the complete beta4 release workflow on
-2026-10-04. No new model semantic-validation claim is made.
-
-See [release notes](.github/release-notes/v0.3.1-beta.4.md).
+Repository-wide correctness review with focused reproductions for lyric candidate recovery,
+media-clock state changes, settings migration, AI cleanup and text-title allocation/Unicode.
+Keep existing native runtime/model identities and promote the identical validated package tree.
+See [release notes](.github/release-notes/v0.3.1-beta.5.md) and
+[review evidence](docs/dev/beta5-correctness-review.md).
 
 ## Delivered slice: v0.3.0-beta.32
 

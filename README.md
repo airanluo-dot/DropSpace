@@ -11,20 +11,21 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and this repository prepares v0.3.1-beta.4**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and this repository prepares v0.3.1-beta.5**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target draft: [v0.3.1-beta.4](.github/release-notes/v0.3.1-beta.4.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target draft: [v0.3.1-beta.5](.github/release-notes/v0.3.1-beta.5.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-The **v0.3.1 Beta 3 candidate** improves Chinese-song matching, existing-translation
-selection with a shared latency budget, music-reactive contrast, and artifact promotion.
-Published Beta 2 remains immutable. This candidate is not published until its release exists.
-Existing optional on-device **AI lyrics (Beta)** remain off by default. Hy-MT2 1.8B Q8_0
+The **v0.3.1 Beta 5 candidate** repairs provider-candidate recovery, stale pause/resume
+positions, nullable lyric settings and Unicode title truncation. AI maintenance now
+requests cancellation without blocking its caller while retaining cleanup ownership.
+Previous releases remain immutable. This candidate is not published until its release exists.
+Existing optional on-device **AI lyrics** remain off by default. Hy-MT2 1.8B Q8_0
 (about 1.9 GB) and optional 7B Q8_0 (about 7.98 GB) require explicit download confirmation;
 no model is downloaded silently. Both models remain unverified.
 Translation follows the App language and keeps an available matching provider translation
 in preference to AI. First-time full-song generation can take several minutes, and AI
 can change meaning or omit details. The original lyrics remain available. These remain
-disclosed Beta limitations; they do not certify translation accuracy or waive known bugs.
+disclosed model limitations; they do not certify translation accuracy or waive known bugs.
 
 Original lyrics, provider translations and AI translations share a persistent cache:
 1 GiB (1024 MiB) by default, adjustable from 100 MiB to 5 GiB. Model downloads do
@@ -35,8 +36,9 @@ The next-line preview and redesigned lyric layout apply only to the expanded isl
 The optional fullscreen-island override is off by default and cannot guarantee
 visibility over exclusive fullscreen games or the Windows secure desktop/UAC prompt.
 
-Online lyric lookup retains its separate opt-in provider boundary; local AI does not
-make the whole App network-free. Beta 1 removed the redundant
+Fresh installations enable online lyrics with NetEase first, no backup, and remaining-provider
+search enabled. Existing choices are retained, and users can disable online lookup or use Local LRC.
+Local AI is separately opt-in and does not make the whole App network-free. Beta 1 removed the redundant
 drag compatibility settings card without changing drag behavior. Compatibility still
 depends on the source application's public Windows drag support.
 
@@ -45,7 +47,7 @@ Preparing these files does not publish a release. Current downloads remain on th
 publication. The final commit still needs complete review, resolved release-blocking
 findings, the user's glow/bug-remediation conditions and the Windows build/package gates. See the
 [issue register](docs/dev/ai-lyrics-031-issue-register.md),
-[release checklist](docs/release/v0.3.1-beta.4-checklist.md), and
+[release checklist](docs/release/v0.3.1-beta.5-checklist.md), and
 [lyrics/AI privacy boundary](PRIVACY.md#031-beta-1-lyrics-and-ai-boundary).
 
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
@@ -233,7 +235,7 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.4` (Beta 4). All new prereleases use
+The current Beta target is `v0.3.1-beta.5` (Beta 4). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
 releases remain immutable. v0.3.1-beta.3 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to

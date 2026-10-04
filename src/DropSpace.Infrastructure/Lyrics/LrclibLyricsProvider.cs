@@ -34,23 +34,37 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
                 catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest) { }
             }
         }
+        var requests = new LyricsCandidateRequests();
+        var attempted = new HashSet<string>(StringComparer.Ordinal);
+        var remaining = 3;
         foreach (var terms in LyricsMatcher.SearchTerms(query))
         {
+            if (remaining == 0) break;
             using var search = await http.GetAsync($"https://lrclib.net/api/search?q={Escape(terms)}", cancellationToken);
-            var best = Array(search.RootElement)
+            var candidates = Array(search.RootElement)
                 .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")))
                 .Select(item => new
                 { Item = item, Score = LyricsMatcher.Score(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
-                .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
-            var bestId = best is null ? string.Empty : Text(best.Item, "id");
-            if (best is null || best.Score < 4 || string.IsNullOrWhiteSpace(bestId)) continue;
-            var text = Text(best.Item, "syncedLyrics");
-            if (string.IsNullOrWhiteSpace(text)) text = Text(best.Item, "plainLyrics");
-            var parsed = LyricsParser.Parse(text, Kind);
-            if (parsed.Lines.Count > 0)
-                return parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
-                    Text(best.Item, "albumName"), Number(best.Item, "duration"), best.Score, bestId);
+                .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")))
+                .OrderByDescending(candidate => candidate.Score).Take(3);
+            foreach (var best in candidates)
+            {
+                var bestId = Text(best.Item, "id");
+                if (remaining == 0) break;
+                if (!attempted.Add(bestId)) continue;
+                remaining--;
+                var parsed = await requests.TryAsync(() =>
+                {
+                    var text = Text(best.Item, "syncedLyrics");
+                    if (string.IsNullOrWhiteSpace(text)) text = Text(best.Item, "plainLyrics");
+                    return Task.FromResult(LyricsParser.Parse(text, Kind));
+                });
+                if (parsed.Lines.Count > 0)
+                    return parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
+                        Text(best.Item, "albumName"), Number(best.Item, "duration"), best.Score, bestId);
+            }
         }
+        requests.ThrowIfFailed();
         return LyricsDocument.Empty;
     }
 }

@@ -283,10 +283,11 @@ public sealed class JsonSettingsService : ISettingsService
         var lyricsFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (fields.TryGetValue(nameof(AppSettings.Lyrics), out var lyrics) && lyrics.ValueKind == JsonValueKind.Object)
             foreach (var property in lyrics.EnumerateObject()) lyricsFields.Add(property.Name);
-        var persistedLyrics = settings.Lyrics with
+        var previousLyrics = settings.Lyrics ?? new LyricsSettings();
+        var persistedLyrics = previousLyrics with
         {
-            Enabled = lyricsFields.Contains(nameof(LyricsSettings.Enabled)) && settings.Lyrics.Enabled,
-            SearchRemainingProviders = lyricsFields.Contains(nameof(LyricsSettings.SearchRemainingProviders)) && settings.Lyrics.SearchRemainingProviders,
+            Enabled = lyricsFields.Contains(nameof(LyricsSettings.Enabled)) && previousLyrics.Enabled,
+            SearchRemainingProviders = lyricsFields.Contains(nameof(LyricsSettings.SearchRemainingProviders)) && previousLyrics.SearchRemainingProviders,
         };
         if (persistedLyrics != settings.Lyrics) settings = settings with { Lyrics = persistedLyrics };
         if (fields.ContainsKey(nameof(AppSettings.PrivacyChoicesCompleted))) return settings;

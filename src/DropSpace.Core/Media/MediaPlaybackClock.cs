@@ -57,7 +57,13 @@ public sealed class MediaPlaybackClock(TimeProvider? timeProvider = null)
         if (native && nativeChanged)
         {
             var interpolated = position;
-            position = Math.Max(0, session.Timeline.Position.TotalSeconds);
+            // A state-only pause/resume event may carry the unchanged native
+            // observation. Reusing that old position rewinds the lyric clock.
+            var staleStateTransition = sameTrack && !IsEstimated &&
+                session.PlaybackState != _session.PlaybackState &&
+                session.Timeline.Position == _session.Timeline.Position &&
+                session.Timeline.LastUpdated == _session.Timeline.LastUpdated;
+            position = staleStateTransition ? interpolated : Math.Max(0, session.Timeline.Position.TotalSeconds);
             if (session.PlaybackState == MediaPlaybackState.Playing)
             {
                 var rate = double.IsFinite(session.Timeline.PlaybackRate) && session.Timeline.PlaybackRate is > 0 and <= 8 ? session.Timeline.PlaybackRate : 1;

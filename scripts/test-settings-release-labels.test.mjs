@@ -38,14 +38,14 @@ test('Smart detection keeps its persisted mode, other modes, event handler, and 
   assert.equal(resources('zh-CN').get('FileDragWakeModeSmart.Content'), '智能检测');
 });
 
-test('existing Music AI card and toggle clearly display Beta in both languages', () => {
+test('Music AI card and toggle use the released feature label in both languages', () => {
   assert.match(ai, /Text = strings\.Get\("AiLyricsTitle"\)/);
   assert.match(ai, /_enabled.Header = strings\.Get\("AiLyricsEnabled"\)/);
   assert.match(ai, /AutomationProperties.SetName\(_enabled, strings\.Get\("AiLyricsEnabled"\)\)/);
   for (const language of ['en-US', 'zh-CN']) {
     const strings = resources(language);
     for (const key of ['AiLyricsTitle', 'AiLyricsEnabled', 'AiLyricsPlainBetaModel'])
-      assert.match(strings.get(key), /Beta/, `${language} ${key}`);
+      assert.doesNotMatch(strings.get(key), /Beta/i, `${language} ${key}`);
     assert.match(strings.get('AiLyricsPlainBetaModel'), /Q8_0/);
     assert.match(strings.get('AiLyricsDescription'), language === 'en-US' ? /first full translation may take several minutes/ : /首次完成整首歌词翻译可能需要几分钟/);
     assert.match(strings.get('AiLyricsPlainBetaHelp'), language === 'en-US' ? /meaning errors/ : /含义错误/);
@@ -54,7 +54,7 @@ test('existing Music AI card and toggle clearly display Beta in both languages',
   }
 });
 
-test('model selector uses selectable catalog only and maps Q8 Beta to its own localized help', () => {
+test('model selector uses selectable catalog only and maps Q8 to its own localized help', () => {
   const selection = section(ai, 'foreach (var model in AiLyricsModelCatalog.All)', '_models.SelectionChanged');
   assert.doesNotMatch(selection, /Legacy|Standard|Compact/);
   assert.match(ai, /FindSelectable\(_editor.Settings.Lyrics.AiModelId\) \?\? AiLyricsModelCatalog.ExperimentalPlain/);
@@ -67,7 +67,8 @@ test('optional 7B has its own localized label and resource cost in the existing 
   assert.match(ai, /ExperimentalLargePlain.Id \? "AiLyricsLargePlainBetaHelp"/);
   for (const language of ['en-US', 'zh-CN']) {
     const strings = resources(language);
-    assert.match(strings.get('AiLyricsLargePlainBetaModel'), /7B Q8_0.*Beta/);
+    assert.match(strings.get('AiLyricsLargePlainBetaModel'), /7B Q8_0/);
+    assert.doesNotMatch(strings.get('AiLyricsLargePlainBetaModel'), /Beta/i);
     const help = strings.get('AiLyricsLargePlainBetaHelp');
     assert.match(help, /7\.98 GB/);
     assert.match(help, language === 'en-US' ? /more memory.*more video memory/ : /更多内存.*更多显存/);
