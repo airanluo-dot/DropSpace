@@ -269,6 +269,27 @@ public sealed class NetEaseRequestReuseTests
         }
     }
 
+    [TestMethod]
+    public async Task CompleteOriginalWithoutTargetOrInTargetLanguageRemainsReusableAfterOneSecond()
+    {
+        var calls = new List<int>();
+        foreach (var target in new string?[] { null, "zh-Hans", "en" })
+        {
+            using var handler = new PayloadHandler("""{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你"}}""");
+            using var client = new HttpClient(handler);
+            var clock = new ManualClock();
+            var cache = new NetEaseResponseCache(new(client), clock);
+            const string url = "https://music.163.com/api/song/lyric?id=1";
+            using var first = await cache.GetAsync(url, default, translationTarget: target);
+            clock.Now += TimeSpan.FromMilliseconds(1100);
+            using var second = await cache.GetAsync(url, default, translationTarget: target);
+            Assert.AreEqual(first.RootElement.GetRawText(), second.RootElement.GetRawText());
+            calls.Add(handler.Calls);
+        }
+        // No target and same target are complete; a foreign target still refetches.
+        Assert.AreEqual("1,1,2", string.Join(",", calls), "HTTP counts for no target, Chinese target, English target");
+    }
+
     private sealed class ChangingTranslationHandler : HttpMessageHandler
     {
         public int Calls;
