@@ -191,12 +191,13 @@ public sealed class WidgetEditorView : UserControl
             try { await PlaceAsync(id, column, row); }
             catch (Exception) { _error.Text = _strings.Get("WidgetDropFailed"); }
         }), true);
-        button.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { pressedAt = null; dragging = false; _dropPreview.Visibility = Visibility.Collapsed; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0; }), true);
+        button.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { _suppressClicks.Remove(id); pressedAt = null; dragging = false; _dropPreview.Visibility = Visibility.Collapsed; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0; }), true);
         button.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, args) =>
         {
             // Button releases capture before the routed PointerReleased handler runs.
             // Preserve the pending drop for that normal release; only cancel an interrupted drag.
             if (!args.GetCurrentPoint(_grid).Properties.IsLeftButtonPressed) return;
+            _suppressClicks.Remove(id);
             pressedAt = null; dragging = false; _dropPreview.Visibility = Visibility.Collapsed; button.Opacity = 1; dragTransform.X = dragTransform.Y = 0;
         }), true);
         button.AddHandler(PointerMovedEvent, new PointerEventHandler((_, args) =>

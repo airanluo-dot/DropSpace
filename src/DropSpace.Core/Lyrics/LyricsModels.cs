@@ -11,6 +11,7 @@ public sealed record LyricsQuery(
     string AlbumArtist = "")
 {
     public string? PreferredTranslationLanguage { get; init; }
+    public bool BypassProviderResponseCache { get; init; }
 
     public IReadOnlyList<string> ArtistCandidates => LyricsMatcher.ExpandArtistCandidates(Artist, AlbumArtist);
 

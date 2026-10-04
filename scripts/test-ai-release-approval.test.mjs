@@ -277,8 +277,8 @@ test('owner-accepted Beta preserves timeout and unexecuted evidence without sema
 });
 
 for (const [label, mutate, expected] of [
-  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.8'); x.scope.releaseVersion = 'v0.3.1-beta.8'; }, /only for v0.3.1-beta.8/],
-  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.8/],
+  ['future Beta', x => { const future = experimentalBetaVersion.replace(/\d+$/, n => String(Number(n) + 1)); x.write('RELEASE_VERSION', future); x.scope.releaseVersion = future; }, /only for v0.3.1-beta.9/],
+  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.9/],
   ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
   ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],
   ['no incomplete-validation acceptance', x => { x.report.userAcceptance.acceptsIncompleteModelValidation = false; }, /Explicit acceptance/],
@@ -852,8 +852,8 @@ test('CI tests every PR while Release gates explicit publication with a second p
   assert.match(publish, /needs: \[validate-release, sign-release\]/);
   assert.match(publish, /- name: Recheck AI publication decision\n        run: node scripts\/test-ai-release-approval.mjs --release-bundle artifacts\/release\n\n      - name: Publish immutable/);
   assert.match(validate, /Assert-DropSpacePublicationCommit \$env:EXPECTED_COMMIT \$env:ACTUAL_COMMIT/);
-  assert.match(validate, /- name: Build verified offline AI inference runtime\n        if:.*ci-promotion.outputs.reuse != 'true'.*inputs.publish == true/);
-  assert.match(validate, /- name: Retrieve the exact reviewed runtime\n        if:.*ci-promotion.outputs.reuse != 'true'.*inputs.publish == true/);
+  assert.doesNotMatch(validate, /- name: Build verified offline AI inference runtime/);
+  assert.match(validate, /- name: Retrieve the exact reviewed runtime\n        if: steps.ci-promotion.outputs.reuse != 'true'/);
   assert.match(validate, /Get-ReviewedAiRuntime.ps1/);
   assert.match(validate, /record-bundle artifacts\/release runtime-directory/);
   const ci = fs.readFileSync(path.join(repository, '.github/workflows/ci.yml'), 'utf8');

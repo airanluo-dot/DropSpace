@@ -11,9 +11,9 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and this repository prepares v0.3.1-beta.8**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and this repository prepares v0.3.1-beta.9**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target draft: [v0.3.1-beta.8](.github/release-notes/v0.3.1-beta.8.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target draft: [v0.3.1-beta.9](.github/release-notes/v0.3.1-beta.9.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
 The **v0.3.1 Beta 5 candidate** repairs provider-candidate recovery, stale pause/resume
 positions, nullable lyric settings and Unicode title truncation. AI maintenance now
@@ -47,7 +47,7 @@ Preparing these files does not publish a release. Current downloads remain on th
 publication. The final commit still needs complete review, resolved release-blocking
 findings, the user's glow/bug-remediation conditions and the Windows build/package gates. See the
 [issue register](docs/dev/ai-lyrics-031-issue-register.md),
-[release checklist](docs/release/v0.3.1-beta.8-checklist.md), and
+[release notes](.github/release-notes/v0.3.1-beta.9.md), and
 [lyrics/AI privacy boundary](PRIVACY.md#031-beta-1-lyrics-and-ai-boundary).
 
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
@@ -235,9 +235,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.8` (Beta 8). All new prereleases use
+The current Beta target is `v0.3.1-beta.9` (Beta 9). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.7 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.8 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
