@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
 
@@ -8,11 +9,13 @@ public interface ILyricsResponseCache
     void ClearResponseCache();
 }
 
+// Bounded ten-minute reuse covers track revisits and metadata handoffs; refresh
+// and clear always fence old owners. No failures are retained for later callers.
 // Reuse public responses, never matched documents: every caller still validates
 // its exact title/credits/album/duration and binds its own track identity.
 internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? timeProvider = null)
 {
-    private const int MaximumEntries = 16;
+    private const int MaximumEntries = 128;
     private const int MaximumBytes = 16 * 1024 * 1024;
     private readonly TimeProvider _clock = timeProvider ?? TimeProvider.System;
     private readonly object _gate = new();
@@ -22,13 +25,15 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
 
     private sealed class Entry
     {
-        public TaskCompletionSource? Completion;
+        public TaskCompletionSource<ResponseResult>? Completion;
         public int Users, Bytes;
         public long Order, Timestamp;
         public string? Payload;
         public bool Pending;
         public CancellationToken OwnerToken;
     }
+
+    private sealed record ResponseResult(string? Payload, ExceptionDispatchInfo? Error);
 
     public void Clear()
     {
@@ -45,15 +50,16 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
             token.ThrowIfCancellationRequested();
             var entry = Acquire(url);
             var ownsRequest = false;
+            ResponseResult result = new(null, null);
             try
             {
                 CancellationToken owner = default;
-                Task? pending = null;
+                Task<ResponseResult>? pending = null;
                 string? saved;
                 lock (_gate)
                 {
                     saved = entry.Payload is not null &&
-                        _clock.GetElapsedTime(entry.Timestamp) < TimeSpan.FromSeconds(10) ? entry.Payload : null;
+                        _clock.GetElapsedTime(entry.Timestamp) < TimeSpan.FromMinutes(10) ? entry.Payload : null;
                     if (saved is null)
                     {
                         if (entry.Pending) { owner = entry.OwnerToken; pending = entry.Completion!.Task; }
@@ -74,7 +80,13 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                 if (pending is not null)
                 {
                     using var wait = CancellationTokenSource.CreateLinkedTokenSource(token, owner);
-                    try { await pending.WaitAsync(wait.Token).ConfigureAwait(false); }
+                    try
+                    {
+                        var shared = await pending.WaitAsync(wait.Token).ConfigureAwait(false);
+                        token.ThrowIfCancellationRequested();
+                        shared.Error?.Throw();
+                        if (shared.Payload is not null) return JsonDocument.Parse(shared.Payload);
+                    }
                     catch (OperationCanceledException) when (!token.IsCancellationRequested && owner.IsCancellationRequested) { }
                     // Atomically captured ownership prevents a waiter from missing
                     // cancellation while another request takes over the entry.
@@ -84,24 +96,32 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                 try
                 {
                     token.ThrowIfCancellationRequested();
-                    if (Reusable(response.RootElement, url)) Store(url, entry, response.RootElement.GetRawText());
+                    var payload = response.RootElement.GetRawText();
+                    result = new(payload, null);
+                    if (Reusable(response.RootElement, url)) Store(url, entry, payload);
                     return response;
                 }
                 catch { response.Dispose(); throw; }
             }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                result = new(null, ExceptionDispatchInfo.Capture(error));
+                throw;
+            }
             finally
             {
-                TaskCompletionSource? completed = null;
+                TaskCompletionSource<ResponseResult>? completed = null;
                 lock (_gate)
                 {
                     if (ownsRequest)
                     {
                         completed = entry.Completion;
+                        entry.Completion = null;
                         entry.Pending = false; entry.OwnerToken = default;
                     }
                     entry.Users--;
                 }
-                completed?.TrySetResult();
+                completed?.TrySetResult(result);
             }
         }
     }
@@ -152,8 +172,15 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                     song.TryGetProperty("id", out var id) && id.ValueKind is JsonValueKind.Number or JsonValueKind.String &&
                     song.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String);
         return (HasLyric(root, "lrc") || HasLyric(root, "yrc")) &&
-            new[] { "lrc", "yrc", "tlyric", "ytlrc" }.All(name => !root.TryGetProperty(name, out _) || HasLyric(root, name));
+            new[] { "lrc", "yrc", "tlyric", "ytlrc" }.All(name => OptionalLyric(root, name));
     }
+
+    // Null/empty optional fields mean no data, not a corrupt successful response.
+    // Strings/arrays or non-string lyric properties remain non-reusable.
+    private static bool OptionalLyric(JsonElement root, string name) =>
+        !root.TryGetProperty(name, out var value) || value.ValueKind == JsonValueKind.Null ||
+        value.ValueKind == JsonValueKind.Object &&
+        (!value.TryGetProperty("lyric", out var lyric) || lyric.ValueKind is JsonValueKind.String or JsonValueKind.Null);
 
     private static bool HasLyric(JsonElement root, string name) =>
         root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object &&

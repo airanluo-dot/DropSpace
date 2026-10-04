@@ -424,6 +424,11 @@ public sealed class MediaExperienceService : IAsyncDisposable
         var started = Stopwatch.GetTimestamp();
         try
         {
+            // Coalesce transient SMTC snapshots/rapid skips before sending irreversible
+            // public HTTP traffic. Stable tracks incur only this short admission delay.
+            if (!refresh)
+                await Task.Delay(TimeSpan.FromMilliseconds(150), token).ConfigureAwait(false);
+            if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
             var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,

@@ -243,6 +243,85 @@ public sealed class LyricsTranslationPreferenceTests
         Assert.AreEqual(LyricsProviderKind.NetEase, result.Document.Provider);
     }
 
+    [TestMethod]
+    public async Task PreferredTranslationCancelsUnneededSupplementalWorkImmediately()
+    {
+        var late = new TaskCompletionSource<LyricsDocument>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<LyricsDocument> TranslatePrimary()
+        { await Task.Delay(80); return Doc(LyricsProviderKind.NetEase, true); }
+        var primary = new Progressive(TranslatePrimary());
+        var fallback = new Provider(LyricsProviderKind.QqMusic, () => late.Task);
+        var result = await new LyricsService(new([primary, fallback])).QueryDetailedAsync(Query,
+            new() { Enabled = true, SearchRemainingProviders = true }, default).WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.AreEqual(LyricsProviderKind.NetEase, result.Document.Provider);
+        Assert.IsFalse(result.TranslationLookupIncomplete);
+        late.TrySetResult(LyricsDocument.Empty);
+    }
+
+    [TestMethod]
+    public async Task OriginalOnlyTargetAwareResultDoesNotHideLaterNativeTranslation()
+    {
+        var translated = false;
+        var primary = new Provider(LyricsProviderKind.NetEase, () => Task.FromResult(Doc(LyricsProviderKind.NetEase, translated)));
+        var service = new LyricsService(new([primary]));
+        var settings = new LyricsSettings { Enabled = true, SearchRemainingProviders = false };
+        var first = await service.QueryDetailedAsync(Query, settings, default);
+        Assert.IsFalse(LyricsTranslationPolicy.HasMatchingProviderTranslation(first.Document, "zh-Hans"));
+        translated = true;
+        var second = await service.QueryDetailedAsync(Query, settings, default);
+        Assert.IsTrue(LyricsTranslationPolicy.HasMatchingProviderTranslation(second.Document, "zh-Hans"));
+        await service.QueryDetailedAsync(Query, settings, default);
+        Assert.AreEqual(2, primary.Calls);
+    }
+
+    [TestMethod]
+    public async Task TransientPreferredFailureDoesNotPersistLowerPriorityTranslation()
+    {
+        var rejected = true;
+        var primary = new Provider(LyricsProviderKind.NetEase, () => rejected
+            ? Task.FromException<LyricsDocument>(new HttpRequestException("Transient provider rejection"))
+            : Task.FromResult(Doc(LyricsProviderKind.NetEase, true)));
+        var backup = new Provider(LyricsProviderKind.QqMusic, () => Task.FromResult(Doc(LyricsProviderKind.QqMusic, true)));
+        var service = new LyricsService(new([primary, backup]));
+        var settings = new LyricsSettings { Enabled = true, SearchRemainingProviders = false, BackupProvider = LyricsProviderKind.QqMusic };
+        var first = await service.QueryDetailedAsync(Query, settings, default);
+        Assert.AreEqual(LyricsProviderKind.QqMusic, first.Document.Provider);
+        rejected = false;
+        var second = await service.QueryDetailedAsync(Query, settings, default);
+        Assert.AreEqual(LyricsProviderKind.NetEase, second.Document.Provider);
+        Assert.AreEqual(2, primary.Calls);
+    }
+
+    [TestMethod]
+    public async Task ProgressiveBackupTranslationCancelsRemainingOriginalSearch()
+    {
+        var late = new TaskCompletionSource<LyricsDocument>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var primary = new Provider(LyricsProviderKind.NetEase, () => Task.FromResult(Doc(LyricsProviderKind.NetEase)));
+        var remaining = new Provider(LyricsProviderKind.Amll, () => late.Task);
+        try
+        {
+            var result = await new LyricsService(new([primary, new ProgressiveBackup(), remaining])).QueryDetailedAsync(Query,
+                new() { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic, SearchRemainingProviders = true }, default)
+                .WaitAsync(TimeSpan.FromSeconds(1));
+            Assert.AreEqual(LyricsProviderKind.QqMusic, result.Document.Provider);
+            Assert.AreEqual(1, remaining.Calls);
+        }
+        finally { late.TrySetResult(LyricsDocument.Empty); }
+    }
+
+    private sealed class ProgressiveBackup : IProgressiveLyricsProvider
+    {
+        public LyricsProviderKind Kind => LyricsProviderKind.QqMusic;
+        public Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken token) =>
+            QueryAsync(query, token, _ => { });
+        public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken token, Action<LyricsDocument> report)
+        {
+            report(Doc(Kind));
+            await Task.Delay(80, token);
+            return Doc(Kind, true);
+        }
+    }
+
     private sealed class Progressive(Task<LyricsDocument> pending) : IProgressiveLyricsProvider
     {
         public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
