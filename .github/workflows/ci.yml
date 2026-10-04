@@ -28,6 +28,13 @@ jobs:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Read exact beta6 owner test waiver
+        shell: pwsh
+        run: |
+          $waived = ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.6').ToString().ToLowerInvariant()
+          "BETA6_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
+          if ($waived -eq 'true') { 'Owner waived beta6 functional tests. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
+
       - name: Verify reusable prior successful checks
         id: prior-checks
         env:
@@ -59,21 +66,21 @@ jobs:
           ./scripts/Test-ReleaseVersion.ps1
           ./scripts/Test-ReleaseConsistency.ps1
       - name: Enforce localization resource policy
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: ./scripts/Test-Localization.ps1
 
       - name: Test frozen model prompt localization exceptions
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         run: node --test scripts/test-localization-policy.test.mjs
 
       - name: Enforce Windows 10/11 compatibility baseline
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: ./scripts/Test-WindowsCompatibility.ps1
 
       - name: Enforce hardcoding governance
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: ./scripts/Test-HardcodingGovernance.ps1
 
@@ -83,12 +90,15 @@ jobs:
         run: ./scripts/Test-SecretHygiene.ps1
 
       - name: Test CI handoff and workflow contracts
+        if: env.BETA6_SKIP_TESTS != 'true'
         run: node --test scripts/ci-portable-handoff.test.mjs scripts/ci-share-worker-scope.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs scripts/ci-release-promotion.test.mjs
 
       - name: Test AI semantic release gate regressions
+        if: env.BETA6_SKIP_TESTS != 'true'
         run: node --test scripts/test-ai-release-approval.test.mjs scripts/test-ai-runtime-publication.test.mjs
 
       - name: Test packaged runtime inspection regressions
+        if: env.BETA6_SKIP_TESTS != 'true'
         shell: pwsh
         run: |
           ./scripts/Test-AiRuntimePayloadInspector.ps1
@@ -96,11 +106,11 @@ jobs:
           ./scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1
 
       - name: Test expanded island scope and fullscreen behavior contracts
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         run: node --test scripts/test-expanded-island-layout.test.mjs scripts/test-fullscreen-island.test.mjs
 
       - name: Test private translation helper protocol without model dependencies
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
         run: |
           python -m unittest discover -s tools/ct2-helper -p 'test_*.py' -v
@@ -131,14 +141,15 @@ jobs:
           ./scripts/Build-AiLyricsRuntime.ps1
 
       - name: Test core policies, SemVer, and channel selection
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
 
       - name: Test persistence, manifests, streaming downloads, and update coordination
-        if: steps.prior-checks.outputs.reuse != 'true'
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         run: dotnet test tests/DropSpace.Infrastructure.Tests/DropSpace.Infrastructure.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=infrastructure.trx"
 
       - name: Test production evidence harness without native inference
+        if: env.BETA6_SKIP_TESTS != 'true'
         shell: pwsh
         run: |
           dotnet restore scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj -p:RestoreLockedMode=true
@@ -152,6 +163,7 @@ jobs:
         run: ./scripts/Install-TestWindowsAppRuntime.ps1
 
       - name: Test App policies and native-boundary contracts
+        if: env.BETA6_SKIP_TESTS != 'true'
         timeout-minutes: 10
         run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Release --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --logger "trx;LogFileName=app.trx"
 
@@ -168,12 +180,19 @@ jobs:
         run: ./scripts/Build-Installer.ps1
 
       - name: Validate icon and brand asset chain
+        if: env.BETA6_SKIP_TESTS != 'true'
         shell: pwsh
         run: ./scripts/Test-BrandAssets.ps1
 
       - name: Test install, in-place upgrade, and both uninstall modes
+        if: env.BETA6_SKIP_TESTS != 'true'
         shell: pwsh
         run: ./scripts/Test-InstallerLifecycle.ps1 -AllowUserDataMutation -RuntimeInspectionOutput artifacts/runtime-inspection/installer.json
+
+      - name: Bind beta6 installer payload without lifecycle tests
+        if: env.BETA6_SKIP_TESTS == 'true'
+        shell: pwsh
+        run: ./scripts/Inspect-Beta6Packages.ps1 -Kind Installer
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -188,6 +207,7 @@ jobs:
         run: ./scripts/Build-UnsignedPackage.ps1 -NoRestore
 
       - name: Validate MSIX symbol policy
+        if: env.BETA6_SKIP_TESTS != 'true'
         shell: pwsh
         run: ./scripts/Test-MsixSymbolPolicy.ps1 -ArtifactRoot artifacts/msix
 
@@ -286,6 +306,13 @@ jobs:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Read exact beta6 owner test waiver
+        shell: pwsh
+        run: |
+          $waived = ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.6').ToString().ToLowerInvariant()
+          "BETA6_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
+          if ($waived -eq 'true') { 'Owner waived beta6 functional tests. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
+
       - name: Download this attempt's shared portable EXE
         id: portable-download
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
@@ -301,25 +328,31 @@ jobs:
         run: node scripts/ci-portable-handoff.mjs verify artifacts/release
 
       - name: Smoke test portable EXE (en-US resource context)
+        if: env.BETA6_SKIP_TESTS != 'true'
         id: smoke-en
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/release/portable-inspection.json
 
       - name: Smoke test portable EXE (zh-CN resource context)
         id: smoke-zh
-        if: ${{ !cancelled() && steps.portable-verification.outcome == 'success' }}
+        if: ${{ env.BETA6_SKIP_TESTS != 'true' && (!cancelled() && steps.portable-verification.outcome == 'success') }}
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
 
+      - name: Bind beta6 portable payload without smoke tests
+        if: env.BETA6_SKIP_TESTS == 'true'
+        shell: pwsh
+        run: ./scripts/Inspect-Beta6Packages.ps1 -Kind Portable
+
       - name: Download same-run validated release parts
-        if: steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'
+        if: success() && (env.BETA6_SKIP_TESTS == 'true' || (steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'))
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           artifact-ids: ${{ needs.produce-windows.outputs.release_parts_artifact_id }}
           path: artifacts/release
 
       - name: Bind packages and record immutable promotion receipt
-        if: steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'
+        if: success() && (env.BETA6_SKIP_TESTS == 'true' || (steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'))
         shell: pwsh
         run: |
           node scripts/ai-runtime-publication.mjs record-bundle artifacts/release reference-binding artifacts/release/runtime-reference.json artifacts/release/portable-inspection.json artifacts/release/msix-inspection.json artifacts/release/installer-inspection.json
@@ -328,7 +361,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'CI promotion receipt failed.' }
 
       - name: Upload verified release promotion bundle
-        if: steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'
+        if: success() && (env.BETA6_SKIP_TESTS == 'true' || (steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'))
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-release-promotion-${{ github.run_id }}-${{ github.run_attempt }}
@@ -392,7 +425,7 @@ jobs:
             echo "Consolidated Windows validation did not succeed: producer=$PRODUCER_RESULT, smoke=$SMOKE_RESULT"
             exit 1
           fi
-          echo 'Required compatibility check: the shared producer and both-language smoke job succeeded. No additional tests ran in this check.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Required jobs succeeded. Consult step outcomes for executed versus owner-waived tests; beta6 packaging-only mode is not a functional test pass.' >> "$GITHUB_STEP_SUMMARY"
 
   share-worker:
     name: Test encrypted share worker
@@ -411,13 +444,16 @@ jobs:
         with:
           node-version: 22.x
 
+      - name: Read beta6 worker test waiver
+        run: echo "BETA6_SKIP_TESTS=$([[ $(cat RELEASE_VERSION) == v0.3.1-beta.6 ]] && echo true || echo false)" >> "$GITHUB_ENV"
+
       - name: Determine complete share-worker change scope
         id: scope
         run: node scripts/ci-share-worker-scope.mjs
 
       - name: Syntax-check and test Worker coordinator when applicable
         id: worker-tests
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && (steps.scope.outcome != 'success' || steps.scope.outputs.run_worker != 'false') }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && env.BETA6_SKIP_TESTS != 'true' && (steps.scope.outcome != 'success' || steps.scope.outputs.run_worker != 'false') }}
         working-directory: share-worker
         run: |
           node --check src/index.js
@@ -432,6 +468,10 @@ jobs:
           COMPLETE_DIFF: ${{ steps.scope.outputs.complete_diff }}
           TEST_RESULT: ${{ steps.worker-tests.outcome }}
         run: |
+          if [[ "$BETA6_SKIP_TESTS" == true && "$TEST_RESULT" == skipped ]]; then
+            echo 'Worker tests waived by owner for beta6; no test pass claimed.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           if [[ "$SCOPE_RESULT" != success ]]; then exit 1; fi
           if [[ "$RUN_WORKER" == true && "$TEST_RESULT" == success ]]; then
             echo 'Encrypted share worker tests executed successfully.' >> "$GITHUB_STEP_SUMMARY"
