@@ -46,7 +46,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
                             var exactId = Text(exact.RootElement, "id");
                             if (parsed.Lines.Count > 0 && !string.IsNullOrWhiteSpace(exactId))
                             {
-                                var score = LyricsMatcher.Score(query, exactTitle, exactArtist, exactAlbum, exactDuration);
+                                var score = LyricsMatcher.CandidateScore(query, exactTitle, exactArtist, exactAlbum, exactDuration);
                                 if (score >= 4) return parsed.Bind(query, exactTitle, exactArtist, exactAlbum, exactDuration, score, exactId);
                             }
                             return LyricsDocument.Empty;
@@ -74,7 +74,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
             var candidates = Array(search.RootElement)
                 .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")))
                 .Select(item => new
-                { Item = item, Score = LyricsMatcher.Score(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
+                { Item = item, Score = LyricsMatcher.CandidateScore(query, Text(item, "trackName"), Text(item, "artistName"), Text(item, "albumName"), Number(item, "duration")) })
                 .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")))
                 .OrderByDescending(candidate => candidate.Score).Take(3);
             foreach (var best in candidates)

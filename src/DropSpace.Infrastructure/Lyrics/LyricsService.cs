@@ -177,8 +177,9 @@ public sealed class LyricsService
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
     }
-    // One 3-second budget starts at the first validated original, including
-    // originals discovered inside a provider. Backup/candidate changes never reset it.
+    // Rules/assisted start at the first strictly validated original. Full selection
+    // starts no later than the first comparable fetched candidate, even if artist
+    // identity still needs AI. Candidate/source changes never restart three seconds.
     private sealed class CandidateSearch : IDisposable
     {
         private readonly object _gate = new();
@@ -188,7 +189,7 @@ public sealed class LyricsService
         private readonly LyricsProviderKind? _backup;
         private readonly CancellationTokenSource _budget;
         private LyricsDocument _document = LyricsDocument.Empty;
-        private bool _started, _closed, _truncated, _originalReported;
+        private bool _started, _closed, _truncated, _originalReported, _previewReported;
         private readonly Action<LyricsDocument>? _reportOriginal;
         private readonly bool _captureCandidates;
         private readonly Dictionary<string, LyricsDocument> _collected = new(StringComparer.Ordinal);
@@ -227,8 +228,14 @@ public sealed class LyricsService
         public void Report(LyricsDocument candidate)
         {
             var valid = Validate(candidate, _query);
-            if (valid.Lines.Count == 0) return;
+            var eligible = _query.CollectSelectionCandidates && candidate.Match is { } match &&
+                !string.IsNullOrWhiteSpace(match.CandidateId) &&
+                (string.IsNullOrEmpty(match.TrackIdentity) || match.TrackIdentity == _query.TrackIdentity) &&
+                LyricsMatcher.CandidateScore(_query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4
+                ? candidate : valid;
+            if (eligible.Lines.Count == 0) return;
             LyricsDocument? publish = null;
+            var releaseSearch = false;
             lock (_gate)
             {
                 if (_closed || Token.IsCancellationRequested) return;
@@ -236,19 +243,21 @@ public sealed class LyricsService
                 {
                     _started = true;
                     _deadlineTimestamp = System.Diagnostics.Stopwatch.GetTimestamp() + 3 * System.Diagnostics.Stopwatch.Frequency;
-                    _budget.CancelAfter(TimeSpan.FromSeconds(3));
+                    // Reserve selection inside the same absolute three seconds.
+                    _budget.CancelAfter(TimeSpan.FromMilliseconds(_captureCandidates ? 2500 : 3000));
                 }
                 if (_captureCandidates)
                 {
-                    var key = valid.Provider + ":" + valid.Match!.CandidateId;
-                    var bytes = EstimateBytes(valid);
+                    var key = eligible.Provider + ":" + eligible.Match!.CandidateId;
+                    var bytes = EstimateBytes(eligible);
                     var oldBytes = _collected.TryGetValue(key, out var old) ? EstimateBytes(old) : 0;
                     if ((_collected.ContainsKey(key) || _collected.Count < LyricsCandidateSelectionProtocol.MaximumCandidates) &&
                         bytes <= 16 * 1024 * 1024 && _collectedBytes - oldBytes + bytes <= 16 * 1024 * 1024)
-                    { _collected[key] = valid; _collectedBytes += bytes - oldBytes; }
+                    { _collected[key] = eligible; _collectedBytes += bytes - oldBytes; }
                     else _truncated = true;
                 }
-                if (!_originalReported) { _originalReported = true; publish = valid; }
+                if (!_originalReported) { _originalReported = true; releaseSearch = true; }
+                if (!_previewReported && valid.Lines.Count > 0) { _previewReported = true; publish = valid; }
                 _document = SelectTranslation(_document, valid, _target, _primary, _backup);
                 if (!_query.CollectSelectionCandidates && valid.Provider == _primary && HasTargetTranslation(valid, _target))
                     _preferredTranslationAvailable.TrySetResult();
@@ -257,8 +266,8 @@ public sealed class LyricsService
             {
                 try { _reportOriginal?.Invoke(publish); }
                 catch (Exception error) when (error is not OutOfMemoryException) { }
-                finally { _originalAvailable.TrySetResult(); }
             }
+            if (releaseSearch) _originalAvailable.TrySetResult();
         }
         public void Dispose()
         {

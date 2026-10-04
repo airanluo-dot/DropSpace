@@ -36,7 +36,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
             }).Select(candidate => new
             {
                 candidate.Song, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration,
-                Score = LyricsMatcher.Score(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
+                Score = LyricsMatcher.CandidateScore(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
             }).Where(candidate => candidate.Score >= 4).OrderByDescending(candidate => candidate.Score);
             foreach (var best in candidates)
             {

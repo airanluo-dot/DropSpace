@@ -78,7 +78,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
             Validate(songs.RootElement, "data", JsonValueKind.Object, catalog: true);
             ValidateField(songs.RootElement.GetProperty("data"), "lists", JsonValueKind.Array);
             var matches = Array(songs.RootElement, "data", "lists").Select(item => new
-                { Item = item, Score = LyricsMatcher.Score(query, Text(item, "SongName"), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
+                { Item = item, Score = LyricsMatcher.CandidateScore(query, Text(item, "SongName"), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
                 .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "FileHash")))
                 .OrderByDescending(candidate => candidate.Score);
             foreach (var song in matches)
@@ -148,7 +148,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
             return new
             {
                 candidate.Item, candidate.Title, candidate.Artist, Album = album, DurationSeconds = duration,
-                Score = LyricsMatcher.Score(query, candidate.Title, candidate.Artist, album, duration),
+                Score = LyricsMatcher.CandidateScore(query, candidate.Title, candidate.Artist, album, duration),
             };
         })
         .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")) &&

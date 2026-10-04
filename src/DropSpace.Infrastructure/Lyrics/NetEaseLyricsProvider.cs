@@ -123,7 +123,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             AddTitle(titles, Text(song, "name"));
             foreach (var property in new[] { "alias", "alia", "transNames", "tns" })
                 foreach (var alias in StringArray(song, property)) AddTitle(titles, alias);
-            var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.Score(query, value, artist, album, duration, artistAliases) })
+            var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.CandidateScore(query, value, artist, album, duration, artistAliases) })
                 .OrderByDescending(value => value.Score).FirstOrDefault();
             if (best is not null) yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases);
         }

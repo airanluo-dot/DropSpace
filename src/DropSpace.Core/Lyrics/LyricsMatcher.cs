@@ -104,6 +104,26 @@ public static class LyricsMatcher
 
     public static bool AreArtistCreditsCompatible(string left, string right) => ArtistSimilarity(left, right) >= 0.6;
 
+    // Collection admission is not authorization to publish an original. Unknown
+    // cross-script artists reach the selector only with exact title/version and
+    // independent duration evidence; the strict Score remains the rules fallback.
+    public static double CandidateScore(LyricsQuery query, string title, string artist, string album,
+        double durationSeconds, IReadOnlyList<string>? artistAliases = null)
+    {
+        var strict = Score(query, title, artist, album, durationSeconds, artistAliases);
+        if (strict >= 4 || !query.CollectSelectionCandidates) return strict;
+        return IsSafeSelectionCandidate(query, title, artist, durationSeconds, album) ? 4 : 0;
+    }
+
+    public static bool IsSafeSelectionCandidate(LyricsQuery query, string title, string artist, double durationSeconds, string album = "") =>
+        query.HasDisambiguatingMetadata && !string.IsNullOrWhiteSpace(artist) &&
+        AreTitlesEquivalent(query.Title, title) && double.IsFinite(durationSeconds) && durationSeconds >= 0 &&
+        (query.Duration <= TimeSpan.Zero || durationSeconds <= 0 ||
+            Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds)) &&
+        (query.ArtistCandidates.Any(value => AreArtistCreditsCompatible(value, artist)) ||
+            query.Duration > TimeSpan.Zero && durationSeconds > 0 ||
+            Normalize(query.Album) is { Length: > 0 } requestedAlbum && requestedAlbum == Normalize(album));
+
     public static double Score(LyricsQuery query, string title, string artist, string album, double durationSeconds,
         IReadOnlyList<string>? artistAliases = null)
     {

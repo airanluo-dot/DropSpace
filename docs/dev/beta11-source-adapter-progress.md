@@ -108,7 +108,7 @@ or finish within the shared three seconds. A new selection protocol must preserv
 translation template and explicitly define candidate collection, context bounds, admission and
 fallback; no AI ranking has been silently enabled or described as evaluated.
 
-## Stage 3 checkpoint: bounded contract, not complete AI modes
+## Stage 3 checkpoint at ec1f0cb: bounded contract, not complete AI modes
 
 The selection setting enum/default/normalization/reload identity are scaffolding only. No choice
 is exposed in Music settings, no model selector is invoked, and neither AI mode is implemented
@@ -148,3 +148,75 @@ UI remain unverified/unimplemented. The cloud lacks installed selectable weights
 runtime for those experiments. This does not prevent implementing admission/backend code, but
 it prevents a claim that HyMT2 identity selection is qualified for production. Parent owns the
 final Beta11 source binding, release and decision about any explicitly experimental AI feature.
+
+## Stage 3 implementation after the checkpoint
+
+The previous checkpoint is superseded: all three choices are now exposed bilingually, default
+Rules. AI assisted only calls the selector for ambiguity among strict rule matches. AI selection
+also admits bounded uncertain-artist catalogue records with an equivalent title, no explicit
+version conflict and independent compatible duration or whole-album evidence. Native catalogue
+and lyric limits still apply: it compares fetched candidates obtained within those limits, not
+every catalogue record. Strict matches rank ahead of uncertain matches for bounded downloads.
+AMLL's absent duration still limits uncertain-name recovery when independent album evidence is
+missing. Neither orthographic folding nor model selection is asserted to prove artist identity.
+
+CandidateSearch keeps these uncertain records exclusively in the snapshot; only strict Score
+matches can enter its rule winner, source cache or early-original UI. Selection failure always
+returns that strict winner (which may be empty). Success publishes only the allowlisted fetched
+document after fresh safety/track/settings guards. Unfetched recordings have no invented format
+capability. Word coverage measures timed text characters rather than counting an entire line
+for a single timed word. The strict comparator helper cannot select weak candidates as rules.
+
+AI-mode collection reserves up to 500 ms inside the same absolute three seconds by ending
+provider collection at 2.5 seconds. Rules retain three seconds. Full selection starts this
+bounded window at its first comparable fetched candidate, even if artist identity is unresolved;
+strict original discovery cannot reset it. Snapshot construction, diagnostics and UI dispatch
+consume the remaining budget too. At expiry, unknown/invalid/abstaining output, no installed
+model, busy executor or unsupported helper, selection retains the strict source without extending
+the deadline. AI translation fallback is unchanged and separate from native candidate selection.
+
+PersistentPlainLyricsRunner has atomic zero-wait selection admission and checks selected model
+hash, GPU policy, successful cleanup, helper capability, live process and StopRequested. It never
+resolves/starts/falls back/queues on the selection path. Explicit translation waiters take priority
+and cancel background preparation. A presentation timeout may return rules while the actual task
+still owns its operation/global gate until native exit and cleanup; maintenance drains that owner.
+Cancellation/startup/memory-limit paths mark a terminating session before attempting process exit.
+Old helpers cannot accidentally serve a new selector or remain resident indefinitely after an
+unsupported preparation attempt.
+
+User-enabled AI modes prepare verified installed weights asynchronously under the maintenance
+lifetime. They do not download, wait for a busy global inference slot or block current lyric
+publication. Preparation is keyed/cancelled by configuration, not by a song; warm models avoid
+rehashing. A cold load already admitted can briefly own the shared model slot while cancellation
+and cleanup finish when translation arrives. Zero-wait admission cannot promise zero resource
+impact of prewarming. GPU preparation failure leaves rules; it does not silently cold-load CPU
+inside the selection budget or change the translation failure circuit.
+
+Native helper protocol 2 is independently advertised in the handshake: selector input 8192
+bytes, output 128 bytes and 32 generated tokens, within the same fixed 4096-token context. Data
+uses literal UTF-8 JSON rather than expanding all CJK characters into escape sequences. Protocol
+1 remains translation-only with its original 1800-byte input, 16384-byte output, 2048-token
+reserve/generation, template and sampler. Every request clears KV/history and recreates sampler.
+The selector accepts only listed IDs or null; token-cap truncation without EOG is rejected.
+The translation input/output ceilings are not globally relaxed.
+
+Only successful ID decisions get a separate bounded 32-entry/10-minute in-memory cache. Its
+SHA256 identity covers query/track/mode/source preferences/target/model/selector version/prompt
+and source candidate IDs/revisions. Clear, refresh and configuration/model changes fence old
+writes; cache publication checks the caller and absolute deadline inside the cache lock. Cold,
+busy, timeout, malformed and abstaining outcomes are not cached as successful decisions.
+
+Actual new validation: three focused runtime-contract checks passed (successful ID/cache and
+timeout fallback; Full-vs-Assisted weak collection without rule/preview leakage and hard version/
+duration exclusions; cold selection never resolving/starting a worker). These use fixtures and
+are not model-quality evidence. Final Core/Infrastructure and a temporary cross-platform compile
+of the actual AiLyricsService passed with zero warnings/errors after reverse-review fixes.
+Bilingual resources parse and new keys are unique. No old passing checks or full suites rerun.
+
+Remaining qualification: full Windows/WinUI compilation and new native-helper build/handshake
+must run in the parent cloud Windows pipeline, using the final reviewed source binding. No
+reviewed-source override or approval artifact was changed here. This cloud has no target weights
+or Windows inference host; real artist/recording decision accuracy, actual warm-hit rate, 500 ms
+latency, GPU/CPU behaviour and fast-switch stability are unverified. The opt-in UI explicitly
+labels both AI modes experimental and states that selection accuracy is not yet validated; it
+never labels a rules fallback as an AI-selected recording. Parent owns the release decision.

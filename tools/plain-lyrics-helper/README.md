@@ -17,6 +17,15 @@ protocol/runtime contract, while `modelProfile` identifies the selected model an
 
 ## Execution contract
 
+The ready frame advertises `selectionProtocol: 2`. Translation requests remain protocol 1,
+1800-byte input, 2048-token generation and 16384-byte output, with the existing translation
+template unchanged. Independent recording-selection requests use protocol 2, bounded metadata
+only, at most 8192 input bytes, 32 generated tokens and 128 output bytes. The frozen 4096-token
+context is shared; each request reserves its own output bound and resets sampler/KV/history.
+Protocol-2 truncation without EOG is rejected, and the host only accepts a listed candidate ID
+or explicit abstention. Old helpers without this handshake capability cannot run selection.
+These limits define execution, not evidence of model accuracy or subsecond latency.
+
 - Separate baseline and AVX2 CPU executables, plus one Vulkan executable for NVIDIA and AMD
 - AI stays opt-in; GPU preference defaults on once AI is enabled. CPU threads remain four
 - Private inherited anonymous pipes only, bounded JSONL, host-owned random request IDs

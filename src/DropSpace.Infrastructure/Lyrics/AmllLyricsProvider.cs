@@ -128,10 +128,10 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
             // Unknown duration requires a complete title and corroborating artist.
             // Contributors (authorUsernames) are never artist aliases. A title
             // alias cannot erase explicit version evidence in another source name.
-            if (query.ArtistCandidates.Count == 0 || !query.ArtistCandidates.Any(value => LyricsMatcher.AreArtistCreditsCompatible(value, artist)) ||
+            if ((!query.CollectSelectionCandidates && (query.ArtistCandidates.Count == 0 || !query.ArtistCandidates.Any(value => LyricsMatcher.AreArtistCreditsCompatible(value, artist)))) ||
                 titles.Any(title => LyricsMatcher.HasVersionConflict(query.Title, title))) continue;
             var best = titles.Where(title => LyricsMatcher.AreTitlesEquivalent(query.Title, title))
-                .Select(title => new Candidate(Text(item, "id"), title, artist, album, LyricsMatcher.Score(query, title, artist, album, 0)))
+                .Select(title => new Candidate(Text(item, "id"), title, artist, album, LyricsMatcher.CandidateScore(query, title, artist, album, 0)))
                 .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
             if (best is not null && best.Score >= 4 && !string.IsNullOrWhiteSpace(best.Id)) matches.Add(best);
         }

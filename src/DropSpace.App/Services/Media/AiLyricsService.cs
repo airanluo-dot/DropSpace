@@ -27,6 +27,12 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiLyricsCache _cache;
     private readonly AiLyricsWorkLifetime _work;
     private readonly AiLyricsRuntimeOptions _runtimeOptions;
+    private readonly LyricsCandidateSelector? _selector;
+    private readonly CancellationTokenSource _selectionLifetime = new();
+    private readonly object _preparationGate = new();
+    private Task _selectionPreparation = Task.CompletedTask;
+    private string? _selectionConfiguration;
+    private CancellationTokenSource? _selectionPreparationStop;
     private readonly SemaphoreSlim _configurationGate = new(1, 1);
     private string? _configuredModelId;
     private bool? _configuredEnabled;
@@ -59,6 +65,7 @@ public sealed class AiLyricsService : IDisposable
             new PersistentPlainLyricsRunner(runtime, _runtimeOptions), runtime, Path.Combine(root, "Staging"));
         _packageResolver = packageResolver ?? new PlainHyLyricsPackageResolver(_models, runtime);
         _work = new AiLyricsWorkLifetime(_backend.DrainCleanupAsync);
+        if (_backend is ILyricsSelectionRuntime selection) _selector = new(selection);
         _logger = logger;
     }
 
@@ -101,12 +108,14 @@ public sealed class AiLyricsService : IDisposable
 
     public Task DeleteModelAsync(string modelId, CancellationToken token)
     {
+        RetireSelection();
         InvalidateTranslation();
         return _work.MaintainAsync(cancellation => _models.DeleteAsync(modelId, cancellation), token);
     }
 
     public Task ClearCacheAsync(CancellationToken token)
     {
+        RetireSelection();
         InvalidateTranslation();
         return _work.MaintainAsync(async cancellation =>
         {
@@ -186,7 +195,7 @@ public sealed class AiLyricsService : IDisposable
         {
             token.ThrowIfCancellationRequested();
             if (!isCurrent() || onlyIfConfigured && _configuredEnabled is null) return;
-            var enabled = settings.Enabled && settings.AiTranslationEnabled;
+            var enabled = settings.Enabled && (settings.AiTranslationEnabled || settings.SelectionMode != LyricsSelectionMode.Rules);
             if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
                 _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled) return;
             InvalidateTranslation();
@@ -204,6 +213,71 @@ public sealed class AiLyricsService : IDisposable
         }
         finally { _configurationGate.Release(); }
     }
+
+    private void RetireSelection()
+    {
+        _selector?.Clear();
+        lock (_preparationGate)
+        {
+            _selectionConfiguration = null;
+            try { _ = _selectionPreparationStop?.CancelAsync(); } catch (ObjectDisposedException) { }
+        }
+    }
+
+    // Explicit AI selection settings opt into preparing installed weights. Never
+    // downloads, and never ties model loading to a song or its display deadline.
+    public void QueueSelectionPreparation(LyricsSettings settings)
+    {
+        if (_selector is null || _backend is not ILyricsSelectionRuntime runtime) return;
+        var key = $"{settings.Enabled}/{settings.Mode}/{settings.SelectionMode}/{settings.AiModelId}/{settings.AiLyricsGpuAccelerationEnabled}/{settings.AiTranslationEnabled}";
+        lock (_preparationGate)
+        {
+            if (_selectionConfiguration == key && !_selectionPreparation.IsCompleted) return;
+            var selectedModel = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+            if (_selectionConfiguration == key && selectedModel is not null && runtime.IsSelectionWarm(selectedModel.Sha256)) return;
+            if (_selectionConfiguration != key)
+            {
+                try { _ = _selectionPreparationStop?.CancelAsync(); } catch (ObjectDisposedException) { }
+                _selector.Clear();
+                _selectionConfiguration = key;
+            }
+            var prepare = settings.Enabled && settings.Mode != LyricsMode.LocalLrc && settings.SelectionMode != LyricsSelectionMode.Rules;
+            var stop = CancellationTokenSource.CreateLinkedTokenSource(_selectionLifetime.Token);
+            _selectionPreparationStop = stop;
+            bool Current() { lock (_preparationGate) return _selectionConfiguration == key && !stop.IsCancellationRequested; }
+            _selectionPreparation = Task.Run(async () =>
+            {
+                try
+                {
+                    await ConfigureRuntimeAsync(settings, Current, stop.Token, onlyIfConfigured: !prepare).ConfigureAwait(false);
+                    if (!Current() || !prepare) return;
+                    await _work.RunAsync(async cancellation =>
+                    {
+                        var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+                        if (model is null) return false;
+                        var path = await _models.GetInstalledPathAsync(model.Id, cancellation).ConfigureAwait(false);
+                        if (path is null || !Current()) return false;
+                        return await runtime.PrepareSelectionAsync(path, model.Sha256, cancellation).ConfigureAwait(false);
+                    }, false, stop.Token).ConfigureAwait(false);
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                { _logger.LogDebug("Candidate model preparation unavailable ({Category}).", error.GetType().Name); }
+                finally { stop.Dispose(); }
+            });
+        }
+    }
+
+    public Task<LyricsSelectionResult> SelectCandidateAsync(LyricsQuery query, LyricsQueryResult source,
+        LyricsSettings settings, string target, CancellationToken token)
+    {
+        var unavailable = new LyricsSelectionResult(source.Document, LyricsSelectionOutcome.Unavailable);
+        var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+        if (_selector is null || model is null) return Task.FromResult(unavailable);
+        return _work.RunAsync(cancellation => _selector.SelectAsync(query, settings, target, model.Sha256,
+            source.SelectionCandidates, source.Document, cancellation), unavailable, token);
+    }
+
+    public void InvalidateSelectionDecisions() => _selector?.Clear();
 
     public async Task<LyricsDocument> TranslateCoreAsync(LyricsQuery query, LyricsDocument document,
         LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null,
@@ -324,6 +398,8 @@ public sealed class AiLyricsService : IDisposable
 
     public void Dispose()
     {
+        RetireSelection();
+        _selectionLifetime.Cancel();
         InvalidateTranslation();
         _work.Dispose();
         if (_ownsBackend) _backend.Dispose();

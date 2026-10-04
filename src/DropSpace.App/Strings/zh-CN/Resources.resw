@@ -709,4 +709,9 @@
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>默认关闭。开启后优先于“全屏时隐藏”，在全屏应用和无边框游戏上保持置顶且不抢焦点。独占全屏游戏可能无法覆盖；不覆盖锁屏或 UAC 安全桌面。</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>显示 AI 歌词标识</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>当前无法确认有足够的可用内存进行本地翻译。请释放内存或选择较小模型后重试。</value></data>
+  <data name="LyricsSelectionMode" xml:space="preserve"><value>录音选择方式</value></data>
+  <data name="LyricsSelectionRules" xml:space="preserve"><value>规则（默认）</value></data>
+  <data name="LyricsSelectionAiAssisted" xml:space="preserve"><value>AI 辅助（实验性）</value></data>
+  <data name="LyricsSelectionAiRanked" xml:space="preserve"><value>AI 选择（实验性）</value></data>
+  <data name="LyricsSelectionDescription" xml:space="preserve"><value>AI 辅助判断规则匹配中的歧义；AI 选择也比较有录音元信息佐证、艺人身份尚不确定的候选。使用已安装的模型并在后台准备；模型未就绪、忙碌、不确定或超时则保留规则结果。录音选择准确率尚未验证。</value></data>
 </root>

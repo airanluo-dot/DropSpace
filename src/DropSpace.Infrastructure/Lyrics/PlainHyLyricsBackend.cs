@@ -207,7 +207,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
 }
 
 public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, IPlainLyricsRunner runner,
-    AiLyricsRuntimePackage runtime, string stagingDirectory) : IAiLyricsBackend
+    AiLyricsRuntimePackage runtime, string stagingDirectory) : IAiLyricsBackend, ILyricsSelectionRuntime
 {
     public const string BackendId = "hy-q8-plain-beta-v1";
     public string Id => BackendId;
@@ -257,5 +257,10 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
                 stagingDirectory, cancellation, model.Sha256), token, progress);
     }
     public Task DrainCleanupAsync(CancellationToken token) => runner.DrainCleanupAsync(token);
+    public bool IsSelectionWarm(string modelHash) => runner is ILyricsSelectionRuntime selection && selection.IsSelectionWarm(modelHash);
+    public Task<bool> PrepareSelectionAsync(string verifiedModelPath, string modelHash, CancellationToken token) =>
+        runner is ILyricsSelectionRuntime selection ? selection.PrepareSelectionAsync(verifiedModelPath, modelHash, token) : Task.FromResult(false);
+    public Task<string?> TryRunSelectionAsync(string modelHash, string prompt, CancellationToken token) =>
+        runner is ILyricsSelectionRuntime selection ? selection.TryRunSelectionAsync(modelHash, prompt, token) : Task.FromResult<string?>(null);
     public void Dispose() => runner.Dispose();
 }

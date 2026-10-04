@@ -139,7 +139,7 @@ int main(int argc, char ** argv) {
         auto templates = common_chat_templates_init(model, params.chat_template);
         const bool chat = common_chat_templates_was_explicit(templates.get());
         auto vocab = llama_model_get_vocab(model);
-        json ready = {{"protocol", 1}, {"ready", true}, {"backend", mode},
+        json ready = {{"protocol", 1}, {"selectionProtocol", 2}, {"ready", true}, {"backend", mode},
             {"modelProfile", std::string(dropspace::policy_for(model_profile)->id)}};
 #ifdef DROPSPACE_VULKAN
         // Diagnostic identity comes from the selected physical adapter, never the
@@ -150,12 +150,14 @@ int main(int argc, char ** argv) {
         std::string frame;
         while (read_frame(frame)) {
             const auto request = json::parse(frame);
-            if (!request.is_object() || request.size() != 3 || request.at("protocol") != 1 ||
+            if (!request.is_object() || request.size() != 3 ||
+                (request.at("protocol") != 1 && request.at("protocol") != 2) ||
                 !request.at("id").is_string() || !request.at("prompt").is_string()) return 68;
+            const bool selection = request.at("protocol") == 2;
             const auto id = request.at("id").get<std::string>();
             const auto input = request.at("prompt").get<std::string>();
             if (id.size() != 32 || id.find_first_not_of("0123456789abcdef") != std::string::npos ||
-                input.empty() || input.size() > 1800) return 68;
+                input.empty() || input.size() > (selection ? 8192u : 1800u)) return 68;
             // A new sampler restores seed and penalties. Clearing the complete memory erases
             // KV/recurrent state; each template application has a new single-message history.
             llama_memory_clear(llama_get_memory(ctx), true);
@@ -174,23 +176,23 @@ int main(int argc, char ** argv) {
                 prompt = common_chat_templates_apply(templates.get(), inputs).prompt;
             }
             auto tokens = common_tokenize(ctx, prompt, true, true);
-            if (tokens.empty() || tokens.size() + 2048 >= 4096) return 70;
+            if (tokens.empty() || tokens.size() + (selection ? 32u : 2048u) >= 4096) return 70;
             for (auto token : tokens) common_sampler_accept(sampler.get(), token, false);
             for (size_t offset = 0; offset < tokens.size(); offset += params.n_batch) {
                 const auto n = std::min<size_t>(params.n_batch, tokens.size() - offset);
                 if (llama_decode(ctx, llama_batch_get_one(tokens.data() + offset, static_cast<int32_t>(n)))) return 71;
             }
             std::string output; bool complete = false;
-            for (int i = 0; i < 2048; ++i) {
+            for (int i = 0; i < (selection ? 32 : 2048); ++i) {
                 auto token = common_sampler_sample(sampler.get(), ctx, -1);
                 common_sampler_accept(sampler.get(), token, true);
                 if (llama_vocab_is_eog(vocab, token)) { complete = true; break; }
                 output += common_token_to_piece(ctx, token, true);
-                if (output.size() > 16384) return 72;
+                if (output.size() > (selection ? 128u : 16384u)) return 72;
                 if (llama_decode(ctx, llama_batch_get_one(&token, 1))) return 71;
             }
             // Never present a token-cap truncation as a complete translation.
-            send({{"protocol", 1}, {"id", id}, {"complete", complete}, {"text", output}});
+            send({{"protocol", selection ? 2 : 1}, {"id", id}, {"complete", complete}, {"text", output}});
         }
         return 0;
     } catch (const std::exception &) { return 73; } // never echo private prompt/output to diagnostics
