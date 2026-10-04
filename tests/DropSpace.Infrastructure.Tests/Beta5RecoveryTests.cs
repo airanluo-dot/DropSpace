@@ -45,10 +45,10 @@ public sealed class Beta5RecoveryTests
     public async Task AmllBrokenFirstCandidateDoesNotHideValidCandidate(bool malformedXml)
     {
         using var handler = new Handler(request => request.RequestUri!.AbsolutePath.EndsWith("search", StringComparison.Ordinal)
-            ? Json("""{"data":{"items":[{"id":"one","musicNames":["Song"],"artistNames":["Artist"]},{"id":"two","musicNames":["Song"],"artistNames":["Artist"]}]}}""")
+            ? Json("""{"status":200,"data":{"items":[{"id":"one","musicNames":["Song"],"artistNames":["Artist"]},{"id":"two","musicNames":["Song"],"artistNames":["Artist"]}]}}""")
             : request.RequestUri.Query.Contains("id=one", StringComparison.Ordinal)
-                ? malformedXml ? Json("""{"data":{"lyrics":"<tt><body>"}}""") : new(HttpStatusCode.ServiceUnavailable)
-            : Json("""{"data":{"lyrics":"[00:01]valid"}}"""));
+                ? malformedXml ? Json("""{"status":200,"data":{"id":"one","lyrics":"<tt><body>"}}""") : new(HttpStatusCode.ServiceUnavailable)
+            : Json("""{"status":200,"data":{"id":"two","format":"ttml","lyrics":"<tt><body><p begin=\"1s\" end=\"2s\">valid</p></body></tt>"}}"""));
         using var client = new HttpClient(handler);
         var document = await new AmllLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
         Assert.AreEqual("two", document.Match?.CandidateId);

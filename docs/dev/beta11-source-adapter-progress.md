@@ -44,3 +44,66 @@ Remaining: actual live KRC variants and Windows runtime behavior; AMLL bounded s
 response contracts/cache; general artist aliases replacing the one-artist mapping; final
 source-specific reverse review; candidate contracts and the separately reviewed optional AI
 selection protocol. Beta11 release remains owned by the parent task.
+
+## Stage 2: AMLL contracts, general artist identity and remaining response boundaries
+
+AMLL now validates its numeric status/data wrapper, catalogue arrays, optional pagination,
+downloaded ID and TTML format. A business rejection stops the source. A first-page wide search
+with no identity-qualified candidates and `hasMore` can make exactly one artist-limited search;
+it does not loop through pages or additional artist variants. Three lyric-candidate downloads
+remain the maximum, and the existing provider/shared translation deadlines cover everything.
+
+The official SongItem has no audio duration. Its adapter now binds zero explicitly and requires
+complete comparable title plus corroborating artist; a title alias cannot hide explicit Live
+or other version conflict in another returned name. Lyrics contributors are not singers.
+Successful immutable-ID TTML is cached separately (128 entries/16 MiB of UTF-16 text), reparsed
+and rebound to the current track. Failures/empty parsed documents are not cached. Clear fences
+old owners through a generation; refresh clears and bypasses read. Reuse is diagnosed without
+metadata or content. Cache reduces repeat get calls; concurrent cold misses are not coalesced.
+
+AMLL evidence:
+- https://github.com/amll-dev/applemusic-like-lyrics/blob/main/packages/docs/src/content/docs/reference/http-api/native.mdx
+- https://github.com/amll-dev/applemusic-like-lyrics/blob/main/packages/docs/src/content/docs/reference/http-api/overview.mdx
+
+The one-artist mapping is removed from production code. General whole-credit normalization uses
+a pinned Apache-2.0 OpenCC traditional/simplified character dictionary, skipping ambiguous
+multi-result mappings. Its original data, license, revision and hash are retained/embedded.
+No Latin prefix is stripped, no Han suffix is used as identity and no artist entity is inferred
+from orthography alone. NetEase aliases from the same artist objects form bounded complete
+collaboration-credit projections; those projections accompany the canonical artist through
+document validation and persistent cache round trips. Title/version/duration checks still
+apply. Artist aliases add no HTTP requests or global name equivalences. Catalogue processing
+checks cancellation. Actual user search records and their alias availability remain unknown;
+prefix-only compound names without authoritative aliases can still abstain.
+
+QQ/Kugou/AMLL HTTP-200 business rejection diagnostics now record Rejected/RateLimited and the
+relevant business code rather than Found; 405 is considered rate limiting only for the known
+NetEase interpretation, not for every provider. QQ retains its already-implemented trans
+contract. LRCLIB now rejects opaque non-array searches and malformed exact wrappers; valid
+empty arrays/instrumental/no-lyric records remain misses. It has no invented translation field.
+HTTP JSON and NetEase/QQ/LRCLIB lyric parsing check cancellation before/after bounded synchronous
+work. Synchronous work is still not hard-preemptible, so this does not prove permanent gate
+saturation was resolved on Windows.
+
+Seven focused checks passed: one general artist rule check; three AMLL contract/budget/cache
+checks; one changed authoritative-alias pipeline fixture; one cross-provider business-diagnostic
+check; one LRCLIB wrapper/empty-array check. Historical AMLL fixtures were updated to the actual
+status/ID/TTML contract but not rerun. Final Infrastructure compilation after reverse-review
+changes is recorded separately. No complete suite or real lyric calls were run.
+
+| Source | Native translation / timing | Remaining boundary |
+| --- | --- | --- |
+| NetEase | Native translated LRC/YRC; original/YRC words | Actual episode payload and alias availability unobserved; upstream rejection still possible |
+| QQ | Existing trans and returned LRC | No claim of QRC capability through current permitted endpoint; no dedicated response coalescer |
+| Kugou | New KRC positional translation and relative word times; LRC fallback | Actual live KRC variants unverified; total download budget includes fallback |
+| AMLL | TTML translation/word times | No source duration; bounded extra search cannot guarantee finding beyond all truncated pages |
+| LRCLIB | Original/plain/line-timed lyrics | No independent native translation contract; source may legitimately have no lyrics |
+
+The three selection modes are still a separate implementation stage. Current worker evidence:
+`PersistentPlainLyricsRunner` caps prompts at 1800 bytes and serializes inference;
+`tools/plain-lyrics-helper/main.cpp` rejects tokenized input plus 2048 output reserve at 4096
+context. These are direct interface constraints, not an accuracy verdict about the model.
+All five full catalogue responses cannot be promised to fit this existing translation interface
+or finish within the shared three seconds. A new selection protocol must preserve the existing
+translation template and explicitly define candidate collection, context bounds, admission and
+fallback; no AI ranking has been silently enabled or described as evaluated.

@@ -3,4 +3,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>DropSpace.Core</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Lyrics\Data\TSCharacters.txt" />
+    <EmbeddedResource Include="Lyrics\Data\OpenCC-LICENSE.txt" />
+  </ItemGroup>
 </Project>

@@ -104,7 +104,8 @@ public static class LyricsMatcher
 
     public static bool AreArtistCreditsCompatible(string left, string right) => ArtistSimilarity(left, right) >= 0.6;
 
-    public static double Score(LyricsQuery query, string title, string artist, string album, double durationSeconds)
+    public static double Score(LyricsQuery query, string title, string artist, string album, double durationSeconds,
+        IReadOnlyList<string>? artistAliases = null)
     {
         var titleScore = TitleSimilarity(query.Title, title);
         // Some media publishers reverse title and artist fields.
@@ -113,8 +114,12 @@ public static class LyricsMatcher
         // Catalogues can append the English title after the exact Chinese title.
         // This recovery needs independent artist AND duration evidence; substring
         // similarity alone must never authorize a different song or language.
+        var artistScore = ArtistSimilarity(query.ArtistCandidates, artist);
+        if (artistAliases is not null)
+            foreach (var alias in artistAliases.Take(16))
+                artistScore = Math.Max(artistScore, ArtistSimilarity(query.ArtistCandidates, alias));
         var bilingualMatch = BilingualBaseMatches(query.Title, title);
-        if (bilingualMatch && ArtistSimilarity(query.ArtistCandidates, artist) >= 0.6 &&
+        if (bilingualMatch && artistScore >= 0.6 &&
             query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
             Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds))
             titleScore = Math.Max(titleScore, 0.95);
@@ -123,7 +128,6 @@ public static class LyricsMatcher
         if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album) &&
             (!double.IsFinite(durationSeconds) || durationSeconds <= 0)) return 0;
         if (HasVersionConflict(query.Title, title)) return 0;
-        var artistScore = ArtistSimilarity(query.ArtistCandidates, artist);
         var albumScore = Similarity(query.Album, album);
         var candidateDuration = double.IsFinite(durationSeconds) ? Math.Max(0, durationSeconds) : 0;
         var durationDelta = Math.Abs(query.Duration.TotalSeconds - candidateDuration);
@@ -173,20 +177,7 @@ public static class LyricsMatcher
     }
 
     private static string[] ArtistCredits(string value) => ArtistCreditSeparator.Split(Limit(value))
-        .Select(ArtistCreditIdentity).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
-
-    private static string ArtistCreditIdentity(string value)
-    {
-        // Whole-credit aliases verified against the artist's own bilingual release
-        // pages: https://cn.iamgem.com/time/ and https://www.iamgem.com/time/.
-        // Do not strip arbitrary Latin prefixes or accept suffix/substring matches.
-        // Bare G.E.M. remains ambiguous without the corroborating Chinese name.
-        return Normalize(value) switch
-        {
-            "邓紫棋" or "鄧紫棋" or "gem邓紫棋" or "gem鄧紫棋" => "邓紫棋",
-            var identity => identity,
-        };
-    }
+        .Select(ArtistCreditOrthography.Fold).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
 
     private static double TitleSimilarity(string left, string right)
     {

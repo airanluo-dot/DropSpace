@@ -7,20 +7,18 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsArtistMatchingTests
 {
     [TestMethod]
-    public void VerifiedBilingualGemCreditsMatchAppleMusicWithoutWeakeningWrongArtistProtection()
+    public void GeneralArtistOrthographyAndSourceAliasesPreserveIdentityConflicts()
     {
-        var query = new LyricsQuery("唯一", "邓紫棋", "T.I.M.E. - EP", TimeSpan.Zero);
-        foreach (var artist in new[] { "邓紫棋", "鄧紫棋", "G.E.M.邓紫棋", "G.E.M. 鄧紫棋" })
-        {
-            Assert.IsTrue(LyricsMatcher.AreArtistCreditsCompatible(query.Artist, artist), artist);
-            Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "唯一", artist, "T.I.M.E.", 253), artist);
-        }
+        foreach (var pair in new[] { ("邓紫棋", "鄧紫棋"), ("张学友", "張學友"), ("陈奕迅", "陳奕迅"), ("郑秀文", "鄭秀文") })
+            Assert.IsTrue(LyricsMatcher.AreArtistCreditsCompatible(pair.Item1, pair.Item2));
+        var query = new LyricsQuery("唯一", "邓紫棋", "T.I.M.E.", TimeSpan.FromSeconds(253));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", "G.E.M.邓紫棋", "T.I.M.E.", 253));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "唯一", "G.E.M.邓紫棋", "T.I.M.E.", 253, ["鄧紫棋"]));
         foreach (var artist in new[] { "告五人", "邓紫棋乐队", "Other 邓紫棋", "G.E.M.", "AC/DC" })
             Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", artist, "T.I.M.E.", 253), artist);
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一 (Live)", "G.E.M.", "T.I.M.E.", 253, ["邓紫棋"]));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", "G.E.M.", "T.I.M.E.", 100, ["邓紫棋"]));
         Assert.IsFalse(LyricsMatcher.AreArtistCreditsCompatible("AC", "AC/DC"));
-        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一 (Live)", "G.E.M.邓紫棋", "T.I.M.E.", 253));
-        Assert.AreEqual(0d, LyricsMatcher.Score(query with { Duration = TimeSpan.FromSeconds(253) },
-            "唯一", "G.E.M.鄧紫棋", "T.I.M.E.", 350));
     }
 
     [TestMethod]

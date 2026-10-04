@@ -63,8 +63,11 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
         ThrowIfRejected(lyric.RootElement);
         if (!lyric.RootElement.TryGetProperty("lyric", out var text) || text.ValueKind != JsonValueKind.String)
             throw new InvalidDataException("QQ lyrics returned an unsupported lyric shape.");
-        return LyricsParser.Parse(WebUtility.HtmlDecode(Text(lyric.RootElement, "lyric")), Kind,
+        token.ThrowIfCancellationRequested();
+        var document = LyricsParser.Parse(WebUtility.HtmlDecode(Text(lyric.RootElement, "lyric")), Kind,
             WebUtility.HtmlDecode(Text(lyric.RootElement, "trans")));
+        token.ThrowIfCancellationRequested();
+        return document;
     }
 
     private static void ValidateSearchShape(JsonElement root)

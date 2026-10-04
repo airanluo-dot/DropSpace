@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
 using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
@@ -22,13 +23,19 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
                         try
                         {
                             using var exact = await http.GetAsync($"https://lrclib.net/api/get?track_name={Escape(query.Title)}&artist_name={Escape(artist)}&album_name={Escape(query.Album)}&duration={(long)query.Duration.TotalSeconds}", cancellationToken);
+                            if (exact.RootElement.ValueKind != JsonValueKind.Object ||
+                                string.IsNullOrWhiteSpace(Text(exact.RootElement, "id")) ||
+                                !exact.RootElement.TryGetProperty("trackName", out var titleField) || titleField.ValueKind != JsonValueKind.String)
+                                throw new InvalidDataException("Unsupported LRCLIB exact response.");
                             var exactTitle = Text(exact.RootElement, "trackName");
                             var exactArtist = Text(exact.RootElement, "artistName");
                             var exactAlbum = Text(exact.RootElement, "albumName");
                             var exactDuration = Number(exact.RootElement, "duration");
                             var exactText = Text(exact.RootElement, "syncedLyrics");
                             if (string.IsNullOrWhiteSpace(exactText)) exactText = Text(exact.RootElement, "plainLyrics");
+                            cancellationToken.ThrowIfCancellationRequested();
                             var parsed = LyricsParser.Parse(exactText, Kind);
+                            cancellationToken.ThrowIfCancellationRequested();
                             var exactId = Text(exact.RootElement, "id");
                             if (parsed.Lines.Count > 0 && !string.IsNullOrWhiteSpace(exactId))
                             {
@@ -51,6 +58,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
         {
             if (remaining == 0) break;
             using var search = await http.GetAsync($"https://lrclib.net/api/search?q={Escape(terms)}", cancellationToken);
+            if (search.RootElement.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Unsupported LRCLIB search response.");
             var candidates = Array(search.RootElement)
                 .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")))
                 .Select(item => new
@@ -59,6 +67,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
                 .OrderByDescending(candidate => candidate.Score).Take(3);
             foreach (var best in candidates)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var bestId = Text(best.Item, "id");
                 if (remaining == 0) break;
                 if (!attempted.Add(bestId)) continue;
@@ -67,7 +76,9 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
                 {
                     var text = Text(best.Item, "syncedLyrics");
                     if (string.IsNullOrWhiteSpace(text)) text = Text(best.Item, "plainLyrics");
-                    return Task.FromResult(LyricsParser.Parse(text, Kind));
+                    var document = LyricsParser.Parse(text, Kind);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return Task.FromResult(document);
                 });
                 if (parsed.Lines.Count > 0)
                     return parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),

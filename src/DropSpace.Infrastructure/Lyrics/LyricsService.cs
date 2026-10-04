@@ -521,7 +521,7 @@ public sealed class LyricsService
         if (!string.IsNullOrEmpty(query.TrackIdentity) && !string.IsNullOrEmpty(match.TrackIdentity) && match.TrackIdentity != query.TrackIdentity)
             return LyricsDocument.Empty;
         if (string.IsNullOrWhiteSpace(match.CandidateId)) return LyricsDocument.Empty;
-        var score = LyricsMatcher.Score(query, match.Title, match.Artist, match.Album, match.DurationSeconds);
+        var score = LyricsMatcher.Score(query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases);
         return score < 4 ? LyricsDocument.Empty : document with { Match = match with { Score = score, TrackIdentity = query.TrackIdentity } };
     }
     public void ClearCache()

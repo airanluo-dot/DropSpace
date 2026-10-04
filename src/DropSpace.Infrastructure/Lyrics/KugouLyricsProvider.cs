@@ -105,7 +105,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
     private static void Validate(JsonElement root, string field, JsonValueKind shape, bool catalog = false)
     {
         if (root.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Unsupported Kugou response shape.");
-        foreach (var property in new[] { "status", "error_code", "errcode" })
+        foreach (var property in new[] { "error_code", "errcode", "status" })
         {
             if (!root.TryGetProperty(property, out var value)) continue;
             if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var code))

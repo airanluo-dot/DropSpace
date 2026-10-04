@@ -238,7 +238,7 @@ public sealed class NetEaseRequestReuseTests
     }
 
     [TestMethod]
-    public async Task AppleMusicWeiyiMetadataCanReadSyntheticGemCatalogueOriginal()
+    public async Task ProviderArtistAliasSupportsAppleMetadataWithoutDroppingCanonicalCredit()
     {
         using var handler = new GemCatalogHandler();
         using var client = new HttpClient(handler);
@@ -262,7 +262,7 @@ public sealed class NetEaseRequestReuseTests
         {
             Interlocked.Increment(ref Calls);
             var payload = request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
-                ? """{"code":200,"result":{"songs":[{"id":1,"name":"唯一","artists":[{"name":"G.E.M.邓紫棋"}],"album":{"name":"T.I.M.E."},"duration":253000}]}}"""
+                ? """{"code":200,"result":{"songs":[{"id":1,"name":"唯一","artists":[{"name":"G.E.M.邓紫棋","alias":["鄧紫棋"]}],"album":{"name":"T.I.M.E."},"duration":253000}]}}"""
                 : """{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你"}}""";
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             { RequestMessage = request, Content = new StringContent(payload, Encoding.UTF8, "application/json") });

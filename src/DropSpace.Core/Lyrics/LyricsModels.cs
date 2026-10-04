@@ -35,7 +35,12 @@ public sealed record LyricsMatchInfo(
     double DurationSeconds,
     double Score,
     string? CandidateId = null,
-    string TrackIdentity = "");
+    string TrackIdentity = "")
+{
+    // Complete credit projections asserted by this recording's source artist records.
+    // They are not global aliases and never alter the raw canonical Artist field.
+    public IReadOnlyList<string> ArtistAliases { get; init; } = [];
+}
 public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
 public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
 {
