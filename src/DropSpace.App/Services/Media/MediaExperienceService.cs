@@ -28,6 +28,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly HttpClient _http;
     private readonly LyricsService _lyrics;
     private readonly LyricsCache _lyricsCache;
+    private readonly object _lyricsDiagnosticGate = new();
+    private long _lyricsDiagnosticWindow = Stopwatch.GetTimestamp();
+    private int _lyricsDiagnosticCount, _lyricsDiagnosticsSuppressed;
     public AiLyricsService AiLyrics { get; }
     private readonly LyricsTimelineEngine _timeline = new();
     private readonly MediaPlaybackClock _clock = new();
@@ -63,7 +66,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _visualPreferences = visualPreferences; AiLyrics = aiLyrics; _lyricsCache = lyricsCache;
         AiLyrics.ModelDownloaded += OnModelDownloaded;
         _http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache);
+        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http, RecordLyricsDiagnostic), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache, RecordLyricsDiagnostic);
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
         _frames.Tick += OnFrame;
         _audioRecovery = new Timer(_ =>
@@ -89,6 +92,35 @@ public sealed class MediaExperienceService : IAsyncDisposable
         StartRuntime();
         _changes.Writer.TryWrite(true);
         return Task.CompletedTask;
+    }
+
+    private void RecordLyricsDiagnostic(LyricsDiagnostic diagnostic)
+    {
+        // Successful transport calls are covered by their validated provider summary.
+        // Keep a fixed log budget even if a publisher repeatedly changes metadata.
+        if (diagnostic.Stage is LyricsDiagnosticStage.Search or LyricsDiagnosticStage.Lyric &&
+            diagnostic.Outcome == LyricsDiagnosticOutcome.Found) return;
+        int suppressed;
+        lock (_lyricsDiagnosticGate)
+        {
+            if (Stopwatch.GetElapsedTime(_lyricsDiagnosticWindow) >= TimeSpan.FromMinutes(1))
+            {
+                _lyricsDiagnosticWindow = Stopwatch.GetTimestamp();
+                _lyricsDiagnosticCount = 0;
+            }
+            if (_lyricsDiagnosticCount >= 64)
+            {
+                if (_lyricsDiagnosticsSuppressed < int.MaxValue) _lyricsDiagnosticsSuppressed++;
+                return;
+            }
+            _lyricsDiagnosticCount++;
+            suppressed = _lyricsDiagnosticsSuppressed;
+            _lyricsDiagnosticsSuppressed = 0;
+        }
+        _logger.LogInformation("Lyrics query diagnostic: provider={Provider}, stage={Stage}, outcome={Outcome}, elapsedMs={Elapsed}, lines={Lines}, translated={Translated}, http={Http}, api={Api}, translationIncomplete={Incomplete}, suppressed={Suppressed}.",
+            diagnostic.Provider, diagnostic.Stage, diagnostic.Outcome, diagnostic.ElapsedMilliseconds,
+            diagnostic.Lines, diagnostic.TranslatedLines, diagnostic.HttpStatus, diagnostic.ApiCode,
+            diagnostic.TranslationLookupIncomplete, suppressed);
     }
     /// <summary>Reconnects only the music runtime. Settings, models and lyric caches are retained.</summary>
     public Task RestartAsync(CancellationToken token = default)
@@ -200,6 +232,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             }).WaitAsync(linked.Token);
             // Both source fetches and AI work have drained before deleting their shared store.
             // Surface deletion failures to the initiating control instead of reporting success.
+            _lyrics.ClearResponseCaches();
             await AiLyrics.ClearCacheAsync(linked.Token);
         }
         finally
@@ -388,6 +421,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private async Task LoadLyricsAsync(MediaSessionSnapshot session, AppSettings settings, long generation, CancellationToken token, bool refresh)
     {
         LyricsQueryResult? sourceResult = null;
+        var started = Stopwatch.GetTimestamp();
         try
         {
             var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
@@ -399,6 +433,18 @@ public sealed class MediaExperienceService : IAsyncDisposable
             result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
                 LyricsLanguagePolicy.IdentifyProviderTranslations(result.Document), targetLanguage) };
             sourceResult = result;
+            RecordLyricsDiagnostic(new(result.Document.Lines.Count > 0 ? result.Document.Provider :
+                settings.Lyrics.Mode == LyricsMode.LocalLrc ? LyricsProviderKind.LocalLrc : settings.Lyrics.Provider,
+                LyricsDiagnosticStage.Source, result.Status switch
+                {
+                    LyricsQueryStatus.Found => LyricsDiagnosticOutcome.Found,
+                    LyricsQueryStatus.NotFound => LyricsDiagnosticOutcome.NoMatch,
+                    LyricsQueryStatus.Disabled => LyricsDiagnosticOutcome.Disabled,
+                    _ => LyricsDiagnosticOutcome.TransportFailure,
+                },
+                (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds, result.Document.Lines.Count,
+                result.Document.Lines.Count(line => !string.IsNullOrWhiteSpace(line.Secondary)),
+                TranslationLookupIncomplete: result.TranslationLookupIncomplete));
             await _dispatcher.EnqueueAsync(() =>
             {
                 if (IsLyricsRequestCurrent(session, settings, generation, token))

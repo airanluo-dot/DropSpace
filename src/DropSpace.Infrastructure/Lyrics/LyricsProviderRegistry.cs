@@ -15,4 +15,8 @@ public sealed class LyricsProviderRegistry
     }
     public ILyricsProvider Get(LyricsProviderKind kind) => _providers.TryGetValue(kind, out var provider)
         ? provider : throw new ArgumentOutOfRangeException(nameof(kind));
+    public void ClearResponseCaches()
+    {
+        foreach (var provider in _providers.Values.OfType<ILyricsResponseCache>()) provider.ClearResponseCache();
+    }
 }

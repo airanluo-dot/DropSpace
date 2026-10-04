@@ -203,6 +203,46 @@ public sealed class LyricsTranslationPreferenceTests
         finally { late.TrySetResult(LyricsDocument.Empty); }
     }
 
+    [TestMethod]
+    public async Task SlowerHigherScoreTranslationWinsOverFirstReportedTranslation()
+    {
+        var providers = All(async kind =>
+        {
+            if (kind == LyricsProviderKind.Kugou) { await Task.Delay(80); return Doc(kind, true).Bind(Query, Query.Title, Query.Artist, "", 180, 20, "better"); }
+            return kind == LyricsProviderKind.QqMusic ? Doc(kind, true).Bind(Query, Query.Title, Query.Artist, "", 0, 12, "weaker") : Doc(kind);
+        });
+        var result = await new LyricsService(new(providers)).QueryDetailedAsync(Query,
+            new() { Enabled = true, SearchRemainingProviders = true }, default);
+        Assert.AreEqual(LyricsProviderKind.Kugou, result.Document.Provider);
+    }
+
+    [TestMethod]
+    public async Task ConfiguredBackupTranslationPrecedesFasterRemainingTranslation()
+    {
+        var providers = All(async kind =>
+        {
+            if (kind == LyricsProviderKind.Amll) await Task.Delay(500);
+            return Doc(kind, kind is LyricsProviderKind.Amll or LyricsProviderKind.QqMusic);
+        });
+        var service = new LyricsService(new(providers));
+        var settings = new LyricsSettings { Enabled = true, SearchRemainingProviders = true, BackupProvider = LyricsProviderKind.Amll };
+        var result = await service.QueryDetailedAsync(Query, settings, default);
+        Assert.AreEqual(LyricsProviderKind.Amll, result.Document.Provider);
+        var cached = await service.QueryDetailedAsync(Query, settings, default);
+        Assert.AreEqual(LyricsProviderKind.Amll, cached.Document.Provider);
+    }
+
+    [TestMethod]
+    public async Task PreferredTranslationWinsAfterSupplementalTranslationArrivesFirst()
+    {
+        async Task<LyricsDocument> LatePrimary() { await Task.Delay(150); return Doc(LyricsProviderKind.NetEase, true); }
+        var primary = new Progressive(LatePrimary());
+        var backup = new Provider(LyricsProviderKind.QqMusic, () => Task.FromResult(Doc(LyricsProviderKind.QqMusic, true)));
+        var result = await new LyricsService(new([primary, backup])).QueryDetailedAsync(Query,
+            new() { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsProviderKind.NetEase, result.Document.Provider);
+    }
+
     private sealed class Progressive(Task<LyricsDocument> pending) : IProgressiveLyricsProvider
     {
         public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
