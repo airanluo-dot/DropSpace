@@ -49,6 +49,8 @@ public sealed class WindowsProcessLoopbackService(ILogger<WindowsProcessLoopback
         IActivateAudioInterfaceAsyncOperation? operation = null;
         var initialized = CoInitializeEx(0, 0) >= 0;
         var started = false;
+        var stage = "activation";
+        var transientBufferErrors = 0;
         using var available = new AutoResetEvent(false);
         var parameters = Marshal.AllocHGlobal(Marshal.SizeOf<ActivationParameters>());
         var callback = new ActivationCallback(parameters);
@@ -64,6 +66,7 @@ public sealed class WindowsProcessLoopbackService(ILogger<WindowsProcessLoopback
             audio = (IAudioClient)callback.Completion.Task.WaitAsync(TimeSpan.FromSeconds(5), token).GetAwaiter().GetResult();
             callback.TransferOwnership();
             var format = new WaveFormat { FormatTag = 1, Channels = 2, SamplesPerSecond = SampleRate, BitsPerSample = 16, BlockAlign = 4, BytesPerSecond = SampleRate * 4 };
+            stage = "initialize";
             audio.Initialize(0, 0x00020000 | 0x00040000 | 0x80000000, 0, 0, format, 0);
             audio.GetService(typeof(IAudioCaptureClient).GUID, out var captureObject);
             capture = (IAudioCaptureClient)captureObject;
@@ -78,11 +81,25 @@ public sealed class WindowsProcessLoopbackService(ILogger<WindowsProcessLoopback
             WaitHandle[] events = [token.WaitHandle, available];
             while (WaitHandle.WaitAny(events) == 1)
             {
+                stage = "packet-size";
                 capture.GetNextPacketSize(out var next);
                 // Bound each drain to protect stop responsiveness even under continuous input.
                 for (var packets = 0; next > 0 && packets < 64 && !token.IsCancellationRequested; packets++)
                 {
-                    capture.GetBuffer(out var pointer, out var frames, out var flags, out _, out _);
+                    stage = "get-buffer";
+                    nint pointer;
+                    uint frames, flags;
+                    try { capture.GetBuffer(out pointer, out frames, out flags, out _, out _); }
+                    catch (COMException error) when (error.HResult == unchecked((int)0x88890018) && ++transientBufferErrors <= 3)
+                    {
+                        // AUDCLNT_E_BUFFER_ERROR means wait for the next processing pass.
+                        // No buffer was acquired, so do not release or kill capture here.
+                        break;
+                    }
+                    transientBufferErrors = 0;
+                    // AUDCLNT_S_BUFFER_EMPTY succeeds with zero frames; no buffer is held.
+                    if (frames == 0) break;
+                    stage = "read-buffer";
                     try
                     {
                         if (frames > SampleRate) throw new InvalidDataException("Audio packet exceeds capture budget.");
@@ -94,7 +111,13 @@ public sealed class WindowsProcessLoopbackService(ILogger<WindowsProcessLoopback
                             if (analyzer.AddSample(sample) is { } frame) Publish(frame);
                         }
                     }
-                    finally { capture.ReleaseBuffer(frames); }
+                    finally
+                    {
+                        var readStage = stage;
+                        stage = "release-buffer"; capture.ReleaseBuffer(frames);
+                        stage = readStage;
+                    }
+                    stage = "packet-size";
                     capture.GetNextPacketSize(out next);
                 }
             }
@@ -103,7 +126,7 @@ public sealed class WindowsProcessLoopbackService(ILogger<WindowsProcessLoopback
         catch (Exception exception)
         {
             FailureCategory = exception.GetType().Name;
-            logger.LogWarning("Process loopback unavailable ({Category}, HRESULT {Code}).", FailureCategory, exception.HResult);
+            logger.LogWarning("Process loopback unavailable at {Stage} ({Category}, HRESULT {Code:X8}).", stage, FailureCategory, exception.HResult);
             Publish(new(AudioCaptureMode.Unavailable, new double[6], Current.Revision + 1));
             ready.TrySetException(exception);
         }

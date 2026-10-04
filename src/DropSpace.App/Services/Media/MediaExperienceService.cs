@@ -35,6 +35,8 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly SemaphoreSlim _lyricsMaintenance = new(1, 1);
     private readonly DispatcherQueueTimer _frames, _expiry;
+    private readonly Timer _audioRecovery;
+    private long _lastAudioAttempt;
     private readonly MediaSoftRestartOperation _restart = new(TimeSpan.FromSeconds(20));
     private readonly RetirableMediaWork _lyricsWork = new(), _artworkWork = new();
     private Task _worker = Task.CompletedTask, _audioTransition = Task.CompletedTask;
@@ -64,6 +66,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache);
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
         _frames.Tick += OnFrame;
+        _audioRecovery = new Timer(_ =>
+        {
+            var observation = Volatile.Read(ref _spectrum);
+            if (AudioCaptureRecoveryPolicy.ShouldRecover(true, observation.Frame.CaptureMode,
+                Stopwatch.GetElapsedTime(observation.Timestamp), Stopwatch.GetElapsedTime(Interlocked.Read(ref _lastAudioAttempt))))
+                _changes.Writer.TryWrite(true);
+        }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _expiry = dispatcher.CreateTimer(); _expiry.IsRepeating = false; _expiry.Tick += OnExpiry;
         _experience.Changed += OnExperienceChanged;
         _visualPreferences.Changed += OnVisualPreferencesChanged;
@@ -329,20 +338,41 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             workToken => LoadArtworkAsync(session, artworkGeneration, workToken), token,
                             () => _changes.Writer.TryWrite(true));
                     var sourceKey = playing && ((settings.IslandActivity.ShowSpectrum && _view.IsPresentationVisible) || _view.IsIslandGlowActive) ? session.SourceAppUserModelId : string.Empty;
-                    if (audioKey != sourceKey || trackChanged)
+                    var observation = Volatile.Read(ref _spectrum);
+                    var recoverAudio = AudioCaptureRecoveryPolicy.ShouldRecover(sourceKey.Length > 0,
+                        observation.Frame.CaptureMode, Stopwatch.GetElapsedTime(observation.Timestamp),
+                        Stopwatch.GetElapsedTime(Interlocked.Read(ref _lastAudioAttempt)));
+                    // Track metadata changes do not change the audio producer. Re-resolving
+                    // every song can turn a transient ambiguous process snapshot into an
+                    // explicit StopCoreAsync(null), killing an otherwise healthy capture.
+                    if (audioKey != sourceKey || recoverAudio)
                     {
+                        _logger.LogInformation("Audio capture transition: wanted={Wanted}, sourceChanged={SourceChanged}, trackChanged={TrackChanged}, recovery={Recovery}, mode={Mode}.",
+                            sourceKey.Length > 0, audioKey != sourceKey, trackChanged, recoverAudio, observation.Frame.CaptureMode);
+                        Interlocked.Exchange(ref _lastAudioAttempt, Stopwatch.GetTimestamp());
+                        _audioRecovery.Change(sourceKey.Length > 0 ? TimeSpan.FromSeconds(2) : Timeout.InfiniteTimeSpan,
+                            sourceKey.Length > 0 ? TimeSpan.FromSeconds(2) : Timeout.InfiniteTimeSpan);
                         var resolved = true;
                         uint? process = null;
                         if (sourceKey.Length > 0)
                         {
-                            try { process = await _processes.ResolveAudioAsync(sourceKey, token).WaitAsync(token).ConfigureAwait(false); }
+                            try
+                            {
+                                process = await _processes.ResolveAudioAsync(sourceKey, token).WaitAsync(token).ConfigureAwait(false);
+                                if (process is null) _logger.LogWarning("Audio capture process identity is unavailable or ambiguous.");
+                            }
                             catch (Exception exception) when (exception is not OperationCanceledException)
                             { resolved = false; _logger.LogDebug("Player process resolution unavailable ({Category}).", exception.GetType().Name); }
                         }
-                        try { await SetAudioSourceAsync(process, resolved && sourceKey.Length > 0, token).ConfigureAwait(false); }
+                        try
+                        {
+                            if (recoverAudio)
+                                await SetAudioSourceAsync(null, false, token).ConfigureAwait(false);
+                            await SetAudioSourceAsync(process, resolved && sourceKey.Length > 0, token).ConfigureAwait(false);
+                        }
                         catch (Exception exception) when (exception is not OperationCanceledException)
                         { resolved = false; _logger.LogDebug("Player capture unavailable ({Category}).", exception.GetType().Name); }
-                        audioKey = resolved ? sourceKey : null;
+                        audioKey = sourceKey; // Failed attempts retry through the bounded recovery clock.
                     }
                     previousSettings = settings; previousMedia = session;
                     previousReloadRequest = reloadRequest;
@@ -527,6 +557,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             _disposed = true;
             _runtimeStop?.Request();
         }
+        _audioRecovery.Dispose();
         _frames.Stop(); _expiry.Stop();
         _frames.Tick -= OnFrame; _expiry.Tick -= OnExpiry; _experience.Changed -= OnExperienceChanged;
         _visualPreferences.Changed -= OnVisualPreferencesChanged;

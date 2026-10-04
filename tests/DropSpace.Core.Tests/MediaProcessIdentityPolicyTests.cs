@@ -13,4 +13,11 @@ public sealed class MediaProcessIdentityPolicyTests
         Assert.AreEqual("cloudmusic.exe", MediaProcessIdentityPolicy.AudioIdentity("cloudmusic.exe"));
         Assert.AreEqual("Other.AppleMusic!App", MediaProcessIdentityPolicy.AudioIdentity("Other.AppleMusic!App"));
     }
+    [TestMethod]
+    public void NeteaseKnownAliasesResolveThePlayerExecutable()
+    {
+        Assert.AreEqual("cloudmusic.exe", MediaProcessIdentityPolicy.AudioIdentity("cloudmusic"));
+        Assert.AreEqual("cloudmusic.exe", MediaProcessIdentityPolicy.AudioIdentity("com.netease.cloudmusic"));
+        Assert.AreEqual("other.cloudmusic", MediaProcessIdentityPolicy.AudioIdentity("other.cloudmusic"));
+    }
 }
