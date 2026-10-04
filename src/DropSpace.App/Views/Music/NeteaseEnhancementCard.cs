@@ -30,7 +30,6 @@ public sealed class NeteaseEnhancementCard : UserControl
         var content = new StackPanel { Spacing = 10 };
         content.Children.Add(new TextBlock { Text = strings.Get("NeteaseEnhancementTitle"), FontSize = 18,
             FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-        content.Children.Add(new TextBlock { Text = strings.Get("NeteaseEnhancementDescription"), TextWrapping = TextWrapping.Wrap });
         AutomationProperties.SetLiveSetting(_status, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
         content.Children.Add(_status); content.Children.Add(_error); content.Children.Add(_progress);
         _install = MakeButton("NeteaseEnhancementInstall", Install);

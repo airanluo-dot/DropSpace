@@ -20,7 +20,17 @@ if(version===old)throw new Error('Version is already current; refusing to overwr
 const oldScope=readScope(root);
 const approval=JSON.parse(read('scripts/ai-model-qa/release-approval.json'));
 const review=JSON.parse(read(approval.review.path));
-if(JSON.stringify(oldScope)!==JSON.stringify(approval.scope)||JSON.stringify(oldScope)!==JSON.stringify(review.scope))throw new Error('Existing release inputs differ from approved scope; explicit review required before preparation.');
+const reviewedPaths=new Set(args.flatMap((arg,i)=>arg==='--reviewed-source-path'&&args[i+1]?[args[i+1]]:[]));
+function reviewedScope(previous) {
+ const copy=structuredClone(previous);
+ for(const file of copy.sources.files) {
+  const current=oldScope.sources.files.find(f=>f.path===file.path);
+  if(current&&reviewedPaths.has(file.path))file.sha256=current.sha256;
+ }
+ copy.sources.sha256=hash(JSON.stringify(copy.sources.files));
+ return copy;
+}
+if(JSON.stringify(oldScope)!==JSON.stringify(reviewedScope(approval.scope))||JSON.stringify(oldScope)!==JSON.stringify(reviewedScope(review.scope)))throw new Error('Unreviewed release input changes remain; record exact reviewed source paths before preparation.');
 const decisionText=read(decision);
 if(!decisionText.includes(version))throw new Error('Owner decision must name the exact target version.');
 const notes=read(`.github/release-notes/${version}.md`);
@@ -46,7 +56,7 @@ edits.set(gateTests,testText);
 // readScope is unchanged except for this explicitly supplied release identity.
 const scope={...oldScope,releaseVersion:version};
 approval.scope=review.scope=scope;
-review.reviewedAt=new Date().toISOString();review.expiresAt=new Date(Date.now()+7*86400000).toISOString();
+review.reviewedAt=new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');review.expiresAt=new Date(Date.now()+7*86400000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 review.userAcceptance={...review.userAcceptance,releaseVersion:version,reference:decision,acceptedAt,timestampMeaning:'Explicit owner authorization recorded in the linked decision; historical model observations unchanged.'};
 review.ownerDecision={path:decision,sha256:hash(decisionText)};
 review.summary=`Owner-authorized corrective release ${version}; model inputs and historical evidence unchanged. See exact owner decision.`;

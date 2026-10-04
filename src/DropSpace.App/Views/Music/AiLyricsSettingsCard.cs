@@ -60,7 +60,6 @@ public sealed class AiLyricsSettingsCard : UserControl
         _clearLyricsCache = clearLyricsCache ?? service.ClearCacheAsync;
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsTitle"), FontSize = 18, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-        body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsDescription"), TextWrapping = TextWrapping.Wrap });
         _enabled.Header = strings.Get("AiLyricsEnabled");
         AutomationProperties.SetName(_enabled, strings.Get("AiLyricsEnabled"));
         AutomationProperties.SetAutomationId(_enabled, "AiLyricsEnabled");
@@ -72,7 +71,6 @@ public sealed class AiLyricsSettingsCard : UserControl
         AutomationProperties.SetHelpText(_gpuAcceleration, strings.Get("AiLyricsGpuAccelerationHelp"));
         _gpuAcceleration.Toggled += OnGpuAcceleration;
         body.Children.Add(_gpuAcceleration);
-        body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsGpuAccelerationHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsModel"), FontWeight = FontWeights.SemiBold });
         foreach (var model in AiLyricsModelCatalog.All)
             _models.Items.Add(new ComboBoxItem { Content = ModelLabel(model), Tag = model });
@@ -107,7 +105,6 @@ public sealed class AiLyricsSettingsCard : UserControl
         actions.Children.Add(_delete); actions.Children.Add(_clearCache);
         body.Children.Add(actions);
         _legacyModels.Children.Add(new TextBlock { Text = strings.Get("AiLyricsLegacyModels"), FontWeight = FontWeights.SemiBold });
-        _legacyModels.Children.Add(new TextBlock { Text = strings.Get("AiLyricsLegacyModelsHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         foreach (var model in AiLyricsModelCatalog.Legacy)
         {
             var remove = new Button { Content = strings.Format("AiLyricsDeleteLegacyModel", ModelLabel(model)), HorizontalAlignment = HorizontalAlignment.Left };
@@ -118,19 +115,15 @@ public sealed class AiLyricsSettingsCard : UserControl
             _legacyModels.Children.Add(remove);
         }
         body.Children.Add(_legacyModels);
-        body.Children.Add(new TextBlock { Text = strings.Get(AiLyricsModelCatalog.All.Count > 1 ? "AiLyricsDownloadHelp" : "AiLyricsDownloadHelpSingle"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowTitle"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
         _glow = new LyricsGlowModeControl(strings);
         _glow.ModeChanged += OnGlowChanged;
         body.Children.Add(_glow);
-        body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowDescription"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         var glowAppearance = new SettingsForm(editor, strings);
         var simplifiedGlow = glowAppearance.AddToggle("LyricsSimplifiedGlow", settings => settings.Lyrics.SimplifiedGlow,
             (settings, value) => settings with { Lyrics = settings.Lyrics with { SimplifiedGlow = value } });
         AutomationProperties.SetAutomationId(simplifiedGlow, "LyricsSimplifiedGlow");
         AutomationProperties.SetHelpText(simplifiedGlow, strings.Get("LyricsSimplifiedGlowHelp"));
-        glowAppearance.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsSimplifiedGlowHelp"),
-            TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         body.Children.Add(glowAppearance);
         Content = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(8),
             Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],

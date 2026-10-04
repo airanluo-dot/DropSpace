@@ -123,7 +123,6 @@ public sealed class MusicPage : UserControl
         form.AddToggle("MusicDynamicWidth", s => s.IslandActivity.CompactDynamicWidth, (s,v) => s with { IslandActivity = s.IslandActivity with { CompactDynamicWidth = v } });
         form.AddToggle("MusicProgress", s => s.IslandActivity.ShowProgress, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowProgress = v } });
         form.AddHeading("MusicLyricsSection");
-        form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsOnlinePrivacyHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.7 });
         form.AddToggle("LyricsEnabled", s => s.Lyrics.Enabled, (s,v) => s with { Lyrics = s.Lyrics with { Enabled = v } });
         form.AddToggle("LyricsCompact", s => s.IslandActivity.ShowLyricsInCompact, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowLyricsInCompact = v } });
         form.AddChoice("LyricsMode", new[] { (LyricsMode.Online, strings.Get("LyricsOnline")), (LyricsMode.LocalLrc, strings.Get("LyricsLocal")) }, s => s.Lyrics.Mode, (s,v) => s with { Lyrics = s.Lyrics with { Mode = v } });
@@ -138,7 +137,6 @@ public sealed class MusicPage : UserControl
             (s,v) => s with { Lyrics = s.Lyrics with { BackupProvider = v.Value == s.Lyrics.Provider ? null : v.Value } });
         form.AddToggle("LyricsSearchRemainingProviders", s => s.Lyrics.SearchRemainingProviders,
             (s,v) => s with { Lyrics = s.Lyrics with { SearchRemainingProviders = v } });
-        form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsFallbackHelp"), TextWrapping = TextWrapping.Wrap, Opacity = 0.7 });
         form.AddToggle("LyricsShowAiLabel", s => s.Lyrics.ShowAiLyricsLabel, (s,v) => s with { Lyrics = s.Lyrics with { ShowAiLyricsLabel = v } });
         form.AddToggle("LyricsSecondary", s => s.Lyrics.SecondaryLyrics, (s,v) => s with { Lyrics = s.Lyrics with { SecondaryLyrics = v } });
         form.Rows.Children.Add(new LyricsFontSizeControl(editor, strings));
