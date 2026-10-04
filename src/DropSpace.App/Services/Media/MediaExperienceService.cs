@@ -380,7 +380,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 }
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
-            if (!result.TranslationLookupIncomplete && IsLyricsRequestCurrent(session, settings, generation, token))
+            // A bounded provider search may finish without proving that no translation exists.
+            // Its incompleteness controls source caching, not the user-enabled AI fallback.
+            if (LyricsTranslationPolicy.CanOfferLocalFallback(result) && IsLyricsRequestCurrent(session, settings, generation, token))
             {
                 var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
                     session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);

@@ -69,6 +69,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs',
   'src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsService.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs',
   'src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs',
@@ -173,7 +174,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.3';
+export const experimentalBetaVersion = 'v0.3.1-beta.4';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));

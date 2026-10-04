@@ -30,11 +30,11 @@ public sealed record LyricsSettings
     public double OriginalFontSize => FontSize;
     [System.Text.Json.Serialization.JsonIgnore]
     public double TranslationFontSize => FontSize * 0.875;
-    public bool Enabled { get; init; }
+    public bool Enabled { get; init; } = true;
     public LyricsMode Mode { get; init; }
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.NetEase;
     public LyricsProviderKind? BackupProvider { get; init; }
-    public bool SearchRemainingProviders { get; init; }
+    public bool SearchRemainingProviders { get; init; } = true;
     public bool SecondaryLyrics { get; init; }
     public bool ShowAiLyricsLabel { get; init; } = true;
     public bool WordSyncedHighlighting { get; init; } = true;

@@ -6,6 +6,17 @@ namespace DropSpace.Core.Tests;
 [TestClass]
 public sealed class LyricsTranslationPolicyTests
 {
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void FoundOriginalAllowsAiAdmissionRegardlessOfLookupCompletion(bool incomplete)
+    {
+        var document = LyricsParser.Parse("[00:01]The night is full of stars", LyricsProviderKind.NetEase);
+        Assert.IsTrue(LyricsTranslationPolicy.CanOfferLocalFallback(new(document, LyricsQueryStatus.Found, incomplete)));
+        Assert.IsFalse(LyricsTranslationPolicy.CanOfferLocalFallback(new(LyricsDocument.Empty, LyricsQueryStatus.Found, incomplete)));
+        Assert.IsFalse(LyricsTranslationPolicy.CanOfferLocalFallback(new(document, LyricsQueryStatus.Failed, incomplete)));
+    }
+
     private static readonly IReadOnlySet<string> Supported = new HashSet<string> { "zh", "en", "ja", "ko", "zh-Hant" };
 
     [TestMethod]

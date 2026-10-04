@@ -12,22 +12,40 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class LyricsProviderTransportTests
 {
     [TestMethod]
-    [DataRow("零(《时光代理人 第三季》Part1片尾曲)", "饭卡", "零", "饭卡", 186)]
-    [DataRow("风的来信(feat.孙晔)[中文版]", "HOYO-MiX", "风的来信 A Letter From the Wind", "HOYO-MiX", 197)]
-    public async Task ChineseScreenshotTitlesReachLyricsThroughCatalogAndService(string requested, string artist, string catalog, string catalogArtist, int seconds)
+    [DataRow("零(《时光代理人 第三季》Part1片尾曲)", "饭卡", "零", "饭卡", 185, 186, "000xs4VJ3vls2S", "零 饭卡")]
+    [DataRow("风的来信(feat.孙晔)[中文版]", "HOYO-MiX", "风的来信 A Letter From the Wind", "HOYO-MiX;孙晔", 197, 197, "002wxhL93EPjZz", "风的来信 HOYO-MiX")]
+    public async Task ChineseScreenshotTitlesReachLyricsThroughCatalogAndService(string requested, string artist,
+        string catalog, string catalogArtist, int requestedSeconds, int catalogSeconds, string candidateId, string expectedTerms)
     {
-        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
-            ? Json(JsonSerializer.Serialize(new { code=0, data=new { song=new { list=new[] {
-                new { songmid="verified", songname=catalog, albumname="", interval=seconds, singer=new[] { new { name=catalogArtist } } }
-            } } } }))
-            : Json(JsonSerializer.Serialize(new { code=0, lyric="[00:01.000]这是用于验证的原创歌词。" })));
+        var searches = 0;
+        var lyricReads = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            {
+                searches++;
+                Assert.IsTrue(Uri.UnescapeDataString(request.RequestUri.Query).EndsWith("w=" + expectedTerms, StringComparison.Ordinal));
+                return Json(JsonSerializer.Serialize(new { code = 0, data = new { song = new { list = new[] {
+                    new { songmid = candidateId, songname = catalog, albumname = "", interval = catalogSeconds,
+                        singer = catalogArtist.Split(';').Select(name => new { name }).ToArray() }
+                } } } }));
+            }
+            lyricReads++;
+            Assert.IsTrue(request.RequestUri.Query.Contains("songmid=" + candidateId, StringComparison.Ordinal));
+            return Json(JsonSerializer.Serialize(new { code = 0, lyric = "[00:01.000]这是用于验证的原创歌词。" }));
+        });
         using var client = new HttpClient(handler);
-        var result = await new LyricsService(new(new ILyricsProvider[] { new QqMusicLyricsProvider(new(client)) }))
-            .QueryDetailedAsync(new(requested,artist,"",TimeSpan.FromSeconds(seconds)) { PreferredTranslationLanguage="zh-Hans" },
-                new() { Enabled=true, Provider=LyricsProviderKind.QqMusic }, default);
-        Assert.AreEqual(LyricsQueryStatus.Found,result.Status);
-        Assert.AreEqual("verified",result.Document.Match!.CandidateId);
+        var result = await new LyricsService(new([new QqMusicLyricsProvider(new(client))]))
+            .QueryDetailedAsync(new(requested, artist, "", TimeSpan.FromSeconds(requestedSeconds), "apple-track")
+                { PreferredTranslationLanguage = "zh-Hans" },
+                new() { Enabled = true, Provider = LyricsProviderKind.QqMusic, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.AreEqual(candidateId, result.Document.Match!.CandidateId);
+        Assert.AreEqual("apple-track", result.Document.Match.TrackIdentity);
+        Assert.AreEqual((double)catalogSeconds, result.Document.Match.DurationSeconds);
         Assert.IsNotEmpty(result.Document.Lines);
+        Assert.AreEqual(1, searches);
+        Assert.AreEqual(1, lyricReads);
     }
 
     [TestMethod]
@@ -46,6 +64,262 @@ public sealed class LyricsProviderTransportTests
         Assert.AreEqual("two",result.Match!.CandidateId);
         Assert.AreEqual(2,lyricCalls);
     }
+
+    [TestMethod]
+    [DataRow("{\"code\":2001,\"message\":\"upstream unavailable\"}")]
+    [DataRow("{\"code\":0,\"data\":\"opaque\"}")]
+    [DataRow("{\"code\":0,\"data\":{\"song\":{\"list\":\"opaque\"}}}")]
+    [DataRow("{}")]
+    public async Task QqRejectedOrOpaqueSearchIsFailureRatherThanCatalogMiss(string payload)
+    {
+        var calls = 0;
+        using var handler = new FixtureHandler(_ => { calls++; return Json(payload); });
+        using var client = new HttpClient(handler);
+        var result = await new LyricsService(new([new QqMusicLyricsProvider(new(client))]))
+            .QueryDetailedAsync(new("风的来信(feat.孙晔)[中文版]", "HOYO-MiX", "", TimeSpan.FromSeconds(197)),
+                new() { Enabled = true, Provider = LyricsProviderKind.QqMusic, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Failed, result.Status);
+        Assert.IsEmpty(result.Document.Lines);
+        Assert.AreEqual(1, calls);
+    }
+
+    [TestMethod]
+    [DataRow("{}")]
+    [DataRow("{\"code\":0,\"lyric\":123}")]
+    [DataRow("[]")]
+    [DataRow("{broken")]
+    public async Task QqMalformedCandidateDoesNotHideNextValidatedRecording(string payload)
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+            ? Json(MatchingCandidates(false, 2))
+            : Json(++lyricCalls == 1 ? payload : """{"code":0,"lyric":"[00:01]usable"}"""));
+        using var client = new HttpClient(handler);
+        var result = await new QqMusicLyricsProvider(new(client)).QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
+        Assert.AreEqual("2", result.Match!.CandidateId);
+        Assert.AreEqual(2, lyricCalls);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task CandidateApiRejectionRemainsTerminal(bool netEase)
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json(MatchingCandidates(netEase, 3));
+            lyricCalls++;
+            return Json("""{"code":405}""");
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        await Assert.ThrowsAsync<HttpRequestException>(() => provider.QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default));
+        Assert.AreEqual(1, lyricCalls);
+    }
+
+    [TestMethod]
+    public async Task QqSuccessfulEmptyCatalogRemainsGenuineNoMatch()
+    {
+        using var handler = new FixtureHandler(_ => Json("""{"code":0,"data":{"song":{"list":[]}}}"""));
+        using var client = new HttpClient(handler);
+        var result = await new LyricsService(new([new QqMusicLyricsProvider(new(client))]))
+            .QueryDetailedAsync(new("Song", "Artist", "", TimeSpan.Zero),
+                new() { Enabled = true, Provider = LyricsProviderKind.QqMusic, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.NotFound, result.Status);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task CandidateTransportFailureDoesNotHideNextValidatedRecording(bool netEase)
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json(netEase
+                    ? """{"code":200,"result":{"songs":[{"id":1,"name":"风的来信 A Letter From the Wind","artists":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"duration":197000},{"id":2,"name":"风的来信 A Letter From the Wind","artists":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"duration":197000}]}}"""
+                    : """{"code":0,"data":{"song":{"list":[{"songmid":"one","songname":"风的来信 A Letter From the Wind","singer":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"interval":197},{"songmid":"two","songname":"风的来信 A Letter From the Wind","singer":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"interval":197}]}}}""");
+            if (++lyricCalls == 1) return new(HttpStatusCode.ServiceUnavailable);
+            return Json(netEase
+                ? """{"code":200,"lrc":{"lyric":"[00:01.000]这是用于验证的原创歌词。"}}"""
+                : """{"code":0,"lyric":"[00:01.000]这是用于验证的原创歌词。"}""");
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        var result = await new LyricsService(new([provider])).QueryDetailedAsync(
+            new("风的来信(feat.孙晔)[中文版]", "HOYO-MiX", "", TimeSpan.FromSeconds(197)),
+            new() { Enabled = true, Provider = provider.Kind, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.AreEqual(netEase ? "2" : "two", result.Document.Match!.CandidateId);
+        Assert.AreEqual(2, lyricCalls);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task CandidateReadFailureDoesNotHideNextValidatedRecording(bool netEase)
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json(MatchingCandidates(netEase, 2));
+            if (++lyricCalls == 1) throw new IOException("Interrupted response stream.");
+            return Json(netEase
+                ? """{"code":200,"lrc":{"lyric":"[00:01]usable"}}"""
+                : """{"code":0,"lyric":"[00:01]usable"}""");
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        var result = await provider.QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), default);
+        Assert.AreEqual("2", result.Match!.CandidateId);
+        Assert.AreEqual(2, lyricCalls);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task CandidateCancellationDoesNotStartAnotherRecording(bool netEase)
+    {
+        var lyricCalls = 0;
+        using var stop = new CancellationTokenSource();
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json(MatchingCandidates(netEase, 3));
+            lyricCalls++;
+            stop.Cancel();
+            throw new OperationCanceledException(stop.Token);
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => provider.QueryAsync(new("Song", "Artist", "", TimeSpan.Zero), stop.Token));
+        Assert.AreEqual(1, lyricCalls);
+    }
+
+    [TestMethod]
+    [DataRow(false, 403)]
+    [DataRow(false, 429)]
+    [DataRow(true, 403)]
+    [DataRow(true, 429)]
+    public async Task CandidateAuthorizationAndRateLimitRejectionsRemainTerminal(bool netEase, int status)
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json(MatchingCandidates(netEase, 3));
+            lyricCalls++;
+            return new((HttpStatusCode)status);
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        var result = await new LyricsService(new([provider])).QueryDetailedAsync(
+            new("Song", "Artist", "", TimeSpan.Zero),
+            new() { Enabled = true, Provider = provider.Kind, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Failed, result.Status);
+        Assert.AreEqual(1, lyricCalls);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task FailedCandidatesAreBoundedAndNeverBecomeCatalogMiss(bool netEase)
+    {
+        var searches = 0;
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            {
+                searches++;
+                return Json(MatchingCandidates(netEase, 4));
+            }
+            lyricCalls++;
+            return new(HttpStatusCode.ServiceUnavailable);
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        var result = await new LyricsService(new([provider])).QueryDetailedAsync(
+            new("Song", "Artist", "", TimeSpan.Zero),
+            new() { Enabled = true, Provider = provider.Kind, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Failed, result.Status);
+        Assert.AreEqual(3, lyricCalls);
+        Assert.AreEqual(1, searches, "Exhausted candidates must not start another search that cannot be used.");
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task OriginalSurvivesLaterCandidateFailuresWithoutCompletingTranslationSearch(bool netEase)
+    {
+        var lyricCalls = 0;
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+                return Json(MatchingCandidates(netEase, 3));
+            if (++lyricCalls > 1) return new(HttpStatusCode.ServiceUnavailable);
+            return Json(netEase
+                ? """{"code":200,"lrc":{"lyric":"[00:01.000]The night is full of stars."}}"""
+                : """{"code":0,"lyric":"[00:01.000]The night is full of stars."}""");
+        });
+        using var client = new HttpClient(handler);
+        ILyricsProvider provider = netEase ? new NetEaseLyricsProvider(new(client)) : new QqMusicLyricsProvider(new(client));
+        var service = new LyricsService(new([provider]));
+        var query = new LyricsQuery("Song", "Artist", "", TimeSpan.Zero) { PreferredTranslationLanguage = "zh-Hans" };
+        var settings = new LyricsSettings { Enabled = true, Provider = provider.Kind, SearchRemainingProviders = false };
+        var result = await service.QueryDetailedAsync(query, settings, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.IsTrue(result.TranslationLookupIncomplete);
+        Assert.AreEqual("The night is full of stars.", result.Document.Lines.Single().Text);
+        Assert.AreEqual(3, lyricCalls);
+        await service.QueryDetailedAsync(query, settings, default);
+        Assert.AreEqual(6, lyricCalls, "The incomplete search must not become a successful cache entry.");
+    }
+
+    [TestMethod]
+    public async Task QqExactScreenshotFallsBackToCleanTitleAndBindsActualCatalogIdentity()
+    {
+        var searches = new List<string>();
+        var lyrics = new List<string>();
+        using var handler = new FixtureHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            {
+                var terms = Uri.UnescapeDataString(request.RequestUri.Query);
+                searches.Add(terms);
+                return Json(searches.Count == 1
+                    ? """{"code":0,"data":{"song":{"list":[]}}}"""
+                    : """{"code":0,"data":{"song":{"list":[{"songmid":"002wxhL93EPjZz","songname":"风的来信 A Letter From the Wind","singer":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"interval":197}]}}}""");
+            }
+            lyrics.Add(request.RequestUri.Query);
+            return Json("""{"code":0,"lyric":"[00:01.000]这是用于验证的原创歌词。"}""");
+        });
+        using var client = new HttpClient(handler);
+        var result = await new LyricsService(new([new QqMusicLyricsProvider(new(client))])).QueryDetailedAsync(
+            new("风的来信(feat.孙晔)[中文版]", "HOYO-MiX", "", TimeSpan.FromSeconds(197), "apple-track")
+                { PreferredTranslationLanguage = "zh-Hans" },
+            new() { Enabled = true, Provider = LyricsProviderKind.QqMusic, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.HasCount(2, searches);
+        Assert.IsTrue(searches[0].EndsWith("w=风的来信 HOYO-MiX", StringComparison.Ordinal));
+        Assert.IsTrue(searches[1].EndsWith("w=风的来信", StringComparison.Ordinal));
+        Assert.HasCount(1, lyrics);
+        Assert.IsTrue(lyrics[0].Contains("songmid=002wxhL93EPjZz", StringComparison.Ordinal));
+        Assert.AreEqual("002wxhL93EPjZz", result.Document.Match!.CandidateId);
+        Assert.AreEqual("HOYO-MiX; 孙晔", result.Document.Match.Artist);
+        Assert.AreEqual("apple-track", result.Document.Match.TrackIdentity);
+        Assert.IsFalse(result.TranslationLookupIncomplete);
+    }
+
+    private static string MatchingCandidates(bool netEase, int count) => netEase
+        ? JsonSerializer.Serialize(new { code = 200, result = new { songs = Enumerable.Range(1, count)
+            .Select(id => new { id, name = "Song", artists = new[] { new { name = "Artist" } } }).ToArray() } })
+        : JsonSerializer.Serialize(new { code = 0, data = new { song = new { list = Enumerable.Range(1, count)
+            .Select(id => new { songmid = id.ToString(System.Globalization.CultureInfo.InvariantCulture), songname = "Song", singer = new[] { new { name = "Artist" } } }).ToArray() } } });
 
     [TestMethod]
     public async Task NetEasePrefersTranslatedMatchingCandidateOverFirstOriginal()

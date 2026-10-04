@@ -20,11 +20,13 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
         var searches = LyricsMatcher.SearchTerms(query);
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var remaining = MaximumLyricCandidates;
+        var requests = new LyricsCandidateRequests();
         var original = LyricsDocument.Empty;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
 
         foreach (var terms in searches)
         {
+            if (remaining == 0) break;
             using var search = await http.GetAsync(
                 $"https://music.163.com/api/search/get/web?s={Escape(terms)}&type=1&offset=0&total=true&limit=30",
                 cancellationToken);
@@ -33,14 +35,16 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
                 .Where(value => value.Score >= 4 && attempted.Add(value.Id))
                 .OrderByDescending(value => value.Score))
             {
-                if (remaining-- <= 0) return original;
-                var document = await ReadLyricsAsync(candidate, query, cancellationToken);
+                if (remaining == 0) break;
+                remaining--;
+                var document = await requests.TryAsync(() => ReadLyricsAsync(candidate, query, cancellationToken));
                 if (document.Lines.Count == 0) continue;
                 reportCandidate(document);
                 if (target.Length == 0 || LyricsLanguagePolicy.EligibleIndices(document, target).Length == 0 || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
                 if (original.Lines.Count == 0) original = document;
             }
         }
+        requests.ThrowIfFailed();
         return original;
     }
 
@@ -129,7 +133,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
     private static void ThrowIfRejected(JsonElement root)
     {
         var code = Number(root, "code");
-        if (code > 0 && code != 200) throw new HttpRequestException("NetEase lyrics API rejected the request.");
+        if (code > 0 && code != 200) throw new LyricsProviderRejectedException("NetEase lyrics API rejected the request.");
     }
 
     private sealed record Candidate(string Id, string Title, string Artist, string Album, double Duration, double Score);

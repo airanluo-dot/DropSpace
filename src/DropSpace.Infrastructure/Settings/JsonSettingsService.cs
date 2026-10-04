@@ -279,6 +279,16 @@ public sealed class JsonSettingsService : ISettingsService
         if (root.ValueKind != JsonValueKind.Object) return settings;
         var fields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in root.EnumerateObject()) fields[property.Name] = property.Value;
+        // New-install defaults must not silently broaden persisted legacy settings.
+        var lyricsFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (fields.TryGetValue(nameof(AppSettings.Lyrics), out var lyrics) && lyrics.ValueKind == JsonValueKind.Object)
+            foreach (var property in lyrics.EnumerateObject()) lyricsFields.Add(property.Name);
+        var persistedLyrics = settings.Lyrics with
+        {
+            Enabled = lyricsFields.Contains(nameof(LyricsSettings.Enabled)) && settings.Lyrics.Enabled,
+            SearchRemainingProviders = lyricsFields.Contains(nameof(LyricsSettings.SearchRemainingProviders)) && settings.Lyrics.SearchRemainingProviders,
+        };
+        if (persistedLyrics != settings.Lyrics) settings = settings with { Lyrics = persistedLyrics };
         if (fields.ContainsKey(nameof(AppSettings.PrivacyChoicesCompleted))) return settings;
         // Preserve explicitly persisted legacy choices, never infer consent from mere file existence.
         return fields.TryGetValue(nameof(AppSettings.ClipboardPaused), out var paused) && paused.ValueKind is JsonValueKind.True or JsonValueKind.False &&

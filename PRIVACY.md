@@ -1,3 +1,12 @@
+## Current beta4 online lyrics defaults
+
+Fresh installations enable online lyrics with NetEase as the preferred provider, no backup,
+and remaining-provider search enabled. Queries send the current song title, artist, album
+and duration to providers allowed by these controls. Users can disable lyrics or select
+Local LRC to avoid online lookup. Existing explicit settings are preserved. AI translation
+is independently opt-in and local; model downloads still require consent.
+This supersedes the older fresh-install defaults described in the historical sections below.
+
 # DropSpace Privacy and Threat Model
 
 Beta 28 passive NetEase enhancement inspection is offline: it reads the local player path,

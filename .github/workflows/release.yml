@@ -156,7 +156,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Private translation helper protocol checks failed.' }
 
       # Pending approval blocks publication, never ordinary PR validation.
-      # Only v0.3.1-beta.3 may use its exact recorded owner acceptance without semantic approval.
+      # Only v0.3.1-beta.4 may use its exact recorded owner acceptance without semantic approval.
 
       - name: Enforce AI publication decision before building
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true

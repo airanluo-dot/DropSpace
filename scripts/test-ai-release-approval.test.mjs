@@ -277,8 +277,8 @@ test('owner-accepted Beta preserves timeout and unexecuted evidence without sema
 });
 
 for (const [label, mutate, expected] of [
-  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.4'); x.scope.releaseVersion = 'v0.3.1-beta.4'; }, /only for v0.3.1-beta.3/],
-  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.3/],
+  ['future Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.5'); x.scope.releaseVersion = 'v0.3.1-beta.5'; }, /only for v0.3.1-beta.4/],
+  ['previous Beta', x => { x.write('RELEASE_VERSION', 'v0.3.1-beta.1'); x.scope.releaseVersion = 'v0.3.1-beta.1'; }, /only for v0.3.1-beta.4/],
   ['Stable', x => { x.write('RELEASE_VERSION', 'v0.3.1'); x.scope.releaseVersion = 'v0.3.1'; }, /only to a Beta/],
   ['missing owner acceptance', x => { delete x.report.userAcceptance; }, /Actual user acceptance/],
   ['no incomplete-validation acceptance', x => { x.report.userAcceptance.acceptsIncompleteModelValidation = false; }, /Explicit acceptance/],

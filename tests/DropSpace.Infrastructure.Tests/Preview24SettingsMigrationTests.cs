@@ -18,6 +18,20 @@ public sealed class Preview24SettingsMigrationTests
     }
 
     [TestMethod]
+    public async Task FreshInstallUsesNewOnlineDefaultsWithoutChangingPersistedLegacySettings()
+    {
+        var fresh = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.IsTrue(fresh.Lyrics.Enabled);
+        Assert.IsTrue(fresh.Lyrics.SearchRemainingProviders);
+        Assert.AreEqual(LyricsProviderKind.NetEase, fresh.Lyrics.Provider);
+        Assert.IsNull(fresh.Lyrics.BackupProvider);
+        await File.WriteAllTextAsync(_paths.Settings, "{\"Version\":14,\"PrivacyChoicesCompleted\":true,\"Lyrics\":{\"Enabled\":true}}");
+        var legacy = await new JsonSettingsService(_paths).LoadAsync();
+        Assert.IsTrue(legacy.Lyrics.Enabled);
+        Assert.IsFalse(legacy.Lyrics.SearchRemainingProviders);
+    }
+
+    [TestMethod]
     [DataRow(11)]
     [DataRow(12)]
     [DataRow(13)]
@@ -56,7 +70,7 @@ public sealed class Preview24SettingsMigrationTests
         _paths.EnsureCreated();
         await File.WriteAllTextAsync(_paths.Settings, """{"Version":11,"ClipboardPaused":true}""");
         var result = await new JsonSettingsService(_paths).LoadAsync();
-        Assert.IsFalse(result.Lyrics.Enabled); // Newly introduced online lyrics require explicit opt-in.
+        Assert.IsFalse(result.Lyrics.Enabled); // Persisted legacy files keep their previous absent-field defaults.
         Assert.AreEqual(LyricsProviderKind.NetEase, result.Lyrics.Provider);
         Assert.AreEqual(3_000, result.IslandAppearance.HideDelayMilliseconds);
         Assert.IsFalse(result.SystemActivities.ShowVolumeChanges);
