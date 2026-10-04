@@ -218,39 +218,8 @@ jobs:
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
 
-      - name: Build verified offline AI inference runtime
-        if: ${{ steps.ci-promotion.outputs.reuse != 'true' && (!(github.event_name == 'workflow_dispatch' && inputs.publish == true)) }}
-        shell: pwsh
-        run: |
-          ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
-          ./scripts/Build-AiLyricsRuntime.ps1
-
-
-      - name: Record immutable runtime producer identity
-        if: ${{ steps.ci-promotion.outputs.reuse != 'true' && (!(github.event_name == 'workflow_dispatch' && inputs.publish == true)) }}
-        shell: pwsh
-        env:
-          PRODUCER_HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          $path = 'artifacts/ai-runtime/win-x64/runtime-manifest.json'
-          $manifest = Get-Content $path -Raw | ConvertFrom-Json
-          $checkout = (& git rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $checkout -cne $env:GITHUB_SHA) { throw 'Runtime producer checkout mismatch.' }
-          $producer = [ordered]@{
-            repository = $env:GITHUB_REPOSITORY
-            workflowPath = '.github/workflows/release.yml'
-            runId = [long]$env:GITHUB_RUN_ID
-            runAttempt = [int]$env:GITHUB_RUN_ATTEMPT
-            headCommit = $env:PRODUCER_HEAD_COMMIT
-            checkoutCommit = $checkout
-          }
-          $manifest | Add-Member -NotePropertyName producer -NotePropertyValue $producer
-          $json = ($manifest | ConvertTo-Json -Depth 8) -replace "`r`n", "`n"
-          [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE $path), $json + "`n", [Text.UTF8Encoding]::new($false))
-
-
       - name: Retrieve the exact reviewed runtime
-        if: ${{ steps.ci-promotion.outputs.reuse != 'true' && (github.event_name == 'workflow_dispatch' && inputs.publish == true) }}
+        if: steps.ci-promotion.outputs.reuse != 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

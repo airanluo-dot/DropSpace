@@ -15,8 +15,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  change-scope:
+    name: Determine application build scope
+    runs-on: ubuntu-latest
+    outputs:
+      maintenance_only: ${{ steps.scope.outputs.maintenance_only }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Classify complete maintenance diff
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          let maintenance=false;
+          try {
+            const base=process.env.BASE_SHA;
+            if(process.env.GITHUB_EVENT_NAME!=='pull_request'||!/^[a-f0-9]{40}$/.test(base??''))throw new Error('Full application build required');
+            execFileSync('git',['fetch','--no-tags','--depth=1','origin',base]);
+            const names=execFileSync('git',['diff','--name-only','-z',base,'HEAD'],{encoding:'utf8'}).split('\0').filter(Boolean);
+            const allowed=new Set(['.github/workflows/ci.yml','.github/workflows/release.yml','scripts/prepare-corrective-release.mjs','docs/dev/corrective-release-preparation.md']);
+            maintenance=names.length>0&&names.every(n=>allowed.has(n));
+          } catch(e) { console.log(e.message); }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`maintenance_only=${maintenance}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,maintenance?'Workflow maintenance only: no application binaries built, no functional test pass claimed.\n':'Application or unknown inputs changed: Windows producer required.\n');
+          JS
+
   produce-windows:
     name: Build and validate shared Windows artifacts
+    needs: change-scope
+    if: needs.change-scope.outputs.maintenance_only != 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     outputs:
@@ -119,12 +149,12 @@ jobs:
       - name: Restore locked dependency graph
         run: dotnet restore DropSpace.sln -p:Configuration=Release -p:RestoreLockedMode=true
 
-      - name: Select exact reviewed native runtime reuse
+      - name: Require exact reviewed native runtime reuse
         id: reviewed-runtime
         shell: pwsh
         run: |
-          node --input-type=module -e "import fs from 'node:fs'; import {readApprovedRuntimeContract} from './scripts/test-ai-release-approval.mjs'; let reuse=false; try { readApprovedRuntimeContract(process.cwd()); reuse=true; } catch(e) { console.log('No reusable current runtime decision: '+e.message); } fs.appendFileSync(process.env.GITHUB_OUTPUT, 'reuse='+reuse+'\n');"
-          if ($LASTEXITCODE -ne 0) { throw 'Native runtime selection failed.' }
+          node --input-type=module -e "import fs from 'node:fs'; import {readApprovedRuntimeContract} from './scripts/test-ai-release-approval.mjs'; readApprovedRuntimeContract(process.cwd()); fs.appendFileSync(process.env.GITHUB_OUTPUT, 'reuse=true\n');"
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed runtime metadata is invalid; automatic AI engine compilation is disabled.' }
 
       - name: Retrieve exact reviewed native runtime
         if: steps.reviewed-runtime.outputs.reuse == 'true'
@@ -132,13 +162,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
-
-      - name: Build verified offline AI inference runtime
-        if: steps.reviewed-runtime.outputs.reuse != 'true'
-        shell: pwsh
-        run: |
-          ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
-          ./scripts/Build-AiLyricsRuntime.ps1
 
       - name: Test core policies, SemVer, and channel selection
         if: ${{ env.BETA6_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
@@ -289,8 +312,8 @@ jobs:
 
   smoke-portable:
     name: Validate portable startup in both languages
-    needs: produce-windows
-    if: ${{ always() }}
+    needs: [change-scope, produce-windows]
+    if: ${{ always() && needs.change-scope.outputs.maintenance_only != 'true' }}
     runs-on: windows-2025
     timeout-minutes: 15
     steps:
@@ -406,7 +429,7 @@ jobs:
     # Preserve the two ruleset contexts without a second Windows execution.
     # These report the combined job's result, not invented per-locale test passes.
     name: Build and test (x64, ${{ matrix.language }})
-    needs: [produce-windows, smoke-portable]
+    needs: [change-scope, produce-windows, smoke-portable]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -420,7 +443,13 @@ jobs:
         env:
           PRODUCER_RESULT: ${{ needs.produce-windows.result }}
           SMOKE_RESULT: ${{ needs.smoke-portable.result }}
+          MAINTENANCE_ONLY: ${{ needs.change-scope.outputs.maintenance_only }}
+          SCOPE_RESULT: ${{ needs.change-scope.result }}
         run: |
+          if [[ "$SCOPE_RESULT" == success && "$MAINTENANCE_ONLY" == true && "$PRODUCER_RESULT" == skipped && "$SMOKE_RESULT" == skipped ]]; then
+            echo 'Workflow-only maintenance: no application build or functional test pass claimed.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           if [[ "$PRODUCER_RESULT" != success || "$SMOKE_RESULT" != success ]]; then
             echo "Consolidated Windows validation did not succeed: producer=$PRODUCER_RESULT, smoke=$SMOKE_RESULT"
             exit 1
