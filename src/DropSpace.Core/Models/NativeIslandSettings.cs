@@ -2,6 +2,7 @@ namespace DropSpace.Core.Models;
 
 public enum LyricsMode { Online, LocalLrc }
 public enum LyricsProviderKind { NetEase, QqMusic, Kugou, Lrclib, Amll, LocalLrc }
+public enum LyricsSelectionMode { Rules, AiAssisted, AiRanked }
 
 public sealed record IslandActivitySettings
 {
@@ -35,6 +36,7 @@ public sealed record LyricsSettings
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.NetEase;
     public LyricsProviderKind? BackupProvider { get; init; }
     public bool SearchRemainingProviders { get; init; } = true;
+    public LyricsSelectionMode SelectionMode { get; init; } = LyricsSelectionMode.Rules;
     public bool SecondaryLyrics { get; init; }
     public bool ShowAiLyricsLabel { get; init; } = true;
     public bool WordSyncedHighlighting { get; init; } = true;

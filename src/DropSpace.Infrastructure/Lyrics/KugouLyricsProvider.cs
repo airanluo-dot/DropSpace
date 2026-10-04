@@ -18,7 +18,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
     {
         var original = LyricsDocument.Empty;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
-        bool Complete(LyricsDocument document) => document.Lines.Count > 0 &&
+        bool Complete(LyricsDocument document) => !query.CollectSelectionCandidates && document.Lines.Count > 0 &&
             (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
              LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target));
         var attempted = new HashSet<string>(StringComparer.Ordinal);

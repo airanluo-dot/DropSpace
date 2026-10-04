@@ -107,3 +107,44 @@ All five full catalogue responses cannot be promised to fit this existing transl
 or finish within the shared three seconds. A new selection protocol must preserve the existing
 translation template and explicitly define candidate collection, context bounds, admission and
 fallback; no AI ranking has been silently enabled or described as evaluated.
+
+## Stage 3 checkpoint: bounded contract, not complete AI modes
+
+The selection setting enum/default/normalization/reload identity are scaffolding only. No choice
+is exposed in Music settings, no model selector is invoked, and neither AI mode is implemented
+as a product feature. Manually setting AiRanked currently changes collection behaviour only;
+it must not be advertised or enabled in a release as working AI selection.
+
+All five adapters can report bounded, fetched, rule-qualified lyric documents. The snapshot
+deduplicates source IDs, caps 15 candidates and 16 MiB, carries actual target translation and
+line-level word-timing presence plus the original absolute deadline. This is not an unfetched
+catalogue-candidate contract and not AI entity resolution before the existing Score >= 4 gate.
+QQ/Kugou keep the shared three-download cap; KRC fallback consumes a download. Collection does
+not stop at the first translation or the ordinary 300 ms quality window. It uses the same
+first-original three seconds. Slow sources may exhaust that budget, leaving zero selection
+time. Concurrent snapshot selection or a measured subbudget inside those same three seconds
+still needs implementation; no new deadline may be started after collection.
+
+The independent native-candidate-id-v1 protocol sends bounded query/recording metadata,
+album-artist and source-asserted full-credit aliases, capabilities and allowlisted IDs, never
+lyric text. The output is exactly one id property (a listed ID or null); unknown IDs, duplicate
+properties, extra prose/fields, oversized or truncated input are refused. It keeps 1800/128
+byte selector limits independent of the unchanged translation protocol. The decision-key
+contract includes track/mode/source/target/model/protocol/candidate revisions; there is no
+selection decision cache implementation yet. Fifteen candidates may exceed 1800 bytes and
+then the whole snapshot is refused rather than silently dropping identity evidence.
+
+Validated first originals now reach the App dispatcher before supplemental work finishes.
+Generation checks execute after dispatch, and a query-specific closed-preview fence prevents
+a late original from overwriting the same generation's final native/AI result. Default Rules
+does not retain/size additional candidate documents; its source winner/cache order is retained.
+The new deterministic quality comparator is a contract helper, not a changed cached winner rule.
+
+Actual checks: two new Core protocol/key checks and one new collection/early-original check
+passed before final reverse-review edits; a final Infrastructure build covers those edits.
+No previous passing checks were rerun. Windows App compilation, model inference, ranking
+accuracy/latency, warm-idle atomic admission, selection result cache, AI execution and setting
+UI remain unverified/unimplemented. The cloud lacks installed selectable weights and a Windows
+runtime for those experiments. This does not prevent implementing admission/backend code, but
+it prevents a claim that HyMT2 identity selection is qualified for production. Parent owns the
+final Beta11 source binding, release and decision about any explicitly experimental AI feature.

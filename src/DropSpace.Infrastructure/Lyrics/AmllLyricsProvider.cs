@@ -83,8 +83,8 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
             });
             if (document.Lines.Count == 0) continue;
             reportCandidate(document);
-            if (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
-                LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
+            if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
+                LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
             if (original.Lines.Count == 0) original = document;
         }
         requests.ThrowIfFailed();

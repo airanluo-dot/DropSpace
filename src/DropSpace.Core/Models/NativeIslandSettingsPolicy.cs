@@ -41,6 +41,7 @@ public static class NativeIslandSettingsPolicy
                 GlowMode = Enum.IsDefined(lyrics.GlowMode) ? lyrics.GlowMode : Lyrics.LyricsGlowMode.Off,
                 FontSize = double.IsFinite(lyrics.FontSize) ? Math.Clamp(lyrics.FontSize, 12, 28) : 16,
                 Mode = Enum.IsDefined(lyrics.Mode) ? lyrics.Mode : LyricsMode.Online,
+                SelectionMode = Enum.IsDefined(lyrics.SelectionMode) ? lyrics.SelectionMode : LyricsSelectionMode.Rules,
                 Provider = provider,
                 BackupProvider = backupProvider,
                 DelayMilliseconds = Math.Clamp(lyrics.DelayMilliseconds, -MaximumDelayMilliseconds, MaximumDelayMilliseconds),

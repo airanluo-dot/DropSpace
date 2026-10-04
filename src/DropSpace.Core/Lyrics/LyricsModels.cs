@@ -12,6 +12,7 @@ public sealed record LyricsQuery(
 {
     public string? PreferredTranslationLanguage { get; init; }
     public bool BypassProviderResponseCache { get; init; }
+    public bool CollectSelectionCandidates { get; init; }
 
     public IReadOnlyList<string> ArtistCandidates => LyricsMatcher.ExpandArtistCandidates(Artist, AlbumArtist);
 
@@ -27,7 +28,10 @@ public enum LyricsQueryStatus
     Failed,
 }
 public sealed record LyricsQueryResult(LyricsDocument Document, LyricsQueryStatus Status,
-    bool TranslationLookupIncomplete = false);
+    bool TranslationLookupIncomplete = false)
+{
+    public LyricsCandidateSnapshot SelectionCandidates { get; init; } = LyricsCandidateSnapshot.Empty;
+}
 public sealed record LyricsMatchInfo(
     string Title,
     string Artist,

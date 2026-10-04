@@ -6,11 +6,18 @@ using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
-public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvider
+public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLyricsProvider
 {
     public LyricsProviderKind Kind => LyricsProviderKind.Lrclib;
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
+        => await QueryAsync(query, cancellationToken, _ => { }).ConfigureAwait(false);
+
+    public async Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken,
+        Action<LyricsDocument> reportCandidate)
     {
+        var original = LyricsDocument.Empty;
+        var attempted = new HashSet<string>(StringComparer.Ordinal);
+        var remaining = 3;
         var requests = new LyricsCandidateRequests();
         if (query.Duration > TimeSpan.Zero && query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(query.Album))
         {
@@ -47,13 +54,18 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
                         catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest)
                         { return LyricsDocument.Empty; }
                     });
-                    if (exactDocument.Lines.Count > 0) return exactDocument;
+                    if (exactDocument.Lines.Count > 0 && attempted.Add(exactDocument.Match!.CandidateId!))
+                    {
+                        reportCandidate(exactDocument);
+                        remaining--;
+                        if (!query.CollectSelectionCandidates) return exactDocument;
+                        if (original.Lines.Count == 0) original = exactDocument;
+                        if (remaining == 0) return original;
+                    }
                 }
                 catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest) { }
             }
         }
-        var attempted = new HashSet<string>(StringComparer.Ordinal);
-        var remaining = 3;
         foreach (var terms in LyricsMatcher.SearchTerms(query))
         {
             if (remaining == 0) break;
@@ -81,11 +93,16 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : ILyricsProvide
                     return Task.FromResult(document);
                 });
                 if (parsed.Lines.Count > 0)
-                    return parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
+                {
+                    var document = parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
                         Text(best.Item, "albumName"), Number(best.Item, "duration"), best.Score, bestId);
+                    reportCandidate(document);
+                    if (!query.CollectSelectionCandidates) return document;
+                    if (original.Lines.Count == 0) original = document;
+                }
             }
         }
         requests.ThrowIfFailed();
-        return LyricsDocument.Empty;
+        return original;
     }
 }

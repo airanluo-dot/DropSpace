@@ -11,6 +11,7 @@ public static class LyricsReloadPolicy
         var right = current.Lyrics;
         return left.Enabled != right.Enabled || left.Mode != right.Mode || left.Provider != right.Provider ||
             left.BackupProvider != right.BackupProvider || left.SearchRemainingProviders != right.SearchRemainingProviders ||
+            left.SelectionMode != right.SelectionMode ||
             left.LocalLrcDirectory != right.LocalLrcDirectory || left.AiTranslationEnabled != right.AiTranslationEnabled ||
             left.AiModelId != right.AiModelId || left.AiLyricsGpuAccelerationEnabled != right.AiLyricsGpuAccelerationEnabled;
     }

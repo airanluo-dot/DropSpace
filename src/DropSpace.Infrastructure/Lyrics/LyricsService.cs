@@ -36,9 +36,11 @@ public sealed class LyricsService
     public async Task<LyricsDocument> QueryAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken) =>
         (await QueryDetailedAsync(query, settings, cancellationToken).ConfigureAwait(false)).Document;
 
-    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false)
+    public async Task<LyricsQueryResult> QueryDetailedAsync(LyricsQuery query, LyricsSettings settings, CancellationToken cancellationToken, bool refresh = false,
+        Action<LyricsDocument>? reportOriginal = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        query = query with { CollectSelectionCandidates = settings.SelectionMode == LyricsSelectionMode.AiRanked };
         if (refresh) query = query with { BypassProviderResponseCache = true };
         if (!settings.Enabled || string.IsNullOrWhiteSpace(query.Title)) return new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
         var kind = settings.Mode == LyricsMode.LocalLrc ? LyricsProviderKind.LocalLrc : settings.Provider;
@@ -64,7 +66,7 @@ public sealed class LyricsService
             durationTicks = query.Duration.Ticks,
         }) : TargetSourceKey("source-v5");
         var generation = _cache?.Generation ?? _memory.Generation;
-        if (kind != LyricsProviderKind.LocalLrc && !refresh)
+        if (kind != LyricsProviderKind.LocalLrc && !refresh && !query.CollectSelectionCandidates)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
             if (cached is null && target.Length > 0)
@@ -96,11 +98,13 @@ public sealed class LyricsService
                 cached.ProviderDataRevision < KugouLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target))
-                return new(validated, LyricsQueryStatus.Found);
+                return new(validated, LyricsQueryStatus.Found)
+                { SelectionCandidates = new([LyricsCandidateRules.Describe("c0", validated, target)], 0) };
         }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(24));
-        using var candidates = new CandidateSearch(query, target, deadline.Token, kind, backup);
+        using var candidates = new CandidateSearch(query, target, deadline.Token, kind, backup, reportOriginal,
+            settings.SelectionMode != LyricsSelectionMode.Rules);
         var document = LyricsDocument.Empty;
         var translationIncomplete = false;
         try
@@ -117,7 +121,7 @@ public sealed class LyricsService
             var first = primaryTask.IsCompletedSuccessfully ? primaryTask.Result.Document : candidates.Document;
             using var supplementalStop = CancellationTokenSource.CreateLinkedTokenSource(candidates.Token);
             Task<(LyricsDocument Document, bool Failed)>? supplemental = null;
-            if (NeedsTranslationSearch(first, target) && allowed.Count > 0)
+            if ((query.CollectSelectionCandidates || NeedsTranslationSearch(first, target)) && allowed.Count > 0)
             {
                 var excluded = OnlineProviders.Where(value => !allowed.Contains(value)).ToHashSet();
                 supplemental = QuerySupplementalSafelyAsync(excluded, query, supplementalStop.Token, candidates.Report, backup, kind);
@@ -126,7 +130,7 @@ public sealed class LyricsService
             if (supplemental is not null)
             {
                 var all = Task.WhenAll(primaryTask, supplemental);
-                if (await Task.WhenAny(all, candidates.PreferredTranslationAvailable).ConfigureAwait(false) != all)
+                if (!query.CollectSelectionCandidates && await Task.WhenAny(all, candidates.PreferredTranslationAvailable).ConfigureAwait(false) != all)
                     await supplementalStop.CancelAsync().ConfigureAwait(false);
                 await all.ConfigureAwait(false);
             }
@@ -153,7 +157,7 @@ public sealed class LyricsService
             // that failed transiently. Target-aware v5 retires legacy such decisions.
             var selectionComplete = document.Provider == kind || !primary.Failed &&
                 (document.Provider == backup || backup is null || !fallbackFailed);
-            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
+            if (!query.CollectSelectionCandidates && document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
                 !NeedsTranslationSearch(document, target) && (target.Length == 0 || selectionComplete))
             {
                 try
@@ -166,12 +170,12 @@ public sealed class LyricsService
                 catch (InvalidDataException) { }
             }
             var failed = document.Lines.Count == 0 && (primary.Failed || fallbackFailed);
-            return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound, translationIncomplete);
+            return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : failed ? LyricsQueryStatus.Failed : LyricsQueryStatus.NotFound, translationIncomplete) { SelectionCandidates = candidates.Snapshot };
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or IOException or InvalidDataException or XmlException or FormatException or RegexMatchTimeoutException)
-        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)); }
+        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)); }
+        { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
     }
     // One 3-second budget starts at the first validated original, including
     // originals discovered inside a provider. Backup/candidate changes never reset it.
@@ -184,13 +188,20 @@ public sealed class LyricsService
         private readonly LyricsProviderKind? _backup;
         private readonly CancellationTokenSource _budget;
         private LyricsDocument _document = LyricsDocument.Empty;
-        private bool _started, _closed;
+        private bool _started, _closed, _truncated, _originalReported;
+        private readonly Action<LyricsDocument>? _reportOriginal;
+        private readonly bool _captureCandidates;
+        private readonly Dictionary<string, LyricsDocument> _collected = new(StringComparer.Ordinal);
+        private int _collectedBytes;
+        private long _deadlineTimestamp;
         private readonly TaskCompletionSource _originalAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task OriginalAvailable => _originalAvailable.Task;
         private readonly TaskCompletionSource _preferredTranslationAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task PreferredTranslationAvailable => _preferredTranslationAvailable.Task;
-        public CandidateSearch(LyricsQuery query, string target, CancellationToken token, LyricsProviderKind primary, LyricsProviderKind? backup)
+        public CandidateSearch(LyricsQuery query, string target, CancellationToken token, LyricsProviderKind primary, LyricsProviderKind? backup, Action<LyricsDocument>? reportOriginal, bool captureCandidates)
         {
+            _reportOriginal = reportOriginal;
+            _captureCandidates = captureCandidates;
             _query = query;
             _primary = primary;
             _backup = backup;
@@ -200,22 +211,53 @@ public sealed class LyricsService
         }
         public CancellationToken Token { get; }
         public LyricsDocument Document { get { lock (_gate) return _document; } }
+        public LyricsCandidateSnapshot Snapshot
+        {
+            get
+            {
+                lock (_gate) return new(_collected.OrderBy(pair => pair.Value.Provider).ThenBy(pair => pair.Value.Match!.CandidateId, StringComparer.Ordinal)
+                    .Select((pair, index) => LyricsCandidateRules.Describe("c" + index, pair.Value, _target)).ToArray(), _deadlineTimestamp, _truncated);
+            }
+        }
+        private static int EstimateBytes(LyricsDocument doc) => checked(
+            (doc.Match is { } match ? 256 + (match.Title.Length + match.Artist.Length + match.Album.Length +
+                (match.CandidateId?.Length ?? 0) + (match.ArtistAliases?.Sum(value => value.Length) ?? 0)) * 2 : 0) +
+            doc.Lines.Sum(line => 192 + line.Text.Length * 2 + (line.Secondary?.Length ?? 0) * 2 +
+                line.Words.Sum(word => 64 + word.Text.Length * 2)));
         public void Report(LyricsDocument candidate)
         {
             var valid = Validate(candidate, _query);
             if (valid.Lines.Count == 0) return;
+            LyricsDocument? publish = null;
             lock (_gate)
             {
                 if (_closed || Token.IsCancellationRequested) return;
-                _document = SelectTranslation(_document, valid, _target, _primary, _backup);
-                if (valid.Provider == _primary && HasTargetTranslation(valid, _target))
-                    _preferredTranslationAvailable.TrySetResult();
-                if (!_started && NeedsTranslationSearch(_document, _target))
+                if (!_started && (_query.CollectSelectionCandidates || NeedsTranslationSearch(valid, _target)))
                 {
                     _started = true;
+                    _deadlineTimestamp = System.Diagnostics.Stopwatch.GetTimestamp() + 3 * System.Diagnostics.Stopwatch.Frequency;
                     _budget.CancelAfter(TimeSpan.FromSeconds(3));
-                    _originalAvailable.TrySetResult();
                 }
+                if (_captureCandidates)
+                {
+                    var key = valid.Provider + ":" + valid.Match!.CandidateId;
+                    var bytes = EstimateBytes(valid);
+                    var oldBytes = _collected.TryGetValue(key, out var old) ? EstimateBytes(old) : 0;
+                    if ((_collected.ContainsKey(key) || _collected.Count < LyricsCandidateSelectionProtocol.MaximumCandidates) &&
+                        bytes <= 16 * 1024 * 1024 && _collectedBytes - oldBytes + bytes <= 16 * 1024 * 1024)
+                    { _collected[key] = valid; _collectedBytes += bytes - oldBytes; }
+                    else _truncated = true;
+                }
+                if (!_originalReported) { _originalReported = true; publish = valid; }
+                _document = SelectTranslation(_document, valid, _target, _primary, _backup);
+                if (!_query.CollectSelectionCandidates && valid.Provider == _primary && HasTargetTranslation(valid, _target))
+                    _preferredTranslationAvailable.TrySetResult();
+            }
+            if (publish is not null)
+            {
+                try { _reportOriginal?.Invoke(publish); }
+                catch (Exception error) when (error is not OutOfMemoryException) { }
+                finally { _originalAvailable.TrySetResult(); }
             }
         }
         public void Dispose()
@@ -345,6 +387,8 @@ public sealed class LyricsService
         var original = LyricsDocument.Empty;
         var failed = false;
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
+        if (query.CollectSelectionCandidates)
+            return await QueryFallbacksAsync(excluded, query, token, reportCandidate, backup).ConfigureAwait(false);
         if (backup is { } backupKind)
         {
             // Give the backup first admission, never the whole translation budget.
@@ -431,7 +475,7 @@ public sealed class LyricsService
                 failed |= result.Failed;
                 if (document.Lines.Count == 0) continue;
                 candidates.Add((document, index));
-                if ((target.Length == 0 || HasTargetTranslation(document, target)) &&
+                if (!query.CollectSelectionCandidates && (target.Length == 0 || HasTargetTranslation(document, target)) &&
                     (backup is null || !pending.Any(task => Array.IndexOf(all, task) == Array.IndexOf(providerOrder, backup.Value))))
                     qualityWindow ??= Task.Delay(TimeSpan.FromMilliseconds(300));
             }
