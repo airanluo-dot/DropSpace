@@ -235,9 +235,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.5` (Beta 4). All new prereleases use
+The current Beta target is `v0.3.1-beta.5` (Beta 5). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.3 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.4 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
