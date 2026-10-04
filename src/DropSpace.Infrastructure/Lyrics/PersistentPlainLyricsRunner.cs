@@ -37,6 +37,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private volatile bool _disposed;
     private string? _lastExecutionBackend;
     private volatile bool _lastExecutionUsedCpuFallback;
+    // Optional diagnostic notification after the actual pipe write/flush. No prompt or lyric data.
+    public event Action? SelectionRequestSent;
     /// <summary>Observed from a completed, protocol-validated response, not a requested preference.</summary>
     public string? LastExecutionBackend => Volatile.Read(ref _lastExecutionBackend);
     public bool LastExecutionUsedCpuFallback => _lastExecutionUsedCpuFallback;
@@ -235,6 +237,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
                 await session.Child.StandardInput!.WriteLineAsync(request.AsMemory(), deadline.Token).ConfigureAwait(false);
                 await session.Child.StandardInput.FlushAsync(deadline.Token).ConfigureAwait(false);
+                SelectionRequestSent?.Invoke();
                 using var response = await ReadFrameAsync(session.Child.StandardOutput, deadline.Token).ConfigureAwait(false);
                 var root = response.RootElement;
                 if (root.GetProperty("protocol").GetInt32() != SelectionProtocolVersion || root.GetProperty("id").GetString() != id ||
