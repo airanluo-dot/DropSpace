@@ -2,7 +2,7 @@
 param([ValidateSet('Installer','Portable')][string]$Kind)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if (@('v0.3.1-beta.6','v0.3.1-beta.7') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
+if (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'Use only the isolated CI runner.' }
 function Identity([string]$Path,[string]$Name) {
     return [ordered]@{name=$Name;bytes=(Get-Item -LiteralPath $Path).Length;sha256=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}

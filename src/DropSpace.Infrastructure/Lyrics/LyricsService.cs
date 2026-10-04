@@ -86,21 +86,33 @@ public sealed class LyricsService
         var translationIncomplete = false;
         try
         {
-            var primary = await QueryProviderAsync(kind, query, candidates.Token, candidates.Report, candidates.Token).ConfigureAwait(false);
+            var primaryTask = QueryProviderAsync(kind, query, candidates.Token, candidates.Report, candidates.Token);
+            // Start allowed translation sources as soon as a valid original is known.
+            // A progressive primary may otherwise spend the entire shared budget on
+            // its own additional recordings before any other source gets a request.
+            await Task.WhenAny(primaryTask, candidates.OriginalAvailable).ConfigureAwait(false);
+            var allowed = new HashSet<LyricsProviderKind>();
+            if (backup is { } backupKind) allowed.Add(backupKind);
+            if (kind != LyricsProviderKind.LocalLrc && settings.SearchRemainingProviders)
+                allowed.UnionWith(OnlineProviders.Where(value => value != kind));
+            var first = primaryTask.IsCompletedSuccessfully ? primaryTask.Result.Document : candidates.Document;
+            Task<(LyricsDocument Document, bool Failed)>? supplemental = null;
+            if (NeedsTranslationSearch(first, target) && allowed.Count > 0)
+            {
+                var excluded = OnlineProviders.Where(value => !allowed.Contains(value)).ToHashSet();
+                supplemental = QueryFallbacksAsync(excluded, query, candidates.Token, candidates.Report);
+            }
+            // Own both tasks until they retire, including the cancellation path.
+            if (supplemental is not null)
+                await Task.WhenAll(primaryTask, supplemental).ConfigureAwait(false);
+            var primary = await primaryTask.ConfigureAwait(false);
             document = PreferTranslation(Validate(primary.Document, query), candidates.Document, target);
             var fallbackFailed = false;
-            if (NeedsTranslationSearch(document, target) && backup is { } backupKind)
+            if (supplemental is not null)
             {
-                var backupResult = await QueryProviderAsync(backupKind, query, candidates.Token, candidates.Report, candidates.Token).ConfigureAwait(false);
-                document = PreferTranslation(document, backupResult.Document, target);
-                fallbackFailed |= backupResult.Failed;
-            }
-            if (NeedsTranslationSearch(document, target) && kind != LyricsProviderKind.LocalLrc && settings.SearchRemainingProviders)
-            {
-                var excluded = backup is { } selectedBackup ? new HashSet<LyricsProviderKind> { kind, selectedBackup } : [kind];
-                var fallback = await QueryFallbacksAsync(excluded, query, candidates.Token, candidates.Report).ConfigureAwait(false);
+                var fallback = await supplemental.ConfigureAwait(false);
                 document = PreferTranslation(document, fallback.Document, target);
-                fallbackFailed |= fallback.Failed;
+                fallbackFailed = fallback.Failed;
             }
             document = PreferTranslation(document, candidates.Document, target);
             cancellationToken.ThrowIfCancellationRequested();
@@ -139,6 +151,8 @@ public sealed class LyricsService
         private readonly CancellationTokenSource _budget;
         private LyricsDocument _document = LyricsDocument.Empty;
         private bool _started, _closed;
+        private readonly TaskCompletionSource _originalAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task OriginalAvailable => _originalAvailable.Task;
         public CandidateSearch(LyricsQuery query, string target, CancellationToken token)
         {
             _query = query;
@@ -160,6 +174,7 @@ public sealed class LyricsService
                 {
                     _started = true;
                     _budget.CancelAfter(TimeSpan.FromSeconds(3));
+                    _originalAvailable.TrySetResult();
                 }
             }
         }
@@ -175,7 +190,7 @@ public sealed class LyricsService
 
     private static bool NeedsTranslationSearch(LyricsDocument document, string target) =>
         document.Lines.Count == 0 || target.Length > 0 && !HasTargetTranslation(document, target) &&
-        LyricsLanguagePolicy.EligibleIndices(document, target).Length > 0;
+        LyricsTranslationPolicy.NeedsProviderTranslation(document, target);
 
     private static LyricsDocument PreferTranslation(LyricsDocument current, LyricsDocument candidate, string target) =>
         candidate.Lines.Count > 0 && (current.Lines.Count == 0 ||

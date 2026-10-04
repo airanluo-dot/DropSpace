@@ -186,6 +186,23 @@ public sealed class LyricsTranslationPreferenceTests
         Assert.IsFalse(result.TranslationLookupIncomplete);
     }
 
+    [TestMethod]
+    public async Task SlowPrimaryCandidateSearchDoesNotStarveOtherTranslatedSources()
+    {
+        var late = new TaskCompletionSource<LyricsDocument>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var primary = new Progressive(late.Task);
+        var backup = new Provider(LyricsProviderKind.QqMusic, () => Task.FromResult(Doc(LyricsProviderKind.QqMusic, true)));
+        try
+        {
+            var result = await new LyricsService(new([primary, backup])).QueryDetailedAsync(Query,
+                new() { Enabled = true, SearchRemainingProviders = false, BackupProvider = LyricsProviderKind.QqMusic }, default)
+                .WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.AreEqual(LyricsProviderKind.QqMusic, result.Document.Provider,
+                "A primary's additional candidate search must not consume the entire translation budget before the backup starts.");
+        }
+        finally { late.TrySetResult(LyricsDocument.Empty); }
+    }
+
     private sealed class Progressive(Task<LyricsDocument> pending) : IProgressiveLyricsProvider
     {
         public LyricsProviderKind Kind => LyricsProviderKind.NetEase;

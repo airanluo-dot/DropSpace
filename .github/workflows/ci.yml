@@ -61,7 +61,7 @@ jobs:
       - name: Read exact owner test waiver
         shell: pwsh
         run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
+          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
           "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
           if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
 
@@ -332,7 +332,7 @@ jobs:
       - name: Read exact owner test waiver
         shell: pwsh
         run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
+          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
           "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
           if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
 

@@ -40,7 +40,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http) : IProgressiveL
                 var document = await requests.TryAsync(() => ReadLyricsAsync(candidate, query, cancellationToken));
                 if (document.Lines.Count == 0) continue;
                 reportCandidate(document);
-                if (target.Length == 0 || LyricsLanguagePolicy.EligibleIndices(document, target).Length == 0 || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
+                if (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
                 if (original.Lines.Count == 0) original = document;
             }
         }

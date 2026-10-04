@@ -40,6 +40,11 @@ public static class LyricsTranslationPolicy
         return LyricsTranslationDecision.TranslateLocally;
     }
 
+    // Provider selection must not inherit the local model's 500-line admission cap.
+    // Long documents can still have usable provider-authored translations.
+    public static bool NeedsProviderTranslation(LyricsDocument document, string targetLanguage) =>
+        LyricsLanguagePolicy.EligibleSegments(document, targetLanguage).Any(segments => segments.Length > 0);
+
     public static bool HasMatchingProviderTranslation(LyricsDocument document, string targetLanguage)
     {
         ArgumentNullException.ThrowIfNull(document);

@@ -48,7 +48,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
                 if (document.Lines.Count == 0) continue;
                 document = document.Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, songId);
                 reportCandidate(document);
-                if (target.Length == 0 || LyricsLanguagePolicy.EligibleIndices(document, target).Length == 0 ||
+                if (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
                     LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
                 if (original.Lines.Count == 0) original = document;
             }
