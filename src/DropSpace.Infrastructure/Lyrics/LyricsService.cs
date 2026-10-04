@@ -51,21 +51,32 @@ public sealed class LyricsService
         // Non-translation callers retain the existing source cache/provenance
         // contract. Target-aware lookups use a separate identity so an old
         // original-only cache cannot short-circuit the translated-source search.
+        string TargetSourceKey(string version) => JsonSerializer.Serialize(new
+        {
+            version, primary = kind, backup, settings.SearchRemainingProviders, target,
+            query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
+            durationTicks = query.Duration.Ticks,
+        });
         var key = target.Length == 0 ? JsonSerializer.Serialize(new
         {
             version = "source-v2", primary = kind, backup, settings.SearchRemainingProviders,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
-        }) : JsonSerializer.Serialize(new
-        {
-            version = "source-v5", primary = kind, backup, settings.SearchRemainingProviders, target,
-            query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
-            durationTicks = query.Duration.Ticks,
-        });
+        }) : TargetSourceKey("source-v5");
         var generation = _cache?.Generation ?? _memory.Generation;
         if (kind != LyricsProviderKind.LocalLrc && !refresh)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
+            if (cached is null && target.Length > 0)
+            {
+                var legacyKey = TargetSourceKey("source-v4");
+                var legacy = _cache is null ? _memory.Read(legacyKey) :
+                    await _cache.ReadDocumentAsync(legacyKey, cancellationToken).ConfigureAwait(false);
+                // Retain Beta9's already-usable same-language primary originals.
+                // Foreign originals and old lower-priority decisions still refetch.
+                if (legacy?.Provider == kind && legacy.Lines.Count > 0 &&
+                    !LyricsTranslationPolicy.NeedsProviderTranslation(legacy, target)) cached = legacy;
+            }
             // Older source-v2 entries persisted both heuristic and explicit tags
             // without provenance. They cannot safely be distinguished. Refetch
             // those entries once; legacy untagged entries remain reusable. New

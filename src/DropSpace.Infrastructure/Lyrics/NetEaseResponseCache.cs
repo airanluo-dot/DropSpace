@@ -10,8 +10,9 @@ public interface ILyricsResponseCache
     void ClearResponseCache();
 }
 
-// Bounded ten-minute reuse covers translated track revisits; untranslated lyrics
-// live for only one second to coalesce metadata handoffs without hiding recovery. Refresh
+// Bounded ten-minute reuse covers originals already satisfying the target and
+// matching translations. Originals still needing translation live for one second
+// to coalesce metadata handoffs without hiding recovery. Refresh
 // and clear always fence old owners. No failures are retained for later callers.
 // Reuse public responses, never matched documents: every caller still validates
 // its exact title/credits/album/duration and binds its own track identity.
@@ -179,9 +180,10 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
         // of tlyric: credit-only, wrong-language and unaligned text are not a win.
         var document = LyricsLanguagePolicy.IdentifyProviderTranslations(NetEaseLyricsProvider.ParseLyrics(root));
         var target = LyricsTranslationPolicy.NormalizeLanguage(translationTarget);
-        var translated = target.Length == 0 ? NetEaseLyricsProvider.HasProviderTranslation(document) :
-            LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target);
-        return translated ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(1);
+        var satisfied = target.Length == 0 ? NetEaseLyricsProvider.HasProviderTranslation(document) :
+            LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target) ||
+            document.Lines.Count > 0 && !LyricsTranslationPolicy.NeedsProviderTranslation(document, target);
+        return satisfied ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(1);
     }
 
     private static bool Reusable(JsonElement root, string url)

@@ -216,6 +216,26 @@ public sealed class NetEaseRequestReuseTests
         Assert.AreEqual(3, handler.Calls);
     }
 
+    [TestMethod]
+    public async Task SameLanguageOriginalKeepsLongReuseWithoutInventingTranslation()
+    {
+        using var handler = new PayloadHandler("""{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你\n[00:02]你的世界充满阳光"}}""");
+        using var client = new HttpClient(handler);
+        var clock = new ManualClock();
+        var cache = new NetEaseResponseCache(new(client), clock);
+        const string url = "https://music.163.com/api/song/lyric?id=1";
+        using var first = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        clock.Now += TimeSpan.FromSeconds(5);
+        using var again = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(1, handler.Calls);
+        Assert.IsFalse(again.RootElement.TryGetProperty("tlyric", out _));
+        using var foreignTarget = await cache.GetAsync(url, default, translationTarget: "en");
+        Assert.AreEqual(2, handler.Calls);
+        clock.Now += TimeSpan.FromSeconds(2);
+        using var retry = await cache.GetAsync(url, default, translationTarget: "en");
+        Assert.AreEqual(3, handler.Calls);
+    }
+
     private sealed class ChangingTranslationHandler : HttpMessageHandler
     {
         public int Calls;

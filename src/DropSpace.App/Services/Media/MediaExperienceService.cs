@@ -271,6 +271,9 @@ public sealed class MediaExperienceService : IAsyncDisposable
             // Invalidate at observation, not later in the coordinator queue: an already
             // queued partial update or final cache write belongs to the old song now.
             Interlocked.Increment(ref _generation);
+            // Preserve the observed cancellation even if queued snapshots coalesce
+            // A -> B -> A and the coordinator sees the same final track as before.
+            Interlocked.Increment(ref _reloadRequest);
             _lyricsWork.CancelCurrent();
             AiLyrics.InvalidateTranslation();
         }
