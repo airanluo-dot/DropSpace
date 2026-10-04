@@ -13,9 +13,11 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : ILyricsProvider
         var attempted = new HashSet<string>(StringComparer.Ordinal);
         var requests = new LyricsCandidateRequests();
         var remaining = 3;
-        async Task<LyricsDocument> TryCandidatesAsync(System.Text.Json.JsonElement root, string album = "")
+        var remainingCatalogs = 3;
+        var attemptedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        async Task<LyricsDocument> TryCandidatesAsync(System.Text.Json.JsonElement root, CatalogRecording? recording = null)
         {
-            foreach (var candidate in Choose(root, query, album))
+            foreach (var candidate in Choose(root, query, recording))
             {
                 if (remaining == 0) break;
                 if (!attempted.Add(candidate.Id)) continue;
@@ -38,35 +40,60 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : ILyricsProvider
         if (result.Lines.Count > 0) return result;
         foreach (var terms in LyricsMatcher.SearchTerms(query))
         {
-            if (remaining == 0) break;
+            if (remaining == 0 || remainingCatalogs == 0) break;
             using var songs = await http.GetAsync($"https://songsearch.kugou.com/song_search_v2?keyword={Escape(terms)}&page=1&pagesize=20&platform=WebFilter&filter=2&iscorrection=1&privilege_filter=0", cancellationToken);
-            var song = Array(songs.RootElement, "data", "lists").Select(item => new
+            var matches = Array(songs.RootElement, "data", "lists").Select(item => new
                 { Item = item, Score = LyricsMatcher.Score(query, Text(item, "SongName"), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
                 .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "FileHash")))
-                .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
-            if (song is null) continue;
-            using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(Text(song.Item, "FileHash"))}", cancellationToken);
-            result = await TryCandidatesAsync(hashed.RootElement, Text(song.Item, "AlbumName"));
-            if (result.Lines.Count > 0) return result;
+                .OrderByDescending(candidate => candidate.Score);
+            foreach (var song in matches)
+            {
+                if (remaining == 0 || remainingCatalogs == 0) break;
+                var hash = Text(song.Item, "FileHash");
+                if (!attemptedHashes.Add(hash)) continue;
+                remainingCatalogs--;
+                var recording = new CatalogRecording(Text(song.Item, "SongName"), Text(song.Item, "SingerName"),
+                    Text(song.Item, "AlbumName"), Number(song.Item, "Duration"));
+                result = await requests.TryAsync(async () =>
+                {
+                    using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(hash)}", cancellationToken);
+                    return await TryCandidatesAsync(hashed.RootElement, recording);
+                });
+                if (result.Lines.Count > 0) return result;
+            }
         }
         requests.ThrowIfFailed();
         return LyricsDocument.Empty;
     }
 
+    private sealed record CatalogRecording(string Title, string Artist, string Album, double DurationSeconds);
+
     private sealed record Candidate(string Id, string Key, string Title, string Artist, string Album, double DurationSeconds, double Score);
 
-    private static IEnumerable<Candidate> Choose(System.Text.Json.JsonElement root, LyricsQuery query, string verifiedAlbum = "") =>
+    private static IEnumerable<Candidate> Choose(System.Text.Json.JsonElement root, LyricsQuery query, CatalogRecording? recording = null) =>
         Array(root, "candidates").Select(item => new
         {
             Item = item,
             Title = Text(item, "song"),
             Artist = Text(item, "singer"),
-            Album = string.IsNullOrWhiteSpace(Text(item, "album")) ? verifiedAlbum : Text(item, "album"),
+            Album = Text(item, "album"),
             DurationSeconds = Number(item, "duration") / 1000,
-        }).Select(candidate => new
+        }).Select(candidate =>
         {
-            candidate.Item, candidate.Title, candidate.Artist, candidate.Album, candidate.DurationSeconds,
-            Score = LyricsMatcher.Score(query, candidate.Title, candidate.Artist, candidate.Album, candidate.DurationSeconds),
+            // Only a hash-bound, independently matched recording can supply missing
+            // metadata. Never borrow duration from the requested player track, and
+            // never overwrite explicit conflicting lyric metadata.
+            var sameRecording = recording is not null &&
+                LyricsMatcher.AreTitlesEquivalent(recording.Title, candidate.Title) &&
+                LyricsMatcher.AreArtistCreditsCompatible(recording.Artist, candidate.Artist);
+            var duration = candidate.DurationSeconds > 0 ? candidate.DurationSeconds :
+                sameRecording ? recording!.DurationSeconds : 0;
+            var album = string.IsNullOrWhiteSpace(candidate.Album) && sameRecording ? recording!.Album : candidate.Album;
+            return new
+            {
+                candidate.Item, candidate.Title, candidate.Artist, Album = album, DurationSeconds = duration,
+                Score = LyricsMatcher.Score(query, candidate.Title, candidate.Artist, album, duration),
+            };
         })
         .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")) &&
             !string.IsNullOrWhiteSpace(Text(candidate.Item, "accesskey")))
