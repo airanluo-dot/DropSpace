@@ -2250,11 +2250,11 @@
     }
   ],
   "userAcceptance": {
-    "reference": "scripts/ai-model-qa/evidence/v0.3.1-beta.5-owner-decision.md#decision-recorded-2026-10-04",
-    "acceptedAt": "2026-10-04T07:15:36Z",
-    "releaseVersion": "v0.3.1-beta.5",
+    "reference": "scripts/ai-model-qa/evidence/v0.3.1-beta.6-owner-decision.md",
+    "acceptedAt": "2026-10-04T12:45:26Z",
+    "releaseVersion": "v0.3.1-beta.6",
     "acceptsIncompleteModelValidation": true,
-    "timestampMeaning": "Explicit Beta 5 review, fix and publication request; unchanged optional models retain prior disclosed validation limitations.",
+    "timestampMeaning": "Explicit beta6 emergency publication and post-fix test waiver; unchanged model validation limitations.",
     "acceptsUnfinishedExtraLocalAcceptance": true
   },
   "runtimeManifest": {
