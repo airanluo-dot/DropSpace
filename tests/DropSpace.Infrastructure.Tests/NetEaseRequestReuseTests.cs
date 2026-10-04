@@ -193,6 +193,43 @@ public sealed class NetEaseRequestReuseTests
         Assert.AreEqual(2, handler.Calls);
     }
 
+    [TestMethod]
+    public async Task MissingTargetTranslationRefetchesAfterOneSecondWhileTranslationStaysReusable()
+    {
+        using var handler = new ChangingTranslationHandler();
+        using var client = new HttpClient(handler);
+        var clock = new ManualClock();
+        var cache = new NetEaseResponseCache(new(client), clock);
+        const string url = "https://music.163.com/api/song/lyric?id=1";
+        using var original = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        clock.Now += TimeSpan.FromMilliseconds(500);
+        using var handoff = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(1, handler.Calls);
+        clock.Now += TimeSpan.FromMilliseconds(501);
+        using var translated = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(2, handler.Calls);
+        Assert.IsTrue(translated.RootElement.TryGetProperty("tlyric", out _));
+        clock.Now += TimeSpan.FromMinutes(2);
+        using var revisit = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(2, handler.Calls);
+        using var changedTarget = await cache.GetAsync(url, default, translationTarget: "ja");
+        Assert.AreEqual(3, handler.Calls);
+    }
+
+    private sealed class ChangingTranslationHandler : HttpMessageHandler
+    {
+        public int Calls;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            var count = Interlocked.Increment(ref Calls);
+            var payload = count == 1
+                ? """{"code":200,"lrc":{"lyric":"[00:01]The night is full of stars."}}"""
+                : """{"code":200,"lrc":{"lyric":"[00:01]The night is full of stars."},"tlyric":{"lyric":"[00:01]我们一起走向明天。"}}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            { RequestMessage = request, Content = new StringContent(payload, Encoding.UTF8, "application/json") });
+        }
+    }
+
     private sealed class SharedRejectionHandler : HttpMessageHandler
     {
         public int Calls;

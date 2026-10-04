@@ -1,6 +1,7 @@
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
+using DropSpace.Core.Lyrics;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
@@ -9,7 +10,8 @@ public interface ILyricsResponseCache
     void ClearResponseCache();
 }
 
-// Bounded ten-minute reuse covers track revisits and metadata handoffs; refresh
+// Bounded ten-minute reuse covers translated track revisits; untranslated lyrics
+// live for only one second to coalesce metadata handoffs without hiding recovery. Refresh
 // and clear always fence old owners. No failures are retained for later callers.
 // Reuse public responses, never matched documents: every caller still validates
 // its exact title/credits/album/duration and binds its own track identity.
@@ -28,6 +30,8 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
         public TaskCompletionSource<ResponseResult>? Completion;
         public int Users, Bytes;
         public long Order, Timestamp;
+        public TimeSpan Lifetime;
+        public string TranslationTarget = string.Empty;
         public string? Payload;
         public bool Pending;
         public CancellationToken OwnerToken;
@@ -40,8 +44,10 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
         lock (_gate) { _entries.Clear(); _bytes = 0; }
     }
 
-    public async Task<JsonDocument> GetAsync(string url, CancellationToken token, bool refresh = false)
+    public async Task<JsonDocument> GetAsync(string url, CancellationToken token, bool refresh = false, string? translationTarget = null)
     {
+        var target = LyricsTranslationPolicy.NormalizeLanguage(translationTarget);
+        var isSearch = new Uri(url).AbsolutePath.Contains("search", StringComparison.Ordinal);
         if (refresh)
             lock (_gate)
                 if (_entries.Remove(url, out var old)) _bytes -= old.Bytes;
@@ -58,8 +64,10 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                 string? saved;
                 lock (_gate)
                 {
+                    var lifetime = !isSearch && target != entry.TranslationTarget
+                        ? TimeSpan.FromSeconds(1) : entry.Lifetime;
                     saved = entry.Payload is not null &&
-                        _clock.GetElapsedTime(entry.Timestamp) < TimeSpan.FromMinutes(10) ? entry.Payload : null;
+                        _clock.GetElapsedTime(entry.Timestamp) < lifetime ? entry.Payload : null;
                     if (saved is null)
                     {
                         if (entry.Pending) { owner = entry.OwnerToken; pending = entry.Completion!.Task; }
@@ -98,7 +106,7 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                     token.ThrowIfCancellationRequested();
                     var payload = response.RootElement.GetRawText();
                     result = new(payload, null);
-                    if (Reusable(response.RootElement, url)) Store(url, entry, payload);
+                    if (Reusable(response.RootElement, url)) Store(url, entry, payload, ReuseLifetime(response.RootElement, url, target), target);
                     return response;
                 }
                 catch { response.Dispose(); throw; }
@@ -145,7 +153,7 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
         }
     }
 
-    private void Store(string url, Entry entry, string payload)
+    private void Store(string url, Entry entry, string payload, TimeSpan lifetime, string target)
     {
         var bytes = Encoding.UTF8.GetByteCount(payload);
         lock (_gate)
@@ -158,8 +166,22 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                 _entries.Remove(oldest.Key); _bytes -= oldest.Value.Bytes;
             }
             _bytes += bytes - entry.Bytes;
-            entry.Bytes = bytes; entry.Payload = payload; entry.Timestamp = _clock.GetTimestamp();
+            entry.Bytes = bytes; entry.Payload = payload; entry.Timestamp = _clock.GetTimestamp(); entry.Lifetime = lifetime; entry.TranslationTarget = target;
         }
+    }
+
+    private static TimeSpan ReuseLifetime(JsonElement root, string url, string? translationTarget)
+    {
+        if (new Uri(url).AbsolutePath.Contains("search", StringComparison.Ordinal))
+            return LyricsHttpClient.Array(root, "result", "songs").Any()
+                ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(1);
+        // Use the exact provider pairing/admission policy, not just the presence
+        // of tlyric: credit-only, wrong-language and unaligned text are not a win.
+        var document = LyricsLanguagePolicy.IdentifyProviderTranslations(NetEaseLyricsProvider.ParseLyrics(root));
+        var target = LyricsTranslationPolicy.NormalizeLanguage(translationTarget);
+        var translated = target.Length == 0 ? NetEaseLyricsProvider.HasProviderTranslation(document) :
+            LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target);
+        return translated ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(1);
     }
 
     private static bool Reusable(JsonElement root, string url)

@@ -327,8 +327,9 @@ public sealed class LyricsService
         var target = LyricsTranslationPolicy.NormalizeLanguage(query.PreferredTranslationLanguage);
         if (backup is { } backupKind)
         {
-            // Give the configured backup first admission. A progressive original releases
-            // remaining sources while the backup continues its translation candidates.
+            // Give the backup first admission, never the whole translation budget.
+            // A progressive original, completion or 150 ms hedge admits remaining
+            // sources while the backup continues, under the same three-second budget.
             var available = new TaskCompletionSource<LyricsDocument>(TaskCreationOptions.RunContinuationsAsynchronously);
             var backupTask = QueryProviderAsync(backupKind, query, token, document =>
             {
@@ -336,7 +337,8 @@ public sealed class LyricsService
                 var valid = Validate(document, query);
                 if (valid.Lines.Count > 0) available.TrySetResult(valid);
             }, token);
-            await Task.WhenAny(backupTask, available.Task).ConfigureAwait(false);
+            var admissionWindow = Task.Delay(TimeSpan.FromMilliseconds(150), token);
+            await Task.WhenAny(backupTask, available.Task, admissionWindow).ConfigureAwait(false);
             var remainingExcluded = excluded.Append(backupKind).ToHashSet();
             using var remainingStop = CancellationTokenSource.CreateLinkedTokenSource(token);
             Task<(LyricsDocument Document, bool Failed)>? remaining = null;

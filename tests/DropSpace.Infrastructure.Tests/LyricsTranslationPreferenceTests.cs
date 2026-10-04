@@ -309,6 +309,30 @@ public sealed class LyricsTranslationPreferenceTests
         finally { late.TrySetResult(LyricsDocument.Empty); }
     }
 
+    [TestMethod]
+    public async Task SilentSlowBackupCannotConsumeRemainingSourcesTranslationBudget()
+    {
+        var late = new TaskCompletionSource<LyricsDocument>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var primary = new Provider(LyricsProviderKind.NetEase, () => Task.FromResult(Doc(LyricsProviderKind.NetEase)));
+        var backup = new Provider(LyricsProviderKind.QqMusic, () => late.Task);
+        var admitted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var remaining = new Provider(LyricsProviderKind.Amll, () =>
+        {
+            admitted.TrySetResult();
+            return Task.FromResult(Doc(LyricsProviderKind.Amll, true));
+        });
+        try
+        {
+            var lookup = new LyricsService(new([primary, backup, remaining])).QueryDetailedAsync(Query,
+                new() { Enabled = true, BackupProvider = LyricsProviderKind.QqMusic, SearchRemainingProviders = true }, default);
+            await admitted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+            var result = await lookup.WaitAsync(TimeSpan.FromSeconds(4));
+            Assert.AreEqual(LyricsProviderKind.Amll, result.Document.Provider);
+            Assert.IsTrue(LyricsTranslationPolicy.HasMatchingProviderTranslation(result.Document, "zh-Hans"));
+        }
+        finally { late.TrySetResult(LyricsDocument.Empty); }
+    }
+
     private sealed class ProgressiveBackup : IProgressiveLyricsProvider
     {
         public LyricsProviderKind Kind => LyricsProviderKind.QqMusic;
