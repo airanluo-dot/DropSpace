@@ -7,7 +7,8 @@ internal static class ArtistCreditOrthography
 {
     private static readonly Lazy<FrozenDictionary<Rune, Rune>> TraditionalToSimplified = new(Load);
 
-    // Whole credits only. Ambiguous dictionary mappings are deliberately not guessed.
+    // Whole metadata strings only (artist credits and comparable titles).
+    // Ambiguous dictionary mappings are deliberately not guessed.
     internal static string Fold(string credit)
     {
         var normalized = LyricsMatcher.Normalize(credit);
