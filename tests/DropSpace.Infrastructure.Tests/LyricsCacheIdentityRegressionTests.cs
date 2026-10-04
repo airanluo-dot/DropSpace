@@ -52,6 +52,13 @@ public sealed class LyricsCacheIdentityRegressionTests
     [DataRow(false)]
     [DataRow(true)]
     public async Task Beta9PrimaryCacheRetainsSameLanguageButRequeriesForeignOriginal(bool foreignOriginal)
+        => await CheckBeta9PrimaryCacheAsync(foreignOriginal, false);
+
+    [TestMethod]
+    public async Task Beta9PrimaryOriginalWithUnprovenSecondaryIsRefetched()
+        => await CheckBeta9PrimaryCacheAsync(false, true);
+
+    private static async Task CheckBeta9PrimaryCacheAsync(bool foreignOriginal, bool oldSecondary)
     {
         var root = Path.Combine(Path.GetTempPath(), "DropSpace-Beta9Cache-" + Guid.NewGuid().ToString("N"));
         try
@@ -72,12 +79,15 @@ public sealed class LyricsCacheIdentityRegressionTests
                 { ProviderDataRevision = NetEaseLyricsProvider.DataRevision }
                 .Bind(query, query.Title, query.Artist, query.Album, 180, 12, "synthetic-id");
             await cache.WriteDocumentAsync(legacyKey,
-                Document(foreignOriginal ? "The night is full of stars." : "我们在这里等你"), cache.Generation, default);
+                Document(foreignOriginal ? "The night is full of stars." : "我们在这里等你") with
+                { Lines = [new(TimeSpan.Zero, TimeSpan.FromSeconds(10),
+                    foreignOriginal ? "The night is full of stars." : "我们在这里等你",
+                    oldSecondary ? "Unverified legacy secondary text" : null, [])] }, cache.Generation, default);
             var provider = new SameLanguageProvider(Document("我们在这里等你"));
             var result = await new LyricsService(new([provider]), cache).QueryDetailedAsync(query, settings, default);
             Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
             Assert.AreEqual("我们在这里等你", result.Document.Lines[0].Text);
-            Assert.AreEqual(foreignOriginal ? 1 : 0, provider.Calls);
+            Assert.AreEqual(foreignOriginal || oldSecondary ? 1 : 0, provider.Calls);
             Assert.IsFalse(result.TranslationLookupIncomplete);
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }

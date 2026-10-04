@@ -75,7 +75,8 @@ public sealed class LyricsService
                 // Retain Beta9's already-usable same-language primary originals.
                 // Foreign originals and old lower-priority decisions still refetch.
                 if (legacy?.Provider == kind && legacy.Lines.Count > 0 &&
-                    !LyricsTranslationPolicy.NeedsProviderTranslation(legacy, target)) cached = legacy;
+                    !LyricsTranslationPolicy.NeedsProviderTranslation(legacy, target) &&
+                    legacy.Lines.All(line => string.IsNullOrWhiteSpace(line.Secondary))) cached = legacy;
             }
             // Older source-v2 entries persisted both heuristic and explicit tags
             // without provenance. They cannot safely be distinguished. Refetch
