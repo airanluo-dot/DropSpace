@@ -17,7 +17,7 @@ test('AI lyrics story preserves App behavior, cautious copy and language-specifi
   assert.equal(story.querySelectorAll('input,[data-lyrics-size],[data-lyrics-size-range],[data-lyrics-size-number]').length,0);
   assert.doesNotMatch(story.textContent,/Beta\s*\d+|all languages|zero errors|always accurate|保证|全语言/);
   assert.ok(story.querySelector('.lyrics-accuracy').textContent.length>30);
-  assert.match(story.textContent,/Beta/);
+  assert.doesNotMatch(story.textContent,/Beta/i);
   assert.match(story.textContent,locale==='en'?/off by default/:/默认关闭/);
   assert.match(story.querySelector('.lyrics-accuracy').textContent,locale==='en'?/several minutes/:/数分钟/);
   assert.match(story.querySelector('.lyrics-accuracy').textContent,locale==='en'?/change meaning or omit details/:/误译或遗漏细节/);

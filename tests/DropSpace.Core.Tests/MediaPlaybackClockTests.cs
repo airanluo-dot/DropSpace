@@ -179,6 +179,25 @@ public sealed class MediaPlaybackClockTests
         Assert.AreEqual(31, clock.Position.TotalSeconds, 0.001);
     }
 
+    [TestMethod]
+    public void PauseWithUnchangedNativeObservationPreservesInterpolatedPosition()
+    {
+        var time = new ManualTime();
+        var clock = new MediaPlaybackClock(time);
+        var session = MediaSessionSnapshot.Empty with
+        {
+            TrackTitle = "Track", PlaybackState = MediaPlaybackState.Playing,
+            Timeline = new(TimeSpan.FromSeconds(10), TimeSpan.Zero, TimeSpan.FromSeconds(120), 1, time.GetUtcNow()),
+            LastUpdated = time.GetUtcNow(),
+        };
+        clock.Update(session);
+        time.Advance(3);
+        clock.Update(session with { PlaybackState = MediaPlaybackState.Paused, LastUpdated = time.GetUtcNow() });
+        Assert.AreEqual(13, clock.Position.TotalSeconds, 0.001);
+        time.Advance(2);
+        Assert.AreEqual(13, clock.Position.TotalSeconds, 0.001);
+    }
+
     private sealed class ManualTime : TimeProvider
     {
         private long _ticks;

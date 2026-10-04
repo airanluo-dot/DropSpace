@@ -70,13 +70,18 @@ public static partial class ContentClassifier
             return url.Host.Length <= TitleLimit ? url.Host : url.Host[..TitleLimit];
         }
 
-        var firstLine = text.Split('\n', 2)[0].Trim();
-        if (firstLine.Length == 0)
-        {
-            firstLine = "Text";
-        }
+        var firstLine = text.AsSpan();
+        var newline = firstLine.IndexOf('\n');
+        if (newline >= 0) firstLine = firstLine[..newline];
+        firstLine = firstLine.Trim();
+        if (firstLine.Length == 0) return "Text";
+        if (firstLine.Length <= TitleLimit) return firstLine.ToString();
 
-        return firstLine.Length <= TitleLimit ? firstLine : string.Concat(firstLine.AsSpan(0, TitleLimit - 1), "…");
+        // Avoid copying the entire clipboard body merely to get its first line,
+        // and never turn a supplementary character into a broken UTF-16 title.
+        var length = TitleLimit - 1;
+        if (char.IsHighSurrogate(firstLine[length - 1]) && char.IsLowSurrogate(firstLine[length])) length--;
+        return string.Concat(firstLine[..length], "…");
     }
 
     public static string BuildSearchText(string title, string? body, int maximumCharacters = 65_536)

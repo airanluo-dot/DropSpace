@@ -1,14 +1,12 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.4
+## Release target: v0.3.1-beta.5
 
-Restore user-enabled AI fallback after incomplete or timed-out provider translation searches.
-Extend the single supplemental translation-search budget to 3 seconds after the first usable
-original. Remove AI lyrics Beta UI labels while preserving model identities and settings.
-The owner authorized these three changes and the complete beta4 release workflow on
-2026-10-04. No new model semantic-validation claim is made.
-
-See [release notes](.github/release-notes/v0.3.1-beta.4.md).
+Repository-wide correctness review with focused reproductions for lyric candidate recovery,
+media-clock state changes, settings migration, AI cleanup and text-title allocation/Unicode.
+Keep existing native runtime/model identities and promote the identical validated package tree.
+See [release notes](.github/release-notes/v0.3.1-beta.5.md) and
+[review evidence](docs/dev/beta5-correctness-review.md).
 
 ## Delivered slice: v0.3.0-beta.32
 
@@ -97,7 +95,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.4
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.5
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -761,9 +759,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.4` (Beta 4). All new prereleases use
+The current Beta target is `v0.3.1-beta.5` (Beta 5). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.3 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.4 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
