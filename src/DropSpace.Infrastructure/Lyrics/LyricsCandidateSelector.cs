@@ -26,10 +26,20 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
         bool AllowedPriority(LyricsSelectionCandidate candidate) => rules.Lines.Count == 0 ||
             LyricsCandidateRules.ComparePriority(candidate, LyricsCandidateRules.Describe("rules", rules, target),
                 settings.Provider, settings.BackupProvider) <= 0;
+        // Collection scores can admit missing artists using album/duration.
+        // That supports native fallback, but cannot prove an AI recording identity.
+        bool HasIdentityEvidence(LyricsSelectionCandidate candidate) =>
+            !string.IsNullOrWhiteSpace(query.Artist) && candidate.Document.Match is { } match &&
+            !string.IsNullOrWhiteSpace(match.Artist) &&
+            LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true }, match.Title,
+                match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4;
         token.ThrowIfCancellationRequested();
         if (!Current()) return Fallback(LyricsSelectionOutcome.Unavailable);
         if (!settings.Enabled || settings.Mode == LyricsMode.LocalLrc || settings.SelectionMode == LyricsSelectionMode.Rules)
             return Fallback(LyricsSelectionOutcome.Rules);
+        // Album artist is auxiliary and cannot replace an absent performer credit.
+        // Skip inference entirely when the target identity cannot be confirmed.
+        if (string.IsNullOrWhiteSpace(query.Artist)) return Fallback(LyricsSelectionOutcome.Invalid);
         if (settings.SelectionMode == LyricsSelectionMode.AiAssisted && !LyricsCandidateRules.RequiresIdentityDecision(query, snapshot))
             return Fallback(LyricsSelectionOutcome.Unambiguous);
         if (!LyricsCandidateSelectionProtocol.TryBuild(query, snapshot, target, settings, out var prompt))
@@ -44,7 +54,7 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
             if (_cache.TryGetValue(key, out var entry) && entry.Expires > Stopwatch.GetTimestamp() &&
                 snapshot.Candidates.FirstOrDefault(candidate => candidate.Id == entry.Id) is { } reused)
             {
-                if (AllowedPriority(reused)) return Publish(reused.Document, LyricsSelectionOutcome.Reused, generation);
+                if (HasIdentityEvidence(reused) && AllowedPriority(reused)) return Publish(reused.Document, LyricsSelectionOutcome.Reused, generation);
                 _cache.Remove(key);
                 return Fallback(LyricsSelectionOutcome.Invalid);
             }
@@ -67,9 +77,7 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
                 return Fallback(LyricsSelectionOutcome.Invalid);
             if (id is null) return Fallback(LyricsSelectionOutcome.Abstained);
             var chosen = snapshot.Candidates.Single(candidate => candidate.Id == id);
-            var match = chosen.Document.Match!;
-            if (LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true }, match.Title,
-                match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) < 4)
+            if (!HasIdentityEvidence(chosen))
                 return Fallback(LyricsSelectionOutcome.Invalid);
             if (!AllowedPriority(chosen))
                 return Fallback(LyricsSelectionOutcome.Invalid);
