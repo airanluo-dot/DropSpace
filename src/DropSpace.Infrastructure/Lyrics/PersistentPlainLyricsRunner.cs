@@ -98,7 +98,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         Interlocked.Increment(ref _translationWaiters);
         try { _ = Volatile.Read(ref _preparation)?.CancelAsync(); }
         catch (ObjectDisposedException) { }
-        try { await _operation.WaitAsync(deadline.Token).ConfigureAwait(false); }
+        try { await WaitForGateAsync(_operation, deadline.Token, PlainLyricsMetrics.Stage.OperationQueue).ConfigureAwait(false); }
         finally { Interlocked.Decrement(ref _translationWaiters); }
         try
         {
@@ -120,20 +120,22 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                         _session.ModelSha256 != model.Sha256 || _session.Child.Process.HasExited))
                         await StopSessionAsync().ConfigureAwait(false);
                     if (_session is null) await StartSessionAsync(modelPath, model, gpu, deadline.Token).ConfigureAwait(false);
+                    else PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.ResidentReuse);
                     var session = _session!;
                     session.Cancellation.Dispose();
                     // Retain the caller's song token through the resident idle period. A late
                     // cancellation targets only this owned session, never a replacement worker.
                     session.Cancellation = cancellationToken.Register(() =>
                     {
-                        Interlocked.Exchange(ref session.StopRequested, 1);
+                        session.MarkCancelled();
                         _ = session.Child.TerminateAndWaitForExitAsync();
                         _ = DrainCanceledSessionAsync(session);
                     });
                     deadline.Token.ThrowIfCancellationRequested();
+                    using var call = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.Call, deadline.Token);
                     var id = Guid.NewGuid().ToString("N");
                     using var stop = deadline.Token.Register(() =>
-                    { Interlocked.Exchange(ref session.StopRequested, 1); _ = session.Child.TerminateAndWaitForExitAsync(); });
+                    { session.MarkCancelled(); _ = session.Child.TerminateAndWaitForExitAsync(); });
                     var request = JsonSerializer.Serialize(new { protocol = 1, id, prompt });
                     await session.Child.StandardInput!.WriteLineAsync(request.AsMemory(), deadline.Token).ConfigureAwait(false);
                     await session.Child.StandardInput.FlushAsync(deadline.Token).ConfigureAwait(false);
@@ -147,6 +149,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     deadline.Token.ThrowIfCancellationRequested();
                     Volatile.Write(ref _lastExecutionBackend, session.Gpu ? "vulkan" : "cpu");
                     _lastExecutionUsedCpuFallback = _options.GpuEnabled && !session.Gpu;
+                    if (_lastExecutionUsedCpuFallback) PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.FallbackUse);
+                    call.Complete();
                     var generation = ++_generation;
                     _ = ReleaseWhenIdleAsync(generation);
                     return LlamaCompletionRunner.RemoveRuntimeTerminator(output);
@@ -159,6 +163,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     deadline.Token.ThrowIfCancellationRequested();
                     if (!gpu || attempt != 0 || error is InvalidDataException or JsonException or KeyNotFoundException) throw;
                     _gpuFailedModels.Add(model.Sha256);
+                    PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.FallbackAttempt);
                     gpu = false;
                 }
             }
@@ -260,7 +265,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             // ceiling here; a second 500ms timer used to defeat the background budget.
             deadline.CancelAfter(LyricsCandidateSelectionProtocol.MaximumDecisionTime);
             using var registration = deadline.Token.Register(() =>
-            { Interlocked.Exchange(ref session.StopRequested, 1); _ = session.Child.TerminateAndWaitForExitAsync(); });
+            { session.MarkCancelled(); _ = session.Child.TerminateAndWaitForExitAsync(); });
             Volatile.Write(ref _lastExecutionBackend, null);
             _lastExecutionUsedCpuFallback = false;
             try
@@ -295,16 +300,22 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private async Task StartSessionAsync(string modelPath, AiLyricsModelDescriptor model, bool gpu, CancellationToken token, bool nonblocking = false)
     {
         await _cleanup.WaitAsync(token).ConfigureAwait(false);
-        var executable = await _resolve(gpu, token).ConfigureAwait(false);
+        string executable;
+        using (var resolve = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.RuntimeResolve, token))
+        {
+            executable = await _resolve(gpu, token).ConfigureAwait(false);
+            resolve.Complete();
+        }
         if (nonblocking)
         {
             if (Volatile.Read(ref _translationWaiters) != 0 || !LocalInferenceProcess.InferenceGate.Wait(0))
                 throw new IOException("Inference is busy.");
         }
-        else await LocalInferenceProcess.InferenceGate.WaitAsync(token).ConfigureAwait(false);
+        else await WaitForGateAsync(LocalInferenceProcess.InferenceGate, token, PlainLyricsMetrics.Stage.NativeQueue).ConfigureAwait(false);
         var gateTransferred = false;
         try
         {
+            using var load = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.LoadReady, token);
             var start = new ProcessStartInfo(Path.GetFullPath(executable))
             {
                 UseShellExecute = false, CreateNoWindow = true,
@@ -331,7 +342,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             gateTransferred = true;
             var starting = _session;
             using var stop = token.Register(() =>
-            { Interlocked.Exchange(ref starting.StopRequested, 1); _ = child.TerminateAndWaitForExitAsync(); });
+            { starting.MarkCancelled(); _ = child.TerminateAndWaitForExitAsync(); });
             using var ready = await ReadFrameAsync(child.StandardOutput, token).ConfigureAwait(false);
             if (ready.RootElement.GetProperty("protocol").GetInt32() != 1 || !ready.RootElement.GetProperty("ready").GetBoolean() ||
                 ready.RootElement.GetProperty("backend").GetString() != (gpu ? "vulkan" : "cpu"))
@@ -342,6 +353,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             _session.SelectionSupported = ready.RootElement.TryGetProperty("selectionProtocol", out var selectionProtocol) &&
                 selectionProtocol.ValueKind == JsonValueKind.Number && selectionProtocol.TryGetInt32(out var selectorVersion) &&
                 selectorVersion == SelectionProtocolVersion;
+            load.Complete();
         }
         finally { if (!gateTransferred) LocalInferenceProcess.InferenceGate.Release(); }
     }
@@ -357,10 +369,27 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             session.Cancellation.Dispose();
             var id = session.Child.Process.Id;
             _cleanup = session.Child.CompleteAsync(session.Errors, session.Memory);
-            _ = LlamaCompletionRunner.ReleaseGateAfterCleanupAsync(_cleanup, LocalInferenceProcess.InferenceGate);
+            _ = ReleaseSessionGateAsync(_cleanup, session);
             await LocalInferenceProcess.WaitForCleanupAsync(_cleanup, id).ConfigureAwait(false);
         }
         else await _cleanup.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+    }
+
+    private static async Task WaitForGateAsync(SemaphoreSlim gate, CancellationToken token, PlainLyricsMetrics.Stage stage)
+    {
+        using var measured = PlainLyricsMetrics.Measure(stage, token);
+        await gate.WaitAsync(token).ConfigureAwait(false);
+        measured.Complete();
+    }
+
+    private static async Task ReleaseSessionGateAsync(Task cleanup, Session session)
+    {
+        // Preserve the existing fail-closed gate release and retained continuation. Measure only
+        // confirmed cleanup + release, including a completion after the foreground timeout.
+        await LlamaCompletionRunner.ReleaseGateAfterCleanupAsync(cleanup, LocalInferenceProcess.InferenceGate).ConfigureAwait(false);
+        var started = Interlocked.Read(ref session.CancelledAt);
+        if (cleanup.IsCompletedSuccessfully && started != 0)
+            PlainLyricsMetrics.Record(PlainLyricsMetrics.Stage.CancellationRelease, started, PlainLyricsMetrics.Outcome.Success);
     }
 
     private async Task DrainCanceledSessionAsync(Session expected)
@@ -433,6 +462,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         internal bool Gpu { get; }
         internal CancellationTokenRegistration Cancellation { get; set; }
         internal int StopRequested;
+        internal long CancelledAt;
+        internal void MarkCancelled()
+        {
+            Interlocked.CompareExchange(ref CancelledAt, Stopwatch.GetTimestamp(), 0);
+            Interlocked.Exchange(ref StopRequested, 1);
+        }
         internal bool SelectionSupported;
         internal Task Errors { get; }
         internal Task Memory { get; }

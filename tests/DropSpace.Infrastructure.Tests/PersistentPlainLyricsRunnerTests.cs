@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
@@ -254,6 +255,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task CancellationWhileWaitingForGlobalAdmissionDoesNotReadRamOrStartProcess()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         var reads = 0;
         var runner = fixture.CreateRunner(readMemorySnapshot: () => { reads++; return TestInferenceMemory.Sufficient(); });
@@ -266,6 +268,9 @@ public sealed class PersistentPlainLyricsRunnerTests
             await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
             Assert.AreEqual(0, reads);
             Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "starts")));
+            Assert.AreEqual("Cancelled", metrics.Stage("NativeQueue").Single().Tags["outcome"]);
+            Assert.IsEmpty(metrics.Stage("LoadReady")); Assert.IsEmpty(metrics.Stage("Call"));
+            Assert.IsEmpty(metrics.Stage("CancellationRelease"), "A queued caller never owned a native process.");
         }
         finally { LocalInferenceProcess.InferenceGate.Release(); }
     }
@@ -391,6 +396,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task CancellationDiscardsPartialOutputAndReapsGpuBeforeNextCpuResolution()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         var options = new AiLyricsRuntimeOptions { GpuEnabled = true };
         var runner = fixture.CreateRunner(options);
@@ -402,6 +408,10 @@ public sealed class PersistentPlainLyricsRunnerTests
         cancel.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
         Assert.IsFalse(IsAlive(gpu.Pid), "Cancellation must await actual child exit before returning.");
+        await WaitUntilAsync(() => metrics.Stage("CancellationRelease").Length == 1);
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+        Assert.AreEqual("Cancelled", metrics.Stage("Call").Single().Tags["outcome"]);
+        Assert.AreEqual("Success", metrics.Stage("CancellationRelease").Single().Tags["outcome"]);
         CollectionAssert.AreEqual(new[] { true }, fixture.ResolvedModes,
             "A canceled GPU request must never launch an automatic CPU retry.");
         options.GpuEnabled = false;
@@ -415,6 +425,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task FailedGpuStartupIsReapedBeforeSingleCpuRetryAndFallbackRemainsResident()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         File.WriteAllText(fixture.FailGpuStartup, string.Empty);
         var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true });
@@ -435,6 +446,11 @@ public sealed class PersistentPlainLyricsRunnerTests
         Assert.AreEqual("cpu", starts[1].Mode);
         Assert.IsTrue(IsAlive(starts[1].Pid));
         Assert.IsTrue(fixture.Requests().All(request => request.Pid == starts[1].Pid));
+        Assert.AreEqual(1, metrics.Events("FallbackAttempt")); Assert.AreEqual(2, metrics.Events("FallbackUse"));
+        Assert.AreEqual(1, metrics.Events("ResidentReuse")); Assert.HasCount(2, metrics.Stage("Call"));
+        CollectionAssert.AreEqual(new[] { "Failed", "Success" }, metrics.Stage("LoadReady").Select(sample => sample.Tags["outcome"]).ToArray());
+        Assert.HasCount(2, metrics.Stage("OperationQueue")); Assert.HasCount(2, metrics.Stage("NativeQueue"));
+        metrics.SaveEvidence();
     }
 
     [TestMethod]
@@ -500,6 +516,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task SongCancellationAfterCompletedResponseReapsIdleWorkerBeforeTimeout()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(idleTimeout: TimeSpan.FromMinutes(2));
         using var song = new CancellationTokenSource();
@@ -510,6 +527,9 @@ public sealed class PersistentPlainLyricsRunnerTests
         await WaitUntilAsync(() => !IsAlive(pid));
         await runner.DrainCleanupAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
         Assert.IsFalse(IsAlive(pid));
+        await WaitUntilAsync(() => metrics.Stage("CancellationRelease").Length == 1);
+        Assert.AreEqual("Success", metrics.Stage("CancellationRelease").Single().Tags["outcome"]);
+        metrics.SaveEvidence();
         Assert.AreEqual("new song", await fixture.RunAsync(runner, "new song"));
         Assert.HasCount(2, fixture.StartedProcesses());
     }
@@ -584,6 +604,41 @@ public sealed class PersistentPlainLyricsRunnerTests
         Assert.IsTrue(options.GpuEnabled);
         options.GpuEnabled = false;
         Assert.IsFalse(options.GpuEnabled);
+    }
+
+    [TestMethod]
+    public async Task QueuedOperationCancellationIsMeasuredWithoutReplacingActiveOwner()
+    {
+        RequireFixture(); using var metrics = new PlainLyricsMetricCapture(); await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner(); using var activeStop = new CancellationTokenSource();
+        var active = fixture.RunAsync(runner, "partial-and-block", activeStop.Token);
+        await WaitUntilAsync(() => File.Exists(fixture.Blocked), active);
+        var pid = fixture.StartedProcesses().Single().Pid;
+        using var queuedStop = new CancellationTokenSource();
+        var queued = fixture.RunAsync(runner, "queued", queuedStop.Token); queuedStop.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => queued);
+        Assert.IsTrue(IsAlive(pid)); Assert.HasCount(1, fixture.StartedProcesses());
+        CollectionAssert.AreEqual(new[] { "Success", "Cancelled" }, metrics.Stage("OperationQueue").Select(sample => sample.Tags["outcome"]).ToArray());
+        Assert.HasCount(1, metrics.Stage("NativeQueue")); Assert.HasCount(1, metrics.Stage("LoadReady"));
+        activeStop.Cancel(); await Assert.ThrowsAsync<OperationCanceledException>(() => active);
+        await runner.DrainCleanupAsync(default);
+        await WaitUntilAsync(() => metrics.Stage("CancellationRelease").Length == 1);
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+    }
+
+    [TestMethod]
+    public async Task ThrowingMetricListenerCannotStrandNativeAdmissionOrCleanup()
+    {
+        RequireFixture(); await using var fixture = new Fixture(); using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, observer) =>
+        { if (instrument.Meter.Name == PlainLyricsMetrics.MeterName) observer.EnableMeasurementEvents(instrument); };
+        listener.SetMeasurementEventCallback<double>((_, _, _, _) => throw new InvalidOperationException("listener failed"));
+        listener.SetMeasurementEventCallback<long>((_, _, _, _) => throw new InvalidOperationException("listener failed"));
+        listener.Start(); var runner = fixture.CreateRunner(); using var song = new CancellationTokenSource();
+        Assert.AreEqual("translation", await fixture.RunAsync(runner, "translation", song.Token));
+        var pid = fixture.StartedProcesses().Single().Pid; song.Cancel();
+        await runner.DrainCleanupAsync(default).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsFalse(IsAlive(pid)); Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
     }
 
     private static void RequireFixture()
