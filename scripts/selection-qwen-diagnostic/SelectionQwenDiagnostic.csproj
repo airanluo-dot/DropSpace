@@ -14,4 +14,10 @@
     <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs" Link="Production/WindowsInferenceProcess.cs" />
     <Compile Include="../../src/DropSpace.Infrastructure/Lyrics/CpuInferenceMemoryPolicy.cs" Link="Production/CpuInferenceMemoryPolicy.cs" />
   </ItemGroup>
+  <ItemGroup Condition="'$(EvidenceRuntimeDirectory)' != ''">
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/runtime-manifest.json" LogicalName="DropSpace.AiLyricsRuntime.runtime-manifest.json" />
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/plain-lyrics-worker.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker.exe" />
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/plain-lyrics-worker-avx2.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker-avx2.exe" />
+    <EmbeddedResource Include="$(EvidenceRuntimeDirectory)/plain-lyrics-worker-vulkan.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker-vulkan.exe" />
+  </ItemGroup>
 </Project>

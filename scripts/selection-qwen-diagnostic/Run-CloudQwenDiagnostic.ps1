@@ -25,5 +25,5 @@ Move-Item -LiteralPath $partial -Destination $model
 [ordered]@{url=$url;bytes=639446688;sha256='9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031';verified=$true;downloadAndVerificationSeconds=$clock.Elapsed.TotalSeconds;authorizationUtc='2026-10-05T01:11:06Z';authorizationSentinel='208dd5c270f48191a5f2ac46576d7c28'} | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'download.json') -Encoding utf8
 Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,FreePhysicalMemory,TotalVisibleMemorySize | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'host.json') -Encoding utf8
 Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'cpu.json') -Encoding utf8
-& dotnet run --project (Join-Path $PSScriptRoot 'SelectionQwenDiagnostic.csproj') -c Release -- $InputsDirectory $model $OutputDirectory
+& dotnet run --project (Join-Path $PSScriptRoot 'SelectionQwenDiagnostic.csproj') -c Release "-p:EvidenceRuntimeDirectory=$InputsDirectory/runtime" -- $InputsDirectory $model $OutputDirectory
 if($LASTEXITCODE -ne 0) { throw 'Qwen diagnostic execution failed; retained evidence is not model approval.' }
