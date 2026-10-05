@@ -62,6 +62,9 @@ export const sourcePaths = Object.freeze([
   'tools/cuda-lyrics-helper/cuda-device.h',
   'scripts/Build-CudaLyricsExperiment.ps1',
   'scripts/package-cuda-runtime.py',
+  'scripts/stage-reviewed-cuda-metadata.py',
+  'docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json',
+  'docs/dev/evidence/beta11-local-cuda/cuda13-runtime-manifest.json',
   'scripts/test-ai-release-approval.mjs',
   'scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json',
   // Upstream identity/selection/provider parsing and target/display propagation.

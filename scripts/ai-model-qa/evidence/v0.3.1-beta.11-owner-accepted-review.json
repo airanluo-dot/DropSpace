@@ -4,8 +4,8 @@
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
   "reviewedBy": "Cloud integrator (repository-owner-authorized release source consistency review)",
-  "reviewedAt": "2026-10-05T11:39:01Z",
-  "expiresAt": "2026-10-12T11:39:01Z",
+  "reviewedAt": "2026-10-05T12:06:48Z",
+  "expiresAt": "2026-10-12T12:06:48Z",
   "summary": "Owner-authorized Beta11 source/artifact consistency preparation: AI selection retired, shared DLC and optional CUDA; frozen translation models/prompts and historical evidence preserved. No new tests or model validation.",
   "scope": {
     "releaseVersion": "v0.3.1-beta.11",
@@ -325,8 +325,20 @@
           "sha256": "6921736e61c06f0e3069e6cd33a9df59c86a46065309aebe02b28b99ef605d8b"
         },
         {
+          "path": "scripts/stage-reviewed-cuda-metadata.py",
+          "sha256": "c2b506f69c2e987b1c9f922a09ed4b1f461feee7a30e69e285fa133549796993"
+        },
+        {
+          "path": "docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json",
+          "sha256": "4140c4de4c0fc2a783ad270bd87b0ef2e370f2252dcef250e8ee943aab46ee61"
+        },
+        {
+          "path": "docs/dev/evidence/beta11-local-cuda/cuda13-runtime-manifest.json",
+          "sha256": "004b92db9cbab1ab5e442c8bbe79fdd5bc44b085167a5841a3a42dbb2c428188"
+        },
+        {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "63b9e25bfbdabefbd2fa98c39ebe282f3b6e00d91e74c6ac1b51b34957af0ef2"
+          "sha256": "26157a61cfb414890585542cbbfa232aa903edcbb2f28e5ba7fc7247de7d1d5a"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -881,7 +893,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "4ac2187460c23f5f6afb47ccf8091140c57f3abec82fa1c475897098d7b9c5f9"
+      "sha256": "86dbc0d56d01e8589c7652b10fa06b5db8edf31d7bdf990572bc3d3bbc7d7db7"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2608,7 +2620,7 @@
     "sha256": "88ebb891ad60f3c4c5812b7e8acdecb62e1db45a184ec7183c5dbec743bb07a0"
   },
   "candidateValidation": {
-    "summary": "Source review and binding generation only. No new tests or model calls. Windows CUDA producer build and prior Debug App compile are recorded separately; final base App compilation/packaging remains pending."
+    "summary": "Source review and production metadata generation only; no new tests, model calls or CUDA rebuild. Exact checkout-bound CUDA metadata staging is wired before App Release compilation. Final App packaging remains pending."
   },
   "unexecutedAcceptance": [
     {

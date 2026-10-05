@@ -187,8 +187,20 @@
         "sha256": "6921736e61c06f0e3069e6cd33a9df59c86a46065309aebe02b28b99ef605d8b"
       },
       {
+        "path": "scripts/stage-reviewed-cuda-metadata.py",
+        "sha256": "c2b506f69c2e987b1c9f922a09ed4b1f461feee7a30e69e285fa133549796993"
+      },
+      {
+        "path": "docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json",
+        "sha256": "4140c4de4c0fc2a783ad270bd87b0ef2e370f2252dcef250e8ee943aab46ee61"
+      },
+      {
+        "path": "docs/dev/evidence/beta11-local-cuda/cuda13-runtime-manifest.json",
+        "sha256": "004b92db9cbab1ab5e442c8bbe79fdd5bc44b085167a5841a3a42dbb2c428188"
+      },
+      {
         "path": "scripts/test-ai-release-approval.mjs",
-        "sha256": "63b9e25bfbdabefbd2fa98c39ebe282f3b6e00d91e74c6ac1b51b34957af0ef2"
+        "sha256": "26157a61cfb414890585542cbbfa232aa903edcbb2f28e5ba7fc7247de7d1d5a"
       },
       {
         "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -743,7 +755,7 @@
         "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
       }
     ],
-    "sha256": "4ac2187460c23f5f6afb47ccf8091140c57f3abec82fa1c475897098d7b9c5f9"
+    "sha256": "86dbc0d56d01e8589c7652b10fa06b5db8edf31d7bdf990572bc3d3bbc7d7db7"
   },
   "cudaRuntimeId": "llama-cpp-v0.5.0-cuda13-win-x64-v1",
   "cudaAssets": "Real local producer/archive recorded; final App SHA descriptor rebinding and publication pending",
@@ -754,5 +766,6 @@
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.11-owner-decision.md",
     "sha256": "88ebb891ad60f3c4c5812b7e8acdecb62e1db45a184ec7183c5dbec743bb07a0"
   },
-  "runtimeProvenance": "Original reviewed CPU/Vulkan bytes pinned by exact manifest; current native source is recorded separately in release scope. CUDA source/bytes are bound by actual producer report."
+  "runtimeProvenance": "Original reviewed CPU/Vulkan bytes pinned by exact manifest; current native source is recorded separately in release scope. CUDA source/bytes are bound by actual producer report.",
+  "finalMetadataStaging": "scripts/stage-reviewed-cuda-metadata.py; source-owned exact producer evidence and checkout SHA, mandatory before CI App Release compilation"
 }

@@ -163,6 +163,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-ReviewedAiRuntime.ps1
 
+      - name: Stage exact reviewed CUDA metadata for this App checkout
+        shell: pwsh
+        run: |
+          python scripts/stage-reviewed-cuda-metadata.py --app-commit $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Trusted CUDA metadata staging failed; App Release compilation is blocked.' }
+
       - name: Test core policies, SemVer, and channel selection
         if: ${{ env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         run: dotnet test tests/DropSpace.Core.Tests/DropSpace.Core.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=core.trx"
