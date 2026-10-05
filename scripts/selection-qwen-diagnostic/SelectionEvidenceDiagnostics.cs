@@ -74,7 +74,7 @@ internal static class SelectionEvidenceDiagnostics
         }
         Save("evidence-summary",new {diagnosticOnly=true,semanticApproved=false,results});return 0;
     }
-    private static string Build(LyricsQuery query,IReadOnlyList<Candidate> rows,bool labelled)
+    internal static string Build(LyricsQuery query,IReadOnlyList<Candidate> rows,bool labelled)
     {
         // Quote data to keep delimiters/newlines distinct from the protocol. Unknown is explicit.
         static string Value(string value)=>string.IsNullOrWhiteSpace(value)?"?":JsonSerializer.Serialize(value,new JsonSerializerOptions {Encoder=JavaScriptEncoder.UnsafeRelaxedJsonEscaping});

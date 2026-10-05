@@ -38,6 +38,7 @@ on:
           - qwen06-labelled-control
           - qwen06-native-id-control
           - qwen4-evidence
+          - qwen4-template-validation
 
       expected_commit:
         description: Exact reviewed main commit required for publication
@@ -61,7 +62,7 @@ jobs:
     name: Explicit longer observation of original worker bytes (never publishes)
     if: github.event_name == 'workflow_dispatch' && inputs.diagnose_selection_runtime == true
     runs-on: windows-2025
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
       actions: read
@@ -84,14 +85,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-SelectionDiagnosticInputs.ps1
       - name: Observe three diagnostic scenarios without changing production limits
-        timeout-minutes: 15
+        timeout-minutes: 20
         shell: pwsh
         env:
           DIAGNOSTIC_VARIANT: ${{ inputs.selection_diagnostic_variant }}
         run: |
           $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
           $runtime = "$inputs/runtime"
-          if ($env:DIAGNOSTIC_VARIANT -in @('qwen06','qwen06-thinking','qwen06-admission','qwen06-dual','qwen06-plain-transfer','qwen06-evidence','qwen06-labelled-control','qwen06-native-id-control','qwen4-evidence')) {
+          if ($env:DIAGNOSTIC_VARIANT -in @('qwen06','qwen06-thinking','qwen06-admission','qwen06-dual','qwen06-plain-transfer','qwen06-evidence','qwen06-labelled-control','qwen06-native-id-control','qwen4-evidence','qwen4-template-validation')) {
             ./scripts/selection-qwen-diagnostic/Run-CloudQwenDiagnostic.ps1 -InputsDirectory $inputs -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
           } else {
             dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"

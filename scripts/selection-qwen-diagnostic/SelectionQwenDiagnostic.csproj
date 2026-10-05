@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="diagnostic-profiles.json" LogicalName="DropSpace.SelectionDiagnosticProfiles.json" />
+    <EmbeddedResource Include="identity-validation-v1.json" LogicalName="DropSpace.IdentityValidationV1.json" />
     <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>

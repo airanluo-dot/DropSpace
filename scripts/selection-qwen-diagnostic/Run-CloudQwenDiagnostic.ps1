@@ -12,7 +12,7 @@ trap {
   Write-Error -ErrorRecord $_ -ErrorAction Continue
   exit 1
 }
-$profileId=if($env:DIAGNOSTIC_VARIANT -eq 'qwen4-evidence') {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
+$profileId=if($env:DIAGNOSTIC_VARIANT -in @('qwen4-evidence','qwen4-template-validation')) {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
 $profiles=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'diagnostic-profiles.json') -Raw | ConvertFrom-Json
 $profile=@($profiles | Where-Object Id -CEQ $profileId)
 if($profile.Count -ne 1) {throw 'Unknown pinned diagnostic model profile.'}
@@ -24,9 +24,12 @@ $partial=$model+'.partial'
 $clock=[Diagnostics.Stopwatch]::StartNew()
 Write-Host "Downloading authorized immutable $($profile.Id), $($profile.Bytes) bytes; not yet verified."
 # No cookies, credentials, mirrors, IP rotation, or production model registration.
-Invoke-WebRequest -Uri $profile.Url -OutFile $partial
-if((Get-Item -LiteralPath $partial).Length -ne $profile.Bytes -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ine $profile.Sha256) { throw 'Immutable model verification failed.' }
-Move-Item -LiteralPath $partial -Destination $model
+if (-not (Test-Path -LiteralPath $model)) {
+  Invoke-WebRequest -Uri $profile.Url -OutFile $partial
+  if((Get-Item -LiteralPath $partial).Length -ne $profile.Bytes -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ine $profile.Sha256) { throw 'Immutable model verification failed.' }
+  Move-Item -LiteralPath $partial -Destination $model
+}
+if((Get-Item -LiteralPath $model).Length -ne $profile.Bytes -or (Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash -ine $profile.Sha256) { throw 'Immutable model verification failed.' }
 [ordered]@{profile=$profile;verified=$true;downloadAndVerificationSeconds=$clock.Elapsed.TotalSeconds} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'download.json') -Encoding utf8
 Write-Host "Verified $($profile.Id): exact bytes and SHA256 matched."
 Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,FreePhysicalMemory,TotalVisibleMemorySize | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'host.json') -Encoding utf8
