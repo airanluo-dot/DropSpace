@@ -1,0 +1,52 @@
+name: Beta10 native crash diagnosis
+
+on:
+  push:
+    branches: [fix/beta10-native-crash-lifetime]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta10-native-crash-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-crash:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Map exact existing Beta10 host symbols
+        id: symbols
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/Map-Beta10NativeCrash.ps1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Test actual production lifetime helper without WinUI or inference
+        run: dotnet test tests/DropSpace.NativeLifetime.Tests/DropSpace.NativeLifetime.Tests.csproj -c Release -p:RestoreLockedMode=true --logger "trx;LogFileName=native-lifetime-windows.trx"
+      - name: Restore application tests for Debug validation
+        run: dotnet restore tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -p:Configuration=Debug -p:Platform=x64 -p:RestoreLockedMode=true
+      - name: Install locked Windows App Runtime
+        shell: pwsh
+        run: ./scripts/Install-TestWindowsAppRuntime.ps1
+      - name: Build actual app and run relevant lifetime and decoder regressions
+        run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Debug --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --filter "FullyQualifiedName~NativeAsyncLifetimeTests|FullyQualifiedName~MediaPublisherTimeoutTests|FullyQualifiedName~MediaOperationLifetimeTests|FullyQualifiedName~Preview16ImageDecoderTests|FullyQualifiedName~NeteaseSmtcVerifierTests" --logger "trx;LogFileName=native-crash-app-windows.trx"
+      - name: Retain diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: beta10-native-crash-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/beta10-native-crash/address-map.json
+            artifacts/beta10-native-crash/singlefilehost.pdb
+            tests/**/TestResults/*.trx
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Require honest symbol completion
+        if: steps.symbols.outcome != 'success'
+        shell: pwsh
+        run: throw 'Exact symbols did not resolve. Test results are retained separately; no completed symbol map is claimed.'
