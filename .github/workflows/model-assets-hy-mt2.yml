@@ -1,0 +1,26 @@
+name: Publish pinned Hy-MT2 model assets
+on:
+  push:
+    branches: [resources/hy-mt2-q8-v1]
+    paths:
+      - .github/workflows/model-assets-hy-mt2.yml
+      - scripts/model-assets/**
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: model-assets-hy-mt2-q8-v1
+  cancel-in-progress: false
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Download, hash, split, upload and publish model bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/model-assets/publish-hy-mt2-q8.py
