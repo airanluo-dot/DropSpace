@@ -82,8 +82,7 @@ jobs:
         run: |
           $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
           $runtime = "$inputs/runtime"
-          $variantArgs = if ($env:DIAGNOSTIC_VARIANT -eq 'refined') { @('refined') } else { @() }
-          dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic" @variantArgs
+          dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
           if ($LASTEXITCODE -ne 0) { throw 'Diagnostic execution failure; retained observations are not model approval.' }
       - name: Retain observations and original provenance on failure or success
         if: always()

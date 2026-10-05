@@ -8,9 +8,9 @@ using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 
-if (!OperatingSystem.IsWindows() || args.Length is < 2 or > 3) throw new InvalidOperationException("Explicit cloud Windows diagnostic inputs/output required.");
-var refined = args.Length == 3 && args[2] == "refined";
-if (args.Length == 3 && !refined) throw new InvalidDataException("Unknown diagnostic variant.");
+if (!OperatingSystem.IsWindows() || args.Length is < 2 or > 3) throw new InvalidOperationException($"Explicit cloud Windows diagnostic inputs/output required; Windows={OperatingSystem.IsWindows()}, argumentCount={args.Length}.");
+var refined = args.Length == 3 && args[2] == "refined" || Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") == "refined";
+if (args.Length == 3 && args[2] != "refined") throw new InvalidDataException("Unknown diagnostic variant.");
 var requestSeconds = refined ? 30 : 10;
 var inputs = Path.GetFullPath(args[0]);
 var output = Path.GetFullPath(args[1]);
