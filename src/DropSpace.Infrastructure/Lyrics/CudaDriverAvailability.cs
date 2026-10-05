@@ -9,6 +9,7 @@ public static class CudaDriverAvailability
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate int Init(uint flags);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate int IntResult(out int value);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate int Attribute(out int value, int attribute, int device);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate int AttributeDevice(out int device, int ordinal);
     public static bool IsCompatible()
     {
         if (!OperatingSystem.IsWindows() || !Environment.Is64BitProcess) return false;
@@ -22,10 +23,12 @@ public static class CudaDriverAvailability
             var count = Marshal.GetDelegateForFunctionPointer<IntResult>(NativeLibrary.GetExport(library, "cuDeviceGetCount"));
             if (init(0) != 0 || version(out var v) != 0 || v < 13040 ||
                 count(out var devices) != 0 || devices <= 0 || devices > 64) return false;
+            var getDevice = Marshal.GetDelegateForFunctionPointer<AttributeDevice>(NativeLibrary.GetExport(library, "cuDeviceGet"));
             var attribute = Marshal.GetDelegateForFunctionPointer<Attribute>(NativeLibrary.GetExport(library, "cuDeviceGetAttribute"));
-            for (var device = 0; device < devices; device++)
+            for (var ordinal = 0; ordinal < devices; ordinal++)
                 // CUDA13 dropped offline code generation below compute capability7.5.
-                if (attribute(out var major, 75, device) == 0 && attribute(out var minor, 76, device) == 0 &&
+                if (getDevice(out var device, ordinal) == 0 && attribute(out var major, 75, device) == 0 &&
+                    attribute(out var minor, 76, device) == 0 &&
                     (major > 7 || major == 7 && minor >= 5)) return true;
             return false;
         }
