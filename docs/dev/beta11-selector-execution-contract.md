@@ -1,5 +1,7 @@
 # Selector execution contract and remaining product decision
 
+> Superseded for production: the user authorized cancelling AI selection. The shipping selector and both UI choices have now been removed; see [production removal and retained translation](beta11-production-selector-removal.md). The following document preserves historical reasoning and checks, not current shipping behavior.
+
 The reliable change completed here is an explicit qualification boundary, not a completed general AI selector. No evaluated Hy or Qwen deployment profile qualifies for production recording confirmation. Two existing Hy translation models and their translation prompts remain available and unchanged. No new weights, provider traffic, paid API or identity lookup was used for this change.
 
 ## Implemented behavior

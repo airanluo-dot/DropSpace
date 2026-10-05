@@ -207,7 +207,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
 }
 
 public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, IPlainLyricsRunner runner,
-    AiLyricsRuntimePackage runtime, string stagingDirectory) : IAiLyricsBackend, ILyricsSelectionRuntime
+    AiLyricsRuntimePackage runtime, string stagingDirectory) : IAiLyricsBackend
 {
     public const string BackendId = "hy-q8-plain-beta-v1";
     public string Id => BackendId;
@@ -257,14 +257,5 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
                 stagingDirectory, cancellation, model.Sha256), token, progress);
     }
     public Task DrainCleanupAsync(CancellationToken token) => runner.DrainCleanupAsync(token);
-    public bool IsSelectionProfileQualified(string modelHash) =>
-        AiLyricsSelectionModelCatalog.FindQualifiedByHash(modelHash) is not null;
-    public bool IsSelectionWarm(string modelHash) => IsSelectionProfileQualified(modelHash) &&
-        runner is ILyricsSelectionRuntime selection && selection.IsSelectionWarm(modelHash);
-    public bool CanPrepareSelection => runner is ILyricsSelectionRuntime selection && selection.CanPrepareSelection;
-    public Task<bool> PrepareSelectionAsync(string verifiedModelPath, string modelHash, CancellationToken token) =>
-        IsSelectionProfileQualified(modelHash) && runner is ILyricsSelectionRuntime selection ? selection.PrepareSelectionAsync(verifiedModelPath, modelHash, token) : Task.FromResult(false);
-    public Task<string?> TryRunSelectionAsync(string modelHash, string prompt, CancellationToken token) =>
-        IsSelectionProfileQualified(modelHash) && runner is ILyricsSelectionRuntime selection ? selection.TryRunSelectionAsync(modelHash, prompt, token) : Task.FromResult<string?>(null);
     public void Dispose() => runner.Dispose();
 }

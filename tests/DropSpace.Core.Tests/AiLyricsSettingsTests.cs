@@ -7,34 +7,31 @@ namespace DropSpace.Core.Tests;
 public sealed class AiLyricsSettingsTests
 {
     [TestMethod]
-    public void SelectionModelRolePersistsNormalizesAndReloadsIndependentlyOfTranslation()
+    public void RetiredSelectionSettingsCannotReactivateAndKeepTranslationPreferences()
     {
-        var settings = new AppSettings { Lyrics = new()
+        foreach (var model in AiLyricsModelCatalog.All)
         {
-            AiModelId = AiLyricsModelCatalog.ExperimentalLargePlain.Id,
-            AiSelectionModelId = AiLyricsSelectionModelCatalog.Default.Id,
-        } };
-        var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
-            System.Text.Json.JsonSerializer.Serialize(settings))!.Validate();
-        Assert.AreEqual(settings.Lyrics.AiModelId, restored.Lyrics.AiModelId);
-        Assert.AreEqual(settings.Lyrics.AiSelectionModelId, restored.Lyrics.AiSelectionModelId);
-        var translationChanged = (restored with { Lyrics = restored.Lyrics with
-            { AiModelId = AiLyricsModelCatalog.ExperimentalPlain.Id } }).Validate();
-        Assert.AreEqual(restored.Lyrics.AiSelectionModelId, translationChanged.Lyrics.AiSelectionModelId);
-        var selectionChanged = (restored with { Lyrics = restored.Lyrics with
-            { AiSelectionModelId = AiLyricsModelCatalog.ExperimentalLargePlain.Id } }).Validate();
-        Assert.AreEqual(restored.Lyrics.AiModelId, selectionChanged.Lyrics.AiModelId);
-        Assert.IsTrue(LyricsReloadPolicy.RequiresReload(restored, selectionChanged));
-        var invalidSelection = (restored with { Lyrics = restored.Lyrics with
-            { AiSelectionModelId = "unqualified-qwen-profile" } }).Validate();
-        Assert.AreEqual(AiLyricsSelectionModelCatalog.Default.Id, invalidSelection.Lyrics.AiSelectionModelId);
-        Assert.AreEqual(restored.Lyrics.AiModelId, invalidSelection.Lyrics.AiModelId);
-        var legacy = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
-            "{\"Lyrics\":{\"AiModelId\":\"hy-mt2-7b-q8-plain-beta\"}}")!.Validate();
-        Assert.AreEqual(AiLyricsSelectionModelCatalog.Default.Id, legacy.Lyrics.AiSelectionModelId);
-        CollectionAssert.AreEqual(new[] { AiLyricsModelCatalog.ExperimentalPlain.Id,
-            AiLyricsModelCatalog.ExperimentalLargePlain.Id }, AiLyricsModelCatalog.All.Select(model => model.Id).ToArray());
-        Assert.IsNull(AiLyricsSelectionModelCatalog.FindSelectable("unqualified-qwen-profile"));
+            var oldJson = System.Text.Json.JsonSerializer.Serialize(new { Lyrics = new
+            {
+                SelectionMode = 2, AiSelectionModelId = "old-selector-id", AiModelId = model.Id,
+                AiTranslationEnabled = true, AiLyricsGpuAccelerationEnabled = false,
+                SecondaryLyrics = true, SearchRemainingProviders = false,
+            } });
+            var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(oldJson)!.Validate();
+            Assert.AreEqual(LyricsSelectionMode.Rules, restored.Lyrics.SelectionMode);
+            Assert.AreEqual(model.Id, restored.Lyrics.AiModelId);
+            Assert.IsTrue(restored.Lyrics.AiTranslationEnabled && restored.Lyrics.SecondaryLyrics);
+            Assert.IsFalse(restored.Lyrics.AiLyricsGpuAccelerationEnabled || restored.Lyrics.SearchRemainingProviders);
+            var saved = System.Text.Json.JsonSerializer.Serialize(restored);
+            Assert.IsFalse(saved.Contains("SelectionMode", StringComparison.Ordinal));
+            Assert.IsFalse(saved.Contains("AiSelectionModelId", StringComparison.Ordinal));
+            var obsoleteCaller = restored with { Lyrics = restored.Lyrics with
+                { SelectionMode = LyricsSelectionMode.AiRanked, AiSelectionModelId = "old-selector-id" } };
+            Assert.IsFalse(LyricsReloadPolicy.RequiresReload(restored, obsoleteCaller));
+            Assert.AreEqual(LyricsSelectionMode.Rules, obsoleteCaller.Validate().Lyrics.SelectionMode);
+            Assert.IsTrue(LyricsReloadPolicy.RequiresReload(restored, restored with { Lyrics = restored.Lyrics with
+                { AiModelId = model == AiLyricsModelCatalog.ExperimentalPlain ? AiLyricsModelCatalog.ExperimentalLargePlain.Id : AiLyricsModelCatalog.ExperimentalPlain.Id } }));
+        }
     }
 
     [TestMethod]

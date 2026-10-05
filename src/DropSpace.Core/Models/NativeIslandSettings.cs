@@ -23,7 +23,8 @@ public sealed record LyricsSettings
     // AI itself remains opt-in. When enabled, prefer verified GPU acceleration with CPU fallback.
     public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
     public string AiModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
-    // Independent experimental selection role; never follows the translation choice.
+    // Retired diagnostic compatibility slot; never read or written in settings JSON.
+    [System.Text.Json.Serialization.JsonIgnore]
     public string AiSelectionModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
     public Lyrics.LyricsGlowMode GlowMode { get; init; }
     // Missing in older settings: keep the full surrounding halo.
@@ -38,6 +39,8 @@ public sealed record LyricsSettings
     public LyricsProviderKind Provider { get; init; } = LyricsProviderKind.NetEase;
     public LyricsProviderKind? BackupProvider { get; init; }
     public bool SearchRemainingProviders { get; init; } = true;
+    // Retired diagnostic compatibility slot; the application always uses rules.
+    [System.Text.Json.Serialization.JsonIgnore]
     public LyricsSelectionMode SelectionMode { get; init; } = LyricsSelectionMode.Rules;
     public bool SecondaryLyrics { get; init; }
     public bool ShowAiLyricsLabel { get; init; } = true;

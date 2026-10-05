@@ -255,7 +255,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
     {
         if (args.PropertyName != nameof(MainViewModel.Settings)) return;
         var previous = Interlocked.Exchange(ref _settings, _main.Settings);
-        AiLyrics.QueueSelectionPreparation(_main.Settings.Lyrics);
         if (LyricsReloadPolicy.RequiresReload(previous, _main.Settings))
         {
             Interlocked.Increment(ref _generation);
@@ -431,15 +430,13 @@ public sealed class MediaExperienceService : IAsyncDisposable
         {
             // Coalesce transient SMTC snapshots/rapid skips before sending irreversible
             // public HTTP traffic. Stable tracks incur only this short admission delay.
-            AiLyrics.QueueSelectionPreparation(settings.Lyrics);
-            if (refresh) AiLyrics.InvalidateSelectionDecisions();
             if (!refresh)
                 await Task.Delay(TimeSpan.FromMilliseconds(150), token).ConfigureAwait(false);
             if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
             var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, AiLyrics.SourceSelectionSettings(settings.Lyrics), token, refresh,
+                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics with { SelectionMode = LyricsSelectionMode.Rules }, token, refresh,
                     original => _dispatcher.TryEnqueue(() =>
                     {
                         // Validate freshness after dispatch; a fast skip may retire the callback in the queue.
@@ -482,34 +479,6 @@ public sealed class MediaExperienceService : IAsyncDisposable
             }).ConfigureAwait(false);
             // A bounded provider search may finish without proving that no translation exists.
             // Its incompleteness controls source caching, not the user-enabled AI fallback.
-            if (settings.Lyrics.SelectionMode != LyricsSelectionMode.Rules && IsLyricsRequestCurrent(session, settings, generation, token))
-            {
-                var selectionQuery = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist);
-                var selectionCancellation = new MediaWorkCancellation(token);
-                var selecting = AiLyrics.SelectCandidateAsync(selectionQuery, result, settings.Lyrics, targetLanguage, selectionCancellation.Token);
-                _ = selectionCancellation.CompleteWhenAsync(selecting);
-                var selected = await selecting.WaitAsync(token).ConfigureAwait(false);
-                if (selected.Outcome is LyricsSelectionOutcome.Selected or LyricsSelectionOutcome.Reused &&
-                    selected.IsCurrent && IsLyricsRequestCurrent(session, settings, generation, token))
-                {
-                    await _dispatcher.EnqueueAsync(() =>
-                    {
-                        // Model/cache maintenance may retire an already returned decision in this queue.
-                        if (selected.IsCurrent && IsLyricsRequestCurrent(session, settings, generation, token))
-                        {
-                            result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
-                                selected.Document, targetLanguage), Status = LyricsQueryStatus.Found };
-                            sourceResult = result;
-                            _document = result.Document;
-                            _view.SetLyricsDocument(_document);
-                            _view.LyricsStatus = result.Status;
-                            RenderFrame();
-                        }
-                        return Task.CompletedTask;
-                    }).ConfigureAwait(false);
-                }
-            }
             if (LyricsTranslationPolicy.CanOfferLocalFallback(result) && IsLyricsRequestCurrent(session, settings, generation, token))
             {
                 var query = new LyricsQuery(session.TrackTitle, session.Artist, session.AlbumTitle,

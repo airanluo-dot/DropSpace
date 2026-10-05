@@ -124,9 +124,6 @@ public sealed class MusicPage : UserControl
         form.AddToggle("MusicProgress", s => s.IslandActivity.ShowProgress, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowProgress = v } });
         form.AddHeading("MusicLyricsSection");
         form.AddToggle("LyricsEnabled", s => s.Lyrics.Enabled, (s,v) => s with { Lyrics = s.Lyrics with { Enabled = v } });
-        form.AddChoice("LyricsSelectionMode", Enum.GetValues<LyricsSelectionMode>().Select(value => (value, strings.Get("LyricsSelection" + value))),
-            s => s.Lyrics.SelectionMode, (s,v) => s with { Lyrics = s.Lyrics with { SelectionMode = v } });
-        form.Rows.Children.Add(new TextBlock { Text = strings.Get("LyricsSelectionDescription"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         form.AddToggle("LyricsCompact", s => s.IslandActivity.ShowLyricsInCompact, (s,v) => s with { IslandActivity = s.IslandActivity with { ShowLyricsInCompact = v } });
         form.AddChoice("LyricsMode", new[] { (LyricsMode.Online, strings.Get("LyricsOnline")), (LyricsMode.LocalLrc, strings.Get("LyricsLocal")) }, s => s.Lyrics.Mode, (s,v) => s with { Lyrics = s.Lyrics with { Mode = v } });
         var onlineProviders = Enum.GetValues<LyricsProviderKind>().Where(value => value != LyricsProviderKind.LocalLrc).ToArray();

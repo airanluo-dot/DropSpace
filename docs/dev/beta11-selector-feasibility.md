@@ -1,5 +1,7 @@
 # A useful three-mode selector: current evidence and bounded route
 
+> Superseded for production: the user authorized cancelling AI selection. The shipping selector and both UI choices have now been removed; see [production removal and retained translation](beta11-production-selector-removal.md). The following document preserves historical reasoning and checks, not current shipping behavior.
+
 The common source pipeline and ownership fixes are usable independently. The evaluated generative selector profiles are not ready to claim that all three modes work reliably. The next route should address a narrow recording-confirmation task and an explicit host/model contract, rather than downloading successively larger models or relabeling the deterministic winner as AI selection. Both Hy translation models and their prompts remain separate and unchanged. The newly reported native crashes are an independent urgent investigation; no selector finding is evidence of their cause.
 
 ## What the actual models establish
