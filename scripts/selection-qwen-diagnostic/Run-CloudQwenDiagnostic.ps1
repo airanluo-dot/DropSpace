@@ -12,7 +12,7 @@ trap {
   Write-Error -ErrorRecord $_ -ErrorAction Continue
   exit 1
 }
-$profileId=if($env:DIAGNOSTIC_VARIANT -in @('qwen4-evidence','qwen4-template-validation','qwen4-deterministic')) {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
+$profileId=if($env:DIAGNOSTIC_VARIANT -eq 'qwen8-evidence') {'qwen3-8b-q4km'} elseif($env:DIAGNOSTIC_VARIANT -in @('qwen4-evidence','qwen4-template-validation','qwen4-deterministic')) {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
 $profiles=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'diagnostic-profiles.json') -Raw | ConvertFrom-Json
 $profile=@($profiles | Where-Object Id -CEQ $profileId)
 if($profile.Count -ne 1) {throw 'Unknown pinned diagnostic model profile.'}

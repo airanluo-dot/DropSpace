@@ -19,7 +19,7 @@ if(new FileInfo(model).Length!=profile.Bytes) throw new InvalidDataException("Mo
 using var modelLease=new FileStream(model,FileMode.Open,FileAccess.Read,FileShare.Read);
 using var exeLease=new FileStream(exe,FileMode.Open,FileAccess.Read,FileShare.Read);
 Save("identity",new {diagnosticOnly=true,productionChanged=false,profile, exeSha256="3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783", originalRuntimeArtifact=11316610580L,thinking,diagnosticHead=Environment.GetEnvironmentVariable("GITHUB_SHA"),diagnosticRun=Environment.GetEnvironmentVariable("GITHUB_RUN_ID"),wallClockIncludesModelLoad=true});
-if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen4-template-validation" or "qwen4-deterministic") return await QwenTemplateDiagnostics.RunAsync(inputs,model,output,Probe);
+if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen4-template-validation" or "qwen4-deterministic" or "qwen8-evidence") return await QwenTemplateDiagnostics.RunAsync(inputs,model,output,Probe);
 if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen06-dual" or "qwen06-plain-transfer") return await DualPurposeDiagnostics.RunAsync(inputs,model,output,Probe);
 if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen06-evidence" or "qwen06-labelled-control" or "qwen06-native-id-control" or "qwen4-evidence") return await SelectionEvidenceDiagnostics.RunAsync(inputs,model,output,Probe);
 var cases=new List<Case>();

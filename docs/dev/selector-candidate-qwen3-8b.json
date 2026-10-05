@@ -1,5 +1,5 @@
 {
-  "status": "inactive proposal; no weights downloaded or production enrollment",
+  "status": "authorized cloud diagnostic; no production enrollment",
   "id": "qwen3-8b-q4km-selection-candidate",
   "file": "Qwen3-8B-Q4_K_M.gguf",
   "repository": "Qwen/Qwen3-8B-GGUF",
@@ -13,5 +13,6 @@
   "diagnosticMemoryMiB": 8192,
   "hostReserveMiB": 1024,
   "corpus": "identity-validation-v1.json unchanged",
-  "activation": "Requires separate resource authorization and actual qualification. Not in any executable or selectable catalog."
+  "activation": "Explicit owner approval and later full-autonomy instruction confirmed by parent delegation; bounded diagnostic only. Production enrollment still requires actual qualification.",
+  "authorizationReference": "2026-10-05T03:18:58Z / 335d29085ba48191953f25ee395d415a; 03:19:22Z / d98b65bb93f8819186605036960cf431"
 }

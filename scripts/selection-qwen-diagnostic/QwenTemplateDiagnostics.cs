@@ -16,7 +16,9 @@ internal static class QwenTemplateDiagnostics
         using var buffer=new MemoryStream();await resource.CopyToAsync(buffer);var corpus=buffer.ToArray();
         await File.WriteAllBytesAsync(Path.Combine(output,"validation-corpus.json"),corpus);
         var fixtures=JsonSerializer.Deserialize<Corpus>(corpus)!;
-        var profile=SelectionDiagnosticProfile.Resolve("qwen4-template-validation");
+        var variant=Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT");
+        var profile=SelectionDiagnosticProfile.Resolve(variant);
+        var binaryOnly=variant is "qwen4-deterministic" or "qwen8-evidence";
         var deterministic=Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen4-deterministic";
         var json=new JsonSerializerOptions {WriteIndented=true,Encoder=JavaScriptEncoder.UnsafeRelaxedJsonEscaping};
         void Save(string name,object value)=>File.WriteAllText(Path.Combine(output,name+".json"),JsonSerializer.Serialize(value,json));
@@ -26,7 +28,7 @@ internal static class QwenTemplateDiagnostics
         using var total=new CancellationTokenSource(TimeSpan.FromMinutes(12));var results=new List<object>();
         foreach(var item in fixtures.Cases)
         foreach(var reversed in item.Reverse?new[]{false,true}:new[]{false})
-        foreach(var binary in item.TemplateControl&&!deterministic?new[]{false,true}:new[]{true})
+        foreach(var binary in item.TemplateControl&&!binaryOnly?new[]{false,true}:new[]{true})
         {
             var rows=reversed?item.Candidates.Reverse().ToArray():item.Candidates;
             var content=SelectionEvidenceDiagnostics.Build(item.Query,rows,true);
