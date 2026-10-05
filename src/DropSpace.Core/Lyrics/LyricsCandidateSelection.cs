@@ -19,7 +19,13 @@ public sealed record LyricsCandidateSnapshot(IReadOnlyList<LyricsSelectionCandid
 }
 
 public enum LyricsSelectionOutcome { Rules, Unambiguous, Unavailable, NoBudget, Invalid, Abstained, Selected, Reused, TimedOut }
-public sealed record LyricsSelectionResult(LyricsDocument Document, LyricsSelectionOutcome Outcome);
+public sealed record LyricsSelectionResult(LyricsDocument Document, LyricsSelectionOutcome Outcome)
+{
+    // Retain model/cache retirement through the actual dispatcher commit, after inference returns.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Func<bool>? PublicationFence { get; init; }
+    public bool IsCurrent => PublicationFence?.Invoke() ?? true;
+}
 
 public static class LyricsCandidateRules
 {

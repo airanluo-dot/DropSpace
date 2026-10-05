@@ -491,15 +491,16 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 _ = selectionCancellation.CompleteWhenAsync(selecting);
                 var selected = await selecting.WaitAsync(token).ConfigureAwait(false);
                 if (selected.Outcome is LyricsSelectionOutcome.Selected or LyricsSelectionOutcome.Reused &&
-                    IsLyricsRequestCurrent(session, settings, generation, token))
+                    selected.IsCurrent && IsLyricsRequestCurrent(session, settings, generation, token))
                 {
-                    result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
-                        selected.Document, targetLanguage), Status = LyricsQueryStatus.Found };
-                    sourceResult = result;
                     await _dispatcher.EnqueueAsync(() =>
                     {
-                        if (IsLyricsRequestCurrent(session, settings, generation, token))
+                        // Model/cache maintenance may retire an already returned decision in this queue.
+                        if (selected.IsCurrent && IsLyricsRequestCurrent(session, settings, generation, token))
                         {
+                            result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
+                                selected.Document, targetLanguage), Status = LyricsQueryStatus.Found };
+                            sourceResult = result;
                             _document = result.Document;
                             _view.SetLyricsDocument(_document);
                             _view.LyricsStatus = result.Status;

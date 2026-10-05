@@ -28,6 +28,7 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiLyricsWorkLifetime _work;
     private readonly AiLyricsRuntimeOptions _runtimeOptions;
     private readonly LyricsCandidateSelector? _selector;
+    private long _selectionPublicationGeneration;
     private readonly CancellationTokenSource _selectionLifetime = new();
     private readonly object _preparationGate = new();
     private Task _selectionPreparation = Task.CompletedTask;
@@ -216,7 +217,7 @@ public sealed class AiLyricsService : IDisposable
 
     private void RetireSelection()
     {
-        _selector?.Clear();
+        InvalidateSelectionDecisions();
         lock (_preparationGate)
         {
             _selectionConfiguration = null;
@@ -239,7 +240,7 @@ public sealed class AiLyricsService : IDisposable
             if (_selectionConfiguration != key)
             {
                 try { _ = _selectionPreparationStop?.CancelAsync(); } catch (ObjectDisposedException) { }
-                _selector.Clear();
+                InvalidateSelectionDecisions();
                 _selectionConfiguration = key;
             }
             var prepare = settings.Enabled && settings.Mode != LyricsMode.LocalLrc && settings.SelectionMode != LyricsSelectionMode.Rules;
@@ -269,17 +270,24 @@ public sealed class AiLyricsService : IDisposable
         }
     }
 
-    public Task<LyricsSelectionResult> SelectCandidateAsync(LyricsQuery query, LyricsQueryResult source,
+    public async Task<LyricsSelectionResult> SelectCandidateAsync(LyricsQuery query, LyricsQueryResult source,
         LyricsSettings settings, string target, CancellationToken token)
     {
         var unavailable = new LyricsSelectionResult(source.Document, LyricsSelectionOutcome.Unavailable);
         var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
-        if (_selector is null || model is null) return Task.FromResult(unavailable);
-        return _work.RunAsync(cancellation => _selector.SelectAsync(query, settings, target, model.Sha256,
-            source.SelectionCandidates, source.Document, cancellation), unavailable, token);
+        if (_selector is null || model is null) return unavailable;
+        var generation = Interlocked.Read(ref _selectionPublicationGeneration);
+        var selected = await _work.RunAsync(cancellation => _selector.SelectAsync(query, settings, target, model.Sha256,
+            source.SelectionCandidates, source.Document, cancellation), unavailable, token).ConfigureAwait(false);
+        return selected with { PublicationFence = () => !token.IsCancellationRequested &&
+            generation == Interlocked.Read(ref _selectionPublicationGeneration) };
     }
 
-    public void InvalidateSelectionDecisions() => _selector?.Clear();
+    public void InvalidateSelectionDecisions()
+    {
+        Interlocked.Increment(ref _selectionPublicationGeneration);
+        _selector?.Clear();
+    }
 
     public async Task<LyricsDocument> TranslateCoreAsync(LyricsQuery query, LyricsDocument document,
         LyricsSettings settings, string targetLanguage, CancellationToken token, LyricsTranslationProgressContext? progress = null,
