@@ -12,7 +12,10 @@ internal static class SelectionEvidenceDiagnostics
     internal static async Task<int> RunAsync(string inputs,string model,string output,
         Func<string,string,IReadOnlyList<string>,int,int,CancellationToken,Task<NativeResult>> probe)
     {
-        var nativeIds = Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-native-id-control";
+        var profile=SelectionDiagnosticProfile.Resolve(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT"));
+        var fourB=Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen4-evidence";
+        var nativeControl= Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-native-id-control";
+        var nativeIds=fourB || nativeControl;
         var labelled = nativeIds || Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-labelled-control";
         var json = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         void Save(string name,object value) => File.WriteAllText(Path.Combine(output,name+".json"),JsonSerializer.Serialize(value,json));
@@ -34,26 +37,26 @@ internal static class SelectionEvidenceDiagnostics
                 [Row("c111","Hello (Studio)","Adele","25",240),Row("c112","Hello (Live)","Adele","25",240)],"c112",false),
         };
         Save("evidence-contract",new {diagnosticOnly=true,productionChanged=false,protocol="identity-evidence-v1",Instruction,instructionSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Instruction))),representation=labelled?"named-fields-control":"positional-table",nativeIds,
-            authorizationUtc="2026-10-05T02:21:54Z",authorizationSentinel="fadd56401f7081919b24de527731e5c5",selectorOnly=true,
+            profile,selectorOnly=true,
             inferenceSeconds=60,contextTokens=2048,outputTokens=32,fixtureOnly=true,fixtures});
         var exe=Path.Combine(inputs,"runtime/llama-completion-avx2.exe");
         using var total=new CancellationTokenSource(TimeSpan.FromMinutes(12));
         var results=new List<object>();
-        foreach(var fixture in fixtures.Where(f=>nativeIds ? f.Name=="explicit-version-positive" : !labelled || f.Name is "admitted-missing-artist" or "known-artist-optional-unknown" or "explicit-version-positive"))
+        foreach(var fixture in fixtures.Where(f=>nativeControl ? f.Name=="explicit-version-positive" : fourB || !labelled || f.Name is "admitted-missing-artist" or "known-artist-optional-unknown" or "explicit-version-positive"))
         {
             var admission=fixture.Rows.Select(c=>new {c.Id,
                 strict=LyricsMatcher.Score(fixture.Query,c.Match.Title,c.Match.Artist,c.Match.Album,c.Match.DurationSeconds),
                 collected=LyricsMatcher.CandidateScore(fixture.Query,c.Match.Title,c.Match.Artist,c.Match.Album,c.Match.DurationSeconds)}).ToArray();
             if(fixture.AllAdmitted && admission.Any(a=>a.collected<4))throw new InvalidDataException("Declared production-admitted fixture differs from current admission.");
-            foreach(var reversed in labelled?new[]{false}:new[]{false,true})
+            foreach(var reversed in labelled&&!fourB?new[]{false}:new[]{false,true})
             {
                 var sourceRows=nativeIds?fixture.Rows.Select((row,index)=>row with {Id="c"+index}).ToArray():fixture.Rows;
                 var rows=reversed?sourceRows.Reverse().ToArray():sourceRows;
                 var content=Build(fixture.Query,rows,labelled);
-                var prompt="<|im_start|>user\n"+content+"<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
+                var prompt=profile.Render(content);
                 var label=fixture.Name+(reversed?"-reversed":"-original");
                 var path=Path.Combine(output,label+".prompt.txt");File.WriteAllText(path,prompt,new UTF8Encoding(false));
-                CpuInferenceMemoryPolicy.EnsureAvailable(WindowsInferenceProcess.MaximumMemoryBytes,CpuInferenceMemoryPolicy.ReadWindowsSnapshot);
+                CpuInferenceMemoryPolicy.EnsureAvailable(profile.MemoryBytes,CpuInferenceMemoryPolicy.ReadWindowsSnapshot);
                 var arguments=new[]{"-m",model,"-f",path,"--offline","--perf","--no-escape","--no-context-shift","--no-conversation","--no-display-prompt","--simple-io","--no-warmup","-ngl","0","-c","2048","-t","4","-tb","4","-n","32","--temp","0.7","--top-p","0.8","--top-k","20","--min-p","0","--repeat-penalty","1","--seed","42"};
                 var native=await probe(label,exe,arguments,60,4096,total.Token);
                 if(!native.CleanupCompleted)throw new InvalidOperationException("Owned cleanup unresolved; all following inference blocked.");

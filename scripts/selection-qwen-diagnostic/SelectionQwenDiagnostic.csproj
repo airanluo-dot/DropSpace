@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="diagnostic-profiles.json" LogicalName="DropSpace.SelectionDiagnosticProfiles.json" />
     <ProjectReference Include="../../src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>

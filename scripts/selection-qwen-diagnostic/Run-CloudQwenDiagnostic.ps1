@@ -12,17 +12,23 @@ trap {
   Write-Error -ErrorRecord $_ -ErrorAction Continue
   exit 1
 }
-$modelDirectory=Join-Path $env:RUNNER_TEMP 'dropspace-qwen06-diagnostic'
+$profileId=if($env:DIAGNOSTIC_VARIANT -eq 'qwen4-evidence') {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
+$profiles=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'diagnostic-profiles.json') -Raw | ConvertFrom-Json
+$profile=@($profiles | Where-Object Id -CEQ $profileId)
+if($profile.Count -ne 1) {throw 'Unknown pinned diagnostic model profile.'}
+$profile=$profile[0]
+$modelDirectory=Join-Path $env:RUNNER_TEMP ('dropspace-diagnostic-'+$profile.Id)
 New-Item $modelDirectory -ItemType Directory -Force | Out-Null
-$model=Join-Path $modelDirectory 'Qwen3-0.6B-Q8_0.gguf'
+$model=Join-Path $modelDirectory $profile.File
 $partial=$model+'.partial'
-$url='https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf'
 $clock=[Diagnostics.Stopwatch]::StartNew()
-# No cookies, credentials, mirrors, rotating IPs, or repeated model probes.
-Invoke-WebRequest -Uri $url -OutFile $partial
-if((Get-Item -LiteralPath $partial).Length -ne 639446688 -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ine '9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031') { throw 'Immutable official model verification failed.' }
+Write-Host "Downloading authorized immutable $($profile.Id), $($profile.Bytes) bytes; not yet verified."
+# No cookies, credentials, mirrors, IP rotation, or production model registration.
+Invoke-WebRequest -Uri $profile.Url -OutFile $partial
+if((Get-Item -LiteralPath $partial).Length -ne $profile.Bytes -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ine $profile.Sha256) { throw 'Immutable model verification failed.' }
 Move-Item -LiteralPath $partial -Destination $model
-[ordered]@{url=$url;bytes=639446688;sha256='9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031';verified=$true;downloadAndVerificationSeconds=$clock.Elapsed.TotalSeconds;authorizationUtc='2026-10-05T01:11:06Z';authorizationSentinel='208dd5c270f48191a5f2ac46576d7c28'} | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'download.json') -Encoding utf8
+[ordered]@{profile=$profile;verified=$true;downloadAndVerificationSeconds=$clock.Elapsed.TotalSeconds} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'download.json') -Encoding utf8
+Write-Host "Verified $($profile.Id): exact bytes and SHA256 matched."
 Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,FreePhysicalMemory,TotalVisibleMemorySize | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'host.json') -Encoding utf8
 Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'cpu.json') -Encoding utf8
 & dotnet run --project (Join-Path $PSScriptRoot 'SelectionQwenDiagnostic.csproj') -c Release "-p:EvidenceRuntimeDirectory=$InputsDirectory/runtime" -- $InputsDirectory $model $OutputDirectory

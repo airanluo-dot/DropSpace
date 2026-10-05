@@ -6,6 +6,7 @@ using DropSpace.Core.Lyrics;
 using DropSpace.Infrastructure.Lyrics;
 
 if (!OperatingSystem.IsWindows() || args.Length != 3) throw new InvalidOperationException("Explicit cloud Windows inputs/model/output required.");
+var profile=SelectionDiagnosticProfile.Resolve(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT"));
 var thinking=Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-thinking";
 var inputs=Path.GetFullPath(args[0]); var model=Path.GetFullPath(args[1]); var output=Path.GetFullPath(args[2]);
 Directory.CreateDirectory(output);
@@ -13,13 +14,13 @@ var json=new JsonSerializerOptions {WriteIndented=true};
 void Save(string name,object value)=>File.WriteAllText(Path.Combine(output,name+".json"),JsonSerializer.Serialize(value,json));
 var exe=Path.Combine(inputs,"runtime/llama-completion-avx2.exe");
 await CheckHash(exe,"3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783");
-await CheckHash(model,"9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031");
-if(new FileInfo(model).Length!=639446688) throw new InvalidDataException("Model byte count mismatch.");
+await CheckHash(model,profile.Sha256);
+if(new FileInfo(model).Length!=profile.Bytes) throw new InvalidDataException("Model byte count mismatch.");
 using var modelLease=new FileStream(model,FileMode.Open,FileAccess.Read,FileShare.Read);
 using var exeLease=new FileStream(exe,FileMode.Open,FileAccess.Read,FileShare.Read);
-Save("identity",new {diagnosticOnly=true,productionChanged=false,authorizationUtc="2026-10-05T01:11:06Z",authorizationSentinel="208dd5c270f48191a5f2ac46576d7c28", modelRevision="23749fefcc72300e3a2ad315e1317431b06b590a",modelSha256="9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",modelBytes=639446688, exeSha256="3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783", originalRuntimeArtifact=11316610580L, chatTemplateBaseRevision="c1899de289a04d12100db370d81485cdf75e47ca", thinking,templateMode=thinking?"Official single-user enable_thinking=True render":"Official single-user enable_thinking=False render", diagnosticHead=Environment.GetEnvironmentVariable("GITHUB_SHA"),diagnosticRun=Environment.GetEnvironmentVariable("GITHUB_RUN_ID"),wallClockIncludesModelLoad=true});
+Save("identity",new {diagnosticOnly=true,productionChanged=false,profile, exeSha256="3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783", originalRuntimeArtifact=11316610580L,thinking,diagnosticHead=Environment.GetEnvironmentVariable("GITHUB_SHA"),diagnosticRun=Environment.GetEnvironmentVariable("GITHUB_RUN_ID"),wallClockIncludesModelLoad=true});
 if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen06-dual" or "qwen06-plain-transfer") return await DualPurposeDiagnostics.RunAsync(inputs,model,output,Probe);
-if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen06-evidence" or "qwen06-labelled-control" or "qwen06-native-id-control") return await SelectionEvidenceDiagnostics.RunAsync(inputs,model,output,Probe);
+if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT") is "qwen06-evidence" or "qwen06-labelled-control" or "qwen06-native-id-control" or "qwen4-evidence") return await SelectionEvidenceDiagnostics.RunAsync(inputs,model,output,Probe);
 var cases=new List<Case>();
 foreach(var name in new[]{"cross-script","same-title-version","uncertain-abstention"}) {
  using var source=JsonDocument.Parse(File.ReadAllText(Path.Combine(inputs,"evidence/selection-probe",name+".json")));
@@ -80,12 +81,12 @@ async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arg
     foreach(var a in arguments)start.ArgumentList.Add(a);
     foreach(var key in start.Environment.Keys.Where(k=>k.StartsWith("LLAMA_",StringComparison.OrdinalIgnoreCase)||k.StartsWith("GGML_",StringComparison.OrdinalIgnoreCase)).ToArray())start.Environment.Remove(key);
     start.Environment["OMP_NUM_THREADS"]="4";start.Environment["OMP_THREAD_LIMIT"]="4";
-    await File.WriteAllTextAsync(Path.Combine(output,label+".arguments.json"),JsonSerializer.Serialize(new{exe,arguments,jobMemoryBytes=(long)3072*1024*1024},json));
+    await File.WriteAllTextAsync(Path.Combine(output,label+".arguments.json"),JsonSerializer.Serialize(new{exe,arguments,jobMemoryBytes=profile.MemoryBytes},json));
     try
     {
         // Direct native launch through the exact production job/handle policy. No wrapper child and no unrestricted fallback.
         // CompleteAsync owns disposal, including after a bounded caller timeout. Never wrap in using.
-        var child=LocalInferenceProcess.Start(start,(long)3072*1024*1024);
+        var child=LocalInferenceProcess.Start(start,profile.MemoryBytes);
         var process=child.Process;pid=process.Id;
         void SampleCpu()
         {
@@ -107,7 +108,7 @@ async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arg
             while(!process.HasExited)
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                try{process.Refresh();SampleCpu();peakRss=Math.Max(peakRss,process.WorkingSet64);peakPrivate=Math.Max(peakPrivate,process.PrivateMemorySize64);if(peakRss>(long)3072*1024*1024)Stop("rss-budget");}
+                try{process.Refresh();SampleCpu();peakRss=Math.Max(peakRss,process.WorkingSet64);peakPrivate=Math.Max(peakPrivate,process.PrivateMemorySize64);if(peakRss>profile.MemoryBytes)Stop("rss-budget");}
                 catch(InvalidOperationException) when(process.HasExited){}
                 catch(System.ComponentModel.Win32Exception) when(process.HasExited){}
                 await Task.Delay(50,deadline.Token);
@@ -147,7 +148,7 @@ async Task<NativeResult> Probe(string label,string exe,IReadOnlyList<string> arg
     foreach(var suffix in new[]{".stdout.txt",".stderr.txt"}){var p=Path.Combine(output,label+suffix);if(!File.Exists(p))await File.WriteAllTextAsync(p,"");}
     var result=new NativeResult(clock.Elapsed.TotalSeconds,exit,exit.HasValue?unchecked((uint)exit.Value).ToString("X8"):null,reason,peakRss,peakPrivate,peakRss>1536L*1024*1024,pid,seconds,cleanupSeconds,cleanupCompleted,cleanupError,sampledCpuSeconds,firstStdoutTicks<0?null:(double)firstStdoutTicks/Stopwatch.Frequency,cpuTelemetryError);
     await File.WriteAllTextAsync(Path.Combine(output,label+".native.json"),JsonSerializer.Serialize(result,json));
-    Console.WriteLine($"{"qwen3-06-q8"} {label}: exit={exit}, reason={reason??"none"}, {clock.Elapsed.TotalSeconds:F3}s, peakRSS={peakRss}");return result;
+    Console.WriteLine($"{profile.Id} {label}: exit={exit}, reason={reason??"none"}, {clock.Elapsed.TotalSeconds:F3}s, peakRSS={peakRss}");return result;
 }
 static async Task Capture(StreamReader reader,string path,int limit,Action stop,Action? onFirstData=null)
 {
