@@ -12,6 +12,7 @@ internal static class SelectionEvidenceDiagnostics
     internal static async Task<int> RunAsync(string inputs,string model,string output,
         Func<string,string,IReadOnlyList<string>,int,int,CancellationToken,Task<NativeResult>> probe)
     {
+        var labelled = Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-labelled-control";
         var json = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         void Save(string name,object value) => File.WriteAllText(Path.Combine(output,name+".json"),JsonSerializer.Serialize(value,json));
         static LyricsQuery Query(string title,string artist,string album,double duration) => new(title,artist,album,TimeSpan.FromSeconds(duration),"diagnostic:identity-evidence-v1") { CollectSelectionCandidates=true };
@@ -31,22 +32,22 @@ internal static class SelectionEvidenceDiagnostics
             new Fixture("explicit-version-positive",Query("Hello (Live)","Adele","25",240),
                 [Row("c111","Hello (Studio)","Adele","25",240),Row("c112","Hello (Live)","Adele","25",240)],"c112",false),
         };
-        Save("evidence-contract",new {diagnosticOnly=true,productionChanged=false,protocol="identity-evidence-v1",Instruction,
+        Save("evidence-contract",new {diagnosticOnly=true,productionChanged=false,protocol="identity-evidence-v1",Instruction,instructionSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Instruction))),representation=labelled?"named-fields-control":"positional-table",
             authorizationUtc="2026-10-05T02:21:54Z",authorizationSentinel="fadd56401f7081919b24de527731e5c5",selectorOnly=true,
             inferenceSeconds=60,contextTokens=2048,outputTokens=32,fixtureOnly=true,fixtures});
         var exe=Path.Combine(inputs,"runtime/llama-completion-avx2.exe");
         using var total=new CancellationTokenSource(TimeSpan.FromMinutes(12));
         var results=new List<object>();
-        foreach(var fixture in fixtures)
+        foreach(var fixture in fixtures.Where(f=>!labelled || f.Name is "admitted-missing-artist" or "known-artist-optional-unknown" or "explicit-version-positive"))
         {
             var admission=fixture.Rows.Select(c=>new {c.Id,
                 strict=LyricsMatcher.Score(fixture.Query,c.Match.Title,c.Match.Artist,c.Match.Album,c.Match.DurationSeconds),
                 collected=LyricsMatcher.CandidateScore(fixture.Query,c.Match.Title,c.Match.Artist,c.Match.Album,c.Match.DurationSeconds)}).ToArray();
             if(fixture.AllAdmitted && admission.Any(a=>a.collected<4))throw new InvalidDataException("Declared production-admitted fixture differs from current admission.");
-            foreach(var reversed in new[]{false,true})
+            foreach(var reversed in labelled?new[]{false}:new[]{false,true})
             {
                 var rows=reversed?fixture.Rows.Reverse().ToArray():fixture.Rows;
-                var content=Build(fixture.Query,rows);
+                var content=Build(fixture.Query,rows,labelled);
                 var prompt="<|im_start|>user\n"+content+"<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
                 var label=fixture.Name+(reversed?"-reversed":"-original");
                 var path=Path.Combine(output,label+".prompt.txt");File.WriteAllText(path,prompt,new UTF8Encoding(false));
@@ -66,16 +67,24 @@ internal static class SelectionEvidenceDiagnostics
         }
         Save("evidence-summary",new {diagnosticOnly=true,semanticApproved=false,results});return 0;
     }
-    private static string Build(LyricsQuery query,IReadOnlyList<Candidate> rows)
+    private static string Build(LyricsQuery query,IReadOnlyList<Candidate> rows,bool labelled)
     {
         // Quote data to keep delimiters/newlines distinct from the protocol. Unknown is explicit.
         static string Value(string value)=>string.IsNullOrWhiteSpace(value)?"?":JsonSerializer.Serialize(value,new JsonSerializerOptions {Encoder=JavaScriptEncoder.UnsafeRelaxedJsonEscaping});
         static string Seconds(double value)=>value>0?value.ToString(System.Globalization.CultureInfo.InvariantCulture):"?";
         var result=new StringBuilder(Instruction);
-        result.AppendLine("[目标] 标题|歌手|专辑|秒");
-        result.AppendLine($"{Value(query.Title)}|{Value(query.Artist)}|{Value(query.Album)}|{Seconds(query.Duration.TotalSeconds)}");
-        result.AppendLine("[候选] 编号|标题|歌手|专辑|秒");
-        foreach(var row in rows)result.AppendLine($"{row.Id}|{Value(row.Match.Title)}|{Value(row.Match.Artist)}|{Value(row.Match.Album)}|{Seconds(row.Match.DurationSeconds)}");
+        if(labelled)
+        {
+            result.AppendLine($"[目标] 标题={Value(query.Title)};歌手={Value(query.Artist)};专辑={Value(query.Album)};秒={Seconds(query.Duration.TotalSeconds)}");
+            foreach(var row in rows)result.AppendLine($"[候选] 编号={row.Id};标题={Value(row.Match.Title)};歌手={Value(row.Match.Artist)};专辑={Value(row.Match.Album)};秒={Seconds(row.Match.DurationSeconds)}");
+        }
+        else
+        {
+            result.AppendLine("[目标] 标题|歌手|专辑|秒");
+            result.AppendLine($"{Value(query.Title)}|{Value(query.Artist)}|{Value(query.Album)}|{Seconds(query.Duration.TotalSeconds)}");
+            result.AppendLine("[候选] 编号|标题|歌手|专辑|秒");
+            foreach(var row in rows)result.AppendLine($"{row.Id}|{Value(row.Match.Title)}|{Value(row.Match.Artist)}|{Value(row.Match.Album)}|{Seconds(row.Match.DurationSeconds)}");
+        }
         return result.Append("答案：").ToString();
     }
     private sealed record Fixture(string Name,LyricsQuery Query,Candidate[] Rows,string? Expected,bool AllAdmitted);
