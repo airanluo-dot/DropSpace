@@ -18,7 +18,7 @@ internal static class Program
         var modelProfile = Array.IndexOf(args, "--model-profile") >= 0 ? Argument(args, "--model-profile") : "hy-mt2-1.8b-q8";
         var pid = Environment.ProcessId;
         Record(root, "starts", new { pid, mode, modelProfile });
-        if (mode == "vulkan" && File.Exists(Path.Combine(root, "fail-vulkan-startup")))
+        if (mode is "vulkan" or "cuda" && File.Exists(Path.Combine(root, "fail-" + mode + "-startup")))
         {
             // EOF while the child stays alive verifies that fallback first reaps the child.
             if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
@@ -26,7 +26,10 @@ internal static class Program
             Thread.Sleep(60_000);
             return 27;
         }
-        if (File.Exists(Path.Combine(root, "omit-model-profile")))
+        if (mode == "cuda")
+            WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2, modelProfile,
+                componentId = File.Exists(Path.Combine(root, "wrong-cuda-component")) ? "wrong" : "llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1" });
+        else if (File.Exists(Path.Combine(root, "omit-model-profile")))
             WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2 });
         else WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2,
             modelProfile = File.Exists(Path.Combine(root, "wrong-model-profile")) ? "wrong-model" : modelProfile });

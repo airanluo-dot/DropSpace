@@ -2,6 +2,7 @@ namespace DropSpace.Core.Models;
 
 public enum LyricsMode { Online, LocalLrc }
 public enum LyricsProviderKind { NetEase, QqMusic, Kugou, Lrclib, Amll, LocalLrc }
+public enum LyricsGpuBackend { Automatic, Vulkan, Cuda }
 public enum LyricsSelectionMode { Rules, AiAssisted, AiRanked }
 
 public sealed record IslandActivitySettings
@@ -22,6 +23,7 @@ public sealed record LyricsSettings
     public bool AiTranslationEnabled { get; init; }
     // AI itself remains opt-in. When enabled, prefer verified GPU acceleration with CPU fallback.
     public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
+    public LyricsGpuBackend AiLyricsGpuBackend { get; init; } = LyricsGpuBackend.Automatic;
     public string AiModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
     // Retired diagnostic compatibility slot; never read or written in settings JSON.
     [System.Text.Json.Serialization.JsonIgnore]

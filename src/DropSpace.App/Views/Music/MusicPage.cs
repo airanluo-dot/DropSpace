@@ -50,7 +50,7 @@ public sealed class MusicPage : UserControl
     private int _lastCenteredLyric = -1;
     public MusicPage(NativeSettingsEditor editor, MediaViewModel media, WindowsMediaSessionService sessions,
         MediaExperienceService experience, MediaApplicationIconService icons, IAppStringLocalizer strings, nint windowHandle,
-        NeteaseEnhancementViewModel enhancement)
+        NeteaseEnhancementViewModel enhancement, Services.Dlc.DlcManagerService dlc, Action openDlc)
     {
         _editor = editor; _media = media; _sessions = sessions; _icons = icons; _strings = strings;
         _enhancement = enhancement; _experience = experience;
@@ -114,7 +114,7 @@ public sealed class MusicPage : UserControl
         lyricsPanel.Children.Add(_lyricsStatus);
         lyricsPanel.Children.Add(_lyricsScroll);
         _body.Children.Add(CreateCard(lyricsPanel, new Thickness(16)));
-        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings, experience.ClearLyricsCacheAsync));
+        _body.Children.Add(new AiLyricsSettingsCard(editor, experience.AiLyrics, strings, experience.ClearLyricsCacheAsync, dlc, openDlc));
         var form = new SettingsForm(editor, strings); _body.Children.Add(form);
         form.AddHeading("MusicPlaybackSection");
         form.AddToggle("MusicEnabled", s => s.IslandActivity.EnableMediaActivity, (s,v) => s with { IslandActivity = s.IslandActivity with { EnableMediaActivity = v } });

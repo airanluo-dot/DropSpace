@@ -1,0 +1,13 @@
+Native build exit code: 0
+No worker/model execution or tests were run.
+Engine source and worker build inputs remained unchanged across compilation.
+
+-- The C compiler identification is MSVC 19.51.36257.0
+-- The CXX compiler identification is MSVC 19.51.36257.0
+-- Found CUDAToolkit: E:/Dev/DropSpace-beta11-cuda/artifacts/cuda-toolchain-13.4.1/toolkit/include;E:/Dev/DropSpace-beta11-cuda/artifacts/cuda-toolchain-13.4.1/toolkit/include/cccl (found suitable version "13.4.59", minimum required is "13.4")
+-- The ASM compiler identification is MSVC
+-- Found CUDAToolkit: E:/Dev/DropSpace-beta11-cuda/artifacts/cuda-toolchain-13.4.1/toolkit/include;E:/Dev/DropSpace-beta11-cuda/artifacts/cuda-toolchain-13.4.1/toolkit/include/cccl (found version "13.4.59")
+-- The CUDA compiler identification is NVIDIA 13.4.59 with host compiler MSVC 19.51.36257.0
+-- Using CMAKE_CUDA_ARCHITECTURES=75;86;120a CMAKE_CUDA_ARCHITECTURES_NATIVE=120a-real
+[275/275] Linking CXX executable bin\Release\plain-lyrics-worker-cuda.exe
+Isolated CUDA experiment payload (not published or embedded): E:\Dev\DropSpace-beta11-cuda\artifacts\cuda-experiment-build-2c9fcb0fa29545e4a8471adffe6336aa\payload

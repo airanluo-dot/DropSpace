@@ -1,0 +1,49 @@
+{
+  "componentSourceCommit": "806f3e3e40c11a6e7d3d50648a9de8708b16b4ac",
+  "engineSourceCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "runtimeId": "llama-cpp-v0.5.0-cuda13-win-x64-v1",
+  "workerSourceSha256": "2e9917e84ec99614088868b7966e5607b1d2ca262b820c21e1c9917e10261f61",
+  "archive": {
+    "name": "DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip",
+    "sha256": "79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b",
+    "bytes": 540873572
+  },
+  "manifest": {
+    "name": "cuda-runtime-manifest.json",
+    "sha256": "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+    "bytes": 1815
+  },
+  "files": [
+    {
+      "name": "plain-lyrics-worker-cuda.exe",
+      "sha256": "ba0364858c09b5ee0b3309e352bb9c042db52f55f5f32cefe92b196f65c2fe12",
+      "bytes": 134269440
+    },
+    {
+      "name": "cublas64_13.dll",
+      "sha256": "1119dbca0a808e0c8850bb4221e330daf0b5ddb348d62d37b6ac533854723df9",
+      "bytes": 54942320
+    },
+    {
+      "name": "cublasLt64_13.dll",
+      "sha256": "0f5bc315fef706b5626248ebd74e8a48a9e82fa2f0cad38330f5f70984913107",
+      "bytes": 492752496
+    }
+  ],
+  "notices": [
+    {
+      "name": "LICENSE-llama.cpp",
+      "sha256": "e4854d4e31c854dff9b50361b23c95f158428881dae48ff78927838399dbb7dd",
+      "bytes": 12444
+    },
+    {
+      "name": "LICENSE-CUDA.txt",
+      "sha256": "9cc485f1610aa749662f8f1bbae716bed89ce83ceb618dfddaf76d5451b9d4a2",
+      "bytes": 363230
+    }
+  ],
+  "nativeBuildDirectory": "E:\\Dev\\DropSpace-beta11-cuda\\artifacts\\cuda-experiment-build-2c9fcb0fa29545e4a8471adffe6336aa",
+  "packagingSource": "E:\\Dev\\DropSpace-beta11-cuda\\scripts\\package-cuda-runtime.py",
+  "appReleaseBinding": "Pending exact final App source commit from sole parent integrator; no outer download descriptor fabricated.",
+  "actualCudaInvocation": "Not run per user instruction."
+}

@@ -46,6 +46,24 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/LyricsTranslationProgress.cs',
   'src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs',
   'src/DropSpace.App/Services/Media/AiLyricsService.cs',
+  // CUDA download/ownership and shared DLC management are production inputs.
+  'src/DropSpace.Core/Abstractions/IDlcPackageProvider.cs',
+  'src/DropSpace.Infrastructure/Lyrics/CudaDriverAvailability.cs',
+  'src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs',
+  'src/DropSpace.Infrastructure/Lyrics/CudaPlainHyLyricsBackend.cs',
+  'src/DropSpace.App/Services/Dlc/AiModelDlcProvider.cs',
+  'src/DropSpace.App/Services/Dlc/CudaRuntimeDlcProvider.cs',
+  'src/DropSpace.App/Services/Dlc/DlcManagerService.cs',
+  'src/DropSpace.App/Views/Settings/DlcPage.cs',
+  'src/DropSpace.App/Views/MainPage.Settings.cs',
+  'src/DropSpace.App/MainWindow.xaml.cs',
+  'tools/cuda-lyrics-helper/CMakeLists.txt',
+  'tools/cuda-lyrics-helper/adapt_worker.py',
+  'tools/cuda-lyrics-helper/cuda-device.h',
+  'scripts/Build-CudaLyricsExperiment.ps1',
+  'scripts/package-cuda-runtime.py',
+  'scripts/test-ai-release-approval.mjs',
+  'scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json',
   // Upstream identity/selection/provider parsing and target/display propagation.
   'src/DropSpace.Core/Lyrics/LyricsParser.cs',
   'src/DropSpace.Core/Lyrics/LyricsMatcher.cs',
@@ -190,7 +208,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.10';
+export const experimentalBetaVersion = 'v0.3.1-beta.11';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -245,7 +263,9 @@ export function readScope(root) {
   // sampler flags. A legacy one-shot launch is no longer production evidence.
   assert.match(runner, /BuildArguments\(string modelPath, bool gpu\) =>\s*BuildArguments\(modelPath, gpu, AiLyricsModelCatalog\.ExperimentalPlain\.Sha256\);/, 'Unrecognized default resident startup arguments');
   assert.match(runner, /var model = AiLyricsModelCatalog\.FindSelectableByHash\(verifiedModelSha256\) \?\?\s*throw new InvalidDataException/, 'Resident model arguments require a verified selectable identity');
-  assert.match(runner, /var arguments = new List<string> \{ "--model", Path\.GetFullPath\(modelPath\), "--mode", gpu \? "vulkan" : "cpu" \};\s*if \(model == AiLyricsModelCatalog\.ExperimentalLargePlain\)\s*arguments\.AddRange\(\["--model-profile", "hy-mt2-7b-q8"\]\);\s*return arguments\.AsReadOnly\(\);/, 'Unrecognized model-specific resident startup arguments');
+  assert.match(runner, /var arguments = new List<string> \{ "--model", Path\.GetFullPath\(modelPath\), "--mode", gpu \? gpuBackend : "cpu" \};\s*if \(model == AiLyricsModelCatalog\.ExperimentalLargePlain\)\s*arguments\.AddRange\(\["--model-profile", "hy-mt2-7b-q8"\]\);\s*return arguments\.AsReadOnly\(\);/, 'Unrecognized model-specific resident startup arguments');
+  assert.match(runner, /return BuildArguments\(modelPath, gpu, verifiedModelSha256, "vulkan"\);/, 'Default GPU routing must preserve Vulkan');
+  assert.match(runner, /if \(gpuBackend is not \("vulkan" or "cuda"\)\) throw new ArgumentOutOfRangeException\(nameof\(gpuBackend\)\);/, 'Resident GPU routing requires the validated CUDA/Vulkan allowlist');
   const nativeArguments = ['--model', '$MODEL', '--mode', 'cpu'];
   const windowsProcess = readText(root, 'src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs');
   const memoryMiB = name => Number(singleMatch(windowsProcess, new RegExp(`internal const long ${name} = ([0-9]+)L \\* 1024 \\* 1024 \\* 1024;`, 'g'), `Production ${name}`)) * 1024;
@@ -277,12 +297,17 @@ export function readScope(root) {
     return JSON.parse(value);
   });
   assert.ok(!samplerArguments.includes('-j'), 'Plain production evidence cannot use a JSON grammar');
+  // Beta11 reuses the original reviewed CPU/Vulkan bytes. Never relabel those
+  // binaries as compiled from the newer optional research/CUDA helper source.
+  // This pin is code-owned; an approval record cannot choose a different runtime.
+  const reusedManifestBytes = fs.readFileSync(path.join(root, 'scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json'));
+  assert.equal(sha256(reusedManifestBytes), 'b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab', 'Reused native runtime manifest changed');
+  const reusedManifest = JSON.parse(reusedManifestBytes.toString('utf8').replace(/^\uFEFF/, ''));
+  const currentNativeWorkerSourceSha256 = sha256(residentSourcePaths.map(name => readText(root, name)).join('\n'));
   const resident = {
     protocol: Number(singleMatch(runner, /public const int ProtocolVersion = (\d+);/g, 'Resident protocol version')),
     profile: singleMatch(runner, /public const string ResidentProfileId = "([^"]+)";/g, 'Resident profile identity'),
-    // Match the runtime producer: ordered UTF-8 files, CRLF normalized to LF,
-    // with one LF separator between files (including existing trailing LFs).
-    sourceSha256: sha256(residentSourcePaths.map(name => readText(root, name)).join('\n')),
+    sourceSha256: reusedManifest.resident.sourceSha256,
   };
   const admission = readJson(root, admissionPath);
   const fixtureBytes = fs.readFileSync(path.join(root, fixturePath));
@@ -325,6 +350,7 @@ export function readScope(root) {
       sourceCommit: singleMatch(runtimeBuild, /^\$commit = '([a-f0-9]{40})'/gm, 'Runtime source commit'),
       resident,
     },
+    currentNativeWorkerSourceSha256,
     promptProfile: productionPromptProfile,
     outputSchema: productionOutputSchema,
     promptVersion: stringConstant('Version'),

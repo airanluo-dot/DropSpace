@@ -1,0 +1,11 @@
+  DropSpace.Core -> E:\Dev\DropSpace-beta11-cuda\src\DropSpace.Core\bin\x64\Debug\net10.0\DropSpace.Core.dll
+  DropSpace.Infrastructure -> E:\Dev\DropSpace-beta11-cuda\src\DropSpace.Infrastructure\bin\x64\Debug\net10.0\DropSpace.Infrastructure.dll
+  Win32 resource compiler: C:\Users\Razer\.nuget\packages\microsoft.windows.sdk.buildtools\10.0.26100.8249\bin\10.0.26100.0\x64\rc.exe
+  Embedded application manifest: E:\Dev\DropSpace-beta11-cuda\src\DropSpace.App\app.manifest
+  DropSpace.App -> E:\Dev\DropSpace-beta11-cuda\src\DropSpace.App\bin\x64\Debug\net10.0-windows10.0.20348.0\win-x64\DropSpace.dll
+
+宸叉垚鍔熺敓鎴愩€?
+    0 涓鍛?
+    0 涓敊璇?
+
+宸茬敤鏃堕棿 00:00:33.15

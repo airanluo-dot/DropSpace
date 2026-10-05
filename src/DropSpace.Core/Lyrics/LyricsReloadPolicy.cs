@@ -13,6 +13,7 @@ public static class LyricsReloadPolicy
             left.BackupProvider != right.BackupProvider || left.SearchRemainingProviders != right.SearchRemainingProviders ||
             left.LocalLrcDirectory != right.LocalLrcDirectory || left.AiTranslationEnabled != right.AiTranslationEnabled ||
             left.AiModelId != right.AiModelId ||
-            left.AiLyricsGpuAccelerationEnabled != right.AiLyricsGpuAccelerationEnabled;
+            left.AiLyricsGpuAccelerationEnabled != right.AiLyricsGpuAccelerationEnabled ||
+            left.AiLyricsGpuBackend != right.AiLyricsGpuBackend;
     }
 }

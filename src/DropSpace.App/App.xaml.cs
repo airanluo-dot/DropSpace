@@ -40,6 +40,7 @@ public partial class App : Application
     private readonly System.Collections.Concurrent.ConcurrentQueue<AppActivationArguments> _pendingActivations = new();
     private OverlayWindowService? _overlayWindows;
     private Services.Media.MediaExperienceService? _mediaExperience;
+    private Services.Dlc.DlcManagerService? _dlcManager;
     private SystemActivityExperienceService? _systemActivities;
     private AppInstance? _mainInstance;
     private readonly object _shutdownSync = new();
@@ -153,6 +154,7 @@ public partial class App : Application
             var viewModel = _services.GetRequiredService<MainViewModel>();
             var strings = _services.GetRequiredService<IAppStringLocalizer>();
             XamlResourceOverride.Initialize(strings);
+            _dlcManager = _services.GetRequiredService<Services.Dlc.DlcManagerService>();
             _window = new MainWindow(
                 viewModel,
                 strings,
@@ -171,7 +173,8 @@ public partial class App : Application
                 _services.GetRequiredService<Services.Media.WindowsMediaSessionService>(),
                 _services.GetRequiredService<Services.Media.MediaExperienceService>(),
                 _services.GetRequiredService<Services.Media.MediaApplicationIconService>(),
-                _services.GetRequiredService<NeteaseEnhancementViewModel>());
+                _services.GetRequiredService<NeteaseEnhancementViewModel>(),
+                _dlcManager);
             _window.SetStartupInteractionEnabled(false);
             _window.ExitRequested += OnExitRequested;
             _services.GetRequiredService<MaintenanceShutdownService>().Start(ShutdownAsync);
@@ -394,6 +397,10 @@ public partial class App : Application
         if (_startupUpdateTask is not null)
             await CleanupAsync("startup update", () => _startupUpdateTask);
 
+        if (_dlcManager is { } dlcManager)
+            await CleanupAsync("DLC package operations", () => dlcManager.DisposeAsync().AsTask());
+        _dlcManager = null;
+
         var overlay = _overlayWindows;
         if (_systemActivities is { } systemActivities)
             await CleanupAsync("system activities", () => systemActivities.DisposeAsync().AsTask());
@@ -608,17 +615,26 @@ public partial class App : Application
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models")));
         services.AddSingleton(provider => new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
+        services.AddSingleton(provider => new CudaLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
         services.AddSingleton<IAiLyricsPackageResolver, PlainHyLyricsPackageResolver>();
         services.AddSingleton(provider => new AiLyricsCache(provider.GetRequiredService<LyricsCache>()));
         services.AddSingleton<PlainHyLyricsCoordinator>();
         services.AddSingleton<AiLyricsRuntimeOptions>();
-        services.AddSingleton<PersistentPlainLyricsRunner>();
+        services.AddSingleton(provider => PersistentPlainLyricsRunner.CreateAutomatic(
+            provider.GetRequiredService<AiLyricsRuntimePackage>(),
+            provider.GetRequiredService<CudaLyricsRuntimePackage>(),
+            provider.GetRequiredService<AiLyricsRuntimeOptions>()));
         services.AddSingleton<IAiLyricsBackend>(provider => new PlainHyLyricsBackend(
             provider.GetRequiredService<PlainHyLyricsCoordinator>(),
             provider.GetRequiredService<PersistentPlainLyricsRunner>(),
             provider.GetRequiredService<AiLyricsRuntimePackage>(),
-            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging")));
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging"),
+            provider.GetRequiredService<CudaLyricsRuntimePackage>()));
         services.AddSingleton<Services.Media.AiLyricsService>();
+        services.AddSingleton<IDlcPackageProvider, Services.Dlc.AiModelDlcProvider>();
+        services.AddSingleton<IDlcPackageProvider, Services.Dlc.CudaRuntimeDlcProvider>();
+        services.AddSingleton<Services.Dlc.DlcManagerService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();
         services.AddSingleton<MonitorLayoutService>();

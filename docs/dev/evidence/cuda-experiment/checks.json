@@ -1,0 +1,63 @@
+{
+  "baselineCommit": "64457419ae6fc8af15ab5542a402b7b871cbf9be",
+  "checkpointCommit": "a1f88c044dc9ba43d394d1b7a39d06372a39eb9c",
+  "policy": "No new tests, regression runs, benchmarks, native startup/GPU execution or test CI after user prohibition; resumed work uses compile-only authorization.",
+  "checksJsonHistory": "Not generated at checkpoint a1f88c0; this record was subsequently assembled from existing evidence and the permitted managed compilation, without rerunning tests.",
+  "priorManagedRun": {
+    "artifact": "cuda-managed.trx",
+    "start": "2026-10-05T09:13:35.5722693+00:00",
+    "passed": 131,
+    "failed": 0,
+    "total": 137,
+    "nativeRowsSkipped": 6,
+    "scope": "Historical result before component lease changes and final build-script changes; not a pass claim for the final implementation."
+  },
+  "priorContractRun": {
+    "pythonAndCompiledPolicyChecksPassed": 3,
+    "scope": "Historical pre-prohibition result; no rerun."
+  },
+  "priorHostCppCompilation": {
+    "artifact": "header-compile.json",
+    "scope": "Generated worker host syntax and pinned engine/real CUDA headers only; no CUDA kernels or link."
+  },
+  "currentManagedCompilation": {
+    "artifact": "compile-only-build.txt",
+    "command": "dotnet build src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj -c Release --no-restore",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "scope": "Infrastructure and Core compilation only; no test project invocation, no runtime execution."
+  },
+  "nativeKvManualCompatibilityReview": {
+    "commits": [
+      "55f8ec4e5f5b95035d112c5d4bdda5f88dd1b011",
+      "14e0550c5b474d4cd93610265b29a3232ad51eb9"
+    ],
+    "status": "manual-source-review-only",
+    "findings": [
+      "GPU scaffolding replacement anchors unchanged",
+      "Sampler argument block unchanged",
+      "Optional --timings and --experimental-prefix-kv parsing retained by backend overlay; runner defaults pass neither flag",
+      "Additional compatible response fields do not change required protocol/id/complete/text parsing",
+      "main.cpp not modified or cherry-picked in this branch"
+    ],
+    "generatedOrExecutedOnKvBranch": false
+  },
+  "priorCMakeConfigureBlocker": "Could not find nvcc, please set CUDAToolkit_ROOT.",
+  "priorBaselineFailure": {
+    "test": "SlowerHigherScoreTranslationWinsOverFirstReportedTranslation",
+    "expected": "Kugou",
+    "actual": "QqMusic",
+    "reproducedOnCleanBaseline": true,
+    "rerunAfterProhibition": false
+  },
+  "unverified": [
+    "Final component lease behavior at native startup, corruption, cancellation and cleanup",
+    "Windows CUDA compile/link/PE imports and DLL startup; PowerShell build route not executed",
+    "CUDA/GPU cold-warm translation latency and semantic quality",
+    "Peak VRAM and resource return",
+    "HIP standalone toolchain probe and resident integration"
+  ],
+  "gpuPerformanceMeasurements": null,
+  "modelsOrRuntimeBinariesUploaded": false
+}

@@ -1,0 +1,758 @@
+{
+  "schemaVersion": 1,
+  "status": "source-review-draft-not-runtime-approval",
+  "releaseTag": "v0.3.1-beta.11",
+  "integratedLocalSourceCommit": "b6144d9438c7ce7ac4fc9b344dd5b364af824558",
+  "sources": {
+    "algorithm": "sha256-utf8-lf-v1",
+    "files": [
+      {
+        "path": "src/DropSpace.Core/Lyrics/AiLyricsModelCatalog.cs",
+        "sha256": "a99ef8da7562142a2fa60a3092f2b63426a3a1f6968fb715bfda5ddb1f9cb956"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/AiLyricsSelectionModelCatalog.cs",
+        "sha256": "74d863e65d2621dc6effaeac446287c14e5c86686461b21dcee1758dc0f76daf"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsModels.cs",
+        "sha256": "a8de94a9aa52860708c1a95a2751600f0113bc2bc606712ddc1dd5f03a7a57e5"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs",
+        "sha256": "2a3ec0198c7e8eb5ffc205f9b14bc116e9777045b2169836b23208e38a3cab8b"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs",
+        "sha256": "f8c44039c8733d87fc09120d1777a88d2b05d050cb0f6d4a47ed25daea137cf7"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsTranslationPolicy.cs",
+        "sha256": "a32ae0e8f0e282ce8f61178db239323a5aa44f9bbded8427239488d2f574c017"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsInferenceCircuit.cs",
+        "sha256": "70f61804bf9411804a694216a45e3baada4a9734014e42a6c65f5e3f0b3d5340"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/PlainHyLyricsProtocol.cs",
+        "sha256": "25e928184e7001e0efccf6912ee73827ee8c59c0b36f483466152d220306bf95"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LlamaCompletionRunner.cs",
+        "sha256": "9aaf88d56167f03d133a63274185de80049e78b947e1892c5019baa1c1b2c1ea"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CpuInferenceMemoryPolicy.cs",
+        "sha256": "7d8289c0d766a03c6a5afedf60699f1850f4c435374617151ffc977046130023"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/InferenceResourcesUnavailableException.cs",
+        "sha256": "2409bfbfdf1e371b1dcf2167c6f96fa18808375ec383b05ee0ccfc440d101ba1"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs",
+        "sha256": "bdf5d10c7897993906f79390e4f5659dd7eb43d0c3244eaede013ff1164e33ff"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsWorkLifetime.cs",
+        "sha256": "6ae1e536891528df21c46c0b17276d2c78a269919a6b36799601b9908e5fbf93"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsCache.cs",
+        "sha256": "bf5583eabc6ddf7dc8e46fc4afba87521365dd5f07a2009ef96cd56394a303cb"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCache.cs",
+        "sha256": "3a86dfb27f796b3547f73d5aa6ab302037fcf7acc8f8bfd66626be809332cd70"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
+        "sha256": "d7435785335b85322777d5ec7f8b9c82fa95fcc102b4338908ec406737d3ebaf"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs",
+        "sha256": "e863496cc3a2f7e53270f1d9923f0bb0b539ede959ca202b419ac10703991e67"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsRuntimePackage.cs",
+        "sha256": "0bf8cdf790a37561eeac508e96ed520d573bdc495d0ba2b07ec6ead490e292d5"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Storage/ReparseSafeFileOpen.cs",
+        "sha256": "e59c08f0fc77bcca386fbe5257bff68be5e9909c40d5e5178f3ccc96d855762b"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/Ct2HelperAdapter.cs",
+        "sha256": "f4fd65e217b42b94deee427e976ad8de49924e64ecae9cef0ed262251bc80bb1"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PrivatePackage.cs",
+        "sha256": "0dfc24cb09e7f4aa50203138f20fa13035d46bee78673f4b9c1eb622abd4f68d"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsBackend.cs",
+        "sha256": "ceece438a44c765504a0e050f0776fe13627b600eff6e84004332bc6fb3e8aa1"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/Ct2LyricsPipeline.cs",
+        "sha256": "d9c8d3300cffc30d1fe432dae9ea087cb3c791252226e66238dcd89b6fc20a4b"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/Ct2PackageInstaller.cs",
+        "sha256": "26f7bc0565d915dc3d18716602cf3ba5b66cd60dab4645583d12e323b04ed481"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
+        "sha256": "644342d9d6880f09a3b1279c1e5a4616f1df5fc6c2f331d88e9d5a57aba109a4"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsSegmentMemo.cs",
+        "sha256": "3d34b684ddfa529da9f8b67031ad0c0c00a57e7a2958996c63ae727149dc9098"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsMetrics.cs",
+        "sha256": "b19ba041dba1f97636ab0c8acbf59197e24dd4bda11a4196cc2093b6d60dc3a6"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationProgress.cs",
+        "sha256": "e8ca386d0414c8239510a37d084bd85a6d648f4e82fd46821fd735ac26ce76be"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs",
+        "sha256": "d5811be5f261420ae243df51df9b3420f47fc5a81882603f9217606ce1b2155c"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
+        "sha256": "9081bc24acec57ca71c24f731009da516c1c20d28d9013e67c79e89d559ac4d6"
+      },
+      {
+        "path": "src/DropSpace.Core/Abstractions/IDlcPackageProvider.cs",
+        "sha256": "9547a0511d7dcc5d477a0e479bc23e8f8c27ac461d5a0d7d10e1896a3e8ced60"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CudaDriverAvailability.cs",
+        "sha256": "2182830054e2ad7507b589643a5e0a84e5104750b02733fe856fad46d64bab87"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
+        "sha256": "51a639638b1f7d45a7e3bfb45dbf65a1df42715bd06e60325978ba430fe7cf90"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/CudaPlainHyLyricsBackend.cs",
+        "sha256": "cfeff8edfba6a12064f45cf65df609f9957c3af16586dfdc1bcb6d487f72eef5"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Dlc/AiModelDlcProvider.cs",
+        "sha256": "b013b5658842227f57c19233c6d638bc7387abc3594cf10ff3e63aa368576cc5"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Dlc/CudaRuntimeDlcProvider.cs",
+        "sha256": "695a7d2bbd2cbaef5d9315bd6cd642b4bbacb23a2d7b1d45abca62d8e7b19c49"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Dlc/DlcManagerService.cs",
+        "sha256": "604e34f246ab92a8c48a80128d68a27de4ad363db68eda940fa48a07a5df161c"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Settings/DlcPage.cs",
+        "sha256": "3370b20c6824258aaf1ad090c9d58a60ec39f70a9a3d07c3a7ca0bc08916ef68"
+      },
+      {
+        "path": "src/DropSpace.App/Views/MainPage.Settings.cs",
+        "sha256": "a5bebce06d504e863a6298ab1ed473fe5253b82e519747ed4eb6f3bbb6a1fd3d"
+      },
+      {
+        "path": "src/DropSpace.App/MainWindow.xaml.cs",
+        "sha256": "3c5ca0c717c7100da242de096f2454d8285575fc388bf0d837db06a43655e9ff"
+      },
+      {
+        "path": "tools/cuda-lyrics-helper/CMakeLists.txt",
+        "sha256": "cf5ed074d797997b083ca26b3c658717d0264c5931acfb0372ffc97a9eeb9e63"
+      },
+      {
+        "path": "tools/cuda-lyrics-helper/adapt_worker.py",
+        "sha256": "dbdf8350791dbd67ad44e90678078bd2146a874acd82b61bed8f2ad4d7446393"
+      },
+      {
+        "path": "tools/cuda-lyrics-helper/cuda-device.h",
+        "sha256": "ad871f2848ba0730427f563b83079c837caa9e830045996f739498a3b8f8b782"
+      },
+      {
+        "path": "scripts/Build-CudaLyricsExperiment.ps1",
+        "sha256": "39f16651805ba1814f30c8b15aea018d82c425c152516581e3446a941b3a7a9f"
+      },
+      {
+        "path": "scripts/package-cuda-runtime.py",
+        "sha256": "6921736e61c06f0e3069e6cd33a9df59c86a46065309aebe02b28b99ef605d8b"
+      },
+      {
+        "path": "scripts/test-ai-release-approval.mjs",
+        "sha256": "63b9e25bfbdabefbd2fa98c39ebe282f3b6e00d91e74c6ac1b51b34957af0ef2"
+      },
+      {
+        "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
+        "sha256": "b492e2f0413449d69e0e37536b941e9e30c2b31c692732a5385ae8c9c6f9deab"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsParser.cs",
+        "sha256": "23184605ca54350ba24fc19b6dd051a0e9c2883547c372bb470b932d1100a2ca"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
+        "sha256": "61424d5ae4dc408cd1ebc011194e580c8ac1b838d3373b9251b3ed40c22e1bb5"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs",
+        "sha256": "babc80ba035760329183670c7062db34a24af40ef060c54c101030cb76cccfe0"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/ArtistCreditOrthography.cs",
+        "sha256": "05f45431c87f7a2b54649d9a1889a905efbe27071650b5205815ede125e8fd8b"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/Data/TSCharacters.txt",
+        "sha256": "9ff46a7d30e5765375eb13d33f2b03a34d298913caf2b120380679f33ae1642d"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/Data/OpenCC-LICENSE.txt",
+        "sha256": "b534e465949558eec2597b04f5092b5e161236a68dfbfd04d547592ac3964308"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsDisplayPolicy.cs",
+        "sha256": "cd06ac6bcbed3e2d43e9422bc9b7c9ef9441c6c32e0467dda9a0aa151b706e15"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsReloadPolicy.cs",
+        "sha256": "c6e585b8f764b996bae1c04e4c011d8afac1b929cb7f661ba864dd55755afb9e"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsLanguagePolicy.cs",
+        "sha256": "f6b0b9d71716a82006c3b5800bdd04e2150fcd8fd01cc0fb9a093a762a9e4151"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsMarqueePolicy.cs",
+        "sha256": "bd5294ac4cb5240c95b447526db2581394b2830d926a63e093b19797d9518796"
+      },
+      {
+        "path": "src/DropSpace.Core/Media/MediaModels.cs",
+        "sha256": "4ae8432a783801e97e3c1ef44feaa9a588ee33c88fd405964fdfc465299b80b0"
+      },
+      {
+        "path": "src/DropSpace.Core/Media/MediaPlaybackClock.cs",
+        "sha256": "9aba066552d82505ed4e23a102c85fa5c85db12968861f660cd78ef1311e03be"
+      },
+      {
+        "path": "src/DropSpace.Core/Media/SpectrumFreshnessPolicy.cs",
+        "sha256": "8468d993a2a64da98d4ef3757d5ea058e04f42893d5d6f307a87e3e23fd3b569"
+      },
+      {
+        "path": "src/DropSpace.Core/Media/MediaProcessIdentityPolicy.cs",
+        "sha256": "2b1683c3949a389e6d8dcfbf754e064db5c527a44094cdfe277c1c0a21ce700c"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/AppSettings.cs",
+        "sha256": "36b51dac151f0cd62a9d5e7bb69ce6df671776dcdb7e8f34b6cfbe0ee9e23424"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/NativeIslandSettings.cs",
+        "sha256": "90065c1c3824609928643a5c7b263ec51b357fefc0c317abef6980a45db50363"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/NativeIslandSettingsPolicy.cs",
+        "sha256": "f37585fdc99d0da6aefc277fb7b7f20861ec003137df7b9ab90634b1dde6a826"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/SettingsChangePolicy.cs",
+        "sha256": "56ab62b6eee469388fa94236dbc138199edb1e15ba91cfce36cff56df4a9e3e5"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/SettingsValidationPolicy.cs",
+        "sha256": "f89a6d8333414327a2168b56612cfbaa5ba56b4a43119afd1a257fe722e4650f"
+      },
+      {
+        "path": "src/DropSpace.Core/Models/SettingsMigration14.cs",
+        "sha256": "16435df396281e1037b111d1c756c1638cc91640fd5e09a067d3bb83fb57fab5"
+      },
+      {
+        "path": "src/DropSpace.Core/Policies/AppLanguagePolicy.cs",
+        "sha256": "b61f073a8654a22c7dbc756a2fc8e01cac403f324630dc40c7b4c9e3ebe6f3d9"
+      },
+      {
+        "path": "src/DropSpace.Core/Abstractions/IAppStringLocalizer.cs",
+        "sha256": "d1bf54b6ed038d63d45f661743791013ae83293b61a44648e341b2948bb35828"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs",
+        "sha256": "39d6017a1db77e4a9133fc516b5828efb6f7382e5e7cf127b168ace0b23d3843"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs",
+        "sha256": "fa1980a56530870b1707a61ce6fbd7245aa02eb436f529eed32ae0af90032d07"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LocalLrcLyricsProvider.cs",
+        "sha256": "b862e5c91bca348bb467231589dbbbd26a253abf70a79be056d480f8dda81b26"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
+        "sha256": "20ad100cc22d6f07846bb329af94e38db4a27b1816d140fb9c715fb8e1ae83fe"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs",
+        "sha256": "877a134388366354d5bb374d487cf807ce87e413ba1f00ace6a4293482ecf19b"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseResponseCache.cs",
+        "sha256": "02b7fa08bdfbc84f7268f16dad5ddae0db77208539e535825917770efc9f4448"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsDiagnostic.cs",
+        "sha256": "4a641b133bd5ce637f4d4106a73e754b2945768850280d2662879d343c136048"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
+        "sha256": "4a87e3663485325b8da90cb9568d2b6ca75133a5a11267fa370c8e6e03e4186a"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
+        "sha256": "e69b513a5992201097f6554ac77e72e02a0e2e0c3c5314638414b4a049ad9328"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs",
+        "sha256": "87f6700da5b62f847da4b4b4d39a7c1d37a7049948ccffe86f7ce570f1bba178"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/ILyricsSelectionRuntime.cs",
+        "sha256": "d5654152147d1591edcfa39983afb8df93db380233ac600ee8fdd9c8f379e7b2"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateSelector.cs",
+        "sha256": "732663e515e405836d59159f05d63252681596dc2ae2f39c5dcb7a48e816b222"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/KugouKrcParser.cs",
+        "sha256": "a16a5b6ba356be3424dace81b87f114dc84056e642d090c5fffaff1826dc4f8c"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
+        "sha256": "a6b11f72c6a078c0ca8e5938dcd2a16aef693a20db1bde8b15e86721a45dd2d7"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs",
+        "sha256": "5c7586d873fbcffc2b9eb99e276697df5ef2cf2b4e2e9d16e6d9f7794b6b1598"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs",
+        "sha256": "f2a19d367f07f5af08d8abacf97e4f45040f7324b9c36efb33f54c40b395ba20"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs",
+        "sha256": "ef1e1e90a021bd660d2396986e2509e75c107be2402afaa02ffa86a1d79aba83"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs",
+        "sha256": "f20395394d5cd27f6a74b976a81a6578f05148f60d17b49fa29692661523b869"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
+        "sha256": "2548a10a64ec702b37a154576bd8decb93eb46bbae3f17be2a41782191ace68b"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
+        "sha256": "2599fe2a8da548787ef7cd2d3c5d333953056faa81316ca0580175db3705a71f"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/BoundedMediaOperation.cs",
+        "sha256": "27de65ef28ce3e33b94ecb8cc642ba3b7d81cd02bec7c6890178e86887d95399"
+      },
+      {
+        "path": "src/DropSpace.App/Services/NativeAsyncLifetime.cs",
+        "sha256": "e80fb2ce7c7cd9555fb0e2ec867e7e70cb364dfc6d1167d3d608162c60dff6ec"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ImageDecoderPreflight.cs",
+        "sha256": "66c0d2141fc4862cb3fc8707ca4bd703461bb0540c730205716a9f95874c7f24"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ThumbnailService.cs",
+        "sha256": "a4ed5a66b5ea3efda5475e0b4d50d6f3d133adbbae401da2829b5ab02320ab4b"
+      },
+      {
+        "path": "src/DropSpace.App/App.xaml.cs",
+        "sha256": "4ac4137826516cd5c784d2701654697c9aeb1f574bbade4840972439385d1a38"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
+        "sha256": "ece33876cbc43190dfac0e9cb5fd0ec87e3a165fc972c4b30a8871ab419bd57f"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmokeOptions.cs",
+        "sha256": "e45c11ec1c0e3b952cbb038c55bdfa96b87e3a812e437e5154aa52469eb51cb4"
+      },
+      {
+        "path": "src/DropSpace.App/Views/MainPage.xaml",
+        "sha256": "63937562cdd9b34cc821ee69f6f6b04a15d47917de7a49395ebb8a335daa2245"
+      },
+      {
+        "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
+        "sha256": "41dc9c9b3a9021d63da369c18da27e714bac4b1764d2b1cae1d70eff588f74ef"
+      },
+      {
+        "path": "src/DropSpace.App/Services/AppLanguageService.cs",
+        "sha256": "e6efd53e10acd8f276c9a0b57aa84de94aa5f95f7a7efbc11468162cc23ed14f"
+      },
+      {
+        "path": "src/DropSpace.App/Services/ResourceStringLocalizer.cs",
+        "sha256": "df207e2848377bf22b94e1116b7dd92fe9d95ecf3acaa3e9620542738882a87e"
+      },
+      {
+        "path": "src/DropSpace.App/Services/SettingsApplicationCoordinator.cs",
+        "sha256": "3c50d4870085cc903c4647b430036a4864f3ecc926a662da0234dade50fd0947"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
+        "sha256": "ce8e4f732f86be439f9fde79a1c5a7cf3dfb3af2f995131d8c5274d95fb151f9"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
+        "sha256": "bd303fe8cb0e7958b87f9a5fbde16224d416d6e31392cca2197707c64fb646f4"
+      },
+      {
+        "path": "src/DropSpace.App/ViewModels/NativeSettingsEditor.cs",
+        "sha256": "4ac546b5a21e9f1f42bfa73a0a4a7673415bb847ab94cdcdd2052d5b6a44e4cf"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
+        "sha256": "5b877a562a9d4501893c83fe13b72d51989ab036282acf8a7fb60663c4ed4d34"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Music/LyricsRowCollection.cs",
+        "sha256": "7ad337a9a62a955bbecf5e9211fcb090fa6c7b33180535054a302a0161debfc8"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs",
+        "sha256": "ea16bfe5633ce2662c5971f25e731521d69bbcf13210ad5c9635e9a779263b9f"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
+        "sha256": "d95e8756faa6c2da9724b767d72bc0720056934da83a4ff161aeb48dfc33ef8d"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml",
+        "sha256": "3f855dbdd4011373e27b0f99c4bbb8c747bac7a4243f29561abcc58a6b041f32"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml.cs",
+        "sha256": "b80d1c589c4bc5ecb9634b484324bbd198e99ce191dddebbc24d1aab8f518380"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaRenderQueue.cs",
+        "sha256": "6229438979a7be880765b66555f2356c4640476069b1fac42afe921e02d1726b"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/MediaExpandedView.xaml",
+        "sha256": "075de51e3758511b2d0c6d836ef42f5195afd328015d63fb9ac8569d9b0f7d9c"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsGlowEnvelope.cs",
+        "sha256": "85a9c97142ca350ba3015d8a6683f89162af66b9f61d5ce42414b9f515df66e5"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsGlowAudioResponse.cs",
+        "sha256": "4947f7b75f2eb5402148c19422c4c610f0ec819d50f512026bf365501ee29f9a"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsGlowHandoff.cs",
+        "sha256": "839bc0d97a849d6e8919bf030246cb168f25cd8fc936c2555ab816c17544ef69"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsGlowPolicy.cs",
+        "sha256": "a3c0c88075c0752ed15f4b56847fbc84e9d024a4988b9231152d533e3b26e960"
+      },
+      {
+        "path": "src/DropSpace.App/Services/IslandGlowController.cs",
+        "sha256": "b9404ecb5f9a933d12f0748f22d04588ab995f41e4c492500071e0c2a4e0abbf"
+      },
+      {
+        "path": "src/DropSpace.App/Services/IslandGlowRasterizer.cs",
+        "sha256": "41677f57440f04ddf55b9ddc37f3385acad028ed331e0080137d3ca65d3cb303"
+      },
+      {
+        "path": "src/DropSpace.App/Services/IslandGlowWindow.cs",
+        "sha256": "f6527c0538021334d35761d0d6068afaebca1b03adaa65486ecf8dc87f219631"
+      },
+      {
+        "path": "src/DropSpace.App/OverlayWindow.xaml.cs",
+        "sha256": "15d9667b8b6c9b288f802fd2289a31a589f02c3ffeec6e1de137c7a14dcdbc2b"
+      },
+      {
+        "path": "src/DropSpace.App/Services/AcrylicCoverageBackdropTarget.cs",
+        "sha256": "e192484a1aa1b9c6f3c3ad7530660b62bd9c5baaafcff356021df2d50baae592"
+      },
+      {
+        "path": "src/DropSpace.App/Services/AcrylicCoverageMask.cs",
+        "sha256": "c83fd49143debc8dccae9a2abf91b61a4e64b7a7fade25860f8c73bdcafdab4f"
+      },
+      {
+        "path": "src/DropSpace.App/Services/AcrylicShutterBlur.cs",
+        "sha256": "263d60c797fa008a911bad61d67b3e1b273ca020c4eaf1c47747f7192830da89"
+      },
+      {
+        "path": "src/DropSpace.App/Services/CompositionEffectDescriptions.cs",
+        "sha256": "3bbed9238739bf4c3246d61c96e1db1c68a3865b5ae5c798b7b519c316842c8c"
+      },
+      {
+        "path": "src/DropSpace.App/Services/DisplayIdentityService.cs",
+        "sha256": "187ed0921f88225db00789783ec34885b9296afed46005c87a88bbc08580d71b"
+      },
+      {
+        "path": "src/DropSpace.App/Services/IslandAcrylicBackdrop.cs",
+        "sha256": "66e3ca8d86bf6e53c310ce08412c7c797be4132b4aabb5d6b5e035ce83a7288f"
+      },
+      {
+        "path": "src/DropSpace.App/Services/IslandMotionBlurPolicy.cs",
+        "sha256": "14defadc16bb939ea49a1e6bbfb5e4dc6d88f7429de8b98cc5b4756726a5c789"
+      },
+      {
+        "path": "src/DropSpace.App/Services/IslandTransparentBackdrop.cs",
+        "sha256": "bc8e35eb4c4325eecb7ef79aeca67af38a4a46f510b305105899030de27c473d"
+      },
+      {
+        "path": "src/DropSpace.App/Services/MonitorLayoutService.cs",
+        "sha256": "b4ea857a64c2044b70d3fc2256d8c39ce383518c625c381f8711009a4cf49fb0"
+      },
+      {
+        "path": "src/DropSpace.App/Services/OverlayMaterialController.cs",
+        "sha256": "d70bc027343c7892b6101ebdd5b8138da487aea7a58ca451ed7154be088ff5c1"
+      },
+      {
+        "path": "src/DropSpace.App/Services/OverlayMotionOrchestrator.cs",
+        "sha256": "4555c2408bb2c222c913b088120d3ea55242e2bceb4cc684d2023a16311b0dd2"
+      },
+      {
+        "path": "src/DropSpace.App/Services/OverlayNativeRegionController.cs",
+        "sha256": "17254d9026b13625345107d48112a97c4b6f7e68a97c5b80131deed44d3d29ba"
+      },
+      {
+        "path": "src/DropSpace.App/Services/OverlayTransparentHostController.cs",
+        "sha256": "cf30451385a332314c82cb79aa6de5c18ebc41d1d08747c082ff6e54330e7a4b"
+      },
+      {
+        "path": "src/DropSpace.App/Services/OverlayWindowInterop.cs",
+        "sha256": "fd7984f6f14173d93f1a29584efe3aee496623009d1777a02ebc82de48435299"
+      },
+      {
+        "path": "src/DropSpace.App/Services/OverlayWindowService.cs",
+        "sha256": "bb7724b87eb1bc4fe1a7291022d7cb68bdbf20e16a1c771a65a7acc349cf7914"
+      },
+      {
+        "path": "src/DropSpace.Core/Overlay/OverlayFrameGeometry.cs",
+        "sha256": "0c55a84dfb3ac767b9a24ab32dbcb5480bfafc1e5567bdea2c611285a50e8e46"
+      },
+      {
+        "path": "src/DropSpace.Core/Overlay/OverlayFramePacer.cs",
+        "sha256": "e83e85ae1817f4db0fce43baea39ba79ba1dff67196ee24a056e229102d2d108"
+      },
+      {
+        "path": "src/DropSpace.Core/Overlay/OverlayMotionController.cs",
+        "sha256": "4d93a6066ec9b8012d9a7fe24fa01ba380d768ca55619b469ffb8aafb7ad3b30"
+      },
+      {
+        "path": "src/DropSpace.Core/Overlay/OverlayRegionSignature.cs",
+        "sha256": "bb47b8ff817b6c7802e5657c6664fc95f6e21f82188bc658c95a8eb8fd26f4cb"
+      },
+      {
+        "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
+        "sha256": "c8d628e55574e94142f662c7cfcb13ce085b54e321ec9d12a8094305f60a4f05"
+      },
+      {
+        "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
+        "sha256": "80378ac3c05462294ab15930834b33130668e8bf77c8b9890e5ad00d65bcf31a"
+      },
+      {
+        "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
+        "sha256": "258977ce2dce7cc02fba23431acde5c6a8e6bb133e361b46b2294b44938ae0a3"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaApplicationIconService.cs",
+        "sha256": "7798b0845782508ad258d82befb65b0d66a5de976c08db356ff7b86f6cf8aee4"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaArtworkService.cs",
+        "sha256": "a9cc757f3ed9f7a9c71edd6f84e7b0a02942923959467ff219c8a99fbb769265"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaEventSubscription.cs",
+        "sha256": "3c4681ab0d5d5ba36a729c2a714d558934e3376a75d8bd6f900df8f1a15c6ab4"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaProcessResolver.cs",
+        "sha256": "0fadb045c28a95ad8d8d7c43bb8a25a953bb5d3a3d3a30e57b1cf3e8eca2c677"
+      },
+      {
+        "path": "src/DropSpace.Core/Lyrics/LyricsPreviewPolicy.cs",
+        "sha256": "c9b75a00df9bfde841a4a4bc05a6463bd22b4ff5b58760db879d0d3d7f3374ae"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml",
+        "sha256": "5744ac7b1f26a7774b49d16c942eb6f48b508948285dc12d95ca6b5ca5eea7b9"
+      },
+      {
+        "path": "src/DropSpace.App/Views/Island/ExpandedIslandMusicView.xaml.cs",
+        "sha256": "7f78a3f5500d13c0b418e8755a6406cc098a65ece0fa6d6153515af499e51c95"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaSoftRestartOperation.cs",
+        "sha256": "bb330e48706e3554b6890c365e04d55f2e8da3b6f67ff7f221f1c858d6d905be"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaLyricsRefreshRequest.cs",
+        "sha256": "0d6bc2e1359d38f2e7ca430c45f2620927dba33edcd467147fdcede3b9eb524b"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/RetirableMediaWork.cs",
+        "sha256": "11fa91ce1d6aba31bf8e0617fdc42fa8116b9b05887f142374c3885860ac2a36"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaSessionOwner.cs",
+        "sha256": "8dfbb3fdd23900f0466561aa39dccfaab7ddccaf07a924a329ea052d585535d9"
+      },
+      {
+        "path": "src/DropSpace.App/Services/Media/MediaSubscriptionAdmission.cs",
+        "sha256": "24f2084921a7763676ac142a64129b964c23021e77e4dccec839f1effe080ee4"
+      },
+      {
+        "path": "src/DropSpace.App/OverlayWindow.xaml",
+        "sha256": "e4794dbb83d5d82ad4aa957e9b68a022a0a2607cd2a408b497ebd1203f20157d"
+      },
+      {
+        "path": "scripts/ai-model-qa/profiles/minimal-target-only.json",
+        "sha256": "0cef6d2b208dc327f1e1cddfbf2da745fa28b462a9ba73203d50bd6fcadf91bf"
+      },
+      {
+        "path": "scripts/Build-AiLyricsRuntime.ps1",
+        "sha256": "e6d8d3256b8840a66efcde5d69842ca7e1586ce48dab616284c9e321c4c21d3a"
+      },
+      {
+        "path": "scripts/Prepare-VulkanBuildDependencies.ps1",
+        "sha256": "08fa2f6bfc36f4f8a19e9b98abfcff50b34212bf161811cbd009a304b4445c10"
+      },
+      {
+        "path": "scripts/build-dependencies/vulkan/vcpkg.json",
+        "sha256": "43718fb732f76bb089dc2e270d2619132de835cfe21a1f729d58d2656dded079"
+      },
+      {
+        "path": "scripts/ai-model-qa/Program.cs",
+        "sha256": "481ec8d956c00d99c3a37ec59c624f4127ecfd7321712a7a19912ae63d265871"
+      },
+      {
+        "path": "scripts/ai-model-qa/Run-WindowsModelQa.ps1",
+        "sha256": "c5cd9021be5e10cf6d284ced5d5b159f01414085cd254c4360c938de308cd1e7"
+      },
+      {
+        "path": "scripts/ai-model-qa/WindowsModelQa.csproj",
+        "sha256": "edc9d2b6e4d3a4dc3930a620588cb8eb976251a86c82c4fd16d2568b0aa65bfb"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/PlainHyProductionEvidence.csproj",
+        "sha256": "c109fdf412969d70e434659e6e0c6a2b31c34f0e3ac15ceba4014a0493f3b832"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/packages.lock.json",
+        "sha256": "c63221abf724af701114acc89cc8ec64b2db3d4277c16db3c2c466be74a744b6"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/Program.cs",
+        "sha256": "1503d1efe3357845fe2542aa3ffe0e9f240ffad8c261d9f999ab650f15a99715"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
+        "sha256": "50e203c100ac3412cf86f8e387b10d03d88cd6a2a24ebf8dfdc440fea054eaae"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/ContractTests.cs",
+        "sha256": "6da085dd00c6f7ab6f2d95745c19ee1ad2af0ed9d63b4e083852a89f0c31fb39"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/Run-WindowsProductionEvidence.ps1",
+        "sha256": "bacffa1480b707ce5a4409b2ce3d9c25580abbe491a6436692e2f7e949a36297"
+      },
+      {
+        "path": "scripts/plain-hy-production-evidence/Test-ProductionEvidenceContract.ps1",
+        "sha256": "4902075e025e47a1638517a95f367a453d173f29e6e9e05b728a5301ba308df1"
+      },
+      {
+        "path": "scripts/Get-AiLyricsSmokeModel.ps1",
+        "sha256": "4f8887685f9f934e5606a3b98cc276fefa74317234311f2c3130d755d0574dd9"
+      },
+      {
+        "path": "scripts/Test-AiLyricsRuntime.ps1",
+        "sha256": "991cc5eab4f576aabc4ec9a4b1aa515e70cc20c663f2e2ec69594b00c77de352"
+      },
+      {
+        "path": "src/DropSpace.Core/DropSpace.Core.csproj",
+        "sha256": "c39300696b20d569b5d47c3fa7d93113c2813ba11a182424e26f4854ffb12157"
+      },
+      {
+        "path": "src/DropSpace.App/DropSpace.App.csproj",
+        "sha256": "69f6f962fb89e446c9e791eafd344697addca748099e58e460bd682fc034f2b4"
+      },
+      {
+        "path": "scripts/Build-PortableExe.ps1",
+        "sha256": "4b2735c47285f27f93b993774078620ddcda92dcd819744e29e075b74e6317c3"
+      },
+      {
+        "path": "scripts/Build-UnsignedPackage.ps1",
+        "sha256": "b2802ddc1c8a5859c2da4f9377dfd3ed8016dbb09f1c29f2005bd375f4b46ca5"
+      },
+      {
+        "path": "scripts/Build-Installer.ps1",
+        "sha256": "6fcc0737185cbc9b8d604b5c8cc25feb98767572a2f824e81fae97e5dbc87800"
+      },
+      {
+        "path": "scripts/Collect-AiRuntimeNotices.ps1",
+        "sha256": "ccbe0b2d1cc47f901e603c5cebc0c602a4d12d84b8ac2f6edc2075150f13d264"
+      },
+      {
+        "path": "tools/ct2-helper/helper.py",
+        "sha256": "c8060dc31515f9b192dda42152f4247c880bb5aba5f28437b2e7a2f5dfc70aed"
+      },
+      {
+        "path": "tools/ct2-helper/build.ps1",
+        "sha256": "89c3c5434bb2215fd9c164113e1ac324f4a793ef318c4aa7176d9c61af32cc19"
+      },
+      {
+        "path": "tools/ct2-helper/dependencies.schema.json",
+        "sha256": "7c153c53f177a91184ab35993151e9bc80377e412c312398d94bf28f31c60141"
+      },
+      {
+        "path": "tools/ct2-helper/private-package-manifest.schema.json",
+        "sha256": "2c8a8e7677c96eecfb0cdf387793f02769b93914a8c49853c5ef4d3d93dc071d"
+      },
+      {
+        "path": "tools/plain-lyrics-helper/CMakeLists.txt",
+        "sha256": "b4abd81cfb2fe6504c74a3ed8eb3adc91e688e2911bf8d44ef461d860dbbccbe"
+      },
+      {
+        "path": "tools/plain-lyrics-helper/gpu-policy.h",
+        "sha256": "c7a2259aae2e623e268d44167862797d3e3f726b3ee3abcb43cccb02aa586130"
+      },
+      {
+        "path": "tools/plain-lyrics-helper/main.cpp",
+        "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
+      }
+    ],
+    "sha256": "4ac2187460c23f5f6afb47ccf8091140c57f3abec82fa1c475897098d7b9c5f9"
+  },
+  "cudaRuntimeId": "llama-cpp-v0.5.0-cuda13-win-x64-v1",
+  "cudaAssets": "Real local producer/archive recorded; final App SHA descriptor rebinding and publication pending",
+  "validation": "Manual integration only; no tests or repeated builds.",
+  "cudaProducerEvidence": "docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json",
+  "releaseVersion": "v0.3.1-beta.11",
+  "ownerDecision": {
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.11-owner-decision.md",
+    "sha256": "88ebb891ad60f3c4c5812b7e8acdecb62e1db45a184ec7183c5dbec743bb07a0"
+  },
+  "runtimeProvenance": "Original reviewed CPU/Vulkan bytes pinned by exact manifest; current native source is recorded separately in release scope. CUDA source/bytes are bound by actual producer report."
+}
