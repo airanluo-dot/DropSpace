@@ -177,9 +177,9 @@ public sealed class LyricsService
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { document = SelectTranslation(document, candidates.Document, target, kind, backup); return new(document, document.Lines.Count > 0 ? LyricsQueryStatus.Found : LyricsQueryStatus.Failed, document.Lines.Count > 0 && NeedsTranslationSearch(document, target)) { SelectionCandidates = candidates.Snapshot }; }
     }
-    // Rules/assisted start at the first strictly validated original. Full selection
-    // starts no later than the first comparable fetched candidate, even if artist
-    // identity still needs AI. Candidate/source changes never restart three seconds.
+    // Weak-only collection has a provisional bound. The first strictly validated
+    // original gets the full shared three-second source window; later candidates
+    // cannot extend it. Selection starts separately after this snapshot freezes.
     private sealed class CandidateSearch : IDisposable
     {
         private readonly object _gate = new();
@@ -189,12 +189,11 @@ public sealed class LyricsService
         private readonly LyricsProviderKind? _backup;
         private readonly CancellationTokenSource _budget;
         private LyricsDocument _document = LyricsDocument.Empty;
-        private bool _started, _closed, _truncated, _originalReported, _previewReported;
+        private bool _started, _provisionalStarted, _closed, _truncated, _originalReported, _previewReported;
         private readonly Action<LyricsDocument>? _reportOriginal;
         private readonly bool _captureCandidates;
         private readonly Dictionary<string, LyricsDocument> _collected = new(StringComparer.Ordinal);
         private int _collectedBytes;
-        private long _deadlineTimestamp;
         private readonly TaskCompletionSource _originalAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task OriginalAvailable => _originalAvailable.Task;
         private readonly TaskCompletionSource _preferredTranslationAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -217,7 +216,9 @@ public sealed class LyricsService
             get
             {
                 lock (_gate) return new(_collected.OrderBy(pair => pair.Value.Provider).ThenBy(pair => pair.Value.Match!.CandidateId, StringComparer.Ordinal)
-                    .Select((pair, index) => LyricsCandidateRules.Describe("c" + index, pair.Value, _target)).ToArray(), _deadlineTimestamp, _truncated);
+                    .Select((pair, index) => LyricsCandidateRules.Describe("c" + index, pair.Value, _target)).ToArray(),
+                    _captureCandidates && _collected.Count > 0 ? System.Diagnostics.Stopwatch.GetTimestamp() +
+                        LyricsCandidateSelectionProtocol.MaximumDecisionSeconds * System.Diagnostics.Stopwatch.Frequency : 0, _truncated);
             }
         }
         private static int EstimateBytes(LyricsDocument doc) => checked(
@@ -239,12 +240,15 @@ public sealed class LyricsService
             lock (_gate)
             {
                 if (_closed || Token.IsCancellationRequested) return;
-                if (!_started && (_query.CollectSelectionCandidates || NeedsTranslationSearch(valid, _target)))
+                if (!_started && valid.Lines.Count > 0 && (_captureCandidates || NeedsTranslationSearch(valid, _target)))
                 {
                     _started = true;
-                    _deadlineTimestamp = System.Diagnostics.Stopwatch.GetTimestamp() + 3 * System.Diagnostics.Stopwatch.Frequency;
-                    // Reserve selection inside the same absolute three seconds.
-                    _budget.CancelAfter(TimeSpan.FromMilliseconds(_captureCandidates ? 2500 : 3000));
+                    _budget.CancelAfter(TimeSpan.FromSeconds(3));
+                }
+                else if (!_started && !_provisionalStarted && _query.CollectSelectionCandidates)
+                {
+                    _provisionalStarted = true;
+                    _budget.CancelAfter(TimeSpan.FromSeconds(3));
                 }
                 if (_captureCandidates)
                 {

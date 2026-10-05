@@ -67,6 +67,9 @@ public static class LyricsCandidateRules
 public static class LyricsCandidateSelectionProtocol
 {
     public const string Version = "native-candidate-id-v1";
+    // Separate background ceiling after the provider snapshot freezes; Qwen's observed
+    // admitted case took 9.06s cold. This never consumes the three-second source window.
+    public const int MaximumDecisionSeconds = 12;
     public const int MaximumCandidates = 15;
     public const int MaximumPromptBytes = 8192;
     public const int MaximumOutputBytes = 128;
