@@ -714,12 +714,37 @@
   <data name="AiLyricsCudaComponents" xml:space="preserve"><value>打开 DLC 组件管理</value></data>
   <data name="AiLyricsCudaTitle" xml:space="preserve"><value>下载 CUDA 加速组件</value></data>
   <data name="AiLyricsCudaDownloadBody" xml:space="preserve"><value>检测到 NVIDIA 显卡。CUDA 需要单独下载约 {0} MiB 的运行组件，已有 AI 模型不会重复下载。可在 DLC 页面下载或删除；暂不下载时继续使用 Vulkan，必要时回退 CPU。</value></data>
-  <data name="AiLyricsActualBackend" xml:space="preserve"><value>实际后端：{0}</value></data>
-  <data name="AiLyricsBackendPending" xml:space="preserve"><value>实际后端将在完成一次推理后显示。</value></data>
+  <data name="AiLyricsActualBackend" xml:space="preserve"><value>最近一次推理后端：{0}</value></data>
+  <data name="AiLyricsBackendPending" xml:space="preserve"><value>当前没有执行中的推理，等待执行。</value></data>
+  <data name="AiLyricsSelectedBackend" xml:space="preserve"><value>选择的后端：{0}</value></data>
+  <data name="AiLyricsBackendStarting" xml:space="preserve"><value>正在准备工作进程，尚未开始推理。</value></data>
+  <data name="AiLyricsBackendExecuting" xml:space="preserve"><value>当前执行后端：{0}，正在等待本次推理结果。</value></data>
+  <data name="AiLyricsBackendCached" xml:space="preserve"><value>当前命中缓存，本次未运行推理。</value></data>
+  <data name="AiLyricsLastBackend" xml:space="preserve"><value>上次完成推理：{0}（{1}）</value></data>
+  <data name="AiLyricsRuntimeFailure" xml:space="preserve"><value>运行记录：请求 {0}，尝试 {1}；{2}；原因：{3}；退出码：{4}。</value></data>
+  <data name="AiLyricsExitNotObserved" xml:space="preserve"><value>未取得</value></data>
+  <data name="AiLyricsWorkerStopped" xml:space="preserve"><value>该进程由应用终止。</value></data>
+  <data name="AiLyricsWorkerExited" xml:space="preserve"><value>未请求强制终止。</value></data>
+  <data name="AiLyricsCpuFallbackAttempted" xml:space="preserve"><value>已尝试回退 CPU；成功结果见上次完成推理。</value></data>
+  <data name="AiLyricsInferenceFailed" xml:space="preserve"><value>本次尝试未完成。</value></data>
+  <data name="AiLyricsRetryGpu" xml:space="preserve"><value>下次推理重新尝试 GPU</value></data>
+  <data name="AiLyricsFailureTimeout" xml:space="preserve"><value>启动或推理超时</value></data>
+  <data name="AiLyricsFailureMemory" xml:space="preserve"><value>可用内存不足或超过内存预算</value></data>
+  <data name="AiLyricsFailureGpuAdmission" xml:space="preserve"><value>GPU 设备或可用显存未通过准入检查</value></data>
+  <data name="AiLyricsFailureArchitecture" xml:space="preserve"><value>CUDA 内核与设备或驱动不兼容</value></data>
+  <data name="AiLyricsFailureDevice" xml:space="preserve"><value>CUDA 设备或驱动不可用</value></data>
+  <data name="AiLyricsFailureRuntime" xml:space="preserve"><value>运行库加载或工作进程启动失败</value></data>
+  <data name="AiLyricsFailureCompute" xml:space="preserve"><value>GPU 计算或解码失败</value></data>
+  <data name="AiLyricsFailureModel" xml:space="preserve"><value>模型或推理上下文加载失败</value></data>
+  <data name="AiLyricsFailureValidation" xml:space="preserve"><value>组件完整性或工作进程响应校验失败</value></data>
+  <data name="AiLyricsFailureUnknown" xml:space="preserve"><value>工作进程未完成有效响应，具体原因见诊断日志</value></data>
+  <data name="SettingsRecoveredPreferencesKept" xml:space="preserve"><value>部分界面设置无法读取，已恢复安全值并保留可用偏好。原配置已保存到数据目录的 quarantine 文件夹；请检查设置。</value></data>
+  <data name="SettingsRecoveredDefaults" xml:space="preserve"><value>原配置无法安全读取，本次使用默认设置，AI 开关可能与之前不同。原文件已保存在数据目录的 quarantine 文件夹；请检查并恢复需要的偏好。</value></data>
+  <data name="DlcDeleteEnabledModel" xml:space="preserve"><value>这是当前 AI 歌词模型。删除会等待正在进行的推理退出；AI 启用偏好会保留，重新安装或选择可用模型后才能继续翻译。</value></data>
   <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA 组件尚未安装，当前可使用 Vulkan / CPU。</value></data>
   <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
-  <data name="DlcDescription" xml:space="preserve"><value>统一管理额外下载的 AI 模型和运行组件。仅在你主动选择时下载。</value></data>
+  <data name="DlcDescription" xml:space="preserve"><value>统一管理额外下载的模型、运行库和功能组件。仅在你主动选择时下载。</value></data>
   <data name="DlcManage" xml:space="preserve"><value>前往 DLC 管理下载</value></data>
   <data name="DlcInstalled" xml:space="preserve"><value>已下载</value></data>
   <data name="DlcAvailable" xml:space="preserve"><value>未下载</value></data>
@@ -761,4 +786,62 @@
   <data name="DlcOperationFailed" xml:space="preserve"><value>无法打开此操作，请重试。</value></data>
   <data name="DlcCudaPurpose" xml:space="preserve"><value>在兼容的 NVIDIA 显卡上加速离线 AI 歌词翻译，复用已安装模型。</value></data>
   <data name="DlcCudaUnsupported" xml:space="preserve"><value>需要兼容的 NVIDIA 驱动。</value></data>
+  <data name="DownloadCustom" xml:space="preserve"><value>下载自定义文件</value></data>
+  <data name="DownloadUrl" xml:space="preserve"><value>下载地址</value></data>
+  <data name="DownloadSaveTo" xml:space="preserve"><value>保存到</value></data>
+  <data name="DownloadFileName" xml:space="preserve"><value>文件名</value></data>
+  <data name="DownloadAutoName" xml:space="preserve"><value>留空时从下载地址安全推断</value></data>
+  <data name="DownloadStart" xml:space="preserve"><value>开始下载</value></data>
+  <data name="DownloadOpenFolder" xml:space="preserve"><value>打开文件夹</value></data>
+  <data name="DownloadChoose" xml:space="preserve"><value>选择</value></data>
+  <data name="DownloadSettings" xml:space="preserve"><value>下载设置</value></data>
+  <data name="DownloadConcurrentCount" xml:space="preserve"><value>同时下载数量</value></data>
+  <data name="DownloadConnections" xml:space="preserve"><value>最大线程数（1–256）</value></data>
+  <data name="DownloadConnectionsHint" xml:space="preserve"><value>所有文件、模型和组件共享此连接上限。连接会随实际下载进展逐渐增加，小文件或不支持安全分段的服务器使用较少连接。</value></data>
+  <data name="DownloadSpeed" xml:space="preserve"><value>速度限制（MiB/s）</value></data>
+  <data name="DownloadUnlimited" xml:space="preserve"><value>不限速 · 0 表示不限速；1 MiB/s = 1,048,576 字节/秒</value></data>
+  <data name="DownloadDefaultDirectory" xml:space="preserve"><value>默认下载位置</value></data>
+  <data name="DownloadError" xml:space="preserve"><value>操作失败，请检查下载地址、目录权限和磁盘空间后重试。</value></data>
+  <data name="DownloadPause" xml:space="preserve"><value>暂停</value></data>
+  <data name="DownloadResume" xml:space="preserve"><value>继续</value></data>
+  <data name="DownloadCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="DownloadRetry" xml:space="preserve"><value>重试</value></data>
+  <data name="DownloadUnknownSize" xml:space="preserve"><value>未知大小</value></data>
+  <data name="DownloadActiveConnections" xml:space="preserve"><value>活动连接：{0}</value></data>
+  <data name="DownloadStateQueued" xml:space="preserve"><value>排队中</value></data>
+  <data name="DownloadStateResolving" xml:space="preserve"><value>连接中</value></data>
+  <data name="DownloadStateDownloadingFile" xml:space="preserve"><value>下载中</value></data>
+  <data name="DownloadStateFinalizing" xml:space="preserve"><value>校验和保存中</value></data>
+  <data name="DownloadStateCompleted" xml:space="preserve"><value>已完成</value></data>
+  <data name="DownloadStatePaused" xml:space="preserve"><value>已暂停</value></data>
+  <data name="DownloadStateFailed" xml:space="preserve"><value>下载失败，可重试</value></data>
+  <data name="DownloadStateCancelled" xml:space="preserve"><value>已取消</value></data>
+  <data name="QqMusicCheck" xml:space="preserve"><value>重试</value></data>
+  <data name="QqMusicCheckFailed" xml:space="preserve"><value>暂时无法连接，请稍后重试。</value></data>
+  <data name="QqMusicChecking" xml:space="preserve"><value>正在连接…</value></data>
+  <data name="QqMusicCloseLogin" xml:space="preserve"><value>关闭</value></data>
+  <data name="QqMusicCompleteLogin" xml:space="preserve"><value>等待登录…</value></data>
+  <data name="QqMusicLoginHelp" xml:space="preserve"><value>使用 QQ 或微信登录，完成后点击保存。</value></data>
+  <data name="QqMusicLoginMissing" xml:space="preserve"><value>请先完成登录。</value></data>
+  <data name="QqMusicLoginTitle" xml:space="preserve"><value>QQ 音乐登录</value></data>
+  <data name="QqMusicNavigationBlocked" xml:space="preserve"><value>此页面暂时无法打开。</value></data>
+  <data name="QqMusicOpening" xml:space="preserve"><value>正在打开登录页…</value></data>
+  <data name="QqMusicPageFailed" xml:space="preserve"><value>登录页无法打开，请稍后重试。</value></data>
+  <data name="QqMusicSaveFailed" xml:space="preserve"><value>未能保存更改，请重试。</value></data>
+  <data name="QqMusicSignIn" xml:space="preserve"><value>登录 QQ 音乐</value></data>
+  <data name="QqMusicSignOut" xml:space="preserve"><value>退出登录</value></data>
+  <data name="QqMusicStateConnected" xml:space="preserve"><value>已登录</value></data>
+  <data name="QqMusicStateExpired" xml:space="preserve"><value>登录已过期，请重新登录。</value></data>
+  <data name="QqMusicStateRejected" xml:space="preserve"><value>暂时无法连接 QQ 音乐，请稍后重试。</value></data>
+  <data name="QqMusicStateSaved" xml:space="preserve"><value>已登录</value></data>
+  <data name="QqMusicStateSignedOut" xml:space="preserve"><value>登录后可获取 QQ 音乐歌词</value></data>
+  <data name="QqMusicStateStorageError" xml:space="preserve"><value>无法恢复登录，请重新登录。</value></data>
+  <data name="QqMusicUseLogin" xml:space="preserve"><value>保存</value></data>
+  <data name="QqMusicLoginReady" xml:space="preserve"><value>登录成功</value></data>
+  <data name="QqMusicSignInAgain" xml:space="preserve"><value>重新登录</value></data>
+  <data name="DlcVisualCppTitle" xml:space="preserve"><value>Microsoft Visual C++ 运行库</value></data>
+  <data name="DlcVisualCppPurpose" xml:space="preserve"><value>网易云音乐增强组件所需的运行库。</value></data>
+  <data name="DlcVisualCppShared" xml:space="preserve"><value>由 Windows 管理，其他应用也可能使用。</value></data>
+  <data name="DlcVisualCppInstallNotice" xml:space="preserve"><value>将从微软下载并安装运行库，Windows 可能请求管理员权限。</value></data>
+  <data name="DlcNeteaseRemoveNotice" xml:space="preserve"><value>移除增强组件会重新启动网易云音乐。你的资料库和歌单将保留。</value></data>
 </root>

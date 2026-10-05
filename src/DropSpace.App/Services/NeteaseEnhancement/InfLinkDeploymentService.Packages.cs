@@ -14,6 +14,7 @@ public sealed partial class InfLinkDeploymentService
         {
             string path = Path.Combine(directory, name);
             DeploymentPaths.AssertSafe(path);
+            DropSpace.Infrastructure.Downloads.HttpRangeDownloader.DeleteStagingFiles(path + ".download");
             File.Delete(path);
         }
         if (Directory.Exists(directory)) Directory.Delete(directory, recursive: false);

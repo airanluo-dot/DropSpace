@@ -25,6 +25,7 @@ internal static class LyricsDiagnostics
 
     public static void Report(Action<LyricsDiagnostic>? observer, LyricsDiagnostic value)
     {
+        LyricsRequestTrace.Record("diagnostic", value);
         try { observer?.Invoke(value); }
         catch (Exception error) when (error is not OutOfMemoryException) { /* Diagnostics cannot break provider work. */ }
     }

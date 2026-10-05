@@ -9,6 +9,9 @@ namespace DropSpace.App.Services.Media;
 
 public enum AiLyricsTranslationState { Ready, Translating, Completed, Unavailable, ResourcesUnavailable }
 
+public sealed record AiLyricsExecutionView(PlainLyricsCurrentExecution? Current,
+    PlainLyricsExecutionStatus? Last, PlainLyricsRuntimeFailure? Failure, bool FromCache);
+
 /// <summary>Retains the request/cache fence until the final document reaches its UI dispatcher.</summary>
 public sealed class AiLyricsPublication(LyricsDocument document, Func<bool> isCurrent)
 {
@@ -30,7 +33,23 @@ public sealed class AiLyricsService : IDisposable
     private readonly CudaLyricsRuntimePackage? _cudaPackage;
     private readonly PersistentPlainLyricsRunner? _residentRunner;
     public bool IsNvidia => CudaDriverAvailability.IsCompatible();
-    public string? ActualBackend => _residentRunner?.LastExecutionBackend;
+    public string? ActualBackend => _residentRunner?.CurrentExecution?.Backend;
+    public AiLyricsExecutionView GetExecutionStatus(LyricsSettings settings)
+    {
+        var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+        bool Matches(string hash, bool gpu, LyricsGpuBackend preference) => settings.Enabled && settings.AiTranslationEnabled &&
+            model?.Sha256 == hash && settings.AiLyricsGpuAccelerationEnabled == gpu && settings.AiLyricsGpuBackend == preference;
+        var current = _residentRunner?.CurrentExecution;
+        var last = _residentRunner?.LastExecutionStatus;
+        var failure = _residentRunner?.LastFailure;
+        lock (_stateGate)
+            return new(current is not null && Matches(current.ModelSha256, current.GpuEnabled, current.BackendPreference) ? current : null,
+                last is not null && Matches(last.ModelSha256, last.GpuEnabled, last.BackendPreference) ? last : null,
+                failure is not null && Matches(failure.ModelSha256, failure.GpuEnabled, failure.BackendPreference) ? failure : null,
+                _fromCache && settings.Enabled && settings.AiTranslationEnabled && _presentationSettings is { } presented &&
+                presented.AiModelId == settings.AiModelId && presented.AiLyricsGpuAccelerationEnabled == settings.AiLyricsGpuAccelerationEnabled &&
+                presented.AiLyricsGpuBackend == settings.AiLyricsGpuBackend);
+    }
 
     private readonly SemaphoreSlim _configurationGate = new(1, 1);
     private string? _configuredModelId;
@@ -43,6 +62,8 @@ public sealed class AiLyricsService : IDisposable
     private readonly object _stateGate = new();
     private long _statusGeneration;
     private AiLyricsTranslationState _state;
+    private bool _fromCache;
+    private LyricsSettings? _presentationSettings;
     public AiLyricsTranslationState TranslationState { get { lock (_stateGate) return _state; } }
 
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger)
@@ -67,6 +88,33 @@ public sealed class AiLyricsService : IDisposable
         _packageResolver = packageResolver ?? new PlainHyLyricsPackageResolver(_models, runtime);
         _work = new AiLyricsWorkLifetime(_backend.DrainCleanupAsync);
         _logger = logger;
+        if (_residentRunner is not null) _residentRunner.ExecutionStatusChanged += OnExecutionStatusChanged;
+    }
+
+    private void OnExecutionStatusChanged(object? sender, EventArgs args) => TranslationStateChanged?.Invoke(this, EventArgs.Empty);
+
+    public void ObserveSettingsChange(LyricsSettings previous, LyricsSettings next)
+    {
+        if (previous.Enabled == next.Enabled && previous.AiTranslationEnabled == next.AiTranslationEnabled &&
+            previous.AiModelId == next.AiModelId && previous.AiLyricsGpuAccelerationEnabled == next.AiLyricsGpuAccelerationEnabled &&
+            previous.AiLyricsGpuBackend == next.AiLyricsGpuBackend) return;
+        InvalidateExecutionConfiguration();
+    }
+
+    private void InvalidateExecutionConfiguration()
+    {
+        _runtimeOptions.NotifyBackendChanged();
+        _residentRunner?.InvalidateExecutionStatus();
+        _circuit.Resume();
+        InvalidateTranslation();
+    }
+
+    public async Task RetryGpuAsync(CancellationToken token)
+    {
+        InvalidateExecutionConfiguration();
+        await _work.MaintainAsync(_ => Task.CompletedTask, token).ConfigureAwait(false);
+        // Existing cache stays valid. Only a subsequent uncached request starts inference.
+        ModelDownloaded?.Invoke(this, EventArgs.Empty);
     }
 
     public event EventHandler? ModelDownloaded;
@@ -101,6 +149,7 @@ public sealed class AiLyricsService : IDisposable
         if (AiLyricsModelCatalog.FindSelectable(modelId) is null)
             throw new ArgumentException("This legacy model is available only for removal.", nameof(modelId));
         await _models.DownloadAsync(modelId, consent, progress, token, RuntimeExtractionMiB * 1_048_576).ConfigureAwait(false);
+        InvalidateExecutionConfiguration();
         ModelDownloaded?.Invoke(this, EventArgs.Empty);
     }
 
@@ -111,7 +160,7 @@ public sealed class AiLyricsService : IDisposable
 
     public Task DeleteModelAsync(string modelId, CancellationToken token)
     {
-        InvalidateTranslation();
+        InvalidateExecutionConfiguration();
         return _work.MaintainAsync(cancellation => _models.DeleteAsync(modelId, cancellation), token);
     }
 
@@ -123,7 +172,7 @@ public sealed class AiLyricsService : IDisposable
         {
             // Transfer can coexist with inference. Activation replaces no live worker files.
             await _cudaPackage.DownloadAsync(consent, progress, token).ConfigureAwait(false);
-            InvalidateTranslation();
+            InvalidateExecutionConfiguration();
             await _work.MaintainAsync(cancellation =>
             {
                 cancellation.ThrowIfCancellationRequested();
@@ -137,7 +186,7 @@ public sealed class AiLyricsService : IDisposable
     public Task DeleteCudaComponentsAsync(CancellationToken token)
     {
         if (_cudaPackage is null) throw new InvalidOperationException("CUDA components are unavailable.");
-        InvalidateTranslation();
+        InvalidateExecutionConfiguration();
         return _work.MaintainAsync(async cancellation =>
         {
             await _cudaPackage.RemoveAsync(cancellation).ConfigureAwait(false);
@@ -158,7 +207,7 @@ public sealed class AiLyricsService : IDisposable
     /// <summary>Retires queued UI progress synchronously, before cancellation/draining completes.</summary>
     public void InvalidateTranslation()
     {
-        lock (_stateGate) { _statusGeneration++; _state = AiLyricsTranslationState.Ready; }
+        lock (_stateGate) { _statusGeneration++; _state = AiLyricsTranslationState.Ready; _fromCache = false; }
         TranslationStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -253,7 +302,7 @@ public sealed class AiLyricsService : IDisposable
         Action<Func<bool>>? capturePublicationFence = null)
     {
         long statusGeneration;
-        lock (_stateGate) statusGeneration = ++_statusGeneration;
+        lock (_stateGate) { statusGeneration = ++_statusGeneration; _presentationSettings = settings; }
         SetState(statusGeneration, AiLyricsTranslationState.Ready);
         if (!settings.Enabled || !settings.AiTranslationEnabled || document.Lines.Count == 0) return document;
         // The approved first version never fills gaps in a source-provided translation.
@@ -278,7 +327,7 @@ public sealed class AiLyricsService : IDisposable
         if (cached is not null)
         {
             SetState(statusGeneration, cached.Outcome == LyricsTranslationOutcome.Translated
-                ? AiLyricsTranslationState.Completed : AiLyricsTranslationState.Ready);
+                ? AiLyricsTranslationState.Completed : AiLyricsTranslationState.Ready, fromCache: true);
             return cached.Document;
         }
         if (!_circuit.TryBegin(out var generation)) return document;
@@ -298,7 +347,7 @@ public sealed class AiLyricsService : IDisposable
                 SetState(statusGeneration, AiLyricsTranslationState.Ready);
                 return document;
             }
-            CompleteTranslation(statusGeneration, generation, result.Outcome);
+            CompleteTranslation(statusGeneration, generation, result.Outcome, result.FromCache);
             return result.Document;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -336,24 +385,25 @@ public sealed class AiLyricsService : IDisposable
         finally { Interlocked.Exchange(ref acceptingProgress, 0); }
     }
 
-    internal void CompleteTranslation(long statusGeneration, long circuitGeneration, LyricsTranslationOutcome outcome)
+    internal void CompleteTranslation(long statusGeneration, long circuitGeneration, LyricsTranslationOutcome outcome, bool fromCache = false)
     {
         if (outcome == LyricsTranslationOutcome.NoUsefulTranslation)
-            SetState(statusGeneration, AiLyricsTranslationState.Ready);
+            SetState(statusGeneration, AiLyricsTranslationState.Ready, fromCache);
         else
         {
             var success = outcome == LyricsTranslationOutcome.Translated;
             RecordResult(circuitGeneration, success);
-            SetState(statusGeneration, success ? AiLyricsTranslationState.Completed : AiLyricsTranslationState.Unavailable);
+            SetState(statusGeneration, success ? AiLyricsTranslationState.Completed : AiLyricsTranslationState.Unavailable, fromCache);
         }
     }
 
-    private void SetState(long generation, AiLyricsTranslationState state)
+    private void SetState(long generation, AiLyricsTranslationState state, bool fromCache = false)
     {
         lock (_stateGate)
         {
             if (_statusGeneration != generation) return;
             _state = state;
+            _fromCache = fromCache;
         }
         TranslationStateChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -367,6 +417,7 @@ public sealed class AiLyricsService : IDisposable
 
     public void Dispose()
     {
+        if (_residentRunner is not null) _residentRunner.ExecutionStatusChanged -= OnExecutionStatusChanged;
         InvalidateTranslation();
         _work.Dispose();
         if (_ownsBackend) _backend.Dispose();

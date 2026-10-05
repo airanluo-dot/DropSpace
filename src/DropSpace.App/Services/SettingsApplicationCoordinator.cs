@@ -17,7 +17,8 @@ public sealed class SettingsApplicationCoordinator(
     ClipboardCaptureService clipboard,
     DeviceHandoffService deviceHandoff,
     CrossDeviceClipboardService crossDeviceClipboard,
-    ILogger<SettingsApplicationCoordinator> logger) : IDisposable
+    ILogger<SettingsApplicationCoordinator> logger,
+    DropSpace.Infrastructure.Downloads.HttpRangeDownloader? downloads = null) : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -134,19 +135,23 @@ public sealed class SettingsApplicationCoordinator(
                 }
 
                 stage = "SettingsStageStore";
-                rollback.Committed("settings-store", () => settingsService.UpdateAsync(latest => current with
+                rollback.Committed("download-limits", () =>
                 {
-                    ClipboardPaused = latest.ClipboardPaused,
-                    LastUpdateCheckUtc = latest.LastUpdateCheckUtc,
-                    ClipboardPeerModes = latest.ClipboardPeerModes,
-                }, CancellationToken.None));
-                next = await settingsService.UpdateAsync(latest => next with
-                {
-                    ClipboardPaused = latest.ClipboardPaused,
-                    LastUpdateCheckUtc = latest.LastUpdateCheckUtc,
-                    ClipboardPeerModes = latest.ClipboardPeerModes,
-                }, cancellationToken);
-                logger.LogInformation("Settings operation {OperationId} committed.", operationId);
+                    downloads?.Connections.SetLimit(current.MaxDownloadConnections);
+                    downloads?.Transfers.SetLimit(current.MaxConcurrentDownloads);
+                    downloads?.Bandwidth.SetLimit(current.DownloadSpeedLimitBytesPerSecond);
+                    return Task.CompletedTask;
+                });
+                downloads?.Connections.SetLimit(next.MaxDownloadConnections);
+                downloads?.Transfers.SetLimit(next.MaxConcurrentDownloads);
+                downloads?.Bandwidth.SetLimit(next.DownloadSpeedLimitBytesPerSecond);
+                rollback.Committed("settings-store", () => settingsService.UpdateAsync(
+                    latest => SettingsChangePolicy.Merge(next, current, latest), CancellationToken.None));
+                next = await settingsService.UpdateAsync(
+                    latest => SettingsChangePolicy.Merge(current, next, latest), cancellationToken);
+                logger.LogInformation("Settings operation {OperationId} committed; aiEnabledBefore={AiBefore}; aiEnabledAfter={AiAfter}; gpuEnabled={GpuEnabled}; gpuBackend={Backend}; model={ModelId}.",
+                    operationId, current.Lyrics.AiTranslationEnabled, next.Lyrics.AiTranslationEnabled,
+                    next.Lyrics.AiLyricsGpuAccelerationEnabled, next.Lyrics.AiLyricsGpuBackend, next.Lyrics.AiModelId);
                 return next;
             }
             catch (Exception updateException)

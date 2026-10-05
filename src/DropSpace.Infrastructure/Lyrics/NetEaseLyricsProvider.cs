@@ -29,6 +29,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         foreach (var terms in searches)
         {
             if (remaining == 0) break;
+            LyricsRequestTrace.Record("search", new { provider = "NetEase", terms, remaining });
             using var search = await _responses.GetAsync(
                 $"https://music.163.com/api/search/get/web?s={Escape(terms)}&type=1&offset=0&total=true&limit=30",
                 cancellationToken, query.BypassProviderResponseCache, query.PreferredTranslationLanguage);
@@ -39,6 +40,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             {
                 if (remaining == 0) break;
                 remaining--;
+                LyricsRequestTrace.Record("candidate-request", new { provider = "NetEase", candidate.Id, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration, candidate.Score });
                 var document = await requests.TryAsync(() => ReadLyricsAsync(candidate, query, cancellationToken));
                 if (document.Lines.Count == 0) continue;
                 reportCandidate(document);
@@ -60,6 +62,12 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         token.ThrowIfCancellationRequested();
         var document = ParseLyrics(root).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
             candidate.Duration, candidate.Score, candidate.Id);
+        LyricsRequestTrace.Record("parse", new { provider = "NetEase", candidate.Id,
+            fields = new[] { "lrc", "tlyric", "romalrc", "yrc", "ytlrc", "yromalrc" }.Select(field => new {
+                field, present = root.TryGetProperty(field, out _),
+                characters = NestedText(root, field, "lyric").Length,
+                rows = NestedText(root, field, "lyric").Split('\n', StringSplitOptions.RemoveEmptyEntries).Length }),
+            document = LyricsRequestTrace.Describe(document) });
         token.ThrowIfCancellationRequested();
         return document with { Match = document.Match! with { ArtistAliases = candidate.ArtistAliases } };
     }
@@ -102,6 +110,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             throw new InvalidDataException("NetEase search returned an unsupported result shape.");
         var songs = Array(root, "result", "songs");
         if (!songs.Any()) songs = Array(root, "songs");
+        LyricsRequestTrace.Record("search-result", new { provider = "NetEase", count = songs.Count() });
         foreach (var song in songs)
         {
             token.ThrowIfCancellationRequested();
@@ -118,14 +127,23 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             duration /= 1000;
 
             // An alias can translate a title but cannot erase canonical Live/Remix evidence.
-            if (LyricsMatcher.HasVersionConflict(query.Title, Text(song, "name"))) continue;
+            if (LyricsMatcher.HasVersionConflict(query.Title, Text(song, "name")))
+            {
+                LyricsRequestTrace.Record("candidate", new { provider = "NetEase", id, title = Text(song, "name"), artist, album, duration, reason = "version-conflict" });
+                continue;
+            }
             var titles = new List<string>();
             AddTitle(titles, Text(song, "name"));
             foreach (var property in new[] { "alias", "alia", "transNames", "tns" })
                 foreach (var alias in StringArray(song, property)) AddTitle(titles, alias);
             var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.CandidateScore(query, value, artist, album, duration, artistAliases) })
                 .OrderByDescending(value => value.Score).FirstOrDefault();
-            if (best is not null) yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases);
+            if (best is not null)
+            {
+                LyricsRequestTrace.Record("candidate", new { provider = "NetEase", id, best.Title, artist, artistAliases, album, duration, best.Score,
+                    reason = best.Score >= 4 ? "eligible" : "identity-score-below-threshold" });
+                yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases);
+            }
         }
     }
 

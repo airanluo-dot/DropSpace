@@ -1,5 +1,21 @@
 # DropSpace Architecture
 
+## DLC inventory and execution verification
+
+DLC presentation uses read-only file metadata: the catalog's hash-addressed model
+filename and exact size, and the App-bound CUDA manifest/descriptor's required
+files, licenses and exact sizes. Owned partials are still counted for removal and
+resume. An installed inventory entry is not an integrity certificate. Model
+resolution, CUDA worker leases and download/install publication retain their full
+SHA256 and path/trust checks; no persisted display cache can authorize execution.
+
+`DlcManagerService` refreshes inventory on a background thread at startup without
+blocking window construction. Page loads coalesce with an active scan and reuse
+the current session snapshot for 30 seconds. Explicit refresh/retry and package
+changes bypass that interval. Metadata work and CUDA driver admission probing stay
+off the UI thread; the AI settings card reads the resulting snapshot. Passive
+inspection never calls runtime materialization or reads model/DLL payloads.
+
 ## Beta 28 media identity and passive installation inspection
 
 ### Local translation backend boundary
@@ -431,7 +447,7 @@ Temporary Space mutations are authoritative in `MainViewModel`. After a reposito
 
 `IUpdateSource`, `IUpdateDownloader`, `IUpdateVerifier`, `ITrustedUpdateVerifier`, `IUpdateInstallerLauncher`, and `IDeploymentModeService` isolate the network-to-execution boundary from `MainViewModel`. `ReleaseVersion` is the single SemVer ordering model used by channel selection and mirrored by `scripts/ReleaseVersion.ps1` for EXE, Inno, MSIX, identity and release automation. Stable filters prereleases; Beta retains prereleases and final releases; both require candidate > current. Historical Preview channel values migrate to Beta and published Preview tags remain readable.
 
-`ResilientUpdateSource` merges at most 20 releases from each schema-v1 official website replica so a successful but stale static response cannot hide a newer release, then falls back to the official GitHub REST API only when the website replicas fail. Each source is bounded and the website contract accepts only exact official GitHub release/tag/asset identities. `UpdateManifestParser` accepts one bounded exact-schema manifest, fixed executable names, official same-release GitHub asset URLs, exact channel/tag/version metadata, and no remote executable URL field. `HttpUpdateDownloader` streams into `%LOCALAPPDATA%\DropSpace\Updates\<version>\*.download`, computes SHA-256 while copying, verifies size/hash, and atomically renames. Install re-verifies the frozen file. Inno `/UPDATE` requests the existing maintenance handshake and restarts only after success; Portable never invokes Inno and Package/MSIX remains Windows-managed. WinVerifyTrust plus an exact signer allow-list gates future unattended installation.
+`ResilientUpdateSource` merges at most 20 releases from each schema-v1 official website replica so a successful but stale static response cannot hide a newer release, then falls back to the official GitHub REST API only when the website replicas fail. Each source is bounded and the website contract accepts only exact official GitHub release/tag/asset identities. `UpdateManifestParser` accepts one bounded exact-schema manifest, fixed executable names, official same-release GitHub asset URLs, exact channel/tag/version metadata, and no remote executable URL field. `HttpUpdateDownloader` uses the application singleton `HttpRangeDownloader` for validated parallel ranges into `%LOCALAPPDATA%\DropSpace\Updates\<version>\*.download`, verifies the assembled size/SHA-256, and atomically renames. Update payloads share connection, transfer and bandwidth budgets with files and DLC; every redirect retains a GitHub release-asset trust policy. Install re-verifies the frozen file. Inno `/UPDATE` requests the existing maintenance handshake and restarts only after success; Portable never invokes Inno and Package/MSIX remains Windows-managed. WinVerifyTrust plus an exact signer allow-list gates future unattended installation.
 
 Windows Share activation is a separate input contract, not Clipboard capture. `ShareTargetActivationService` receives `StorageItems`, reports the Share lifecycle, dispatches to the existing main instance and calls the same `AddPathsAsync`. It never writes Clipboard History.
 
@@ -490,3 +506,23 @@ releases remain immutable. Beta 27 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
+
+## Shared package downloads and DLC registration
+
+Every optional HTTP file/package download must inject the application singleton
+`HttpRangeDownloader`, supply its fixed managed staging path and trust/size/hash
+policy, and retain verification/installation ownership above transport. Do not add
+a private HttpClient copy loop or independent connection/bandwidth/transfer budget.
+Small API responses (release metadata, lyrics) and authenticated device/share protocols
+are separate from artifact transfers. Unknown-size packages must supply an upper bound.
+
+Every downloadable feature/dependency must register an `IDlcPackageProvider` so it
+appears in Settings → DLC, including NetEase enhancement and Visual C++ prerequisite.
+App-version update payloads are the exception: they remain in Settings → Updates.
+NetEase actions retain restart consent, deployment receipts, rollback and verification.
+The Microsoft runtime is a shared Windows component: registry inventory is lightweight
+and DropSpace does not offer its removal or count it as exclusively owned storage.
+
+CUDA build metadata must match AssemblyInformationalVersion's release and exact source
+commit. `Test-CudaBuildBinding.ps1` fails the build on stale descriptors before compilation;
+restaging metadata preserves the unchanged component manifest/cache identity and installed bytes.

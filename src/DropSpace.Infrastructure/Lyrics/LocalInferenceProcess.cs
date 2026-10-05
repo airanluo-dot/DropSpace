@@ -26,6 +26,9 @@ internal sealed class LocalInferenceProcess : IDisposable
     internal StreamReader StandardOutput { get; }
     internal StreamReader StandardError { get; }
     internal StreamWriter? StandardInput { get; }
+    internal int? ExitCode { get; private set; }
+    private int _terminationRequested;
+    internal bool TerminationRequested => Volatile.Read(ref _terminationRequested) != 0;
 
     internal static LocalInferenceProcess Start(ProcessStartInfo start, long memoryLimitBytes = WindowsInferenceProcess.MaximumMemoryBytes,
         bool retainStandardInput = false)
@@ -55,6 +58,7 @@ internal sealed class LocalInferenceProcess : IDisposable
             await WindowsInferenceProcess.WaitForExitSignalAsync(Process.SafeHandle).ConfigureAwait(false);
         else
             await Process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+        ExitCode = Process.ExitCode;
     }
 
     // The task retains this owner and its streams until exit and all I/O have settled, even
@@ -93,6 +97,8 @@ internal sealed class LocalInferenceProcess : IDisposable
 
     private void Terminate()
     {
+        try { if (!Process.HasExited) Interlocked.Exchange(ref _terminationRequested, 1); }
+        catch (InvalidOperationException) { Interlocked.Exchange(ref _terminationRequested, 1); }
         // Closing the only job handle kills the child even if normal shutdown fails.
         Interlocked.Exchange(ref _limits, null)?.Dispose();
         try { if (!Process.HasExited) Process.Kill(entireProcessTree: true); }

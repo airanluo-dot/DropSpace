@@ -71,6 +71,11 @@ public sealed record AppSettings
     public IslandAppearanceSettings IslandAppearance { get; init; } = new();
     public SystemActivitySettings SystemActivities { get; init; } = new();
     public WidgetSettings Widgets { get; init; } = new();
+    public int MaxDownloadConnections { get; init; } = 64;
+    public int MaxConcurrentDownloads { get; init; } = 2;
+    public long DownloadSpeedLimitBytesPerSecond { get; init; }
+    // Empty in old configurations: the Windows adapter resolves FOLDERID_Downloads at startup.
+    public string DefaultDownloadDirectory { get; init; } = string.Empty;
 
     public bool PrivacyChoicesCompleted { get; init; }
     public bool ClipboardPaused { get; init; }
@@ -167,6 +172,12 @@ public sealed record AppSettings
 
     public AppSettings Validate()
     {
+        if (MaxDownloadConnections is < 1 or > 256) throw new ArgumentOutOfRangeException(nameof(MaxDownloadConnections));
+        if (MaxConcurrentDownloads is < 1 or > 3) throw new ArgumentOutOfRangeException(nameof(MaxConcurrentDownloads));
+        if (DownloadSpeedLimitBytesPerSecond is < 0 or > 1_073_741_824) throw new ArgumentOutOfRangeException(nameof(DownloadSpeedLimitBytesPerSecond));
+        if (DefaultDownloadDirectory is null || DefaultDownloadDirectory.Length > 32000 ||
+            DefaultDownloadDirectory.Length > 0 && (!Path.IsPathFullyQualified(DefaultDownloadDirectory) || DefaultDownloadDirectory.IndexOfAny(Path.GetInvalidPathChars()) >= 0))
+            throw new ArgumentException("Invalid default download directory.");
         if (Version is < SettingsValidationPolicy.MinimumVersion or > CurrentVersion)
         {
             throw new InvalidOperationException($"Unsupported settings version: {Version}.");

@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "version": "v0.3.1-beta.12",
+  "scope": "Current Beta12 App service and production dependency chain with installed Beta11 trusted native assets; not a packaged/UI release test",
+  "model": "Hy-MT2 1.8B Q8_0",
+  "modelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+  "sourceSentence": "The morning sunlight shines through the window, and we will meet beside the river after breakfast.",
+  "installedAppExeSha256": "3e419b1b53996d1ecf1471bdefbd7a8b0fc2f8f879f7cf4570d10d619fc5433b",
+  "resourceAssemblySha256": "e2109f5fb551ee24ab7742a3cfea73ffb59350d6aacc153529338a9f128e8e6f",
+  "cudaManifestIdentity": "da8742d806541edf452061eec408f645be704445952a93895bc8e9d6a200215a",
+  "cudaWorkerSha256": "ba0364858c09b5ee0b3309e352bb9c042db52f55f5f32cefe92b196f65c2fe12",
+  "driverVersion": "616.56",
+  "gpu": "NVIDIA GeForce RTX 5080 Laptop GPU",
+  "callChain": "AiLyricsService.TranslateForPublicationAsync -> PlainHyLyricsPackageResolver -> PlainHyLyricsBackend -> PlainHyLyricsCoordinator -> PersistentPlainLyricsRunner.CreateAutomatic",
+  "rootCause": "The CPU-profile 3 GiB process commit cap rejected CUDA startup allocations (Windows Job message 9), leading to native exit 67 and CPU fallback.",
+  "correction": "CUDA 1.8B profile uses a bounded 5 GiB host cap; available physical and commit memory must both cover cap plus 1 GiB system reserve. Native VRAM/driver/hash checks unchanged.",
+  "finalAcceptance": "Valid CUDA response, useful Chinese translation, no CPU worker/fallback/cache hit, matching CUDA PID with dedicated GPU memory and GPU engine activity.",
+  "runs": [
+    {
+      "run": 1,
+      "purpose": "reproduce installed CUDA failure",
+      "cudaTranslationSucceeded": false,
+      "elapsedMilliseconds": 8268.2765,
+      "execution": {
+        "Current": null,
+        "Last": {
+          "Backend": "cpu",
+          "ModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+          "GpuEnabled": true,
+          "BackendPreference": 2,
+          "PreferenceGeneration": 1,
+          "UsedCpuFallback": true,
+          "CompletedAt": "2026-10-05T22:45:47.2372476+08:00",
+          "Operation": "translation"
+        },
+        "Failure": {
+          "RequestedBackend": "Cuda",
+          "AttemptedBackend": "cuda",
+          "ModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+          "GpuEnabled": true,
+          "BackendPreference": 2,
+          "PreferenceGeneration": 1,
+          "OccurredAt": "2026-10-05T22:45:44.9975992+08:00",
+          "Reason": "ModelLoadFailure",
+          "ExitCode": 67,
+          "TerminatedByHost": false,
+          "CpuFallbackAttempted": true
+        },
+        "FromCache": false
+      },
+      "workers": [
+        {
+          "pid": 35272,
+          "image": "plain-lyrics-worker-cuda.exe",
+          "device": null,
+          "libraries": [
+            "cublas64_13.dll",
+            "cublasLt64_13.dll",
+            "nvcuda.dll"
+          ]
+        },
+        {
+          "pid": 30140,
+          "image": "plain-lyrics-worker-avx2.exe",
+          "device": null,
+          "libraries": []
+        }
+      ],
+      "jobEvents": [
+        null
+      ],
+      "hostCommit": [],
+      "gpuCounters": [
+        {
+          "counter": "pid_35272_luid_0x00000000_0x00016422_phys_0",
+          "peak": 2084593664.0,
+          "unit": "bytes"
+        },
+        {
+          "counter": "pid_35272_luid_0x00000000_0x00016422_phys_0_eng_0_engtype_3D",
+          "peak": 0.7913992291968356,
+          "unit": "percent"
+        },
+        {
+          "counter": "pid_35272_luid_0x00000000_0x00016422_phys_0_eng_4_engtype_Copy",
+          "peak": 57.48143569464021,
+          "unit": "percent"
+        }
+      ],
+      "syntheticTranslation": [
+        "晨光透过窗户照进来，我们会在早餐后于河边见面。"
+      ]
+    },
+    {
+      "run": 2,
+      "purpose": "identify the same failure using Windows Job messages",
+      "cudaTranslationSucceeded": false,
+      "elapsedMilliseconds": 6602.6858,
+      "execution": {
+        "Current": null,
+        "Last": {
+          "Backend": "cpu",
+          "ModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+          "GpuEnabled": true,
+          "BackendPreference": 2,
+          "PreferenceGeneration": 1,
+          "UsedCpuFallback": true,
+          "CompletedAt": "2026-10-05T22:48:49.6180597+08:00",
+          "Operation": "translation"
+        },
+        "Failure": {
+          "RequestedBackend": "Cuda",
+          "AttemptedBackend": "cuda",
+          "ModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+          "GpuEnabled": true,
+          "BackendPreference": 2,
+          "PreferenceGeneration": 1,
+          "OccurredAt": "2026-10-05T22:48:47.8132788+08:00",
+          "Reason": "ModelLoadFailure",
+          "ExitCode": 67,
+          "TerminatedByHost": false,
+          "CpuFallbackAttempted": true
+        },
+        "FromCache": false
+      },
+      "workers": [
+        {
+          "pid": 42512,
+          "image": "plain-lyrics-worker-cuda.exe",
+          "device": null,
+          "libraries": [
+            "cublas64_13.dll",
+            "cublasLt64_13.dll",
+            "nvcuda.dll"
+          ]
+        },
+        {
+          "pid": 32760,
+          "image": "plain-lyrics-worker-avx2.exe",
+          "device": null,
+          "libraries": []
+        }
+      ],
+      "jobEvents": [
+        {
+          "pid": 42512,
+          "message": 6,
+          "memoryLimitReached": false
+        },
+        {
+          "pid": 42512,
+          "message": 6,
+          "memoryLimitReached": false
+        },
+        {
+          "pid": 42512,
+          "message": 9,
+          "memoryLimitReached": true
+        },
+        {
+          "pid": 42512,
+          "message": 7,
+          "memoryLimitReached": false
+        },
+        {
+          "pid": 42512,
+          "message": 7,
+          "memoryLimitReached": false
+        },
+        {
+          "pid": 32760,
+          "message": 6,
+          "memoryLimitReached": false
+        },
+        {
+          "pid": 32760,
+          "message": 6,
+          "memoryLimitReached": false
+        }
+      ],
+      "hostCommit": [
+        {
+          "pid": 32760,
+          "limitBytes": 3221225472,
+          "peakCommitBytes": 2541510656.0
+        },
+        {
+          "pid": 42512,
+          "limitBytes": 3221225472,
+          "peakCommitBytes": 3185717248.0
+        }
+      ],
+      "gpuCounters": [
+        {
+          "counter": "pid_42512_luid_0x00000000_0x00016422_phys_0",
+          "peak": 2151698432.0,
+          "unit": "bytes"
+        },
+        {
+          "counter": "pid_42512_luid_0x00000000_0x00016422_phys_0_eng_0_engtype_3D",
+          "peak": 0.5615169754530239,
+          "unit": "percent"
+        },
+        {
+          "counter": "pid_42512_luid_0x00000000_0x00016422_phys_0_eng_4_engtype_Copy",
+          "peak": 57.639717639095004,
+          "unit": "percent"
+        }
+      ],
+      "syntheticTranslation": [
+        "晨光透过窗户照进来，我们会在早餐后于河边见面。"
+      ]
+    },
+    {
+      "run": 3,
+      "purpose": "verify bounded CUDA host-memory correction",
+      "cudaTranslationSucceeded": true,
+      "elapsedMilliseconds": 4821.1969,
+      "execution": {
+        "Current": null,
+        "Last": {
+          "Backend": "cuda",
+          "ModelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+          "GpuEnabled": true,
+          "BackendPreference": 2,
+          "PreferenceGeneration": 1,
+          "UsedCpuFallback": false,
+          "CompletedAt": "2026-10-05T22:50:24.2383795+08:00",
+          "Operation": "translation"
+        },
+        "Failure": null,
+        "FromCache": false
+      },
+      "workers": [
+        {
+          "pid": 23928,
+          "image": "plain-lyrics-worker-cuda.exe",
+          "device": {
+            "vendorId": 4318,
+            "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+            "discrete": true,
+            "ordinal": 0,
+            "computeMajor": 12,
+            "computeMinor": 0,
+            "memoryFreeBytes": 15798894592,
+            "memoryTotalBytes": 17066033152
+          },
+          "libraries": [
+            "cublas64_13.dll",
+            "cublasLt64_13.dll",
+            "nvcuda.dll"
+          ]
+        }
+      ],
+      "jobEvents": [
+        {
+          "pid": 23928,
+          "message": 6,
+          "memoryLimitReached": false
+        },
+        {
+          "pid": 23928,
+          "message": 6,
+          "memoryLimitReached": false
+        }
+      ],
+      "hostCommit": [
+        {
+          "pid": 23928,
+          "limitBytes": 5368709120,
+          "peakCommitBytes": 3625578496.0
+        }
+      ],
+      "gpuCounters": [
+        {
+          "counter": "pid_23928_luid_0x00000000_0x00016422_phys_0",
+          "peak": 2629894144.0,
+          "unit": "bytes"
+        },
+        {
+          "counter": "pid_23928_luid_0x00000000_0x00016422_phys_0_eng_0_engtype_3D",
+          "peak": 50.214974798289255,
+          "unit": "percent"
+        },
+        {
+          "counter": "pid_23928_luid_0x00000000_0x00016422_phys_0_eng_4_engtype_Copy",
+          "peak": 47.90483667182009,
+          "unit": "percent"
+        }
+      ],
+      "syntheticTranslation": [
+        "晨光透过窗户照进来，我们会在早餐后于河边见面。"
+      ]
+    }
+  ]
+}

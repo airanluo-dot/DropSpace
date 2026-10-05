@@ -55,7 +55,7 @@ public sealed class LyricsRateLimitRegressionTests
         {
             Calls++;
             var payload = request.RequestUri!.Host == "music.163.com" ? """{"code":405}"""
-                : request.RequestUri.AbsolutePath.Contains("search", StringComparison.Ordinal)
+                : request.RequestUri.Host == "u.y.qq.com"
                 ? """{"code":0,"data":{"song":{"list":[{"songmid":"fixture","songname":"Track","singer":[{"name":"Artist"}]}]}}}"""
                 : """{"code":0,"lyric":"[00:01]Hello my friend","trans":"[00:01]\u4f60\u597d\u6211\u7684\u670b\u53cb"}""";
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)

@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text.Encodings.Web;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
@@ -58,22 +60,61 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private Session? _session;
     private Task _cleanup = Task.CompletedTask;
     private long _generation;
-    // Accessed only under _operation. Operational role/model switches retain each
-    // verified profile's GPU failure; an actual user preference change clears it.
-    private readonly HashSet<string> _gpuFailedModels = new(StringComparer.OrdinalIgnoreCase);
+    // Accessed only under _operation. A bounded cooldown avoids a failed GPU launch per
+    // lyric line; changed preferences or an explicit retry clear it immediately.
+    private readonly Dictionary<string, long> _gpuFailedModels = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly TimeSpan GpuRetryDelay = TimeSpan.FromMinutes(1);
     private bool _lastGpuSetting;
     private long _lastGpuSettingGeneration = -1;
     private volatile bool _disposed;
-    private string? _lastExecutionBackend;
-    private volatile bool _lastExecutionUsedCpuFallback;
+    private PlainLyricsExecutionStatus? _lastExecution;
+    private PlainLyricsCurrentExecution? _currentExecution;
+    private PlainLyricsRuntimeFailure? _lastFailure;
+    private ILogger<PersistentPlainLyricsRunner> _logger = NullLogger<PersistentPlainLyricsRunner>.Instance;
+    public event EventHandler? ExecutionStatusChanged;
+    public PlainLyricsCurrentExecution? CurrentExecution
+    {
+        get
+        {
+            var current = Volatile.Read(ref _currentExecution);
+            if (current?.PreferenceGeneration != _options.GpuSettingGeneration) return null;
+            var session = Volatile.Read(ref _session);
+            if (current?.Phase == PlainLyricsExecutionPhase.Executing &&
+                (session is null || Volatile.Read(ref session.StopRequested) != 0 || ReadObservedExitCode(session) is not null)) return null;
+            return current;
+        }
+    }
+    public PlainLyricsRuntimeFailure? LastFailure
+    {
+        get
+        {
+            var failure = Volatile.Read(ref _lastFailure);
+            return failure?.PreferenceGeneration == _options.GpuSettingGeneration ? failure : null;
+        }
+    }
+    public void InvalidateExecutionStatus()
+    {
+        Volatile.Write(ref _currentExecution, null);
+        Volatile.Write(ref _lastExecution, null);
+        Volatile.Write(ref _lastFailure, null);
+        ExecutionStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
     // Optional diagnostic notification after the actual pipe write/flush. No prompt or lyric data.
     public event Action? SelectionRequestSent;
     internal event Action? TranslationRequestSent;
     internal int? ActiveProcessId => Volatile.Read(ref _session)?.Child.Process.Id;
     internal JsonElement? ActiveDevice => Volatile.Read(ref _session)?.Device;
     /// <summary>Observed from a completed, protocol-validated response, not a requested preference.</summary>
-    public string? LastExecutionBackend => Volatile.Read(ref _lastExecutionBackend);
-    public bool LastExecutionUsedCpuFallback => _lastExecutionUsedCpuFallback;
+    public PlainLyricsExecutionStatus? LastExecutionStatus
+    {
+        get
+        {
+            var observed = Volatile.Read(ref _lastExecution);
+            return observed?.PreferenceGeneration == _options.GpuSettingGeneration ? observed : null;
+        }
+    }
+    public string? LastExecutionBackend => LastExecutionStatus?.Backend;
+    public bool LastExecutionUsedCpuFallback => LastExecutionStatus?.UsedCpuFallback == true;
 
     public PersistentPlainLyricsRunner(AiLyricsRuntimePackage runtime, AiLyricsRuntimeOptions options)
         : this((gpu, token) => runtime.EnsureResidentWorkerAsync(gpu, token), options, TimeSpan.FromSeconds(60)) { }
@@ -99,9 +140,11 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     }
 
     public static PersistentPlainLyricsRunner CreateAutomatic(AiLyricsRuntimePackage runtime,
-        CudaLyricsRuntimePackage cuda, AiLyricsRuntimeOptions options)
+        CudaLyricsRuntimePackage cuda, AiLyricsRuntimeOptions options,
+        ILogger<PersistentPlainLyricsRunner>? logger = null)
     {
-        var runner = new PersistentPlainLyricsRunner(runtime, options) { _automaticCuda = cuda };
+        var runner = new PersistentPlainLyricsRunner(runtime, options)
+        { _automaticCuda = cuda, _logger = logger ?? NullLogger<PersistentPlainLyricsRunner>.Instance };
         return runner;
     }
 
@@ -145,14 +188,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             deadline.CancelAfter(TimeSpan.FromSeconds(60));
-            Volatile.Write(ref _lastExecutionBackend, null);
-            _lastExecutionUsedCpuFallback = false;
             if (_lastGpuSettingGeneration != _options.GpuSettingGeneration)
             {
                 await StopSessionAsync().ConfigureAwait(false);
                 ObserveGpuSetting();
             }
-            var gpu = _options.GpuEnabled && !_gpuFailedModels.Contains(model.Sha256);
+            var gpu = ShouldUseGpu(model.Sha256);
             for (var attempt = 0; ; attempt++)
             {
                 try
@@ -160,9 +201,11 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     if (_session is not null && (_session.Gpu != gpu || _session.Model != Path.GetFullPath(modelPath) ||
                         _session.ModelSha256 != model.Sha256 || _session.Child.Process.HasExited))
                         await StopSessionAsync().ConfigureAwait(false);
+                    BeginExecution(model.Sha256, "translation");
                     if (_session is null) await StartSessionAsync(modelPath, model, gpu, deadline.Token).ConfigureAwait(false);
                     else PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.ResidentReuse);
                     var session = _session!;
+                    MarkExecuting(session, "translation");
                     session.Cancellation.Dispose();
                     // Retain the caller's song token through the resident idle period. A late
                     // cancellation targets only this owned session, never a replacement worker.
@@ -188,29 +231,41 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     var output = root.GetProperty("text").GetString() ?? throw new InvalidDataException("Missing resident inference text.");
                     if (Encoding.UTF8.GetByteCount(output) > PlainHyLyricsProtocol.MaximumOutputBytes)
                         throw new InvalidDataException("Resident inference output exceeds budget.");
+                    output = LlamaCompletionRunner.RemoveRuntimeTerminator(output);
+                    if (!PlainHyLyricsProtocol.IsCompleteLine(output))
+                        throw new InvalidDataException("Resident inference did not return a complete line.");
                     deadline.Token.ThrowIfCancellationRequested();
-                    Volatile.Write(ref _lastExecutionBackend, session.Gpu ? _gpuBackend : "cpu");
-                    _lastExecutionUsedCpuFallback = _options.GpuEnabled && !session.Gpu;
-                    if (_lastExecutionUsedCpuFallback) PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.FallbackUse);
+                    RecordExecution(session, "translation");
+                    if (LastExecutionUsedCpuFallback) PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.FallbackUse);
                     call.Complete();
                     var generation = ++_generation;
                     _ = ReleaseWhenIdleAsync(generation);
-                    return LlamaCompletionRunner.RemoveRuntimeTerminator(output);
+                    return output;
                 }
                 catch (Exception error)
                 {
                     // A fallback is impossible until exit, reader settlement and Job/handle release
                     // have all been confirmed. Cleanup timeout keeps the global gate closed.
-                    await StopSessionAsync().ConfigureAwait(false);
+                    var failedSession = _session;
+                    await ObserveNaturalExitAsync(failedSession, error).ConfigureAwait(false);
+                    var fallback = !deadline.IsCancellationRequested && gpu && attempt == 0 &&
+                        error is not (OutOfMemoryException or InvalidDataException or JsonException or KeyNotFoundException);
+                    try { await StopSessionAsync().ConfigureAwait(false); }
+                    finally
+                    {
+                        if (!cancellationToken.IsCancellationRequested && !_lifetime.IsCancellationRequested)
+                            RecordFailure(model.Sha256, gpu, failedSession, error, deadline.IsCancellationRequested,
+                                fallback && !deadline.IsCancellationRequested && _cleanup.IsCompletedSuccessfully);
+                    }
                     deadline.Token.ThrowIfCancellationRequested();
-                    if (!gpu || attempt != 0 || error is InvalidDataException or JsonException or KeyNotFoundException) throw;
-                    _gpuFailedModels.Add(model.Sha256);
+                    if (!fallback) throw;
+                    _gpuFailedModels[model.Sha256] = Stopwatch.GetTimestamp();
                     PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.FallbackAttempt);
                     gpu = false;
                 }
             }
         }
-        finally { _operation.Release(); }
+        finally { EndExecution(); _operation.Release(); }
     }
 
     public async Task<bool> PrepareSelectionAsync(string verifiedModelPath, string modelHash, CancellationToken token)
@@ -241,16 +296,19 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             if (_session is null)
             {
                 ObserveGpuSetting();
-                var gpu = _options.GpuEnabled && !_gpuFailedModels.Contains(model.Sha256);
+                var gpu = ShouldUseGpu(model.Sha256);
                 try { await StartSessionAsync(verifiedModelPath, model, gpu, stop.Token, nonblocking: true).ConfigureAwait(false); }
-                catch (Exception error) when (gpu && _session is not null && !stop.IsCancellationRequested &&
+                catch (Exception error) when (gpu && !stop.IsCancellationRequested &&
                     error is not (OutOfMemoryException or InvalidDataException or JsonException or KeyNotFoundException))
                 {
                     // Preparation may recover from an unavailable GPU in the background.
                     // Exit/cleanup precedes CPU admission; neither attempt queues for a gate.
-                    await StopSessionAsync().ConfigureAwait(false);
+                    var failedSession = _session;
+                    await ObserveNaturalExitAsync(failedSession, error).ConfigureAwait(false);
+                    try { await StopSessionAsync().ConfigureAwait(false); }
+                    finally { RecordFailure(model.Sha256, true, failedSession, error, false, _cleanup.IsCompletedSuccessfully); }
                     stop.Token.ThrowIfCancellationRequested();
-                    _gpuFailedModels.Add(model.Sha256);
+                    _gpuFailedModels[model.Sha256] = Stopwatch.GetTimestamp();
                     await StartSessionAsync(verifiedModelPath, model, false, stop.Token, nonblocking: true).ConfigureAwait(false);
                 }
             }
@@ -274,11 +332,14 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         _lastGpuSettingGeneration = generation;
     }
 
+    private bool ShouldUseGpu(string modelHash) => _options.GpuEnabled &&
+        (!_gpuFailedModels.TryGetValue(modelHash, out var failedAt) || Stopwatch.GetElapsedTime(failedAt) >= GpuRetryDelay);
+
     private bool CanSelect(Session session, string modelHash) => !_disposed && session.SelectionSupported && _cleanup.IsCompletedSuccessfully &&
         Volatile.Read(ref session.StopRequested) == 0 && !session.Child.Process.HasExited &&
         session.ModelSha256 == modelHash && _lastGpuSetting == _options.GpuEnabled &&
         _lastGpuSettingGeneration == _options.GpuSettingGeneration &&
-        session.Gpu == (_options.GpuEnabled && !_gpuFailedModels.Contains(modelHash));
+        session.Gpu == ShouldUseGpu(modelHash);
 
     public bool IsSelectionWarm(string modelHash)
     {
@@ -308,10 +369,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             deadline.CancelAfter(LyricsCandidateSelectionProtocol.MaximumDecisionTime);
             using var registration = deadline.Token.Register(() =>
             { session.MarkCancelled(); _ = session.Child.TerminateAndWaitForExitAsync(); });
-            Volatile.Write(ref _lastExecutionBackend, null);
-            _lastExecutionUsedCpuFallback = false;
             try
             {
+                MarkExecuting(session, "selection");
                 // The native helper clears KV memory and resets the sampler per request.
                 // This is the independent selector prompt, never translation output.
                 var id = Guid.NewGuid().ToString("N");
@@ -328,13 +388,22 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                 if (Encoding.UTF8.GetByteCount(output) > LyricsCandidateSelectionProtocol.MaximumOutputBytes)
                     throw new InvalidDataException("Selection output exceeds budget.");
                 deadline.Token.ThrowIfCancellationRequested();
-                Volatile.Write(ref _lastExecutionBackend, session.Gpu ? _gpuBackend : "cpu");
-                _lastExecutionUsedCpuFallback = _options.GpuEnabled && !session.Gpu;
+                RecordExecution(session, "selection");
                 _ = ReleaseWhenIdleAsync(++_generation);
                 return output;
             }
             catch (Exception error) when (error is not OutOfMemoryException)
-            { await StopSessionAsync().ConfigureAwait(false); throw; }
+            {
+                await ObserveNaturalExitAsync(session, error).ConfigureAwait(false);
+                try { await StopSessionAsync().ConfigureAwait(false); }
+                finally
+                {
+                    if (!token.IsCancellationRequested && !_lifetime.IsCancellationRequested)
+                        RecordFailure(modelHash, session.Gpu, session, error, deadline.IsCancellationRequested, false);
+                }
+                throw;
+            }
+            finally { EndExecution(); }
         }
         finally { _operation.Release(); }
     }
@@ -343,8 +412,14 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     {
         await _cleanup.WaitAsync(token).ConfigureAwait(false);
         if (gpu && _automaticCuda is not null)
-            _gpuBackend = _options.Backend != LyricsGpuBackend.Vulkan &&
-                CudaDriverAvailability.IsCompatible() && _automaticCuda.HasInstalledFiles ? "cuda" : "vulkan";
+        {
+            var preferCuda = _options.Backend != LyricsGpuBackend.Vulkan;
+            bool? compatibleDriver = preferCuda ? CudaDriverAvailability.IsCompatible() : null;
+            bool? cudaInstalled = preferCuda ? _automaticCuda.HasInstalledFiles : null;
+            _gpuBackend = compatibleDriver == true && cudaInstalled == true ? "cuda" : "vulkan";
+            _logger.LogInformation("Local lyrics runtime selected: preference={Preference}; backend={Backend}; compatibleNvidiaDriver={CompatibleDriver}; cudaInstalled={CudaInstalled}.",
+                _options.Backend, _gpuBackend, compatibleDriver, cudaInstalled);
+        }
         CudaLyricsComponentLease? componentLease = null;
         try
         {
@@ -384,13 +459,17 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                 start.Environment.Remove(key);
             start.Environment["OMP_NUM_THREADS"] = "4";
             start.Environment["OMP_THREAD_LIMIT"] = "4";
-            var memoryBudget = LlamaCompletionRunner.MemoryBudgetFor(model.Sha256);
+            var actualBackend = gpu ? _gpuBackend : "cpu";
+            var memoryBudget = ResidentInferenceMemoryPolicy.MaximumBytes(model.Sha256, actualBackend);
             token.ThrowIfCancellationRequested();
             // The old worker has fully exited and this owner holds the global gate.
             // GPU fallback gets a fresh reading here; an existing resident is reused
             // without pretending that its already allocated weights are still free RAM.
-            if (!gpu) CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
+            if (!gpu || actualBackend == "cuda" && model == AiLyricsModelCatalog.ExperimentalPlain)
+                CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
             token.ThrowIfCancellationRequested();
+            _logger.LogInformation("Local lyrics worker launch: backend={Backend}; model={ModelId}; hostMemoryLimitBytes={Limit}; systemReserveBytes={Reserve}.",
+                actualBackend, model.Id, memoryBudget, CpuInferenceMemoryPolicy.SystemReserveBytes);
             var child = LocalInferenceProcess.Start(start, memoryBudget, retainStandardInput: true);
             _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu)
             { ComponentLease = componentLease };
@@ -411,6 +490,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                 (!ready.RootElement.TryGetProperty("modelProfile", out var profile) || profile.GetString() != "hy-mt2-7b-q8"))
                 throw new InvalidDataException("The resident worker did not confirm the selected 7B resource profile.");
             _session.Device = ready.RootElement.TryGetProperty("device", out var device) ? device.Clone() : null;
+            _session.IsReady = true;
+            _logger.LogInformation("Local lyrics runtime ready: backend={Backend}; model={ModelId}; protocol={Protocol}.",
+                gpu ? _gpuBackend : "cpu", model.Id, ProtocolVersion);
             _session.SelectionSupported = ready.RootElement.TryGetProperty("selectionProtocol", out var selectionProtocol) &&
                 selectionProtocol.ValueKind == JsonValueKind.Number && selectionProtocol.TryGetInt32(out var selectorVersion) &&
                 selectorVersion == SelectionProtocolVersion;
@@ -421,8 +503,87 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         finally { componentLease?.Dispose(); }
     }
 
+    private void RecordExecution(Session session, string operation)
+    {
+        var observed = new PlainLyricsExecutionStatus(session.Gpu ? _gpuBackend : "cpu", session.ModelSha256,
+            _options.GpuEnabled, _options.Backend, _lastGpuSettingGeneration, _options.GpuEnabled && !session.Gpu,
+            DateTimeOffset.UtcNow, operation);
+        Volatile.Write(ref _lastExecution, observed);
+        if (session.Gpu)
+        {
+            _gpuFailedModels.Remove(session.ModelSha256);
+            Volatile.Write(ref _lastFailure, null);
+        }
+        _logger.LogInformation("Local lyrics inference completed: operation={Operation}; backend={Backend}; model={ModelId}; cpuFallback={CpuFallback}; preferenceGeneration={Generation}.",
+            operation, observed.Backend, AiLyricsModelCatalog.FindSelectableByHash(observed.ModelSha256)?.Id,
+            observed.UsedCpuFallback, observed.PreferenceGeneration);
+        ExecutionStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void BeginExecution(string modelHash, string operation)
+    {
+        Volatile.Write(ref _currentExecution, new(null, modelHash, _options.GpuEnabled,
+            _options.Backend, _lastGpuSettingGeneration, PlainLyricsExecutionPhase.Starting, operation));
+        ExecutionStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void MarkExecuting(Session session, string operation)
+    {
+        // StartSession has validated the worker identity and ready frame. This is an active
+        // request; only RecordExecution can assert a completed, valid native response.
+        Volatile.Write(ref _currentExecution, new(session.Gpu ? _gpuBackend : "cpu", session.ModelSha256,
+            _options.GpuEnabled, _options.Backend, _lastGpuSettingGeneration, PlainLyricsExecutionPhase.Executing, operation));
+        ExecutionStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void EndExecution()
+    {
+        if (Interlocked.Exchange(ref _currentExecution, null) is not null)
+            ExecutionStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void RecordFailure(string modelHash, bool gpu, Session? session, Exception error, bool timedOut, bool fallback)
+    {
+        var exitCode = session?.Child.ExitCode ?? ReadObservedExitCode(session);
+        var hostStopped = session?.Child.TerminationRequested == true;
+        var reason = timedOut ? "DeadlineExceeded" : session?.FailureCategory ??
+            (hostStopped ? null : exitCode switch
+            {
+                65 => "RuntimeLoad", 66 => "GpuAdmission", 67 => "ModelLoadFailure", 71 => "DecodeFailure",
+                unchecked((int)0xc0000135) => "DllMissing", unchecked((int)0xc000007b) => "DllInvalid",
+                unchecked((int)0xc0000142) => "DllInitialization", _ => null,
+            }) ?? error.GetType().Name;
+        var failure = new PlainLyricsRuntimeFailure(_options.GpuEnabled ? _options.Backend.ToString() : "Cpu",
+            gpu ? _gpuBackend : "cpu", modelHash, _options.GpuEnabled, _options.Backend, _lastGpuSettingGeneration,
+            DateTimeOffset.UtcNow, reason, exitCode, hostStopped, fallback);
+        // Preserve the original GPU cause when the CPU fallback also fails.
+        if (gpu || LastFailure is null) Volatile.Write(ref _lastFailure, failure);
+        _logger.LogWarning("Local lyrics runtime failed: requested={Requested}; attempted={Attempted}; model={ModelId}; utc={Time}; phase={Phase}; reason={Reason}; hresult={HResult}; exitCode={ExitCode}; hostTerminated={HostTerminated}; cpuFallback={CpuFallback}; generation={Generation}.",
+            failure.RequestedBackend, failure.AttemptedBackend, AiLyricsModelCatalog.FindSelectableByHash(modelHash)?.Id,
+            failure.OccurredAt, session?.IsReady == true ? "inference" : "startup", reason, error.HResult,
+            exitCode, hostStopped, fallback, failure.PreferenceGeneration);
+        ExecutionStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static int? ReadObservedExitCode(Session? session)
+    {
+        try { return session?.Child.Process.HasExited == true ? session.Child.Process.ExitCode : null; }
+        catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception) { return null; }
+    }
+
+    private static async Task ObserveNaturalExitAsync(Session? session, Exception error)
+    {
+        if (session is null || error is not EndOfStreamException) return;
+        // EOF can precede the OS exit signal slightly. Give a naturally exiting worker a
+        // bounded opportunity to report its own code before cleanup requests termination.
+        using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
+        try { await session.Child.Process.WaitForExitAsync(stop.Token).ConfigureAwait(false); }
+        catch (Exception failure) when (failure is OperationCanceledException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
+    }
+
     private async Task StopSessionAsync()
     {
+        EndExecution();
         ++_generation;
         var session = _session;
         if (session is not null)
@@ -499,7 +660,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             if (text.Length >= 131_072) throw new InvalidDataException("Resident runtime frame exceeds budget.");
             text.Append(buffer[0]);
         }
-        throw new IOException("Resident inference exited before completing its response.");
+        throw new EndOfStreamException("Resident inference exited before completing its response.");
     }
 
     public void Dispose()
@@ -540,12 +701,35 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             Interlocked.Exchange(ref StopRequested, 1);
         }
         internal bool SelectionSupported;
+        internal bool IsReady;
+        private string? _failureCategory;
+        internal string? FailureCategory => Volatile.Read(ref _failureCategory);
         internal Task Errors { get; }
         internal Task Memory { get; }
-        private static async Task DrainErrorsAsync(StreamReader reader)
+        private async Task DrainErrorsAsync(StreamReader reader)
         {
             var buffer = new char[2048];
-            while (await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false) > 0) { }
+            var boundary = string.Empty;
+            int read;
+            while ((read = await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false)) > 0)
+            {
+                // Only fixed categories survive; never persist raw stderr, paths, prompts or lyrics.
+                var chunk = boundary + new string(buffer, 0, read);
+                var category = ClassifyNativeFailure(chunk);
+                if (category is not null) Volatile.Write(ref _failureCategory, category);
+                boundary = chunk[^Math.Min(256, chunk.Length)..];
+            }
+        }
+        private static string? ClassifyNativeFailure(string text)
+        {
+            bool Has(string value) => text.Contains(value, StringComparison.OrdinalIgnoreCase);
+            if (Has("out of memory") || Has("CUDA_ERROR_OUT_OF_MEMORY")) return "OutOfMemory";
+            if (Has("insufficient VRAM") || Has("not enough VRAM")) return "VramBudget";
+            if (Has("CUDA_ERROR_UNSUPPORTED_PTX_VERSION") || Has("no kernel image") || Has("invalid device function")) return "CudaArchitecture";
+            if (Has("no CUDA device") || Has("CUDA_ERROR_NO_DEVICE") || Has("CUDA_ERROR_INSUFFICIENT_DRIVER")) return "CudaDeviceOrDriver";
+            if (Has("CUBLAS_STATUS_") || Has("cublas error")) return "CublasFailure";
+            if (Has("failed to load model") || Has("error loading model")) return "ModelLoadFailure";
+            return null;
         }
         private async Task MonitorAsync(LocalInferenceProcess child, long memoryBudget)
         {
@@ -553,7 +737,11 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             {
                 child.Process.Refresh();
                 if (child.Process.WorkingSet64 > memoryBudget)
-                { Interlocked.Exchange(ref StopRequested, 1); await child.TerminateAndWaitForExitAsync().ConfigureAwait(false); return; }
+                {
+                    Volatile.Write(ref _failureCategory, "HostMemoryBudgetExceeded");
+                    Interlocked.Exchange(ref StopRequested, 1);
+                    await child.TerminateAndWaitForExitAsync().ConfigureAwait(false); return;
+                }
                 await Task.Delay(200).ConfigureAwait(false);
             }
         }

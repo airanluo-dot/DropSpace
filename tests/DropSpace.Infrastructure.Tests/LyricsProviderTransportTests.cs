@@ -21,17 +21,18 @@ public sealed class LyricsProviderTransportTests
         var lyricReads = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
             {
                 searches++;
-                Assert.IsTrue(Uri.UnescapeDataString(request.RequestUri.Query).EndsWith("w=" + expectedTerms, StringComparison.Ordinal));
+                using var body = JsonDocument.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+                Assert.AreEqual(expectedTerms, body.RootElement.GetProperty("req_1").GetProperty("param").GetProperty("query").GetString());
                 return Json(JsonSerializer.Serialize(new { code = 0, data = new { song = new { list = new[] {
                     new { songmid = candidateId, songname = catalog, albumname = "", interval = catalogSeconds,
                         singer = catalogArtist.Split(';').Select(name => new { name }).ToArray() }
                 } } } }));
             }
             lyricReads++;
-            Assert.IsTrue(request.RequestUri.Query.Contains("songmid=" + candidateId, StringComparison.Ordinal));
+            Assert.IsTrue(QqParameter(request, "songMID") == candidateId);
             return Json(JsonSerializer.Serialize(new { code = 0, lyric = "[00:01.000]这是用于验证的原创歌词。" }));
         });
         using var client = new HttpClient(handler);
@@ -54,10 +55,10 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls=0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search",StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json("""{"data":{"song":{"list":[{"songmid":"one","songname":"歌","singer":[{"name":"歌手"}]},{"songmid":"two","songname":"歌","singer":[{"name":"歌手"}]}]}}}""");
             lyricCalls++;
-            return Json(JsonSerializer.Serialize(new { lyric=request.RequestUri.Query.Contains("songmid=two",StringComparison.Ordinal)?"[00:01.000]这是用于验证的原创歌词。":"" }));
+            return Json(JsonSerializer.Serialize(new { lyric=QqParameter(request, "songMID") == "two"?"[00:01.000]这是用于验证的原创歌词。":"" }));
         });
         using var client = new HttpClient(handler);
         var result=await new QqMusicLyricsProvider(new(client)).QueryAsync(new("歌","歌手","",TimeSpan.Zero),default);
@@ -91,7 +92,7 @@ public sealed class LyricsProviderTransportTests
     public async Task QqMalformedCandidateDoesNotHideNextValidatedRecording(string payload)
     {
         var lyricCalls = 0;
-        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+        using var handler = new FixtureHandler(request => IsSearch(request)
             ? Json(MatchingCandidates(false, 2))
             : Json(++lyricCalls == 1 ? payload : """{"code":0,"lyric":"[00:01]usable"}"""));
         using var client = new HttpClient(handler);
@@ -108,7 +109,7 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json(MatchingCandidates(netEase, 3));
             lyricCalls++;
             return Json("""{"code":405}""");
@@ -138,7 +139,7 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json(netEase
                     ? """{"code":200,"result":{"songs":[{"id":1,"name":"风的来信 A Letter From the Wind","artists":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"duration":197000},{"id":2,"name":"风的来信 A Letter From the Wind","artists":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"duration":197000}]}}"""
                     : """{"code":0,"data":{"song":{"list":[{"songmid":"one","songname":"风的来信 A Letter From the Wind","singer":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"interval":197},{"songmid":"two","songname":"风的来信 A Letter From the Wind","singer":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"interval":197}]}}}""");
@@ -165,7 +166,7 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json(MatchingCandidates(netEase, 2));
             if (++lyricCalls == 1) throw new IOException("Interrupted response stream.");
             return Json(netEase
@@ -188,7 +189,7 @@ public sealed class LyricsProviderTransportTests
         using var stop = new CancellationTokenSource();
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json(MatchingCandidates(netEase, 3));
             lyricCalls++;
             stop.Cancel();
@@ -210,7 +211,7 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json(MatchingCandidates(netEase, 3));
             lyricCalls++;
             return new((HttpStatusCode)status);
@@ -233,7 +234,7 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
             {
                 searches++;
                 return Json(MatchingCandidates(netEase, 4));
@@ -259,7 +260,7 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json(MatchingCandidates(netEase, 3));
             if (++lyricCalls > 1) return new(HttpStatusCode.ServiceUnavailable);
             return Json(netEase
@@ -288,15 +289,15 @@ public sealed class LyricsProviderTransportTests
         var lyrics = new List<string>();
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
             {
-                var terms = Uri.UnescapeDataString(request.RequestUri.Query);
+                var terms = QqParameter(request, "query");
                 searches.Add(terms);
                 return Json(searches.Count == 1
                     ? """{"code":0,"data":{"song":{"list":[]}}}"""
                     : """{"code":0,"data":{"song":{"list":[{"songmid":"002wxhL93EPjZz","songname":"风的来信 A Letter From the Wind","singer":[{"name":"HOYO-MiX"},{"name":"孙晔"}],"interval":197}]}}}""");
             }
-            lyrics.Add(request.RequestUri.Query);
+            lyrics.Add(QqParameter(request, "songMID"));
             return Json("""{"code":0,"lyric":"[00:01.000]这是用于验证的原创歌词。"}""");
         });
         using var client = new HttpClient(handler);
@@ -306,10 +307,10 @@ public sealed class LyricsProviderTransportTests
             new() { Enabled = true, Provider = LyricsProviderKind.QqMusic, SearchRemainingProviders = false }, default);
         Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
         Assert.HasCount(2, searches);
-        Assert.IsTrue(searches[0].EndsWith("w=风的来信 HOYO-MiX", StringComparison.Ordinal));
-        Assert.IsTrue(searches[1].EndsWith("w=风的来信", StringComparison.Ordinal));
+        Assert.AreEqual("风的来信 HOYO-MiX", searches[0]);
+        Assert.AreEqual("风的来信", searches[1]);
         Assert.HasCount(1, lyrics);
-        Assert.IsTrue(lyrics[0].Contains("songmid=002wxhL93EPjZz", StringComparison.Ordinal));
+        Assert.AreEqual("002wxhL93EPjZz", lyrics[0]);
         Assert.AreEqual("002wxhL93EPjZz", result.Document.Match!.CandidateId);
         Assert.AreEqual("HOYO-MiX; 孙晔", result.Document.Match.Artist);
         Assert.AreEqual("apple-track", result.Document.Match.TrackIdentity);
@@ -328,12 +329,12 @@ public sealed class LyricsProviderTransportTests
         var lyricCalls = 0;
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]},{"id":2,"name":"Song","artists":[{"name":"Artist"}]}]}}""");
             lyricCalls++;
             return Json(JsonSerializer.Serialize(new { code = 200,
                 lrc = new { lyric = "[00:01.000]The night is full of stars." },
-                tlyric = new { lyric = request.RequestUri.Query.Contains("id=2", StringComparison.Ordinal) ? "[00:01.000]我们一起走向明天。" : "" } }));
+                tlyric = new { lyric = request.RequestUri!.Query.Contains("id=2", StringComparison.Ordinal) ? "[00:01.000]我们一起走向明天。" : "" } }));
         });
         using var client = new HttpClient(handler);
         var query = new LyricsQuery("Song", "Artist", "", TimeSpan.Zero) { PreferredTranslationLanguage = "zh-Hans" };
@@ -376,7 +377,7 @@ public sealed class LyricsProviderTransportTests
     [DataRow(true)]
     public async Task NetEasePreservesLrcTranslationWhenYrcUsesDifferentTiming(bool unusableYrcTranslation)
     {
-        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+        using var handler = new FixtureHandler(request => IsSearch(request)
             ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
             : Json(System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -396,7 +397,7 @@ public sealed class LyricsProviderTransportTests
     [TestMethod]
     public async Task NetEaseKeepsValidWordTimedTranslationPair()
     {
-        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+        using var handler = new FixtureHandler(request => IsSearch(request)
             ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
             : Json(JsonSerializer.Serialize(new
             {
@@ -425,7 +426,7 @@ public sealed class LyricsProviderTransportTests
             using var handler = new FixtureHandler(request =>
             {
                 calls++;
-                return request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+                return IsSearch(request)
                     ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
                     : Json(JsonSerializer.Serialize(new { code = 200, lrc = new { lyric = "[00:01.000]I love you" },
                         tlyric = new { lyric = hasTranslation ? "[00:01.000]我爱你" : "" } }));
@@ -457,7 +458,7 @@ public sealed class LyricsProviderTransportTests
     [DataRow("missing-yrc")]
     public async Task NetEaseDoesNotMixOriginalAndTranslationTimelines(string variant)
     {
-        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+        using var handler = new FixtureHandler(request => IsSearch(request)
             ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
             : Json(JsonSerializer.Serialize(new
             {
@@ -480,7 +481,7 @@ public sealed class LyricsProviderTransportTests
     [TestMethod]
     public async Task NetEaseKeepsGenuinePartialYrcTranslation()
     {
-        using var handler = new FixtureHandler(request => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+        using var handler = new FixtureHandler(request => IsSearch(request)
             ? Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}]}]}}""")
             : Json(JsonSerializer.Serialize(new
             {
@@ -619,9 +620,9 @@ public sealed class LyricsProviderTransportTests
         var searches = new List<string>();
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
             {
-                var terms = Uri.UnescapeDataString(request.RequestUri.Query);
+                var terms = QqParameter(request, "query");
                 searches.Add(terms);
                 return terms.Contains("Song Artist", StringComparison.Ordinal)
                     ? Json("""{"result":{"songs":[]}}""")
@@ -645,9 +646,9 @@ public sealed class LyricsProviderTransportTests
         var lyricIds = new List<string>();
         using var handler = new FixtureHandler(request =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal))
+            if (IsSearch(request))
                 return Json("""{"result":{"songs":[{"id":1,"name":"Song","artists":[{"name":"Artist"}],"album":{"name":"Album"},"duration":180000},{"id":2,"name":"Song (2024 Remastered)","artists":[{"name":"Artist"}],"album":{"name":"Album Deluxe"},"duration":181000}]}}""");
-            lyricIds.Add(request.RequestUri.Query);
+            lyricIds.Add(request.RequestUri!.Query);
             return request.RequestUri.Query.Contains("id=1", StringComparison.Ordinal)
                 ? Json("""{"lrc":{"lyric":""}}""")
                 : Json("""{"lrc":{"lyric":"[00:01]usable"}}""");
@@ -718,6 +719,13 @@ public sealed class LyricsProviderTransportTests
         Assert.AreEqual(4, calls);
     }
 
+    private static bool IsSearch(HttpRequestMessage request) => request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal) ||
+        request.RequestUri.Host == "u.y.qq.com" && QqParameter(request, "query").Length > 0;
+    private static string QqParameter(HttpRequestMessage request, string name)
+    {
+        using var body = JsonDocument.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+        return body.RootElement.GetProperty("req_1").GetProperty("param").TryGetProperty(name, out var value) ? value.GetString() ?? "" : "";
+    }
     private static HttpResponseMessage Json(string text) => new(HttpStatusCode.OK) { Content = new StringContent(text, Encoding.UTF8, "application/json") };
     private sealed class FixtureHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {

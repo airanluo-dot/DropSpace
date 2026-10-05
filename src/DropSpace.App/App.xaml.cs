@@ -140,6 +140,15 @@ public partial class App : Application
             }
 
             var persistedSettings = await settingsService.LoadAsync();
+            var initialSettingsRecovery = settingsService.LastLoadRecovery;
+            if (string.IsNullOrEmpty(persistedSettings.DefaultDownloadDirectory))
+                persistedSettings = await settingsService.UpdateAsync(settings => settings with
+                { DefaultDownloadDirectory = NativeFolderPickerService.GetDownloadsDirectory() });
+            var downloads = _services.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>();
+            downloads.Connections.SetLimit(persistedSettings.MaxDownloadConnections);
+            downloads.Transfers.SetLimit(persistedSettings.MaxConcurrentDownloads);
+            downloads.Bandwidth.SetLimit(persistedSettings.DownloadSpeedLimitBytesPerSecond);
+            await _services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>().RestoreAsync();
             var language = _services.GetRequiredService<AppLanguageService>();
             var requestedSmokeLanguage = GetCommandLineArgumentValue(commandLine, "--smoke-language");
             var smokeLanguage = AppLanguagePreference.System;
@@ -155,6 +164,8 @@ public partial class App : Application
             var strings = _services.GetRequiredService<IAppStringLocalizer>();
             XamlResourceOverride.Initialize(strings);
             _dlcManager = _services.GetRequiredService<Services.Dlc.DlcManagerService>();
+            await _dlcManager.RestoreAsync();
+            _ = _dlcManager.RefreshAsync();
             _window = new MainWindow(
                 viewModel,
                 strings,
@@ -240,13 +251,16 @@ public partial class App : Application
                 {
                     _services.GetRequiredService<ILogger<App>>().LogWarning(exception, "Cross-device clipboard initialization failed; local clipboard capture remains available.");
                 }
-                if (settingsService.LastLoadRecovery is { Recovered: true } recovery)
+                var startupSettingsRecovery = initialSettingsRecovery.Recovered ? initialSettingsRecovery : settingsService.LastLoadRecovery;
+                if (startupSettingsRecovery is { Recovered: true } recovery)
                 {
                     _services.GetRequiredService<ILogger<App>>().LogWarning(
                         "UI settings recovery completed after {ErrorCategory}; quarantine file {QuarantineFileName}; non-UI preferences preserved={PreservedNonUi}.",
                         recovery.ErrorCategory,
                         recovery.QuarantineFileName,
                         recovery.PreservedNonUiPreferences);
+                    viewModel.SettingsRecoveryMessage = strings.Get(recovery.PreservedNonUiPreferences
+                        ? "SettingsRecoveredPreferencesKept" : "SettingsRecoveredDefaults");
                 }
 
                 var updatedArgument = Array.FindIndex(commandLine, value =>
@@ -400,6 +414,9 @@ public partial class App : Application
         if (_dlcManager is { } dlcManager)
             await CleanupAsync("DLC package operations", () => dlcManager.DisposeAsync().AsTask());
         _dlcManager = null;
+
+        if (services is not null)
+            await CleanupAsync("file downloads", () => services.GetRequiredService<DropSpace.Infrastructure.Downloads.DownloadManager>().ShutdownAsync());
 
         var overlay = _overlayWindows;
         if (_systemActivities is { } systemActivities)
@@ -575,9 +592,10 @@ public partial class App : Application
                 provider.GetRequiredService<ILogger<ResilientUpdateSource>>());
         });
         services.AddSingleton<IUpdateDownloader>(provider => new HttpUpdateDownloader(
-            new HttpClient { Timeout = TimeSpan.FromMinutes(30) },
+            new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = Timeout.InfiniteTimeSpan },
             paths,
-            provider.GetRequiredService<UpdateStateStore>()));
+            provider.GetRequiredService<UpdateStateStore>(),
+            provider.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>()));
         services.AddSingleton<IUpdateService>(provider => new UpdateService(
             provider.GetRequiredService<ReleaseBuildInfo>().CurrentVersion,
             provider.GetRequiredService<IUpdateSource>(),
@@ -597,11 +615,14 @@ public partial class App : Application
         services.AddSingleton<Services.Audio.WindowsProcessLoopbackService>();
         services.AddSingleton<Services.Media.MediaProcessResolver>();
         services.AddSingleton<Services.Media.MediaArtworkService>();
+        services.AddSingleton(provider => new QqMusicSession(Path.Combine(provider.GetRequiredService<AppStoragePaths>().Data, "QqMusic")));
+        services.AddSingleton<Services.Media.QqMusicLoginService>();
         services.AddSingleton<MediaViewModel>();
         services.AddSingleton<Services.NeteaseEnhancement.NeteaseInstallationProbe>();
         services.AddSingleton<Services.NeteaseEnhancement.NeteaseSmtcVerifier>();
         services.AddSingleton<Services.NeteaseEnhancement.NeteaseRuntimeInstaller>();
         services.AddSingleton(provider => new Services.NeteaseEnhancement.InfLinkDeploymentService(
+            provider.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>(),
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "NeteaseEnhancement")));
         services.AddSingleton<DropSpace.Core.Media.INeteaseEnhancementService, Services.NeteaseEnhancement.NeteaseEnhancementService>();
         services.AddSingleton<NeteaseEnhancementViewModel>();
@@ -611,12 +632,18 @@ public partial class App : Application
         services.AddSingleton<Services.Widgets.NativeWidgetDataService>();
         services.AddSingleton<WidgetViewModel>();
         services.AddSingleton<ClipboardIslandViewModel>();
+        services.AddSingleton<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>();
+        services.AddSingleton<DropSpace.Core.Downloads.IDownloadTaskRepository>(provider => new DropSpace.Infrastructure.Downloads.DownloadTaskRepository(
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "Downloads", "Tasks")));
+        services.AddSingleton<DropSpace.Infrastructure.Downloads.DownloadManager>();
         services.AddSingleton(provider => new AiModelPackageService(
-            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models")));
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models"),
+            provider.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>()));
         services.AddSingleton(provider => new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
         services.AddSingleton(provider => new CudaLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
-            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime"),
+            provider.GetRequiredService<DropSpace.Infrastructure.Downloads.HttpRangeDownloader>()));
         services.AddSingleton<IAiLyricsPackageResolver, PlainHyLyricsPackageResolver>();
         services.AddSingleton(provider => new AiLyricsCache(provider.GetRequiredService<LyricsCache>()));
         services.AddSingleton<PlainHyLyricsCoordinator>();
@@ -624,7 +651,8 @@ public partial class App : Application
         services.AddSingleton(provider => PersistentPlainLyricsRunner.CreateAutomatic(
             provider.GetRequiredService<AiLyricsRuntimePackage>(),
             provider.GetRequiredService<CudaLyricsRuntimePackage>(),
-            provider.GetRequiredService<AiLyricsRuntimeOptions>()));
+            provider.GetRequiredService<AiLyricsRuntimeOptions>(),
+            provider.GetRequiredService<ILogger<PersistentPlainLyricsRunner>>()));
         services.AddSingleton<IAiLyricsBackend>(provider => new PlainHyLyricsBackend(
             provider.GetRequiredService<PlainHyLyricsCoordinator>(),
             provider.GetRequiredService<PersistentPlainLyricsRunner>(),
@@ -634,6 +662,7 @@ public partial class App : Application
         services.AddSingleton<Services.Media.AiLyricsService>();
         services.AddSingleton<IDlcPackageProvider, Services.Dlc.AiModelDlcProvider>();
         services.AddSingleton<IDlcPackageProvider, Services.Dlc.CudaRuntimeDlcProvider>();
+        services.AddSingleton<IDlcPackageProvider, Services.Dlc.NeteaseComponentsDlcProvider>();
         services.AddSingleton<Services.Dlc.DlcManagerService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();

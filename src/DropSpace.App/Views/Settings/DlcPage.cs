@@ -16,6 +16,7 @@ public sealed class DlcPage : UserControl
 {
     private readonly DlcManagerService _manager;
     private readonly IAppStringLocalizer _strings;
+    private readonly ViewModels.NativeSettingsEditor _editor;
     private readonly StackPanel _installed = new() { Spacing = 12 };
     private readonly StackPanel _available = new() { Spacing = 12 };
     private readonly TextBlock _emptyInstalled;
@@ -27,17 +28,18 @@ public sealed class DlcPage : UserControl
     private bool _confirming;
     private int _renderQueued;
 
-    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings)
+    public DlcPage(DlcManagerService manager, IAppStringLocalizer strings, ViewModels.NativeSettingsEditor editor, nint windowHandle)
     {
         _manager = manager;
         _strings = strings;
+        _editor = editor;
         var body = new StackPanel { Spacing = 18 };
         body.Children.Add(new TextBlock { Text = strings.Get("DlcTitle"), FontSize = 22, FontWeight = FontWeights.SemiBold });
         body.Children.Add(new TextBlock { Text = strings.Get("DlcDescription"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 });
         _refresh = new Button { Content = strings.Get("DlcRefresh"), HorizontalAlignment = HorizontalAlignment.Left };
         AutomationProperties.SetName(_refresh, strings.Get("DlcRefresh"));
         AutomationProperties.SetAutomationId(_refresh, "DlcRefresh");
-        _refresh.Click += async (_, _) => await _manager.RefreshAsync();
+        _refresh.Click += async (_, _) => await _manager.RefreshAsync(force: true);
         body.Children.Add(_refresh);
         AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
         body.Children.Add(_error);
@@ -49,6 +51,7 @@ public sealed class DlcPage : UserControl
         _emptyAvailable = new TextBlock { Text = strings.Get("DlcEmptyAvailable"), TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
         body.Children.Add(_emptyAvailable);
         body.Children.Add(_available);
+        body.Children.Add(new DownloadPanel(editor, strings, windowHandle));
         Content = body;
         AutomationProperties.SetName(this, strings.Get("DlcTitle"));
         AutomationProperties.SetAutomationId(this, "DlcPage");
@@ -133,7 +136,7 @@ public sealed class DlcPage : UserControl
         var token = stop.Token;
         var snapshot = _manager.Packages.FirstOrDefault(item => item.Package.Id == id);
         if (snapshot is null) return;
-        if (action == DlcPackageAction.Inspect) { await _manager.RefreshAsync(); return; }
+        if (action == DlcPackageAction.Inspect) { await _manager.RefreshAsync(force: true); return; }
         _confirming = true;
         _error.Visibility = Visibility.Collapsed;
         Render();
@@ -144,6 +147,10 @@ public sealed class DlcPage : UserControl
             var content = download ? _strings.Format("DlcDownloadConfirm", snapshot.Package.Name,
                 PackageCard.Size(_strings, snapshot.Package.DownloadBytes)) : _strings.Format("DlcDeleteConfirm", snapshot.Package.Name);
             if (download && snapshot.Package.Source is { } source) content += "\n\n" + _strings.Format("DlcSource", source);
+            if ((download ? snapshot.Package.DownloadConfirmationResourceKey : snapshot.Package.DeleteConfirmationResourceKey) is { } notice)
+                content += "\n\n" + _strings.Get(notice);
+            if (!download && id == _editor.Settings.Lyrics.AiModelId && _editor.Settings.Lyrics.AiTranslationEnabled)
+                content += "\n\n" + _strings.Get("DlcDeleteEnabledModel");
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot, Title = title, Content = new TextBlock { Text = content, TextWrapping = TextWrapping.Wrap },
@@ -249,7 +256,7 @@ public sealed class DlcPage : UserControl
             var canDownload = item.Package.CanDownload && item.Installation is { CanDownload: true };
             UpdateButton(_download, item.WasCanceled || item.Installation?.HasArtifacts == true ? "DlcResume" : "DlcDownload",
                 item.Installation?.IsInstalled != true && item.State != DlcPackageState.Failed && !downloading && item.Package.CanDownload, !busy && canDownload, item.Package.Name);
-            UpdateButton(_delete, "DlcDelete", item.Installation?.HasArtifacts == true && !downloading, !busy, item.Package.Name);
+            UpdateButton(_delete, "DlcDelete", item.Installation is { HasArtifacts: true, CanDelete: true } && !downloading, !busy, item.Package.Name);
             _retryAction = item.FailedAction ?? DlcPackageAction.Inspect;
             UpdateButton(_retry, "DlcRetry", item.State == DlcPackageState.Failed,
                 !busy && (_retryAction != DlcPackageAction.Download || canDownload), item.Package.Name);

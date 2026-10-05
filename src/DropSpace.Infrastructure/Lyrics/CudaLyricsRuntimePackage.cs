@@ -1,3 +1,4 @@
+using DropSpace.Infrastructure.Downloads;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -19,21 +20,23 @@ public sealed class CudaLyricsRuntimePackage
     private static readonly SemaphoreSlim ExtractionGate = new(1, 1);
     private readonly Func<string, Stream?> _openResource;
     private readonly string _root;
+    private readonly HttpRangeDownloader _downloads;
 
-    public CudaLyricsRuntimePackage(Assembly assembly, string cacheRoot)
-        : this((assembly ?? throw new ArgumentNullException(nameof(assembly))).GetManifestResourceStream, cacheRoot)
+    public CudaLyricsRuntimePackage(Assembly assembly, string cacheRoot, HttpRangeDownloader? downloads = null)
+        : this((assembly ?? throw new ArgumentNullException(nameof(assembly))).GetManifestResourceStream, cacheRoot, downloads)
     {
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+');
         _appTag = version is { Length: > 0 } ? "v" + version[0] : null;
         _appCommit = version is { Length: 2 } ? version[1] : null;
     }
 
-    internal CudaLyricsRuntimePackage(Func<string, Stream?> openResource, string cacheRoot)
+    internal CudaLyricsRuntimePackage(Func<string, Stream?> openResource, string cacheRoot, HttpRangeDownloader? downloads = null)
     {
         ArgumentNullException.ThrowIfNull(openResource);
         ArgumentException.ThrowIfNullOrWhiteSpace(cacheRoot);
         _openResource = openResource;
         _root = Path.GetFullPath(cacheRoot);
+        _downloads = downloads ?? new();
     }
 
     // Includes CUDA identity and its cuBLAS dependencies; never aliases shipping Vulkan/CPU caches.
@@ -188,6 +191,7 @@ public sealed class CudaLyricsRuntimePackage
         {
             if (!IsHash(Path.GetFileName(directory))) continue;
             var safe = ReparseSafePathPolicy.ResolveExistingContainedPath(_root, directory);
+            foreach (var artifact in DownloadStorage.Artifacts(Path.Combine(safe, "download.zip.partial"))) yield return artifact;
             foreach (var file in Directory.EnumerateFiles(safe))
             {
                 var name = Path.GetFileName(file);
@@ -203,6 +207,40 @@ public sealed class CudaLyricsRuntimePackage
 
     public long GetOwnedArtifactBytes() => OwnedArtifactPaths().Sum(path => new FileInfo(path).Length);
 
+    /// <summary>Read-only inventory for DLC presentation. Never prepares or loads a worker;
+    /// EnsureWorkerAsync/OpenWorkerLeaseAsync retain the full verification before execution.</summary>
+    public Task<DropSpace.Core.Abstractions.DlcPackageInspection> InspectAsync(CancellationToken token) =>
+        Task.Run(async () =>
+        {
+            await ExtractionGate.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                using var descriptor = ReadDownloadDescriptor();
+                var directory = Path.Combine(_root, RuntimeId, GetManifestCacheIdentity());
+                var installed = true;
+                var expected = descriptor.RootElement.GetProperty("files").EnumerateArray()
+                    .Concat(descriptor.RootElement.GetProperty("notices").EnumerateArray());
+                foreach (var file in expected)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var path = Path.Combine(directory, file.GetProperty("name").GetString()!);
+                    if (!File.Exists(path)) { installed = false; continue; }
+                    ReparseSafePathPolicy.ResolveExistingContainedPath(_root, path);
+                    if (new FileInfo(path).Length != file.GetProperty("bytes").GetInt64()) installed = false;
+                }
+                long bytes = 0;
+                var hasArtifacts = false;
+                foreach (var path in OwnedArtifactPaths())
+                {
+                    token.ThrowIfCancellationRequested();
+                    hasArtifacts = true;
+                    bytes = checked(bytes + new FileInfo(path).Length);
+                }
+                return new DropSpace.Core.Abstractions.DlcPackageInspection(installed, hasArtifacts, bytes);
+            }
+            finally { ExtractionGate.Release(); }
+        }, token);
+
     public async Task RemoveAsync(CancellationToken token)
     {
         await ExtractionGate.WaitAsync(token).ConfigureAwait(false);
@@ -213,6 +251,13 @@ public sealed class CudaLyricsRuntimePackage
                 token.ThrowIfCancellationRequested();
                 File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, Path.GetRelativePath(_root, file)));
             }
+            var runtimeRoot = Path.Combine(_root, RuntimeId);
+            if (Directory.Exists(runtimeRoot))
+                foreach (var directory in Directory.EnumerateDirectories(runtimeRoot).Where(path => IsHash(Path.GetFileName(path))))
+                {
+                    ReparseSafePathPolicy.ResolveExistingContainedPath(_root, directory);
+                    DownloadStorage.Clean(Path.Combine(directory, "download.zip.partial"));
+                }
         }
         finally { ExtractionGate.Release(); }
     }
@@ -228,6 +273,7 @@ public sealed class CudaLyricsRuntimePackage
         await ExtractionGate.WaitAsync(token).ConfigureAwait(false);
         string? archivePath = null;
         var partials = new List<string>();
+        var installed = false;
         try
         {
             using var stream = ReadManifest();
@@ -266,34 +312,20 @@ public sealed class CudaLyricsRuntimePackage
             }
             if (expanded > 1_073_741_824) throw new InvalidDataException("CUDA payload exceeds budget.");
             var relative = Path.Combine(RuntimeId, identity);
-            archivePath = ReparseSafePathPolicy.PrepareContainedFileDestination(_root, Path.Combine(relative, Guid.NewGuid().ToString("N") + ".zip.partial"));
-            if (new DriveInfo(Path.GetPathRoot(_root)!).AvailableFreeSpace < archiveBytes + expanded + 64L * 1024 * 1024)
+            archivePath = ReparseSafePathPolicy.PrepareContainedFileDestination(_root, Path.Combine(relative, "download.zip.partial"));
+            if (new DriveInfo(Path.GetPathRoot(_root)!).AvailableFreeSpace < archiveBytes * 2 + expanded + 64L * 1024 * 1024)
                 throw new IOException("Insufficient free space for CUDA components.");
             using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
             budget.CancelAfter(TimeSpan.FromMinutes(30));
             token = budget.Token;
             using var handler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false };
             using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
-            using var response = await GetDownloadAsync(client, uri, token).ConfigureAwait(false);
-            if (response.Content.Headers.ContentLength is { } length && length != archiveBytes)
-                throw new InvalidDataException("CUDA download size changed.");
-            await using (var output = new FileStream(archivePath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true))
-            {
-                await using var input = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
-                var buffer = new byte[65536]; long received = 0;
-                while (true)
-                {
-                    using var idle = CancellationTokenSource.CreateLinkedTokenSource(token);
-                    idle.CancelAfter(TimeSpan.FromSeconds(45));
-                    var count = await input.ReadAsync(buffer, idle.Token).ConfigureAwait(false);
-                    if (count == 0) break;
-                    received += count;
-                    if (received > archiveBytes) throw new InvalidDataException("CUDA archive exceeded its trusted size.");
-                    await output.WriteAsync(buffer.AsMemory(0, count), token).ConfigureAwait(false);
-                    progress?.Report((double)received / archiveBytes * 0.85);
-                }
-                if (received != archiveBytes) throw new EndOfStreamException("Incomplete CUDA component download.");
-            }
+            var policy = new DownloadRequestPolicy(client, destination => destination.Scheme == Uri.UriSchemeHttps && destination.IsDefaultPort &&
+                destination.Host is "github.com" or "release-assets.githubusercontent.com" or "objects.githubusercontent.com",
+                request => request.Headers.UserAgent.ParseAdd("DropSpace"));
+            await _downloads.DownloadAsync(uri, archivePath, policy,
+                new DownloadManager.InlineProgress(value => progress?.Report((double)value.DownloadedBytes / archiveBytes * 0.85)),
+                token, archiveBytes, archiveHash).ConfigureAwait(false);
             if (!await VerifyAsync(archivePath, archiveHash!, archiveBytes, token).ConfigureAwait(false))
                 throw new InvalidDataException("CUDA archive SHA256 mismatch.");
             await using var archiveInput = ReparseSafeFileOpen.OpenRead(archivePath);
@@ -357,13 +389,14 @@ public sealed class CudaLyricsRuntimePackage
                 ReparseSafePathPolicy.RevalidatePreparedDestination(_root, destination);
                 File.Move(partials[i], destination, true);
             }
+            installed = true;
         }
         finally
         {
             try
             {
                 foreach (var partial in partials) DeletePartial(partial);
-                if (archivePath is not null) DeletePartial(archivePath);
+                if (installed && archivePath is not null) DownloadStorage.Clean(archivePath);
             }
             finally { ExtractionGate.Release(); }
         }
@@ -374,25 +407,6 @@ public sealed class CudaLyricsRuntimePackage
         try { if (File.Exists(path)) File.Delete(path); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         { System.Diagnostics.Trace.TraceWarning("CUDA partial cleanup needs retry ({0})", error.GetType().Name); }
-    }
-
-    private static async Task<HttpResponseMessage> GetDownloadAsync(HttpClient client, Uri uri, CancellationToken token)
-    {
-        for (var attempt = 0; attempt < 6; attempt++)
-        {
-            if (uri.Scheme != Uri.UriSchemeHttps || uri.Host is not ("github.com" or "release-assets.githubusercontent.com" or "objects.githubusercontent.com"))
-                throw new InvalidDataException("Untrusted CUDA download redirect.");
-            var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-            if ((int)response.StatusCode is 301 or 302 or 303 or 307 or 308)
-            {
-                var location = response.Headers.Location; response.Dispose();
-                if (location is null) throw new InvalidDataException("Missing CUDA download location.");
-                uri = new Uri(uri, location); continue;
-            }
-            if (!response.IsSuccessStatusCode) { response.Dispose(); throw new IOException("CUDA component release is unavailable."); }
-            return response;
-        }
-        throw new IOException("Too many CUDA download redirects.");
     }
 
     private static bool IsHash(string? hash) => hash is { Length: 64 } && hash.All(Uri.IsHexDigit);

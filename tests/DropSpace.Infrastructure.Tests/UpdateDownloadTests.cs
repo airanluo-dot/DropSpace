@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using DropSpace.Core.Compatibility;
+using DropSpace.Infrastructure.Downloads;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
 using DropSpace.Infrastructure.Updates;
@@ -13,10 +14,12 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class UpdateDownloadTests
 {
     private readonly List<string> _roots = [];
+    private readonly List<IDisposable> _resources = [];
 
     [TestCleanup]
     public void Cleanup()
     {
+        foreach (var resource in _resources) resource.Dispose();
         foreach (var root in _roots.Where(Directory.Exists)) Directory.Delete(root, true);
     }
 
@@ -49,88 +52,89 @@ public sealed class UpdateDownloadTests
     }
 
     [TestMethod]
-    public async Task InterruptedStream_IsRetainedAndResumedWithValidatedRange()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task InterruptedStream_RetriesWithValidatorAndSafelyHandlesIgnoredRange(bool ignoreRange)
     {
-        var bytes = Enumerable.Range(0, 128_000).Select(index => (byte)(index % 239)).ToArray();
-        var attempt = 0;
+        var bytes = Enumerable.Range(0, 128_000).Select(i => (byte)(i % 239)).ToArray();
+        var attempts = 0;
         long requestedOffset = -1;
-        var (downloader, candidate, paths) = Create(
-            bytes,
-            bytes.Length,
-            Hash(bytes),
-            request =>
+        var (downloader, candidate, _) = Create(bytes, bytes.Length, Hash(bytes), request =>
+        {
+            // A real range probe precedes sequential fallback for this small file.
+            if (request.Headers.Range?.Ranges.Single().To == 0)
+                return new(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) };
+            attempts++;
+            HttpResponseMessage response;
+            if (attempts == 1)
             {
-                attempt++;
-                if (attempt == 1)
-                {
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new StreamContent(new ThrowingReadStream(bytes, bytes.Length / 2)),
-                    };
-                }
-
-                var range = request.Headers.Range?.Ranges.SingleOrDefault();
-                Assert.IsNotNull(range);
-                Assert.IsNotNull(range.From);
-                requestedOffset = range.From.Value;
-                var remaining = bytes[(int)requestedOffset..];
-                var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
-                {
-                    Content = new ByteArrayContent(remaining),
-                };
-                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(
-                    requestedOffset,
-                    bytes.Length - 1,
-                    bytes.Length);
-                return response;
-            });
-
-        await Assert.ThrowsExactlyAsync<IOException>(() => downloader.DownloadAsync(candidate));
-        var partial = Directory.GetFiles(paths.Updates, "*.download", SearchOption.AllDirectories).Single();
-        var retainedLength = new FileInfo(partial).Length;
-        Assert.IsGreaterThan(0, retainedLength);
-        Assert.IsLessThan(bytes.Length, retainedLength);
-
+                response = new(HttpStatusCode.OK) { Content = new StreamContent(new ThrowingReadStream(bytes, bytes.Length / 2)) };
+                response.Content.Headers.ContentLength = bytes.Length;
+            }
+            else
+            {
+                requestedOffset = request.Headers.Range!.Ranges.Single().From!.Value;
+                Assert.AreEqual("\"version-1\"", request.Headers.IfRange?.EntityTag?.ToString());
+                response = new(ignoreRange ? HttpStatusCode.OK : HttpStatusCode.PartialContent)
+                { Content = new ByteArrayContent(ignoreRange ? bytes : bytes[(int)requestedOffset..]) };
+                if (!ignoreRange) response.Content.Headers.ContentRange = new(requestedOffset, bytes.Length - 1, bytes.Length);
+            }
+            response.Headers.ETag = new("\"version-1\"");
+            return response;
+        });
         var result = await downloader.DownloadAsync(candidate);
-        Assert.AreEqual(retainedLength, requestedOffset);
-        Assert.AreEqual(2, attempt);
+        Assert.AreEqual(bytes.Length / 2, requestedOffset);
+        Assert.AreEqual(2, attempts);
         CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(result.FilePath));
-        Assert.IsFalse(File.Exists(partial));
+        Assert.IsFalse(File.Exists(result.FilePath + ".download"));
+        Assert.IsFalse(File.Exists(result.FilePath + ".download.resume.json"));
     }
 
     [TestMethod]
-    public async Task ServerIgnoringRange_RestartsStagingWithoutDuplicatingBytes()
+    public async Task UntrustedRedirect_IsRejectedBeforeFollowingIt()
     {
-        var bytes = Enumerable.Range(0, 32_000).Select(index => (byte)(index % 251)).ToArray();
+        byte[] bytes = [1, 2, 3];
         var requests = 0;
-        var (downloader, candidate, paths) = Create(
-            bytes,
-            bytes.Length,
-            Hash(bytes),
-            request =>
-            {
-                requests++;
-                if (requests == 1)
-                {
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new StreamContent(new ThrowingReadStream(bytes, bytes.Length / 3)),
-                    };
-                }
+        var (downloader, candidate, paths) = Create(bytes, bytes.Length, Hash(bytes), _ =>
+        {
+            requests++;
+            return new(HttpStatusCode.Redirect) { Headers = { Location = new Uri("https://example.com/update.exe") } };
+        });
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => downloader.DownloadAsync(candidate));
+        Assert.AreEqual(1, requests);
+        AssertNoExecutable(paths);
+    }
 
-                Assert.IsNotNull(request.Headers.Range);
-                return new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new ByteArrayContent(bytes),
-                };
-            });
-
-        await Assert.ThrowsExactlyAsync<IOException>(() => downloader.DownloadAsync(candidate));
-        Assert.IsNotEmpty(Directory.GetFiles(paths.Updates, "*.download", SearchOption.AllDirectories));
-
-        var result = await downloader.DownloadAsync(candidate);
-        Assert.AreEqual(2, requests);
+    [TestMethod]
+    public async Task UpdateUsesSharedTransferQueueAndParallelRanges()
+    {
+        var bytes = Enumerable.Range(0, 5 * 1024 * 1024).Select(i => (byte)(i % 251)).ToArray();
+        var requests = 0;
+        var ranges = 0;
+        var (downloader, candidate, _) = Create(bytes, bytes.Length, Hash(bytes), request =>
+        {
+            Interlocked.Increment(ref requests);
+            var range = request.Headers.Range!.Ranges.Single();
+            long from = range.From!.Value, to = range.To!.Value;
+            if (to > 0) Interlocked.Increment(ref ranges);
+            var response = new HttpResponseMessage(HttpStatusCode.PartialContent)
+            { Content = new ByteArrayContent(bytes[(int)from..((int)to + 1)]) };
+            response.Headers.ETag = new("\"parallel-version\"");
+            response.Content.Headers.ContentRange = new(from, to, bytes.Length);
+            return response;
+        });
+        var shared = _resources.OfType<HttpRangeDownloader>().Last();
+        shared.Transfers.SetLimit(1);
+        using var otherDownload = await shared.Transfers.AcquireAsync(CancellationToken.None);
+        var task = downloader.DownloadAsync(candidate);
+        Assert.IsFalse(task.IsCompleted);
+        Assert.AreEqual(0, requests);
+        otherDownload.Dispose();
+        var result = await task;
+        Assert.IsGreaterThan(1, ranges);
         CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(result.FilePath));
+        Assert.AreEqual(0, shared.Connections.Active);
+        Assert.AreEqual(0, shared.Transfers.Active);
     }
 
     [TestMethod]
@@ -270,7 +274,11 @@ public sealed class UpdateDownloadTests
         var candidate = new UpdateCandidate(release, manifest, asset, DeploymentMode.Portable);
         var client = new HttpClient(new FakeHandler(response));
         var store = new UpdateStateStore(paths);
-        return (new HttpUpdateDownloader(client, paths, store), candidate, paths);
+        var shared = new HttpRangeDownloader();
+        var downloader = new HttpUpdateDownloader(client, paths, store, shared);
+        _resources.Add(downloader);
+        _resources.Add(shared);
+        return (downloader, candidate, paths);
     }
 
     private static string Hash(byte[] value) => Convert.ToHexString(SHA256.HashData(value)).ToLowerInvariant();

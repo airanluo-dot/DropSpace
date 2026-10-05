@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "status": "owner-accepted-experimental-beta",
-  "reason": "Owner-authorized Beta11 source/artifact consistency preparation: AI selection retired, shared DLC and optional CUDA; frozen translation models/prompts and historical evidence preserved. No new tests or model validation.",
+  "reason": "Owner-authorized Beta12 shared downloads, update transport, DLC inventory, CUDA host-memory/status, settings and lyric-source fixes. Existing native/model bytes reused; focused evidence only, no general semantic approval.",
   "scope": {
-    "releaseVersion": "v0.3.1-beta.11",
+    "releaseVersion": "v0.3.1-beta.12",
     "shippingModels": [
       {
         "id": "hy-mt2-18-q8-plain-beta",
@@ -185,7 +185,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsTranslationCoordinator.cs",
-          "sha256": "bdf5d10c7897993906f79390e4f5659dd7eb43d0c3244eaede013ff1164e33ff"
+          "sha256": "c1096b5bbe2f895c7042db791ceb9eebc3808f44485a8f5a028d1922b090fa96"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AiLyricsWorkLifetime.cs",
@@ -201,7 +201,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceProcess.cs",
-          "sha256": "d7435785335b85322777d5ec7f8b9c82fa95fcc102b4338908ec406737d3ebaf"
+          "sha256": "e89dc5270af046a8c5d70c6957ec7a882fc386a0688b0b69b08eb1c19cc282c7"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/WindowsInferenceProcess.cs",
@@ -237,7 +237,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs",
-          "sha256": "644342d9d6880f09a3b1279c1e5a4616f1df5fc6c2f331d88e9d5a57aba109a4"
+          "sha256": "5453c8e42ba46c653f77ba66af360bd55a9421b524e0f21e1890e4aeff301a34"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsSegmentMemo.cs",
@@ -253,15 +253,15 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs",
-          "sha256": "d5811be5f261420ae243df51df9b3420f47fc5a81882603f9217606ce1b2155c"
+          "sha256": "6f96d671f1eeee3a4e5e16c777317220506f519d251e120ebe2b26fa0fd59830"
         },
         {
           "path": "src/DropSpace.App/Services/Media/AiLyricsService.cs",
-          "sha256": "9081bc24acec57ca71c24f731009da516c1c20d28d9013e67c79e89d559ac4d6"
+          "sha256": "63d105ddf0b62223b6da5326766463f0f530b2c9159f7582f2098cd415ab281a"
         },
         {
           "path": "src/DropSpace.Core/Abstractions/IDlcPackageProvider.cs",
-          "sha256": "9547a0511d7dcc5d477a0e479bc23e8f8c27ac461d5a0d7d10e1896a3e8ced60"
+          "sha256": "ef72710e126631ea0f10ed79a3015a1d8de48e36bfc5b57eff288f1475b92c3f"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/CudaDriverAvailability.cs",
@@ -269,7 +269,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/CudaLyricsRuntimePackage.cs",
-          "sha256": "51a639638b1f7d45a7e3bfb45dbf65a1df42715bd06e60325978ba430fe7cf90"
+          "sha256": "c54d14a47bfd8c3f186ed1402abfa7b072ad84b72c9ddc68d5caaaf3e2164129"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/CudaPlainHyLyricsBackend.cs",
@@ -277,23 +277,23 @@
         },
         {
           "path": "src/DropSpace.App/Services/Dlc/AiModelDlcProvider.cs",
-          "sha256": "b013b5658842227f57c19233c6d638bc7387abc3594cf10ff3e63aa368576cc5"
+          "sha256": "b9d669ceace7d81570574775682a8ce87043e5dbb9bf5e7561214e7917fba6de"
         },
         {
           "path": "src/DropSpace.App/Services/Dlc/CudaRuntimeDlcProvider.cs",
-          "sha256": "695a7d2bbd2cbaef5d9315bd6cd642b4bbacb23a2d7b1d45abca62d8e7b19c49"
+          "sha256": "6c8aa29ee808778f394d931a5cb19d161215128d218f31f053fd167c22af7793"
         },
         {
           "path": "src/DropSpace.App/Services/Dlc/DlcManagerService.cs",
-          "sha256": "604e34f246ab92a8c48a80128d68a27de4ad363db68eda940fa48a07a5df161c"
+          "sha256": "072e27d776a1c50b173aef969c474deff66d6ae1c58742260ae819ad38f04daa"
         },
         {
           "path": "src/DropSpace.App/Views/Settings/DlcPage.cs",
-          "sha256": "3370b20c6824258aaf1ad090c9d58a60ec39f70a9a3d07c3a7ca0bc08916ef68"
+          "sha256": "ee92193e12d6be0929979a1a3f474010b46de7f87f8ef5979f2abcf3f8329e07"
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.Settings.cs",
-          "sha256": "a5bebce06d504e863a6298ab1ed473fe5253b82e519747ed4eb6f3bbb6a1fd3d"
+          "sha256": "624b0893ea3b2a848636176438f28bb704d702c5cb2bab669b43de4cb0a8682e"
         },
         {
           "path": "src/DropSpace.App/MainWindow.xaml.cs",
@@ -321,7 +321,7 @@
         },
         {
           "path": "scripts/stage-reviewed-cuda-metadata.py",
-          "sha256": "c2b506f69c2e987b1c9f922a09ed4b1f461feee7a30e69e285fa133549796993"
+          "sha256": "a89b5001566995d18471b7827c801bfe8a90ef813676e3d6b29da724f562c763"
         },
         {
           "path": "docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json",
@@ -333,7 +333,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "26157a61cfb414890585542cbbfa232aa903edcbb2f28e5ba7fc7247de7d1d5a"
+          "sha256": "29d02e7fa4b6e273fa4609bbf59125ab4e29e0d9754c10834ee354ae92c17fa9"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -345,7 +345,7 @@
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsMatcher.cs",
-          "sha256": "61424d5ae4dc408cd1ebc011194e580c8ac1b838d3373b9251b3ed40c22e1bb5"
+          "sha256": "a2cdce91a0c49b897fb9f90569b94764fc41b507fe3c2bba0791a9c5a62ea62d"
         },
         {
           "path": "src/DropSpace.Core/Lyrics/LyricsCandidateSelection.cs",
@@ -397,7 +397,7 @@
         },
         {
           "path": "src/DropSpace.Core/Models/AppSettings.cs",
-          "sha256": "36b51dac151f0cd62a9d5e7bb69ce6df671776dcdb7e8f34b6cfbe0ee9e23424"
+          "sha256": "dec8c27b8245a5af3e21d73498b76355780241d29adc1767c4042a3d2b7a57b9"
         },
         {
           "path": "src/DropSpace.Core/Models/NativeIslandSettings.cs",
@@ -409,7 +409,7 @@
         },
         {
           "path": "src/DropSpace.Core/Models/SettingsChangePolicy.cs",
-          "sha256": "56ab62b6eee469388fa94236dbc138199edb1e15ba91cfce36cff56df4a9e3e5"
+          "sha256": "dbb85f73dac00aa7a429d37f6346b7a20426c47d20000650f47cfbef7d8b2753"
         },
         {
           "path": "src/DropSpace.Core/Models/SettingsValidationPolicy.cs",
@@ -429,11 +429,11 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs",
-          "sha256": "39d6017a1db77e4a9133fc516b5828efb6f7382e5e7cf127b168ace0b23d3843"
+          "sha256": "4848bff0929ed931174c900f0059bde3051bd9fe08695ac3df1e6bcb7913ae63"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs",
-          "sha256": "fa1980a56530870b1707a61ce6fbd7245aa02eb436f529eed32ae0af90032d07"
+          "sha256": "88f1504b987ced39e62ad3eca96453c19d40a44e6925737f897f68c0ac483c06"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalLrcLyricsProvider.cs",
@@ -441,27 +441,27 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs",
-          "sha256": "20ad100cc22d6f07846bb329af94e38db4a27b1816d140fb9c715fb8e1ae83fe"
+          "sha256": "a5c8f865d54481a4db07fd42d1ef65cd88f601c99005b396967a0937a1a9802d"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs",
-          "sha256": "877a134388366354d5bb374d487cf807ce87e413ba1f00ace6a4293482ecf19b"
+          "sha256": "2bca29c9d94d0827e8920c606f2679a4ff9d7aeaf7e038048be8c5ea86d36480"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/NetEaseResponseCache.cs",
-          "sha256": "02b7fa08bdfbc84f7268f16dad5ddae0db77208539e535825917770efc9f4448"
+          "sha256": "d98643823ca2cf8e80fe62c3d16dd07ff04b0db6a36333ff4dbe986ad2183dec"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsDiagnostic.cs",
-          "sha256": "4a641b133bd5ce637f4d4106a73e754b2945768850280d2662879d343c136048"
+          "sha256": "8d42fc2accf236af213e15971440d1f5dfd9019f6fde5252da9bcdb625258f4c"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs",
-          "sha256": "4a87e3663485325b8da90cb9568d2b6ca75133a5a11267fa370c8e6e03e4186a"
+          "sha256": "d7d3c61476481f30bfd35787993a8c111bf5e3c1320e34ac0d14ed0c4ad35a5f"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsService.cs",
-          "sha256": "e69b513a5992201097f6554ac77e72e02a0e2e0c3c5314638414b4a049ad9328"
+          "sha256": "4707c708d95f661d89d2239273d07bfccde0ec1b25ec05b72ae5135d762f9cb9"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsCandidateRequests.cs",
@@ -481,7 +481,7 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsHttpClient.cs",
-          "sha256": "a6b11f72c6a078c0ca8e5938dcd2a16aef693a20db1bde8b15e86721a45dd2d7"
+          "sha256": "3fbcb78564d381b07be2e52959b70ba79d808c22c4cb0723482f5e7f75311866"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LyricsProviderRegistry.cs",
@@ -489,11 +489,11 @@
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/AiModelPackageService.cs",
-          "sha256": "f2a19d367f07f5af08d8abacf97e4f45040f7324b9c36efb33f54c40b395ba20"
+          "sha256": "fa1c9e2814b505d512b6146152c19c17236ce4c3a22b6d1767d3ac6faab1c755"
         },
         {
           "path": "src/DropSpace.Infrastructure/Settings/JsonSettingsService.cs",
-          "sha256": "ef1e1e90a021bd660d2396986e2509e75c107be2402afaa02ffa86a1d79aba83"
+          "sha256": "2b58839b9425344baffbf1d5027691efb4a8a3107ed94f534cae481b48bd83bf"
         },
         {
           "path": "src/DropSpace.Infrastructure/Settings/SettingsIoPolicy.cs",
@@ -501,7 +501,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/Media/MediaExperienceService.cs",
-          "sha256": "2548a10a64ec702b37a154576bd8decb93eb46bbae3f17be2a41782191ace68b"
+          "sha256": "397a4cbd42ab95b2a52d229b2537fd97e264d1ce4f18a800fe59936557b81008"
         },
         {
           "path": "src/DropSpace.App/Services/Media/WindowsMediaSessionService.cs",
@@ -525,7 +525,7 @@
         },
         {
           "path": "src/DropSpace.App/App.xaml.cs",
-          "sha256": "4ac4137826516cd5c784d2701654697c9aeb1f574bbade4840972439385d1a38"
+          "sha256": "5f2eaa15a3ab4b0ef40b62a63ba9b40f72f3c9f7401c6d13c8d4f254b856a840"
         },
         {
           "path": "src/DropSpace.App/Services/Diagnostics/MusicVisualSmoke.cs",
@@ -537,7 +537,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml",
-          "sha256": "63937562cdd9b34cc821ee69f6f6b04a15d47917de7a49395ebb8a335daa2245"
+          "sha256": "4ba10e7ba326092e994d2fe3c21ee5c2c887af2f10660d16014dbb29eeb2361d"
         },
         {
           "path": "src/DropSpace.App/Views/MainPage.xaml.cs",
@@ -553,7 +553,7 @@
         },
         {
           "path": "src/DropSpace.App/Services/SettingsApplicationCoordinator.cs",
-          "sha256": "3c50d4870085cc903c4647b430036a4864f3ecc926a662da0234dade50fd0947"
+          "sha256": "c29972c15c9742261c786f081c9a180b7f67a76df6cc5b7b151cc3e31cc7298b"
         },
         {
           "path": "src/DropSpace.App/ViewModels/MediaViewModel.cs",
@@ -561,15 +561,15 @@
         },
         {
           "path": "src/DropSpace.App/ViewModels/MainViewModel.cs",
-          "sha256": "bd303fe8cb0e7958b87f9a5fbde16224d416d6e31392cca2197707c64fb646f4"
+          "sha256": "763d311b8682009ce7edee9bc876e7b2bb3b44afcf6fecd516c4bcdd33e5776e"
         },
         {
           "path": "src/DropSpace.App/ViewModels/NativeSettingsEditor.cs",
-          "sha256": "4ac546b5a21e9f1f42bfa73a0a4a7673415bb847ab94cdcdd2052d5b6a44e4cf"
+          "sha256": "b4d28f73caf24f3ae4311ec59a88e86a30c0fdba797556b7ea99592e691360cd"
         },
         {
           "path": "src/DropSpace.App/Views/Music/MusicPage.cs",
-          "sha256": "5b877a562a9d4501893c83fe13b72d51989ab036282acf8a7fb60663c4ed4d34"
+          "sha256": "5ad2f67344c4d35b68bc95125c6d75f76ee7c3b8467374e1eb003ff0cfe786d9"
         },
         {
           "path": "src/DropSpace.App/Views/Music/LyricsRowCollection.cs",
@@ -577,7 +577,7 @@
         },
         {
           "path": "src/DropSpace.App/Views/Music/AiLyricsSettingsCard.cs",
-          "sha256": "ea16bfe5633ce2662c5971f25e731521d69bbcf13210ad5c9635e9a779263b9f"
+          "sha256": "09f3bff67906fe6e7bd2802406752d03617fedfa42873560f8161737aadfdc39"
         },
         {
           "path": "src/DropSpace.App/Views/Island/MediaCompactView.xaml.cs",
@@ -709,11 +709,11 @@
         },
         {
           "path": "src/DropSpace.App/Strings/en-US/Resources.resw",
-          "sha256": "c8d628e55574e94142f662c7cfcb13ce085b54e321ec9d12a8094305f60a4f05"
+          "sha256": "436997564e4a5d26b0787f54b4372b5f654b3b34e03997fb79031cb012a3e8b6"
         },
         {
           "path": "src/DropSpace.App/Strings/zh-CN/Resources.resw",
-          "sha256": "80378ac3c05462294ab15930834b33130668e8bf77c8b9890e5ad00d65bcf31a"
+          "sha256": "4d6e7a39f9ab8c790c89feef911300be71ddcd3deb91dfe7540ecb6d648f72b6"
         },
         {
           "path": "src/DropSpace.Infrastructure/Lyrics/LocalInferenceExecutionException.cs",
@@ -841,7 +841,7 @@
         },
         {
           "path": "src/DropSpace.App/DropSpace.App.csproj",
-          "sha256": "69f6f962fb89e446c9e791eafd344697addca748099e58e460bd682fc034f2b4"
+          "sha256": "fa48aaef9823c4cf0fd751144a96e7d392ad7df78dff8f2853117a7520fb326e"
         },
         {
           "path": "scripts/Build-PortableExe.ps1",
@@ -876,6 +876,146 @@
           "sha256": "2c8a8e7677c96eecfb0cdf387793f02769b93914a8c49853c5ef4d3d93dc071d"
         },
         {
+          "path": "src/DropSpace.App/Services/Dlc/NeteaseComponentsDlcProvider.cs",
+          "sha256": "8e95b5c58ce7887f0024c69612e993d06a3beab91b0179d85dc50e1d3d98b81f"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/LyricsRapidSkipDiagnostic.cs",
+          "sha256": "7f81dcca008945017a48291cd262c301982d10ebe314c78a0773e40e529cf282"
+        },
+        {
+          "path": "src/DropSpace.App/Services/Media/QqMusicLoginService.cs",
+          "sha256": "1b45637ab7566d7137b6e465c4ff9ce4dd5756340f6b06d675b7bd58e6b09f2e"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NativeFolderPickerService.cs",
+          "sha256": "c419495da0d6660cfff7899b71bb502db218fcc2196828f34dc79ad4e0d19134"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.IO.cs",
+          "sha256": "b76278ba80dd888b750e73bdb17952c6c19387e0f33d0f44a4cf94d7a28c9f26"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.Packages.cs",
+          "sha256": "dd8f758be89b8379fb2bc52df6887e3d49c26ad76fa6698a79b2d28aa3cf8f75"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.cs",
+          "sha256": "a6efe5da1aead2dbf065d6ed2f5a475f6e90ef3ac5ac0dbbc8f6028b49ea3203"
+        },
+        {
+          "path": "src/DropSpace.App/Services/NeteaseEnhancement/NeteaseRuntimeInstaller.cs",
+          "sha256": "1efb17453192714a35bf56c3b659adf1a3cc532ffd64c9f0003b6b5b01db0067"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Music/QqMusicLoginCard.cs",
+          "sha256": "280c18fcc96325a14fe8632c34e9675877359c37d5d100def581cd2fd6e5cc4e"
+        },
+        {
+          "path": "src/DropSpace.App/Views/Settings/DownloadPanel.cs",
+          "sha256": "df902a32cd20c6a610a47155393f04024b367487886f1a78445d9f9c765f7a65"
+        },
+        {
+          "path": "src/DropSpace.Core/Downloads/DownloadModels.cs",
+          "sha256": "b1a96129de9749848824629cd68fb933da44c00c33f104b57dded1fee3b41c8d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/AdaptiveDownloadScheduler.cs",
+          "sha256": "065793d1d24c50c60cbef22bec655243a49898eb0072c1d0dc25786c8fddfd20"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DirectFileRequestFactory.cs",
+          "sha256": "6f596823e4e85e3945dbe70b6905198474e55aa7ceb77d54b7c889fc293d7d7f"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadBandwidthLimiter.cs",
+          "sha256": "2fa0264697d9deac17a3d8f8de8d56d79c83d9ddef9eac6fc785b944a8e57be1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadConnectionBudget.cs",
+          "sha256": "b2f4a046ff956ad636793c807c9d4133f69b2c0ca3a49e9e7524c4aa08930937"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadManager.cs",
+          "sha256": "93e32ccc0c3d4127e5abb787c7d8be819e9cdc18b3cefd0ddbccc410172b2895"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadPersistenceQueue.cs",
+          "sha256": "f8e6595cd1a4ba3f5d0a0626743c03ee3b11ae84ddaf06ea1b3f5da4cb5b2829"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadRequestPolicy.cs",
+          "sha256": "9aa8a99f7ee5406aa2543a670e9a4c23966d7656358742e98664e750cf09e458"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs",
+          "sha256": "ef97dacbbdf1b7923349760474ee424a890a46e0a6b9d64275fba26b7fa454c1"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadTaskRepository.cs",
+          "sha256": "959211d24d3b1a26780ee8c011895ba80a6a23ea2bacf30785443804c688530d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/DownloadTransferBudget.cs",
+          "sha256": "69b81c09a2770bcec178e35ee65b624e2f22d5d13a6502daf1fe968a83e898f7"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/FileNameSanitizer.cs",
+          "sha256": "5dbf84d617e890a541640c3e4cb387a11513a5b406a26af3610f9e3589c88626"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/HttpByteRangePlanner.cs",
+          "sha256": "10e24a3cc6e2f68c7e292efe32b936d182796b3c64984159dc5b59ed780d4b17"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/HttpRangeDownloader.cs",
+          "sha256": "51fec6124a0c6b5588428a1b7244ef02cfbe28f86fd0a57e68594cbc126591f0"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/HttpTransferDeadline.cs",
+          "sha256": "cfd357850e2588a0989e9ed35eaf90db837860bed7df74f279b27da718269410"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/OutputReservationService.cs",
+          "sha256": "b58070da2379d94b112983fa74dad6e802e55e806c193b21c275e6cf00a06e74"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/ParallelHttpFileDownloader.cs",
+          "sha256": "2c03e5ab737a22e07db26eaaa5180ceb87ef70132199f6bae161c7e714d41d8d"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Downloads/RetryExecutor.cs",
+          "sha256": "77dd21f7087dc009b76c8296e1c1902d778e6a9bfaa3d9fbd00ae58e963844e6"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/KugouResponseStatus.cs",
+          "sha256": "91045e8a36dd5045f10405d9404fdadf267e59ad5a2e3df56f2529ce4ee2a221"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/LyricsRequestTrace.cs",
+          "sha256": "1a2eb8c52fd8e6ed906dce5014614190ca84229925086e79211342897f49a6cb"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/PlainLyricsExecutionStatus.cs",
+          "sha256": "9247a9e7b9e2d5c98576db7e8ea78f3d4ca3596f1b27e2611a77e07b9c9ecb13"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/QqMusicSession.cs",
+          "sha256": "532b5265eabe16e67453f9729be22f732689165568e76599222e6daaa788967c"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Lyrics/ResidentInferenceMemoryPolicy.cs",
+          "sha256": "d1624f5ccc972ea7aa02882c9930b17af6da357fd8cf9243bc5da50dee740041"
+        },
+        {
+          "path": "src/DropSpace.Infrastructure/Updates/HttpUpdateDownloader.cs",
+          "sha256": "abd2ada11814bb4c46f4800d81104476fe2416aa51740c2fea02f6e3069faab4"
+        },
+        {
+          "path": "scripts/Test-CudaBuildBinding.ps1",
+          "sha256": "973f9e7d869d5d9f95f902bed59a154912fc7fed4a7bcce0e386c6d6f83564ff"
+        },
+        {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
           "sha256": "b4abd81cfb2fe6504c74a3ed8eb3adc91e688e2911bf8d44ef461d860dbbccbe"
         },
@@ -888,7 +1028,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "86dbc0d56d01e8589c7652b10fa06b5db8edf31d7bdf990572bc3d3bbc7d7db7"
+      "sha256": "401c6ca3f0442b4a5e10cd0c56ebb65484d108a8b9dab1ae2033736e8e7ed0bc"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2372,7 +2512,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.11-owner-accepted-review.json",
-    "sha256": "c843f3d70ce4a47dad8b60f3ed48c116703d8491865ea3ebe3ae47523fd4f31a"
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.12-owner-accepted-review.json",
+    "sha256": "707f4946d5be6da36388ab20b7e0f502fc99b8a0a726928e99814c42cf1f2986"
   }
 }

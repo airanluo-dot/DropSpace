@@ -18,8 +18,39 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private readonly SemaphoreSlim _save = new(1, 1);
     private readonly CancellationTokenSource _stop = new();
     private string _error = string.Empty;
-    public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders, Services.Notifications.WindowsNotificationActivityService notifications)
-    { _main = main; _strings = strings; _logger = logger; _folders = folders; _notifications = notifications; main.PropertyChanged += OnChanged; }
+    private CancellationTokenSource? _downloadDelay;
+    private Task _downloadSave = Task.CompletedTask;
+    private (int Connections, long Rate, int ConcurrentDownloads)? _pendingLimits;
+    public DropSpace.Infrastructure.Downloads.DownloadManager Downloads { get; }
+    public NativeSettingsEditor(MainViewModel main, IAppStringLocalizer strings, ILogger<NativeSettingsEditor> logger, NativeFolderPickerService folders, Services.Notifications.WindowsNotificationActivityService notifications, DropSpace.Infrastructure.Downloads.DownloadManager downloads)
+    { _main = main; _strings = strings; _logger = logger; _folders = folders; _notifications = notifications; Downloads = downloads; main.PropertyChanged += OnChanged; }
+    public Task<string?> PickDownloadFolderAsync(nint windowHandle) => _folders.PickAsync(windowHandle);
+    public void OpenDownloadFolder(string directory) => NativeFolderPickerService.OpenDirectory(directory);
+    public string DefaultDownloadDirectory => string.IsNullOrEmpty(Settings.DefaultDownloadDirectory) ? NativeFolderPickerService.GetDownloadsDirectory() : Settings.DefaultDownloadDirectory;
+    public void QueueDownloadLimits(int connections, long rate, int concurrentDownloads)
+    {
+        _pendingLimits = (connections, rate, concurrentDownloads);
+        _downloadDelay?.Cancel();
+        _downloadDelay = new();
+        _downloadSave = SaveDownloadLimitsAfterDelayAsync(_downloadDelay);
+    }
+    private async Task SaveDownloadLimitsAfterDelayAsync(CancellationTokenSource delay)
+    {
+        try { await Task.Delay(400, delay.Token); await FlushDownloadLimitsAsync(); }
+        catch (OperationCanceledException) when (delay.IsCancellationRequested) { }
+        finally { delay.Dispose(); if (ReferenceEquals(_downloadDelay, delay)) _downloadDelay = null; }
+    }
+    public async Task FlushDownloadLimitsAsync()
+    {
+        if (_pendingLimits is not { } limits) return;
+        _pendingLimits = null;
+        await UpdateAsync(settings => settings with
+        {
+            MaxDownloadConnections = limits.Connections,
+            DownloadSpeedLimitBytesPerSecond = limits.Rate,
+            MaxConcurrentDownloads = limits.ConcurrentDownloads
+        });
+    }
     public AppSettings Settings => _main.Settings;
     public string Error { get => _error; private set => SetProperty(ref _error, value); }
     public async Task<bool> CheckNotificationAccessAsync(bool enabled)
@@ -67,5 +98,5 @@ public sealed class NativeSettingsEditor : ObservableObject, IAsyncDisposable
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     { if (args.PropertyName == nameof(MainViewModel.Settings)) OnPropertyChanged(nameof(Settings)); }
     public async ValueTask DisposeAsync()
-    { _main.PropertyChanged -= OnChanged; _stop.Cancel(); await _save.WaitAsync(); _save.Release(); }
+    { await FlushDownloadLimitsAsync(); await _downloadSave; _main.PropertyChanged -= OnChanged; _stop.Cancel(); await _save.WaitAsync(); _save.Release(); }
 }

@@ -31,7 +31,11 @@ assert inner['sourceCommit'] == report['engineSourceCommit'] == '7fe450e19305b82
 assert inner['workerSourceSha256'] == report['workerSourceSha256']
 assert inner['files'] == report['files']
 archive = dict(report['archive'])
-assert archive['name'] == 'DropSpace-CUDA-win-x64-' + tag + '.zip', 'Producer ZIP must belong to this release'
+assert tag in ('v0.3.1-beta.11', 'v0.3.1-beta.12'), 'Exact approved component reuse releases only'
+assert archive['name'] == 'DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip'
+# Beta12 reuses the byte-identical Beta11 component. Its manifest/cache identity stays
+# stable, while its new asset name and descriptor bind to the actual Beta12 build.
+archive['name'] = 'DropSpace-CUDA-win-x64-' + tag + '.zip'
 assert archive['bytes'] == 540873572
 assert archive['sha256'] == '79e8deb4f8c35e7c9c94da0efa0752826bafe510fcb1e54da23062f2d6f40a0b'
 archive['url'] = 'https://github.com/airanluo-dot/DropSpace/releases/download/'+tag+'/'+archive['name']

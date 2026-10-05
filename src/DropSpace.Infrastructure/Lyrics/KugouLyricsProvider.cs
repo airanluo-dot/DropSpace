@@ -57,6 +57,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
                         parsed = LyricsParser.Parse(Encoding.UTF8.GetString(bytes), Kind);
                         cancellationToken.ThrowIfCancellationRequested();
                     }
+                    LyricsRequestTrace.Record("parse", new { provider = "Kugou", candidate.Id, candidate.Title, candidate.Artist, candidate.DurationSeconds, document = LyricsRequestTrace.Describe(parsed) });
                     return parsed.Bind(query, candidate.Title, candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score, candidate.Id)
                         with { ProviderDataRevision = DataRevision };
                 });
@@ -78,7 +79,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
             Validate(songs.RootElement, "data", JsonValueKind.Object, catalog: true);
             ValidateField(songs.RootElement.GetProperty("data"), "lists", JsonValueKind.Array);
             var matches = Array(songs.RootElement, "data", "lists").Select(item => new
-                { Item = item, Score = LyricsMatcher.CandidateScore(query, Text(item, "SongName"), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
+                { Item = item, Title = CatalogTitle(item), Score = LyricsMatcher.CandidateScore(query, CatalogTitle(item), Text(item, "SingerName"), Text(item, "AlbumName"), Number(item, "Duration")) })
                 .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "FileHash")))
                 .OrderByDescending(candidate => candidate.Score);
             foreach (var song in matches)
@@ -87,7 +88,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
                 var hash = Text(song.Item, "FileHash");
                 if (!attemptedHashes.Add(hash)) continue;
                 remainingCatalogs--;
-                var recording = new CatalogRecording(Text(song.Item, "SongName"), Text(song.Item, "SingerName"),
+                var recording = new CatalogRecording(song.Title, Text(song.Item, "SingerName"),
                     Text(song.Item, "AlbumName"), Number(song.Item, "Duration"));
                 result = await requests.TryAsync(async () =>
                 {
@@ -102,6 +103,17 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
         return original;
     }
 
+    internal static string CatalogTitle(JsonElement song)
+    {
+        var title = Text(song, "SongName").Trim();
+        var suffix = Text(song, "Suffix").Trim();
+        // Kugou sometimes moves recording/version evidence out of SongName, e.g.
+        // Taylor's Version. Use the catalogue's own suffix, never the requested title.
+        return title.Length == 0 || suffix.Length == 0 ||
+            LyricsMatcher.Normalize(title).EndsWith(LyricsMatcher.Normalize(suffix), StringComparison.Ordinal)
+            ? title : title + " " + suffix;
+    }
+
     private static void Validate(JsonElement root, string field, JsonValueKind shape, bool catalog = false)
     {
         if (root.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Unsupported Kugou response shape.");
@@ -110,7 +122,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
             if (!root.TryGetProperty(property, out var value)) continue;
             if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var code))
                 throw new InvalidDataException("Unsupported Kugou response status.");
-            var success = property == "status" ? code == (catalog ? 1 : 200) : code == 0;
+            var success = KugouResponseStatus.IsSuccess(property, code, catalog);
             if (!success) throw new LyricsProviderRejectedException("Kugou lyrics API rejected the request.", code);
         }
         ValidateField(root, field, shape);

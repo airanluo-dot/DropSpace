@@ -1,3 +1,4 @@
+using DropSpace.Infrastructure.Downloads;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -10,6 +11,8 @@ namespace DropSpace.Infrastructure.Lyrics;
 public sealed class AiModelPackageService : IDisposable
 {
     private readonly HttpClient _client;
+    private readonly HttpRangeDownloader _downloads;
+    private readonly bool _ownsDownloads;
     private readonly string _root;
     private readonly Func<string, AiLyricsModelDescriptor?> _resolve;
     private readonly Func<string, long> _availableFreeSpace;
@@ -17,13 +20,15 @@ public sealed class AiModelPackageService : IDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private bool _disposed;
 
-    public AiModelPackageService(string root) : this(root,
-        new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }, AiLyricsModelCatalog.Find) { }
+    public AiModelPackageService(string root, HttpRangeDownloader? downloads = null) : this(root,
+        new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }, AiLyricsModelCatalog.Find, downloads: downloads) { }
 
     internal AiModelPackageService(string root, HttpMessageHandler handler, Func<string, AiLyricsModelDescriptor?> resolve,
-        Func<string, long>? availableFreeSpace = null)
+        Func<string, long>? availableFreeSpace = null, HttpRangeDownloader? downloads = null)
     {
         _root = Path.GetFullPath(root);
+        _downloads = downloads ?? new();
+        _ownsDownloads = downloads is null;
         _resolve = resolve;
         _availableFreeSpace = availableFreeSpace ?? (path => new DriveInfo(Path.GetPathRoot(path)!).AvailableFreeSpace);
         _client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
@@ -45,11 +50,14 @@ public sealed class AiModelPackageService : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         var model = _resolve(modelId);
         if (model is null || !Directory.Exists(_root)) return false;
-        return new[] { ".gguf", ".partial" }.Any(suffix =>
-            File.Exists(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + suffix)));
+        return File.Exists(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + ".gguf")) ||
+            DownloadStorage.Artifacts(Path.Combine(_root, model.Sha256 + ".partial")).Any();
     }
 
-    public async Task<DlcPackageInspection> InspectAsync(string modelId, CancellationToken token)
+    public Task<DlcPackageInspection> InspectAsync(string modelId, CancellationToken token) =>
+        Task.Run(() => InspectInventoryAsync(modelId, token), token);
+
+    private async Task<DlcPackageInspection> InspectInventoryAsync(string modelId, CancellationToken token)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var model = _resolve(modelId) ?? throw new ArgumentException("Unknown model.", nameof(modelId));
@@ -68,10 +76,16 @@ public sealed class AiModelPackageService : IDisposable
                 if (!File.Exists(path)) continue;
                 ReparseSafePathPolicy.ResolveExistingContainedPath(_root, path);
                 hasArtifacts = true;
-                bytes += new FileInfo(path).Length;
-                if (suffix == ".gguf") installed = await VerifyAsync(path, model, stop.Token).ConfigureAwait(false);
+                var length = new FileInfo(path).Length;
+                bytes += length;
+                // Final files are published only after SHA256 succeeds. Inventory is not a
+                // trust cache: GetInstalledPathAsync still rehashes before actual model use.
+                if (suffix == ".gguf") installed = length == model.Bytes;
             }
-            return new(installed, hasArtifacts, bytes);
+            var fragments = DownloadStorage.Artifacts(Path.Combine(_root, model.Sha256 + ".partial"))
+                .Where(path => path != Path.Combine(_root, model.Sha256 + ".partial")).ToArray();
+            bytes += fragments.Sum(path => new FileInfo(path).Length);
+            return new(installed, hasArtifacts || fragments.Length > 0, bytes);
         }
         finally { _gate.Release(); }
     }
@@ -86,6 +100,7 @@ public sealed class AiModelPackageService : IDisposable
         {
             stop.Token.ThrowIfCancellationRequested();
             if (!Directory.Exists(_root)) return;
+            DownloadStorage.Clean(Path.Combine(_root, model.Sha256 + ".partial"));
             foreach (var suffix in new[] { ".gguf", ".partial" })
             {
                 var path = ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + suffix);
@@ -118,40 +133,22 @@ public sealed class AiModelPackageService : IDisposable
                 if (await VerifyAsync(partial, model, token).ConfigureAwait(false))
                 {
                     File.Move(partial, final, true);
+                    DownloadStorage.Clean(partial);
                     return final;
                 }
                 File.Delete(partial);
                 offset = 0;
             }
-            if (_availableFreeSpace(_root) < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
-                throw new IOException("Insufficient free space for the model.");
-            var download = await RequestWithRangeFallbackAsync(model.DownloadUri, offset, token).ConfigureAwait(false);
-            using var response = download.Response;
-            offset = ValidateDownloadResponse(response, download.Offset, model.Bytes);
-            // A server may ignore Range, so recheck with the actual restart offset.
-            if (_availableFreeSpace(_root) < model.Bytes - offset + additionalDiskBytes + 64L * 1024 * 1024)
-                throw new IOException("Insufficient free space for model restart and runtime extraction.");
-            ReparseSafePathPolicy.RevalidatePreparedDestination(_root, partial);
-            await using (var output = new FileStream(partial, offset > 0 ? FileMode.Open : FileMode.Create, FileAccess.Write, FileShare.None, 65536, true))
-            {
-                output.SetLength(offset);
-                output.Position = offset;
-                await using var input = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
-                var buffer = new byte[65536];
-                while (true)
-                {
-                    using var idle = CancellationTokenSource.CreateLinkedTokenSource(token);
-                    idle.CancelAfter(TimeSpan.FromSeconds(45));
-                    var count = await input.ReadAsync(buffer, idle.Token).ConfigureAwait(false);
-                    if (count == 0) break;
-                    if (offset + count > model.Bytes) throw new InvalidDataException("Model exceeded the catalog size.");
-                    await output.WriteAsync(buffer.AsMemory(0, count), token).ConfigureAwait(false);
-                    offset += count;
-                    progress?.Report((double)offset / model.Bytes);
-                }
-                await output.FlushAsync(token).ConfigureAwait(false);
-            }
-            if (offset != model.Bytes) throw new EndOfStreamException("Incomplete model download; retry to resume.");
+            // Legacy continuous partials without a strong-validator sidecar are restarted by
+            // the engine. A complete legacy partial was already accepted only after SHA256 above.
+            var retained = DownloadStorage.Artifacts(partial).Sum(path => new FileInfo(path).Length);
+            if (_availableFreeSpace(_root) < checked(Math.Max(model.Bytes, model.Bytes * 2 - retained) + additionalDiskBytes + 64L * 1024 * 1024))
+                throw new IOException("Insufficient space for model fragments and assembly.");
+            var policy = new DownloadRequestPolicy(_client, uri => uri.Scheme == Uri.UriSchemeHttps && uri.IsDefaultPort &&
+                (uri.Host == "huggingface.co" || uri.Host.EndsWith(".huggingface.co", StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith(".hf.co", StringComparison.OrdinalIgnoreCase)));
+            await _downloads.DownloadAsync(model.DownloadUri, partial, policy,
+                new DownloadManager.InlineProgress(value => progress?.Report((double)value.DownloadedBytes / model.Bytes)),
+                token, model.Bytes, model.Sha256).ConfigureAwait(false);
             if (!await VerifyAsync(partial, model, token).ConfigureAwait(false))
             {
                 File.Delete(partial);
@@ -159,6 +156,7 @@ public sealed class AiModelPackageService : IDisposable
             }
             ReparseSafePathPolicy.RevalidatePreparedDestination(_root, final);
             File.Move(partial, final, true);
+            DownloadStorage.Clean(partial);
             return final;
         }
         finally { _gate.Release(); }
@@ -185,42 +183,6 @@ public sealed class AiModelPackageService : IDisposable
         return offset;
     }
 
-    private async Task<(HttpResponseMessage Response, long Offset)> RequestWithRangeFallbackAsync(Uri uri, long offset, CancellationToken token)
-    {
-        var response = await RequestAsync(uri, offset, token).ConfigureAwait(false);
-        if (offset > 0 && response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
-        {
-            response.Dispose();
-            return (await RequestAsync(uri, 0, token).ConfigureAwait(false), 0);
-        }
-        return (response, offset);
-    }
-
-    private async Task<HttpResponseMessage> RequestAsync(Uri uri, long offset, CancellationToken token)
-    {
-        for (var redirect = 0; redirect < 6; redirect++)
-        {
-            if (uri.Scheme != Uri.UriSchemeHttps || !uri.IsDefaultPort || uri.UserInfo.Length != 0 ||
-                !(uri.Host == "huggingface.co" || uri.Host.EndsWith(".huggingface.co", StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith(".hf.co", StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidDataException("Untrusted model download destination.");
-            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            if (offset > 0) request.Headers.Range = new RangeHeaderValue(offset, null);
-            using var headersDeadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-            headersDeadline.CancelAfter(TimeSpan.FromSeconds(45));
-            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, headersDeadline.Token).ConfigureAwait(false);
-            if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
-            {
-                var location = response.Headers.Location;
-                response.Dispose();
-                if (location is null) throw new InvalidDataException("Missing model redirect.");
-                uri = location.IsAbsoluteUri ? location : new Uri(uri, location);
-                continue;
-            }
-            return response;
-        }
-        throw new InvalidDataException("Too many model redirects.");
-    }
-
     private static async Task<bool> VerifyAsync(string path, AiLyricsModelDescriptor model, CancellationToken token)
     {
         if (!File.Exists(path) || new FileInfo(path).Length != model.Bytes) return false;
@@ -235,5 +197,6 @@ public sealed class AiModelPackageService : IDisposable
         _disposed = true;
         _lifetime.Cancel();
         _client.Dispose();
+        if (_ownsDownloads) _downloads.Dispose();
     }
 }

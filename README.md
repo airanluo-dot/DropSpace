@@ -11,14 +11,16 @@ Official website: https://airanluo-dot.github.io/DropSpace/
 
 ## Status
 
-DropSpace **v0.2.1 is the Stable baseline and this repository prepares v0.3.1-beta.11**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
+DropSpace **v0.2.1 is the Stable baseline and the current Beta is v0.3.1-beta.12**. The repository contains the WinUI 3 application, a standard per-user installer, portable and MSIX deployment paths, automated lifecycle tests, Windows CI/release automation, and the product/engineering specifications that define its safety boundaries.
 
-Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta target draft: [v0.3.1-beta.11](.github/release-notes/v0.3.1-beta.11.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
+Stable baseline: [v0.2.1](https://github.com/airanluo-dot/DropSpace/releases/tag/v0.2.1). Beta: [v0.3.1-beta.12](.github/release-notes/v0.3.1-beta.12.md); published downloads are listed on the [official Releases page](https://github.com/airanluo-dot/DropSpace/releases). The optional Beta channel receives Stable and prerelease versions, ordered by numeric sequence without downgrading. Historical Preview releases retain their original names.
 
-The **v0.3.1 Beta 5 candidate** repairs provider-candidate recovery, stale pause/resume
-positions, nullable lyric settings and Unicode title truncation. AI maintenance now
-requests cancellation without blocking its caller while retaining cleanup ownership.
-Previous releases remain immutable. This candidate is not published until its release exists.
+The **v0.3.1 Beta 12** adds ordinary file downloads below the DLC list,
+with shared segmented transfers, connection limits and total bandwidth control for
+files, App updates, AI models, CUDA and optional components. NetEase enhancement
+and its Microsoft runtime are also listed in DLC.
+Previous releases remain immutable. Download transport has focused in-memory checks;
+real large-download and cross-restart behavior remain untested.
 Existing optional on-device **AI lyrics** remain off by default. Hy-MT2 1.8B Q8_0
 (about 1.9 GB) and optional 7B Q8_0 (about 7.98 GB) require explicit download confirmation;
 no model is downloaded silently. Both models remain unverified.
@@ -47,7 +49,7 @@ Preparing these files does not publish a release. Current downloads remain on th
 publication. The final commit still needs complete review, resolved release-blocking
 findings, the user's glow/bug-remediation conditions and the Windows build/package gates. See the
 [issue register](docs/dev/ai-lyrics-031-issue-register.md),
-[release notes](.github/release-notes/v0.3.1-beta.11.md), and
+[release notes](.github/release-notes/v0.3.1-beta.12.md), and
 [lyrics/AI privacy boundary](PRIVACY.md#031-beta-1-lyrics-and-ai-boundary).
 
 Beta 29 incorporates three fresh full-project audit rounds covering shutdown and cancellation,
@@ -235,9 +237,9 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.11` (Beta 11). All new prereleases use
+The current Beta target is `v0.3.1-beta.12` (Beta 12). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.10 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.11 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

@@ -21,7 +21,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
         var requests = new LyricsCandidateRequests();
         if (query.Duration > TimeSpan.Zero && query.ArtistCandidates.Count > 0 && !string.IsNullOrWhiteSpace(query.Album))
         {
-            foreach (var artist in query.ArtistCandidates.Take(2))
+            foreach (var artist in LyricsMatcher.SearchArtists(query).Take(2))
             {
                 try
                 {
@@ -71,6 +71,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
             if (remaining == 0) break;
             using var search = await http.GetAsync($"https://lrclib.net/api/search?q={Escape(terms)}", cancellationToken);
             if (search.RootElement.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Unsupported LRCLIB search response.");
+            LyricsRequestTrace.Record("search-result", new { provider = "Lrclib", terms, count = search.RootElement.GetArrayLength() });
             var candidates = Array(search.RootElement)
                 .Where(item => !string.IsNullOrWhiteSpace(Text(item, "syncedLyrics")) || !string.IsNullOrWhiteSpace(Text(item, "plainLyrics")))
                 .Select(item => new

@@ -137,6 +137,7 @@ public sealed class MusicPage : UserControl
             (s,v) => s with { Lyrics = s.Lyrics with { BackupProvider = v.Value == s.Lyrics.Provider ? null : v.Value } });
         form.AddToggle("LyricsSearchRemainingProviders", s => s.Lyrics.SearchRemainingProviders,
             (s,v) => s with { Lyrics = s.Lyrics with { SearchRemainingProviders = v } });
+        form.Rows.Children.Add(new QqMusicLoginCard(experience, strings));
         form.AddToggle("LyricsShowAiLabel", s => s.Lyrics.ShowAiLyricsLabel, (s,v) => s with { Lyrics = s.Lyrics with { ShowAiLyricsLabel = v } });
         form.AddToggle("LyricsSecondary", s => s.Lyrics.SecondaryLyrics, (s,v) => s with { Lyrics = s.Lyrics with { SecondaryLyrics = v } });
         form.Rows.Children.Add(new LyricsFontSizeControl(editor, strings));

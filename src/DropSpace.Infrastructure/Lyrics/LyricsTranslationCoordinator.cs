@@ -6,7 +6,10 @@ using DropSpace.Core.Lyrics;
 namespace DropSpace.Infrastructure.Lyrics;
 
 public enum LyricsTranslationOutcome { Translated, NoUsefulTranslation, Failed }
-public sealed record LyricsTranslationResult(LyricsDocument Document, LyricsTranslationOutcome Outcome);
+public sealed record LyricsTranslationResult(LyricsDocument Document, LyricsTranslationOutcome Outcome)
+{
+    public bool FromCache { get; init; }
+}
 
 /// <summary>The caller owns song/language generations and must discard results after its token is cancelled.</summary>
 public sealed class LyricsTranslationCoordinator(AiLyricsCache cache)

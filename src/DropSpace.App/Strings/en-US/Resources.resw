@@ -714,12 +714,37 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsCudaComponents" xml:space="preserve"><value>Open DLC component manager</value></data>
   <data name="AiLyricsCudaTitle" xml:space="preserve"><value>Download CUDA acceleration components</value></data>
   <data name="AiLyricsCudaDownloadBody" xml:space="preserve"><value>An NVIDIA GPU was detected. CUDA requires a separate runtime download of about {0} MiB. Your existing AI model will be reused. Download or remove it in DLC; until then Vulkan remains available with CPU fallback.</value></data>
-  <data name="AiLyricsActualBackend" xml:space="preserve"><value>Actual backend: {0}</value></data>
-  <data name="AiLyricsBackendPending" xml:space="preserve"><value>The actual backend appears after inference completes.</value></data>
+  <data name="AiLyricsActualBackend" xml:space="preserve"><value>Last inference backend: {0}</value></data>
+  <data name="AiLyricsBackendPending" xml:space="preserve"><value>No inference is running. Waiting for execution.</value></data>
+  <data name="AiLyricsSelectedBackend" xml:space="preserve"><value>Selected backend: {0}</value></data>
+  <data name="AiLyricsBackendStarting" xml:space="preserve"><value>Preparing the worker; inference has not started.</value></data>
+  <data name="AiLyricsBackendExecuting" xml:space="preserve"><value>Current execution backend: {0}. Waiting for this inference result.</value></data>
+  <data name="AiLyricsBackendCached" xml:space="preserve"><value>Cache hit. No inference ran for this result.</value></data>
+  <data name="AiLyricsLastBackend" xml:space="preserve"><value>Last completed inference: {0} ({1})</value></data>
+  <data name="AiLyricsRuntimeFailure" xml:space="preserve"><value>Runtime record: requested {0}, attempted {1}; {2}; reason: {3}; exit code: {4}.</value></data>
+  <data name="AiLyricsExitNotObserved" xml:space="preserve"><value>not observed</value></data>
+  <data name="AiLyricsWorkerStopped" xml:space="preserve"><value>The app terminated this worker.</value></data>
+  <data name="AiLyricsWorkerExited" xml:space="preserve"><value>No forced termination was requested.</value></data>
+  <data name="AiLyricsCpuFallbackAttempted" xml:space="preserve"><value>CPU fallback was attempted; see the last completed inference for a successful result.</value></data>
+  <data name="AiLyricsInferenceFailed" xml:space="preserve"><value>This attempt did not complete.</value></data>
+  <data name="AiLyricsRetryGpu" xml:space="preserve"><value>Retry GPU on the next inference</value></data>
+  <data name="AiLyricsFailureTimeout" xml:space="preserve"><value>Worker startup or inference timed out</value></data>
+  <data name="AiLyricsFailureMemory" xml:space="preserve"><value>Insufficient memory or memory budget exceeded</value></data>
+  <data name="AiLyricsFailureGpuAdmission" xml:space="preserve"><value>GPU device or available VRAM did not pass admission</value></data>
+  <data name="AiLyricsFailureArchitecture" xml:space="preserve"><value>CUDA kernels are incompatible with the device or driver</value></data>
+  <data name="AiLyricsFailureDevice" xml:space="preserve"><value>CUDA device or driver unavailable</value></data>
+  <data name="AiLyricsFailureRuntime" xml:space="preserve"><value>Runtime loading or worker startup failed</value></data>
+  <data name="AiLyricsFailureCompute" xml:space="preserve"><value>GPU computation or decoding failed</value></data>
+  <data name="AiLyricsFailureModel" xml:space="preserve"><value>Model or inference context failed to load</value></data>
+  <data name="AiLyricsFailureValidation" xml:space="preserve"><value>Component integrity or worker response validation failed</value></data>
+  <data name="AiLyricsFailureUnknown" xml:space="preserve"><value>The worker did not complete a valid response; see local diagnostics for details</value></data>
+  <data name="SettingsRecoveredPreferencesKept" xml:space="preserve"><value>Some UI settings could not be read. Safe values were restored and usable preferences were kept. The original configuration is in the data quarantine folder. Please review your settings.</value></data>
+  <data name="SettingsRecoveredDefaults" xml:space="preserve"><value>The original configuration could not be read safely. Defaults are in use and the AI switch may differ from your previous choice. The original file is in the data quarantine folder. Please review and restore your preferences.</value></data>
+  <data name="DlcDeleteEnabledModel" xml:space="preserve"><value>This is the current AI lyrics model. Removal waits for active inference to exit. Your AI preference will remain enabled; install or select an available model to translate again.</value></data>
   <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA components are not installed; Vulkan / CPU remains available.</value></data>
   <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
   <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
-  <data name="DlcDescription" xml:space="preserve"><value>Manage optional AI models and runtime components. Downloads start only when you choose them.</value></data>
+  <data name="DlcDescription" xml:space="preserve"><value>Manage optional models, runtimes and feature components. Downloads start only when you choose them.</value></data>
   <data name="DlcManage" xml:space="preserve"><value>Manage downloads in DLC</value></data>
   <data name="DlcInstalled" xml:space="preserve"><value>Downloaded</value></data>
   <data name="DlcAvailable" xml:space="preserve"><value>Not downloaded</value></data>
@@ -761,4 +786,62 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DlcOperationFailed" xml:space="preserve"><value>Could not open this action. Try again.</value></data>
   <data name="DlcCudaPurpose" xml:space="preserve"><value>Offline AI lyrics acceleration on compatible NVIDIA GPUs; reuses installed models.</value></data>
   <data name="DlcCudaUnsupported" xml:space="preserve"><value>A compatible NVIDIA driver is required.</value></data>
+  <data name="DownloadCustom" xml:space="preserve"><value>Download a custom file</value></data>
+  <data name="DownloadUrl" xml:space="preserve"><value>Download URL</value></data>
+  <data name="DownloadSaveTo" xml:space="preserve"><value>Save to</value></data>
+  <data name="DownloadFileName" xml:space="preserve"><value>File name</value></data>
+  <data name="DownloadAutoName" xml:space="preserve"><value>Leave blank to infer from the URL</value></data>
+  <data name="DownloadStart" xml:space="preserve"><value>Start download</value></data>
+  <data name="DownloadOpenFolder" xml:space="preserve"><value>Open folder</value></data>
+  <data name="DownloadChoose" xml:space="preserve"><value>Choose</value></data>
+  <data name="DownloadSettings" xml:space="preserve"><value>Download settings</value></data>
+  <data name="DownloadConcurrentCount" xml:space="preserve"><value>Simultaneous downloads</value></data>
+  <data name="DownloadConnections" xml:space="preserve"><value>Maximum connections (1–256)</value></data>
+  <data name="DownloadConnectionsHint" xml:space="preserve"><value>Shared by files, models and components. Connections increase as the transfer makes progress. Small files and servers without safe range support use fewer connections.</value></data>
+  <data name="DownloadSpeed" xml:space="preserve"><value>Speed limit (MiB/s)</value></data>
+  <data name="DownloadUnlimited" xml:space="preserve"><value>Unlimited · 0 is unlimited; 1 MiB/s = 1,048,576 bytes/s</value></data>
+  <data name="DownloadDefaultDirectory" xml:space="preserve"><value>Default download folder</value></data>
+  <data name="DownloadError" xml:space="preserve"><value>Operation failed. Check the URL, folder access and disk space, then retry.</value></data>
+  <data name="DownloadPause" xml:space="preserve"><value>Pause</value></data>
+  <data name="DownloadResume" xml:space="preserve"><value>Resume</value></data>
+  <data name="DownloadCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="DownloadRetry" xml:space="preserve"><value>Retry</value></data>
+  <data name="DownloadUnknownSize" xml:space="preserve"><value>Unknown size</value></data>
+  <data name="DownloadActiveConnections" xml:space="preserve"><value>Active connections: {0}</value></data>
+  <data name="DownloadStateQueued" xml:space="preserve"><value>Queued</value></data>
+  <data name="DownloadStateResolving" xml:space="preserve"><value>Connecting</value></data>
+  <data name="DownloadStateDownloadingFile" xml:space="preserve"><value>Downloading</value></data>
+  <data name="DownloadStateFinalizing" xml:space="preserve"><value>Verifying and saving</value></data>
+  <data name="DownloadStateCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="DownloadStatePaused" xml:space="preserve"><value>Paused</value></data>
+  <data name="DownloadStateFailed" xml:space="preserve"><value>Download failed; retry available</value></data>
+  <data name="DownloadStateCancelled" xml:space="preserve"><value>Canceled</value></data>
+  <data name="QqMusicCheck" xml:space="preserve"><value>Retry</value></data>
+  <data name="QqMusicCheckFailed" xml:space="preserve"><value>Unable to connect. Try again later.</value></data>
+  <data name="QqMusicChecking" xml:space="preserve"><value>Connecting…</value></data>
+  <data name="QqMusicCloseLogin" xml:space="preserve"><value>Close</value></data>
+  <data name="QqMusicCompleteLogin" xml:space="preserve"><value>Waiting for sign-in…</value></data>
+  <data name="QqMusicLoginHelp" xml:space="preserve"><value>Sign in with QQ or WeChat, then select Save.</value></data>
+  <data name="QqMusicLoginMissing" xml:space="preserve"><value>Please sign in first.</value></data>
+  <data name="QqMusicLoginTitle" xml:space="preserve"><value>QQ Music sign-in</value></data>
+  <data name="QqMusicNavigationBlocked" xml:space="preserve"><value>This page is unavailable.</value></data>
+  <data name="QqMusicOpening" xml:space="preserve"><value>Opening sign-in…</value></data>
+  <data name="QqMusicPageFailed" xml:space="preserve"><value>Unable to open sign-in. Try again later.</value></data>
+  <data name="QqMusicSaveFailed" xml:space="preserve"><value>Unable to save changes. Please retry.</value></data>
+  <data name="QqMusicSignIn" xml:space="preserve"><value>Sign in to QQ Music</value></data>
+  <data name="QqMusicSignOut" xml:space="preserve"><value>Sign out</value></data>
+  <data name="QqMusicStateConnected" xml:space="preserve"><value>Signed in</value></data>
+  <data name="QqMusicStateExpired" xml:space="preserve"><value>Sign-in expired. Please sign in again.</value></data>
+  <data name="QqMusicStateRejected" xml:space="preserve"><value>Unable to connect to QQ Music. Try again later.</value></data>
+  <data name="QqMusicStateSaved" xml:space="preserve"><value>Signed in</value></data>
+  <data name="QqMusicStateSignedOut" xml:space="preserve"><value>Sign in to get lyrics from QQ Music</value></data>
+  <data name="QqMusicStateStorageError" xml:space="preserve"><value>Unable to restore sign-in. Please sign in again.</value></data>
+  <data name="QqMusicUseLogin" xml:space="preserve"><value>Save</value></data>
+  <data name="QqMusicLoginReady" xml:space="preserve"><value>Signed in</value></data>
+  <data name="QqMusicSignInAgain" xml:space="preserve"><value>Sign in again</value></data>
+  <data name="DlcVisualCppTitle" xml:space="preserve"><value>Microsoft Visual C++ Runtime</value></data>
+  <data name="DlcVisualCppPurpose" xml:space="preserve"><value>Required by the NetEase Music enhancement.</value></data>
+  <data name="DlcVisualCppShared" xml:space="preserve"><value>Managed by Windows and may be used by other apps.</value></data>
+  <data name="DlcVisualCppInstallNotice" xml:space="preserve"><value>The runtime will be downloaded from Microsoft and installed. Windows may request administrator permission.</value></data>
+  <data name="DlcNeteaseRemoveNotice" xml:space="preserve"><value>Removing the enhancement will restart NetEase Music. Your library and playlists will be preserved.</value></data>
 </root>

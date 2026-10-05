@@ -233,11 +233,24 @@ public sealed partial class InfLinkDeploymentService
         return Convert.ToHexString(await SHA256.HashDataAsync(stream, ct).ConfigureAwait(false));
     }
     private static bool HashEquals(string? left, string? right) => left is not null && right is not null && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
-    private async Task DownloadVerifiedAsync(Uri url, string destination, string expected, CancellationToken ct)
+    private async Task DownloadVerifiedAsync(Uri url, string destination, string expected, CancellationToken ct, long? expectedBytes = null)
     {
-        byte[] bytes = await DownloadAsync(url, MaximumAssetBytes, ct).ConfigureAwait(false);
-        if (!HashEquals(Convert.ToHexString(SHA256.HashData(bytes)), expected)) throw new EnhancementDeploymentException("HashMismatch");
-        await File.WriteAllBytesAsync(destination, bytes, ct).ConfigureAwait(false);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromMinutes(2));
+        var staging = destination + ".download";
+        DeploymentPaths.AssertSafe(staging);
+        try
+        {
+            var policy = new DropSpace.Infrastructure.Downloads.DownloadRequestPolicy(client, uri =>
+                uri.Scheme == Uri.UriSchemeHttps && uri.IsDefaultPort &&
+                uri.Host is "github.com" or "release-assets.githubusercontent.com" or "objects.githubusercontent.com");
+            await downloads.DownloadAsync(url, staging, policy, null, timeout.Token,
+                expectedBytes, expected, MaximumAssetBytes).ConfigureAwait(false);
+            DeploymentPaths.AssertSafe(destination);
+            File.Move(staging, destination);
+        }
+        catch (InvalidDataException) { throw new EnhancementDeploymentException("HashMismatch"); }
+        finally { DropSpace.Infrastructure.Downloads.HttpRangeDownloader.DeleteStagingFiles(staging); }
     }
     private async Task<byte[]> DownloadAsync(Uri url, int limit, CancellationToken ct)
     {
