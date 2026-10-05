@@ -1,5 +1,13 @@
 # DropSpace Roadmap
 
+## Hy-MT2 model download mirror
+
+Model distribution URLs are recorded in the dedicated
+[Hy-MT2 Q8_0 model resource Release](https://github.com/airanluo-dot/DropSpace/releases/tag/models-hy-mt2-q8-v1)
+manifest. The 1.8B GGUF is one file; the 7B GGUF uses four ordered transport
+parts (2,000,000,000 bytes for each of the first three, 1,981,928,896 for the last).
+Concatenation preserves the official original bytes.
+
 ## Release target: v0.3.1-beta.12
 
 Port NovaClip Beta8 ordinary HTTP downloads into the DLC page and share the real
