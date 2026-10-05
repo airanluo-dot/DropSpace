@@ -6,6 +6,7 @@ using DropSpace.Core.Lyrics;
 using DropSpace.Infrastructure.Lyrics;
 
 if (!OperatingSystem.IsWindows() || args.Length != 3) throw new InvalidOperationException("Explicit cloud Windows inputs/model/output required.");
+var thinking=Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-thinking";
 var inputs=Path.GetFullPath(args[0]); var model=Path.GetFullPath(args[1]); var output=Path.GetFullPath(args[2]);
 Directory.CreateDirectory(output);
 var json=new JsonSerializerOptions {WriteIndented=true};
@@ -16,7 +17,7 @@ await CheckHash(model,"9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d0
 if(new FileInfo(model).Length!=639446688) throw new InvalidDataException("Model byte count mismatch.");
 using var modelLease=new FileStream(model,FileMode.Open,FileAccess.Read,FileShare.Read);
 using var exeLease=new FileStream(exe,FileMode.Open,FileAccess.Read,FileShare.Read);
-Save("identity",new {diagnosticOnly=true,productionChanged=false,authorizationUtc="2026-10-05T01:11:06Z",authorizationSentinel="208dd5c270f48191a5f2ac46576d7c28", modelRevision="23749fefcc72300e3a2ad315e1317431b06b590a",modelSha256="9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",modelBytes=639446688, exeSha256="3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783", originalRuntimeArtifact=11316610580L, chatTemplateBaseRevision="c1899de289a04d12100db370d81485cdf75e47ca", nonThinking="Official single-user enable_thinking=False render, raw prompt, no conversation template reapplication", diagnosticHead=Environment.GetEnvironmentVariable("GITHUB_SHA"),diagnosticRun=Environment.GetEnvironmentVariable("GITHUB_RUN_ID"),wallClockIncludesModelLoad=true});
+Save("identity",new {diagnosticOnly=true,productionChanged=false,authorizationUtc="2026-10-05T01:11:06Z",authorizationSentinel="208dd5c270f48191a5f2ac46576d7c28", modelRevision="23749fefcc72300e3a2ad315e1317431b06b590a",modelSha256="9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",modelBytes=639446688, exeSha256="3fc3bd789f4d5a48eea3674182bbb9908eb7f44ca264f8bbf11c4bab526b9783", originalRuntimeArtifact=11316610580L, chatTemplateBaseRevision="c1899de289a04d12100db370d81485cdf75e47ca", thinking,templateMode=thinking?"Official single-user enable_thinking=True render":"Official single-user enable_thinking=False render", diagnosticHead=Environment.GetEnvironmentVariable("GITHUB_SHA"),diagnosticRun=Environment.GetEnvironmentVariable("GITHUB_RUN_ID"),wallClockIncludesModelLoad=true});
 var cases=new List<Case>();
 foreach(var name in new[]{"cross-script","same-title-version","uncertain-abstention"}) {
  using var source=JsonDocument.Parse(File.ReadAllText(Path.Combine(inputs,"evidence/selection-probe",name+".json")));
@@ -30,20 +31,23 @@ var originalVersion=cases.Single(x=>x.Name=="same-title-version-original");
 cases.Add(originalVersion with {Name="wrong-versions-only",Candidates=originalVersion.Candidates.Where(x=>x.Id!=originalVersion.Expected).ToArray(),Expected=null});
 var optional=originalVersion.Candidates.Single(x=>x.Id==originalVersion.Expected);
 cases.Add(originalVersion with {Name="optional-metadata-unknown",Query=originalVersion.Query with {Album="",Duration=TimeSpan.Zero},Candidates=[new("c8",optional.Match with {Album="",DurationSeconds=0})],Expected="c8"});
+if(thinking) cases=cases.Where(x=>x.Name is "cross-script-reversed" or "uncertain-abstention-original" or "uncertain-abstention-reversed" or "wrong-versions-only").ToList();
 var inferenceBlocked=false;var results=new List<object>();
 foreach(var item in cases) {
  if(inferenceBlocked) throw new InvalidOperationException("Previous owned cleanup unresolved; no overlapping inference.");
  CpuInferenceMemoryPolicy.EnsureAvailable(WindowsInferenceProcess.MaximumMemoryBytes,CpuInferenceMemoryPolicy.ReadWindowsSnapshot);
  var content=BuildPrompt(item.Query,item.Candidates);
- var prompt="<|im_start|>user\n"+content+"<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
+ var prompt="<|im_start|>user\n"+content+"<|im_end|>\n<|im_start|>assistant\n"+(thinking?"":"<think>\n\n</think>\n\n");
  var promptPath=Path.Combine(output,item.Name+".prompt.txt");File.WriteAllText(promptPath,prompt,new UTF8Encoding(false));
- var arguments=new[]{"-m",model,"-f",promptPath,"--offline","--perf","--no-escape","--no-context-shift","--repeat-penalty","1.0","--no-conversation","--no-display-prompt","--simple-io","--no-warmup","-ngl","0","-c","2048","-t","4","-n","32","--temp","0.7","--top-p","0.8","--top-k","20","--min-p","0","--seed","42"};
+ var arguments=new[]{"-m",model,"-f",promptPath,"--offline","--perf","--no-escape","--no-context-shift","--repeat-penalty","1.0","--no-conversation","--no-display-prompt","--simple-io","--no-warmup","-ngl","0","-c","2048","-t","4","-n",thinking?"256":"32","--temp",thinking?"0.6":"0.7","--top-p",thinking?"0.95":"0.8","--top-k","20","--min-p","0","--seed","42"};
  var native=await Probe(item.Name,exe,arguments,60,4096);
  var raw=File.ReadAllText(Path.Combine(output,item.Name+".stdout.txt"));var answer=RemoveTerminator(raw);
+ string? reasoning=null;var reasoningComplete=!thinking;
+ if(thinking && answer.StartsWith("<think>",StringComparison.Ordinal) && answer.IndexOf("</think>",StringComparison.Ordinal) is var boundary && boundary>=7) {reasoning=answer[7..boundary];answer=answer[(boundary+8)..].Trim();reasoningComplete=true;}
  var syntaxValid=answer=="NONE" || item.Candidates.Any(x=>x.Id==answer);
- var complete=native.ExitCode==0 && native.Reason==null && native.CleanupCompleted && raw.TrimEnd().EndsWith("[end of text]",StringComparison.Ordinal);
+ var complete=reasoningComplete && native.ExitCode==0 && native.Reason==null && native.CleanupCompleted && raw.TrimEnd().EndsWith("[end of text]",StringComparison.Ordinal);
  var actual=answer=="NONE"?null:answer;
- var result=new {item.Name,item.Query,candidates=item.Candidates,candidateOrder=item.Candidates.Select(x=>x.Id),promptSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(prompt))),raw,answer,syntaxValid,complete,expectedId=item.Expected,actualId=actual,correct=complete&&syntaxValid&&actual==item.Expected,native};
+ var result=new {item.Name,item.Query,candidates=item.Candidates,candidateOrder=item.Candidates.Select(x=>x.Id),promptSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(prompt))),raw,reasoning,reasoningComplete,answer,syntaxValid,complete,expectedId=item.Expected,actualId=actual,correct=complete&&syntaxValid&&actual==item.Expected,native};
  Save(item.Name,result);results.Add(result);
 }
 Save("summary",new {diagnosticOnly=true,semanticApproved=false,results});
