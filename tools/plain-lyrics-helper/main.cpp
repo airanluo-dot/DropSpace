@@ -5,6 +5,7 @@
 #include "log.h"
 #include "sampling.h"
 #include "gpu-policy.h"
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -17,6 +18,10 @@
 #endif
 using json = common_json;
 constexpr size_t max_frame = 32768;
+using clock_type = std::chrono::steady_clock;
+static double elapsed_ms(clock_type::time_point start) {
+    return std::chrono::duration<double, std::milli>(clock_type::now() - start).count();
+}
 
 static bool read_frame(std::string & out) {
     out.clear();
@@ -84,13 +89,16 @@ int main(int argc, char ** argv) {
         if (argc == 2 && std::string(argv[1]) == "--version") {
             send({{"protocol", 1}, {"profile", "hy-q8-plain-resident-v1"}}); return 0;
         }
-        if ((argc != 5 && argc != 7) || std::string(argv[1]) != "--model" || std::string(argv[3]) != "--mode") return 64;
+        if (argc < 5 || std::string(argv[1]) != "--model" || std::string(argv[3]) != "--mode") return 64;
         auto model_profile = dropspace::model_profile::hy_mt2_1_8b_q8;
-        if (argc == 7) {
-            if (std::string(argv[5]) != "--model-profile") return 64;
-            const auto requested = dropspace::parse_model_profile(argv[6]);
+        bool timings_enabled = false, profile_selected = false;
+        for (int i = 5; i < argc; ++i) {
+            const std::string option = argv[i];
+            if (option == "--timings" && !timings_enabled) { timings_enabled = true; continue; }
+            if (option != "--model-profile" || profile_selected || ++i == argc) return 64;
+            const auto requested = dropspace::parse_model_profile(argv[i]);
             if (!requested) return 64;
-            model_profile = *requested;
+            model_profile = *requested; profile_selected = true;
         }
         const std::string mode = argv[4];
         if (mode != "cpu" && mode != "vulkan") return 64;
@@ -149,6 +157,7 @@ int main(int argc, char ** argv) {
         send(ready);
         std::string frame;
         while (read_frame(frame)) {
+            const auto request_start = clock_type::now();
             const auto request = json::parse(frame);
             if (!request.is_object() || request.size() != 3 ||
                 (request.at("protocol") != 1 && request.at("protocol") != 2) ||
@@ -160,11 +169,20 @@ int main(int argc, char ** argv) {
                 input.empty() || input.size() > (selection ? 8192u : 1800u)) return 68;
             // A new sampler restores seed and penalties. Clearing the complete memory erases
             // KV/recurrent state; each template application has a new single-message history.
+            auto stage_start = clock_type::now();
             llama_memory_clear(llama_get_memory(ctx), true);
-            struct clear_on_exit { llama_context * ctx; ~clear_on_exit(){llama_memory_clear(llama_get_memory(ctx), true);} } clear{ctx};
+            const double reset_ms = elapsed_ms(stage_start);
+            struct clear_on_exit {
+                llama_context * ctx; bool active = true;
+                void finish() { llama_memory_clear(llama_get_memory(ctx), true); active = false; }
+                ~clear_on_exit(){ if (active) llama_memory_clear(llama_get_memory(ctx), true); }
+            } clear{ctx};
+            stage_start = clock_type::now();
             auto sampling = params.sampling;
             std::unique_ptr<common_sampler, decltype(&common_sampler_free)> sampler(common_sampler_init(model, sampling), common_sampler_free);
             if (!sampler) return 69;
+            const double sampler_ms = elapsed_ms(stage_start);
+            stage_start = clock_type::now();
             std::string prompt = input;
             if (chat) {
                 common_chat_templates_inputs inputs;
@@ -175,24 +193,55 @@ int main(int argc, char ** argv) {
                 // Deliberately matches pinned completion.cpp's initial-template application.
                 prompt = common_chat_templates_apply(templates.get(), inputs).prompt;
             }
+            const double template_ms = elapsed_ms(stage_start);
+            stage_start = clock_type::now();
             auto tokens = common_tokenize(ctx, prompt, true, true);
+            const double tokenize_ms = elapsed_ms(stage_start);
             if (tokens.empty() || tokens.size() + (selection ? 32u : 2048u) >= 4096) return 70;
+            stage_start = clock_type::now();
             for (auto token : tokens) common_sampler_accept(sampler.get(), token, false);
+            const double sampler_accept_ms = elapsed_ms(stage_start);
+            stage_start = clock_type::now();
             for (size_t offset = 0; offset < tokens.size(); offset += params.n_batch) {
                 const auto n = std::min<size_t>(params.n_batch, tokens.size() - offset);
                 if (llama_decode(ctx, llama_batch_get_one(tokens.data() + offset, static_cast<int32_t>(n)))) return 71;
             }
+            // Attribute asynchronous backend work to its stage, rather than the next sample.
+            // The default path keeps its existing synchronization behavior.
+            if (timings_enabled) llama_synchronize(ctx);
+            const double prefill_ms = elapsed_ms(stage_start);
+            double decode_ms = 0, sample_ms = 0;
+            size_t output_tokens = 0, sampled_tokens = 0;
+            const auto generation_start = clock_type::now();
             std::string output; bool complete = false;
             for (int i = 0; i < (selection ? 32 : 2048); ++i) {
+                stage_start = clock_type::now();
                 auto token = common_sampler_sample(sampler.get(), ctx, -1);
                 common_sampler_accept(sampler.get(), token, true);
+                sample_ms += elapsed_ms(stage_start); ++sampled_tokens;
                 if (llama_vocab_is_eog(vocab, token)) { complete = true; break; }
+                ++output_tokens;
                 output += common_token_to_piece(ctx, token, true);
                 if (output.size() > (selection ? 128u : 16384u)) return 72;
+                stage_start = clock_type::now();
                 if (llama_decode(ctx, llama_batch_get_one(&token, 1))) return 71;
+                if (timings_enabled) llama_synchronize(ctx);
+                decode_ms += elapsed_ms(stage_start);
             }
+            const double generation_ms = elapsed_ms(generation_start);
+            stage_start = clock_type::now();
+            clear.finish();
+            const double cleanup_ms = elapsed_ms(stage_start);
             // Never present a token-cap truncation as a complete translation.
-            send({{"protocol", selection ? 2 : 1}, {"id", id}, {"complete", complete}, {"text", output}});
+            json response = {{"protocol", selection ? 2 : 1}, {"id", id}, {"complete", complete}, {"text", output}};
+            if (timings_enabled) response["timings"] = {
+                {"schemaVersion", 1}, {"totalMs", elapsed_ms(request_start)}, {"resetMs", reset_ms},
+                {"samplerInitMs", sampler_ms}, {"templateMs", template_ms}, {"tokenizeMs", tokenize_ms},
+                {"samplerAcceptMs", sampler_accept_ms}, {"prefillMs", prefill_ms}, {"decodeMs", decode_ms},
+                {"sampleMs", sample_ms}, {"generationMs", generation_ms}, {"cleanupMs", cleanup_ms},
+                {"inputTokens", tokens.size()}, {"prefillTokens", tokens.size()}, {"outputTokens", output_tokens},
+                {"sampledTokens", sampled_tokens}, {"prefixReusedTokens", 0}};
+            send(response);
         }
         return 0;
     } catch (const std::exception &) { return 73; } // never echo private prompt/output to diagnostics

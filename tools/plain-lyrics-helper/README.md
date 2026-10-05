@@ -67,6 +67,34 @@ runs the small policy-only regression test without model weights or GPU access. 
 whitelist, exact model-size boundaries, default-policy compatibility, both vendors, discrete
 free-memory thresholds, integrated host-memory thresholds and fail-closed unknown values.
 
+## Opt-in native diagnostics
+
+`--timings` adds a `timings` object to each response, including selector protocol 2 responses.
+Without this argument the ready/response/version contracts stay unchanged. The request remains
+exactly `{protocol,id,prompt}`. Diagnostics never print log lines to stdout; stdout contains only
+the existing JSONL handshake and responses. The current host ignores extra response properties,
+so these fields are compatible but require explicit host integration to expose measurements.
+
+`timings.schemaVersion` is 1. All durations are nonnegative milliseconds measured with
+`steady_clock`: `totalMs` covers validated request parsing through cleanup, excluding pipe reads,
+JSON response serialization and pipe writes; `resetMs` covers initial zero-clear;
+`samplerInitMs`, `templateMs`, `tokenizeMs` and `samplerAcceptMs` measure their named stages;
+`prefillMs` covers prompt `llama_decode` calls; `decodeMs` covers generated-token `llama_decode`
+calls; `sampleMs` covers sampling and sampler acceptance; `generationMs` covers the entire
+generation loop (including decoding and token-to-text conversion); `cleanupMs` covers final
+zero-clear. `generationMs` overlaps `decodeMs`/`sampleMs` and must not be added to them.
+
+`inputTokens` counts the full model-facing prompt after the actual template and special-token
+handling. `prefillTokens` counts prompt tokens evaluated this request. `outputTokens` excludes
+EOG; `sampledTokens` includes EOG when complete. `prefixReusedTokens` is zero in the baseline.
+These are worker measurements, not host end-to-end/song latency, model load time or GPU claims.
+
+`benchmark_prefix.py --worker <executable> --model <verified-GGUF> --output <result.json>`
+runs a resident CPU baseline over synthetic fixtures with both targets, repeated/shared source
+prefixes, punctuation, nonofficial prompts and selector transitions. `--reference <baseline.json>`
+records byte-for-byte output differences. It asserts bounded, correlated, complete JSON responses
+and token accounting. `--no-timings` checks the default response has exactly the legacy fields.
+
 Primary sources inspected:
 - https://github.com/ggml-org/llama.cpp/blob/7fe450e19305b828c199d602c23a8337aaa1f03b/docs/build.md
 - https://github.com/ggml-org/llama.cpp/blob/7fe450e19305b828c199d602c23a8337aaa1f03b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
