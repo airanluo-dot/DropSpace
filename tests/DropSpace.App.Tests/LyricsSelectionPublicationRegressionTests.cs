@@ -30,7 +30,11 @@ public sealed class LyricsSelectionPublicationRegressionTests
                 [new(TimeSpan.Zero, TimeSpan.FromSeconds(4), "Original lyric", null, [])], provider,
                 new("Song", "Artist", "Album", 30, 12, id));
             var original = Document(LyricsProviderKind.NetEase, "original");
-            var alternative = Document(LyricsProviderKind.QqMusic, "alternative");
+            // The fixture must satisfy the shared source priority before testing
+            // retirement; a worse untranslated source is correctly rejected earlier.
+            var alternative = Document(LyricsProviderKind.QqMusic, "alternative") with
+            { Lines = [original.Lines[0] with { Secondary = "夜里满布繁星", TranslationOrigin = LyricsTranslationOrigin.Provider,
+                TranslationLanguage = "zh-CN", TranslationLanguageIsExplicit = true }] };
             var source = new LyricsQueryResult(original, LyricsQueryStatus.Found)
             {
                 SelectionCandidates = new([LyricsCandidateRules.Describe("c0", original, "zh-CN"),
