@@ -130,12 +130,15 @@ foreach (var name in new[] { "cross-script", "same-title-version", "uncertain-ab
         }
         else validAnswer = LyricsCandidateSelectionProtocol.TryParse(raw, candidates, out actualId);
     }
+    // Syntax alone is not an accepted answer: native truncation must remain a failure.
+    var syntaxValid = validAnswer;
+    validAnswer = nativeComplete == true && syntaxValid;
     var expected = source.GetProperty("expectedId").ValueKind == JsonValueKind.Null ? null : source.GetProperty("expectedId").GetString();
     Save(name, new {
         original500msEvidence = source.Clone(), originalPromptSha, variant = refined ? "refined-id-only-reordered" : "original",
         candidateOrder = candidates.Select(candidate => candidate.Id), prompt, promptSha, ready, preparationMilliseconds, requestMilliseconds,
-        rawFrame, raw, nativeComplete, validAnswer, expectedId = expected, actualId,
-        rawMatchesAnnotation = nativeComplete == true && validAnswer && expected == actualId, productionBudgetWouldBeMet = nativeComplete == true && requestMilliseconds <= 500,
+        rawFrame, raw, nativeComplete, syntaxValid, validAnswer, expectedId = expected, actualId,
+        rawMatchesAnnotation = nativeComplete == true && validAnswer && expected == actualId, productionBudgetWouldBeMet = validAnswer && requestMilliseconds <= 500,
         diagnosticOnly = true, error, exitCode, exitedBeforeCleanup, stderr, cleanupCompleted,
         phaseTimingObservable = false, prefillMilliseconds = (double?)null, decodeMilliseconds = (double?)null,
     });
