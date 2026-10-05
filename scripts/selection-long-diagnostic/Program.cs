@@ -162,13 +162,16 @@ static async Task<string> ReadErrorsAsync(StreamReader reader)
 
 static string BuildConcisePrompt(LyricsQuery query, IReadOnlyList<LyricsSelectionCandidate> candidates)
 {
-    var prompt = new StringBuilder("任务：识别同一首歌的同一录音，不是翻译或复述。\n仅根据给定信息选候选编号。歌手必须相同；现场、混音和录音室版本不能混选。信息不足、没有匹配或无法确定就回答 NONE。\n只能回答一个编号或 NONE，禁止解释、复制元信息或输出 JSON。\n");
-    prompt.AppendLine($"待匹配：歌名={query.Title}；歌手={query.Artist}；专辑={query.Album}；时长秒={query.Duration.TotalSeconds}");
+    // Missing optional metadata is not a zero-second recording or proof of mismatch.
+    static string Text(string value) => string.IsNullOrWhiteSpace(value) ? "未知" : value;
+    static string Duration(double value) => value > 0 && double.IsFinite(value) ? value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "未知";
+    var prompt = new StringBuilder("请根据歌曲身份选择一个匹配候选。比较标题、歌手和录音版本；同一标题但不同歌手不匹配，现场、混音与录音室版本不匹配。\n专辑和时长是补充信息，可以未知；只要已知标题、歌手和版本能唯一匹配，不必因为缺少专辑或时长而弃权。若身份不足、没有匹配或不能唯一确定，回答 NONE。\n只回答一个候选编号或 NONE，不翻译、不解释、不复制候选信息。\n");
+    prompt.AppendLine($"目标：标题={Text(query.Title)}；歌手={Text(query.Artist)}；专辑={Text(query.Album)}；时长秒={Duration(query.Duration.TotalSeconds)}");
     foreach (var candidate in candidates)
     {
         var match = candidate.Document.Match!;
-        prompt.AppendLine($"{candidate.Id}：歌名={match.Title}；歌手={match.Artist}；专辑={match.Album}；时长秒={match.DurationSeconds}");
+        prompt.AppendLine($"{candidate.Id}：标题={Text(match.Title)}；歌手={Text(match.Artist)}；专辑={Text(match.Album)}；时长秒={Duration(match.DurationSeconds)}");
     }
-    prompt.Append("答案：");
+    prompt.Append("匹配编号：");
     return prompt.ToString();
 }
