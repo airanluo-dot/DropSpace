@@ -5,6 +5,7 @@
 #include "log.h"
 #include "sampling.h"
 #include "gpu-policy.h"
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -22,6 +23,83 @@ using clock_type = std::chrono::steady_clock;
 static double elapsed_ms(clock_type::time_point start) {
     return std::chrono::duration<double, std::milli>(clock_type::now() - start).count();
 }
+
+// Only the frozen official instructions qualify. Arbitrary/selector prompts never
+// contribute to this cache, even if their token IDs share an apparent prefix.
+static std::string fixed_instruction(const std::string & input) {
+    for (const auto * instruction : {
+        u8"将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：\n",
+        u8"将以下文本翻译为英语，注意只需要输出翻译后的结果，不要额外解释：\n"}) {
+        const std::string prefix = instruction;
+        if (input.size() > prefix.size() && input.compare(0, prefix.size(), prefix) == 0) return prefix;
+    }
+    return {};
+}
+
+static std::string safe_prefix_bytes(const std::string & full, const std::string & fixed,
+                                    const std::string & instruction) {
+    if (instruction.empty()) return {};
+    const auto a = full.find(instruction), b = fixed.find(instruction);
+    if (a == std::string::npos || b == std::string::npos ||
+        full.find(instruction, a + instruction.size()) != std::string::npos ||
+        fixed.find(instruction, b + instruction.size()) != std::string::npos) return {};
+    const auto before_source = full.substr(0, a + instruction.size());
+    // Templates reflecting source anywhere before the instruction fail closed.
+    return before_source == fixed.substr(0, b + instruction.size()) ? before_source : std::string{};
+}
+
+static size_t reusable_prefix_length(const std::vector<llama_token> & full,
+                                     const std::vector<llama_token> & before_source) {
+    if (full.empty() || before_source.empty()) return 0;
+    // Drop the boundary token (including any appended special token). Source may
+    // merge with it during tokenization. Always evaluate a suffix to obtain logits.
+    const auto limit = std::min(full.size() - 1, before_source.size() - 1);
+    size_t n = 0;
+    while (n < limit && full[n] == before_source[n]) ++n;
+    return n;
+}
+
+struct prefix_snapshot {
+    std::string instruction;
+    std::vector<llama_token> tokens;
+    std::vector<uint8_t> data;
+    static constexpr size_t max_bytes = 16 * 1024 * 1024;
+
+    void discard() { instruction.clear(); tokens.clear(); data.clear(); }
+    bool positions_match(llama_context * ctx, size_t count) const {
+        auto memory = llama_get_memory(ctx);
+        return count > 0 && llama_memory_seq_pos_min(memory, 0) == 0 &&
+            llama_memory_seq_pos_max(memory, 0) == static_cast<llama_pos>(count - 1);
+    }
+    size_t restore(llama_context * ctx, const std::string & fixed,
+                   const std::vector<llama_token> & full, size_t safe_count) {
+        if (fixed != instruction || safe_count == 0 || data.empty()) { discard(); return 0; }
+        size_t count = 0;
+        while (count < std::min(tokens.size(), safe_count) && tokens[count] == full[count]) ++count;
+        if (!count) { discard(); return 0; }
+        if (llama_state_seq_set_data(ctx, data.data(), data.size(), 0) != data.size() ||
+            !positions_match(ctx, tokens.size()) ||
+            !llama_memory_seq_rm(llama_get_memory(ctx), 0, static_cast<llama_pos>(count), -1) ||
+            !positions_match(ctx, count)) {
+            // Restoration/removal failures must not leave partial or stale state.
+            llama_memory_clear(llama_get_memory(ctx), true); discard(); return 0;
+        }
+        return count;
+    }
+    void save(llama_context * ctx, const std::string & fixed,
+              const std::vector<llama_token> & full, size_t count) {
+        discard();
+        if (!count || !llama_memory_seq_rm(llama_get_memory(ctx), 0, static_cast<llama_pos>(count), -1) ||
+            !positions_match(ctx, count)) return;
+        // Sequence state contains only live KV cells/positions, not logits, sampler
+        // history or deleted source/generation cells. Never serialize whole context.
+        const auto bytes = llama_state_seq_get_size(ctx, 0);
+        if (!bytes || bytes > max_bytes) return;
+        std::vector<uint8_t> saved(bytes);
+        if (llama_state_seq_get_data(ctx, saved.data(), saved.size(), 0) != bytes) return;
+        instruction = fixed; tokens.assign(full.begin(), full.begin() + count); data = std::move(saved);
+    }
+};
 
 static bool read_frame(std::string & out) {
     out.clear();
@@ -91,10 +169,11 @@ int main(int argc, char ** argv) {
         }
         if (argc < 5 || std::string(argv[1]) != "--model" || std::string(argv[3]) != "--mode") return 64;
         auto model_profile = dropspace::model_profile::hy_mt2_1_8b_q8;
-        bool timings_enabled = false, profile_selected = false;
+        bool timings_enabled = false, prefix_enabled = false, profile_selected = false;
         for (int i = 5; i < argc; ++i) {
             const std::string option = argv[i];
             if (option == "--timings" && !timings_enabled) { timings_enabled = true; continue; }
+            if (option == "--experimental-prefix-kv" && !prefix_enabled) { prefix_enabled = true; continue; }
             if (option != "--model-profile" || profile_selected || ++i == argc) return 64;
             const auto requested = dropspace::parse_model_profile(argv[i]);
             if (!requested) return 64;
@@ -149,12 +228,24 @@ int main(int argc, char ** argv) {
         auto vocab = llama_model_get_vocab(model);
         json ready = {{"protocol", 1}, {"selectionProtocol", 2}, {"ready", true}, {"backend", mode},
             {"modelProfile", std::string(dropspace::policy_for(model_profile)->id)}};
+        if (prefix_enabled) ready["experimentalPrefixKv"] = true;
 #ifdef DROPSPACE_VULKAN
         // Diagnostic identity comes from the selected physical adapter, never the
         // user's GPU preference. It does not expose prompt or model contents.
         if (mode == "vulkan") ready["device"] = selected_device;
 #endif
         send(ready);
+        prefix_snapshot cached_prefix; // Process/context/model owned; never persisted to disk.
+        const auto render = [&](const std::string & content) {
+            if (!chat) return content;
+            common_chat_templates_inputs inputs;
+            inputs.use_jinja = params.use_jinja;
+            common_chat_msg message; message.role = "user"; message.content = content;
+            inputs.messages = {message}; inputs.add_generation_prompt = true;
+            inputs.force_pure_content = params.force_pure_content_parser;
+            // Matches pinned completion.cpp's initial single-message template application.
+            return common_chat_templates_apply(templates.get(), inputs).prompt;
+        };
         std::string frame;
         while (read_frame(frame)) {
             const auto request_start = clock_type::now();
@@ -167,42 +258,46 @@ int main(int argc, char ** argv) {
             const auto input = request.at("prompt").get<std::string>();
             if (id.size() != 32 || id.find_first_not_of("0123456789abcdef") != std::string::npos ||
                 input.empty() || input.size() > (selection ? 8192u : 1800u)) return 68;
-            // A new sampler restores seed and penalties. Clearing the complete memory erases
-            // KV/recurrent state; each template application has a new single-message history.
+            // Keep complete zero-clear even in the experiment. Restore only a verified
+            // fixed-prefix sequence snapshot; sampler and single-message history stay new.
             auto stage_start = clock_type::now();
             llama_memory_clear(llama_get_memory(ctx), true);
             const double reset_ms = elapsed_ms(stage_start);
             struct clear_on_exit {
-                llama_context * ctx; bool active = true;
+                llama_context * ctx; prefix_snapshot & cached; bool active = true;
                 void finish() { llama_memory_clear(llama_get_memory(ctx), true); active = false; }
-                ~clear_on_exit(){ if (active) llama_memory_clear(llama_get_memory(ctx), true); }
-            } clear{ctx};
+                ~clear_on_exit(){ if (active) { cached.discard(); llama_memory_clear(llama_get_memory(ctx), true); } }
+            } clear{ctx, cached_prefix};
             stage_start = clock_type::now();
             auto sampling = params.sampling;
             std::unique_ptr<common_sampler, decltype(&common_sampler_free)> sampler(common_sampler_init(model, sampling), common_sampler_free);
             if (!sampler) return 69;
             const double sampler_ms = elapsed_ms(stage_start);
             stage_start = clock_type::now();
-            std::string prompt = input;
-            if (chat) {
-                common_chat_templates_inputs inputs;
-                inputs.use_jinja = params.use_jinja;
-                common_chat_msg message; message.role = "user"; message.content = input;
-                inputs.messages = {message}; inputs.add_generation_prompt = true;
-                inputs.force_pure_content = params.force_pure_content_parser;
-                // Deliberately matches pinned completion.cpp's initial-template application.
-                prompt = common_chat_templates_apply(templates.get(), inputs).prompt;
-            }
+            const auto prompt = render(input);
             const double template_ms = elapsed_ms(stage_start);
             stage_start = clock_type::now();
             auto tokens = common_tokenize(ctx, prompt, true, true);
             const double tokenize_ms = elapsed_ms(stage_start);
             if (tokens.empty() || tokens.size() + (selection ? 32u : 2048u) >= 4096) return 70;
             stage_start = clock_type::now();
+            const auto instruction = prefix_enabled && !selection ? fixed_instruction(input) : std::string{};
+            size_t safe_count = 0;
+            if (!instruction.empty()) {
+                const auto before_source = safe_prefix_bytes(prompt, render(instruction), instruction);
+                if (!before_source.empty())
+                    safe_count = reusable_prefix_length(tokens, common_tokenize(ctx, before_source, true, true));
+            }
+            const double prefix_plan_ms = elapsed_ms(stage_start);
+            stage_start = clock_type::now();
+            const auto reused = prefix_enabled ? cached_prefix.restore(ctx, instruction, tokens, safe_count) : 0;
+            if (timings_enabled && reused) llama_synchronize(ctx);
+            const double prefix_restore_ms = elapsed_ms(stage_start);
+            stage_start = clock_type::now();
             for (auto token : tokens) common_sampler_accept(sampler.get(), token, false);
             const double sampler_accept_ms = elapsed_ms(stage_start);
             stage_start = clock_type::now();
-            for (size_t offset = 0; offset < tokens.size(); offset += params.n_batch) {
+            for (size_t offset = reused; offset < tokens.size(); offset += params.n_batch) {
                 const auto n = std::min<size_t>(params.n_batch, tokens.size() - offset);
                 if (llama_decode(ctx, llama_batch_get_one(tokens.data() + offset, static_cast<int32_t>(n)))) return 71;
             }
@@ -230,7 +325,13 @@ int main(int argc, char ** argv) {
             }
             const double generation_ms = elapsed_ms(generation_start);
             stage_start = clock_type::now();
-            clear.finish();
+            if (prefix_enabled && complete) cached_prefix.save(ctx, instruction, tokens, safe_count);
+            else cached_prefix.discard();
+            const double prefix_save_ms = elapsed_ms(stage_start);
+            stage_start = clock_type::now();
+            // Default response/cleanup ordering remains the legacy ordering. Timed
+            // and prefix experiments complete cleanup before reporting their result.
+            if (timings_enabled || prefix_enabled) clear.finish();
             const double cleanup_ms = elapsed_ms(stage_start);
             // Never present a token-cap truncation as a complete translation.
             json response = {{"protocol", selection ? 2 : 1}, {"id", id}, {"complete", complete}, {"text", output}};
@@ -239,8 +340,10 @@ int main(int argc, char ** argv) {
                 {"samplerInitMs", sampler_ms}, {"templateMs", template_ms}, {"tokenizeMs", tokenize_ms},
                 {"samplerAcceptMs", sampler_accept_ms}, {"prefillMs", prefill_ms}, {"decodeMs", decode_ms},
                 {"sampleMs", sample_ms}, {"generationMs", generation_ms}, {"cleanupMs", cleanup_ms},
-                {"inputTokens", tokens.size()}, {"prefillTokens", tokens.size()}, {"outputTokens", output_tokens},
-                {"sampledTokens", sampled_tokens}, {"prefixReusedTokens", 0}};
+                {"inputTokens", tokens.size()}, {"prefillTokens", tokens.size() - reused}, {"outputTokens", output_tokens},
+                {"sampledTokens", sampled_tokens}, {"prefixReusedTokens", reused},
+                {"prefixPlanMs", prefix_plan_ms}, {"prefixRestoreMs", prefix_restore_ms}, {"prefixSaveMs", prefix_save_ms},
+                {"prefixRetainedTokens", cached_prefix.tokens.size()}, {"prefixSnapshotBytes", cached_prefix.data.size()}};
             send(response);
         }
         return 0;

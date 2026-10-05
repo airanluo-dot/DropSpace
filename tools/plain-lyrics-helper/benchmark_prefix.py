@@ -79,6 +79,7 @@ def run(args):
             assert ready["ready"] and ready["protocol"] == 1 and ready["backend"] == "cpu"
             load_ms = (time.perf_counter() - started) * 1000
             records = []
+            previous_target = None
             for repeat in range(args.repeats):
                 for index, (target, source) in enumerate(CASES):
                     prompt = (TEMPLATE.format("英语" if target == "en" else "简体中文", source)
@@ -104,8 +105,13 @@ def run(args):
                         assert all(value >= 0 for value in t.values())
                         if args.variant == "baseline" or target in ("other", "selection"):
                             assert t["prefixReusedTokens"] == 0
+                        elif previous_target != target:
+                            assert t["prefixReusedTokens"] == 0, "target/role transition reused stale KV"
+                        else:
+                            assert t["prefixReusedTokens"] > 0, "expected fixed-instruction cache hit"
                     records.append(dict(repeat=repeat, case=index, target=target, source=source,
                                         hostWallMs=host_ms, response=response))
+                    previous_target = target
             child.stdin.close()
             assert child.wait(timeout=10) == 0
             reader.join(timeout=10)
