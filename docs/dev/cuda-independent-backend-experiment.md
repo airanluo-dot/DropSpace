@@ -26,7 +26,9 @@ namespace and cache directory. Manifest-bound files are exactly:
 
 Windows [pinned ggml CUDA CMake](https://github.com/ggml-org/llama.cpp/blob/7fe450e19305b828c199d602c23a8337aaa1f03b/ggml/src/ggml-cuda/CMakeLists.txt)
 links cuBLAS dynamically even with `GGML_STATIC=ON`. Both DLLs are verified before
-returning a launch path; metadata, individual sizes/hashes, contained paths and
+returning a launch path; the runner additionally rehashes all three component files
+under retained read leases before launch and transfers those leases to the native
+session until confirmed process exit and reader settlement; metadata, individual sizes/hashes, contained paths and
 partial cleanup are checked. Production accepts embedded resources only.
 A sidecar manifest cannot make a downloaded variant trusted. CPU fallback keeps
 its separate existing trusted package. Cache identity binds the CUDA manifest,
@@ -80,7 +82,8 @@ CMake >=3.24, Python and CUDA Toolkit 12.3–12.9, use an x64 developer PowerShe
 Select architectures for the actual target matrix; this example is not universal.
 The producer verifies the immutable clean engine, uses fresh isolated artifact
 paths, builds only the CUDA worker, binds toolkit DLLs by hash, gathers notices,
-checks PE imports for every component, and runs `--version` identity smoke.
+checks PE imports for every component. Native `--version` identity smoke requires
+the explicit `-ValidateStartup` switch, which stays off for compile-only work.
 It requires no GPU for compilation, but startup dependencies must be available.
 It does not install toolkits/drivers, build CPU/Vulkan again, overwrite shipping
 payloads, dispatch cloud jobs, or publish. Full Windows linking/startup of this
@@ -88,7 +91,30 @@ route remains unverified in this Linux environment. Any unexpected import fails
 review rather than silently extending the payload. The experiment executable and
 manifest are not automatically embedded in the app.
 
-## Real comparison route
+## Current no-test instruction and integration review
+
+After the user prohibited testing, no unit/regression/benchmark/native startup
+or GPU checks were rerun and no test CI was dispatched. Existing test sources
+and historical evidence remain intact. The resumed change adds retained component
+leases and makes producer startup smoke explicitly opt-in. Only
+`dotnet build src/DropSpace.Infrastructure/DropSpace.Infrastructure.csproj -c Release --no-restore`
+was run for the final managed change: zero warnings/errors. This does not validate
+lease behavior, Windows DLL loading, startup or cancellation. Keep `-ValidateStartup`
+and all commands in the following experiment section unexecuted under the current
+instruction.
+
+The separate KV/timing commits `55f8ec4e5f5b95035d112c5d4bdda5f88dd1b011`
+and `14e0550c5b474d4cd93610265b29a3232ad51eb9` were reviewed by reading their
+source diff. They preserve every CUDA overlay backend anchor and the sampler
+argument block. Their optional `--timings`/`--experimental-prefix-kv` parsing and
+compatible response fields remain in the maintained loop and would flow through
+the backend overlay when the main integration includes those commits. The host
+runner passes neither flag by default. Required protocol/id/complete/text parsing
+allows extra response fields. This branch does not edit or cherry-pick `main.cpp`;
+no KV-source overlay generation, compilation, or execution was performed here.
+The primary task owns final integration.
+
+## Real comparison route (deferred; currently prohibited)
 
 `CudaNativeComparisonTests` is an explicit Windows native experiment with six
 rows: CPU/Vulkan/CUDA on each installed pinned 1.8B/7B Q8 model. Configure only
@@ -190,8 +216,14 @@ unsupported Windows `HSA_OVERRIDE_GFX_VERSION` to claim qualification.
 
 ## Current checks and blockers
 
-See [machine-readable evidence](evidence/cuda-experiment/checks.json) and
-[header compile evidence](evidence/cuda-experiment/header-compile.json).
+See [machine-readable evidence](evidence/cuda-experiment/checks.json),
+[compile-only build output](evidence/cuda-experiment/compile-only-build.txt),
+[historical managed TRX](evidence/cuda-experiment/cuda-managed.trx) and
+[historical header compile evidence](evidence/cuda-experiment/header-compile.json).
+`checks.json` was absent in checkpoint `a1f88c0` and was subsequently assembled
+from saved evidence and the authorized compilation, without rerunning tests.
+Historical checks below precede the final lease/build-script changes and do not
+qualify their final behavior.
 
 - Locked .NET restore succeeded. Relevant managed/real-child protocol tests
   passed; six actual-native rows are skipped because this is Linux without a GPU

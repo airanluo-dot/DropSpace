@@ -320,10 +320,18 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private async Task StartSessionAsync(string modelPath, AiLyricsModelDescriptor model, bool gpu, CancellationToken token, bool nonblocking = false)
     {
         await _cleanup.WaitAsync(token).ConfigureAwait(false);
+        CudaLyricsComponentLease? componentLease = null;
+        try
+        {
         string executable;
         using (var resolve = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.RuntimeResolve, token))
         {
-            executable = await _resolve(gpu, token).ConfigureAwait(false);
+            if (gpu && _openCudaLease is not null)
+            {
+                componentLease = await _openCudaLease(token).ConfigureAwait(false);
+                executable = componentLease.ExecutablePath;
+            }
+            else executable = await _resolve(gpu, token).ConfigureAwait(false);
             resolve.Complete();
         }
         if (nonblocking)
@@ -358,7 +366,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             if (!gpu) CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
             token.ThrowIfCancellationRequested();
             var child = LocalInferenceProcess.Start(start, memoryBudget, retainStandardInput: true);
-            _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu);
+            _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu)
+            { ComponentLease = componentLease };
+            componentLease = null;
             gateTransferred = true;
             var starting = _session;
             using var stop = token.Register(() =>
@@ -381,6 +391,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             load.Complete();
         }
         finally { if (!gateTransferred) LocalInferenceProcess.InferenceGate.Release(); }
+        }
+        finally { componentLease?.Dispose(); }
     }
 
     private async Task StopSessionAsync()
@@ -393,11 +405,17 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             Interlocked.Exchange(ref session.StopRequested, 1);
             session.Cancellation.Dispose();
             var id = session.Child.Process.Id;
-            _cleanup = session.Child.CompleteAsync(session.Errors, session.Memory);
+            _cleanup = CompleteSessionAsync(session);
             _ = ReleaseSessionGateAsync(_cleanup, session);
             await LocalInferenceProcess.WaitForCleanupAsync(_cleanup, id).ConfigureAwait(false);
         }
         else await _cleanup.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+    }
+
+    private static async Task CompleteSessionAsync(Session session)
+    {
+        await session.Child.CompleteAsync(session.Errors, session.Memory).ConfigureAwait(false);
+        session.ComponentLease?.Dispose();
     }
 
     private static async Task WaitForGateAsync(SemaphoreSlim gate, CancellationToken token, PlainLyricsMetrics.Stage stage)
@@ -476,6 +494,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private sealed class Session
     {
         internal JsonElement? Device { get; set; }
+        internal CudaLyricsComponentLease? ComponentLease { get; init; }
         internal Session(LocalInferenceProcess child, string model, string modelSha256, long memoryBudget, bool gpu)
         {
             Child = child; Model = model; ModelSha256 = modelSha256; Gpu = gpu;

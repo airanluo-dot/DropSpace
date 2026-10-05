@@ -3,7 +3,9 @@ param(
     [Parameter(Mandatory)][string]$CudaToolkitDirectory,
     [Parameter(Mandatory)][ValidatePattern('^[0-9]+(;[0-9]+)*$')][string]$CudaArchitectures,
     [ValidateSet('Ninja Multi-Config', 'Visual Studio 17 2022', 'Visual Studio 18 2026')]
-    [string]$Generator = 'Ninja Multi-Config'
+    [string]$Generator = 'Ninja Multi-Config',
+    # Never run a native startup check during a compile-only task.
+    [switch]$ValidateStartup
 )
 # Explicit producer only. Never installs a driver, downloads a model, builds CPU/Vulkan,
 # dispatches a paid GPU runner, or writes the shipping runtime directory.
@@ -27,10 +29,11 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Reused engine source must be 
 Invoke-Checked 'git' @('-C', $source, 'fsck', '--no-reflogs')
 if (-not (Test-Path (Join-Path $toolkit 'bin/nvcc.exe'))) { throw 'CUDA toolkit is unavailable; no installation is attempted.' }
 $version = & (Join-Path $toolkit 'bin/nvcc.exe') --version
-if ($LASTEXITCODE -ne 0 -or ($version -join "`n") -notmatch 'release 12\.(?<minor>[0-9]+)') {
+$toolkitVersion = [regex]::Match(($version -join "`n"), 'release (?<major>[0-9]+)\.(?<minor>[0-9]+)')
+if ($LASTEXITCODE -ne 0 -or -not $toolkitVersion.Success -or
+    [int]$toolkitVersion.Groups['major'].Value -ne 12 -or [int]$toolkitVersion.Groups['minor'].Value -lt 3) {
     throw 'Experiment v1 requires CUDA 12.3 or later in the CUDA 12 ABI.'
 }
-if ([int]$Matches.minor -lt 3) { throw 'CUDA 12.3 or later is required for the MSVC PDL guard.' }
 # Fresh isolated paths; preserve all previous builds. No CPU/Vulkan rebuilding or payload overwrite.
 $build = Join-Path $root ('artifacts/cuda-experiment-build-' + [Guid]::NewGuid().ToString('N'))
 $output = Join-Path $build 'payload'
@@ -82,10 +85,12 @@ foreach ($component in $files) {
     } | Where-Object { $_ -notmatch '^(?i:kernel32|user32|advapi32|shell32|ole32|ws2_32|bcrypt|crypt32|ntdll|version|nvcuda|cublas64_12|cublasLt64_12)\.dll$' -and $_ -notmatch '^(?i:api-ms-win-)' })
     if ($unexpected.Count) { throw "Unreviewed CUDA dependencies in $($component.name): $($unexpected -join ', ')" }
 }
-$smoke = & (Join-Path $output 'plain-lyrics-worker-cuda.exe') --version
-if ($LASTEXITCODE -ne 0) { throw 'CUDA component startup failed; it is not a Vulkan failure.' }
-$identity = $smoke | ConvertFrom-Json
-if ($identity.backend -cne 'cuda' -or $identity.componentId -cne $manifest.runtimeId -or $identity.profile -cne $manifest.profile) {
-    throw 'CUDA component identity handshake failed.'
+if ($ValidateStartup) {
+    $smoke = & (Join-Path $output 'plain-lyrics-worker-cuda.exe') --version
+    if ($LASTEXITCODE -ne 0) { throw 'CUDA component startup failed; it is not a Vulkan failure.' }
+    $identity = $smoke | ConvertFrom-Json
+    if ($identity.backend -cne 'cuda' -or $identity.componentId -cne $manifest.runtimeId -or $identity.profile -cne $manifest.profile) {
+        throw 'CUDA component identity handshake failed.'
+    }
 }
 Write-Host "Isolated CUDA experiment payload (not published or embedded): $output"
