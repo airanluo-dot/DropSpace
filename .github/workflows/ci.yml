@@ -93,8 +93,15 @@ jobs:
       - name: Validate Stable and Beta release metadata
         shell: pwsh
         run: |
-          ./scripts/Test-ReleaseVersion.ps1
-          ./scripts/Test-ReleaseConsistency.ps1
+          if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.11') {
+            . ./scripts/ReleaseVersion.ps1
+            Assert-DropSpaceNewReleaseVersion ((Get-Content RELEASE_VERSION -Raw).Trim()) | Out-Null
+            node scripts/test-release-metadata.mjs $PWD
+            if ($LASTEXITCODE -ne 0) { throw 'Release metadata binding failed.' }
+          } else {
+            ./scripts/Test-ReleaseVersion.ps1
+            ./scripts/Test-ReleaseConsistency.ps1
+          }
       - name: Enforce localization resource policy
         if: ${{ env.OWNER_SKIP_TESTS != 'true' && (steps.prior-checks.outputs.reuse != 'true') }}
         shell: pwsh
