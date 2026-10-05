@@ -1,0 +1,441 @@
+{
+  "phase": "build-conversion-only",
+  "inferenceMeasurement": false,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "sourceManifestSha256": "1cfa4891a018e80120ecbdaef1cbb406a27d87c458dc11698be21684df4714a0",
+  "versions": {
+    "torch": "2.8.0+cpu",
+    "transformers": "4.57.1",
+    "ctranslate2": "4.8.2",
+    "sentencepiece": "0.2.1",
+    "sacremoses": "0.1.1"
+  },
+  "safeLoading": {
+    "weights_only": true,
+    "trust_remote_code": false,
+    "local_files_only": true,
+    "converterInput": "safetensors"
+  },
+  "quantization": "int8",
+  "models": {
+    "zh-en": {
+      "repo": "Helsinki-NLP/opus-mt-zh-en",
+      "revision": "cf109095479db38d6df799875e34039d4938aaa6",
+      "license": "cc-by-4.0",
+      "source": "/workspace/scratch/translation-quality/ct2/models/source/zh-en",
+      "converted": "/workspace/scratch/translation-quality/ct2/models/converted/zh-en",
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 223,
+          "sha256": "8f6496adfc930cbfecbe8281112197705c488fab47d34b4829b06d7f478909af"
+        },
+        {
+          "path": "model.bin",
+          "bytes": 79567635,
+          "sha256": "e4955858cae9542bef37424a9b79720e3db2f32501fe62264c0cd3eac6319777"
+        },
+        {
+          "path": "shared_vocabulary.json",
+          "bytes": 1303998,
+          "sha256": "acbf13516c56af2bb78ebdb770c2e4648fd8232ddd17af75298119cbfa7ee33d"
+        }
+      ],
+      "tokenizerFiles": [
+        {
+          "path": "README.md",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/README.md",
+          "git_blob_sha1": "50861444b1f4f181fe7ceccf971333b882c6c6f7",
+          "sha256": "7f4b7f90672cd55b85b213bbe21f4b2d0c92327e885734b7e86b019feb145a6b",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 3174
+        },
+        {
+          "path": "config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/config.json",
+          "git_blob_sha1": "710dcdf966ec0aa5b3d991a35264c7cb174ccf14",
+          "sha256": "d84104da12fa90da59acf5f0ed30428e43cc92574ad4b9dfa88f29eeeb2b0eb0",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1394
+        },
+        {
+          "path": "generation_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/generation_config.json",
+          "git_blob_sha1": "a43af728d2ddefe1ed73656ce004be6391c02e0a",
+          "sha256": "81f06422302b9f4666f20c6f20f43b904e38ccce9326a208f82ff97c2c9699e5",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 293
+        },
+        {
+          "path": "metadata.json",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/metadata.json",
+          "git_blob_sha1": "0fba11b0f7b582cae4b4d2a6b837d509fa2b8d51",
+          "sha256": "b412c4bd90f9161deb21e018b9b9bb0d5c1ddcfa528b78a550f82c261b9f8ddc",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1477
+        },
+        {
+          "path": "source.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/source.spm",
+          "git_blob_sha1": "0ab361451ecc57b6223303c7b52e216ff40dc7e6",
+          "sha256": "e27a3a1b539f4959ec72ea60e453f49156289f95d4e6000b29332efc45616203",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 804677
+        },
+        {
+          "path": "target.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/target.spm",
+          "git_blob_sha1": "878ae3c6ca6afea7971e3be0b18debdd0d41e3ea",
+          "sha256": "6a881f4717cd7265f53fea54fd3dc689c767c05338fac7a4590f3088cb2d7855",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 806530
+        },
+        {
+          "path": "tokenizer_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/tokenizer_config.json",
+          "git_blob_sha1": "60000ab989b1eec84f7b0299368f9dd498cdab61",
+          "sha256": "53cc7a6f05224f287476af4798d96b1b85da2edae60257e58633f092c7b5b823",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 44
+        },
+        {
+          "path": "vocab.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-zh-en/resolve/cf109095479db38d6df799875e34039d4938aaa6/vocab.json",
+          "git_blob_sha1": "3be15dddf54535a2257b485f32c8f9226352d5c4",
+          "sha256": "c0f79ee4c413ccb24cd808a0c727eec85b2130f23c82802cc1caeb07b5f0d458",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1617902
+        }
+      ],
+      "buildSeconds": 2.190897006
+    },
+    "ja-en": {
+      "repo": "Helsinki-NLP/opus-mt-ja-en",
+      "revision": "0770961a39ba6bd66305b149c3f4110bcafca2e6",
+      "license": "apache-2.0",
+      "source": "/workspace/scratch/translation-quality/ct2/models/source/ja-en",
+      "converted": "/workspace/scratch/translation-quality/ct2/models/converted/ja-en",
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 223,
+          "sha256": "8f6496adfc930cbfecbe8281112197705c488fab47d34b4829b06d7f478909af"
+        },
+        {
+          "path": "model.bin",
+          "bytes": 77339435,
+          "sha256": "94ea549b9aaca8b4899d8406f8323c1c558874534ba629659af9874c63bbdf63"
+        },
+        {
+          "path": "shared_vocabulary.json",
+          "bytes": 1208862,
+          "sha256": "c6e7f9988e5fe15c59ed331ce2d7c3dd551e70add8efc09f839f5a48168da4d6"
+        }
+      ],
+      "tokenizerFiles": [
+        {
+          "path": "README.md",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/README.md",
+          "git_blob_sha1": "a316f70d83349bb0de81cbba772c82f3289aeb71",
+          "sha256": "0b86e8b0db54d2371edbd3896da45f44c1d1c4d151c6a1164304da49fd841676",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 818
+        },
+        {
+          "path": "config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/config.json",
+          "git_blob_sha1": "2860e0a64affcb7530b295ef84fb3b0ed48b8896",
+          "sha256": "e289b397c417050d9be37049677abf8929c35b16397389ad591a8d008e6db340",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1381
+        },
+        {
+          "path": "generation_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/generation_config.json",
+          "git_blob_sha1": "41c37811c1d603dc73e6fc006683f8d8f95f5b46",
+          "sha256": "2a2ada2b87855613701872484737458add1c5d3a4330185e7fa4a3d1f6888f48",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 293
+        },
+        {
+          "path": "source.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/source.spm",
+          "git_blob_sha1": "a4e37a5c32db4435e561c31cbdd358211f63b967",
+          "sha256": "d0b5c3b10b5959f056ff2c86e2f2356129242ff1fc72d3a4a34d6a8c0eee4e57",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 781853
+        },
+        {
+          "path": "target.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/target.spm",
+          "git_blob_sha1": "1eb1c96b041404cde4901e1ea19b156c200b594d",
+          "sha256": "35d89c704e270d441fade716a3931d49c43179400682edcca7f180694982a2f6",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 801883
+        },
+        {
+          "path": "tokenizer_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/tokenizer_config.json",
+          "git_blob_sha1": "704dfc6fe07e213006d6985420124ce11bcf9c57",
+          "sha256": "9db10a7f6e536bc53ecdd33bb23fa7ba610d20ee7959059a9deee5f33d636e54",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 42
+        },
+        {
+          "path": "vocab.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ja-en/resolve/0770961a39ba6bd66305b149c3f4110bcafca2e6/vocab.json",
+          "git_blob_sha1": "7b29094ac717b78f5e536b624e991e555438790d",
+          "sha256": "0483c9c2b3deade6d6fbfe149eccf9cd3c44c77b348232030ae2d81400d65b61",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1501341
+        }
+      ],
+      "buildSeconds": 1.7615631360000066
+    },
+    "ko-en": {
+      "repo": "Helsinki-NLP/opus-mt-ko-en",
+      "revision": "e42d1f41b66194e6d10512f8a27bebc1f4f5097e",
+      "license": "apache-2.0",
+      "source": "/workspace/scratch/translation-quality/ct2/models/source/ko-en",
+      "converted": "/workspace/scratch/translation-quality/ct2/models/converted/ko-en",
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 223,
+          "sha256": "8f6496adfc930cbfecbe8281112197705c488fab47d34b4829b06d7f478909af"
+        },
+        {
+          "path": "model.bin",
+          "bytes": 79567635,
+          "sha256": "777822da53524112be3b198dfbe59026d4de04f68175d1ba1ddfd9d0361c4cca"
+        },
+        {
+          "path": "shared_vocabulary.json",
+          "bytes": 1405962,
+          "sha256": "598510ee69f4cbdaeed42f5a583f0a1260b175199a277ef79b2504ffac1565de"
+        }
+      ],
+      "tokenizerFiles": [
+        {
+          "path": "README.md",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/README.md",
+          "git_blob_sha1": "1ef6b85e74384fce34d86e99996dd77f3db7d8a5",
+          "sha256": "b570727abdf8bfd6ab579e3648d999fc8b4ace4b81a22160c0f03fb501ad07a3",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 2122
+        },
+        {
+          "path": "config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/config.json",
+          "git_blob_sha1": "93e1b07c4cc7280dd70c542120778c7781bce6b0",
+          "sha256": "abe3c36f13da71bf49f175b114d8415dce5301330f849f66a1aeccd5d177a581",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1394
+        },
+        {
+          "path": "generation_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/generation_config.json",
+          "git_blob_sha1": "a43af728d2ddefe1ed73656ce004be6391c02e0a",
+          "sha256": "81f06422302b9f4666f20c6f20f43b904e38ccce9326a208f82ff97c2c9699e5",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 293
+        },
+        {
+          "path": "metadata.json",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/metadata.json",
+          "git_blob_sha1": "a027adcdbfba68710b2e7a5b2fde38df2cd0fab9",
+          "sha256": "b22d616b742aa1c2cb54ad7e2477e64e88ed7d60135350b84a464f08b87dff2f",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1121
+        },
+        {
+          "path": "source.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/source.spm",
+          "git_blob_sha1": "3bdd58dcfd1223a4db6700b52dedbba52d7cf6b4",
+          "sha256": "c9496f7c2be9aecb84c751ae9f35a875915dde8e3892f652a5c76811ab2a0f49",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 841805
+        },
+        {
+          "path": "target.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/target.spm",
+          "git_blob_sha1": "a0a91b2dcdbdbde4f785b43fb58c440595813c43",
+          "sha256": "f1531ac8576fe64267dfca0dc33950a6e9a2d3fd9e05346558ad7ea5ee0e65bf",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 813126
+        },
+        {
+          "path": "tokenizer_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/tokenizer_config.json",
+          "git_blob_sha1": "3a726512d5167063f54dc9a373ce1a771d5d65b0",
+          "sha256": "a0b1b53b32e8fe6a39c07dc7dfa8e7e09a466bc29d9c38edf3ed07a6b73b3b40",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 44
+        },
+        {
+          "path": "vocab.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-ko-en/resolve/e42d1f41b66194e6d10512f8a27bebc1f4f5097e/vocab.json",
+          "git_blob_sha1": "71c319d7f4dea97b03d3fb74dc8442b8322dca5b",
+          "sha256": "d42e3838e7ed0e43785fa013ef22ab4d382248cdf4e959c46a2b48db5eb019e9",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1719866
+        }
+      ],
+      "buildSeconds": 1.7848028650000174
+    },
+    "en-zh": {
+      "repo": "Helsinki-NLP/opus-mt-en-zh",
+      "revision": "408d9bc410a388e1d9aef112a2daba955b945255",
+      "license": "apache-2.0",
+      "source": "/workspace/scratch/translation-quality/ct2/models/source/en-zh",
+      "converted": "/workspace/scratch/translation-quality/ct2/models/converted/en-zh",
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 223,
+          "sha256": "8f6496adfc930cbfecbe8281112197705c488fab47d34b4829b06d7f478909af"
+        },
+        {
+          "path": "model.bin",
+          "bytes": 79567635,
+          "sha256": "327584c20bb83c7e89d595bcfa30b6ef3771c10816f707e892c4bbb1f808a8fb"
+        },
+        {
+          "path": "shared_vocabulary.json",
+          "bytes": 1303887,
+          "sha256": "37314a6abb25ed8f8497498aeeb31fcea98de892bf00ff7c2e8c966b26fe0b82"
+        }
+      ],
+      "tokenizerFiles": [
+        {
+          "path": "README.md",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/README.md",
+          "git_blob_sha1": "cc6fb518752007783a71d6c62af0c8d5f6523975",
+          "sha256": "83eee2a6598751f746a057e10d5c9dfd71d6b0cf0146f9e6c1bb3ebd6e90959b",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 2670
+        },
+        {
+          "path": "config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/config.json",
+          "git_blob_sha1": "e2c7882d05248a3e47cfa69f3dc6d5cfd99a3c07",
+          "sha256": "bcae8ed74fed77fb51c58462b62397fee6b1a1a34aece79183a0dd02ad329e71",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1403
+        },
+        {
+          "path": "generation_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/generation_config.json",
+          "git_blob_sha1": "f07859fcab98712b231d115475990a962eebc851",
+          "sha256": "837839ed0534a27084f9b980fc33f47729052dd89cb26cca7ac830765ed30e49",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 293
+        },
+        {
+          "path": "metadata.json",
+          "role": "provenance",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/metadata.json",
+          "git_blob_sha1": "b002d347538a28ef68c8f40020351a2ded80add0",
+          "sha256": "5ee2309b77c5b05171d0d22e4113241febe7bccebbe2980801ebb27cf175ae06",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1478
+        },
+        {
+          "path": "source.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/source.spm",
+          "git_blob_sha1": "3f695c68a3aeb685ded9a5db0865af02c986bebf",
+          "sha256": "5775ddc9e3ff2fae91554da56468ad35ff56edaba870fea74447bc7234bfdaa8",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 806435
+        },
+        {
+          "path": "target.spm",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/target.spm",
+          "git_blob_sha1": "e19744e15a0f53b209fa40dbdc9e7fc4e96771cd",
+          "sha256": "81dc94efa84e4025ef38d25d5d07429fe41e3eb29d44003f1db6fe98487b0052",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 804600
+        },
+        {
+          "path": "tokenizer_config.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/tokenizer_config.json",
+          "git_blob_sha1": "af90e7a4c0e5e8f828e146bdb499c22cef85740e",
+          "sha256": "5df181fba586b7cb37d429c13c4f96cb43fb11de7bb6489733d9eded32418179",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 44
+        },
+        {
+          "path": "vocab.json",
+          "role": "runtime_input",
+          "url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-zh/resolve/408d9bc410a388e1d9aef112a2daba955b945255/vocab.json",
+          "git_blob_sha1": "423d3deb0188828da557bb61494bf73e4b86d275",
+          "sha256": "f1832ca38f7aa158b9a944ff583e4901e6b37d9d4ad9241f03838e636e9cfb03",
+          "hash_source": "SHA-256 of exact downloaded pinned bytes",
+          "downloaded_for_manifest": true,
+          "bytes": 1617791
+        }
+      ],
+      "buildSeconds": 1.7827959630000123
+    }
+  }
+}

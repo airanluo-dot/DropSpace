@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.9878896000000168,
+  "first_nonwhitespace_stdout_seconds": 1.6557186290000345,
+  "peak_rss_bytes": 1463955456,
+  "peak_shared_cgroup_bytes": 5237891072,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "She gave me that letter that wasn’t sent out.",
+  "stdout_sha256": "bc67239f8274931e2686f651a054fe0be2113b660087ed603cbc42d8793f40ea",
+  "stderr_sha256": "8a0a5be2b88fd9aaf2a9ba71f2062a54ca1f02c0ccc9738633bbb83f639d98a2"
+}

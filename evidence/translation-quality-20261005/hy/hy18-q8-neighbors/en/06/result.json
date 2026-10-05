@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.945747752999978,
+  "first_nonwhitespace_stdout_seconds": 2.2299278759999197,
+  "peak_rss_bytes": 2243579904,
+  "peak_shared_cgroup_bytes": 6020911104,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"She handed me the letter that wasn’t sent. \", \"当前句\": \"I didn’t burn it; I just hid it in my old coat. \", \"后句\": \"It’s not that you’ve forgotten me, it’s that I don’t dare to call out to you.\"}",
+  "stdout_sha256": "a2ee850e1fe2c021fd7eba45037906395d46533b621b37408029e3a42202cc45",
+  "stderr_sha256": "45cf10dc396f5c0e3efe288ecee116fe8278aa93d23560999db6556c37c88674"
+}

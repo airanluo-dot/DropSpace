@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.165598268000167,
+  "first_nonwhitespace_stdout_seconds": 2.176899906000017,
+  "peak_rss_bytes": 2244034560,
+  "peak_shared_cgroup_bytes": 6022127616,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"我从未说过你是离开的人。\", \"当前句\": \"不是因为我爱你的心消失了，而是因为我无法让你留下。\", \"后句\": \"她把那封没寄出的信交给了我。\"}",
+  "stdout_sha256": "f0805c24b528b23f4541736f32f616d66defaaba7c7b3a54e4272abbcd4277d2",
+  "stderr_sha256": "2b4059b6fc2f7a6236bbf4ffbcf7a085454d52481f41f0b9c6919e443a4eaa06"
+}

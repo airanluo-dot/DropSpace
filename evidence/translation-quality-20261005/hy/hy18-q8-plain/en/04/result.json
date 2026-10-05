@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.6319012320000184,
+  "first_nonwhitespace_stdout_seconds": 1.594091734000017,
+  "peak_rss_bytes": 2236620800,
+  "peak_shared_cgroup_bytes": 5435166720,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "Not because I stopped loving you, but because I couldn’t make you stay.",
+  "stdout_sha256": "948b6fa8c504e32a6fba3dc49febbc49c861ae7847a1225b28a952866fb56111",
+  "stderr_sha256": "3f17c09758b171b611c02cef9c2d456a9b3f815ef4ef3a7ad3d113d2bf5f8e1f"
+}

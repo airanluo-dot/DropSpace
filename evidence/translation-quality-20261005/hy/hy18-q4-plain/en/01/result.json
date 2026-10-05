@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.0800078669999493,
+  "first_nonwhitespace_stdout_seconds": 1.772718325000028,
+  "peak_rss_bytes": 1463853056,
+  "peak_shared_cgroup_bytes": 5237489664,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "My sister left a blue jar next to the gate.",
+  "stdout_sha256": "c65d663a81ced11ce91d93058f77282ee4dc4f4bd03992c12d7d49526aca43db",
+  "stderr_sha256": "f40dc07c9b4c2fe6bc8fc0f165730169c4283b2a84eaab9b16fd746eed4924da"
+}

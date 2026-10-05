@@ -1,0 +1,11 @@
+{
+  "repo": "google/translategemma-4b-it",
+  "revision": "10042cb0e6e7fdce748996a71dc3dc432a4e0c89",
+  "gated": "manual",
+  "status": "blocked-needs-user-license-and-account-authorization",
+  "downloaded": false,
+  "inference_executed": false,
+  "config_http_status": 401,
+  "gate_error": "GatedRepo",
+  "request": "https://huggingface.co/google/translategemma-4b-it/resolve/10042cb0e6e7fdce748996a71dc3dc432a4e0c89/config.json"
+}

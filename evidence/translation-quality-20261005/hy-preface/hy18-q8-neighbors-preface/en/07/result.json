@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.0155550590000075,
+  "first_nonwhitespace_stdout_seconds": 2.0576574920000894,
+  "peak_rss_bytes": 2242826240,
+  "peak_shared_cgroup_bytes": 11572776960,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "It’s not that you’ve forgotten me, it’s that I don’t dare to call out to you.",
+  "stdout_sha256": "ac6742e95aa0725cd6cb5164998edd1105fae3d3f62adf9c40ac16c522c87903",
+  "stderr_sha256": "e0a3ed7c9a363c79fa68c83263a3dc7647c78bffd3ac9432841de3863ab60df9"
+}

@@ -1,0 +1,12 @@
+{
+  "manifest": "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-conversion/conversion-manifest.json",
+  "evidence": "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-inference/first-en",
+  "target": "en",
+  "lines": [
+    {
+      "id": "05",
+      "language": "zh",
+      "text": "她把那封没寄出的信交给了我。"
+    }
+  ]
+}

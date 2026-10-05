@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.614180900999827,
+  "first_nonwhitespace_stdout_seconds": 2.0788034289998905,
+  "peak_rss_bytes": 2242961408,
+  "peak_shared_cgroup_bytes": 11574136832,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "不是你忘了我，是我不敢叫住你。",
+  "stdout_sha256": "6a5a79f5c6ce3da19e992f6cb163bb18542256282848e7b0bd20cd0f7705ecce",
+  "stderr_sha256": "d8a831b59552a84ea5a3b233a9767c629ceddab391187451f65f764abc136753"
+}

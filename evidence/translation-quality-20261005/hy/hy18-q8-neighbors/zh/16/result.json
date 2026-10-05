@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.455718121000018,
+  "first_nonwhitespace_stdout_seconds": 2.552137695000056,
+  "peak_rss_bytes": 2246512640,
+  "peak_shared_cgroup_bytes": 6025277440,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"我不会告别，直到你说 괜찮아。\", \"当前句\": \"陪着我，别松开我的手；陪着我，别松开我的手；陪着我，无论夜晚多长、路途多远、风多冷，我都不会把你一个人留在雨中。\", \"后句\": \"\"}",
+  "stdout_sha256": "5971bba883f95d1f3bc964be804a8032c0965a53093360d555bfa8332a51c211",
+  "stderr_sha256": "daf1678f8258cb46ce67b7b811eaaf437a0156542dbe1fc36319e224dae47659"
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.4576582830000007,
+  "first_nonwhitespace_stdout_seconds": 1.9894664880000619,
+  "peak_rss_bytes": 2242740224,
+  "peak_shared_cgroup_bytes": 11573456896,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "不是因为我不爱你了，而是因为我无法让你留下。",
+  "stdout_sha256": "e05c33eedd36dc852810b07982603683a6a49ba0e82d5dbf1409a8560808f497",
+  "stderr_sha256": "2009a417301fa72c668cf7772f20646cf9f0738c857e7576dfee31ff8b9fe428"
+}

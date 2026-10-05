@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.156159843000069,
+  "first_nonwhitespace_stdout_seconds": 2.378173975999971,
+  "peak_rss_bytes": 2245701632,
+  "peak_shared_cgroup_bytes": 6037946368,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"It wasn’t you who was looking at the moon, it was me.\", \"当前句\": \"That light didn’t fade away, it was just when I closed my eyes.\", \"后句\": \"I didn’t say I wouldn’t go back; I said I can’t go back tonight.\"}",
+  "stdout_sha256": "17ba00ead0cfe4b76b343fa493b67365954c1a1ae3cff934f27e4ccd096ebf43",
+  "stderr_sha256": "6bd5c8b6c6ad8a78089d8fdaa5d32bd04834414998b3cfb44b2d85fc6dfe110b"
+}

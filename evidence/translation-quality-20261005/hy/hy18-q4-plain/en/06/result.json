@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.180960559999903,
+  "first_nonwhitespace_stdout_seconds": 1.6715574309999965,
+  "peak_rss_bytes": 1464250368,
+  "peak_shared_cgroup_bytes": 5237788672,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "I didn’t burn it; I just hid it in my old jacket.",
+  "stdout_sha256": "f5572fcb861b6b1b632cd1f4cdd2dfd49f439fc147088bc9a5f1847069f4cefc",
+  "stderr_sha256": "dd339000152f4c2cd277baa8ffdb72416ca1882df6e7fa47a7bc875b235d0bd2"
+}

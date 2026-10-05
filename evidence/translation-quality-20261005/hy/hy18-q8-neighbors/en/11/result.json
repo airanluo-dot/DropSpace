@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.9588535059999685,
+  "first_nonwhitespace_stdout_seconds": 2.382183651999867,
+  "peak_rss_bytes": 2246062080,
+  "peak_shared_cgroup_bytes": 6023561216,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"That light didn’t go out; it was just when I closed my eyes.\" \"当前句\": \"I didn’t say I wouldn’t return; I said I can’t go back tonight.\" \"后句\": \"My friend didn’t turn off the light, the wind did.\"}",
+  "stdout_sha256": "02c9985aa5f079ce56d269601fbee25c0f11fd0f9440400bd643b4046936c9cb",
+  "stderr_sha256": "f46e95693fa90bfa3172737de6e9aacada7a4ed13a8da46e198ee18fa682de2a"
+}

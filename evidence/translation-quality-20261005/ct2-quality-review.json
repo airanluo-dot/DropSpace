@@ -1,0 +1,328 @@
+{
+  "review_type": "Manual preliminary semantic review of original synthetic fixtures; not an independent bilingual expert benchmark",
+  "denominator": "20 actual translations (10 per target), 8 same-language bypasses and 4 unsupported target-case combinations separately counted",
+  "summary": {
+    "pass": 11,
+    "warning": 3,
+    "major": 6,
+    "bypass": 8,
+    "unsupported": 4
+  },
+  "unexpected_foreign_copy": 0,
+  "extra_explanation": 0,
+  "empty_output": 0,
+  "rows": [
+    {
+      "target_language": "en",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "My sister left a blue jar beside the gate.",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "en",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "She did not break it; I did.",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "en",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "I never said you were the one who left.",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "en",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "Not because I stopped loving you, but because I could not make you stay.",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "en",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "She gave me the unmailed letter.",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "en",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "I didn't burn it. I hid it in the old jacket.",
+      "status": "warning",
+      "category": "omission",
+      "review_note": "Only is omitted, while did-not-burn and hid-in-old-coat remain correct."
+    },
+    {
+      "target_language": "en",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "You didn't forget me. I didn't dare to stop you.",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "en",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "If it keeps raining, I'll wait for you; if it stops, I won't leave.",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "en",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "It wasn't you who was looking at the moon, it was me.",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "en",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "The light didn't go out, only I closed my eyes.",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "en",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "I didn't say I wouldn't go home. I said I couldn't go home tonight.",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "en",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "My friend didn't turn the lights off. The wind's off.",
+      "status": "major",
+      "category": "agency_loss",
+      "review_note": "The wind's off fails to say that wind extinguished the light/fire."
+    },
+    {
+      "target_language": "en",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "It's not that he's sad he's gone, but that he can't say goodbye.",
+      "status": "major",
+      "category": "role_and_cause_change",
+      "review_note": "Sadness is assigned to he rather than the lyric speaker; leaving vs inability to say goodbye causal contrast is altered."
+    },
+    {
+      "target_language": "en",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "Come back, come back, I didn't wait yesterday, it's today.",
+      "status": "major",
+      "category": "repetition_omission_and_temporal_change",
+      "review_note": "Three come-back phrases become two; waited-for-today/not-yesterday shifts to did-not-wait-yesterday."
+    },
+    {
+      "target_language": "en",
+      "id": "15",
+      "source_language": "mixed",
+      "status": "unsupported",
+      "category": "route_unsupported",
+      "review_note": "No silent language guessing; no translation attempted."
+    },
+    {
+      "target_language": "en",
+      "id": "16",
+      "source_language": "mixed",
+      "status": "unsupported",
+      "category": "route_unsupported",
+      "review_note": "No silent language guessing; no translation attempted."
+    },
+    {
+      "target_language": "zh",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "我妹妹在门边留下了一个蓝色罐子",
+      "status": "warning",
+      "category": "unsupported_specificity",
+      "review_note": "妹妹 selects younger sister although source sister gives no age."
+    },
+    {
+      "target_language": "zh",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "她没有打破它,我打破了。",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "zh",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "我从没说过是你离开的",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "zh",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "不是因为我不再爱你 而是因为我不能让你留下来",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "zh",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "她把那封没寄出的信交给了我。",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "zh",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "我没烧掉它，只把它藏在旧外套里。",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "zh",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "不是你忘了我，是我不敢叫住你。",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "zh",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "status": "bypass",
+      "category": "same_language",
+      "review_note": "Exact source passthrough; excluded from translated quality denominator."
+    },
+    {
+      "target_language": "zh",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "看着月亮的不是你 是我",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "zh",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "灯没熄灭,只是我闭上了眼睛",
+      "status": "warning",
+      "category": "unsupported_specificity",
+      "review_note": "灯 narrows light to lamp; source refers to that light with adjacent moon context withheld."
+    },
+    {
+      "target_language": "zh",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "我没说我不会回家,我今晚不能回家",
+      "status": "pass",
+      "category": "meaning_preserved",
+      "review_note": "Core entities, polarity, roles and clauses preserved on this synthetic fixture."
+    },
+    {
+      "target_language": "zh",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "我朋友没关灯 风也关了",
+      "status": "major",
+      "category": "agency_loss",
+      "review_note": "风也关了 does not preserve wind as extinguishing agent; the English pivot already loses this relationship."
+    },
+    {
+      "target_language": "zh",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "并不是他伤心死了 而是他不能说再见",
+      "status": "major",
+      "category": "role_and_cause_change",
+      "review_note": "他伤心死了 introduces extreme sadness and shifts the speaker/cause; leaving as rejected cause is lost. Do not treat the idiom as proof of literal death."
+    },
+    {
+      "target_language": "zh",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "回来,回来,我没有等待 昨天,这是今天。",
+      "status": "major",
+      "category": "repetition_omission_and_temporal_change",
+      "review_note": "Three come-back phrases become two; waited-for-today/not-yesterday is not preserved by the broken temporal clause."
+    },
+    {
+      "target_language": "zh",
+      "id": "15",
+      "source_language": "mixed",
+      "status": "unsupported",
+      "category": "route_unsupported",
+      "review_note": "No silent language guessing; no translation attempted."
+    },
+    {
+      "target_language": "zh",
+      "id": "16",
+      "source_language": "mixed",
+      "status": "unsupported",
+      "category": "route_unsupported",
+      "review_note": "No silent language guessing; no translation attempted."
+    }
+  ]
+}

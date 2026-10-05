@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.0011982089999947,
+  "first_nonwhitespace_stdout_seconds": 2.304977966000024,
+  "peak_rss_bytes": 2243796992,
+  "peak_shared_cgroup_bytes": 11573702656,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "It wasn’t you who was looking at the moon; it was me.",
+  "stdout_sha256": "0cf9c7360c81836e3ac2e120c68daafd9b4bedf9daaa9661fc27fed5f39c9f85",
+  "stderr_sha256": "22d2a0564f404134a42868d90463dd6944335a57dfff714da467c7de61f29d1e"
+}

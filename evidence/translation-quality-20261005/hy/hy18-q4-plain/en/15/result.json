@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.9751142840000284,
+  "first_nonwhitespace_stdout_seconds": 1.60651398899995,
+  "peak_rss_bytes": 1464553472,
+  "peak_shared_cgroup_bytes": 5238857728,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "I won’t say goodbye until you say “It’s okay.”",
+  "stdout_sha256": "69fb9dbe3477bf3788a338fe5c8dd47d2d82293df1bae617db23a0cf9bbf31e0",
+  "stderr_sha256": "301da5fdaf09c0ae754ea3b6cb9ddf9090ed7c05f39872fcbd671bdc5cbe90d7"
+}

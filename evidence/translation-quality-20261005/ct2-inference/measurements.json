@@ -1,0 +1,246 @@
+{
+  "experiment": "CT2 Marian int8 explicit-language CPU",
+  "fixture_sha256": "4a1dcc4923e9ed723def83512e04b1ede5f3f69c99b162aa65880ff9779b21c0",
+  "conversion_manifest_sha256": "7fb3911751635acb12f9eea2a35ec1d89ebd472503ee4e6d1a96e0539e866eb1",
+  "helper_sha256": "682125e9e73d572fe44d67f0cfff9b78ec7c000ff92cc9b14594152e4bba492d",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "cgroup_memory_max": "17179869184",
+  "cgroup_cpu_max": "400000 100000",
+  "cold_definition": "new process/model load; OS page cache is not flushed",
+  "warm_definition": "second real decode using retained CT2 instances; no result cache",
+  "decode": {
+    "device": "cpu",
+    "compute_type": "int8",
+    "intra_threads": 4,
+    "inter_threads": 1,
+    "beam_size": 4,
+    "max_decoding_length": 511
+  },
+  "scope": "Linux isolated experiment; no Windows Job or production app validation",
+  "runs": {
+    "first-en": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "/workspace/DropSpace/scripts/marian-model-qa/infer.py",
+        "--site-packages",
+        "/workspace/scratch/translation-quality/ct2/venv/lib/python3.12/site-packages",
+        "--request",
+        "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-inference/first-en/request.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_process_start": 1.6501762880000115,
+      "phase_result_visible_seconds_from_process_start_sampled_20ms": {
+        "cold": 1.4468686289999937,
+        "warm": 1.5691386820000162
+      },
+      "peak_child_rss_bytes_sampled_20ms": 220356608,
+      "external_timeout": false,
+      "fixture_ids": [
+        "05"
+      ],
+      "cold": {
+        "decode_and_lazy_load_seconds": 1.4057736290000094,
+        "loaded_models": [
+          "zh-en"
+        ],
+        "model_calls_cumulative": 1
+      },
+      "warm": {
+        "decode_and_lazy_load_seconds": 0.12370127100001582,
+        "loaded_models": [
+          "zh-en"
+        ],
+        "model_calls_cumulative": 2
+      }
+    },
+    "suite-en": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "/workspace/DropSpace/scripts/marian-model-qa/infer.py",
+        "--site-packages",
+        "/workspace/scratch/translation-quality/ct2/venv/lib/python3.12/site-packages",
+        "--request",
+        "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-inference/suite-en/request.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_process_start": 3.961957162000033,
+      "phase_result_visible_seconds_from_process_start_sampled_20ms": {
+        "cold": 2.8755628780000393,
+        "warm": 3.840185047000034
+      },
+      "peak_child_rss_bytes_sampled_20ms": 462856192,
+      "external_timeout": false,
+      "fixture_ids": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14"
+      ],
+      "cold": {
+        "decode_and_lazy_load_seconds": 2.836027382999987,
+        "loaded_models": [
+          "zh-en",
+          "ja-en",
+          "ko-en"
+        ],
+        "model_calls_cumulative": 3
+      },
+      "warm": {
+        "decode_and_lazy_load_seconds": 0.9626758320000022,
+        "loaded_models": [
+          "zh-en",
+          "ja-en",
+          "ko-en"
+        ],
+        "model_calls_cumulative": 6
+      }
+    },
+    "first-zh": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "/workspace/DropSpace/scripts/marian-model-qa/infer.py",
+        "--site-packages",
+        "/workspace/scratch/translation-quality/ct2/venv/lib/python3.12/site-packages",
+        "--request",
+        "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-inference/first-zh/request.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_process_start": 1.6491816259999723,
+      "phase_result_visible_seconds_from_process_start_sampled_20ms": {
+        "cold": 1.4461420320000116,
+        "warm": 1.5681553100000087
+      },
+      "peak_child_rss_bytes_sampled_20ms": 218935296,
+      "external_timeout": false,
+      "fixture_ids": [
+        "01"
+      ],
+      "cold": {
+        "decode_and_lazy_load_seconds": 1.404981212999985,
+        "loaded_models": [
+          "en-zh"
+        ],
+        "model_calls_cumulative": 1
+      },
+      "warm": {
+        "decode_and_lazy_load_seconds": 0.12708177199999682,
+        "loaded_models": [
+          "en-zh"
+        ],
+        "model_calls_cumulative": 2
+      }
+    },
+    "suite-zh": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+        "-I",
+        "-S",
+        "-X",
+        "utf8",
+        "/workspace/DropSpace/scripts/marian-model-qa/infer.py",
+        "--site-packages",
+        "/workspace/scratch/translation-quality/ct2/venv/lib/python3.12/site-packages",
+        "--request",
+        "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-inference/suite-zh/request.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_process_start": 3.5863665620000234,
+      "phase_result_visible_seconds_from_process_start_sampled_20ms": {
+        "cold": 2.606602995000003,
+        "warm": 3.5055758210000363
+      },
+      "peak_child_rss_bytes_sampled_20ms": 512548864,
+      "external_timeout": false,
+      "fixture_ids": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14"
+      ],
+      "cold": {
+        "decode_and_lazy_load_seconds": 2.5651744109999868,
+        "loaded_models": [
+          "ja-en",
+          "ko-en",
+          "en-zh"
+        ],
+        "model_calls_cumulative": 3
+      },
+      "warm": {
+        "decode_and_lazy_load_seconds": 0.9040099419999592,
+        "loaded_models": [
+          "ja-en",
+          "ko-en",
+          "en-zh"
+        ],
+        "model_calls_cumulative": 6
+      }
+    }
+  },
+  "unsupported": {
+    "en": [
+      {
+        "id": "15",
+        "source_language": "mixed",
+        "target_language": "en",
+        "status": "route_unsupported",
+        "reason": "Pinned Marian routes require an explicit single supported source language."
+      },
+      {
+        "id": "16",
+        "source_language": "mixed",
+        "target_language": "en",
+        "status": "route_unsupported",
+        "reason": "Pinned Marian routes require an explicit single supported source language."
+      }
+    ],
+    "zh": [
+      {
+        "id": "15",
+        "source_language": "mixed",
+        "target_language": "zh",
+        "status": "route_unsupported",
+        "reason": "Pinned Marian routes require an explicit single supported source language."
+      },
+      {
+        "id": "16",
+        "source_language": "mixed",
+        "target_language": "zh",
+        "status": "route_unsupported",
+        "reason": "Pinned Marian routes require an explicit single supported source language."
+      }
+    ]
+  }
+}

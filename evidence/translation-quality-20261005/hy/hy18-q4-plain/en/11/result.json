@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.5570606990000897,
+  "first_nonwhitespace_stdout_seconds": 1.7578830340000877,
+  "peak_rss_bytes": 1465065472,
+  "peak_shared_cgroup_bytes": 5238980608,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "I didn’t say “I won’t go back”; I said I can’t go back tonight.",
+  "stdout_sha256": "1a780a1331fdd19eda80b07af3e77c23db70b225dc54c2bf4c824cc8679675df",
+  "stderr_sha256": "9fcf5c01f1cfc01553b4a57b6140050eec2b550da3637220b50551d25a204dc2"
+}

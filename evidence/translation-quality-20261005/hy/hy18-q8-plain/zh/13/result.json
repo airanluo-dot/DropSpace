@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.1764128490000303,
+  "first_nonwhitespace_stdout_seconds": 1.5438640940000141,
+  "peak_rss_bytes": 2237743104,
+  "peak_shared_cgroup_bytes": 5438291968,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "他离开时，不是因为悲伤，而是因为无法道别而感到难过。",
+  "stdout_sha256": "819b228cbeb457f563821cb8554a4c1f6189936b63a307c37c24dcd57cade7b1",
+  "stderr_sha256": "f3e9a49005cb2318470ee0b9f6654cca31882483421c0eae545149b36ec6fb4f"
+}

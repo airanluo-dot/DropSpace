@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.0481504589999986,
+  "first_nonwhitespace_stdout_seconds": 1.5933393230000092,
+  "peak_rss_bytes": 1464688640,
+  "peak_shared_cgroup_bytes": 5238910976,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "My friend didn’t turn off the fire; the wind did it.",
+  "stdout_sha256": "31ad25d139bb0b02fd21469838458b5b682293056160002eb85a984d708f50c6",
+  "stderr_sha256": "eceb58838a3b959ba6526cde30cfaf9eac222f761668c74e9110c350c318bbf6"
+}

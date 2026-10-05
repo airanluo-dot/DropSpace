@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.640595997999981,
+  "first_nonwhitespace_stdout_seconds": 2.5465768990000015,
+  "peak_rss_bytes": 2247344128,
+  "peak_shared_cgroup_bytes": 6045265920,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"不是因为他离开而难过，而是因为没能道别而悲伤。\", \"当前句\": \"回来吧，回来吧，回来吧，我等待的并不是昨天，而是今天。\", \"后句\": \"我不会道别，直到你说没关系。\"}",
+  "stdout_sha256": "e8e5d5e2cf149f729c8dc67e98564efb99098bc5297b71177c264cc9ee95ad07",
+  "stderr_sha256": "85dbe3ca800e67cb6e02002495154594b45a6f39b32ff24fb277a68e8c96dc7e"
+}

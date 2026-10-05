@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.3189263750000464,
+  "first_nonwhitespace_stdout_seconds": 1.9712813819999155,
+  "peak_rss_bytes": 2242576384,
+  "peak_shared_cgroup_bytes": 11572486144,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "She handed me the unsent letter.",
+  "stdout_sha256": "9e06df0671761b6e471f6b4f211d8309c42a7aba09b9c885f0f84422c7199197",
+  "stderr_sha256": "a1e3739e4e7fb213034bd963dc69f84ad0f92ac6d13cf8934fc2153a99dada72"
+}

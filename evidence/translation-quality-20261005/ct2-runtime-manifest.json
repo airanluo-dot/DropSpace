@@ -1,0 +1,275 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "installed_packages": {
+    "idna": "3.20",
+    "huggingface_hub": "0.36.2",
+    "charset-normalizer": "3.5.2",
+    "regex": "2026.9.29",
+    "numpy": "2.5.3",
+    "sentencepiece": "0.2.1",
+    "typing_extensions": "4.16.0",
+    "networkx": "3.6.1",
+    "urllib3": "2.8.0",
+    "cloudpickle": "3.1.2",
+    "MarkupSafe": "3.0.3",
+    "mpmath": "1.3.0",
+    "certifi": "2026.7.22",
+    "pip": "25.0.1",
+    "click": "8.5.0",
+    "packaging": "26.3",
+    "torch": "2.8.0+cpu",
+    "ctranslate2": "4.8.2",
+    "safetensors": "0.8.0",
+    "sympy": "1.14.0",
+    "transformers": "4.57.1",
+    "requests": "2.34.2",
+    "fsspec": "2026.7.0",
+    "tokenizers": "0.22.2",
+    "setuptools": "78.1.0",
+    "PyYAML": "6.0.3",
+    "hf-xet": "1.6.0",
+    "joblib": "1.6.0",
+    "Jinja2": "3.1.6",
+    "filelock": "3.32.3",
+    "sacremoses": "0.1.1",
+    "tqdm": "4.70.1"
+  },
+  "native_files": [
+    {
+      "path": "lib/python3.12/site-packages/charset_normalizer/cd.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 178648,
+      "sha256": "c2f3063d035647a23fd2ac5243dbf6925056c3aba636696a980293516d240eca"
+    },
+    {
+      "path": "lib/python3.12/site-packages/charset_normalizer/md.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 340528,
+      "sha256": "f20c7da02510ade7b0968eda061d2cb1d6eb29ccaa77af92ddea82b326bc8c3b"
+    },
+    {
+      "path": "lib/python3.12/site-packages/ctranslate2/_ext.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 61632369,
+      "sha256": "89b0d28c37f158ec8f98a001cd3b68ea733e8ed1bab2b7b092834019c02f390e"
+    },
+    {
+      "path": "lib/python3.12/site-packages/ctranslate2.libs/libctranslate2-fd146744.so.4.8.2",
+      "bytes": 77839409,
+      "sha256": "ebebd2799bf0c8a4c89044b986e94512ed5c80cd7ef1c95dc67872a4384df9f7"
+    },
+    {
+      "path": "lib/python3.12/site-packages/ctranslate2.libs/libgomp-e985bcbb.so.1.0.0",
+      "bytes": 253289,
+      "sha256": "a43904e4fa297301d4640dc1bb3c8a3480b406f99e498eba9b1914b68aab604a"
+    },
+    {
+      "path": "lib/python3.12/site-packages/functorch/_C.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 139968,
+      "sha256": "5683017fa0ca723ce674f26ea5d2fbc849129ad883e736ce919ea2af3dd66a87"
+    },
+    {
+      "path": "lib/python3.12/site-packages/hf_xet/hf_xet.abi3.so",
+      "bytes": 12210648,
+      "sha256": "9f493e4d60ce7d973f77d6e638efc9fa59329967de8b17d2fb83baf3ed8d73b9"
+    },
+    {
+      "path": "lib/python3.12/site-packages/markupsafe/_speedups.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 44072,
+      "sha256": "f4a31de071c565959002db29bf36c6f8d35ae7929f64700adeeba46fa4f90daf"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_multiarray_tests.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 146912,
+      "sha256": "01fbdfb35211b8e07d1b0c395f84f15f709e78859fe7a3f4a89915a5d7aa7309"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_multiarray_umath.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 10637297,
+      "sha256": "ceec5ba13ab88318632307fdd2df74f317fa293ce77be559c4298ddd1f4306b0"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_operand_flag_tests.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 16800,
+      "sha256": "d985fc6e648abe43a0d11d9e9c1c49c15a3020936c6105c159cc9ab2ff2e41f0"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_rational_tests.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 65848,
+      "sha256": "78af03cdcfceda20ddb0063c7eb1b6fa149c79710173644c7e0a5b8b75142b91"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_simd.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 1506088,
+      "sha256": "a9c824abd21fdfd4cd782116defce75bda96dde5bdf453107a7632dc766afd9d"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_struct_ufunc_tests.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 16936,
+      "sha256": "895b0c3376a227d8f2f9f35465876cd6b381daa177effa7a3070c7d31bba8688"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/_core/_umath_tests.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 50360,
+      "sha256": "56dcb67e8abfe3d9e5d8c1c8775d9e1c02b86042a5328556bc3d3ccaff1aa328"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/fft/_pocketfft_umath.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 539296,
+      "sha256": "29a1547b480b7ddc1e45cdc772b3f4b614cccced70204181bf5d3ad138a04ebb"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/linalg/_umath_linalg.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 231801,
+      "sha256": "19d024507f73b42889baeb00f9da0004e33a42ed7a78fd77662fd6236e930d78"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/linalg/lapack_lite.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 30001,
+      "sha256": "9c876a665bd8c0c0467032fbe098edec962fd9c3f0bb08ab5b65fb8815628898"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_bounded_integers.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 317000,
+      "sha256": "73bf58f374a46edac9bd1fbb3fc16f199b4a8e8ed12a222a23897e722655adcd"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_common.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 258912,
+      "sha256": "232d131170bce32fbe3bfed38a5f14a0104d7efd7bff521162c2e0b6e2ac4bee"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_generator.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 845808,
+      "sha256": "e362c7a4c9d5d97404ee1fcbf00c2b345ecec945df50f6ea3e0f4631d4ab336e"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_mt19937.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 139336,
+      "sha256": "3f06703c3971d813adda172ffd2de8af16df18875242e4b1542d9e8e8f33919f"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_pcg64.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 151344,
+      "sha256": "61175f3da7d43f4811277cdf743906b8d405d1800cee79632a17fbca478e6964"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_philox.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 131184,
+      "sha256": "51f2c84d85fbd199adf32b234e2558b3add7f7a8b86d0797fb36d3ee068619ef"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/_sfc64.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 96336,
+      "sha256": "cb9c0d024e0e30dbc6bbec4bad8fbee6ba2aeaa4f444c5ea66473d8c8c31a609"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/bit_generator.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 245424,
+      "sha256": "3734537d37d6d54654e33890ec17cf6e54cca3aba8cfc5e6160786c236457df3"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy/random/mtrand.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 666552,
+      "sha256": "53a0dea25039fd6e55ce2a6c94789c9273fdfa1cc4bda60dde6e813f455c9bc5"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy.libs/libgfortran-83c28eba-468e71e5.so.5.0.0",
+      "bytes": 2862249,
+      "sha256": "a6a368328d02a5d8a149746f13f6268f8cc9192df5c18777b25c3c9b5ef52160"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy.libs/libquadmath-2284e583-a9307bba.so.0.0.0",
+      "bytes": 275553,
+      "sha256": "6bc3069003caec1f075be3c51ae8355332f081fa9465910c4b5724e7fe7d8ad4"
+    },
+    {
+      "path": "lib/python3.12/site-packages/numpy.libs/libscipy_openblas64_-f48b354e.so",
+      "bytes": 24325657,
+      "sha256": "432e1c1739731468ba305771af96773939e43016643e2d630f58cb45b6670e96"
+    },
+    {
+      "path": "lib/python3.12/site-packages/regex/_regex.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 2597112,
+      "sha256": "b625e4e77eae0efae30f930eb83fc5a345b0083b0d110a96041983fdab08a405"
+    },
+    {
+      "path": "lib/python3.12/site-packages/safetensors/_safetensors_rust.abi3.so",
+      "bytes": 1223000,
+      "sha256": "e6f17a9e9846bc2bc4ad94cc5431746b59785de3d2681ef2666e8890ae192dfb"
+    },
+    {
+      "path": "lib/python3.12/site-packages/sentencepiece/_sentencepiece.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 2005912,
+      "sha256": "cf6b023896aa1c99026445efc2b5cbd3b8a97c6839dd0fdfb2bca757fbed970d"
+    },
+    {
+      "path": "lib/python3.12/site-packages/tokenizers/tokenizers.abi3.so",
+      "bytes": 10074176,
+      "sha256": "c116fcf1e80d461ce0a35c332974f25949e8359416f50b3d53371810d2ce1ccc"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/_C.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 25137,
+      "sha256": "5dc8a93ddc69041dbd3f796794e0c2b3f72b47e0dc24ae2b46d9e7d0dc78953b"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libaoti_custom_ops.so",
+      "bytes": 349624,
+      "sha256": "f3e5718e31745c488895dfbc1078798520376c541e89b71df4597dc75c3faed4"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libbackend_with_compiler.so",
+      "bytes": 260520,
+      "sha256": "59f9d988cad1897d1bc888dd8b20b7ed5b60a0381db7b4249e1ea5597730de23"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libc10.so",
+      "bytes": 1308712,
+      "sha256": "bececfaaf6042b3b48a75e74eed9728e9139bcdfca5f2b30437886de4f25c1d9"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libgomp.so.1",
+      "bytes": 253849,
+      "sha256": "e4b79735f816cbb906c8bf35b31847c5ce667cfbdbe76bd18aaf6e7baad2686e"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libjitbackend_test.so",
+      "bytes": 208688,
+      "sha256": "b3ae88880f3ac8ca3a1f4eb2f4d1b2faf77c55f978f12c78c2a3f542dfd30069"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libshm.so",
+      "bytes": 36952,
+      "sha256": "3bbcf1bef3729c92b16efc131505ee23773fdc566c7a3cc285c6cafbfced6dda"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libtorch.so",
+      "bytes": 8032,
+      "sha256": "59a95807d56ca89993351a173839f160ca9c2c6ec6f6b89a5e691d8f1392d3ff"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libtorch_cpu.so",
+      "bytes": 427038688,
+      "sha256": "629d28a5fb24e2c33df077e2d98d5da0c73d0b53e628bb826fd4ba36616b482b"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libtorch_global_deps.so",
+      "bytes": 8264,
+      "sha256": "2e5d497259a62960d95f4a7719abaeb24745429b49ffdf58e67672140205eb99"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libtorch_python.so",
+      "bytes": 25984376,
+      "sha256": "cd4e33c6822cbc72930a35f857029782e903b9d4a7977296153e9ce80c35c278"
+    },
+    {
+      "path": "lib/python3.12/site-packages/torch/lib/libtorchbind_test.so",
+      "bytes": 883144,
+      "sha256": "8357bd5a27bc4743f4af0c3874de38fd5522ed0439c3e2895a34bbc92e3c6982"
+    },
+    {
+      "path": "lib/python3.12/site-packages/yaml/_yaml.cpython-312-x86_64-linux-gnu.so",
+      "bytes": 2679264,
+      "sha256": "957a099a4521c1f7669306fb6f79ca63fa4b9a0b4c463f7cac833a65a5c5c0cb"
+    }
+  ]
+}

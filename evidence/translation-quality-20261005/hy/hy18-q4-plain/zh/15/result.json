@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.074622169999998,
+  "first_nonwhitespace_stdout_seconds": 1.6574559770000405,
+  "peak_rss_bytes": 1464696832,
+  "peak_shared_cgroup_bytes": 5239824384,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我不会说再见，直到你说“没关系”。",
+  "stdout_sha256": "a2848fcd456644cb4cb642f2d7d78fe15f0dd8501b7274f36bae0c6748cb4647",
+  "stderr_sha256": "bf07a26ce51927fcd1d538a510ae3f3ae9880e9b841a11c287c115b99b2a8d2e"
+}

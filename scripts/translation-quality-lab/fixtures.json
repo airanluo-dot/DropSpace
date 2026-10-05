@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "provenance": "Original synthetic lyrics written for this experiment, not published song lyrics. Expectations are reviewer-only and never included in prompts.",
+  "targets": [
+    "en",
+    "zh"
+  ],
+  "cases": [
+    {
+      "id": "01",
+      "source_language": "en",
+      "text": "My sister left a blue jar beside the gate.",
+      "expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "previous": "",
+      "next": "She did not break it; I did."
+    },
+    {
+      "id": "02",
+      "source_language": "en",
+      "text": "She did not break it; I did.",
+      "expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "previous": "My sister left a blue jar beside the gate.",
+      "next": "I never said you were the one who left."
+    },
+    {
+      "id": "03",
+      "source_language": "en",
+      "text": "I never said you were the one who left.",
+      "expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "previous": "She did not break it; I did.",
+      "next": "Not because I stopped loving you, but because I could not make you stay."
+    },
+    {
+      "id": "04",
+      "source_language": "en",
+      "text": "Not because I stopped loving you, but because I could not make you stay.",
+      "expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "previous": "I never said you were the one who left.",
+      "next": "她把那封没寄出的信交给了我。"
+    },
+    {
+      "id": "05",
+      "source_language": "zh",
+      "text": "她把那封没寄出的信交给了我。",
+      "expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "previous": "Not because I stopped loving you, but because I could not make you stay.",
+      "next": "我没烧掉它，只把它藏在旧外套里。"
+    },
+    {
+      "id": "06",
+      "source_language": "zh",
+      "text": "我没烧掉它，只把它藏在旧外套里。",
+      "expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "previous": "她把那封没寄出的信交给了我。",
+      "next": "不是你忘了我，是我不敢叫住你。"
+    },
+    {
+      "id": "07",
+      "source_language": "zh",
+      "text": "不是你忘了我，是我不敢叫住你。",
+      "expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "previous": "我没烧掉它，只把它藏在旧外套里。",
+      "next": "如果雨一直下，我会等你；如果雨停了，我也不会离开。"
+    },
+    {
+      "id": "08",
+      "source_language": "zh",
+      "text": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "previous": "不是你忘了我，是我不敢叫住你。",
+      "next": "月を見ていたのは君じゃなくて、僕だった。"
+    },
+    {
+      "id": "09",
+      "source_language": "ja",
+      "text": "月を見ていたのは君じゃなくて、僕だった。",
+      "expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "previous": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "next": "その光は消えなかった、僕が目を閉じただけ。"
+    },
+    {
+      "id": "10",
+      "source_language": "ja",
+      "text": "その光は消えなかった、僕が目を閉じただけ。",
+      "expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "previous": "月を見ていたのは君じゃなくて、僕だった。",
+      "next": "帰らないとは言っていない、今夜は帰れないと言ったんだ。"
+    },
+    {
+      "id": "11",
+      "source_language": "ja",
+      "text": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "previous": "その光は消えなかった、僕が目を閉じただけ。",
+      "next": "내 친구는 불을 끄지 않았어, 바람이 껐어."
+    },
+    {
+      "id": "12",
+      "source_language": "ko",
+      "text": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "previous": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "next": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼."
+    },
+    {
+      "id": "13",
+      "source_language": "ko",
+      "text": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "previous": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "next": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야."
+    },
+    {
+      "id": "14",
+      "source_language": "ko",
+      "text": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "previous": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "next": "I won't say goodbye，直到你说 괜찮아。"
+    },
+    {
+      "id": "15",
+      "source_language": "mixed",
+      "text": "I won't say goodbye，直到你说 괜찮아。",
+      "expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "previous": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "next": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。"
+    },
+    {
+      "id": "16",
+      "source_language": "mixed",
+      "text": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "previous": "I won't say goodbye，直到你说 괜찮아。",
+      "next": ""
+    }
+  ]
+}

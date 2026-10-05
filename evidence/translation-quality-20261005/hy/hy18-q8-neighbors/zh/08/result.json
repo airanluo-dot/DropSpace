@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.790731347000019,
+  "first_nonwhitespace_stdout_seconds": 2.4271545239998886,
+  "peak_rss_bytes": 2244902912,
+  "peak_shared_cgroup_bytes": 6023241728,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"不是你忘了我，是我不敢叫住你。\", \"当前句\": \"如果雨一直下，我会等你；如果雨停了，我也不会离开。\", \"后句\": \"月を見ていたのは君じゃなくて、僕だった。\"}",
+  "stdout_sha256": "4701e106db87e8c5c08acb7c844d8e7911077e6d9b24298a5de9a5111412c63f",
+  "stderr_sha256": "59325c7cf3a3d12e7d959628e807dd6d339ea1e0e92d28ba08eedc739d7d5f17"
+}

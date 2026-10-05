@@ -1,0 +1,96 @@
+[
+  {
+    "id": "05",
+    "hypothesisTokens": [
+      [
+        "▁She",
+        "▁gave",
+        "▁me",
+        "▁the",
+        "▁un",
+        "mail",
+        "ed",
+        "▁letter",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "06",
+    "hypothesisTokens": [
+      [
+        "▁I",
+        "▁didn",
+        "'",
+        "t",
+        "▁burn",
+        "▁it",
+        ".",
+        "▁I",
+        "▁hid",
+        "▁it",
+        "▁in",
+        "▁the",
+        "▁old",
+        "▁jacket",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "07",
+    "hypothesisTokens": [
+      [
+        "▁You",
+        "▁didn",
+        "'",
+        "t",
+        "▁forget",
+        "▁me",
+        ".",
+        "▁I",
+        "▁didn",
+        "'",
+        "t",
+        "▁dare",
+        "▁to",
+        "▁stop",
+        "▁you",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "08",
+    "hypothesisTokens": [
+      [
+        "▁If",
+        "▁it",
+        "▁keeps",
+        "▁raining",
+        ",",
+        "▁I",
+        "'",
+        "ll",
+        "▁wait",
+        "▁for",
+        "▁you",
+        ";",
+        "▁if",
+        "▁it",
+        "▁stops",
+        ",",
+        "▁I",
+        "▁won",
+        "'",
+        "t",
+        "▁leave",
+        ".",
+        "</s>"
+      ]
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.643572371000118,
+  "first_nonwhitespace_stdout_seconds": 2.2783520170000884,
+  "peak_rss_bytes": 2244304896,
+  "peak_shared_cgroup_bytes": 6022234112,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"不是因为我不爱你了，而是因为我无法让你留下来。\", \"当前句\": \"她把那封没寄出的信交给了我。\", \"后句\": \"我没有烧掉它，只是把它藏在了旧外套里。\"}",
+  "stdout_sha256": "526d5d2b1a5b79bfc1cbd9352ec86f6b762fc9dd0a4c4c9b217b08637ae8152b",
+  "stderr_sha256": "9d61598bd71c4cb0fd9b8cf39bc30ca7527cf40e1a08e2a430881f9f59b8abcb"
+}

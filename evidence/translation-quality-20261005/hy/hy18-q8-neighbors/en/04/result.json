@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.25007431500012,
+  "first_nonwhitespace_stdout_seconds": 2.0391891199999463,
+  "peak_rss_bytes": 2243629056,
+  "peak_shared_cgroup_bytes": 6020640768,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"I never said you were the one who left.\", \"当前句\": \"Not because I stopped loving you, but because I couldn’t make you stay.\", \"后句\": \"She handed me the letter that wasn’t sent.\"",
+  "stdout_sha256": "f2f4487b60258f1dc1f0459f67457d5583e555bb8d35e746967ea2b3678fad6e",
+  "stderr_sha256": "461801736d455e102edc034343001a5c3fb9d0480dc5632c60ae90ed8b8ce5d5"
+}

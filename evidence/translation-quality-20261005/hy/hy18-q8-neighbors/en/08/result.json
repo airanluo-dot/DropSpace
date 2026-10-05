@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.51524318099996,
+  "first_nonwhitespace_stdout_seconds": 2.198134780000146,
+  "peak_rss_bytes": 2244681728,
+  "peak_shared_cgroup_bytes": 6022070272,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"It’s not that you forgot me, it’s that I don’t dare to call out to you.\", \"当前句\": \"If the rain keeps falling, I will wait for you; if it stops, I won’t leave either.\", \"后句\": \"It wasn’t you who was looking at the moon, it was me.\"",
+  "stdout_sha256": "64ab80ec3366301b69c886f12626ecd0ef0fed610006b934cb48806efeaa78ad",
+  "stderr_sha256": "125610d4ae9f2410c8525934e71a87a9f723028dab5866b7946c98eb8ee33f06"
+}

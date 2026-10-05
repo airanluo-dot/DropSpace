@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.478646943000058,
+  "first_nonwhitespace_stdout_seconds": 2.4020036390002133,
+  "peak_rss_bytes": 2243878912,
+  "peak_shared_cgroup_bytes": 6022045696,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"不是她打破了它，而是我打破了。\", \"当前句\": \"我从未说过是你离开的。\", \"后句\": \"不是因为我不爱你了，而是因为我无法让你留下来。\"}",
+  "stdout_sha256": "cc70ab51ed693d1bb14a06008f5db7c0891be67a448a47d20411c7a590854c97",
+  "stderr_sha256": "b0774b88e49102744e11fd8af12d4de497a593254d7063d3fa15e1e0c054015c"
+}

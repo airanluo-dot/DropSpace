@@ -1,0 +1,83 @@
+{
+  "outputs": [
+    {
+      "id": "12",
+      "tokens": [
+        "▁My",
+        "▁friend",
+        "▁didn",
+        "'",
+        "t",
+        "▁turn",
+        "▁the",
+        "▁lights",
+        "▁off",
+        ".",
+        "▁The",
+        "▁wind",
+        "'",
+        "s",
+        "▁off",
+        ".",
+        "</s>"
+      ],
+      "text": "My friend didn't turn the lights off. The wind's off."
+    },
+    {
+      "id": "13",
+      "tokens": [
+        "▁It",
+        "'",
+        "s",
+        "▁not",
+        "▁that",
+        "▁he",
+        "'",
+        "s",
+        "▁sad",
+        "▁he",
+        "'",
+        "s",
+        "▁gone",
+        ",",
+        "▁but",
+        "▁that",
+        "▁he",
+        "▁can",
+        "'",
+        "t",
+        "▁say",
+        "▁goodbye",
+        ".",
+        "</s>"
+      ],
+      "text": "It's not that he's sad he's gone, but that he can't say goodbye."
+    },
+    {
+      "id": "14",
+      "tokens": [
+        "▁Come",
+        "▁back",
+        ",",
+        "▁come",
+        "▁back",
+        ",",
+        "▁I",
+        "▁didn",
+        "'",
+        "t",
+        "▁wait",
+        "▁yesterday",
+        ",",
+        "▁it",
+        "'",
+        "s",
+        "▁today",
+        ".",
+        "</s>"
+      ],
+      "text": "Come back, come back, I didn't wait yesterday, it's today."
+    }
+  ],
+  "seconds": 0.5262403209999889
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.8569111769999154,
+  "first_nonwhitespace_stdout_seconds": 1.528679575999945,
+  "peak_rss_bytes": 1464041472,
+  "peak_shared_cgroup_bytes": 5237874688,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "I never said you were the one who left.",
+  "stdout_sha256": "281bdbad586aeaef17a9ddc3fbbe1fe52808b19ce11cd1ee3d23f36ca1ff7bde",
+  "stderr_sha256": "2cc555c25f7efeaf3a93c363d2f528508bf8e27f9ff819b6e2ca4e3f2e88c19f"
+}

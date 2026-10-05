@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 6.523794377000058,
+  "first_nonwhitespace_stdout_seconds": 2.90264088899994,
+  "peak_rss_bytes": 2249408512,
+  "peak_shared_cgroup_bytes": 6027599872,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"回来吧，回来吧，回来吧，我等待的并不是昨天，而是今天。\", \"当前句\": \"我不会说再见，直到你说 괜찮아。\", \"后句\": \"陪在我身边，不要松开我的手；陪在我身边，不要松开我的手；陪在我身边，无论夜晚多么漫长、道路多么遥远、风多么寒冷，我都不会把你一个人留在雨中。\"}",
+  "stdout_sha256": "3d9586d8a802ccc7d5de5edffee60ec691594f872598f831dfdb0cf675f8c520",
+  "stderr_sha256": "4e281396d7af037fb2bba7039d022f97a55e5c2f8b13df99aca762f3110f569f"
+}

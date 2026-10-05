@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.2061512520001543,
+  "first_nonwhitespace_stdout_seconds": 2.6935176189999765,
+  "peak_rss_bytes": 2244059136,
+  "peak_shared_cgroup_bytes": 11575697408,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "那光芒并没有消失，只是我闭上了眼睛而已。",
+  "stdout_sha256": "56027fceb44da6cf3ced1cbf4c32b46cc3284bb569fd2ad8a0ccb3a9fe23f2ef",
+  "stderr_sha256": "be19ff9e5cbfb67b5fb7957c03401e8d0e95dfca688447a0c5e924f2ad5d6f9b"
+}

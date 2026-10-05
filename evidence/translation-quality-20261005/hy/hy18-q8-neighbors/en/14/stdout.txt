@@ -1,0 +1,3 @@
+{"前句": "It’s not that he left and I’m sad, but that I can’t say goodbye to him and I’m upset.", "当前句": "Come back, come back, come back, what I’ve been waiting for isn’t yesterday, it’s today.", "后句": "I won’t say goodbye until you say you’re okay."} [end of text]
+
+

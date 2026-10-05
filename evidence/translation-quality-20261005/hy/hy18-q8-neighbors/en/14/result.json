@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 6.756546198000024,
+  "first_nonwhitespace_stdout_seconds": 3.0919594360000247,
+  "peak_rss_bytes": 2247106560,
+  "peak_shared_cgroup_bytes": 6024998912,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"It’s not that he left and I’m sad, but that I can’t say goodbye to him and I’m upset.\", \"当前句\": \"Come back, come back, come back, what I’ve been waiting for isn’t yesterday, it’s today.\", \"后句\": \"I won’t say goodbye until you say you’re okay.\"}",
+  "stdout_sha256": "67dd753839af8e839d9fbc0f7ffb17f313abc57f6bc8a04737a590e07562741f",
+  "stderr_sha256": "dd7484291bf13236966627ecf4bcfc343dffb13730084e57e4589c294ec879a9"
+}

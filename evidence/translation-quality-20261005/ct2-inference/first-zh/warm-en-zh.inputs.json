@@ -1,0 +1,25 @@
+{
+  "lines": [
+    {
+      "id": "01",
+      "text": "My sister left a blue jar beside the gate."
+    }
+  ],
+  "tokens": [
+    [
+      ">>cmn_Hans<<",
+      "▁My",
+      "▁sister",
+      "▁left",
+      "▁a",
+      "▁blue",
+      "▁",
+      "jar",
+      "▁beside",
+      "▁the",
+      "▁gate",
+      ".",
+      "</s>"
+    ]
+  ]
+}

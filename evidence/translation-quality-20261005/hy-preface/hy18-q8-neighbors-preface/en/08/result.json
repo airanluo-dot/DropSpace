@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.6010819620000802,
+  "first_nonwhitespace_stdout_seconds": 2.5521074169998883,
+  "peak_rss_bytes": 2243014656,
+  "peak_shared_cgroup_bytes": 11572912128,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "If the rain keeps falling, I will wait for you; if it stops, I won’t leave either.",
+  "stdout_sha256": "da6e1fdafb80132af5264898919bb738d1e5181b64ddf731633f23f466e144f6",
+  "stderr_sha256": "217294d656c82c1f0f1e1ebb60f7110b82b614a19a797e552541ac3c9b552b0b"
+}

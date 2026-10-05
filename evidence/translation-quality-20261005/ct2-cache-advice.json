@@ -1,0 +1,342 @@
+{
+  "method": "For completed CT2-owned model/source/sanitized/converted and isolated venv regular files only: open read-only, fsync each file, posix_fadvise(fd,0,0,POSIX_FADV_DONTNEED). No global drop_caches; no deletes; no other experiment files accessed. Advisory only; not a guaranteed cold cache.",
+  "before_shared_cgroup_memory_current_bytes": 11776249856,
+  "errors": [],
+  "after_shared_cgroup_memory_current_bytes": 7663714304,
+  "advised_total_bytes": 4016567905,
+  "shared_measurement_limitation": "Other experiments continued downloading; before/after cgroup memory is shared and cannot isolate CT2 causal change.",
+  "file_count": 27220,
+  "owned_subtree_totals": {
+    "models": {
+      "file_count": 79,
+      "bytes": 2818265734
+    },
+    "venv": {
+      "file_count": 27141,
+      "bytes": 1198302171
+    }
+  },
+  "model_files": [
+    {
+      "path": "models/converted/en-zh/config.json",
+      "bytes": 223
+    },
+    {
+      "path": "models/converted/en-zh/model.bin",
+      "bytes": 79567635
+    },
+    {
+      "path": "models/converted/en-zh/shared_vocabulary.json",
+      "bytes": 1303887
+    },
+    {
+      "path": "models/converted/ja-en/config.json",
+      "bytes": 223
+    },
+    {
+      "path": "models/converted/ja-en/model.bin",
+      "bytes": 77339435
+    },
+    {
+      "path": "models/converted/ja-en/shared_vocabulary.json",
+      "bytes": 1208862
+    },
+    {
+      "path": "models/converted/ko-en/config.json",
+      "bytes": 223
+    },
+    {
+      "path": "models/converted/ko-en/model.bin",
+      "bytes": 79567635
+    },
+    {
+      "path": "models/converted/ko-en/shared_vocabulary.json",
+      "bytes": 1405962
+    },
+    {
+      "path": "models/converted/zh-en/config.json",
+      "bytes": 223
+    },
+    {
+      "path": "models/converted/zh-en/model.bin",
+      "bytes": 79567635
+    },
+    {
+      "path": "models/converted/zh-en/shared_vocabulary.json",
+      "bytes": 1303998
+    },
+    {
+      "path": "models/sanitized/en-zh/config.json",
+      "bytes": 1425
+    },
+    {
+      "path": "models/sanitized/en-zh/generation_config.json",
+      "bytes": 288
+    },
+    {
+      "path": "models/sanitized/en-zh/model.safetensors",
+      "bytes": 309965092
+    },
+    {
+      "path": "models/sanitized/en-zh/source.spm",
+      "bytes": 806435
+    },
+    {
+      "path": "models/sanitized/en-zh/special_tokens_map.json",
+      "bytes": 74
+    },
+    {
+      "path": "models/sanitized/en-zh/target.spm",
+      "bytes": 804600
+    },
+    {
+      "path": "models/sanitized/en-zh/tokenizer_config.json",
+      "bytes": 849
+    },
+    {
+      "path": "models/sanitized/en-zh/vocab.json",
+      "bytes": 1747795
+    },
+    {
+      "path": "models/sanitized/ja-en/config.json",
+      "bytes": 1298
+    },
+    {
+      "path": "models/sanitized/ja-en/generation_config.json",
+      "bytes": 288
+    },
+    {
+      "path": "models/sanitized/ja-en/model.safetensors",
+      "bytes": 301172272
+    },
+    {
+      "path": "models/sanitized/ja-en/source.spm",
+      "bytes": 781853
+    },
+    {
+      "path": "models/sanitized/ja-en/special_tokens_map.json",
+      "bytes": 74
+    },
+    {
+      "path": "models/sanitized/ja-en/target.spm",
+      "bytes": 801883
+    },
+    {
+      "path": "models/sanitized/ja-en/tokenizer_config.json",
+      "bytes": 847
+    },
+    {
+      "path": "models/sanitized/ja-en/vocab.json",
+      "bytes": 1622775
+    },
+    {
+      "path": "models/sanitized/ko-en/config.json",
+      "bytes": 1311
+    },
+    {
+      "path": "models/sanitized/ko-en/generation_config.json",
+      "bytes": 288
+    },
+    {
+      "path": "models/sanitized/ko-en/model.safetensors",
+      "bytes": 309965092
+    },
+    {
+      "path": "models/sanitized/ko-en/source.spm",
+      "bytes": 841805
+    },
+    {
+      "path": "models/sanitized/ko-en/special_tokens_map.json",
+      "bytes": 74
+    },
+    {
+      "path": "models/sanitized/ko-en/target.spm",
+      "bytes": 813126
+    },
+    {
+      "path": "models/sanitized/ko-en/tokenizer_config.json",
+      "bytes": 849
+    },
+    {
+      "path": "models/sanitized/ko-en/vocab.json",
+      "bytes": 1849870
+    },
+    {
+      "path": "models/sanitized/zh-en/config.json",
+      "bytes": 1311
+    },
+    {
+      "path": "models/sanitized/zh-en/generation_config.json",
+      "bytes": 288
+    },
+    {
+      "path": "models/sanitized/zh-en/model.safetensors",
+      "bytes": 309965092
+    },
+    {
+      "path": "models/sanitized/zh-en/source.spm",
+      "bytes": 804677
+    },
+    {
+      "path": "models/sanitized/zh-en/special_tokens_map.json",
+      "bytes": 74
+    },
+    {
+      "path": "models/sanitized/zh-en/target.spm",
+      "bytes": 806530
+    },
+    {
+      "path": "models/sanitized/zh-en/tokenizer_config.json",
+      "bytes": 849
+    },
+    {
+      "path": "models/sanitized/zh-en/vocab.json",
+      "bytes": 1747906
+    },
+    {
+      "path": "models/source/en-zh/README.md",
+      "bytes": 2670
+    },
+    {
+      "path": "models/source/en-zh/config.json",
+      "bytes": 1403
+    },
+    {
+      "path": "models/source/en-zh/generation_config.json",
+      "bytes": 293
+    },
+    {
+      "path": "models/source/en-zh/metadata.json",
+      "bytes": 1478
+    },
+    {
+      "path": "models/source/en-zh/pytorch_model.bin",
+      "bytes": 312087009
+    },
+    {
+      "path": "models/source/en-zh/source.spm",
+      "bytes": 806435
+    },
+    {
+      "path": "models/source/en-zh/target.spm",
+      "bytes": 804600
+    },
+    {
+      "path": "models/source/en-zh/tokenizer_config.json",
+      "bytes": 44
+    },
+    {
+      "path": "models/source/en-zh/vocab.json",
+      "bytes": 1617791
+    },
+    {
+      "path": "models/source/ja-en/README.md",
+      "bytes": 818
+    },
+    {
+      "path": "models/source/ja-en/config.json",
+      "bytes": 1381
+    },
+    {
+      "path": "models/source/ja-en/generation_config.json",
+      "bytes": 293
+    },
+    {
+      "path": "models/source/ja-en/pytorch_model.bin",
+      "bytes": 303294189
+    },
+    {
+      "path": "models/source/ja-en/source.spm",
+      "bytes": 781853
+    },
+    {
+      "path": "models/source/ja-en/target.spm",
+      "bytes": 801883
+    },
+    {
+      "path": "models/source/ja-en/tokenizer_config.json",
+      "bytes": 42
+    },
+    {
+      "path": "models/source/ja-en/vocab.json",
+      "bytes": 1501341
+    },
+    {
+      "path": "models/source/ko-en/README.md",
+      "bytes": 2122
+    },
+    {
+      "path": "models/source/ko-en/config.json",
+      "bytes": 1394
+    },
+    {
+      "path": "models/source/ko-en/generation_config.json",
+      "bytes": 293
+    },
+    {
+      "path": "models/source/ko-en/metadata.json",
+      "bytes": 1121
+    },
+    {
+      "path": "models/source/ko-en/pytorch_model.bin",
+      "bytes": 312087009
+    },
+    {
+      "path": "models/source/ko-en/source.spm",
+      "bytes": 841805
+    },
+    {
+      "path": "models/source/ko-en/target.spm",
+      "bytes": 813126
+    },
+    {
+      "path": "models/source/ko-en/tokenizer_config.json",
+      "bytes": 44
+    },
+    {
+      "path": "models/source/ko-en/vocab.json",
+      "bytes": 1719866
+    },
+    {
+      "path": "models/source/zh-en/README.md",
+      "bytes": 3174
+    },
+    {
+      "path": "models/source/zh-en/config.json",
+      "bytes": 1394
+    },
+    {
+      "path": "models/source/zh-en/generation_config.json",
+      "bytes": 293
+    },
+    {
+      "path": "models/source/zh-en/metadata.json",
+      "bytes": 1477
+    },
+    {
+      "path": "models/source/zh-en/pytorch_model.bin",
+      "bytes": 312087009
+    },
+    {
+      "path": "models/source/zh-en/source.spm",
+      "bytes": 804677
+    },
+    {
+      "path": "models/source/zh-en/target.spm",
+      "bytes": 806530
+    },
+    {
+      "path": "models/source/zh-en/tokenizer_config.json",
+      "bytes": 44
+    },
+    {
+      "path": "models/source/zh-en/vocab.json",
+      "bytes": 1617902
+    }
+  ],
+  "full_advice_ledger": {
+    "path": "/workspace/scratch/translation-quality/ct2/cache-advice-full.json",
+    "sha256": "54c45e2e4fc0a6407a655202a9beb8991a72b2ff15a3c15bc65755d85eea01f7",
+    "bytes": 3703438
+  }
+}

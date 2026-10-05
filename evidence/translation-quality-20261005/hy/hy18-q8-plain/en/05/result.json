@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.3481759509999165,
+  "first_nonwhitespace_stdout_seconds": 1.6419252059999963,
+  "peak_rss_bytes": 2235854848,
+  "peak_shared_cgroup_bytes": 5434368000,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "She handed me the letter that wasn’t sent.",
+  "stdout_sha256": "5a00aff3fca63d89def419c07de465583368dbae82722ed977387656b8e9ee69",
+  "stderr_sha256": "809b107d403b29e448f79d7e12e6f69cff35e2260bd745c6f2163c547eae0e2f"
+}

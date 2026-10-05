@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.711378240000158,
+  "first_nonwhitespace_stdout_seconds": 2.5121420800001033,
+  "peak_rss_bytes": 2246017024,
+  "peak_shared_cgroup_bytes": 6024314880,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"看月亮的并不是你，而是我。\", \"当前句\": \"那光芒并没有消失，只是我闭上了眼睛而已。\", \"后句\": \"我没有说不会回去，我只是说今晚回不去。\"}",
+  "stdout_sha256": "1ed5d9938fbadb9b16a68ff05d580578376767d0f14e794bdcc7ae8792a3ab18",
+  "stderr_sha256": "d43a5b043332535b8f14ce30b3ab76dec92d0248eeb55dd945cbf25008ebd831"
+}

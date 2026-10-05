@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.949505676000172,
+  "first_nonwhitespace_stdout_seconds": 2.5266767650000475,
+  "peak_rss_bytes": 2247790592,
+  "peak_shared_cgroup_bytes": 6026076160,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"我的朋友没有熄灭火焰，也没有吹灭风。\"，\"当前句\": \"他离开的不是因为悲伤，而是因为没能道别，所以感到难过。\"，\"后句\": \"回来吧，回来吧，回来吧，我等待的不是昨天，而是今天。\"}",
+  "stdout_sha256": "2963caf7ca3a68213e26cfbbf46b8ab81b105f44f1c7a1c0d8d1875b42161aff",
+  "stderr_sha256": "6efe74d4ee752f733edce7c5b340d7d5a967b697bbaedd9984a2bb265cbbf8d6"
+}

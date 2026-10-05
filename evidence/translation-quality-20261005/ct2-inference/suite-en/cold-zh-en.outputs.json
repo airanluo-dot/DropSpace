@@ -1,0 +1,95 @@
+{
+  "outputs": [
+    {
+      "id": "05",
+      "tokens": [
+        "▁She",
+        "▁gave",
+        "▁me",
+        "▁the",
+        "▁un",
+        "mail",
+        "ed",
+        "▁letter",
+        ".",
+        "</s>"
+      ],
+      "text": "She gave me the unmailed letter."
+    },
+    {
+      "id": "06",
+      "tokens": [
+        "▁I",
+        "▁didn",
+        "'",
+        "t",
+        "▁burn",
+        "▁it",
+        ".",
+        "▁I",
+        "▁hid",
+        "▁it",
+        "▁in",
+        "▁the",
+        "▁old",
+        "▁jacket",
+        ".",
+        "</s>"
+      ],
+      "text": "I didn't burn it. I hid it in the old jacket."
+    },
+    {
+      "id": "07",
+      "tokens": [
+        "▁You",
+        "▁didn",
+        "'",
+        "t",
+        "▁forget",
+        "▁me",
+        ".",
+        "▁I",
+        "▁didn",
+        "'",
+        "t",
+        "▁dare",
+        "▁to",
+        "▁stop",
+        "▁you",
+        ".",
+        "</s>"
+      ],
+      "text": "You didn't forget me. I didn't dare to stop you."
+    },
+    {
+      "id": "08",
+      "tokens": [
+        "▁If",
+        "▁it",
+        "▁keeps",
+        "▁raining",
+        ",",
+        "▁I",
+        "'",
+        "ll",
+        "▁wait",
+        "▁for",
+        "▁you",
+        ";",
+        "▁if",
+        "▁it",
+        "▁stops",
+        ",",
+        "▁I",
+        "▁won",
+        "'",
+        "t",
+        "▁leave",
+        ".",
+        "</s>"
+      ],
+      "text": "If it keeps raining, I'll wait for you; if it stops, I won't leave."
+    }
+  ],
+  "seconds": 1.8266349149999996
+}

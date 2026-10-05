@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.084992077000038,
+  "first_nonwhitespace_stdout_seconds": 1.7148414310000817,
+  "peak_rss_bytes": 1465176064,
+  "peak_shared_cgroup_bytes": 5239910400,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我的朋友没有关火，风把火灭了。",
+  "stdout_sha256": "167bf1355a6a68906ea2f64c290531cf23152f72dbfed9a72e6970fd3b504390",
+  "stderr_sha256": "60790af80dbc6f7e2616adfaf2611eeed69c3ad643f3f2c703bb21fe52364ad4"
+}

@@ -1,0 +1,226 @@
+{
+  "kind": "Arithmetic summary of existing evidence, not an execution or validation",
+  "latest_constraint": "【不准测试】",
+  "hy": [
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 2.064605621000055,
+      "first_foreign_case": "05",
+      "first_foreign_line_seconds": 2.3481759509999165,
+      "first_foreign_first_stdout_seconds": 1.6419252059999963,
+      "sum_16_line_wall_seconds": 40.809474486,
+      "sum_12_foreign_line_wall_seconds": 32.00225323999996,
+      "peak_process_rss_bytes": 2239590400,
+      "peak_shared_cgroup_bytes": 5449560064,
+      "foreign_semantic_labels": {
+        "acceptable": 8,
+        "warning": 2,
+        "blocker": 1,
+        "uncertain": 1,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 1.8588873740000054,
+      "first_foreign_case": "01",
+      "first_foreign_line_seconds": 1.8588873740000054,
+      "first_foreign_first_stdout_seconds": 1.385252377000029,
+      "sum_16_line_wall_seconds": 34.13071634799974,
+      "sum_12_foreign_line_wall_seconds": 26.246577173999867,
+      "peak_process_rss_bytes": 2239418368,
+      "peak_shared_cgroup_bytes": 5440421888,
+      "foreign_semantic_labels": {
+        "acceptable": 9,
+        "warning": 2,
+        "blocker": 1,
+        "uncertain": 0,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 2.0800078669999493,
+      "first_foreign_case": "05",
+      "first_foreign_line_seconds": 1.9878896000000168,
+      "first_foreign_first_stdout_seconds": 1.6557186290000345,
+      "sum_16_line_wall_seconds": 36.81324195499974,
+      "sum_12_foreign_line_wall_seconds": 28.81485401499981,
+      "peak_process_rss_bytes": 1467273216,
+      "peak_shared_cgroup_bytes": 5241700352,
+      "foreign_semantic_labels": {
+        "acceptable": 10,
+        "warning": 1,
+        "blocker": 1,
+        "uncertain": 0,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 1.8943107280000504,
+      "first_foreign_case": "01",
+      "first_foreign_line_seconds": 1.8943107280000504,
+      "first_foreign_first_stdout_seconds": 1.5252184790000456,
+      "sum_16_line_wall_seconds": 34.92291010600002,
+      "sum_12_foreign_line_wall_seconds": 27.134518482999965,
+      "peak_process_rss_bytes": 1467707392,
+      "peak_shared_cgroup_bytes": 5257588736,
+      "foreign_semantic_labels": {
+        "acceptable": 8,
+        "warning": 3,
+        "blocker": 1,
+        "uncertain": 0,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 4.711106270999949,
+      "first_foreign_case": "05",
+      "first_foreign_line_seconds": 5.283656140999938,
+      "first_foreign_first_stdout_seconds": 2.799385574000098,
+      "sum_16_line_wall_seconds": 89.9966575450004,
+      "sum_12_foreign_line_wall_seconds": 70.47730813800035,
+      "peak_process_rss_bytes": 2249068544,
+      "peak_shared_cgroup_bytes": 6037946368,
+      "foreign_semantic_labels": {
+        "acceptable": 0,
+        "warning": 0,
+        "blocker": 12,
+        "uncertain": 0,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 4.154212751999921,
+      "first_foreign_case": "01",
+      "first_foreign_line_seconds": 4.154212751999921,
+      "first_foreign_first_stdout_seconds": 2.5821536369999194,
+      "sum_16_line_wall_seconds": 75.94237390600006,
+      "sum_12_foreign_line_wall_seconds": 58.05452371300021,
+      "peak_process_rss_bytes": 2249408512,
+      "peak_shared_cgroup_bytes": 6045265920,
+      "foreign_semantic_labels": {
+        "acceptable": 0,
+        "warning": 0,
+        "blocker": 12,
+        "uncertain": 0,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "planned": 16,
+      "native_complete": 0,
+      "started": 1,
+      "first_requested_line_seconds": 2.3076286569998956,
+      "first_foreign_case": "05",
+      "first_foreign_line_seconds": null,
+      "first_foreign_first_stdout_seconds": null,
+      "sum_16_line_wall_seconds": 2.3076286569998956,
+      "sum_12_foreign_line_wall_seconds": 0,
+      "peak_process_rss_bytes": 5750972416,
+      "peak_shared_cgroup_bytes": 15090225152,
+      "foreign_semantic_labels": {
+        "acceptable": 0,
+        "warning": 0,
+        "blocker": 0,
+        "uncertain": 0,
+        "not-executed": 12
+      }
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "planned": 16,
+      "native_complete": 0,
+      "started": 1,
+      "first_requested_line_seconds": 2.1017937229999006,
+      "first_foreign_case": "01",
+      "first_foreign_line_seconds": 2.1017937229999006,
+      "first_foreign_first_stdout_seconds": null,
+      "sum_16_line_wall_seconds": 2.1017937229999006,
+      "sum_12_foreign_line_wall_seconds": 2.1017937229999006,
+      "peak_process_rss_bytes": 5734281216,
+      "peak_shared_cgroup_bytes": 15066345472,
+      "foreign_semantic_labels": {
+        "acceptable": 0,
+        "warning": 0,
+        "blocker": 0,
+        "uncertain": 0,
+        "not-executed": 12
+      }
+    },
+    {
+      "arm": "hy18-q8-neighbors-preface",
+      "target": "en",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 2.3757146949999424,
+      "first_foreign_case": "05",
+      "first_foreign_line_seconds": 2.3189263750000464,
+      "first_foreign_first_stdout_seconds": 1.9712813819999155,
+      "sum_16_line_wall_seconds": 47.71299729200041,
+      "sum_12_foreign_line_wall_seconds": 38.193636587000356,
+      "peak_process_rss_bytes": 2247651328,
+      "peak_shared_cgroup_bytes": 11578421248,
+      "foreign_semantic_labels": {
+        "acceptable": 8,
+        "warning": 1,
+        "blocker": 2,
+        "uncertain": 1,
+        "not-executed": 0
+      }
+    },
+    {
+      "arm": "hy18-q8-neighbors-preface",
+      "target": "zh",
+      "planned": 16,
+      "native_complete": 16,
+      "started": 16,
+      "first_requested_line_seconds": 2.2208361729999524,
+      "first_foreign_case": "01",
+      "first_foreign_line_seconds": 2.2208361729999524,
+      "first_foreign_first_stdout_seconds": 1.7907662269999491,
+      "sum_16_line_wall_seconds": 46.03721043099995,
+      "sum_12_foreign_line_wall_seconds": 35.03162349000013,
+      "peak_process_rss_bytes": 2248028160,
+      "peak_shared_cgroup_bytes": 11579629568,
+      "foreign_semantic_labels": {
+        "acceptable": 10,
+        "warning": 1,
+        "blocker": 1,
+        "uncertain": 0,
+        "not-executed": 0
+      }
+    }
+  ]
+}

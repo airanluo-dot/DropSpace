@@ -1,0 +1,13 @@
+{
+  "exit_code": -9,
+  "stop_reason": "shared-memory-limit",
+  "seconds": 2.1017937229999006,
+  "first_nonwhitespace_stdout_seconds": null,
+  "peak_rss_bytes": 5734281216,
+  "peak_shared_cgroup_bytes": 15066345472,
+  "cleanup_confirmed": true,
+  "completed": false,
+  "text": "",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "c83820b19dac6f0ee0aab72ad9cffb29ae3c1d3d99d42e3724c44be14f25b23d"
+}

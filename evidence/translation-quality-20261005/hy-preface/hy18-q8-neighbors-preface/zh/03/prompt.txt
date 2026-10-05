@@ -1,0 +1,6 @@
+参考以下相邻歌词以理解当前句的指代和语气。前句和后句仅作为上下文，不要翻译或输出它们。
+前句：She did not break it; I did.
+后句：Not because I stopped loving you, but because I could not make you stay.
+
+将以下文本翻译为简体中文，注意只需要输出翻译后的结果，不要额外解释：
+I never said you were the one who left.

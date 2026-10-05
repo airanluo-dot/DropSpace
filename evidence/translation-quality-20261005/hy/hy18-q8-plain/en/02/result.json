@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.953530844999932,
+  "first_nonwhitespace_stdout_seconds": 1.400649142999896,
+  "peak_rss_bytes": 2235899904,
+  "peak_shared_cgroup_bytes": 5434327040,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "She did not break it; I did.",
+  "stdout_sha256": "43818434c2de65ba3c9a9ad69bb073f63643c152c7532e4560cd3a644ae48385",
+  "stderr_sha256": "1a7a7971dd8b2fa19600556a8794ed7f6d9c36ef8de65cea365b40c70673cca0"
+}

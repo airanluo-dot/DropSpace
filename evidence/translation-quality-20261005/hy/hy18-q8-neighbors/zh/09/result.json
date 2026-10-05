@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.775558023999793,
+  "first_nonwhitespace_stdout_seconds": 2.369732704999933,
+  "peak_rss_bytes": 2245681152,
+  "peak_shared_cgroup_bytes": 6023753728,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"如果雨一直下，我会等你；如果雨停了，我也不会离开。\", \"当前句\": \"看月亮的并不是你，而是我。\", \"后句\": \"那光并没有消失，只是我闭上了眼睛。\"}",
+  "stdout_sha256": "b97645ddc3dabf9faca0b11e579ea143147276a6b32018232826c41b1b9e46dd",
+  "stderr_sha256": "d2b84576516a0e682e75338eedb4965b5ca5e6db92938cd8abc49a078a6374c5"
+}

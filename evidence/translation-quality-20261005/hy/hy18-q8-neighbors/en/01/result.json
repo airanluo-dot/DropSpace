@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.711106270999949,
+  "first_nonwhitespace_stdout_seconds": 2.640990403000046,
+  "peak_rss_bytes": 2241753088,
+  "peak_shared_cgroup_bytes": 6018850816,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"\", \"当前句\": \"My sister left a blue jar beside the gate.\", \"后句\": \"She didn’t break it; I did.\"}",
+  "stdout_sha256": "84d87264c1437548e983980a085e756da8177e3998b0a85088719687fa50f414",
+  "stderr_sha256": "3ae7088ee31b8593f897aee6072b46ebc6cbf62ac981537a1e946167231e1a1c"
+}

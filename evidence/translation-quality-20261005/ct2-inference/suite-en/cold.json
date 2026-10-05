@@ -1,0 +1,67 @@
+{
+  "lines": [
+    {
+      "id": "01",
+      "text": "My sister left a blue jar beside the gate."
+    },
+    {
+      "id": "02",
+      "text": "She did not break it; I did."
+    },
+    {
+      "id": "03",
+      "text": "I never said you were the one who left."
+    },
+    {
+      "id": "04",
+      "text": "Not because I stopped loving you, but because I could not make you stay."
+    },
+    {
+      "id": "05",
+      "text": "She gave me the unmailed letter."
+    },
+    {
+      "id": "06",
+      "text": "I didn't burn it. I hid it in the old jacket."
+    },
+    {
+      "id": "07",
+      "text": "You didn't forget me. I didn't dare to stop you."
+    },
+    {
+      "id": "08",
+      "text": "If it keeps raining, I'll wait for you; if it stops, I won't leave."
+    },
+    {
+      "id": "09",
+      "text": "It wasn't you who was looking at the moon, it was me."
+    },
+    {
+      "id": "10",
+      "text": "The light didn't go out, only I closed my eyes."
+    },
+    {
+      "id": "11",
+      "text": "I didn't say I wouldn't go home. I said I couldn't go home tonight."
+    },
+    {
+      "id": "12",
+      "text": "My friend didn't turn the lights off. The wind's off."
+    },
+    {
+      "id": "13",
+      "text": "It's not that he's sad he's gone, but that he can't say goodbye."
+    },
+    {
+      "id": "14",
+      "text": "Come back, come back, I didn't wait yesterday, it's today."
+    }
+  ],
+  "seconds": 2.836027382999987,
+  "loadedModels": [
+    "zh-en",
+    "ja-en",
+    "ko-en"
+  ],
+  "modelCallsCumulative": 3
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.9093081840001105,
+  "first_nonwhitespace_stdout_seconds": 2.317290956000079,
+  "peak_rss_bytes": 2245423104,
+  "peak_shared_cgroup_bytes": 11575365632,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "My friend didn’t turn off the light; the wind also stopped.",
+  "stdout_sha256": "1ce112147b6660be612d455b5ea1e34b2e364ddc25be59d82986854f396a0560",
+  "stderr_sha256": "6e5e3863e2dea7ef0816f07c836086c14c2ac3fd28a98e6f17ca67c82e9409e8"
+}

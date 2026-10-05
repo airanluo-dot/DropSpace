@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.462906646000192,
+  "first_nonwhitespace_stdout_seconds": 2.224232583999992,
+  "peak_rss_bytes": 2244308992,
+  "peak_shared_cgroup_bytes": 6021545984,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"I didn’t burn it; I just hid it in my old coat.\", \"当前句\": \"It’s not that you’ve forgotten me, it’s that I don’t dare to call out to you.\", \"后句\": \"If the rain keeps falling, I’ll wait for you; if the rain stops, I won’t leave either.\"",
+  "stdout_sha256": "b0c5e48cb3952f4323f6b9bcc7b99630534e8bc220e2369f7047793e3c3f4e8c",
+  "stderr_sha256": "b29c19fb0b4820b01ee6b9820a7b19cbe6ddbaf6ee313af2a4144a64dcceb269"
+}

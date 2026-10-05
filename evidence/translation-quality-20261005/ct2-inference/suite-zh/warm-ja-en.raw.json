@@ -1,0 +1,83 @@
+[
+  {
+    "id": "09",
+    "hypothesisTokens": [
+      [
+        "▁It",
+        "▁was",
+        "n",
+        "'",
+        "t",
+        "▁you",
+        "▁who",
+        "▁was",
+        "▁looking",
+        "▁at",
+        "▁the",
+        "▁moon",
+        ",",
+        "▁it",
+        "▁was",
+        "▁me",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "10",
+    "hypothesisTokens": [
+      [
+        "▁The",
+        "▁light",
+        "▁did",
+        "n",
+        "'",
+        "t",
+        "▁go",
+        "▁out",
+        ",",
+        "▁only",
+        "▁I",
+        "▁closed",
+        "▁my",
+        "▁eyes",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "11",
+    "hypothesisTokens": [
+      [
+        "▁I",
+        "▁did",
+        "n",
+        "'",
+        "t",
+        "▁say",
+        "▁I",
+        "▁would",
+        "n",
+        "'",
+        "t",
+        "▁go",
+        "▁home",
+        ".",
+        "▁I",
+        "▁said",
+        "▁I",
+        "▁could",
+        "n",
+        "'",
+        "t",
+        "▁go",
+        "▁home",
+        "▁tonight",
+        ".",
+        "</s>"
+      ]
+    ]
+  }
+]

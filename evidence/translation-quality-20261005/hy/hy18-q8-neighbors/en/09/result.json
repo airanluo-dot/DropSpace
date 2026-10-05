@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.2574498349999885,
+  "first_nonwhitespace_stdout_seconds": 2.531963630000064,
+  "peak_rss_bytes": 2245201920,
+  "peak_shared_cgroup_bytes": 6022955008,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"If it keeps raining, I will wait for you; if the rain stops, I won’t leave either.\", \"当前句\": \"The one who was looking at the moon wasn’t you, it was me.\", \"后句\": \"That light didn’t fade away, it was just when I closed my eyes.\"",
+  "stdout_sha256": "73aeb0477fec6e56372bdc87f8412f61b8841481ce8bae06b407fbaa9f89dd56",
+  "stderr_sha256": "7ad6c18d9acf12851501427d02b6ce3868ec56b10f013d73d7a692d94adad12f"
+}

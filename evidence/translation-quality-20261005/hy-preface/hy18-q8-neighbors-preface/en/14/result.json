@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.3020608530000573,
+  "first_nonwhitespace_stdout_seconds": 2.420829041000161,
+  "peak_rss_bytes": 2245877760,
+  "peak_shared_cgroup_bytes": 11576221696,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "Come back, come back, come back. What I’ve been waiting for isn’t yesterday, but today.",
+  "stdout_sha256": "14f3b48f4a344cecbdc5c89adfac3de5271688a96a3c0be76a7d53e3f1df1480",
+  "stderr_sha256": "548670d8c2f8f8e9e1fc008dce3303fa8f18dbcadd17d9218daebb3e4a9bb2c6"
+}

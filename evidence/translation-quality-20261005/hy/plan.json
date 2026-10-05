@@ -1,0 +1,147 @@
+{
+  "baseline": "64457419ae6fc8af15ab5542a402b7b871cbf9be",
+  "created_utc": "2026-10-05T09:08:21Z",
+  "runtime": "/workspace/scratch/translation-quality/runtime/build/bin/llama-completion",
+  "runtime_sha256": "dd57fc57da850231447a5c4f4289b9f66495e09d6b39fb077ab49488c46a4b7b",
+  "runtime_libraries": [
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml-base.so",
+      "bytes": 895768,
+      "sha256": "7feb8d17c74876bb02f2cb55e4fb3aa1c84ec219235056e5b433254a7a697f03"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml-base.so.0",
+      "bytes": 895768,
+      "sha256": "7feb8d17c74876bb02f2cb55e4fb3aa1c84ec219235056e5b433254a7a697f03"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml-base.so.0.25.1",
+      "bytes": 895768,
+      "sha256": "7feb8d17c74876bb02f2cb55e4fb3aa1c84ec219235056e5b433254a7a697f03"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml-cpu.so",
+      "bytes": 1229624,
+      "sha256": "e7a7e3e496989480cc7f4e411d5da3ea4aa1d80aa7363fff174fe902756a3bd4"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml-cpu.so.0",
+      "bytes": 1229624,
+      "sha256": "e7a7e3e496989480cc7f4e411d5da3ea4aa1d80aa7363fff174fe902756a3bd4"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml-cpu.so.0.25.1",
+      "bytes": 1229624,
+      "sha256": "e7a7e3e496989480cc7f4e411d5da3ea4aa1d80aa7363fff174fe902756a3bd4"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml.so",
+      "bytes": 55920,
+      "sha256": "6ae3de6bbad4e19fe3f49dc9e16a5d571ddbb90478b55adb86335d875dffec61"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml.so.0",
+      "bytes": 55920,
+      "sha256": "6ae3de6bbad4e19fe3f49dc9e16a5d571ddbb90478b55adb86335d875dffec61"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libggml.so.0.25.1",
+      "bytes": 55920,
+      "sha256": "6ae3de6bbad4e19fe3f49dc9e16a5d571ddbb90478b55adb86335d875dffec61"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama-common.so",
+      "bytes": 6022544,
+      "sha256": "ed1d973375b13f2be12477df6e4048836ea5514790c35ccf32f31a1a2296e30d"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama-common.so.0",
+      "bytes": 6022544,
+      "sha256": "ed1d973375b13f2be12477df6e4048836ea5514790c35ccf32f31a1a2296e30d"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama-common.so.0.5.0",
+      "bytes": 6022544,
+      "sha256": "ed1d973375b13f2be12477df6e4048836ea5514790c35ccf32f31a1a2296e30d"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama-completion-impl.so",
+      "bytes": 106240,
+      "sha256": "996f3747e13d4910658e988ee2833016363ae196e7daed440e057cae16504249"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama.so",
+      "bytes": 4618664,
+      "sha256": "617165f666d0955ad35b22210891fedc5c82c42393a166c3b270fb880adea76a"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama.so.0",
+      "bytes": 4618664,
+      "sha256": "617165f666d0955ad35b22210891fedc5c82c42393a166c3b270fb880adea76a"
+    },
+    {
+      "path": "/workspace/scratch/translation-quality/runtime/build/bin/libllama.so.0.5.0",
+      "bytes": 4618664,
+      "sha256": "617165f666d0955ad35b22210891fedc5c82c42393a166c3b270fb880adea76a"
+    }
+  ],
+  "source_revision": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "fixtures_sha256": "4a1dcc4923e9ed723def83512e04b1ede5f3f69c99b162aa65880ff9779b21c0",
+  "models_manifest_sha256": "8acb8252b83fbd6cfa78bd762a2da4bcbda9ff908768d1f03021944911a2be45",
+  "arms": [
+    "hy18-q8-plain",
+    "hy18-q4-plain",
+    "hy18-q8-neighbors",
+    "hy7-q8-plain"
+  ],
+  "targets": [
+    "en",
+    "zh"
+  ],
+  "sampler": [
+    "-t",
+    "4",
+    "-tb",
+    "4",
+    "-ngl",
+    "0",
+    "-c",
+    "4096",
+    "-n",
+    "2048",
+    "--seed",
+    "42",
+    "--temp",
+    "0.1",
+    "--top-k",
+    "20",
+    "--top-p",
+    "0.8",
+    "--min-p",
+    "0.05",
+    "--repeat-penalty",
+    "1.0",
+    "--frequency-penalty",
+    "0",
+    "--presence-penalty",
+    "0"
+  ],
+  "plain_template": "将以下文本翻译为{0}，注意只需要输出翻译后的结果，不要额外解释：\n{1}",
+  "context_template": "将下面 JSON 中的“当前句”翻译为{0}。前句和后句仅供理解指代、语气和词义，不能作为待翻译文本。只输出当前句的译文，不要输出邻句、标签或额外解释：\n{1}",
+  "preregistered_order": "each arm: en then zh, original song order; independent fresh process each line",
+  "limits": {
+    "seconds_per_line": 60,
+    "seconds_per_target": 600,
+    "shared_memory_bytes": 15032385536,
+    "rss_small_bytes": 3221225472,
+    "rss_large_bytes": 12884901888
+  },
+  "cache": "No result cache. Experimental identity only; no production admission/coordinator/native worker tested.",
+  "measurement": "Wall includes process creation/model load; first stdout is poll-observed, not a token timestamp. No OS cold-cache guarantee. Linux CPU only.",
+  "machine": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "cpu_quota": "400000 100000",
+    "memory_max": "17179869184",
+    "memory_events_before": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+  }
+}

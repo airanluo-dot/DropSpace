@@ -1,0 +1,1988 @@
+{
+  "reviewer": "Codex primary agent, AI-assisted open-label multilingual manual reading",
+  "blinded": false,
+  "independent_bilingual_expert": false,
+  "authored_after_no_testing_instruction": true,
+  "scope": "Existing output review only; no new tests or automated validation.",
+  "standard": "Minor defects preserving overall meaning are warnings; foreign copying, clear causal/agency reversal and current-only scope violation are blockers. Implicit subjects remain uncertain.",
+  "cases": [
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "My sister left a blue jar beside the gate.",
+      "output_sha256": "9ab2dc256778b70421f43ec69b33e1e7396d107097773a9de5f64bfa7048bf75",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "She did not break it; I did.",
+      "output_sha256": "ed7539fee9c862b8ee9406562061bf50f16fa59beab938b6de3f2f6507370615",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "I never said you were the one who left.",
+      "output_sha256": "e6e2fd2579b3aa82d6bb27d41fb69fe4052460f52be8815cb6e3b46d5e029b06",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "Not because I stopped loving you, but because I couldn’t make you stay.",
+      "output_sha256": "c95315624f045c51da976bc06a33298948a1962edccca1ac328847d35ee8fac3",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "She handed me the letter that wasn’t sent.",
+      "output_sha256": "f115aaf1f0dc193e0bfc91d8c5a6e83929ce4becda2714c57663a0af296a2cc7",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "I didn’t burn it; I just hid it in an old jacket.",
+      "output_sha256": "ade1f8b07ce077afd1058cd42d77c240ab90ea7a9e060d05edb05bebfc02ecdd",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "It’s not that you forgot about me; it’s that I don’t dare to call out to you.",
+      "output_sha256": "d64b626f7fb2a297130db730d93315f67c26a71915f31619b830feb72f4bf3cb",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "If it keeps raining, I will wait for you; if the rain stops, I will not leave either.",
+      "output_sha256": "4953bdd4da9f76b99c07d86a382d15f7e63dcbcebc17a6e8a176f32b473e7b30",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "It wasn’t you who was looking at the moon; it was me.",
+      "output_sha256": "e913ffb115e0bc961b9e9fc73ef04778bb70c53ecef4fc1b4dab76822c6563c9",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "That light did not disappear; I simply closed my eyes.",
+      "output_sha256": "46b38b49731d9acc3f86ce71c8ac8a3888ba112c3695e7ec4019a635a2723b7b",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "I didn’t say I wouldn’t go back; I just said I can’t go tonight.",
+      "output_sha256": "703f5e343e39647e32fc8e731747eb4e7a7d0cad2786a57a64a4a21d65c71484",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "My friend didn’t turn off the light; the wind did it for them.",
+      "output_sha256": "52572a0c1e236b6600aff7f5a75d7f87d023a033639fec67aa482c6b1f729e3e",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "warning",
+      "categories": [
+        "unsupported-addition"
+      ],
+      "note": "The wind remains the extinguishing agent, but “for them” adds unsupported benefactive meaning; light/fire remains lexically ambiguous.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "It’s not that he left and I’m sad, but I’m sad because I couldn’t say goodbye to him.",
+      "output_sha256": "367d7d2d3fd17f5679a30aa924b3c40c30c993961c861eb021590cf85d676a7f",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "uncertain",
+      "categories": [
+        "implicit-subject"
+      ],
+      "note": "Rejected departure cause and goodbye inability preserved. Chooses speaker I and recipient him where Korean omits the goodbye subject/recipient; plausible, not uniquely established.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "Come back, come back, come back! What I’ve been waiting for isn’t yesterday, but today.",
+      "output_sha256": "4b63ac670d26f151894d16bdb8c084bc36215db4f32052305778d95f018c70f2",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "I won’t say goodbye until you say 괜찮아.",
+      "output_sha256": "df971fa0ac906a0aeafc4136c48dbf7b3ebf22a32d640762aa1b16369b30a379",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "blocker",
+      "categories": [
+        "foreign-copy"
+      ],
+      "note": "Korean 괜찮아 is copied unchanged into the English target; the English/Chinese material translates but the Korean fragment does not.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "en",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "Stay with me, don’t let go of my hand; stay with me, don’t leave me. Stay with me, even if the night is long, the road is far, and the wind is cold, I won’t leave you alone in the rain.",
+      "output_sha256": "0b3e2b5c1f180ccc69b9bf55febbb743f997bf782cfaba30a125c22c858404f4",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "warning",
+      "categories": [
+        "clause-substitution"
+      ],
+      "note": "Three stay-with-me clauses retained, but second don’t-let-go-of-my-hand becomes don’t-leave-me. All final conditions and negation retained.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "我妹妹在大门旁边留下了一个蓝色的罐子。",
+      "output_sha256": "8dc88d0962ec0b2898fa009f72754f8ba1460f13d1ce14813edec1a75bf17255",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "warning",
+      "categories": [
+        "unsupported-specificity"
+      ],
+      "note": "妹妹 specifies younger sister; English sister gives no age. Jar, placement and color preserved.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "不是她弄坏的，是我弄坏的。",
+      "output_sha256": "9f8b0a50a7e045cded1066f125f57499e8b07a317c78eee9b6f3fff6c7cbcaf7",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "我从未说过是你离开的。",
+      "output_sha256": "9acf4ddfc3b300afd593ef44bc9257cca5388f0fa66c4a1747a7f1fb2395db59",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "不是因为我不爱你了，而是因为我无法让你留下来。",
+      "output_sha256": "a6ac8bc3776b3ef6675b3e90eafa515f3dc8493ccdc8a5e215d38c0d821f865d",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "她把那封没有寄出的信交给了我。",
+      "output_sha256": "424391654318cfa7b1225ccc5a197550d1d502db4fa9b73dd6768748d6a72de2",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "我没有把它烧掉，只是把它藏在了旧外套里。",
+      "output_sha256": "deebbd1f0c242fd97824195116534e2e15569f0dc323dafa85ff30bf4b6c300d",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "不是你忘了我，是我不敢叫住你。",
+      "output_sha256": "4035410577a3ce8a384885e20b4abb8e9a329310161546ffe923e29463574380",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output_sha256": "f6b1fdd55c22c691807abfb40e9c0713784b4603d89c57a0a10df318c2f5df35",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "看月亮的并不是你，而是我。",
+      "output_sha256": "c808b94fdb21cf32b5e1fa125e06b7070f278f582dadb539f5e38d9cf6f58b30",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "那光芒并没有消失，只是我闭上了眼睛而已。",
+      "output_sha256": "801cd1519e83a9c724b3617e5444a9b957c54ff42bb078f821f098dc9dc3f516",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "我并没有说不会回来，我只是说今晚回不去了。",
+      "output_sha256": "59d6749f6087afb8883e2fcf634c60ac480483f11f34abbbecbd88adaabe50d8",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "我的朋友没有熄灭火焰，风也把火给吹灭了。",
+      "output_sha256": "3797795f8c085f669ab13131f894601294c83b9cdb922930a99ce8451a686e51",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "warning",
+      "categories": [
+        "unsupported-addition"
+      ],
+      "note": "Wind still extinguishes the fire; 也 adds also despite preceding denial of friend extinguishing it. No clear reversal of core agent.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "他离开时，不是因为悲伤，而是因为无法道别而感到难过。",
+      "output_sha256": "b2e641d3b4ddd1f44a431c6dada4179297fccb770764eb75c8ec43cc676531eb",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "blocker",
+      "categories": [
+        "causal-contrast-error"
+      ],
+      "note": "Original denies sadness caused by his departure, then gives inability to say goodbye as cause. 他离开时，不是因为悲伤 changes the negated causal relationship; actor also remains unclear.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "回来吧，回来吧，回来吧，我等待的并不是昨天，而是今天。",
+      "output_sha256": "53a4bd44f16e928150a14b64fa3941d4a9186a57272ee7679a97b8340366201c",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "我不会告别，直到你说“没关系”。",
+      "output_sha256": "0abeca0a94377160aca1f29251643c0a24a017ae68797a4eb4290173044b7ec6",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-plain",
+      "target": "zh",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "陪在我身边，不要放开我的手；陪在我身边，不要放开我的手；陪在我身边，无论夜晚多么漫长、道路多么遥远、风多么寒冷，我都不会把你一个人留在雨中。",
+      "output_sha256": "343d4ffed7b58a4a6ad2d4aa17a0cf98b2bd573997df781b36560deb200e532c",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "My sister left a blue jar next to the gate.",
+      "output_sha256": "4248eab9e881f5478772a13b0553fcf961ddbc8806d9126cdbfd6e7bc4e5658c",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "She didn’t break it; I did.",
+      "output_sha256": "86991fde6008c37eba049d9789369d9bd7cdbf722211b1e5116e4dd0c9010e80",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "I never said you were the one who left.",
+      "output_sha256": "e6e2fd2579b3aa82d6bb27d41fb69fe4052460f52be8815cb6e3b46d5e029b06",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "Not because I stopped loving you, but because I couldn’t make you stay.",
+      "output_sha256": "c95315624f045c51da976bc06a33298948a1962edccca1ac328847d35ee8fac3",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "She gave me that letter that wasn’t sent out.",
+      "output_sha256": "be7c8f2b0b5da5485d4a6d16b899e8e306fd8433942d79d1b2a2b17e61693b97",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "I didn’t burn it; I just hid it in my old jacket.",
+      "output_sha256": "05005466c545a03d134ca3c1052cad9050661b71965b0edf74520ebc48c9c809",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "warning",
+      "categories": [
+        "unsupported-specificity"
+      ],
+      "note": "my old jacket adds ownership absent from the standalone Chinese source; not-burned, only-hidden and old coat preserved.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "It’s not that you have forgotten me; it’s that I don’t dare to call out to you.",
+      "output_sha256": "736fddacc3b911d7f1fda83e53af2a53494d622a125003343225049b29b1f1b9",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "If it keeps raining, I will wait for you; if the rain stops, I will not leave either.",
+      "output_sha256": "4953bdd4da9f76b99c07d86a382d15f7e63dcbcebc17a6e8a176f32b473e7b30",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "It wasn’t you who was looking at the moon, it was me.",
+      "output_sha256": "ecc754f617ead7fe456309d9fdecb6ae9d7229c3ab28a406508455fccd266bd8",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "That light did not disappear; it was just that I closed my eyes.",
+      "output_sha256": "0eef64f43a88be25fc49d91a8fa4ffe8c4e58736adcc0a25b573560f40cdad43",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "I didn’t say “I won’t go back”; I said I can’t go back tonight.",
+      "output_sha256": "1b2de6dc2fd46014e6400ba8088f58fb32c9492798263dfff85b6d3191263904",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "My friend didn’t turn off the fire; the wind did it.",
+      "output_sha256": "3bca4464b166c9b5df9be1ea8f47012f499a543f48194716d0d2b2f7e26031ec",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "It’s not that he left because it’s sad; it’s sad because I didn’t get a chance to say goodbye to him.",
+      "output_sha256": "e9d254a3a6856247fc54ea364a94a792fa09de17d5d8c0dfc968402224bda980",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "blocker",
+      "categories": [
+        "causal-contrast-error"
+      ],
+      "note": "he left because it’s sad reverses the causal direction of the rejected explanation. Original is sadness not caused by his leaving, not leaving caused by sadness.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "Come back, come back, come back. What I was waiting for is not yesterday, but today.",
+      "output_sha256": "3e29a85a7c666b8f94970ddeb90276601ce435598a77959036d99e182cab7436",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "I won’t say goodbye until you say “It’s okay.”",
+      "output_sha256": "b36b34937b3878ad405c101c591f2fe2e80818d819ac34f1dc6f96fe0310352e",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "en",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "Stay with me, don’t let go of my hand; stay with me, don’t let go of my hand. Stay with me, even if the night is long, the road is far, and the wind is cold – I won’t leave you alone in the rain.",
+      "output_sha256": "128f08198aa49cf95b7958fae7c897c77070ed7c747ce10f92958d6ef14b1c77",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "我妹妹在大门旁边留下了一个蓝色罐子。",
+      "output_sha256": "4977486bc809be69553873dbff4725bd7b41c3979c2753f9c0d8da0c31f6f93f",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "warning",
+      "categories": [
+        "unsupported-specificity"
+      ],
+      "note": "妹妹 specifies younger sister although source sister gives no age; remaining meaning preserved.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "不是她打破的，是我在。",
+      "output_sha256": "a3879ef9038cad7eef24193d8591f5536d2f5eab1104e36999cf44310d85a540",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "warning",
+      "categories": [
+        "malformed-clause"
+      ],
+      "note": "不是她打破的 retains she did not; 是我 retains speaker contrast, but trailing 在 leaves the I-did clause malformed. Core roles remain inferable; grammatical defect is retained as warning, not a technical completion failure.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "我从未说过是你离开的。",
+      "output_sha256": "9acf4ddfc3b300afd593ef44bc9257cca5388f0fa66c4a1747a7f1fb2395db59",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "不是因为我不爱你了，而是因为我无法让你留下。",
+      "output_sha256": "0ea6cbb2f6c7f9d61c967a7303a72ad07a4f4ca3b257d3154036e974bd298a80",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "她把那封没寄出的信交给了我。",
+      "output_sha256": "7d333f4efe969f3f1621a2e01f1ce2694c29a7f600f52f2ef9596ef9f9f18637",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "我没烧掉它，只把它藏在旧外套里。",
+      "output_sha256": "42726f18e49475281c52f00308ceffbc55f2b0f3836efe78da6b2d10d40a6c7c",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "不是你忘了我，是我不敢叫住你。",
+      "output_sha256": "4035410577a3ce8a384885e20b4abb8e9a329310161546ffe923e29463574380",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output_sha256": "f6b1fdd55c22c691807abfb40e9c0713784b4603d89c57a0a10df318c2f5df35",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Same-language control: meaning retained; excluded from foreign denominator.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "看月亮的并不是你，而是我。",
+      "output_sha256": "c808b94fdb21cf32b5e1fa125e06b7070f278f582dadb539f5e38d9cf6f58b30",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "那光并没有消失，只是我闭上了眼睛。",
+      "output_sha256": "442c6cd34662a1271dbd863807c26b8c0d5daf426ca905e639364b8b390313fc",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "他并没有说不回来，他说的是今晚回不去了。",
+      "output_sha256": "2666589e3db6560cfd976aecfbe8cca179ac7484a8e9a8ee3db88eec7c7e46d9",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "warning",
+      "categories": [
+        "implicit-subject"
+      ],
+      "note": "Adds 他 (he) to Japanese omitted subject, whereas nearby source uses 僕 (I). Standalone original is subjectless; polarity, inability and tonight preserved.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "我的朋友没有关火，风把火灭了。",
+      "output_sha256": "ff1bab3b2e7ddb695f70947fbb561f75efb8909e8b74a7802b9e3351e3b30540",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "他离开并不是因为悲伤，而是因为没能说再见而难过。",
+      "output_sha256": "bbdc049723454d05dbbc106de3209b5002b39e505c01350a5c609979bf0cac05",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "blocker",
+      "categories": [
+        "causal-contrast-error"
+      ],
+      "note": "他离开并不是因为悲伤 makes departure the outcome whose sadness cause is rejected. Original rejects departure as cause of sadness; final goodbye clause does not repair this.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "回来吧，回来吧，回来吧，我等待的并非昨天，而是今天。",
+      "output_sha256": "f73951d62017adc51c26282c3ff63986ba7eb815329a038502a0cc5d1f59dcd3",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "我不会说再见，直到你说“没关系”。",
+      "output_sha256": "08af772c641792c8a26dba7ab476e2e579cbf0b7cd2398516f13b94501d0eac4",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q4-plain",
+      "target": "zh",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "陪在我身边，不要松开我的手；陪在我身边，不要松开我的手；陪在我身边，即使夜晚漫长、道路遥远、风又寒冷，我也不会让你独自留在雨中。",
+      "output_sha256": "9b65cea4502cba86a80338a229619c382717274daa87eb0553b98afd69824ec6",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "acceptable",
+      "categories": [],
+      "note": "Manual reading found negation, roles, clauses and requested repetition retained. Light/fire ambiguity is accepted without inventing certainty.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "{\"前句\": \"\", \"当前句\": \"My sister left a blue jar beside the gate.\", \"后句\": \"She didn’t break it; I did.\"}",
+      "output_sha256": "3b193026dd9b71ef934e5789ec3cc35424426312d15d48173479d15db8826167",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "{\"前句\": \"My sister left a blue jar beside the gate.\", \"当前句\": \"She did not break it; I did.\", \"后句\": \"I never said you were the one who left.\"}",
+      "output_sha256": "092a06e1c50e4d6994f0972a43d17d8293d3b8adb4dedd1e8f7b78ee8357f457",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "{\"前句\": \"She didn’t break it; I did.\", \"当前句\": \"I never said you were the one who left.\", \"后句\": \"Not because I stopped loving you, but because I couldn’t make you stay.\"}",
+      "output_sha256": "dc8835b5650b1117416c22801875c279093d8cd780a346e7122015c80fcfa272",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "{\"前句\": \"I never said you were the one who left.\", \"当前句\": \"Not because I stopped loving you, but because I couldn’t make you stay.\", \"后句\": \"She handed me the letter that wasn’t sent.\"",
+      "output_sha256": "cd3a0d9d7524e24f535182d57b3f71427738c4c3d29e8c68fd42d355afd23197",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "{\"前句\": \"Not because I stopped loving you, but because I could not make you stay.\", \"当前句\": \"She handed me the unsent letter. \", \"后句\": \"I didn’t burn it; I just hid it in my old coat.\"}",
+      "output_sha256": "2de130efce24cfbbc21a44454e5776b15d30bbdec295566a1010349eb0e404f6",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "{\"前句\": \"She handed me the letter that wasn’t sent. \", \"当前句\": \"I didn’t burn it; I just hid it in my old coat. \", \"后句\": \"It’s not that you’ve forgotten me, it’s that I don’t dare to call out to you.\"}",
+      "output_sha256": "0a89e240a5cd6e90dd999e7c994ebe95cc7c6f349567957137f3ce70ccfac178",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "{\"前句\": \"I didn’t burn it; I just hid it in my old coat.\", \"当前句\": \"It’s not that you’ve forgotten me, it’s that I don’t dare to call out to you.\", \"后句\": \"If the rain keeps falling, I’ll wait for you; if the rain stops, I won’t leave either.\"",
+      "output_sha256": "d3cc870b3ec7f4f8685d5c2cba3af7c69d209d74a20fc9bbb03e0c923875d9cd",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "{\"前句\": \"It’s not that you forgot me, it’s that I don’t dare to call out to you.\", \"当前句\": \"If the rain keeps falling, I will wait for you; if it stops, I won’t leave either.\", \"后句\": \"It wasn’t you who was looking at the moon, it was me.\"",
+      "output_sha256": "7671ae9c468c6a035001ffd9c9d66fefa133a7e4491fe36f7a3f3d4e725b1f64",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "{\"前句\": \"If it keeps raining, I will wait for you; if the rain stops, I won’t leave either.\", \"当前句\": \"The one who was looking at the moon wasn’t you, it was me.\", \"后句\": \"That light didn’t fade away, it was just when I closed my eyes.\"",
+      "output_sha256": "b4334c06632aca1df52e0bb3191180deeb72660de809662141fdc5221f892b2a",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "{\"前句\": \"It wasn’t you who was looking at the moon, it was me.\", \"当前句\": \"That light didn’t fade away, it was just when I closed my eyes.\", \"后句\": \"I didn’t say I wouldn’t go back; I said I can’t go back tonight.\"}",
+      "output_sha256": "9a17a8895f6b87cf66e9e6c90cf64db1d6803894944c8da61e797b367d17c7cd",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "{\"前句\": \"That light didn’t go out; it was just when I closed my eyes.\" \"当前句\": \"I didn’t say I wouldn’t return; I said I can’t go back tonight.\" \"后句\": \"My friend didn’t turn off the light, the wind did.\"}",
+      "output_sha256": "decb8652d6ed77d08756dec052a3214d09fa0e33db781a0127daa22c24217780",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "{\"前句\": \"I didn’t say I won’t go back; I just said I can’t go back tonight.\", \"当前句\": \"My friend didn’t turn off the light, the wind also went out.\", \"后句\": \"It’s not that he left that makes me sad, but that I couldn’t say goodbye to him.\"}",
+      "output_sha256": "7924c3cfd8118e4f6d430b8b1200f35c4d56705c2d56a767a7870e00ecbab8c2",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "{\"前句\": \"My friend didn’t turn off the light, and the wind also didn’t stop.\", \"当前句\": \"It’s not that he left and I’m sad, but I’m sad because I couldn’t say goodbye to him.\", \"后句\": \"Come back, come back, come back! What I’ve been waiting for isn’t yesterday, it’s today.\"}",
+      "output_sha256": "04e29042f159e8e1b842ed0652ee21a2fdb9835475d36d5b80a46e5bc4f35709",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "{\"前句\": \"It’s not that he left and I’m sad, but that I can’t say goodbye to him and I’m upset.\", \"当前句\": \"Come back, come back, come back, what I’ve been waiting for isn’t yesterday, it’s today.\", \"后句\": \"I won’t say goodbye until you say you’re okay.\"}",
+      "output_sha256": "e846e54f3f33659ee8349c35c8d9c4e724880b59a42c737dad08d10bd49c7606",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "{\"前句\": \"Come back, come back, come back, what I’ve been waiting for isn’t yesterday, it’s today.\", \"当前句\": \"I won’t say goodbye until you say 괜찮아.\"., \"后句\": \"Stay with me, don’t let go of my hand; stay with me, even if the night is long, the road is far, and the wind is cold, I won’t leave you alone in the rain.\"}",
+      "output_sha256": "ac36075a560975f93a23e1d74d0be55cb06a6312d6b4c2c36bee26fd55e65509",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "en",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "{\"前句\": \"I won’t say goodbye, until you say 괜찮아.\", \"当前句\": \"Stay with me, don’t let go of my hand; stay with me, don’t let go of my hand; stay with me, no matter how long the night, how far the road, or how cold the wind, I won’t leave you alone in the rain.\",\"后句\": \"\"}",
+      "output_sha256": "a96d135406c3720a3228a95d7faa33c55ed942b1bb252a0f1317ae3dbfd56195",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "{\"前句\": \"\", \"当前句\": \"我妹妹在大门旁边留下了一个蓝色罐子。\", \"后句\": \"不是她打破了它，而是我打破了它。\"}",
+      "output_sha256": "ce365b05b403278ad1db70e208b58522ee01def7c86ea6308167164144f62099",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "{\"前句\": \"我妹妹在大门旁边留下了一个蓝色罐子。\", \"当前句\": \"不是她打破的，是我。\", \"后句\": \"我从未说过是你留下的。\"}",
+      "output_sha256": "b3b728b0f2b241d3ec30d7443717f77dfa2fe5b1fe3ab660ab07c8935012573c",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "{\"前句\": \"不是她打破了它，而是我打破了。\", \"当前句\": \"我从未说过是你离开的。\", \"后句\": \"不是因为我不爱你了，而是因为我无法让你留下来。\"}",
+      "output_sha256": "ac1d884cb371cf08f7d120a7eff9ae472ed6e22d19da2aac0396b103fcec5c74",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "{\"前句\": \"我从未说过你是离开的人。\", \"当前句\": \"不是因为我爱你的心消失了，而是因为我无法让你留下。\", \"后句\": \"她把那封没寄出的信交给了我。\"}",
+      "output_sha256": "a9d31a1345f84bdf1f6e470c242754e31e3aad100bf18fde28f6e16f8e881770",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "{\"前句\": \"不是因为我不爱你了，而是因为我无法让你留下来。\", \"当前句\": \"她把那封没寄出的信交给了我。\", \"后句\": \"我没有烧掉它，只是把它藏在了旧外套里。\"}",
+      "output_sha256": "6eb7aa8250540f735a8bc66a65eb1778a4b0b569ccc0fac9b67d959474ab7cb0",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "{\"前句\": \"她把那封没寄出的信交给了我。\", \"当前句\": \"我没烧掉它，只把它藏在旧外套里。\", \"后句\": \"不是你忘了我，是我不敢叫住你。\"}",
+      "output_sha256": "5757d333605e5a32524fda9402e19bd8304abd9165d200c4f00a83bb0c1bb3a1",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "{\"前句\": \"我没有烧掉它，只是把它藏在了旧外套里。\", \"当前句\": \"不是你忘了我，是我不敢叫住你。\", \"后句\": \"如果雨一直下，我会等你；如果雨停了，我也不会离开。\"}",
+      "output_sha256": "d6b811d6e005f17453b75be938a80b72d9b4fcbb90cbac3c34d54bed0cbdfd77",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "{\"前句\": \"不是你忘了我，是我不敢叫住你。\", \"当前句\": \"如果雨一直下，我会等你；如果雨停了，我也不会离开。\", \"后句\": \"月を見ていたのは君じゃなくて、僕だった。\"}",
+      "output_sha256": "698c8ca512601405ddc27d8a8ffb0119810d1283028f1139c3879f75dce67a90",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "{\"前句\": \"如果雨一直下，我会等你；如果雨停了，我也不会离开。\", \"当前句\": \"看月亮的并不是你，而是我。\", \"后句\": \"那光并没有消失，只是我闭上了眼睛。\"}",
+      "output_sha256": "57841ebeae8c38cee8e91a3f70317044f72e4c5de768895a2432ce447b0ddadd",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "{\"前句\": \"看月亮的并不是你，而是我。\", \"当前句\": \"那光芒并没有消失，只是我闭上了眼睛而已。\", \"后句\": \"我没有说不会回去，我只是说今晚回不去。\"}",
+      "output_sha256": "46e9ea7e2e1b05e227d28f5db2aa2854edb8827dd9675b24099e64dc6e75675c",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "{\"前句\": \"那光并没有熄灭，只是我闭上了眼睛而已。\", \"当前句\": \"我没有说不会回来，我只是说今晚回不去了。\", \"后句\": \"我的朋友没有熄灯，风也停了。\"}",
+      "output_sha256": "b65c3a4ff0a3110bbe3d0e8a79d67b5eb36e70e1991565335dc963d099f9c4be",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "{\"前句\": \"他并没有说不会回来，只是说今晚回不去了。\", \"当前句\": \"我的朋友没有熄灯，风也停了。\", \"后句\": \"不是因为他离开而难过，而是因为没能道别而感到难过。\"}",
+      "output_sha256": "439b7d2b8f6e0da42c3d7c6db55e73a2f69fbd5a138127d6d42b4f704e6735aa",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "{\"前句\": \"我的朋友没有熄灭火焰，也没有吹灭风。\"，\"当前句\": \"他离开的不是因为悲伤，而是因为没能道别，所以感到难过。\"，\"后句\": \"回来吧，回来吧，回来吧，我等待的不是昨天，而是今天。\"}",
+      "output_sha256": "448743d11c7c864784eb67e5a1de2e44a033ac2d41ef6c1755e07e8b24048e21",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "{\"前句\": \"不是因为他离开而难过，而是因为没能道别而悲伤。\", \"当前句\": \"回来吧，回来吧，回来吧，我等待的并不是昨天，而是今天。\", \"后句\": \"我不会道别，直到你说没关系。\"}",
+      "output_sha256": "c70d79962f83f2da694cfe7952177baa54a9cb1eeee9e72e85067bdfac2cd898",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "{\"前句\": \"回来吧，回来吧，回来吧，我等待的并不是昨天，而是今天。\", \"当前句\": \"我不会说再见，直到你说 괜찮아。\", \"后句\": \"陪在我身边，不要松开我的手；陪在我身边，不要松开我的手；陪在我身边，无论夜晚多么漫长、道路多么遥远、风多么寒冷，我都不会把你一个人留在雨中。\"}",
+      "output_sha256": "a82aacc77bc36673c3f7227937c47dad2df327fa117cae3f552957fc38097754",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy18-q8-neighbors",
+      "target": "zh",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "{\"前句\": \"我不会告别，直到你说 괜찮아。\", \"当前句\": \"陪着我，别松开我的手；陪着我，别松开我的手；陪着我，无论夜晚多长、路途多远、风多冷，我都不会把你一个人留在雨中。\", \"后句\": \"\"}",
+      "output_sha256": "e6859ace53dc9f121db4ca23d5aa02666d0e9d49b27dce5bb242a4441aaa820a",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "blocker",
+      "categories": [
+        "neighbor-leak",
+        "extra-output"
+      ],
+      "note": "Outputs translated neighbors and JSON labels instead of only current-line text; some JSON malformed. No extraction/salvage is counted as success. Semantic accuracy inside leaked structure is not independently scored.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "en",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "01",
+      "source_language": "en",
+      "source": "My sister left a blue jar beside the gate.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Sister (female sibling), left/placed a blue jar, beside gate; do not turn left into kept.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "02",
+      "source_language": "en",
+      "source": "She did not break it; I did.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "She=sister, it=jar from previous line; sister did NOT break it, speaker DID. Pronoun omission acceptable if roles/polarity preserved.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "03",
+      "source_language": "en",
+      "source": "I never said you were the one who left.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Speaker denies having said YOU were the departing person. Do not assert nobody left or speaker left.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "04",
+      "source_language": "en",
+      "source": "Not because I stopped loving you, but because I could not make you stay.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Not ceased love; unable to make addressee stay; preserve contrast/negation.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "05",
+      "source_language": "zh",
+      "source": "她把那封没寄出的信交给了我。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "She handed speaker that unsent letter; do not say it was sent or handed by speaker.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "06",
+      "source_language": "zh",
+      "source": "我没烧掉它，只把它藏在旧外套里。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Speaker did NOT burn it=letter, only hid it in an old coat; both actions and old preserved.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "07",
+      "source_language": "zh",
+      "source": "不是你忘了我，是我不敢叫住你。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "NOT you forgot me; I did not dare call out/stop you. Roles and polarity critical.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "08",
+      "source_language": "zh",
+      "source": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "If rain continues I wait for you; if rain stops I still will not leave; retain both clauses.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": true
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "09",
+      "source_language": "ja",
+      "source": "月を見ていたのは君じゃなくて、僕だった。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "It was I, NOT you, looking at the moon; retain contrast.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "10",
+      "source_language": "ja",
+      "source": "その光は消えなかった、僕が目を閉じただけ。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "That light did NOT go out; I only closed my eyes. Light likely moonlight but do not invent sun/fire.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "11",
+      "source_language": "ja",
+      "source": "帰らないとは言っていない、今夜は帰れないと言ったんだ。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Did NOT say won't return; said CANNOT return tonight, preserve volition vs ability and tonight.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "12",
+      "source_language": "ko",
+      "source": "내 친구는 불을 끄지 않았어, 바람이 껐어.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "My friend did NOT extinguish light/fire; wind did. 불 may fire/light, keep polarity and wind agency.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "13",
+      "source_language": "ko",
+      "source": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Sad NOT because he left, but because could not even say goodbye. Omitted goodbye subject remains ambiguous; do not score invented subject as certainty.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "14",
+      "source_language": "ko",
+      "source": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야.",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Come back repeated THREE times; I waited for TODAY, NOT yesterday.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "15",
+      "source_language": "mixed",
+      "source": "I won't say goodbye，直到你说 괜찮아。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "I will NOT say goodbye UNTIL you say it is okay; translate EN/ZH/KO fragments, preserve won't/until.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    },
+    {
+      "arm": "hy7-q8-plain",
+      "target": "zh",
+      "id": "16",
+      "source_language": "mixed",
+      "source": "Stay with me，别松开我的手；stay with me，别松开我的手；stay with me，哪怕夜再长、路再远、风再冷，我也不会把你一个人留在雨里。",
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reviewer_expectation": "Stay with me THREE times; don't let go of my hand TWICE; no matter night length/distance/cold wind, I will NOT leave you alone in rain. Retain all repeated clauses and all conditions.",
+      "label": "not-executed",
+      "categories": [
+        "technical-incomplete"
+      ],
+      "note": "No complete translation. Stops and unstarted rows are not quality passes.",
+      "same_language_control": false
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.154212751999921,
+  "first_nonwhitespace_stdout_seconds": 2.5821536369999194,
+  "peak_rss_bytes": 2241974272,
+  "peak_shared_cgroup_bytes": 6019780608,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"\", \"当前句\": \"我妹妹在大门旁边留下了一个蓝色罐子。\", \"后句\": \"不是她打破了它，而是我打破了它。\"}",
+  "stdout_sha256": "0ad46dedad0921249968fa7b9680add978a43ffdd8075c8cdadc5fc85dcfc09b",
+  "stderr_sha256": "b294ee33b5624c69d76416d6dfcd2c347fb5c40a937b9fd76c1b2dbef474e466"
+}

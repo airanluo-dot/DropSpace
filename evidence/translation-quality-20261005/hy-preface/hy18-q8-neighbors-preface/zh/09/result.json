@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.0675902250000036,
+  "first_nonwhitespace_stdout_seconds": 2.615128130999892,
+  "peak_rss_bytes": 2244161536,
+  "peak_shared_cgroup_bytes": 11575533568,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "看着月亮的并不是你，而是我。",
+  "stdout_sha256": "d6e748dba35560b74d0c765c3801399071abd12278265df953ce71932f5b068d",
+  "stderr_sha256": "81e90a920d6fc53e07a591e4f2ca5a1d783eafbb8b0a5162c9d1472cae2d8ff7"
+}

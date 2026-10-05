@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.882764361999989,
+  "first_nonwhitespace_stdout_seconds": 2.210401855999976,
+  "peak_rss_bytes": 1467707392,
+  "peak_shared_cgroup_bytes": 5242834944,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "陪在我身边，不要松开我的手；陪在我身边，不要松开我的手；陪在我身边，即使夜晚漫长、道路遥远、风又寒冷，我也不会让你独自留在雨中。",
+  "stdout_sha256": "43bcfac7e49165743d6b5f2ff6a18e379abdd55653e83332444505d474b52576",
+  "stderr_sha256": "0cc48987dddbedcd8f7e875779dcf3d08f5463ae578fbed7410a71e360f4b3d6"
+}

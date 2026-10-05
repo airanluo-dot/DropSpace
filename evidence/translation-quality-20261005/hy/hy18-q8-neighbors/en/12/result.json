@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 6.056967462000102,
+  "first_nonwhitespace_stdout_seconds": 2.8173572410000816,
+  "peak_rss_bytes": 2246721536,
+  "peak_shared_cgroup_bytes": 6024298496,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"I didn’t say I won’t go back; I just said I can’t go back tonight.\", \"当前句\": \"My friend didn’t turn off the light, the wind also went out.\", \"后句\": \"It’s not that he left that makes me sad, but that I couldn’t say goodbye to him.\"}",
+  "stdout_sha256": "0f83e841760f1058a04d75b225a7ec557f12319636c61260e7dc2d1d44c42fa7",
+  "stderr_sha256": "d83336b501a87abc7b785c2e5ecd116cf8cc2e9942af1e9b4aec4e33477fe807"
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.4972012290000976,
+  "first_nonwhitespace_stdout_seconds": 1.5572052050000593,
+  "peak_rss_bytes": 2236686336,
+  "peak_shared_cgroup_bytes": 5436157952,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "My friend didn’t turn off the light; the wind did it for them.",
+  "stdout_sha256": "15a9a7ca11a89d3a1d670169b8cc7364b0edea95b718213cd316e9cf08fd1d2c",
+  "stderr_sha256": "c75b78a81cafe9f7fa7267f83914fc5c79fd8ec5b07ed1972fbe29fd0c93a643"
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.283656140999938,
+  "first_nonwhitespace_stdout_seconds": 2.799385574000098,
+  "peak_rss_bytes": 2244018176,
+  "peak_shared_cgroup_bytes": 6021222400,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"Not because I stopped loving you, but because I could not make you stay.\", \"当前句\": \"She handed me the unsent letter. \", \"后句\": \"I didn’t burn it; I just hid it in my old coat.\"}",
+  "stdout_sha256": "498ea5d3edf40806a0f4000f919cb39f9ed9cac1132e65f6043d7bac465e0fb9",
+  "stderr_sha256": "8f8adfbb4572b128785cf1e7fa81045d33777fa2d7dde8cd92ba4bdfd3cc31af"
+}

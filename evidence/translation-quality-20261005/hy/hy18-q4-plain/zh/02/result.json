@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.9200137569999924,
+  "first_nonwhitespace_stdout_seconds": 1.673698634999937,
+  "peak_rss_bytes": 1464029184,
+  "peak_shared_cgroup_bytes": 5238767616,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "不是她打破的，是我在。",
+  "stdout_sha256": "788334be91cc4ba7b28bf3308012eaff802ee60fd277d469d0f02217baebc237",
+  "stderr_sha256": "7cdbf1ecc918c31c6dd285ad79f6195ea75ec418316031784d1de8258bf0661e"
+}

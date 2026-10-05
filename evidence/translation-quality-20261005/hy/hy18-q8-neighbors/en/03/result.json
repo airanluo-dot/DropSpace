@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 5.049472983999976,
+  "first_nonwhitespace_stdout_seconds": 2.4409085830000095,
+  "peak_rss_bytes": 2243465216,
+  "peak_shared_cgroup_bytes": 6020681728,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"She didn’t break it; I did.\", \"当前句\": \"I never said you were the one who left.\", \"后句\": \"Not because I stopped loving you, but because I couldn’t make you stay.\"}",
+  "stdout_sha256": "b00b48efe098cbaf6e50dff47bf039dfe06646758df0a96dce2f8040ce27b6db",
+  "stderr_sha256": "d961f0edd42bae97dda59268b1baf7f0b97c7b052cdb7482178ec8edf5beb91b"
+}

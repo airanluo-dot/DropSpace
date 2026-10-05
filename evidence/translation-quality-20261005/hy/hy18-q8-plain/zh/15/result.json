@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.186867398000004,
+  "first_nonwhitespace_stdout_seconds": 1.7547695350000367,
+  "peak_rss_bytes": 2236477440,
+  "peak_shared_cgroup_bytes": 5437005824,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我不会告别，直到你说“没关系”。",
+  "stdout_sha256": "cb6d80e41b581a100a79d54fa67e51f0983cf822eea834fb45805babbec82a49",
+  "stderr_sha256": "4810ab89093723661acf87c0fff0a75a58dd2900ce53aceb3e0406d98a511c03"
+}

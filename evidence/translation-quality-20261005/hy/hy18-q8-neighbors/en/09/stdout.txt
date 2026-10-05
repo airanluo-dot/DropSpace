@@ -1,0 +1,3 @@
+{"前句": "If it keeps raining, I will wait for you; if the rain stops, I won’t leave either.", "当前句": "The one who was looking at the moon wasn’t you, it was me.", "后句": "That light didn’t fade away, it was just when I closed my eyes." [end of text]
+
+

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.661720134999996,
+  "first_nonwhitespace_stdout_seconds": 2.0808530540000447,
+  "peak_rss_bytes": 2243248128,
+  "peak_shared_cgroup_bytes": 6020849664,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"我妹妹在大门旁边留下了一个蓝色罐子。\", \"当前句\": \"不是她打破的，是我。\", \"后句\": \"我从未说过是你留下的。\"}",
+  "stdout_sha256": "68c0413e5f78be9b875f403dabd15c30d55e0ba683fbdfb7af0c51db9a351ada",
+  "stderr_sha256": "90f51513e3de848fbb87f324c853c81ad278a704381d7a32950ccf43765a5c66"
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.285093822999897,
+  "first_nonwhitespace_stdout_seconds": 2.1010127110000667,
+  "peak_rss_bytes": 2244554752,
+  "peak_shared_cgroup_bytes": 6022778880,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"我没有烧掉它，只是把它藏在了旧外套里。\", \"当前句\": \"不是你忘了我，是我不敢叫住你。\", \"后句\": \"如果雨一直下，我会等你；如果雨停了，我也不会离开。\"}",
+  "stdout_sha256": "e321f4fdc7cfca2467cbe10561259398a3fab4246cc5a2c7a46c56aec43b262b",
+  "stderr_sha256": "1ae8bcba7b0c8bf5ec8a985b15c996f8a77f652bda8588562667d4f45735723a"
+}

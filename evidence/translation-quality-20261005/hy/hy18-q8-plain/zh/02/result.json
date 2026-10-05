@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.9949485849999746,
+  "first_nonwhitespace_stdout_seconds": 1.4299922929999411,
+  "peak_rss_bytes": 2236039168,
+  "peak_shared_cgroup_bytes": 5435617280,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "不是她弄坏的，是我弄坏的。",
+  "stdout_sha256": "7b63565be71ba0baa00cbf4601fa54c667ef08f6a8e947aadd903e2c20beef87",
+  "stderr_sha256": "c7b4713ce44608bc758d25ae5991e29d293cb134ac291b04c7e8f8856604e71b"
+}

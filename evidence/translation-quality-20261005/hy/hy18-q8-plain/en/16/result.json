@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.246545283999922,
+  "first_nonwhitespace_stdout_seconds": 1.7146212699999523,
+  "peak_rss_bytes": 2239590400,
+  "peak_shared_cgroup_bytes": 5438816256,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "Stay with me, don’t let go of my hand; stay with me, don’t leave me. Stay with me, even if the night is long, the road is far, and the wind is cold, I won’t leave you alone in the rain.",
+  "stdout_sha256": "0e1487b7efd991883da8fa21dcd0a1be05ca24ea99426123ef7def5c5b40b994",
+  "stderr_sha256": "ac3a275ca8d7a1e6598a3222c5c31e7e59e5f1f83ccf238744c56674bc995d62"
+}

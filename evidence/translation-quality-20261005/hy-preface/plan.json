@@ -1,0 +1,52 @@
+{
+  "baseline": "64457419ae6fc8af15ab5542a402b7b871cbf9be",
+  "created_utc": "2026-10-05T09:15:06Z",
+  "runtime_sha256": "dd57fc57da850231447a5c4f4289b9f66495e09d6b39fb077ab49488c46a4b7b",
+  "fixtures_sha256": "4a1dcc4923e9ed723def83512e04b1ede5f3f69c99b162aa65880ff9779b21c0",
+  "models_manifest_sha256": "8acb8252b83fbd6cfa78bd762a2da4bcbda9ff908768d1f03021944911a2be45",
+  "arms": [
+    "hy18-q8-neighbors-preface"
+  ],
+  "targets": [
+    "en",
+    "zh"
+  ],
+  "sampler": [
+    "-t",
+    "4",
+    "-tb",
+    "4",
+    "-ngl",
+    "0",
+    "-c",
+    "4096",
+    "-n",
+    "2048",
+    "--seed",
+    "42",
+    "--temp",
+    "0.1",
+    "--top-k",
+    "20",
+    "--top-p",
+    "0.8",
+    "--min-p",
+    "0.05",
+    "--repeat-penalty",
+    "1.0",
+    "--frequency-penalty",
+    "0",
+    "--presence-penalty",
+    "0"
+  ],
+  "template": "参考以下相邻歌词以理解当前句的指代和语气。前句和后句仅作为上下文，不要翻译或输出它们。\n前句：{0}\n后句：{1}\n\n将以下文本翻译为{2}，注意只需要输出翻译后的结果，不要额外解释：\n{3}",
+  "protocol": "neighbor-preface-current-line-lab-v1",
+  "limits": {
+    "seconds_per_line": 60,
+    "seconds_per_target": 600,
+    "shared_memory_bytes": 15032385536,
+    "rss_bytes": 3221225472
+  },
+  "hypothesis": "Plain natural-language context preface followed by exact official current-line template may avoid whole-JSON translation observed in first experiment.",
+  "scope": "New preregistered arm, not a retest/overwrite of failed JSON arm. Same runtime/model/sampler/probe/fresh-process lifecycle. Not an official contextual template. No production cache."
+}

@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.8943107280000504,
+  "first_nonwhitespace_stdout_seconds": 1.5252184790000456,
+  "peak_rss_bytes": 1464020992,
+  "peak_shared_cgroup_bytes": 5238640640,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我妹妹在大门旁边留下了一个蓝色罐子。",
+  "stdout_sha256": "5cb02040f41483ed19a6e532a0320d995f92e0149b1e441ed60eabeb0bac7af6",
+  "stderr_sha256": "03764d2afadea77aa94af8342031ddd623d4bcb22e6506314fba1e7d5aed1003"
+}

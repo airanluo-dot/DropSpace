@@ -1,0 +1,241 @@
+{
+  "lines": [
+    {
+      "id": "01",
+      "text": "My sister left a blue jar beside the gate."
+    },
+    {
+      "id": "02",
+      "text": "She did not break it; I did."
+    },
+    {
+      "id": "03",
+      "text": "I never said you were the one who left."
+    },
+    {
+      "id": "04",
+      "text": "Not because I stopped loving you, but because I could not make you stay."
+    },
+    {
+      "id": "09",
+      "text": "It wasn't you who was looking at the moon, it was me."
+    },
+    {
+      "id": "10",
+      "text": "The light didn't go out, only I closed my eyes."
+    },
+    {
+      "id": "11",
+      "text": "I didn't say I wouldn't go home. I said I couldn't go home tonight."
+    },
+    {
+      "id": "12",
+      "text": "My friend didn't turn the lights off. The wind's off."
+    },
+    {
+      "id": "13",
+      "text": "It's not that he's sad he's gone, but that he can't say goodbye."
+    },
+    {
+      "id": "14",
+      "text": "Come back, come back, I didn't wait yesterday, it's today."
+    }
+  ],
+  "tokens": [
+    [
+      ">>cmn_Hans<<",
+      "▁My",
+      "▁sister",
+      "▁left",
+      "▁a",
+      "▁blue",
+      "▁",
+      "jar",
+      "▁beside",
+      "▁the",
+      "▁gate",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁She",
+      "▁did",
+      "▁not",
+      "▁break",
+      "▁it",
+      ";",
+      "▁I",
+      "▁did",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁I",
+      "▁never",
+      "▁said",
+      "▁you",
+      "▁were",
+      "▁the",
+      "▁one",
+      "▁who",
+      "▁left",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁Not",
+      "▁because",
+      "▁I",
+      "▁stopped",
+      "▁loving",
+      "▁you",
+      ",",
+      "▁but",
+      "▁because",
+      "▁I",
+      "▁could",
+      "▁not",
+      "▁make",
+      "▁you",
+      "▁stay",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁It",
+      "▁wasn",
+      "'",
+      "t",
+      "▁you",
+      "▁who",
+      "▁was",
+      "▁looking",
+      "▁at",
+      "▁the",
+      "▁moon",
+      ",",
+      "▁it",
+      "▁was",
+      "▁me",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁The",
+      "▁light",
+      "▁didn",
+      "'",
+      "t",
+      "▁go",
+      "▁out",
+      ",",
+      "▁only",
+      "▁I",
+      "▁closed",
+      "▁my",
+      "▁eyes",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁I",
+      "▁didn",
+      "'",
+      "t",
+      "▁say",
+      "▁I",
+      "▁wouldn",
+      "'",
+      "t",
+      "▁go",
+      "▁home",
+      ".",
+      "▁I",
+      "▁said",
+      "▁I",
+      "▁couldn",
+      "'",
+      "t",
+      "▁go",
+      "▁home",
+      "▁tonight",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁My",
+      "▁friend",
+      "▁didn",
+      "'",
+      "t",
+      "▁turn",
+      "▁the",
+      "▁lights",
+      "▁off",
+      ".",
+      "▁The",
+      "▁wind",
+      "'",
+      "s",
+      "▁off",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁It",
+      "'",
+      "s",
+      "▁not",
+      "▁that",
+      "▁he",
+      "'",
+      "s",
+      "▁sad",
+      "▁he",
+      "'",
+      "s",
+      "▁gone",
+      ",",
+      "▁but",
+      "▁that",
+      "▁he",
+      "▁can",
+      "'",
+      "t",
+      "▁say",
+      "▁goodbye",
+      ".",
+      "</s>"
+    ],
+    [
+      ">>cmn_Hans<<",
+      "▁Come",
+      "▁back",
+      ",",
+      "▁come",
+      "▁back",
+      ",",
+      "▁I",
+      "▁didn",
+      "'",
+      "t",
+      "▁wait",
+      "▁yesterday",
+      ",",
+      "▁it",
+      "'",
+      "s",
+      "▁today",
+      ".",
+      "</s>"
+    ]
+  ]
+}

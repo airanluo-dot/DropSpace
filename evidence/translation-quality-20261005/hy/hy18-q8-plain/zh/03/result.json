@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.8208713069999476,
+  "first_nonwhitespace_stdout_seconds": 1.4487673349999568,
+  "peak_rss_bytes": 2236309504,
+  "peak_shared_cgroup_bytes": 5435875328,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我从未说过是你离开的。",
+  "stdout_sha256": "51123ac7e54ddd543a8f8a93423006a118404d469bdf0c928bb2085148b02e42",
+  "stderr_sha256": "383ef2205b9fc5a4f77d7e39f961c28de2a62c5d801c56dfec3d81f2e6c6e631"
+}

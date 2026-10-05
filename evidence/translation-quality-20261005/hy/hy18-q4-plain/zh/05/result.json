@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.939811324999937,
+  "first_nonwhitespace_stdout_seconds": 1.6334091740000076,
+  "peak_rss_bytes": 1464061952,
+  "peak_shared_cgroup_bytes": 5239009280,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "她把那封没寄出的信交给了我。",
+  "stdout_sha256": "b402f1382ef8efc64723fcb99f0cd278926e4235052ccc224037a31688f984c9",
+  "stderr_sha256": "7735e2428112fa313178c44e37a0a5e46093695c34a704dbdd8347788cc776ce"
+}

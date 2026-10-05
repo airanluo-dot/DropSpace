@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 6.1398024469999655,
+  "first_nonwhitespace_stdout_seconds": 2.4493077649999577,
+  "peak_rss_bytes": 2246451200,
+  "peak_shared_cgroup_bytes": 6024052736,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"I won’t say goodbye, until you say 괜찮아.\", \"当前句\": \"Stay with me, don’t let go of my hand; stay with me, don’t let go of my hand; stay with me, no matter how long the night, how far the road, or how cold the wind, I won’t leave you alone in the rain.\",\"后句\": \"\"}",
+  "stdout_sha256": "6b4be0585e2190a48f7987d69030c663c59c9954af76b484fb07d7a7a36df7a2",
+  "stderr_sha256": "babacc016e8821cbad34e9bec3d9818973713a4aa7c2b5a6fde1e982dec7d573"
+}

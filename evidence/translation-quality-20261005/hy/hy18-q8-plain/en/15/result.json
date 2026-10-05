@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.106497095000009,
+  "first_nonwhitespace_stdout_seconds": 1.4503189329999486,
+  "peak_rss_bytes": 2236276736,
+  "peak_shared_cgroup_bytes": 5435727872,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "I won’t say goodbye until you say 괜찮아.",
+  "stdout_sha256": "096601eb3c9482434cf54c6fa1abe57b0c505cd1ca07821538f2b2fbd63c2af2",
+  "stderr_sha256": "5f1823c80edf4620733a305e976dedf13b411759921d0371715bb497ff6ff0ea"
+}

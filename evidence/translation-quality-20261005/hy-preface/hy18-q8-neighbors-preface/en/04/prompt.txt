@@ -1,0 +1,6 @@
+参考以下相邻歌词以理解当前句的指代和语气。前句和后句仅作为上下文，不要翻译或输出它们。
+前句：I never said you were the one who left.
+后句：她把那封没寄出的信交给了我。
+
+将以下文本翻译为英语，注意只需要输出翻译后的结果，不要额外解释：
+Not because I stopped loving you, but because I could not make you stay.

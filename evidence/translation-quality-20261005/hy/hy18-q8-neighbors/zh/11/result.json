@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.540904353999849,
+  "first_nonwhitespace_stdout_seconds": 2.4892971179999677,
+  "peak_rss_bytes": 2246311936,
+  "peak_shared_cgroup_bytes": 6024790016,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"那光并没有熄灭，只是我闭上了眼睛而已。\", \"当前句\": \"我没有说不会回来，我只是说今晚回不去了。\", \"后句\": \"我的朋友没有熄灯，风也停了。\"}",
+  "stdout_sha256": "417cb8878c959e9e2cbe1ff6c3f88dc4b8fab178e5fd5254a71e7b2ca96b1fba",
+  "stderr_sha256": "1bf1db9a374d892adc087a7fd105053c833282906a10e158911ebd58b17bec7b"
+}

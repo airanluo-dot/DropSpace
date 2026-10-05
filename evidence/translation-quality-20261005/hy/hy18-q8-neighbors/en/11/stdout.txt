@@ -1,0 +1,3 @@
+{"前句": "That light didn’t go out; it was just when I closed my eyes." "当前句": "I didn’t say I wouldn’t return; I said I can’t go back tonight." "后句": "My friend didn’t turn off the light, the wind did."} [end of text]
+
+

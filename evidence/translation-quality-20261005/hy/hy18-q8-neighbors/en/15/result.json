@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 6.781714842000156,
+  "first_nonwhitespace_stdout_seconds": 2.707777128000089,
+  "peak_rss_bytes": 2249068544,
+  "peak_shared_cgroup_bytes": 6026457088,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"Come back, come back, come back, what I’ve been waiting for isn’t yesterday, it’s today.\", \"当前句\": \"I won’t say goodbye until you say 괜찮아.\"., \"后句\": \"Stay with me, don’t let go of my hand; stay with me, even if the night is long, the road is far, and the wind is cold, I won’t leave you alone in the rain.\"}",
+  "stdout_sha256": "fc892843e35ad67ef57a74eb52c74a9c235543d68bcd8164ea3340afcc11a5be",
+  "stderr_sha256": "6a746860b2b7fe00ab121ea960487d835c1825117321742d2e376b8fdf214495"
+}

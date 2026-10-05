@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.3693384769999284,
+  "first_nonwhitespace_stdout_seconds": 2.5731169829998635,
+  "peak_rss_bytes": 2246139904,
+  "peak_shared_cgroup_bytes": 11577655296,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "回来吧，回来吧，回来吧，我等待的并非昨天，而是今天。",
+  "stdout_sha256": "b3e8702b14f4b08cf00725456696d681bcbaac7d3b95de19bd497c0fa9fdaeec",
+  "stderr_sha256": "712559f3b9c57c35ed0a2c0fe07d46eada5f978bea33f05d3be6d0b9c689df8e"
+}

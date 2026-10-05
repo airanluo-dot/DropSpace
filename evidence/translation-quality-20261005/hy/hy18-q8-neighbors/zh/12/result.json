@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.996890825000037,
+  "first_nonwhitespace_stdout_seconds": 2.526104364000048,
+  "peak_rss_bytes": 2247061504,
+  "peak_shared_cgroup_bytes": 6025379840,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"他并没有说不会回来，只是说今晚回不去了。\", \"当前句\": \"我的朋友没有熄灯，风也停了。\", \"后句\": \"不是因为他离开而难过，而是因为没能道别而感到难过。\"}",
+  "stdout_sha256": "738bfb26b3188f09a4bbb56a6691536600bcae654a4a7eb2ca2b323128e76067",
+  "stderr_sha256": "2ce1cc74196c00cfa12a66535de033da8402da1d54a39a1777b4c4076fd722cb"
+}

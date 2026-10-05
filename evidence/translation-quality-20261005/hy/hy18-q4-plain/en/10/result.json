@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.465002641999945,
+  "first_nonwhitespace_stdout_seconds": 1.8407881879999195,
+  "peak_rss_bytes": 1464324096,
+  "peak_shared_cgroup_bytes": 5238812672,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "That light did not disappear; it was just that I closed my eyes.",
+  "stdout_sha256": "a8800ec1244fc5d88fd1b8d2289dbdc95b96a834bad722ed4bcf0f5deb428d3f",
+  "stderr_sha256": "9d3c1b8a8b7dfe6ebbd4386ad5f3ff2ad7b4da3b4840cd3c7c48f99be05a354d"
+}

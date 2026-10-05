@@ -1,0 +1,77 @@
+{
+  "manifest": "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-conversion/conversion-manifest.json",
+  "evidence": "/workspace/DropSpace/evidence/translation-quality-20261005/ct2-inference/suite-en",
+  "target": "en",
+  "lines": [
+    {
+      "id": "01",
+      "language": "en",
+      "text": "My sister left a blue jar beside the gate."
+    },
+    {
+      "id": "02",
+      "language": "en",
+      "text": "She did not break it; I did."
+    },
+    {
+      "id": "03",
+      "language": "en",
+      "text": "I never said you were the one who left."
+    },
+    {
+      "id": "04",
+      "language": "en",
+      "text": "Not because I stopped loving you, but because I could not make you stay."
+    },
+    {
+      "id": "05",
+      "language": "zh",
+      "text": "她把那封没寄出的信交给了我。"
+    },
+    {
+      "id": "06",
+      "language": "zh",
+      "text": "我没烧掉它，只把它藏在旧外套里。"
+    },
+    {
+      "id": "07",
+      "language": "zh",
+      "text": "不是你忘了我，是我不敢叫住你。"
+    },
+    {
+      "id": "08",
+      "language": "zh",
+      "text": "如果雨一直下，我会等你；如果雨停了，我也不会离开。"
+    },
+    {
+      "id": "09",
+      "language": "ja",
+      "text": "月を見ていたのは君じゃなくて、僕だった。"
+    },
+    {
+      "id": "10",
+      "language": "ja",
+      "text": "その光は消えなかった、僕が目を閉じただけ。"
+    },
+    {
+      "id": "11",
+      "language": "ja",
+      "text": "帰らないとは言っていない、今夜は帰れないと言ったんだ。"
+    },
+    {
+      "id": "12",
+      "language": "ko",
+      "text": "내 친구는 불을 끄지 않았어, 바람이 껐어."
+    },
+    {
+      "id": "13",
+      "language": "ko",
+      "text": "그가 떠나서 슬픈 게 아니라, 작별 인사도 못 해서 슬퍼."
+    },
+    {
+      "id": "14",
+      "language": "ko",
+      "text": "돌아와, 돌아와, 돌아와, 내가 기다린 건 어제가 아니라 오늘이야."
+    }
+  ]
+}

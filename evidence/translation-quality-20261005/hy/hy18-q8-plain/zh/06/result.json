@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.852253281000003,
+  "first_nonwhitespace_stdout_seconds": 1.3817254269999921,
+  "peak_rss_bytes": 2236575744,
+  "peak_shared_cgroup_bytes": 5436284928,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我没有把它烧掉，只是把它藏在了旧外套里。",
+  "stdout_sha256": "36da6a1ff8109a17fc653cdb9dd9d52975a8331364ac26cb02ef0376e2794eef",
+  "stderr_sha256": "df236d5aa5b8751e3b44ca0ae3f2a26861ee7320aee0e35149b792e9d2f677ad"
+}

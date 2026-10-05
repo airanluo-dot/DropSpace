@@ -1,0 +1,2 @@
+将下面 JSON 中的“当前句”翻译为英语。前句和后句仅供理解指代、语气和词义，不能作为待翻译文本。只输出当前句的译文，不要输出邻句、标签或额外解释：
+{"前句": "Not because I stopped loving you, but because I could not make you stay.", "当前句": "她把那封没寄出的信交给了我。", "后句": "我没烧掉它，只把它藏在旧外套里。"}

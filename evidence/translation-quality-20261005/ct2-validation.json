@@ -1,0 +1,22 @@
+{
+  "en": {
+    "ids_in_exact_fixture_order": true,
+    "nonempty_outputs": true,
+    "cold_warm_exact_equal": true,
+    "same_language_bypass_unchanged": true,
+    "model_request_excludes_review_context": true,
+    "mixed_not_sent_to_model": true,
+    "output_count": 14,
+    "actual_translated_lines": 10
+  },
+  "zh": {
+    "ids_in_exact_fixture_order": true,
+    "nonempty_outputs": true,
+    "cold_warm_exact_equal": true,
+    "same_language_bypass_unchanged": true,
+    "model_request_excludes_review_context": true,
+    "mixed_not_sent_to_model": true,
+    "output_count": 14,
+    "actual_translated_lines": 10
+  }
+}

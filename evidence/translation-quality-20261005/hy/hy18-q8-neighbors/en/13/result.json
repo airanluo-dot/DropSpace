@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 8.162260284000013,
+  "first_nonwhitespace_stdout_seconds": 2.883826210999814,
+  "peak_rss_bytes": 2247503872,
+  "peak_shared_cgroup_bytes": 6025027584,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"My friend didn’t turn off the light, and the wind also didn’t stop.\", \"当前句\": \"It’s not that he left and I’m sad, but I’m sad because I couldn’t say goodbye to him.\", \"后句\": \"Come back, come back, come back! What I’ve been waiting for isn’t yesterday, it’s today.\"}",
+  "stdout_sha256": "23fc6644b869ac174b526d48f93756b55c14b86ca7efdbb5d8ca0b821c059dff",
+  "stderr_sha256": "c7c127afb1fb132ff6120998b39c60ceee85f14dbd18974a39b1159433d074fc"
+}

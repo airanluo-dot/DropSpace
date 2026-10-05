@@ -1,0 +1,83 @@
+{
+  "outputs": [
+    {
+      "id": "09",
+      "tokens": [
+        "▁It",
+        "▁was",
+        "n",
+        "'",
+        "t",
+        "▁you",
+        "▁who",
+        "▁was",
+        "▁looking",
+        "▁at",
+        "▁the",
+        "▁moon",
+        ",",
+        "▁it",
+        "▁was",
+        "▁me",
+        ".",
+        "</s>"
+      ],
+      "text": "It wasn't you who was looking at the moon, it was me."
+    },
+    {
+      "id": "10",
+      "tokens": [
+        "▁The",
+        "▁light",
+        "▁did",
+        "n",
+        "'",
+        "t",
+        "▁go",
+        "▁out",
+        ",",
+        "▁only",
+        "▁I",
+        "▁closed",
+        "▁my",
+        "▁eyes",
+        ".",
+        "</s>"
+      ],
+      "text": "The light didn't go out, only I closed my eyes."
+    },
+    {
+      "id": "11",
+      "tokens": [
+        "▁I",
+        "▁did",
+        "n",
+        "'",
+        "t",
+        "▁say",
+        "▁I",
+        "▁would",
+        "n",
+        "'",
+        "t",
+        "▁go",
+        "▁home",
+        ".",
+        "▁I",
+        "▁said",
+        "▁I",
+        "▁could",
+        "n",
+        "'",
+        "t",
+        "▁go",
+        "▁home",
+        "▁tonight",
+        ".",
+        "</s>"
+      ],
+      "text": "I didn't say I wouldn't go home. I said I couldn't go home tonight."
+    }
+  ],
+  "seconds": 1.5833530529999962
+}

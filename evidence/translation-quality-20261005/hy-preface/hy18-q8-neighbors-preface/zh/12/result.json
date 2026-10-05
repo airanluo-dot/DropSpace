@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.866912081999999,
+  "first_nonwhitespace_stdout_seconds": 2.3581666309999036,
+  "peak_rss_bytes": 2245541888,
+  "peak_shared_cgroup_bytes": 11576832000,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我的朋友没有熄灯，风也停了。",
+  "stdout_sha256": "0951ffacc836fdef5a9fc7d55e62c3af779ba1255c6b03afb41d762ac0db4801",
+  "stderr_sha256": "3add4079fc11f16d5c52039fe1a588e37cea844b15bfd4ed742aeba9ac0bce94"
+}

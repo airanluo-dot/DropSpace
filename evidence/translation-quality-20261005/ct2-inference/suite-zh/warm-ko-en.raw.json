@@ -1,0 +1,83 @@
+[
+  {
+    "id": "12",
+    "hypothesisTokens": [
+      [
+        "▁My",
+        "▁friend",
+        "▁didn",
+        "'",
+        "t",
+        "▁turn",
+        "▁the",
+        "▁lights",
+        "▁off",
+        ".",
+        "▁The",
+        "▁wind",
+        "'",
+        "s",
+        "▁off",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "13",
+    "hypothesisTokens": [
+      [
+        "▁It",
+        "'",
+        "s",
+        "▁not",
+        "▁that",
+        "▁he",
+        "'",
+        "s",
+        "▁sad",
+        "▁he",
+        "'",
+        "s",
+        "▁gone",
+        ",",
+        "▁but",
+        "▁that",
+        "▁he",
+        "▁can",
+        "'",
+        "t",
+        "▁say",
+        "▁goodbye",
+        ".",
+        "</s>"
+      ]
+    ]
+  },
+  {
+    "id": "14",
+    "hypothesisTokens": [
+      [
+        "▁Come",
+        "▁back",
+        ",",
+        "▁come",
+        "▁back",
+        ",",
+        "▁I",
+        "▁didn",
+        "'",
+        "t",
+        "▁wait",
+        "▁yesterday",
+        ",",
+        "▁it",
+        "'",
+        "s",
+        "▁today",
+        ".",
+        "</s>"
+      ]
+    ]
+  }
+]

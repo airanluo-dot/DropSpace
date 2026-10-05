@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 2.097239928000022,
+  "first_nonwhitespace_stdout_seconds": 1.6279989380000188,
+  "peak_rss_bytes": 1464770560,
+  "peak_shared_cgroup_bytes": 5240131584,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "如果雨一直下，我会等你；如果雨停了，我也不会离开。",
+  "stdout_sha256": "bddc54f84c9df3c54c9ad6b89403dbb199da996690520ee7078377561cb61608",
+  "stderr_sha256": "26e1b30b427c168e59260b89638d70c4a50ba69cb403ceee1bd48482999ed879"
+}

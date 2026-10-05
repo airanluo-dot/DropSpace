@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 1.9534643529999585,
+  "first_nonwhitespace_stdout_seconds": 1.4638954979999426,
+  "peak_rss_bytes": 2237161472,
+  "peak_shared_cgroup_bytes": 5437001728,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "我并没有说不会回来，我只是说今晚回不去了。",
+  "stdout_sha256": "302d1043add3c6fbb145105e4626ebc4858c005178766341327e741992644536",
+  "stderr_sha256": "5a946d4a5684ff7866a6f922ecaa3710a9670768eca1291e1817995eb897d341"
+}

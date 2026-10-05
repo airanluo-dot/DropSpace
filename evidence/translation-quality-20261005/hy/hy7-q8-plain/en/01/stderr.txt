@@ -1,0 +1,7 @@
+warning: no usable GPU found, --gpu-layers option will be ignored
+warning: one possible reason is that llama.cpp was compiled without GPU support
+warning: consult docs/build.md for compilation instructions
+0.00.002.026 I llama_completion: llama backend init
+0.00.002.041 I llama_completion: load the model and apply lora adapter, if any
+0.00.406.611 W load: special_eos_id is not in special_eog_ids - the tokenizer config may be incorrect
+0.00.406.628 W load: special_eot_id is not in special_eog_ids - the tokenizer config may be incorrect

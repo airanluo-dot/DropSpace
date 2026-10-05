@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 4.168452651999814,
+  "first_nonwhitespace_stdout_seconds": 2.179818408999836,
+  "peak_rss_bytes": 2244022272,
+  "peak_shared_cgroup_bytes": 6021943296,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "{\"前句\": \"她把那封没寄出的信交给了我。\", \"当前句\": \"我没烧掉它，只把它藏在旧外套里。\", \"后句\": \"不是你忘了我，是我不敢叫住你。\"}",
+  "stdout_sha256": "d1c4847290cc6796400fb35b6ea8760f59efe289799c000c15f5755e2298f879",
+  "stderr_sha256": "10c10c30f5a07fad1c8a5420ddfcf14ec007eed56f7ee3eb00983f896811fbda"
+}

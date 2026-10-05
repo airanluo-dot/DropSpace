@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "seconds": 3.013862668999991,
+  "first_nonwhitespace_stdout_seconds": 1.7999315780000416,
+  "peak_rss_bytes": 2237485056,
+  "peak_shared_cgroup_bytes": 5436727296,
+  "cleanup_confirmed": true,
+  "completed": true,
+  "text": "It’s not that he left and I’m sad, but I’m sad because I couldn’t say goodbye to him.",
+  "stdout_sha256": "4c930cccacf1b329c2bc89629cdeac7d15a5a2ffc2c273b382304b37270ee8d4",
+  "stderr_sha256": "7a4805ef75f3bf30eb7a81314a5883b8b0ed349ff0fa2f8dea7f318e92286446"
+}
