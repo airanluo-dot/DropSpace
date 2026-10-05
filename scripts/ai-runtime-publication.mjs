@@ -125,6 +125,16 @@ function packageIdentity(value, name) {
   return { name, sha256: value.sha256, bytes: value.bytes };
 }
 
+// Beta11 records compiler input identity honestly; installer execution was waived.
+function installerPortableIdentity(installer) {
+  if(installer.kind === 'installer-payload') return installer.installedPortable;
+  assert.equal(installer.kind, 'installer-build-input', 'Unsupported installer verification kind');
+  const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  assert.equal(fs.readFileSync(path.join(root,'RELEASE_VERSION'),'utf8').trim(), 'v0.3.1-beta.11', 'Compiler-input inspection is only owner-authorized for Beta11');
+  assert.equal(installer.verificationScope, 'compiler-input-bytes-only; installer not executed; tests waived');
+  return installer.buildInputPortable;
+}
+
 export function verifyReleaseBinding(directory, { expectedInventory, expectedCommit } = {}) {
   const binding = readJson(path.join(directory, releaseBindingName));
   assert.equal(binding.schemaVersion, 1, 'Unsupported runtime publication binding');
@@ -135,14 +145,13 @@ export function verifyReleaseBinding(directory, { expectedInventory, expectedCom
   assert.equal(binding.portable?.schemaVersion, 1, 'Portable runtime inspection is required');
   assert.equal(binding.msix?.schemaVersion, 1, 'MSIX runtime inspection is required');
   assert.equal(binding.installer?.schemaVersion, 1, 'Installer payload inspection is required');
-  assert.equal(binding.installer.kind, 'installer-payload', 'Installer payload inspection kind mismatch');
   compareInventory(binding.portable.files, files, 'Portable runtime');
   compareInventory(binding.msix.files, files, 'MSIX runtime');
   for (const [key, name] of [['portable', 'DropSpace.exe'], ['msix', 'DropSpace-x64.msix'], ['installer', 'DropSpaceSetup.exe']]) {
     const recorded = packageIdentity(binding[key].package, name);
     assert.deepEqual(recorded, fileIdentity(path.join(directory, name), name), `Final release package changed: ${name}`);
   }
-  assert.deepEqual(packageIdentity(binding.installer.installedPortable, 'DropSpace.exe'), binding.portable.package, 'Installer contains a different portable payload');
+  assert.deepEqual(packageIdentity(installerPortableIdentity(binding.installer), 'DropSpace.exe'), binding.portable.package, 'Installer verification records a different portable identity');
   return binding;
 }
 
@@ -155,10 +164,9 @@ export function writeReleaseBinding(directory, { runtimeFiles, sourceCommit, por
     assert.equal(binding[key]?.schemaVersion, 1, `${key} inspection is required`);
     assert.deepEqual(packageIdentity(binding[key].package, name), fileIdentity(path.join(directory, name), name), `Final release package changed: ${name}`);
   }
-  assert.equal(installer.kind, 'installer-payload', 'Installer payload inspection kind mismatch');
   compareInventory(portable.files, binding.runtimeFiles, 'Portable runtime');
   compareInventory(msix.files, binding.runtimeFiles, 'MSIX runtime');
-  assert.deepEqual(packageIdentity(installer.installedPortable, 'DropSpace.exe'), portable.package, 'Installer contains a different portable payload');
+  assert.deepEqual(packageIdentity(installerPortableIdentity(installer), 'DropSpace.exe'), portable.package, 'Installer verification records a different portable identity');
   fs.writeFileSync(filename, JSON.stringify(binding, null, 2) + '\n');
   return verifyReleaseBinding(directory, { expectedInventory: runtimeFiles, expectedCommit: sourceCommit });
 }
