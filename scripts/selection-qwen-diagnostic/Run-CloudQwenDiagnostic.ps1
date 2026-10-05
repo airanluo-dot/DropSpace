@@ -12,7 +12,7 @@ trap {
   Write-Error -ErrorRecord $_ -ErrorAction Continue
   exit 1
 }
-$profileId=if($env:DIAGNOSTIC_VARIANT -in @('qwen4-evidence','qwen4-template-validation')) {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
+$profileId=if($env:DIAGNOSTIC_VARIANT -in @('qwen4-evidence','qwen4-template-validation','qwen4-deterministic')) {'qwen3-4b-instruct-2507-q8'} else {'qwen3-06-q8'}
 $profiles=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'diagnostic-profiles.json') -Raw | ConvertFrom-Json
 $profile=@($profiles | Where-Object Id -CEQ $profileId)
 if($profile.Count -ne 1) {throw 'Unknown pinned diagnostic model profile.'}
@@ -22,7 +22,8 @@ New-Item $modelDirectory -ItemType Directory -Force | Out-Null
 $model=Join-Path $modelDirectory $profile.File
 $partial=$model+'.partial'
 $clock=[Diagnostics.Stopwatch]::StartNew()
-Write-Host "Downloading authorized immutable $($profile.Id), $($profile.Bytes) bytes; not yet verified."
+Write-Host "Locating authorized immutable $($profile.Id), $($profile.Bytes) bytes; verification pending."
+$reused=Test-Path -LiteralPath $model
 # No cookies, credentials, mirrors, IP rotation, or production model registration.
 if (-not (Test-Path -LiteralPath $model)) {
   Invoke-WebRequest -Uri $profile.Url -OutFile $partial
@@ -30,7 +31,7 @@ if (-not (Test-Path -LiteralPath $model)) {
   Move-Item -LiteralPath $partial -Destination $model
 }
 if((Get-Item -LiteralPath $model).Length -ne $profile.Bytes -or (Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash -ine $profile.Sha256) { throw 'Immutable model verification failed.' }
-[ordered]@{profile=$profile;verified=$true;downloadAndVerificationSeconds=$clock.Elapsed.TotalSeconds} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'download.json') -Encoding utf8
+[ordered]@{profile=$profile;verified=$true;reusedPresentFile=$reused;downloadAndVerificationSeconds=$clock.Elapsed.TotalSeconds} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputDirectory 'download.json') -Encoding utf8
 Write-Host "Verified $($profile.Id): exact bytes and SHA256 matched."
 Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,FreePhysicalMemory,TotalVisibleMemorySize | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'host.json') -Encoding utf8
 Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'cpu.json') -Encoding utf8
