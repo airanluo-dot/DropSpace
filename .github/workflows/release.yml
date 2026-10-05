@@ -29,6 +29,7 @@ on:
         options:
           - original
           - refined
+          - qwen06
 
       expected_commit:
         description: Exact reviewed main commit required for publication
@@ -82,7 +83,11 @@ jobs:
         run: |
           $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
           $runtime = "$inputs/runtime"
-          dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
+          if ($env:DIAGNOSTIC_VARIANT -eq 'qwen06') {
+            ./scripts/selection-qwen-diagnostic/Run-CloudQwenDiagnostic.ps1 -InputsDirectory $inputs -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
+          } else {
+            dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
+          }
           if ($LASTEXITCODE -ne 0) { throw 'Diagnostic execution failure; retained observations are not model approval.' }
       - name: Retain observations and original provenance on failure or success
         if: always()
@@ -91,6 +96,7 @@ jobs:
           name: ai-selection-long-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             artifacts/selection-long-diagnostic/*.json
+            artifacts/selection-long-diagnostic/*.txt
             artifacts/selection-diagnostic-inputs/*-artifact.json
             artifacts/selection-diagnostic-inputs/run.json
             artifacts/selection-diagnostic-inputs/runtime/runtime-manifest.json
