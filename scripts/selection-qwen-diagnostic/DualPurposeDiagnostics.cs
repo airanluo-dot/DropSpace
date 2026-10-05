@@ -27,6 +27,24 @@ internal static class DualPurposeDiagnostics
             source="Original synthetic QA and existing holdout, not provider captures",cases,
             qwenProtocol=LyricsTranslationPrompt.Version,hyProtocol=PlainHyLyricsProtocol.Version,
             comparisonLimit="Qwen contextual batch JSON vs actual Hy per-line protocol; context/protocol differ, not an isolated weights benchmark",semanticApproved=false});
+        if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-plain-transfer") {
+            var plain=new List<object>();
+            foreach(var sample in new[]{(Item:cases[0],Index:2),(Item:cases[0],Index:3),(Item:cases[1],Index:1)}) {
+                var item=sample.Item;var index=sample.Index;
+                var prompt=PlainHyLyricsProtocol.BuildPrompt(item.Source.Lines[index].Text,item.Target);
+                var label="qwen-plain-"+item.Name+"-"+index;var path=Path.Combine(output,label+".prompt.txt");
+                File.WriteAllText(path,Render(prompt),new UTF8Encoding(false));
+                var native=await probe(label,Path.Combine(inputs,"runtime/llama-completion-avx2.exe"),Arguments(qwen,path,256,null),60,16384,total.Token);
+                if(!native.CleanupCompleted)throw new InvalidOperationException("Plain transfer owner cleanup unresolved.");
+                var raw=File.ReadAllText(Path.Combine(output,label+".stdout.txt"));var text=LlamaCompletionRunner.RemoveRuntimeTerminator(raw);
+                var complete=native.ExitCode==0&&native.Reason is null&&raw.TrimEnd().EndsWith("[end of text]",StringComparison.Ordinal);
+                var valid=complete&&PlainHyLyricsProtocol.IsCompleteLine(text);
+                var mapped=item.Source with {Lines=item.Source.Lines.Select((line,i)=>i==index&&valid?line with {Secondary=text,TranslationOrigin=LyricsTranslationOrigin.LocalAi,TranslationLanguage=item.Target}:line).ToArray()};
+                var result=new{diagnosticOnly=true,model="Qwen3-0.6B-Q8",protocol=PlainHyLyricsProtocol.Version,item.Name,item.Target,index,source=item.Source.Lines[index].Text,raw,text,complete,structurallyValid=valid,mapped,native,semanticApproved=false};
+                Save(label,result);plain.Add(result);
+            }
+            Save("plain-transfer-summary",new{diagnosticOnly=true,semanticApproved=false,observations=plain});return 0;
+        }
         using var packages=new AiModelPackageService(Path.Combine(output,"hy-diagnostic-model"));
         var descriptor=AiLyricsModelCatalog.ExperimentalPlain;
         var hy=await packages.DownloadAsync(descriptor.Id,true,null,total.Token);
