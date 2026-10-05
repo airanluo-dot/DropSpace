@@ -17,6 +17,7 @@ export const residentSourcePaths = Object.freeze([
 // prompt/parser/inference input from a manifest cannot weaken its binding.
 export const sourcePaths = Object.freeze([
   'src/DropSpace.Core/Lyrics/AiLyricsModelCatalog.cs',
+  'src/DropSpace.Core/Lyrics/AiLyricsSelectionModelCatalog.cs',
   'src/DropSpace.Core/Lyrics/LyricsModels.cs',
   'src/DropSpace.Core/Lyrics/LyricsTranslationPrompt.cs',
   'src/DropSpace.Core/Lyrics/LyricsTranslationOutput.cs',
@@ -167,6 +168,7 @@ export const sourcePaths = Object.freeze([
   'scripts/Get-AiLyricsSmokeModel.ps1',
   'scripts/Test-AiLyricsRuntime.ps1',
   // Embedding/packaging declarations are also part of the reviewed shipping input.
+  'src/DropSpace.Core/DropSpace.Core.csproj',
   'src/DropSpace.App/DropSpace.App.csproj',
   'scripts/Build-PortableExe.ps1',
   'scripts/Build-UnsignedPackage.ps1',
