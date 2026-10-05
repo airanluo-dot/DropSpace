@@ -35,6 +35,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private readonly Func<bool, CancellationToken, Task<string>> _resolve;
     private readonly AiLyricsRuntimeOptions _options;
     private readonly string _gpuBackend;
+    private readonly Func<CancellationToken, Task<CudaLyricsComponentLease>>? _openCudaLease;
     private readonly SemaphoreSlim _operation = new(1, 1);
     private int _translationWaiters;
     private CancellationTokenSource? _preparation;
@@ -69,7 +70,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     public PersistentPlainLyricsRunner(AiLyricsRuntimePackage runtime, CudaLyricsRuntimePackage cuda,
         AiLyricsRuntimeOptions options)
         : this((gpu, token) => gpu ? cuda.EnsureWorkerAsync(token) : runtime.EnsureResidentWorkerAsync(false, token),
-            options, TimeSpan.FromSeconds(60), gpuBackend: "cuda") { }
+            options, TimeSpan.FromSeconds(60), gpuBackend: "cuda")
+    {
+        ArgumentNullException.ThrowIfNull(runtime);
+        ArgumentNullException.ThrowIfNull(cuda);
+        _openCudaLease = cuda.OpenWorkerLeaseAsync;
+    }
 
     internal PersistentPlainLyricsRunner(Func<bool, CancellationToken, Task<string>> resolve,
         AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null, string gpuBackend = "vulkan")
@@ -315,60 +321,73 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private async Task StartSessionAsync(string modelPath, AiLyricsModelDescriptor model, bool gpu, CancellationToken token, bool nonblocking = false)
     {
         await _cleanup.WaitAsync(token).ConfigureAwait(false);
-        var executable = await _resolve(gpu, token).ConfigureAwait(false);
-        if (nonblocking)
-        {
-            if (Volatile.Read(ref _translationWaiters) != 0 || !LocalInferenceProcess.InferenceGate.Wait(0))
-                throw new IOException("Inference is busy.");
-        }
-        else await LocalInferenceProcess.InferenceGate.WaitAsync(token).ConfigureAwait(false);
-        var gateTransferred = false;
+        CudaLyricsComponentLease? componentLease = null;
         try
         {
-            var start = new ProcessStartInfo(Path.GetFullPath(executable))
+            string executable;
+            if (gpu && _openCudaLease is not null)
             {
-                UseShellExecute = false, CreateNoWindow = true,
-                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
-            };
-            foreach (var argument in BuildArguments(modelPath, gpu, model.Sha256, _gpuBackend)) start.ArgumentList.Add(argument);
-            foreach (var key in start.Environment.Keys.Where(key =>
-                key.StartsWith("LLAMA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("GGML_", StringComparison.OrdinalIgnoreCase) ||
-                key.StartsWith("VK_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("VULKAN_", StringComparison.OrdinalIgnoreCase) ||
-                key.StartsWith("CUDA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("HIP_", StringComparison.OrdinalIgnoreCase)).ToArray())
-                start.Environment.Remove(key);
-            start.Environment["OMP_NUM_THREADS"] = "4";
-            start.Environment["OMP_THREAD_LIMIT"] = "4";
-            var memoryBudget = LlamaCompletionRunner.MemoryBudgetFor(model.Sha256);
-            token.ThrowIfCancellationRequested();
-            // The old worker has fully exited and this owner holds the global gate.
-            // GPU fallback gets a fresh reading here; an existing resident is reused
-            // without pretending that its already allocated weights are still free RAM.
-            if (!gpu) CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
-            token.ThrowIfCancellationRequested();
-            var child = LocalInferenceProcess.Start(start, memoryBudget, retainStandardInput: true);
-            _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu);
-            gateTransferred = true;
-            var starting = _session;
-            using var stop = token.Register(() =>
-            { Interlocked.Exchange(ref starting.StopRequested, 1); _ = child.TerminateAndWaitForExitAsync(); });
-            using var ready = await ReadFrameAsync(child.StandardOutput, token).ConfigureAwait(false);
-            if (ready.RootElement.GetProperty("protocol").GetInt32() != 1 || !ready.RootElement.GetProperty("ready").GetBoolean() ||
-                ready.RootElement.GetProperty("backend").GetString() != (gpu ? _gpuBackend : "cpu"))
-                throw new InvalidDataException("Unexpected resident runtime handshake.");
-            if (gpu && _gpuBackend == "cuda" &&
-                (!ready.RootElement.TryGetProperty("componentId", out var component) ||
-                    component.GetString() != CudaLyricsRuntimePackage.RuntimeId))
-                throw new InvalidDataException("Unexpected CUDA component handshake.");
-            if (model == AiLyricsModelCatalog.ExperimentalLargePlain &&
-                (!ready.RootElement.TryGetProperty("modelProfile", out var profile) || profile.GetString() != "hy-mt2-7b-q8"))
-                throw new InvalidDataException("The resident worker did not confirm the selected 7B resource profile.");
-            _session.Device = ready.RootElement.TryGetProperty("device", out var device) ? device.Clone() : null;
-            _session.SelectionSupported = ready.RootElement.TryGetProperty("selectionProtocol", out var selectionProtocol) &&
-                selectionProtocol.ValueKind == JsonValueKind.Number && selectionProtocol.TryGetInt32(out var selectorVersion) &&
-                selectorVersion == SelectionProtocolVersion;
+                componentLease = await _openCudaLease(token).ConfigureAwait(false);
+                executable = componentLease.ExecutablePath;
+            }
+            else executable = await _resolve(gpu, token).ConfigureAwait(false);
+            if (nonblocking)
+            {
+                if (Volatile.Read(ref _translationWaiters) != 0 || !LocalInferenceProcess.InferenceGate.Wait(0))
+                    throw new IOException("Inference is busy.");
+            }
+            else await LocalInferenceProcess.InferenceGate.WaitAsync(token).ConfigureAwait(false);
+            var gateTransferred = false;
+            try
+            {
+                var start = new ProcessStartInfo(Path.GetFullPath(executable))
+                {
+                    UseShellExecute = false, CreateNoWindow = true,
+                    RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
+                    StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
+                };
+                foreach (var argument in BuildArguments(modelPath, gpu, model.Sha256, _gpuBackend)) start.ArgumentList.Add(argument);
+                foreach (var key in start.Environment.Keys.Where(key =>
+                    key.StartsWith("LLAMA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("GGML_", StringComparison.OrdinalIgnoreCase) ||
+                    key.StartsWith("VK_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("VULKAN_", StringComparison.OrdinalIgnoreCase) ||
+                    key.StartsWith("CUDA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("HIP_", StringComparison.OrdinalIgnoreCase)).ToArray())
+                    start.Environment.Remove(key);
+                start.Environment["OMP_NUM_THREADS"] = "4";
+                start.Environment["OMP_THREAD_LIMIT"] = "4";
+                var memoryBudget = LlamaCompletionRunner.MemoryBudgetFor(model.Sha256);
+                token.ThrowIfCancellationRequested();
+                // The old worker has fully exited and this owner holds the global gate.
+                // GPU fallback gets a fresh reading here; an existing resident is reused
+                // without pretending that its already allocated weights are still free RAM.
+                if (!gpu) CpuInferenceMemoryPolicy.EnsureAvailable(memoryBudget, _readMemorySnapshot);
+                token.ThrowIfCancellationRequested();
+                var child = LocalInferenceProcess.Start(start, memoryBudget, retainStandardInput: true);
+                _session = new Session(child, Path.GetFullPath(modelPath), model.Sha256, memoryBudget, gpu)
+                { ComponentLease = componentLease };
+                componentLease = null; // Session now retains the full variant through owned native cleanup.
+                gateTransferred = true;
+                var starting = _session;
+                using var stop = token.Register(() =>
+                { Interlocked.Exchange(ref starting.StopRequested, 1); _ = child.TerminateAndWaitForExitAsync(); });
+                using var ready = await ReadFrameAsync(child.StandardOutput, token).ConfigureAwait(false);
+                if (ready.RootElement.GetProperty("protocol").GetInt32() != 1 || !ready.RootElement.GetProperty("ready").GetBoolean() ||
+                    ready.RootElement.GetProperty("backend").GetString() != (gpu ? _gpuBackend : "cpu"))
+                    throw new InvalidDataException("Unexpected resident runtime handshake.");
+                if (gpu && _gpuBackend == "cuda" &&
+                    (!ready.RootElement.TryGetProperty("componentId", out var component) ||
+                        component.GetString() != CudaLyricsRuntimePackage.RuntimeId))
+                    throw new InvalidDataException("Unexpected CUDA component handshake.");
+                if (model == AiLyricsModelCatalog.ExperimentalLargePlain &&
+                    (!ready.RootElement.TryGetProperty("modelProfile", out var profile) || profile.GetString() != "hy-mt2-7b-q8"))
+                    throw new InvalidDataException("The resident worker did not confirm the selected 7B resource profile.");
+                _session.Device = ready.RootElement.TryGetProperty("device", out var device) ? device.Clone() : null;
+                _session.SelectionSupported = ready.RootElement.TryGetProperty("selectionProtocol", out var selectionProtocol) &&
+                    selectionProtocol.ValueKind == JsonValueKind.Number && selectionProtocol.TryGetInt32(out var selectorVersion) &&
+                    selectorVersion == SelectionProtocolVersion;
+            }
+            finally { if (!gateTransferred) LocalInferenceProcess.InferenceGate.Release(); }
         }
-        finally { if (!gateTransferred) LocalInferenceProcess.InferenceGate.Release(); }
+        finally { componentLease?.Dispose(); }
     }
 
     private async Task StopSessionAsync()
@@ -381,11 +400,20 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             Interlocked.Exchange(ref session.StopRequested, 1);
             session.Cancellation.Dispose();
             var id = session.Child.Process.Id;
-            _cleanup = session.Child.CompleteAsync(session.Errors, session.Memory);
+            _cleanup = session.ComponentLease is null
+                ? session.Child.CompleteAsync(session.Errors, session.Memory)
+                : CompleteSessionAsync(session);
             _ = LlamaCompletionRunner.ReleaseGateAfterCleanupAsync(_cleanup, LocalInferenceProcess.InferenceGate);
             await LocalInferenceProcess.WaitForCleanupAsync(_cleanup, id).ConfigureAwait(false);
         }
         else await _cleanup.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+    }
+
+    private static async Task CompleteSessionAsync(Session session)
+    {
+        await session.Child.CompleteAsync(session.Errors, session.Memory).ConfigureAwait(false);
+        // Failure to observe native exit keeps this session and its component lease owned.
+        session.ComponentLease?.Dispose();
     }
 
     private async Task DrainCanceledSessionAsync(Session expected)
@@ -447,6 +475,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private sealed class Session
     {
         internal JsonElement? Device { get; set; }
+        internal CudaLyricsComponentLease? ComponentLease { get; init; }
         internal Session(LocalInferenceProcess child, string model, string modelSha256, long memoryBudget, bool gpu)
         {
             Child = child; Model = model; ModelSha256 = modelSha256; Gpu = gpu;

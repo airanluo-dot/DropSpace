@@ -110,6 +110,44 @@ public sealed class CudaLyricsRuntimePackage
 
     private static bool IsHash(string? hash) => hash is { Length: 64 } && hash.All(Uri.IsHexDigit);
 
+    /// <summary>Rehashes the materialized component under retained read leases. The resident owner
+    /// releases these only after actual native exit and reader settlement, including failed startup.</summary>
+    internal async Task<CudaLyricsComponentLease> OpenWorkerLeaseAsync(CancellationToken token)
+    {
+        var executable = await EnsureWorkerAsync(token).ConfigureAwait(false);
+        var streams = new List<FileStream>();
+        try
+        {
+            using var manifest = ReadManifest();
+            var identity = Convert.ToHexStringLower(SHA256.HashData(manifest));
+            if (!StringComparer.Ordinal.Equals(Path.GetFileName(Path.GetDirectoryName(executable)), identity))
+                throw new InvalidDataException("CUDA manifest changed before launch.");
+            manifest.Position = 0;
+            using var document = await JsonDocument.ParseAsync(manifest, cancellationToken: token).ConfigureAwait(false);
+            var files = document.RootElement.GetProperty("files").EnumerateArray().ToArray();
+            for (var i = 0; i < Names.Length; i++)
+            {
+                token.ThrowIfCancellationRequested();
+                var path = Path.Combine(Path.GetDirectoryName(executable)!, Names[i]);
+                ReparseSafePathPolicy.ResolveExistingContainedPath(_root, path);
+                var input = ReparseSafeFileOpen.OpenRead(path);
+                streams.Add(input);
+                if (input.Length != files[i].GetProperty("bytes").GetInt64() ||
+                    !CryptographicOperations.FixedTimeEquals(await SHA256.HashDataAsync(input, token).ConfigureAwait(false),
+                        Convert.FromHexString(files[i].GetProperty("sha256").GetString()!)))
+                    throw new InvalidDataException("CUDA component changed before launch.");
+                input.Position = 0;
+            }
+            token.ThrowIfCancellationRequested();
+            return new CudaLyricsComponentLease(executable, streams);
+        }
+        catch
+        {
+            foreach (var stream in streams) stream.Dispose();
+            throw;
+        }
+    }
+
     private async Task<bool> VerifyAsync(string path, string hash, long bytes, CancellationToken token)
     {
         if (!File.Exists(path)) return false;
@@ -117,5 +155,14 @@ public sealed class CudaLyricsRuntimePackage
         await using var input = ReparseSafeFileOpen.OpenRead(path);
         return input.Length == bytes && CryptographicOperations.FixedTimeEquals(
             await SHA256.HashDataAsync(input, token).ConfigureAwait(false), Convert.FromHexString(hash));
+    }
+}
+
+internal sealed class CudaLyricsComponentLease(string executablePath, List<FileStream> streams) : IDisposable
+{
+    internal string ExecutablePath { get; } = executablePath;
+    public void Dispose()
+    {
+        foreach (var stream in streams) stream.Dispose();
     }
 }

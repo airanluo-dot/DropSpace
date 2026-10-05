@@ -1,0 +1,8 @@
+  DropSpace.Core -> /workspace/DropSpace/src/DropSpace.Core/bin/Release/net10.0/DropSpace.Core.dll
+  DropSpace.Infrastructure -> /workspace/DropSpace/src/DropSpace.Infrastructure/bin/Release/net10.0/DropSpace.Infrastructure.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.44
