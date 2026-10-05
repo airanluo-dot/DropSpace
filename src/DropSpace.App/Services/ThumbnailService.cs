@@ -17,6 +17,16 @@ public sealed class ThumbnailService(
     public async Task<BitmapImage?> LoadAsync(DropItem item, uint size = 64, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
+        var owned = LoadOwnedAsync(item, size, cancellationToken);
+        // Presentation can stop waiting while this owner retains the stream and its
+        // admission slot until native completion. Observe any late failure as well.
+        _ = owned.ContinueWith(static failed => { _ = failed.Exception; }, CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        return await owned.WaitAsync(cancellationToken);
+    }
+
+    private async Task<BitmapImage?> LoadOwnedAsync(DropItem item, uint size, CancellationToken cancellationToken)
+    {
         await _gate.WaitAsync(cancellationToken);
         try
         {
@@ -24,8 +34,10 @@ public sealed class ThumbnailService(
             {
                 if (item.Kind == ItemKind.Image && item.Payload is not null)
                 {
-                    var file = await StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(item.Payload.RelativePath)).AsTask(cancellationToken);
-                    using var stream = await file.OpenReadAsync().AsTask(cancellationToken);
+                    var file = await NativeAsyncLifetime.AwaitAsync(StorageFile.GetFileFromPathAsync(payloadStore.ResolvePath(item.Payload.RelativePath)), cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    using var stream = await NativeAsyncLifetime.AwaitAsync(file.OpenReadAsync(), cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
                     var settings = await settingsService.LoadAsync(cancellationToken);
                     await ImageDecoderPreflight.ValidateAsync(stream, settings.MaxImageBytes, settings.MaxImagePixels, cancellationToken);
                     stream.Seek(0);
@@ -33,7 +45,7 @@ public sealed class ThumbnailService(
                     {
                         DecodePixelWidth = checked((int)size),
                     };
-                    await image.SetSourceAsync(stream).AsTask(cancellationToken);
+                    await NativeAsyncLifetime.AwaitAsync(image.SetSourceAsync(stream), cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
                     return image;
                 }
@@ -43,13 +55,15 @@ public sealed class ThumbnailService(
                     StorageItemThumbnail? thumbnail;
                     if (item.File.EntryKind == FileEntryKind.Folder)
                     {
-                        var folder = await StorageFolder.GetFolderFromPathAsync(item.File.OriginalPath).AsTask(cancellationToken);
-                        thumbnail = await folder.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale).AsTask(cancellationToken);
+                        var folder = await NativeAsyncLifetime.AwaitAsync(StorageFolder.GetFolderFromPathAsync(item.File.OriginalPath), cancellationToken);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        thumbnail = await NativeAsyncLifetime.AwaitAsync(folder.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale), cancellationToken);
                     }
                     else
                     {
-                        var file = await StorageFile.GetFileFromPathAsync(item.File.OriginalPath).AsTask(cancellationToken);
-                        thumbnail = await file.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale).AsTask(cancellationToken);
+                        var file = await NativeAsyncLifetime.AwaitAsync(StorageFile.GetFileFromPathAsync(item.File.OriginalPath), cancellationToken);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        thumbnail = await NativeAsyncLifetime.AwaitAsync(file.GetThumbnailAsync(ThumbnailMode.ListView, size, ThumbnailOptions.UseCurrentScale), cancellationToken);
                     }
 
                     if (thumbnail is null)
@@ -59,11 +73,12 @@ public sealed class ThumbnailService(
 
                     using (thumbnail)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var image = new BitmapImage
                         {
                             DecodePixelWidth = checked((int)size),
                         };
-                        await image.SetSourceAsync(thumbnail).AsTask(cancellationToken);
+                        await NativeAsyncLifetime.AwaitAsync(image.SetSourceAsync(thumbnail), cancellationToken);
                         cancellationToken.ThrowIfCancellationRequested();
                         return image;
                     }

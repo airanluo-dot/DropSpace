@@ -27,6 +27,11 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiLyricsCache _cache;
     private readonly AiLyricsWorkLifetime _work;
     private readonly AiLyricsRuntimeOptions _runtimeOptions;
+    private readonly CudaLyricsRuntimePackage? _cudaPackage;
+    private readonly PersistentPlainLyricsRunner? _residentRunner;
+    public bool IsNvidia => CudaDriverAvailability.IsCompatible();
+    public string? ActualBackend => _residentRunner?.LastExecutionBackend;
+
     private readonly SemaphoreSlim _configurationGate = new(1, 1);
     private string? _configuredModelId;
     private bool? _configuredEnabled;
@@ -45,8 +50,10 @@ public sealed class AiLyricsService : IDisposable
 
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger,
         AiModelPackageService? models, IAiLyricsPackageResolver? packageResolver, IAiLyricsBackend? backend,
-        AiLyricsRuntimeOptions? runtimeOptions = null)
+        AiLyricsRuntimeOptions? runtimeOptions = null, CudaLyricsRuntimePackage? cudaPackage = null,
+        PersistentPlainLyricsRunner? residentRunner = null)
     {
+        _cudaPackage = cudaPackage; _residentRunner = residentRunner;
         _applicationRoot = paths.Root;
         var root = Path.Combine(paths.Root, "AiLyrics");
         _ownsModels = models is null;
@@ -99,10 +106,43 @@ public sealed class AiLyricsService : IDisposable
 
     public bool HasModelArtifacts(string modelId) => _models.HasArtifacts(modelId);
 
+    public Task<DropSpace.Core.Abstractions.DlcPackageInspection> InspectModelAsync(string modelId, CancellationToken token) =>
+        _models.InspectAsync(modelId, token);
+
     public Task DeleteModelAsync(string modelId, CancellationToken token)
     {
         InvalidateTranslation();
         return _work.MaintainAsync(cancellation => _models.DeleteAsync(modelId, cancellation), token);
+    }
+
+    public Task DownloadCudaComponentsAsync(bool consent, IProgress<double>? progress, CancellationToken token)
+    {
+        if (_cudaPackage is null) throw new InvalidOperationException("CUDA components are unavailable.");
+        return DownloadCoreAsync();
+        async Task DownloadCoreAsync()
+        {
+            // Transfer can coexist with inference. Activation replaces no live worker files.
+            await _cudaPackage.DownloadAsync(consent, progress, token).ConfigureAwait(false);
+            InvalidateTranslation();
+            await _work.MaintainAsync(cancellation =>
+            {
+                cancellation.ThrowIfCancellationRequested();
+                _runtimeOptions.NotifyBackendChanged();
+                return Task.CompletedTask;
+            }, token).ConfigureAwait(false);
+            ModelDownloaded?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public Task DeleteCudaComponentsAsync(CancellationToken token)
+    {
+        if (_cudaPackage is null) throw new InvalidOperationException("CUDA components are unavailable.");
+        InvalidateTranslation();
+        return _work.MaintainAsync(async cancellation =>
+        {
+            await _cudaPackage.RemoveAsync(cancellation).ConfigureAwait(false);
+            _runtimeOptions.NotifyBackendChanged();
+        }, token);
     }
 
     public Task ClearCacheAsync(CancellationToken token)
@@ -188,7 +228,8 @@ public sealed class AiLyricsService : IDisposable
             if (!isCurrent() || onlyIfConfigured && _configuredEnabled is null) return;
             var enabled = settings.Enabled && settings.AiTranslationEnabled;
             if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
-                _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled) return;
+                _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled &&
+                _runtimeOptions.Backend == settings.AiLyricsGpuBackend) return;
             InvalidateTranslation();
             // GPU/model/disable changes release the old resident owner before a new profile
             // becomes visible. Ordinary song changes keep the verified model warm.
@@ -197,10 +238,12 @@ public sealed class AiLyricsService : IDisposable
                 cancellation.ThrowIfCancellationRequested();
                 if (!isCurrent()) return Task.CompletedTask;
                 _runtimeOptions.GpuEnabled = settings.AiLyricsGpuAccelerationEnabled;
+                _runtimeOptions.Backend = settings.AiLyricsGpuBackend;
                 _configuredModelId = settings.AiModelId;
                 _configuredEnabled = enabled;
                 return Task.CompletedTask;
             }, token).ConfigureAwait(false);
+
         }
         finally { _configurationGate.Release(); }
     }

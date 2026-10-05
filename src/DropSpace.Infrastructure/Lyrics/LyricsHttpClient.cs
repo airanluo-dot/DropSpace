@@ -6,8 +6,9 @@ namespace DropSpace.Infrastructure.Lyrics;
 public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>? diagnostic = null)
 {
     private const int MaximumResponseBytes = 3 * 1024 * 1024;
-    internal void ReportNetEaseReuse() => LyricsDiagnostics.Report(diagnostic,
-        new(DropSpace.Core.Models.LyricsProviderKind.NetEase, LyricsDiagnosticStage.Reuse, LyricsDiagnosticOutcome.Found, 0));
+    internal void ReportNetEaseReuse() => ReportReuse(DropSpace.Core.Models.LyricsProviderKind.NetEase);
+    internal void ReportReuse(DropSpace.Core.Models.LyricsProviderKind provider) => LyricsDiagnostics.Report(diagnostic,
+        new(provider, LyricsDiagnosticStage.Reuse, LyricsDiagnosticOutcome.Found, 0));
     private static readonly HashSet<string> Hosts = new(StringComparer.OrdinalIgnoreCase)
     { "music.163.com", "c.y.qq.com", "lyrics.kugou.com", "songsearch.kugou.com", "lrclib.net", "api.amll.dev" };
 
@@ -28,14 +29,13 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
         try
         {
             var (document, status) = await GetCoreAsync(url, token, referer).ConfigureAwait(false);
-            var code = Number(document.RootElement, "code");
-            var rejected = provider == DropSpace.Core.Models.LyricsProviderKind.NetEase && code > 0 && code != 200;
+            var (code, rejected) = BusinessStatus(document.RootElement, provider, uri.Host == "songsearch.kugou.com");
             LyricsDiagnostics.Report(diagnostic, new(provider, stage,
-                code == 405 && rejected ? LyricsDiagnosticOutcome.RateLimited :
+                rejected && (code == 429 || provider == DropSpace.Core.Models.LyricsProviderKind.NetEase && code == 405)
+                    ? LyricsDiagnosticOutcome.RateLimited :
                 rejected ? LyricsDiagnosticOutcome.Rejected : LyricsDiagnosticOutcome.Found,
                 (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
-                HttpStatus: status, ApiCode: document.RootElement.ValueKind == JsonValueKind.Object &&
-                    document.RootElement.TryGetProperty("code", out _) && code >= int.MinValue && code <= int.MaxValue ? (int)code : null));
+                HttpStatus: status, ApiCode: code));
             return document;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
@@ -46,6 +46,37 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
                 HttpStatus: error is HttpRequestException httpError ? (int?)httpError.StatusCode : null));
             throw;
         }
+    }
+
+    // Reporting only: each adapter remains responsible for its own response
+    // contract and terminal rejection. HTTP 200 is not provider-level success.
+    private static (int? Code, bool Rejected) BusinessStatus(JsonElement root,
+        DropSpace.Core.Models.LyricsProviderKind provider, bool kugouCatalog)
+    {
+        if (root.ValueKind != JsonValueKind.Object) return (null, false);
+        var fields = provider switch
+        {
+            DropSpace.Core.Models.LyricsProviderKind.NetEase => new[] { "code" },
+            DropSpace.Core.Models.LyricsProviderKind.QqMusic => ["code", "retcode", "subcode"],
+            DropSpace.Core.Models.LyricsProviderKind.Kugou => ["error_code", "errcode", "status"],
+            DropSpace.Core.Models.LyricsProviderKind.Amll => ["status"],
+            _ => [],
+        };
+        int? seen = null;
+        foreach (var field in fields)
+        {
+            if (!root.TryGetProperty(field, out var value) || value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var code)) continue;
+            seen = code;
+            var rejected = provider switch
+            {
+                DropSpace.Core.Models.LyricsProviderKind.NetEase => code > 0 && code != 200,
+                DropSpace.Core.Models.LyricsProviderKind.Amll => code != 200,
+                DropSpace.Core.Models.LyricsProviderKind.Kugou when field == "status" => code != (kugouCatalog ? 1 : 200),
+                _ => code != 0,
+            };
+            if (rejected) return (code, true);
+        }
+        return (seen, false);
     }
 
     private async Task<(JsonDocument Document, int Status)> GetCoreAsync(string url, CancellationToken token, string? referer)
@@ -68,6 +99,7 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
             if (buffer.Length + count > MaximumResponseBytes) throw new InvalidDataException("Lyrics response exceeds limit.");
             buffer.Write(chunk, 0, count);
         }
+        timeout.Token.ThrowIfCancellationRequested();
         var bytes = buffer.GetBuffer();
         var length = checked((int)buffer.Length);
         var encoding = Encoding.UTF8;
@@ -86,7 +118,14 @@ public sealed class LyricsHttpClient(HttpClient client, Action<LyricsDiagnostic>
             if (begin < 0 || end <= begin) throw new InvalidDataException("Invalid lyrics response.");
             json = json[(begin + 1)..end];
         }
-        return (JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 }), (int)response.StatusCode);
+        timeout.Token.ThrowIfCancellationRequested();
+        var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 });
+        if (timeout.IsCancellationRequested)
+        {
+            document.Dispose();
+            timeout.Token.ThrowIfCancellationRequested();
+        }
+        return (document, (int)response.StatusCode);
     }
 
     // The production transport disables automatic redirects. Follow only bounded,

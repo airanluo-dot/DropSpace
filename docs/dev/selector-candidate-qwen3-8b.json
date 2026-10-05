@@ -1,0 +1,22 @@
+{
+  "status": "cloud diagnostic completed; evaluated configuration not qualified; no production enrollment",
+  "id": "qwen3-8b-q4km-selection-candidate",
+  "file": "Qwen3-8B-Q4_K_M.gguf",
+  "repository": "Qwen/Qwen3-8B-GGUF",
+  "revision": "7c41481f57cb95916b40956ab2f0b139b296d974",
+  "url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q4_K_M.gguf",
+  "bytes": 5027783488,
+  "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+  "license": "Apache-2.0",
+  "templateRevision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "emptyThinkingBlock": true,
+  "diagnosticMemoryMiB": 8192,
+  "hostReserveMiB": 1024,
+  "corpus": "identity-validation-v1.json unchanged",
+  "activation": "Explicit owner approval and later full-autonomy instruction confirmed by parent delegation; bounded diagnostic only. Production enrollment still requires actual qualification.",
+  "authorizationReference": "2026-10-05T03:18:58Z / 335d29085ba48191953f25ee395d415a; 03:19:22Z / d98b65bb93f8819186605036960cf431",
+  "diagnosticRun": 37278278637,
+  "evaluatedHead": "caf02486d2e022ad316d4f619ae0a8df1098146c",
+  "result": "15 complete official-EOS calls; 10 full-contract correct, 8 of 12 independent; one unsupported unknown-artist acceptance, one missed known alias, three extra-prefix outputs",
+  "readout": "beta11-qwen8-selection-readout.md"
+}

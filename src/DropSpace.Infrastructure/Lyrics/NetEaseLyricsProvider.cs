@@ -33,7 +33,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 $"https://music.163.com/api/search/get/web?s={Escape(terms)}&type=1&offset=0&total=true&limit=30",
                 cancellationToken, query.BypassProviderResponseCache, query.PreferredTranslationLanguage);
             ThrowIfRejected(search.RootElement);
-            foreach (var candidate in Candidates(search.RootElement, query)
+            foreach (var candidate in Candidates(search.RootElement, query, cancellationToken)
                 .Where(value => value.Score >= 4 && attempted.Add(value.Id))
                 .OrderByDescending(value => value.Score))
             {
@@ -42,7 +42,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
                 var document = await requests.TryAsync(() => ReadLyricsAsync(candidate, query, cancellationToken));
                 if (document.Lines.Count == 0) continue;
                 reportCandidate(document);
-                if (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
+                if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) || LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
                 if (original.Lines.Count == 0) original = document;
             }
         }
@@ -57,8 +57,11 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             token, query.BypassProviderResponseCache, query.PreferredTranslationLanguage);
         var root = lyric.RootElement;
         ThrowIfRejected(root);
-        return ParseLyrics(root).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
+        token.ThrowIfCancellationRequested();
+        var document = ParseLyrics(root).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
             candidate.Duration, candidate.Score, candidate.Id);
+        token.ThrowIfCancellationRequested();
+        return document with { Match = document.Match! with { ArtistAliases = candidate.ArtistAliases } };
     }
 
     internal static LyricsDocument ParseLyrics(JsonElement root)
@@ -89,7 +92,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         line.TranslationOrigin == LyricsTranslationOrigin.Provider && !LyricsLanguagePolicy.IsCredit(line.Text) &&
         !string.IsNullOrWhiteSpace(line.Secondary));
 
-    private static IEnumerable<Candidate> Candidates(JsonElement root, LyricsQuery query)
+    private static IEnumerable<Candidate> Candidates(JsonElement root, LyricsQuery query, CancellationToken token)
     {
         // A successful HTTP/API status is not sufficient: some regional responses
         // contain an opaque string instead of the searchable catalog object.
@@ -101,11 +104,13 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         if (!songs.Any()) songs = Array(root, "songs");
         foreach (var song in songs)
         {
+            token.ThrowIfCancellationRequested();
             var id = Text(song, "id");
             if (string.IsNullOrWhiteSpace(id)) continue;
             var artistItems = Array(song, "artists");
             if (!artistItems.Any()) artistItems = Array(song, "ar");
             var artist = string.Join("; ", artistItems.Select(value => Text(value, "name")).Where(value => !string.IsNullOrWhiteSpace(value)));
+            var artistAliases = ArtistAliases(artistItems.ToArray(), query, token);
             var album = NestedText(song, "album", "name");
             if (string.IsNullOrWhiteSpace(album)) album = NestedText(song, "al", "name");
             var duration = Number(song, "duration");
@@ -118,10 +123,25 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
             AddTitle(titles, Text(song, "name"));
             foreach (var property in new[] { "alias", "alia", "transNames", "tns" })
                 foreach (var alias in StringArray(song, property)) AddTitle(titles, alias);
-            var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.Score(query, value, artist, album, duration) })
+            var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.CandidateScore(query, value, artist, album, duration, artistAliases) })
                 .OrderByDescending(value => value.Score).FirstOrDefault();
-            if (best is not null) yield return new(id, best.Title, artist, album, duration, best.Score);
+            if (best is not null) yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases);
         }
+    }
+
+    private static string[] ArtistAliases(JsonElement[] artists, LyricsQuery query, CancellationToken token)
+    {
+        // Each alternative remains attached to the same provider artist object.
+        // Project complete collaboration credits; never treat any member's alias
+        // as an alias for the entire collaboration or guess a Latin/Han suffix.
+        return query.ArtistCandidates.Take(4).Select(requested => string.Join("; ", artists.Select(item =>
+        {
+            token.ThrowIfCancellationRequested();
+            var canonical = Text(item, "name");
+            var names = new[] { canonical }.Concat(new[] { "alias", "alia", "transNames", "tns" }
+                .SelectMany(property => StringArray(item, property))).Take(65);
+            return names.FirstOrDefault(name => LyricsMatcher.AreArtistCreditsCompatible(requested, name)) ?? canonical;
+        }))).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray();
     }
 
     private static IEnumerable<string> StringArray(JsonElement element, string property)
@@ -143,5 +163,6 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
         if (code > 0 && code != 200) throw new LyricsProviderRejectedException("NetEase lyrics API rejected the request.", (int)code);
     }
 
-    private sealed record Candidate(string Id, string Title, string Artist, string Album, double Duration, double Score);
+    private sealed record Candidate(string Id, string Title, string Artist, string Album, double Duration, double Score,
+        string[] ArtistAliases);
 }

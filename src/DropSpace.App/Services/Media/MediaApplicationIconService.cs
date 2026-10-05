@@ -9,10 +9,16 @@ namespace DropSpace.App.Services.Media;
 
 public sealed class MediaApplicationIconService(MediaProcessResolver processes, MediaArtworkService artwork, ILogger<MediaApplicationIconService> logger)
 {
+    private readonly BoundedMediaOperation _reads = new(2, 2);
+
     public async Task<BitmapImage?> LoadAsync(string source, CancellationToken token)
     {
-        try { return await LoadCoreAsync(source, token).ConfigureAwait(false); }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException or OperationCanceledException)
+        try
+        {
+            return await _reads.RunAsync(this, nativeToken => LoadCoreAsync(source, nativeToken),
+                TimeSpan.FromSeconds(5), token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException or OperationCanceledException or TimeoutException)
         {
             token.ThrowIfCancellationRequested();
             logger.LogDebug("Media application icon unavailable ({Category}).", exception.GetType().Name);
@@ -21,19 +27,21 @@ public sealed class MediaApplicationIconService(MediaProcessResolver processes, 
     }
     private async Task<BitmapImage?> LoadCoreAsync(string source, CancellationToken token)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(5));
-        var cancellation = timeout.Token;
+        var cancellation = token;
         var id = await processes.ResolveAsync(source, cancellation).ConfigureAwait(false);
         if (id is null) return null;
         var path = await Task.Run(() => { using var process = Process.GetProcessById((int)id); return process.MainModule?.FileName; }, cancellation).ConfigureAwait(false);
         if (path is null) return null;
-        var file = await StorageFile.GetFileFromPathAsync(path).AsTask(cancellation).ConfigureAwait(false);
-        using var thumbnail = await file.GetThumbnailAsync(ThumbnailMode.ListView, 48, ThumbnailOptions.UseCurrentScale).AsTask(cancellation).ConfigureAwait(false);
+        cancellation.ThrowIfCancellationRequested();
+        var file = await NativeAsyncLifetime.AwaitAsync(StorageFile.GetFileFromPathAsync(path), cancellation).ConfigureAwait(false);
+        cancellation.ThrowIfCancellationRequested();
+        using var thumbnail = await NativeAsyncLifetime.AwaitAsync(file.GetThumbnailAsync(ThumbnailMode.ListView, 48, ThumbnailOptions.UseCurrentScale), cancellation).ConfigureAwait(false);
+        cancellation.ThrowIfCancellationRequested();
         if (thumbnail is null || thumbnail.Size is 0 or > 1_048_576) return null;
         using var reader = new DataReader(thumbnail);
         var count = checked((uint)thumbnail.Size);
-        if (await reader.LoadAsync(count).AsTask(cancellation).ConfigureAwait(false) != count) return null;
+        if (await NativeAsyncLifetime.AwaitAsync(reader.LoadAsync(count), cancellation).ConfigureAwait(false) != count) return null;
+        cancellation.ThrowIfCancellationRequested();
         var bytes = new byte[count]; reader.ReadBytes(bytes);
         return await artwork.DecodeAsync(bytes, cancellation).ConfigureAwait(false);
     }

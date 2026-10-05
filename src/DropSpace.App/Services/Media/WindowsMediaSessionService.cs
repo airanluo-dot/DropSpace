@@ -553,42 +553,11 @@ public sealed class WindowsMediaSessionService(ILogger<WindowsMediaSessionServic
         return selected;
     }
 
-    // Cancellation of a projected task does not establish that the native operation
-    // (or a stream read) and its resources have completed.
-    // Keep ownership tied to Completed, and request native cancellation separately.
     internal static Task<T> AwaitNativeAsync<T>(Windows.Foundation.IAsyncOperation<T> operation, CancellationToken token) =>
-        AwaitNativeCompletionAsync(operation.AsTask(CancellationToken.None), operation.Cancel, token);
+        NativeAsyncLifetime.AwaitAsync(operation, token);
 
     internal static Task AwaitNativeAsync(Windows.Foundation.IAsyncAction operation, CancellationToken token) =>
-        AwaitNativeCompletionAsync(CompleteActionAsync(operation), operation.Cancel, token);
-
-    private static async Task<bool> CompleteActionAsync(Windows.Foundation.IAsyncAction operation)
-    {
-        await operation.AsTask(CancellationToken.None).ConfigureAwait(false);
-        return true;
-    }
-
-    private static async Task<T> AwaitNativeCompletionAsync<T>(Task<T> completion, Action cancel, CancellationToken token)
-    {
-        Task cancellation = Task.CompletedTask;
-        var registration = token.Register(() =>
-        {
-            // Register can invoke inline for an already-canceled token, including on the
-            // WinUI image dispatcher. Never run a publisher's Cancel on that thread.
-            Volatile.Write(ref cancellation, Task.Run(() =>
-            {
-                try { cancel(); }
-                catch (Exception) { /* A failing Cancel is not native completion. */ }
-            }));
-        });
-        try { return await completion.ConfigureAwait(false); }
-        finally
-        {
-            registration.Dispose();
-            // Do not release native ownership while its cancellation callback is using it.
-            await Volatile.Read(ref cancellation).ConfigureAwait(false);
-        }
-    }
+        NativeAsyncLifetime.AwaitAsync(operation, token);
 
     private sealed record NativeTrack(MediaSessionSnapshot Snapshot, IRandomAccessStreamReference? Thumbnail);
 

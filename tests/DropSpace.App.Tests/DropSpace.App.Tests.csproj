@@ -24,6 +24,10 @@
     <NoWarn>$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Historical selector fixtures are preserved; production selector APIs were retired. -->
+    <Compile Remove="AiLyricsSelectionLifecycleTests.cs;LyricsSelectionModelRoleRegressionTests.cs;LyricsSelectionPublicationRegressionTests.cs;LyricsSelectionQualificationRegressionTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\DropSpace.App\DropSpace.App.csproj" />
   </ItemGroup>
   <ItemGroup>

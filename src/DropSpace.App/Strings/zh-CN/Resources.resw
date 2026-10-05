@@ -709,4 +709,56 @@
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>默认关闭。开启后优先于“全屏时隐藏”，在全屏应用和无边框游戏上保持置顶且不抢焦点。独占全屏游戏可能无法覆盖；不覆盖锁屏或 UAC 安全桌面。</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>显示 AI 歌词标识</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>当前无法确认有足够的可用内存进行本地翻译。请释放内存或选择较小模型后重试。</value></data>
+  <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU 后端</value></data>
+  <data name="AiLyricsGpuAutomatic" xml:space="preserve"><value>自动</value></data>
+  <data name="AiLyricsCudaComponents" xml:space="preserve"><value>打开 DLC 组件管理</value></data>
+  <data name="AiLyricsCudaTitle" xml:space="preserve"><value>下载 CUDA 加速组件</value></data>
+  <data name="AiLyricsCudaDownloadBody" xml:space="preserve"><value>检测到 NVIDIA 显卡。CUDA 需要单独下载约 {0} MiB 的运行组件，已有 AI 模型不会重复下载。可在 DLC 页面下载或删除；暂不下载时继续使用 Vulkan，必要时回退 CPU。</value></data>
+  <data name="AiLyricsActualBackend" xml:space="preserve"><value>实际后端：{0}</value></data>
+  <data name="AiLyricsBackendPending" xml:space="preserve"><value>实际后端将在完成一次推理后显示。</value></data>
+  <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA 组件尚未安装，当前可使用 Vulkan / CPU。</value></data>
+  <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
+  <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
+  <data name="DlcDescription" xml:space="preserve"><value>统一管理额外下载的 AI 模型和运行组件。仅在你主动选择时下载。</value></data>
+  <data name="DlcManage" xml:space="preserve"><value>前往 DLC 管理下载</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>已下载</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>未下载</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>暂无已下载组件。</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>所有可用组件均已下载。</value></data>
+  <data name="DlcRefresh" xml:space="preserve"><value>刷新已安装组件</value></data>
+  <data name="DlcModelPurpose" xml:space="preserve"><value>离线 AI 歌词翻译。</value></data>
+  <data name="DlcLargeModelPurpose" xml:space="preserve"><value>用于离线 AI 歌词翻译的可选大模型。</value></data>
+  <data name="DlcLegacyModelPurpose" xml:space="preserve"><value>旧版已下载模型，仅支持卸载。</value></data>
+  <data name="DlcInstalledSize" xml:space="preserve"><value>占用大小：{0}</value></data>
+  <data name="DlcDownloadSize" xml:space="preserve"><value>下载大小：{0}</value></data>
+  <data name="DlcSizeFormat" xml:space="preserve"><value>{0} GB（{1} 字节）</value></data>
+  <data name="DlcUnknownSize" xml:space="preserve"><value>未知</value></data>
+  <data name="DlcDownload" xml:space="preserve"><value>下载</value></data>
+  <data name="DlcResume" xml:space="preserve"><value>继续下载</value></data>
+  <data name="DlcDelete" xml:space="preserve"><value>卸载</value></data>
+  <data name="DlcRetry" xml:space="preserve"><value>重试</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>取消下载</value></data>
+  <data name="DlcChecking" xml:space="preserve"><value>正在检查本地组件…</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>尚未下载</value></data>
+  <data name="DlcReady" xml:space="preserve"><value>已安装</value></data>
+  <data name="DlcIncomplete" xml:space="preserve"><value>下载尚未完成，可继续下载或卸载已下载文件。</value></data>
+  <data name="DlcDownloading" xml:space="preserve"><value>正在下载…</value></data>
+  <data name="DlcVerifying" xml:space="preserve"><value>正在校验和安装…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>正在取消下载…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>下载已取消，可选择继续下载。</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>正在停止 AI 并卸载…</value></data>
+  <data name="DlcDownloadFailed" xml:space="preserve"><value>下载失败，可重试继续下载。</value></data>
+  <data name="DlcDeleteFailed" xml:space="preserve"><value>卸载失败，可重试释放资源并卸载组件。</value></data>
+  <data name="DlcInspectFailed" xml:space="preserve"><value>无法检查本地组件，请重试。</value></data>
+  <data name="DlcDownloadConfirm" xml:space="preserve"><value>下载 {0}？
+下载大小：{1}
+
+下载不会自动启用 AI，也不会更改已选模型或 GPU 模式。</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>卸载 {0} 及其未完成的下载？将先停止使用该组件的 AI 并释放资源。若是当前所选模型，将关闭 AI 翻译。歌词缓存和你的文件会保留。</value></data>
+  <data name="DlcSource" xml:space="preserve"><value>来源：{0}</value></data>
+  <data name="DlcPackageProgress" xml:space="preserve"><value>{0} 下载进度</value></data>
+  <data name="DlcPackageAction" xml:space="preserve"><value>{0}：{1}</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>无法打开此操作，请重试。</value></data>
+  <data name="DlcCudaPurpose" xml:space="preserve"><value>在兼容的 NVIDIA 显卡上加速离线 AI 歌词翻译，复用已安装模型。</value></data>
+  <data name="DlcCudaUnsupported" xml:space="preserve"><value>需要兼容的 NVIDIA 驱动。</value></data>
 </root>

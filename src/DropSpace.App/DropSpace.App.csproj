@@ -52,6 +52,7 @@
     <DropSpaceStringResource Include="Strings\**\*.resw" />
   </ItemGroup>
   <PropertyGroup>
+    <CudaLyricsRuntimeRoot Condition="'$(CudaLyricsRuntimeRoot)' == ''">$(MSBuildProjectDirectory)\..\..\artifacts\cuda-runtime\win-x64</CudaLyricsRuntimeRoot>
     <AiLyricsRuntimeRoot>$(MSBuildProjectDirectory)\..\..\artifacts\ai-runtime\win-x64</AiLyricsRuntimeRoot>
   </PropertyGroup>
   <ItemGroup Condition="Exists('$(AiLyricsRuntimeRoot)\runtime-manifest.json')">
@@ -64,6 +65,13 @@
     <EmbeddedResource Include="$(AiLyricsRuntimeRoot)\plain-lyrics-worker-vulkan.exe" LogicalName="DropSpace.AiLyricsRuntime.plain-lyrics-worker-vulkan.exe" />
     <EmbeddedResource Include="$(AiLyricsRuntimeRoot)\LICENSE-llama.cpp" LogicalName="DropSpace.AiLyricsRuntime.LICENSE-llama.cpp" />
   </ItemGroup>
+  <ItemGroup Condition="Exists('$(CudaLyricsRuntimeRoot)\cuda-runtime-manifest.json')">
+    <EmbeddedResource Include="$(CudaLyricsRuntimeRoot)\cuda-runtime-manifest.json" LogicalName="DropSpace.CudaLyricsRuntime.cuda-runtime-manifest.json" />
+    <EmbeddedResource Include="$(CudaLyricsRuntimeRoot)\cuda-runtime-download.json" LogicalName="DropSpace.CudaLyricsRuntime.cuda-runtime-download.json" />
+  </ItemGroup>
+  <Target Name="RequireCudaLyricsRuntimeForRelease" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
+    <Error Condition="!Exists('$(CudaLyricsRuntimeRoot)\cuda-runtime-manifest.json') or !Exists('$(CudaLyricsRuntimeRoot)\cuda-runtime-download.json')" Text="Supply the trusted CUDA download manifest before a Release build; CUDA binaries stay outside the base app." />
+  </Target>
   <Target Name="RequireAiLyricsRuntimeForRelease" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
     <Error Condition="!Exists('$(AiLyricsRuntimeRoot)\runtime-manifest.json') or !Exists('$(AiLyricsRuntimeRoot)\llama-completion.exe') or !Exists('$(AiLyricsRuntimeRoot)\llama-completion-avx2.exe') or !Exists('$(AiLyricsRuntimeRoot)\llama-tokenize.exe') or !Exists('$(AiLyricsRuntimeRoot)\plain-lyrics-worker.exe') or !Exists('$(AiLyricsRuntimeRoot)\plain-lyrics-worker-avx2.exe') or !Exists('$(AiLyricsRuntimeRoot)\plain-lyrics-worker-vulkan.exe')" Text="Build and verify the pinned local AI runtime with scripts/Build-AiLyricsRuntime.ps1 before a Release build." />
   </Target>

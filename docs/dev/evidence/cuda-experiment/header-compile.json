@@ -1,0 +1,27 @@
+{
+  "check": "generated resident translation unit against real pinned engine and CUDA headers",
+  "engineCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "cudaRuntimeHeaders": "nvidia-cuda-runtime-cu12==12.9.79",
+  "cudaCompilerHeaders": "nvidia-cuda-nvcc-cu12==12.9.86",
+  "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+  "command": [
+    "g++",
+    "-std=c++17",
+    "-fsyntax-only",
+    "/workspace/cuda-evidence/cuda-worker.cpp",
+    "-I/workspace/DropSpace/tools/cuda-lyrics-helper",
+    "-I/workspace/DropSpace/tools/plain-lyrics-helper",
+    "-I/workspace/cuda-evidence/llama-src/common",
+    "-I/workspace/cuda-evidence/llama-src/include",
+    "-I/workspace/cuda-evidence/llama-src/ggml/include",
+    "-I/workspace/cuda-evidence/llama-src/vendor",
+    "-I/workspace/cuda-tools/nvidia/cuda_runtime/include",
+    "-I/workspace/cuda-compiler-headers/nvidia/cuda_nvcc/include"
+  ],
+  "exitCode": 0,
+  "wallSeconds": 1.3939121460000479,
+  "stdout": "",
+  "stderr": "",
+  "generatedWorkerSha256": "cfaf9efefd1d086f79951a27727a50e8038ced735cf6fe9addbf40e9d936bd1b",
+  "scope": "host C++ syntax only; no NVCC CUDA kernel build, linking, Windows PE, GPU, GGUF inference or performance qualification"
+}

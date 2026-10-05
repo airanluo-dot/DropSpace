@@ -69,3 +69,9 @@ Preview.7 continues to use the QRCoder NuGet package for local QR PNG generation
 - **Tencent Hy-MT2-1.8B**: Apache-2.0. Model weights are optional, downloaded only with user consent and are not bundled in the app. [Upstream license](https://huggingface.co/tencent/Hy-MT2-1.8B/blob/9a341cd1b679d3efd23b46e847b01745a71ed792/LICENSE.txt).
 - **Tencent Hy-MT2-7B-GGUF Q8_0**: Apache-2.0, Copyright (C) 2026 Tencent. Optional model weights are downloaded from the official repository only after explicit user consent and are not bundled in DropSpace. The default remains the 1.8B model. [Pinned upstream license](https://huggingface.co/tencent/Hy-MT2-7B-GGUF/blob/ab8472660ac61fac25f1af43fac2599d52a8a775/LICENSE.txt) (license SHA256 `746750afa6af28fe4f8b326751ad2a40c700d2e5c459c0a1f6a2e76d99ace224`); [pinned model repository](https://huggingface.co/tencent/Hy-MT2-7B-GGUF/tree/ab8472660ac61fac25f1af43fac2599d52a8a775). The Q8_0 payload is 7,981,928,896 bytes, SHA256 `58b3ad55dd6f6fa08c695cddc34fb5f8f708a844f78ae10508071914b0ed67c0`.
 - **mradermacher Hy-MT2-1.8B IQ3_S**: third-party quantization of those Tencent weights, offered as the experimental compact download under Apache-2.0. [Pinned model repository](https://huggingface.co/mradermacher/Hy-MT2-1.8B-i1-GGUF/tree/9f5c7d98d8b625800775e6197e55c7ed38f2f33a). The app uses a hash-specific runtime EOS correction; it does not modify or rehost the downloaded weights.
+## OpenCC artist orthography dictionary
+
+DropSpace embeds OpenCC's TSCharacters dictionary (Apache-2.0), pinned at commit
+`3ac34aa439a9908dd49fa92b5174b46314787ac2`. The unmodified dictionary and license are in
+`src/DropSpace.Core/Lyrics/Data/` and embedded in `DropSpace.Core.dll`.
+Project: https://github.com/BYVoid/OpenCC .

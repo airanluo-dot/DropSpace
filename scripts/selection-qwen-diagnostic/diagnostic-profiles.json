@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "qwen3-06-q8",
+    "File": "Qwen3-0.6B-Q8_0.gguf",
+    "Revision": "23749fefcc72300e3a2ad315e1317431b06b590a",
+    "Bytes": 639446688,
+    "Sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+    "Url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf",
+    "MemoryMiB": 3072,
+    "EmptyThinkingBlock": true,
+    "TemplateRevision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "AuthorizationReference": "2026-10-05T01:11:06Z / 208dd5c270f48191a5f2ac46576d7c28"
+  },
+  {
+    "Id": "qwen3-4b-instruct-2507-q8",
+    "File": "qwen3-4b-instruct-2507-q8_0.gguf",
+    "Revision": "e6f794d44f9395d0184a966c27b5ae99ea356fcb",
+    "Bytes": 4280403520,
+    "Sha256": "ae916ede1c010a26955ee8ae2e908bf8815a3f135ec860439ab924701c69d5f1",
+    "Url": "https://huggingface.co/ggml-org/Qwen3-4B-Instruct-2507-Q8_0-GGUF/resolve/e6f794d44f9395d0184a966c27b5ae99ea356fcb/qwen3-4b-instruct-2507-q8_0.gguf",
+    "MemoryMiB": 6144,
+    "EmptyThinkingBlock": false,
+    "TemplateRevision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+    "AuthorizationReference": "Owner-approved 4B cloud selection-only diagnostic; parent delegation 01a10aae-4c29-707a-a9dd-661ab9ccd0ce"
+  },
+  {
+    "Id": "qwen3-8b-q4km",
+    "File": "Qwen3-8B-Q4_K_M.gguf",
+    "Revision": "7c41481f57cb95916b40956ab2f0b139b296d974",
+    "Bytes": 5027783488,
+    "Sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+    "Url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q4_K_M.gguf",
+    "MemoryMiB": 8192,
+    "EmptyThinkingBlock": true,
+    "TemplateRevision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "AuthorizationReference": "Owner approval 2026-10-05T03:18:58Z / 335d29085ba48191953f25ee395d415a; subsequent full autonomy 03:19:22Z / d98b65bb93f8819186605036960cf431; parent delegation 01a10aae-4c29-707a-a9dd-661ab9ccd0ce"
+  }
+]

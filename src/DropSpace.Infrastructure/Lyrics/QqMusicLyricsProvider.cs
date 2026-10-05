@@ -36,7 +36,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
             }).Select(candidate => new
             {
                 candidate.Song, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration,
-                Score = LyricsMatcher.Score(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
+                Score = LyricsMatcher.CandidateScore(query, candidate.Title, candidate.Artist, candidate.Album, candidate.Duration),
             }).Where(candidate => candidate.Score >= 4).OrderByDescending(candidate => candidate.Score);
             foreach (var best in candidates)
             {
@@ -48,8 +48,8 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
                 if (document.Lines.Count == 0) continue;
                 document = document.Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, songId);
                 reportCandidate(document);
-                if (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
-                    LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target)) return document;
+                if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
+                    LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
                 if (original.Lines.Count == 0) original = document;
             }
         }
@@ -63,8 +63,11 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
         ThrowIfRejected(lyric.RootElement);
         if (!lyric.RootElement.TryGetProperty("lyric", out var text) || text.ValueKind != JsonValueKind.String)
             throw new InvalidDataException("QQ lyrics returned an unsupported lyric shape.");
-        return LyricsParser.Parse(WebUtility.HtmlDecode(Text(lyric.RootElement, "lyric")), Kind,
+        token.ThrowIfCancellationRequested();
+        var document = LyricsParser.Parse(WebUtility.HtmlDecode(Text(lyric.RootElement, "lyric")), Kind,
             WebUtility.HtmlDecode(Text(lyric.RootElement, "trans")));
+        token.ThrowIfCancellationRequested();
+        return document;
     }
 
     private static void ValidateSearchShape(JsonElement root)
@@ -84,7 +87,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
             if (!root.TryGetProperty(property, out var value)) continue;
             if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var code))
                 throw new InvalidDataException("QQ returned an unsupported status code.");
-            if (code != 0) throw new LyricsProviderRejectedException("QQ lyrics API rejected the request.");
+            if (code != 0) throw new LyricsProviderRejectedException("QQ lyrics API rejected the request.", code);
         }
     }
 }

@@ -2,7 +2,7 @@
 param([ValidateSet('Installer','Portable')][string]$Kind)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
+if (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11') -cnotcontains (Get-Content RELEASE_VERSION -Raw).Trim()) { throw 'Packaging-only exception is limited to explicitly waived releases.' }
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'Use only the isolated CI runner.' }
 function Identity([string]$Path,[string]$Name) {
     return [ordered]@{name=$Name;bytes=(Get-Item -LiteralPath $Path).Length;sha256=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -10,6 +10,12 @@ function Identity([string]$Path,[string]$Name) {
 $exe=[IO.Path]::GetFullPath('artifacts/release/DropSpace.exe')
 if ($Kind -eq 'Installer') {
     $installer=[IO.Path]::GetFullPath('artifacts/installer/DropSpaceSetup.exe')
+    if ((Get-Content RELEASE_VERSION -Raw).Trim() -ceq 'v0.3.1-beta.11') {
+        $report=[ordered]@{schemaVersion=1;kind='installer-build-input';verificationScope='compiler-input-bytes-only; installer not executed; tests waived';package=(Identity $installer 'DropSpaceSetup.exe');buildInputPortable=(Identity $exe 'DropSpace.exe')}
+        New-Item artifacts/runtime-inspection -ItemType Directory -Force | Out-Null
+        $report | ConvertTo-Json -Depth 10 | Set-Content artifacts/runtime-inspection/installer.json -Encoding utf8
+        return
+    }
     $dest=Join-Path $env:RUNNER_TEMP ('owner-waived-payload-'+[Guid]::NewGuid().ToString('N'))
     try {
         $p=Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$dest`"",'/TASKS=') -PassThru -Wait
@@ -24,29 +30,19 @@ if ($Kind -eq 'Installer') {
         $uninstaller=Join-Path $dest 'unins000.exe'
         if(Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait }
     }
-} else {
+ } else {
     $root=Join-Path $env:RUNNER_TEMP ('owner-waived-bundle-'+[Guid]::NewGuid().ToString('N'))
-    $old=$env:DOTNET_BUNDLE_EXTRACT_BASE_DIR
-    $p=$null
+    New-Item $root -ItemType Directory | Out-Null
+    $assembly=Join-Path $root 'DropSpace.dll'
     try {
-        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR=$root
-        # Only let the .NET host unpack its managed payload; do not run smoke fixtures.
-        $p=Start-Process -FilePath $exe -ArgumentList '--startup' -PassThru
-        $deadline=(Get-Date).AddSeconds(60)
-        do {
-            $assemblies=@(Get-ChildItem $root -Recurse -File -Filter DropSpace.dll -ErrorAction SilentlyContinue)
-            if ($assemblies.Count -eq 1) { break }
-            if ((Get-Date) -gt $deadline) { throw 'Bundle extraction timed out.' }
-            Start-Sleep -Milliseconds 100
-        } while ($true)
-        if (!$p.HasExited) { Stop-Process -Id $p.Id -Force; $p.WaitForExit() }
-        ./scripts/Inspect-AiRuntimePayload.ps1 -AssemblyPath $assemblies[0].FullName -OutputPath artifacts/release/portable-inspection.json
+        ./scripts/Extract-StaticBundleAssembly.ps1 -PortablePath $exe -OutputPath $assembly
+        ./scripts/Inspect-AiRuntimePayload.ps1 -AssemblyPath $assembly -OutputPath artifacts/release/portable-inspection.json
         $report=Get-Content artifacts/release/portable-inspection.json -Raw | ConvertFrom-Json -AsHashtable
         $report.package=Identity $exe 'DropSpace.exe'
-        $report.verificationScope='unpacked runtime bytes only; startup and UI tests waived'
+        $report.verificationScope='static bundle bytes only; executable never launched; tests waived'
         $report | ConvertTo-Json -Depth 20 | Set-Content artifacts/release/portable-inspection.json -Encoding utf8
     } finally {
-        if($null -ne $p -and !$p.HasExited) { Stop-Process -Id $p.Id -Force }
-        $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR=$old
+        if(Test-Path -LiteralPath $assembly){Remove-Item -LiteralPath $assembly -Force}
+        if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force}
     }
 }

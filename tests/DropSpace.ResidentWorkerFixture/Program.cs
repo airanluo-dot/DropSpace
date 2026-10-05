@@ -18,7 +18,7 @@ internal static class Program
         var modelProfile = Array.IndexOf(args, "--model-profile") >= 0 ? Argument(args, "--model-profile") : "hy-mt2-1.8b-q8";
         var pid = Environment.ProcessId;
         Record(root, "starts", new { pid, mode, modelProfile });
-        if (mode == "vulkan" && File.Exists(Path.Combine(root, "fail-vulkan-startup")))
+        if (mode is "vulkan" or "cuda" && File.Exists(Path.Combine(root, "fail-" + mode + "-startup")))
         {
             // EOF while the child stays alive verifies that fallback first reaps the child.
             if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
@@ -26,9 +26,12 @@ internal static class Program
             Thread.Sleep(60_000);
             return 27;
         }
-        if (File.Exists(Path.Combine(root, "omit-model-profile")))
-            WriteFrame(new { protocol = 1, ready = true, backend = mode });
-        else WriteFrame(new { protocol = 1, ready = true, backend = mode,
+        if (mode == "cuda")
+            WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2, modelProfile,
+                componentId = File.Exists(Path.Combine(root, "wrong-cuda-component")) ? "wrong" : "llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1" });
+        else if (File.Exists(Path.Combine(root, "omit-model-profile")))
+            WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2 });
+        else WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2,
             modelProfile = File.Exists(Path.Combine(root, "wrong-model-profile")) ? "wrong-model" : modelProfile });
         while (Console.ReadLine() is { } line)
         {
@@ -38,6 +41,17 @@ internal static class Program
             var id = packet.GetProperty("id").GetString();
             var prompt = packet.GetProperty("prompt").GetString()!;
             Record(root, "requests", new { protocol, id, prompt, pid });
+            if (protocol == 2 && File.Exists(Path.Combine(root, "block-selection")))
+            {
+                File.WriteAllText(Path.Combine(root, "blocked"), string.Empty);
+                Thread.Sleep(TimeSpan.FromSeconds(60));
+            }
+            if (protocol == 2 && File.Exists(Path.Combine(root, "delayed-selection")))
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(700));
+                WriteFrame(new { protocol = 2, id, complete = true, text = "{\"id\":\"c0\"}" });
+                continue;
+            }
             if (prompt == "partial-and-block")
             {
                 Console.Write("{\"protocol\":1,\"text\":\"private incomplete output");
@@ -48,7 +62,7 @@ internal static class Program
             else
             {
                 var responseId = prompt == "mismatched-id" ? "wrong-host-request-id" : id;
-                var responseProtocol = prompt == "wrong-protocol" ? 2 : 1;
+                var responseProtocol = prompt == "wrong-protocol" ? 2 : protocol;
                 var complete = prompt != "incomplete-response";
                 var text = prompt == "oversized-output" ? new string('夜', 6000) : prompt + " [end of text]";
                 WriteFrame(new { protocol = responseProtocol, id = responseId, complete, text });

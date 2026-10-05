@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 
 namespace DropSpace.Infrastructure.Tests;
@@ -11,6 +13,201 @@ namespace DropSpace.Infrastructure.Tests;
 [DoNotParallelize]
 public sealed class PersistentPlainLyricsRunnerTests
 {
+    [TestMethod]
+    public async Task CudaFailureUsesOnlyCpuThenLeavesVulkanAvailable()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(Path.Combine(fixture.Root, "fail-cuda-startup"), string.Empty);
+        var cuda = fixture.CreateRunner(new AiLyricsRuntimeOptions(), gpuBackend: "cuda");
+        Assert.AreEqual("first", await fixture.RunAsync(cuda, "first"));
+        Assert.AreEqual("cpu", cuda.LastExecutionBackend);
+        Assert.IsTrue(cuda.LastExecutionUsedCpuFallback);
+        Assert.AreEqual("second", await fixture.RunAsync(cuda, "second"));
+        CollectionAssert.AreEqual(new[] { "cuda", "cpu" }, fixture.StartedProcesses().Select(x => x.Mode).ToArray());
+        await cuda.DrainCleanupAsync(default);
+        Assert.IsTrue(fixture.StartedProcesses().All(x => !IsAlive(x.Pid)));
+        var vulkan = fixture.CreateRunner(new AiLyricsRuntimeOptions());
+        Assert.AreEqual("third", await fixture.RunAsync(vulkan, "third"));
+        Assert.AreEqual("vulkan", vulkan.LastExecutionBackend);
+        Assert.IsFalse(vulkan.LastExecutionUsedCpuFallback);
+        CollectionAssert.AreEqual(new[] { "cuda", "cpu", "vulkan" }, fixture.StartedProcesses().Select(x => x.Mode).ToArray());
+    }
+
+    [TestMethod]
+    public async Task CudaIdentityMismatchFailsClosedWithoutCpuRetry()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(Path.Combine(fixture.Root, "wrong-cuda-component"), string.Empty);
+        var cuda = fixture.CreateRunner(new AiLyricsRuntimeOptions(), gpuBackend: "cuda");
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(() => fixture.RunAsync(cuda, "first"));
+        Assert.HasCount(1, fixture.StartedProcesses());
+        Assert.IsFalse(IsAlive(fixture.StartedProcesses()[0].Pid));
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+    }
+
+    [TestMethod]
+    public async Task CudaWarmRequestsAndCancellationRetainNativeExitOwnership()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var cuda = fixture.CreateRunner(new AiLyricsRuntimeOptions(), gpuBackend: "cuda");
+        Assert.AreEqual("first", await fixture.RunAsync(cuda, "first"));
+        Assert.AreEqual("second", await fixture.RunAsync(cuda, "second"));
+        Assert.AreEqual("cuda", cuda.LastExecutionBackend);
+        Assert.HasCount(1, fixture.StartedProcesses());
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => fixture.RunAsync(cuda, "partial-and-block", cancel.Token));
+        await cuda.DrainCleanupAsync(default);
+        Assert.IsFalse(IsAlive(fixture.StartedProcesses()[0].Pid));
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+        Assert.HasCount(0, Directory.GetFiles(fixture.Root, "*.partial", SearchOption.AllDirectories));
+    }
+
+    [TestMethod]
+    public void CudaArgumentsAreExplicitAndDefaultStillVulkan()
+    {
+        var hash = AiLyricsModelCatalog.ExperimentalPlain.Sha256;
+        Assert.AreEqual("vulkan", PersistentPlainLyricsRunner.BuildArguments("model.gguf", true, hash)[3]);
+        Assert.AreEqual("cuda", PersistentPlainLyricsRunner.BuildArguments("model.gguf", true, hash, "cuda")[3]);
+        Assert.AreEqual("cpu", PersistentPlainLyricsRunner.BuildArguments("model.gguf", false, hash, "cuda")[3]);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PersistentPlainLyricsRunner.BuildArguments("model.gguf", true, hash, "hip"));
+    }
+
+    [TestMethod]
+    public async Task SelectionUsesSharedBackgroundBudgetAndStillReapsWorkerAtSnapshotDeadline()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(Path.Combine(fixture.Root, "delayed-selection"), string.Empty);
+        var runner = fixture.CreateRunner();
+        var hash = AiLyricsSelectionModelCatalog.Default.Sha256;
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, hash, default));
+        var query = new LyricsQuery("Song", "Artist", "Album", TimeSpan.FromSeconds(30), "deadline:track");
+        var document = new LyricsDocument([new(TimeSpan.Zero, TimeSpan.FromSeconds(4), "The stars shine tonight", null, [])],
+            LyricsProviderKind.NetEase, new("Song", "Artist", "Album", 30, 12, "native"));
+        LyricsCandidateSnapshot Snapshot(TimeSpan budget) => new([LyricsCandidateRules.Describe("c0", document, "zh")],
+            Stopwatch.GetTimestamp() + (long)(budget.TotalSeconds * Stopwatch.Frequency));
+        var settings = new LyricsSettings { SelectionMode = LyricsSelectionMode.AiRanked };
+        var selector = new LyricsCandidateSelector(runner);
+        var started = Stopwatch.GetTimestamp();
+        var result = await selector.SelectAsync(query, settings, "zh", hash, Snapshot(TimeSpan.FromSeconds(3)), document, default);
+        Assert.AreEqual(LyricsSelectionOutcome.Selected, result.Outcome,
+            "A 700ms complete fixture response must pass both host and resident worker timers.");
+        Assert.IsTrue(Stopwatch.GetElapsedTime(started) >= TimeSpan.FromMilliseconds(600));
+        Assert.IsTrue(result.IsCurrent);
+        var pid = fixture.StartedProcesses().Single().Pid;
+        Assert.IsTrue(IsAlive(pid));
+        selector.Clear();
+        File.WriteAllText(Path.Combine(fixture.Root, "block-selection"), string.Empty);
+        var timedOut = await selector.SelectAsync(query, settings, "zh", hash,
+            Snapshot(TimeSpan.FromMilliseconds(300)), document, default);
+        Assert.AreEqual(LyricsSelectionOutcome.TimedOut, timedOut.Outcome);
+        Assert.AreSame(document, timedOut.Document);
+        await runner.DrainCleanupAsync(default).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsFalse(IsAlive(pid), "Snapshot expiry must retain ownership until actual native exit.");
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+        Assert.HasCount(2, fixture.Requests());
+    }
+
+    [TestMethod]
+    [DataRow("vulkan")]
+    [DataRow("cuda")]
+    public async Task RoleSwitchPreservesGpuFailurePerProfileUntilGpuPreferenceActuallyChanges(string gpuBackend)
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var failureMarker = Path.Combine(fixture.Root, "fail-" + gpuBackend + "-startup");
+        File.WriteAllText(failureMarker, string.Empty);
+        var options = new AiLyricsRuntimeOptions { GpuEnabled = true };
+        var runner = fixture.CreateRunner(options, gpuBackend: gpuBackend);
+        var selectionModel = AiLyricsSelectionModelCatalog.Default;
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        CollectionAssert.AreEqual(new[] { true, false }, fixture.ResolvedModes);
+        var selectionCpu = fixture.StartedProcesses()[1].Pid;
+        Assert.IsFalse(IsAlive(fixture.StartedProcesses()[0].Pid));
+        Assert.IsTrue(IsAlive(selectionCpu));
+
+        // Let the other profile succeed on GPU: one model's failure is not global.
+        File.Delete(failureMarker);
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(selectionCpu));
+        options.GpuEnabled = true; // Configuration reapplication is not a setting change.
+        Assert.AreEqual("large translation", await fixture.RunAsync(runner, "large translation",
+            model: AiLyricsModelCatalog.ExperimentalLargePlain));
+        Assert.AreEqual(gpuBackend, runner.LastExecutionBackend);
+        var translationGpu = fixture.StartedProcesses()[2].Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(translationGpu));
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        CollectionAssert.AreEqual(new[] { true, false, true, false }, fixture.ResolvedModes,
+            "Returning to the failed selector profile must not retry GPU after an operational role switch.");
+        Assert.AreEqual("cpu", fixture.StartedProcesses()[3].Mode);
+        Assert.AreEqual("same-profile translation", await fixture.RunAsync(runner, "same-profile translation"));
+        Assert.IsTrue(runner.LastExecutionUsedCpuFallback);
+        Assert.HasCount(4, fixture.StartedProcesses());
+
+        // An explicit off/on change resets profile failures even with no request between changes.
+        var replacementCpu = fixture.StartedProcesses()[3].Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(replacementCpu));
+        options.GpuEnabled = false;
+        options.GpuEnabled = true;
+        Assert.IsFalse(runner.IsSelectionWarm(selectionModel.Sha256));
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        CollectionAssert.AreEqual(new[] { true, false, true, false, true }, fixture.ResolvedModes);
+        Assert.AreEqual(gpuBackend, fixture.StartedProcesses()[4].Mode);
+        Assert.IsTrue(IsAlive(fixture.StartedProcesses()[4].Pid));
+    }
+
+    [TestMethod]
+    public async Task IndependentSelectionPreparationReapsTranslationResidentBeforeReplacingAndSwitchingBack()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner();
+        using var previousSong = new CancellationTokenSource();
+        Assert.AreEqual("translation", await fixture.RunAsync(runner, "translation", previousSong.Token));
+        var translationPid = fixture.StartedProcesses().Single().Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(translationPid),
+            "The preceding translation resident must exit before selector resolution.");
+        var selectionModel = AiLyricsModelCatalog.ExperimentalLargePlain;
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        var selection = fixture.StartedProcesses()[1];
+        Assert.AreEqual("hy-mt2-7b-q8", selection.ModelProfile);
+        Assert.IsTrue(runner.IsSelectionWarm(selectionModel.Sha256));
+        Assert.IsFalse(runner.IsSelectionWarm(AiLyricsModelCatalog.ExperimentalPlain.Sha256));
+        previousSong.Cancel();
+        Assert.IsTrue(IsAlive(selection.Pid), "A retired translation token cannot kill the replacement selector.");
+        Assert.AreEqual("metadata", await runner.TryRunSelectionAsync(selectionModel.Sha256, "metadata", default));
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        Assert.HasCount(2, fixture.StartedProcesses(), "Preparing the same ready profile reuses its owner.");
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(selection.Pid),
+            "The selector must exit before the next translation resident resolves.");
+        Assert.AreEqual("translation again", await fixture.RunAsync(runner, "translation again"));
+        Assert.HasCount(3, fixture.StartedProcesses());
+        Assert.IsTrue(IsAlive(fixture.StartedProcesses()[2].Pid));
+        Assert.AreEqual(0, LocalInferenceProcess.InferenceGate.CurrentCount,
+            "The replacement retains the single shared gate while resident.");
+    }
+
+    [TestMethod]
+    public async Task IndependentSelectionPreparationCannotReplaceActiveTranslation()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner();
+        using var cancellation = new CancellationTokenSource();
+        var translating = fixture.RunAsync(runner, "partial-and-block", cancellation.Token);
+        await WaitUntilAsync(() => File.Exists(fixture.Blocked), translating);
+        var translationPid = fixture.StartedProcesses().Single().Pid;
+        Assert.IsFalse(await runner.PrepareSelectionAsync(fixture.Model,
+            AiLyricsModelCatalog.ExperimentalLargePlain.Sha256, default));
+        Assert.HasCount(1, fixture.StartedProcesses());
+        Assert.IsTrue(IsAlive(translationPid));
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => translating);
+        Assert.IsFalse(IsAlive(translationPid));
+    }
+
     [TestMethod]
     [DataRow(false, "physical")]
     [DataRow(false, "commit")]
@@ -55,15 +252,19 @@ public sealed class PersistentPlainLyricsRunnerTests
     }
 
     [TestMethod]
-    [DataRow(false, false)]
-    [DataRow(false, true)]
-    [DataRow(true, false)]
-    [DataRow(true, true)]
-    public async Task GpuFailureIsReapedBeforeFreshCpuAdmissionAndLowOrUnknownRamCannotStartFallback(bool large, bool unknown)
+    [DataRow(false, false, "vulkan")]
+    [DataRow(false, true, "vulkan")]
+    [DataRow(true, false, "vulkan")]
+    [DataRow(true, true, "vulkan")]
+    [DataRow(false, false, "cuda")]
+    [DataRow(false, true, "cuda")]
+    [DataRow(true, false, "cuda")]
+    [DataRow(true, true, "cuda")]
+    public async Task GpuFailureIsReapedBeforeFreshCpuAdmissionAndLowOrUnknownRamCannotStartFallback(bool large, bool unknown, string gpuBackend)
     {
         RequireFixture();
         await using var fixture = new Fixture();
-        File.WriteAllText(fixture.FailGpuStartup, string.Empty);
+        File.WriteAllText(Path.Combine(fixture.Root, "fail-" + gpuBackend + "-startup"), string.Empty);
         var model = large ? AiLyricsModelCatalog.ExperimentalLargePlain : AiLyricsModelCatalog.ExperimentalPlain;
         var required = (large ? 13L : 4L) << 30;
         CpuMemorySnapshot? memory = new(required, required);
@@ -72,11 +273,11 @@ public sealed class PersistentPlainLyricsRunnerTests
         {
             reads++;
             var failed = fixture.StartedProcesses().Single();
-            Assert.AreEqual("vulkan", failed.Mode);
+            Assert.AreEqual(gpuBackend, failed.Mode);
             Assert.IsFalse(IsAlive(failed.Pid), "The GPU must actually exit before taking the fallback RAM snapshot.");
             Assert.AreEqual(0, LocalInferenceProcess.InferenceGate.CurrentCount);
             return memory;
-        });
+        }, gpuBackend: gpuBackend);
         fixture.BeforeResolve = gpu =>
         {
             if (!gpu) memory = unknown ? null : new(required - 1, required);
@@ -123,6 +324,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task CancellationWhileWaitingForGlobalAdmissionDoesNotReadRamOrStartProcess()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         var reads = 0;
         var runner = fixture.CreateRunner(readMemorySnapshot: () => { reads++; return TestInferenceMemory.Sufficient(); });
@@ -135,6 +337,9 @@ public sealed class PersistentPlainLyricsRunnerTests
             await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
             Assert.AreEqual(0, reads);
             Assert.IsFalse(File.Exists(Path.Combine(fixture.Root, "starts")));
+            Assert.AreEqual("Cancelled", metrics.Stage("NativeQueue").Single().Tags["outcome"]);
+            Assert.IsEmpty(metrics.Stage("LoadReady")); Assert.IsEmpty(metrics.Stage("Call"));
+            Assert.IsEmpty(metrics.Stage("CancellationRelease"), "A queued caller never owned a native process.");
         }
         finally { LocalInferenceProcess.InferenceGate.Release(); }
     }
@@ -260,6 +465,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task CancellationDiscardsPartialOutputAndReapsGpuBeforeNextCpuResolution()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         var options = new AiLyricsRuntimeOptions { GpuEnabled = true };
         var runner = fixture.CreateRunner(options);
@@ -271,6 +477,10 @@ public sealed class PersistentPlainLyricsRunnerTests
         cancel.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() => pending);
         Assert.IsFalse(IsAlive(gpu.Pid), "Cancellation must await actual child exit before returning.");
+        await WaitUntilAsync(() => metrics.Stage("CancellationRelease").Length == 1);
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+        Assert.AreEqual("Cancelled", metrics.Stage("Call").Single().Tags["outcome"]);
+        Assert.AreEqual("Success", metrics.Stage("CancellationRelease").Single().Tags["outcome"]);
         CollectionAssert.AreEqual(new[] { true }, fixture.ResolvedModes,
             "A canceled GPU request must never launch an automatic CPU retry.");
         options.GpuEnabled = false;
@@ -284,6 +494,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task FailedGpuStartupIsReapedBeforeSingleCpuRetryAndFallbackRemainsResident()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         File.WriteAllText(fixture.FailGpuStartup, string.Empty);
         var runner = fixture.CreateRunner(new AiLyricsRuntimeOptions { GpuEnabled = true });
@@ -304,6 +515,11 @@ public sealed class PersistentPlainLyricsRunnerTests
         Assert.AreEqual("cpu", starts[1].Mode);
         Assert.IsTrue(IsAlive(starts[1].Pid));
         Assert.IsTrue(fixture.Requests().All(request => request.Pid == starts[1].Pid));
+        Assert.AreEqual(1, metrics.Events("FallbackAttempt")); Assert.AreEqual(2, metrics.Events("FallbackUse"));
+        Assert.AreEqual(1, metrics.Events("ResidentReuse")); Assert.HasCount(2, metrics.Stage("Call"));
+        CollectionAssert.AreEqual(new[] { "Failed", "Success" }, metrics.Stage("LoadReady").Select(sample => sample.Tags["outcome"]).ToArray());
+        Assert.HasCount(2, metrics.Stage("OperationQueue")); Assert.HasCount(2, metrics.Stage("NativeQueue"));
+        metrics.SaveEvidence();
     }
 
     [TestMethod]
@@ -369,6 +585,7 @@ public sealed class PersistentPlainLyricsRunnerTests
     public async Task SongCancellationAfterCompletedResponseReapsIdleWorkerBeforeTimeout()
     {
         RequireFixture();
+        using var metrics = new PlainLyricsMetricCapture();
         await using var fixture = new Fixture();
         var runner = fixture.CreateRunner(idleTimeout: TimeSpan.FromMinutes(2));
         using var song = new CancellationTokenSource();
@@ -379,6 +596,9 @@ public sealed class PersistentPlainLyricsRunnerTests
         await WaitUntilAsync(() => !IsAlive(pid));
         await runner.DrainCleanupAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
         Assert.IsFalse(IsAlive(pid));
+        await WaitUntilAsync(() => metrics.Stage("CancellationRelease").Length == 1);
+        Assert.AreEqual("Success", metrics.Stage("CancellationRelease").Single().Tags["outcome"]);
+        metrics.SaveEvidence();
         Assert.AreEqual("new song", await fixture.RunAsync(runner, "new song"));
         Assert.HasCount(2, fixture.StartedProcesses());
     }
@@ -455,6 +675,41 @@ public sealed class PersistentPlainLyricsRunnerTests
         Assert.IsFalse(options.GpuEnabled);
     }
 
+    [TestMethod]
+    public async Task QueuedOperationCancellationIsMeasuredWithoutReplacingActiveOwner()
+    {
+        RequireFixture(); using var metrics = new PlainLyricsMetricCapture(); await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner(); using var activeStop = new CancellationTokenSource();
+        var active = fixture.RunAsync(runner, "partial-and-block", activeStop.Token);
+        await WaitUntilAsync(() => File.Exists(fixture.Blocked), active);
+        var pid = fixture.StartedProcesses().Single().Pid;
+        using var queuedStop = new CancellationTokenSource();
+        var queued = fixture.RunAsync(runner, "queued", queuedStop.Token); queuedStop.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => queued);
+        Assert.IsTrue(IsAlive(pid)); Assert.HasCount(1, fixture.StartedProcesses());
+        CollectionAssert.AreEqual(new[] { "Success", "Cancelled" }, metrics.Stage("OperationQueue").Select(sample => sample.Tags["outcome"]).ToArray());
+        Assert.HasCount(1, metrics.Stage("NativeQueue")); Assert.HasCount(1, metrics.Stage("LoadReady"));
+        activeStop.Cancel(); await Assert.ThrowsAsync<OperationCanceledException>(() => active);
+        await runner.DrainCleanupAsync(default);
+        await WaitUntilAsync(() => metrics.Stage("CancellationRelease").Length == 1);
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+    }
+
+    [TestMethod]
+    public async Task ThrowingMetricListenerCannotStrandNativeAdmissionOrCleanup()
+    {
+        RequireFixture(); await using var fixture = new Fixture(); using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, observer) =>
+        { if (instrument.Meter.Name == PlainLyricsMetrics.MeterName) observer.EnableMeasurementEvents(instrument); };
+        listener.SetMeasurementEventCallback<double>((_, _, _, _) => throw new InvalidOperationException("listener failed"));
+        listener.SetMeasurementEventCallback<long>((_, _, _, _) => throw new InvalidOperationException("listener failed"));
+        listener.Start(); var runner = fixture.CreateRunner(); using var song = new CancellationTokenSource();
+        Assert.AreEqual("translation", await fixture.RunAsync(runner, "translation", song.Token));
+        var pid = fixture.StartedProcesses().Single().Pid; song.Cancel();
+        await runner.DrainCleanupAsync(default).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsFalse(IsAlive(pid)); Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+    }
+
     private static void RequireFixture()
     {
         if (!OperatingSystem.IsWindows() && !File.Exists("/usr/bin/python3"))
@@ -522,7 +777,7 @@ public sealed class PersistentPlainLyricsRunnerTests
         internal Action<bool>? BeforeResolve { get; set; }
 
         internal PersistentPlainLyricsRunner CreateRunner(AiLyricsRuntimeOptions? options = null, TimeSpan? idleTimeout = null,
-            Func<CpuMemorySnapshot?>? readMemorySnapshot = null)
+            Func<CpuMemorySnapshot?>? readMemorySnapshot = null, string gpuBackend = "vulkan")
         {
             var runner = new PersistentPlainLyricsRunner((gpu, token) =>
             {
@@ -531,7 +786,7 @@ public sealed class PersistentPlainLyricsRunnerTests
                 ResolvedModes.Add(gpu);
                 return Task.FromResult(Executable);
             }, options ?? new AiLyricsRuntimeOptions { GpuEnabled = false }, idleTimeout ?? TimeSpan.FromSeconds(5),
-                readMemorySnapshot ?? TestInferenceMemory.Sufficient);
+                readMemorySnapshot ?? TestInferenceMemory.Sufficient, gpuBackend);
             _runners.Add(runner);
             return runner;
         }
@@ -572,17 +827,27 @@ public sealed class PersistentPlainLyricsRunnerTests
                 with open(os.path.join(root, name), 'a', encoding='utf-8') as output:
                     output.write(json.dumps(value, ensure_ascii=False) + '\n')
             record('starts', {'pid': pid, 'mode': mode, 'modelProfile': model_profile})
-            if mode == 'vulkan' and os.path.exists(os.path.join(root, 'fail-vulkan-startup')):
+            if mode in ('vulkan', 'cuda') and os.path.exists(os.path.join(root, 'fail-' + mode + '-startup')):
                 os.close(1)
                 time.sleep(60)
                 sys.exit(27)
-            ready = {'protocol': 1, 'ready': True, 'backend': mode}
+            ready = {'protocol': 1, 'ready': True, 'backend': mode, 'selectionProtocol': 2}
             if not os.path.exists(os.path.join(root, 'omit-model-profile')):
                 ready['modelProfile'] = 'wrong-model' if os.path.exists(os.path.join(root, 'wrong-model-profile')) else model_profile
+            if mode == 'cuda':
+                ready['componentId'] = 'wrong' if os.path.exists(os.path.join(root, 'wrong-cuda-component')) else 'llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1'
             print(json.dumps(ready), flush=True)
             for line in sys.stdin:
                 request = json.loads(line)
                 record('requests', dict(request, pid=pid))
+                if request['protocol'] == 2 and os.path.exists(os.path.join(root, 'block-selection')):
+                    open(os.path.join(root, 'blocked'), 'w').close()
+                    time.sleep(60)
+                if request['protocol'] == 2 and os.path.exists(os.path.join(root, 'delayed-selection')):
+                    time.sleep(0.7)
+                    print(json.dumps({'protocol': 2, 'id': request['id'], 'complete': True,
+                                      'text': '{"id":"c0"}'}), flush=True)
+                    continue
                 if request['prompt'] == 'partial-and-block':
                     sys.stdout.write('{"protocol":1,"text":"private incomplete output')
                     sys.stdout.flush()
@@ -590,7 +855,7 @@ public sealed class PersistentPlainLyricsRunnerTests
                     time.sleep(60)
                 else:
                     response_id = 'wrong-host-request-id' if request['prompt'] == 'mismatched-id' else request['id']
-                    protocol = 2 if request['prompt'] == 'wrong-protocol' else 1
+                    protocol = 2 if request['prompt'] == 'wrong-protocol' else request['protocol']
                     complete = request['prompt'] != 'incomplete-response'
                     text = '夜' * 6000 if request['prompt'] == 'oversized-output' else request['prompt'] + ' [end of text]'
                     print(json.dumps({'protocol': protocol, 'id': response_id, 'complete': complete,

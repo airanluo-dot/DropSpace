@@ -9,6 +9,39 @@ on:
         default: false
         type: boolean
 
+      produce_selection_runtime:
+        description: Explicit nonpublishing worker build and three-case selection probe
+        required: false
+        default: false
+        type: boolean
+
+      diagnose_selection_runtime:
+        description: Nonproduction ten-second observations using exact existing worker bytes
+        required: false
+        default: false
+        type: boolean
+
+      selection_diagnostic_variant:
+        description: Explicit diagnostic prompt variant; production is unchanged
+        required: false
+        default: original
+        type: choice
+        options:
+          - original
+          - refined
+          - qwen06
+          - qwen06-thinking
+          - qwen06-admission
+          - qwen06-dual
+          - qwen06-plain-transfer
+          - qwen06-evidence
+          - qwen06-labelled-control
+          - qwen06-native-id-control
+          - qwen4-evidence
+          - qwen4-template-validation
+          - qwen4-deterministic
+          - qwen8-evidence
+
       expected_commit:
         description: Exact reviewed main commit required for publication
         required: false
@@ -23,11 +56,153 @@ on:
 concurrency:
   # Validation must never occupy the publication queue. Publication remains
   # serialized and non-cancellable within its own lane.
-  group: dropspace-release-${{ github.ref }}-${{ inputs.publish == true && 'publish' || 'validation' }}
+  group: dropspace-release-${{ github.ref }}-${{ inputs.diagnose_selection_runtime == true && 'selection-diagnostic' || inputs.produce_selection_runtime == true && 'runtime-producer' || (inputs.publish == true && 'publish' || 'validation') }}
   cancel-in-progress: false
 
 jobs:
+  diagnose-selection-runtime:
+    name: Explicit longer observation of original worker bytes (never publishes)
+    if: github.event_name == 'workflow_dispatch' && inputs.diagnose_selection_runtime == true
+    runs-on: windows-2025
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Reject publication or producer requests
+        shell: pwsh
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          PRODUCE: ${{ inputs.produce_selection_runtime }}
+          CAPTURE: ${{ inputs.capture_ai_evidence }}
+        run: |
+          if ($env:PUBLISH -eq 'true' -or $env:PRODUCE -eq 'true' -or $env:CAPTURE -eq 'true') { throw 'Long diagnostic is isolated from publication/build/translation evidence.' }
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Retrieve exact original runtime and failed 500ms evidence
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/Get-SelectionDiagnosticInputs.ps1
+      # Public immutable weights are optional cloud reuse, never release evidence.
+      # The harness rechecks exact size/SHA on a hit; no broad restore prefix.
+      - name: Reuse approved Qwen4 diagnostic model
+        if: startsWith(inputs.selection_diagnostic_variant, 'qwen4-')
+        continue-on-error: true
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/dropspace-diagnostic-qwen3-4b-instruct-2507-q8
+          key: dropspace-qwen4-diagnostic-ae916ede1c010a26955ee8ae2e908bf8815a3f135ec860439ab924701c69d5f1
+      - name: Reuse approved Qwen8 diagnostic model
+        if: inputs.selection_diagnostic_variant == 'qwen8-evidence'
+        continue-on-error: true
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/dropspace-diagnostic-qwen3-8b-q4km
+          key: dropspace-qwen8-diagnostic-d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
+      - name: Observe bounded diagnostic cases without changing production limits
+        timeout-minutes: 20
+        shell: pwsh
+        env:
+          DIAGNOSTIC_VARIANT: ${{ inputs.selection_diagnostic_variant }}
+        run: |
+          $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
+          $runtime = "$inputs/runtime"
+          if ($env:DIAGNOSTIC_VARIANT -in @('qwen06','qwen06-thinking','qwen06-admission','qwen06-dual','qwen06-plain-transfer','qwen06-evidence','qwen06-labelled-control','qwen06-native-id-control','qwen4-evidence','qwen4-template-validation','qwen4-deterministic','qwen8-evidence')) {
+            ./scripts/selection-qwen-diagnostic/Run-CloudQwenDiagnostic.ps1 -InputsDirectory $inputs -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
+          } else {
+            dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic execution failure; retained observations are not model approval.' }
+      - name: Retain observations and original provenance on failure or success
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-selection-long-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/selection-long-diagnostic/*.json
+            artifacts/selection-long-diagnostic/*.txt
+            artifacts/selection-diagnostic-inputs/*-artifact.json
+            artifacts/selection-diagnostic-inputs/run.json
+            artifacts/selection-diagnostic-inputs/runtime/runtime-manifest.json
+            artifacts/selection-diagnostic-inputs/evidence/**/*.json
+          if-no-files-found: warn
+          retention-days: 60
+
+  produce-selection-runtime:
+    name: Explicit diagnostic worker producer (never publishes)
+    if: github.event_name == 'workflow_dispatch' && inputs.produce_selection_runtime == true
+    runs-on: windows-2025
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Reject mixed publication or evidence modes
+        shell: pwsh
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          CAPTURE: ${{ inputs.capture_ai_evidence }}
+          DIAGNOSE: ${{ inputs.diagnose_selection_runtime }}
+        run: |
+          if ($env:PUBLISH -eq 'true' -or $env:CAPTURE -eq 'true' -or $env:DIAGNOSE -eq 'true') { throw 'Diagnostic producer cannot publish or run the translation benchmark.' }
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      # Frozen Beta10 approval is used only to retrieve its existing legacy bytes.
+      # It does not approve current source, a new helper, or publication.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: 4044baed6b1c393a815b91e1406a83e0995f1f94
+          path: artifacts/reviewed-beta10-source
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.401
+      - name: Retrieve exact previously reviewed legacy runtime
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./artifacts/reviewed-beta10-source/scripts/Get-ReviewedAiRuntime.ps1 -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/verified-legacy-runtime"
+      - name: Prepare pinned Vulkan build dependencies (no driver installation)
+        shell: pwsh
+        run: ./scripts/Prepare-VulkanBuildDependencies.ps1 -GitHubActions
+      - name: Build only three worker targets and reuse verified legacy executable bytes
+        shell: pwsh
+        run: ./scripts/Build-AiLyricsRuntime.ps1 -VerifiedLegacyRuntimeDirectory "$env:GITHUB_WORKSPACE/artifacts/verified-legacy-runtime"
+      - name: Record actual producer and exact reuse identities
+        run: node scripts/selection-runtime-producer.mjs
+      - name: Retain exact eight-file candidate runtime
+        id: runtime-artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ai-runtime/win-x64/*
+          if-no-files-found: error
+          retention-days: 60
+      - name: Run three annotated actual model selections and one sent-request cancellation
+        timeout-minutes: 15
+        shell: pwsh
+        env:
+          RUNTIME_ARTIFACT_ID: ${{ steps.runtime-artifact.outputs.artifact-id }}
+          RUNTIME_ARCHIVE_SHA256: ${{ steps.runtime-artifact.outputs.artifact-digest }}
+        run: |
+          $runtime = "$env:GITHUB_WORKSPACE/artifacts/ai-runtime/win-x64"
+          dotnet run --project scripts/selection-model-probe/SelectionModelProbe.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- "$env:GITHUB_WORKSPACE/artifacts/selection-probe"
+          if ($LASTEXITCODE -ne 0) { throw 'Selection probe execution failed; retained evidence remains diagnostic only.' }
+      - name: Retain diagnostic evidence even on probe failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ai-selection-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/selection-probe/*.json
+            artifacts/selection-runtime-producer.json
+          if-no-files-found: warn
+          retention-days: 60
+
   validate-release:
+    if: inputs.produce_selection_runtime != true && inputs.diagnose_selection_runtime != true
     name: Build and validate release bundle
     # The release lane uses the named Windows Server 2025 image so a moving
     # windows-latest image cannot silently change produced bytes.

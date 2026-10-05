@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Abstractions;
 using DropSpace.Infrastructure.Storage;
 
 namespace DropSpace.Infrastructure.Lyrics;
@@ -46,6 +47,33 @@ public sealed class AiModelPackageService : IDisposable
         if (model is null || !Directory.Exists(_root)) return false;
         return new[] { ".gguf", ".partial" }.Any(suffix =>
             File.Exists(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + suffix)));
+    }
+
+    public async Task<DlcPackageInspection> InspectAsync(string modelId, CancellationToken token)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var model = _resolve(modelId) ?? throw new ArgumentException("Unknown model.", nameof(modelId));
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
+        await _gate.WaitAsync(stop.Token).ConfigureAwait(false);
+        try
+        {
+            if (!Directory.Exists(_root)) return new(false, false, 0);
+            long bytes = 0;
+            var hasArtifacts = false;
+            var installed = false;
+            foreach (var suffix in new[] { ".gguf", ".partial" })
+            {
+                stop.Token.ThrowIfCancellationRequested();
+                var path = ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, model.Sha256 + suffix);
+                if (!File.Exists(path)) continue;
+                ReparseSafePathPolicy.ResolveExistingContainedPath(_root, path);
+                hasArtifacts = true;
+                bytes += new FileInfo(path).Length;
+                if (suffix == ".gguf") installed = await VerifyAsync(path, model, stop.Token).ConfigureAwait(false);
+            }
+            return new(installed, hasArtifacts, bytes);
+        }
+        finally { _gate.Release(); }
     }
 
     public async Task DeleteAsync(string modelId, CancellationToken token)

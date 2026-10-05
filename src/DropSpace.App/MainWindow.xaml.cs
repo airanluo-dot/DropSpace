@@ -50,7 +50,8 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
         Services.Media.WindowsMediaSessionService sessions,
         Services.Media.MediaExperienceService mediaExperience,
         Services.Media.MediaApplicationIconService mediaIcons,
-        NeteaseEnhancementViewModel enhancement)
+        NeteaseEnhancementViewModel enhancement,
+        Services.Dlc.DlcManagerService dlc)
     {
         _viewModel = viewModel;
         _media = media;
@@ -104,7 +105,7 @@ public sealed partial class MainWindow : Window, IAsyncDisposable
             crossDeviceClipboard,
             dropLinkHost,
             sharing,
-            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement);
+            settingsEditor, media, sessions, mediaExperience, mediaIcons, enhancement, dlc);
         _mainPage = _createMainPage();
         RootContent.Content = _mainPage;
         AppWindow.Changed += OnWindowPresentationChanged;

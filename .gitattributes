@@ -29,3 +29,6 @@ branding/master/*.txt -text
 
 # Reviewed native evidence is hashed byte-for-byte, including Windows line endings.
 scripts/ai-model-qa/evidence/** -text
+
+# Pinned third-party orthography data/license retain upstream bytes.
+src/DropSpace.Core/Lyrics/Data/*.txt -text

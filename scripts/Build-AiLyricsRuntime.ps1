@@ -1,7 +1,9 @@
 param(
     [ValidateSet('Ninja Multi-Config', 'Visual Studio 18 2026', 'Visual Studio 17 2022')]
     [string]$Generator = 'Ninja Multi-Config',
-    [string]$BuildDirectory = ''
+    [string]$BuildDirectory = '',
+    # Explicit diagnostic producer only; normal CI/release never invokes this build.
+    [string]$VerifiedLegacyRuntimeDirectory = ''
 )
 
 Set-StrictMode -Version Latest
@@ -15,6 +17,12 @@ $source = Join-Path $root 'artifacts/ai-runtime-source'
 $build = if ($BuildDirectory) { [IO.Path]::GetFullPath($BuildDirectory) } else { Join-Path $root 'artifacts/ai-runtime-build' }
 if ($BuildDirectory -and (Test-Path -LiteralPath $build)) { throw 'An explicitly supplied native build directory must be fresh; existing contents are preserved.' }
 $output = Join-Path $root 'artifacts/ai-runtime/win-x64'
+if ($VerifiedLegacyRuntimeDirectory) {
+    $VerifiedLegacyRuntimeDirectory = [IO.Path]::GetFullPath($VerifiedLegacyRuntimeDirectory)
+    & (Join-Path $PSScriptRoot 'Test-AiLyricsRuntime.ps1') -RuntimeDirectory $VerifiedLegacyRuntimeDirectory
+    $legacy = Get-Content (Join-Path $VerifiedLegacyRuntimeDirectory 'runtime-manifest.json') -Raw | ConvertFrom-Json
+    if ($legacy.sourceCommit -cne $commit) { throw 'Legacy engine source differs from the pinned worker engine.' }
+}
 $helperInputs = @('tools/plain-lyrics-helper/CMakeLists.txt', 'tools/plain-lyrics-helper/gpu-policy.h', 'tools/plain-lyrics-helper/main.cpp')
 $helperInputIdentities = @{}
 foreach ($inputPath in $helperInputs) {
@@ -109,7 +117,7 @@ foreach ($variant in @('vulkan', 'baseline', 'avx2')) {
     $workerName = if ($variant -eq 'baseline') { 'plain-lyrics-worker.exe' } else { "plain-lyrics-worker-$variant.exe" }
     Copy-Item (Join-Path $variantBuild 'bin/Release/plain-lyrics-worker.exe') (Join-Path $output $workerName)
     if (@(Get-ChildItem (Join-Path $variantBuild 'bin/Release') -Filter '*.dll' -File).Count -ne 0) { throw 'The resident runtime unexpectedly requires a bundled native DLL.' }
-    if ($variant -eq 'vulkan') { continue }
+    if ($variant -eq 'vulkan' -or $VerifiedLegacyRuntimeDirectory) { continue }
     Invoke-Checked 'cmake' @('--build', $variantBuild, '--config', 'Release', '--target', 'llama-completion', '--parallel', '4')
     if (@(Get-ChildItem (Join-Path $variantBuild 'bin/Release') -Filter '*.dll' -File).Count -ne 0) {
         throw 'The CPU runtime unexpectedly requires a bundled native DLL.'
@@ -122,6 +130,12 @@ foreach ($variant in @('vulkan', 'baseline', 'avx2')) {
     if (-not (Test-Path $builtExe -PathType Leaf)) { throw 'The fixed source did not produce llama-completion.exe.' }
     $name = if ($variant -eq 'avx2') { 'llama-completion-avx2.exe' } else { 'llama-completion.exe' }
     Copy-Item $builtExe (Join-Path $output $name)
+}
+if ($VerifiedLegacyRuntimeDirectory) {
+    foreach ($name in @('llama-completion.exe', 'llama-completion-avx2.exe', 'llama-tokenize.exe')) {
+        Copy-Item (Join-Path $VerifiedLegacyRuntimeDirectory $name) (Join-Path $output $name)
+        if ((Get-FileHash (Join-Path $output $name)).Hash -cne (Get-FileHash (Join-Path $VerifiedLegacyRuntimeDirectory $name)).Hash) { throw 'Legacy byte reuse failed.' }
+    }
 }
 $executable = Join-Path $output 'llama-completion.exe'
 $optimized = Join-Path $output 'llama-completion-avx2.exe'

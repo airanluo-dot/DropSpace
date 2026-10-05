@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -214,6 +215,79 @@ public sealed class NetEaseRequestReuseTests
         Assert.AreEqual(2, handler.Calls);
         using var changedTarget = await cache.GetAsync(url, default, translationTarget: "ja");
         Assert.AreEqual(3, handler.Calls);
+    }
+
+    [TestMethod]
+    public async Task SameLanguageOriginalKeepsLongReuseWithoutInventingTranslation()
+    {
+        using var handler = new PayloadHandler("""{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你\n[00:02]你的世界充满阳光"}}""");
+        using var client = new HttpClient(handler);
+        var clock = new ManualClock();
+        var cache = new NetEaseResponseCache(new(client), clock);
+        const string url = "https://music.163.com/api/song/lyric?id=1";
+        using var first = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        clock.Now += TimeSpan.FromSeconds(5);
+        using var again = await cache.GetAsync(url, default, translationTarget: "zh-Hans");
+        Assert.AreEqual(1, handler.Calls);
+        Assert.IsFalse(again.RootElement.TryGetProperty("tlyric", out _));
+        using var foreignTarget = await cache.GetAsync(url, default, translationTarget: "en");
+        Assert.AreEqual(2, handler.Calls);
+        clock.Now += TimeSpan.FromSeconds(2);
+        using var retry = await cache.GetAsync(url, default, translationTarget: "en");
+        Assert.AreEqual(3, handler.Calls);
+    }
+
+    [TestMethod]
+    public async Task ProviderArtistAliasSupportsAppleMetadataWithoutDroppingCanonicalCredit()
+    {
+        using var handler = new GemCatalogHandler();
+        using var client = new HttpClient(handler);
+        var query = new LyricsQuery("唯一", "邓紫棋", "T.I.M.E. - EP", TimeSpan.Zero)
+            { PreferredTranslationLanguage = "zh-Hans" };
+        var service = new LyricsService(new([new NetEaseLyricsProvider(new(client))]));
+        var result = await service.QueryDetailedAsync(query,
+            new() { Enabled = true, SearchRemainingProviders = false }, default);
+        Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+        Assert.AreEqual(LyricsProviderKind.NetEase, result.Document.Provider);
+        Assert.AreEqual("G.E.M.邓紫棋", result.Document.Match!.Artist);
+        Assert.AreEqual("我们在这里等你", result.Document.Lines[0].Text);
+        Assert.AreEqual(2, handler.Calls);
+        Assert.IsFalse(result.TranslationLookupIncomplete);
+    }
+
+    private sealed class GemCatalogHandler : HttpMessageHandler
+    {
+        public int Calls;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            Interlocked.Increment(ref Calls);
+            var payload = request.RequestUri!.AbsolutePath.Contains("search", StringComparison.Ordinal)
+                ? """{"code":200,"result":{"songs":[{"id":1,"name":"唯一","artists":[{"name":"G.E.M.邓紫棋","alias":["鄧紫棋"]}],"album":{"name":"T.I.M.E."},"duration":253000}]}}"""
+                : """{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你"}}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            { RequestMessage = request, Content = new StringContent(payload, Encoding.UTF8, "application/json") });
+        }
+    }
+
+    [TestMethod]
+    public async Task CompleteOriginalWithoutTargetOrInTargetLanguageRemainsReusableAfterOneSecond()
+    {
+        var calls = new List<int>();
+        foreach (var target in new string?[] { null, "zh-Hans", "en" })
+        {
+            using var handler = new PayloadHandler("""{"code":200,"lrc":{"lyric":"[00:01]我们在这里等你"}}""");
+            using var client = new HttpClient(handler);
+            var clock = new ManualClock();
+            var cache = new NetEaseResponseCache(new(client), clock);
+            const string url = "https://music.163.com/api/song/lyric?id=1";
+            using var first = await cache.GetAsync(url, default, translationTarget: target);
+            clock.Now += TimeSpan.FromMilliseconds(1100);
+            using var second = await cache.GetAsync(url, default, translationTarget: target);
+            Assert.AreEqual(first.RootElement.GetRawText(), second.RootElement.GetRawText());
+            calls.Add(handler.Calls);
+        }
+        // No target and same target are complete; a foreign target still refetches.
+        Assert.AreEqual("1,1,2", string.Join(",", calls), "HTTP counts for no target, Chinese target, English target");
     }
 
     private sealed class ChangingTranslationHandler : HttpMessageHandler

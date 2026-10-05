@@ -14,7 +14,8 @@ internal static class ImageDecoderPreflight
         if (stream.Size == 0 || stream.Size > (ulong)maxBytes)
             throw new InvalidDataException("Image encoded byte budget exceeded.");
         stream.Seek(0);
-        var decoder = await BitmapDecoder.CreateAsync(stream).AsTask(cancellationToken);
+        var decoder = await NativeAsyncLifetime.AwaitAsync(BitmapDecoder.CreateAsync(stream), cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         var assessment = ClipboardImageBudgetPolicy.Create(maxBytes, maxPixels)
             .Assess(checked((long)stream.Size), decoder.PixelWidth, decoder.PixelHeight);
         if (!assessment.IsWithinBudget) throw new InvalidDataException("Image decoded memory budget exceeded.");

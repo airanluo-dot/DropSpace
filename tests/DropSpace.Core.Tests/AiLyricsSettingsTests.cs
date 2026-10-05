@@ -7,6 +7,34 @@ namespace DropSpace.Core.Tests;
 public sealed class AiLyricsSettingsTests
 {
     [TestMethod]
+    public void RetiredSelectionSettingsCannotReactivateAndKeepTranslationPreferences()
+    {
+        foreach (var model in AiLyricsModelCatalog.All)
+        {
+            var oldJson = System.Text.Json.JsonSerializer.Serialize(new { Lyrics = new
+            {
+                SelectionMode = 2, AiSelectionModelId = "old-selector-id", AiModelId = model.Id,
+                AiTranslationEnabled = true, AiLyricsGpuAccelerationEnabled = false,
+                SecondaryLyrics = true, SearchRemainingProviders = false,
+            } });
+            var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(oldJson)!.Validate();
+            Assert.AreEqual(LyricsSelectionMode.Rules, restored.Lyrics.SelectionMode);
+            Assert.AreEqual(model.Id, restored.Lyrics.AiModelId);
+            Assert.IsTrue(restored.Lyrics.AiTranslationEnabled && restored.Lyrics.SecondaryLyrics);
+            Assert.IsFalse(restored.Lyrics.AiLyricsGpuAccelerationEnabled || restored.Lyrics.SearchRemainingProviders);
+            var saved = System.Text.Json.JsonSerializer.Serialize(restored);
+            Assert.IsFalse(saved.Contains("SelectionMode", StringComparison.Ordinal));
+            Assert.IsFalse(saved.Contains("AiSelectionModelId", StringComparison.Ordinal));
+            var obsoleteCaller = restored with { Lyrics = restored.Lyrics with
+                { SelectionMode = LyricsSelectionMode.AiRanked, AiSelectionModelId = "old-selector-id" } };
+            Assert.IsFalse(LyricsReloadPolicy.RequiresReload(restored, obsoleteCaller));
+            Assert.AreEqual(LyricsSelectionMode.Rules, obsoleteCaller.Validate().Lyrics.SelectionMode);
+            Assert.IsTrue(LyricsReloadPolicy.RequiresReload(restored, restored with { Lyrics = restored.Lyrics with
+                { AiModelId = model == AiLyricsModelCatalog.ExperimentalPlain ? AiLyricsModelCatalog.ExperimentalLargePlain.Id : AiLyricsModelCatalog.ExperimentalPlain.Id } }));
+        }
+    }
+
+    [TestMethod]
     public void FreshInstallEnablesOnlineLyricsAndRemainingSourcesButNotAi()
     {
         var settings = new AppSettings().Validate().Lyrics;

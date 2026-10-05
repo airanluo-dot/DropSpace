@@ -1,10 +1,10 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.10
+## Release target: v0.3.1-beta.11
 
-Correct future-release regression fixtures, deterministic translated lyric selection, and widget drag cancellation cleanup.
-Focused regression checks cover ordering, shared lookup budgets and original fallback. Existing model/runtime inputs are reused unchanged.
-See [release notes](.github/release-notes/v0.3.1-beta.10.md).
+Integrate unified DLC management, optional NVIDIA CUDA13 download components, retired AI song selection and bounded same-song translation reuse.
+The explicit no-testing instruction applies. Real CUDA assets and final App packaging remain release inputs.
+See [release notes](.github/release-notes/v0.3.1-beta.11.md).
 
 ## Delivered slice: v0.3.0-beta.32
 
@@ -93,7 +93,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.10
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.11
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -757,9 +757,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.10` (Beta 10). All new prereleases use
+The current Beta target is `v0.3.1-beta.11` (Beta 11). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.9 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.10 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

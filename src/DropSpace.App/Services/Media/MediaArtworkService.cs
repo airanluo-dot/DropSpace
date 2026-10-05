@@ -15,11 +15,11 @@ public sealed class MediaArtworkService(DispatcherQueue dispatcher)
         using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
         {
             writer.WriteBytes(bytes);
-            await WindowsMediaSessionService.AwaitNativeAsync(writer.StoreAsync(), token).ConfigureAwait(false);
+            await NativeAsyncLifetime.AwaitAsync(writer.StoreAsync(), token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             writer.DetachStream();
         }
-        var decoder = await WindowsMediaSessionService.AwaitNativeAsync(BitmapDecoder.CreateAsync(stream), token).ConfigureAwait(false);
+        var decoder = await NativeAsyncLifetime.AwaitAsync(BitmapDecoder.CreateAsync(stream), token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         if (decoder.PixelWidth == 0 || decoder.PixelHeight == 0 || decoder.PixelWidth > 8192 || decoder.PixelHeight > 8192 ||
             (ulong)decoder.PixelWidth * decoder.PixelHeight > 16_000_000) return null;
@@ -30,7 +30,7 @@ public sealed class MediaArtworkService(DispatcherQueue dispatcher)
             var image = new BitmapImage { DecodePixelWidth = 192 };
             // BitmapImage and SetSourceAsync remain on the UI dispatcher. Only the
             // cancellation request is off-thread; the stream lives until native completion.
-            await WindowsMediaSessionService.AwaitNativeAsync(image.SetSourceAsync(stream), token);
+            await NativeAsyncLifetime.AwaitAsync(image.SetSourceAsync(stream), token);
             token.ThrowIfCancellationRequested();
             return image;
         }).ConfigureAwait(false);

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
@@ -45,6 +46,63 @@ public sealed class LyricsCacheIdentityRegressionTests
         Assert.AreEqual("Second artist", second.Document.Match!.Artist);
         Assert.AreEqual(2, provider.Calls);
         if (Directory.Exists(root)) Directory.Delete(root, true);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Beta9PrimaryCacheRetainsSameLanguageButRequeriesForeignOriginal(bool foreignOriginal)
+        => await CheckBeta9PrimaryCacheAsync(foreignOriginal, false);
+
+    [TestMethod]
+    public async Task Beta9PrimaryOriginalWithUnprovenSecondaryIsRefetched()
+        => await CheckBeta9PrimaryCacheAsync(false, true);
+
+    private static async Task CheckBeta9PrimaryCacheAsync(bool foreignOriginal, bool oldSecondary)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DropSpace-Beta9Cache-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var query = new LyricsQuery("唯一", "邓紫棋", "", TimeSpan.FromSeconds(180), "synthetic-track")
+                { PreferredTranslationLanguage = "zh-Hans" };
+            var settings = new LyricsSettings { Enabled = true, SearchRemainingProviders = false };
+            var cache = new LyricsCache(root);
+            var legacyKey = JsonSerializer.Serialize(new
+            {
+                version = "source-v4", primary = LyricsProviderKind.NetEase, backup = (LyricsProviderKind?)null,
+                settings.SearchRemainingProviders, target = "zh-Hans",
+                query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
+                durationTicks = query.Duration.Ticks,
+            });
+            LyricsDocument Document(string text) => new LyricsDocument(
+                [new(TimeSpan.Zero, TimeSpan.FromSeconds(10), text, null, [])], LyricsProviderKind.NetEase)
+                { ProviderDataRevision = NetEaseLyricsProvider.DataRevision }
+                .Bind(query, query.Title, query.Artist, query.Album, 180, 12, "synthetic-id");
+            await cache.WriteDocumentAsync(legacyKey,
+                Document(foreignOriginal ? "The night is full of stars." : "我们在这里等你") with
+                { Lines = [new(TimeSpan.Zero, TimeSpan.FromSeconds(10),
+                    foreignOriginal ? "The night is full of stars." : "我们在这里等你",
+                    oldSecondary ? "Unverified legacy secondary text" : null, [])] }, cache.Generation, default);
+            var provider = new SameLanguageProvider(Document("我们在这里等你"));
+            var result = await new LyricsService(new([provider]), cache).QueryDetailedAsync(query, settings, default);
+            Assert.AreEqual(LyricsQueryStatus.Found, result.Status);
+            Assert.AreEqual("我们在这里等你", result.Document.Lines[0].Text);
+            Assert.AreEqual(foreignOriginal || oldSecondary ? 1 : 0, provider.Calls);
+            Assert.IsFalse(result.TranslationLookupIncomplete);
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private sealed class SameLanguageProvider(LyricsDocument document) : ILyricsProvider
+    {
+        public LyricsProviderKind Kind => LyricsProviderKind.NetEase;
+        public int Calls;
+        public Task<LyricsDocument> QueryAsync(LyricsQuery query, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Calls++;
+            return Task.FromResult(document);
+        }
     }
 
     private sealed class AlbumArtistProvider : ILyricsProvider

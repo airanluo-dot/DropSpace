@@ -104,7 +104,28 @@ public static class LyricsMatcher
 
     public static bool AreArtistCreditsCompatible(string left, string right) => ArtistSimilarity(left, right) >= 0.6;
 
-    public static double Score(LyricsQuery query, string title, string artist, string album, double durationSeconds)
+    // Collection admission is not authorization to publish an original. Unknown
+    // cross-script artists reach the selector only with exact title/version and
+    // independent duration evidence; the strict Score remains the rules fallback.
+    public static double CandidateScore(LyricsQuery query, string title, string artist, string album,
+        double durationSeconds, IReadOnlyList<string>? artistAliases = null)
+    {
+        var strict = Score(query, title, artist, album, durationSeconds, artistAliases);
+        if (strict >= 4 || !query.CollectSelectionCandidates) return strict;
+        return IsSafeSelectionCandidate(query, title, artist, durationSeconds, album) ? 4 : 0;
+    }
+
+    public static bool IsSafeSelectionCandidate(LyricsQuery query, string title, string artist, double durationSeconds, string album = "") =>
+        query.HasDisambiguatingMetadata && !string.IsNullOrWhiteSpace(artist) &&
+        AreTitlesEquivalent(query.Title, title) && double.IsFinite(durationSeconds) && durationSeconds >= 0 &&
+        (query.Duration <= TimeSpan.Zero || durationSeconds <= 0 ||
+            Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds)) &&
+        (query.ArtistCandidates.Any(value => AreArtistCreditsCompatible(value, artist)) ||
+            query.Duration > TimeSpan.Zero && durationSeconds > 0 ||
+            Normalize(query.Album) is { Length: > 0 } requestedAlbum && requestedAlbum == Normalize(album));
+
+    public static double Score(LyricsQuery query, string title, string artist, string album, double durationSeconds,
+        IReadOnlyList<string>? artistAliases = null)
     {
         var titleScore = TitleSimilarity(query.Title, title);
         // Some media publishers reverse title and artist fields.
@@ -113,8 +134,12 @@ public static class LyricsMatcher
         // Catalogues can append the English title after the exact Chinese title.
         // This recovery needs independent artist AND duration evidence; substring
         // similarity alone must never authorize a different song or language.
+        var artistScore = ArtistSimilarity(query.ArtistCandidates, artist);
+        if (artistAliases is not null)
+            foreach (var alias in artistAliases.Take(16))
+                artistScore = Math.Max(artistScore, ArtistSimilarity(query.ArtistCandidates, alias));
         var bilingualMatch = BilingualBaseMatches(query.Title, title);
-        if (bilingualMatch && ArtistSimilarity(query.ArtistCandidates, artist) >= 0.6 &&
+        if (bilingualMatch && artistScore >= 0.6 &&
             query.Duration > TimeSpan.Zero && double.IsFinite(durationSeconds) && durationSeconds > 0 &&
             Math.Abs(query.Duration.TotalSeconds - durationSeconds) <= DurationTolerance(query.Duration.TotalSeconds, durationSeconds))
             titleScore = Math.Max(titleScore, 0.95);
@@ -123,7 +148,6 @@ public static class LyricsMatcher
         if (string.IsNullOrWhiteSpace(artist) && string.IsNullOrWhiteSpace(album) &&
             (!double.IsFinite(durationSeconds) || durationSeconds <= 0)) return 0;
         if (HasVersionConflict(query.Title, title)) return 0;
-        var artistScore = ArtistSimilarity(query.ArtistCandidates, artist);
         var albumScore = Similarity(query.Album, album);
         var candidateDuration = double.IsFinite(durationSeconds) ? Math.Max(0, durationSeconds) : 0;
         var durationDelta = Math.Abs(query.Duration.TotalSeconds - candidateDuration);
@@ -173,7 +197,7 @@ public static class LyricsMatcher
     }
 
     private static string[] ArtistCredits(string value) => ArtistCreditSeparator.Split(Limit(value))
-        .Select(Normalize).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+        .Select(ArtistCreditOrthography.Fold).Where(item => item.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
 
     private static double TitleSimilarity(string left, string right)
     {
@@ -193,13 +217,13 @@ public static class LyricsMatcher
         var b = SearchTitle(right);
         var am = BilingualTitle.Match(a);
         var bm = BilingualTitle.Match(b);
-        return bm.Success && Normalize(a) == Normalize(bm.Groups[1].Value) ||
-            am.Success && Normalize(b) == Normalize(am.Groups[1].Value);
+        return bm.Success && ArtistCreditOrthography.Fold(a) == ArtistCreditOrthography.Fold(bm.Groups[1].Value) ||
+            am.Success && ArtistCreditOrthography.Fold(b) == ArtistCreditOrthography.Fold(am.Groups[1].Value);
     }
 
     private static string ComparableTitle(string value)
     {
-        return Normalize(SearchTitle(value));
+        return ArtistCreditOrthography.Fold(SearchTitle(value));
     }
 
     private static double Similarity(string left, string right)

@@ -76,7 +76,8 @@ public sealed partial class MainPage : Page
         Services.Media.WindowsMediaSessionService sessions,
         Services.Media.MediaExperienceService mediaExperience,
         Services.Media.MediaApplicationIconService mediaIcons,
-        NeteaseEnhancementViewModel enhancement)
+        NeteaseEnhancementViewModel enhancement,
+        Services.Dlc.DlcManagerService dlc)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
@@ -113,8 +114,8 @@ public sealed partial class MainPage : Page
 
         ApplySettingsAutomationNames();
         DataContext = viewModel;
-        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement);
-        BuildSettingsPages(settingsEditor);
+        MusicContent.Content = new Music.MusicPage(settingsEditor, media, sessions, mediaExperience, mediaIcons, strings, windowHandle, enhancement, dlc, OpenDlcSettings);
+        BuildSettingsPages(settingsEditor, dlc);
         DiscoveredDevicesList.ItemsSource = _discoveredDevices;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

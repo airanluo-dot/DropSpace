@@ -5,13 +5,14 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'ReleaseArtifactVersion.ps1')
 $root = Split-Path $PSScriptRoot -Parent
 $info = Get-DropSpaceReleaseInfo ((Get-Content (Join-Path $root 'RELEASE_VERSION') -Raw).Trim())
+$baselineTag = 'v' + (Get-DropSpaceLifecycleBaselineVersion $info)
 $directory = Join-Path $root $ReleaseDirectory
 foreach ($entry in @(@{Name='DropSpace.exe'; Installer=$false}, @{Name='DropSpaceSetup.exe'; Installer=$true}))
 {
     $path = Join-Path $directory $entry.Name
     Assert-DropSpaceExecutableVersion -Path $path -ReleaseInfo $info -Installer:$entry.Installer
     # Exercise the immediately preceding shipped Beta as well as a distant mismatch.
-    foreach ($differentTag in @('v0.0.0-beta.1', 'v0.3.0-beta.25'))
+    foreach ($differentTag in @('v0.0.0-beta.1', $baselineTag))
     {
         $different = Get-DropSpaceReleaseInfo $differentTag
         if ($different.SemanticVersion -eq $info.SemanticVersion) { continue }

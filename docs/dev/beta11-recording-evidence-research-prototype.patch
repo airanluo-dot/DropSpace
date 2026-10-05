@@ -1,0 +1,450 @@
+diff --git a/src/DropSpace.Core/Lyrics/LyricsModels.cs b/src/DropSpace.Core/Lyrics/LyricsModels.cs
+index 37e2918..aaa7792 100644
+--- a/src/DropSpace.Core/Lyrics/LyricsModels.cs
++++ b/src/DropSpace.Core/Lyrics/LyricsModels.cs
+@@ -44,6 +44,8 @@ public sealed record LyricsMatchInfo(
+     // Complete credit projections asserted by this recording's source artist records.
+     // They are not global aliases and never alter the raw canonical Artist field.
+     public IReadOnlyList<string> ArtistAliases { get; init; } = [];
++    // Optional raw provider assertions; absent in legacy cache entries. Never an AI verdict.
++    public LyricsRecordingEvidence? RecordingEvidence { get; init; }
+ }
+ public sealed record LyricsWord(string Text, TimeSpan Start, TimeSpan End);
+ public sealed record LyricsLine(TimeSpan Start, TimeSpan End, string Text, string? Secondary, IReadOnlyList<LyricsWord> Words)
+diff --git a/src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs b/src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs
+index 4a7859a..94b6012 100644
+--- a/src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs
++++ b/src/DropSpace.Infrastructure/Lyrics/AmllLyricsProvider.cs
+@@ -12,7 +12,7 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
+     private int _cacheBytes;
+     private long _generation, _order;
+     private sealed record CachedLyrics(string Text, int Bytes, long Order);
+-    private sealed record Candidate(string Id, string Title, string Artist, string Album, double Score);
++    private sealed record Candidate(string Id, string Title, string Artist, string Album, double Score, LyricsRecordingEvidence? Evidence);
+     public LyricsProviderKind Kind => LyricsProviderKind.Amll;
+     public void ClearResponseCache()
+     { lock (_cacheGate) { _cache.Clear(); _cacheBytes = 0; _generation++; } }
+@@ -79,7 +79,8 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
+                 if (downloaded && parsed.Lines.Count > 0) Store(best.Id, text!, generation);
+                 // SongItem does not expose audio duration. Neither player duration
+                 // nor the last sung timestamp may be presented as source evidence.
+-                return parsed.Bind(query, best.Title, best.Artist, best.Album, 0, best.Score, best.Id);
++                var bound = parsed.Bind(query, best.Title, best.Artist, best.Album, 0, best.Score, best.Id);
++                return bound with { Match = bound.Match! with { RecordingEvidence = best.Evidence } };
+             });
+             if (document.Lines.Count == 0) continue;
+             reportCandidate(document);
+@@ -131,7 +132,7 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
+             if ((!query.CollectSelectionCandidates && (query.ArtistCandidates.Count == 0 || !query.ArtistCandidates.Any(value => LyricsMatcher.AreArtistCreditsCompatible(value, artist)))) ||
+                 titles.Any(title => LyricsMatcher.HasVersionConflict(query.Title, title))) continue;
+             var best = titles.Where(title => LyricsMatcher.AreTitlesEquivalent(query.Title, title))
+-                .Select(title => new Candidate(Text(item, "id"), title, artist, album, LyricsMatcher.CandidateScore(query, title, artist, album, 0)))
++                .Select(title => new Candidate(Text(item, "id"), title, artist, album, LyricsMatcher.CandidateScore(query, title, artist, album, 0), LyricsRecordingEvidenceReader.Amll(item)))
+                 .OrderByDescending(candidate => candidate.Score).FirstOrDefault();
+             if (best is not null && best.Score >= 4 && !string.IsNullOrWhiteSpace(best.Id)) matches.Add(best);
+         }
+diff --git a/src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs b/src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs
+index 8efe734..953b962 100644
+--- a/src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs
++++ b/src/DropSpace.Infrastructure/Lyrics/KugouLyricsProvider.cs
+@@ -57,8 +57,9 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
+                         parsed = LyricsParser.Parse(Encoding.UTF8.GetString(bytes), Kind);
+                         cancellationToken.ThrowIfCancellationRequested();
+                     }
+-                    return parsed.Bind(query, candidate.Title, candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score, candidate.Id)
+-                        with { ProviderDataRevision = DataRevision };
++                    var bound = parsed.Bind(query, candidate.Title, candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score, candidate.Id);
++                    return bound with { ProviderDataRevision = DataRevision,
++                        Match = bound.Match! with { RecordingEvidence = candidate.Evidence } };
+                 });
+                 if (document.Lines.Count == 0) continue;
+                 reportCandidate(document);
+@@ -88,7 +89,7 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
+                 if (!attemptedHashes.Add(hash)) continue;
+                 remainingCatalogs--;
+                 var recording = new CatalogRecording(Text(song.Item, "SongName"), Text(song.Item, "SingerName"),
+-                    Text(song.Item, "AlbumName"), Number(song.Item, "Duration"));
++                    Text(song.Item, "AlbumName"), Number(song.Item, "Duration"), hash);
+                 result = await requests.TryAsync(async () =>
+                 {
+                     using var hashed = await http.GetAsync($"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash={Escape(hash)}", cancellationToken);
+@@ -122,9 +123,9 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
+             throw new InvalidDataException("Unsupported Kugou response payload.");
+     }
+ 
+-    private sealed record CatalogRecording(string Title, string Artist, string Album, double DurationSeconds);
++    private sealed record CatalogRecording(string Title, string Artist, string Album, double DurationSeconds, string Hash);
+ 
+-    private sealed record Candidate(string Id, string Key, string Title, string Artist, string Album, double DurationSeconds, double Score);
++    private sealed record Candidate(string Id, string Key, string Title, string Artist, string Album, double DurationSeconds, double Score, LyricsRecordingEvidence? Evidence);
+ 
+     private static IEnumerable<Candidate> Choose(System.Text.Json.JsonElement root, LyricsQuery query, CatalogRecording? recording = null) =>
+         Array(root, "candidates").Select(item => new
+@@ -149,11 +150,13 @@ public sealed class KugouLyricsProvider(LyricsHttpClient http) : IProgressiveLyr
+             {
+                 candidate.Item, candidate.Title, candidate.Artist, Album = album, DurationSeconds = duration,
+                 Score = LyricsMatcher.CandidateScore(query, candidate.Title, candidate.Artist, album, duration),
++                Evidence = LyricsRecordingEvidenceReader.Kugou(candidate.Item, sameRecording ? recording!.Hash : null,
++                    candidate.DurationSeconds <= 0 && sameRecording && duration > 0),
+             };
+         })
+         .Where(candidate => candidate.Score >= 4 && !string.IsNullOrWhiteSpace(Text(candidate.Item, "id")) &&
+             !string.IsNullOrWhiteSpace(Text(candidate.Item, "accesskey")))
+         .OrderByDescending(candidate => candidate.Score)
+         .Select(candidate => new Candidate(Text(candidate.Item, "id"), Text(candidate.Item, "accesskey"), candidate.Title,
+-            candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score));
++            candidate.Artist, candidate.Album, candidate.DurationSeconds, candidate.Score, candidate.Evidence));
+ }
+diff --git a/src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs b/src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs
+index 85d3f1c..0a24052 100644
+--- a/src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs
++++ b/src/DropSpace.Infrastructure/Lyrics/LrclibLyricsProvider.cs
+@@ -47,7 +47,11 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
+                             if (parsed.Lines.Count > 0 && !string.IsNullOrWhiteSpace(exactId))
+                             {
+                                 var score = LyricsMatcher.CandidateScore(query, exactTitle, exactArtist, exactAlbum, exactDuration);
+-                                if (score >= 4) return parsed.Bind(query, exactTitle, exactArtist, exactAlbum, exactDuration, score, exactId);
++                                if (score >= 4)
++                                {
++                                    var bound = parsed.Bind(query, exactTitle, exactArtist, exactAlbum, exactDuration, score, exactId);
++                                    return bound with { Match = bound.Match! with { RecordingEvidence = LyricsRecordingEvidenceReader.Lrclib(exact.RootElement) } };
++                                }
+                             }
+                             return LyricsDocument.Empty;
+                         }
+@@ -96,6 +100,7 @@ public sealed class LrclibLyricsProvider(LyricsHttpClient http) : IProgressiveLy
+                 {
+                     var document = parsed.Bind(query, Text(best.Item, "trackName"), Text(best.Item, "artistName"),
+                         Text(best.Item, "albumName"), Number(best.Item, "duration"), best.Score, bestId);
++                    document = document with { Match = document.Match! with { RecordingEvidence = LyricsRecordingEvidenceReader.Lrclib(best.Item) } };
+                     reportCandidate(document);
+                     if (!query.CollectSelectionCandidates) return document;
+                     if (original.Lines.Count == 0) original = document;
+diff --git a/src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs b/src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs
+index 0f24cf4..86f7658 100644
+--- a/src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs
++++ b/src/DropSpace.Infrastructure/Lyrics/NetEaseLyricsProvider.cs
+@@ -61,7 +61,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
+         var document = ParseLyrics(root).Bind(query, candidate.Title, candidate.Artist, candidate.Album,
+             candidate.Duration, candidate.Score, candidate.Id);
+         token.ThrowIfCancellationRequested();
+-        return document with { Match = document.Match! with { ArtistAliases = candidate.ArtistAliases } };
++        return document with { Match = document.Match! with { ArtistAliases = candidate.ArtistAliases, RecordingEvidence = candidate.Evidence } };
+     }
+ 
+     internal static LyricsDocument ParseLyrics(JsonElement root)
+@@ -125,7 +125,7 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
+                 foreach (var alias in StringArray(song, property)) AddTitle(titles, alias);
+             var best = titles.Select(value => new { Title = value, Score = LyricsMatcher.CandidateScore(query, value, artist, album, duration, artistAliases) })
+                 .OrderByDescending(value => value.Score).FirstOrDefault();
+-            if (best is not null) yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases);
++            if (best is not null) yield return new(id, best.Title, artist, album, duration, best.Score, artistAliases, LyricsRecordingEvidenceReader.NetEase(song));
+         }
+     }
+ 
+@@ -164,5 +164,5 @@ public sealed class NetEaseLyricsProvider(LyricsHttpClient http, TimeProvider? t
+     }
+ 
+     private sealed record Candidate(string Id, string Title, string Artist, string Album, double Duration, double Score,
+-        string[] ArtistAliases);
++        string[] ArtistAliases, LyricsRecordingEvidence? Evidence);
+ }
+diff --git a/src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs b/src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs
+index 5e8208d..4f6e0cc 100644
+--- a/src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs
++++ b/src/DropSpace.Infrastructure/Lyrics/QqMusicLyricsProvider.cs
+@@ -47,6 +47,7 @@ public sealed class QqMusicLyricsProvider(LyricsHttpClient http) : IProgressiveL
+                 var document = await requests.TryAsync(() => ReadLyricsAsync(songId, cancellationToken));
+                 if (document.Lines.Count == 0) continue;
+                 document = document.Bind(query, best.Title, best.Artist, best.Album, best.Duration, best.Score, songId);
++                document = document with { Match = document.Match! with { RecordingEvidence = LyricsRecordingEvidenceReader.Qq(best.Song) } };
+                 reportCandidate(document);
+                 if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
+                     LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;
+diff --git a/src/DropSpace.Core/Lyrics/LyricsRecordingEvidence.cs b/src/DropSpace.Core/Lyrics/LyricsRecordingEvidence.cs
+new file mode 100644
+--- /dev/null
++++ b/src/DropSpace.Core/Lyrics/LyricsRecordingEvidence.cs
+@@ -0,0 +1,52 @@
++using System.Text;
++using System.Text.Json;
++using System.Text.Json.Serialization;
++
++namespace DropSpace.Core.Lyrics;
++
++[JsonConverter(typeof(JsonStringEnumConverter))]
++public enum LyricsIdentityNamespace
++{
++    NetEaseSongId, QqSongMid, QqSongId, AmllQqPlatformId, KugouAudioHash,
++    KugouLyricId, LrclibEntryId, AmllDocumentId, AppleMusicId, SpotifyId, Isrc,
++}
++
++[JsonConverter(typeof(JsonStringEnumConverter))]
++public enum LyricsEvidenceOrigin { Unknown, SourceCatalogue, CommunityCatalogue, HashBoundCatalogue }
++
++[JsonConverter(typeof(JsonStringEnumConverter))]
++public enum LyricsDurationOrigin { Missing, SourceCatalogue, SourceLyricResponse, HashBoundCatalogue }
++
++// IDs remain in their declared namespace. A community recording association
++// is a cited assertion, not a guarantee of the player identity or recording version.
++public sealed record LyricsRecordingReference(LyricsIdentityNamespace Namespace, string Id, LyricsEvidenceOrigin Origin);
++public sealed record LyricsArtistCreditEvidence(string Name, string? SourceArtistId, IReadOnlyList<string> Aliases);
++
++public sealed record LyricsRecordingEvidence(string CanonicalTitle, IReadOnlyList<string> OtherTitles,
++    IReadOnlyList<LyricsArtistCreditEvidence> Credits, IReadOnlyList<LyricsRecordingReference> References,
++    LyricsEvidenceOrigin Origin, LyricsDurationOrigin DurationOrigin)
++{
++    public const string Version = "recording-evidence-v1";
++    public const int MaximumItems = 16;
++    public const int MaximumScalarBytes = 256;
++    public const int MaximumBytes = 16 * 1024;
++
++    // Invalid or oversized optional evidence must not invalidate a usable native
++    // original. It cannot enter the model input as a silently shortened credit.
++    public bool IsBounded()
++    {
++        static bool Text(string? value) => value is not null && Encoding.UTF8.GetByteCount(value) <= MaximumScalarBytes;
++        if (!Enum.IsDefined(Origin) || Origin == LyricsEvidenceOrigin.Unknown || !Enum.IsDefined(DurationOrigin) ||
++            !Text(CanonicalTitle) || string.IsNullOrWhiteSpace(CanonicalTitle) ||
++            OtherTitles is null || Credits is null || References is null ||
++            OtherTitles.Count > MaximumItems || Credits.Count > MaximumItems || References.Count > MaximumItems ||
++            OtherTitles.Any(value => !Text(value)) || Credits.Any(credit => credit is null ||
++                !Text(credit.Name) || string.IsNullOrWhiteSpace(credit.Name) ||
++                credit.SourceArtistId is not null && !Text(credit.SourceArtistId) ||
++                credit.Aliases is null || credit.Aliases.Count > MaximumItems || credit.Aliases.Any(value => !Text(value))) ||
++            References.Any(reference => reference is null || !Enum.IsDefined(reference.Namespace) ||
++                !Enum.IsDefined(reference.Origin) || reference.Origin == LyricsEvidenceOrigin.Unknown ||
++                !Text(reference.Id) || string.IsNullOrWhiteSpace(reference.Id))) return false;
++        return JsonSerializer.SerializeToUtf8Bytes(this).Length <= MaximumBytes;
++    }
++}
+diff --git a/src/DropSpace.Core/Lyrics/LyricsRecordingAssessmentContract.cs b/src/DropSpace.Core/Lyrics/LyricsRecordingAssessmentContract.cs
+new file mode 100644
+--- /dev/null
++++ b/src/DropSpace.Core/Lyrics/LyricsRecordingAssessmentContract.cs
+@@ -0,0 +1,138 @@
++using System.Text;
++using System.Text.Encodings.Web;
++using System.Text.Json;
++using DropSpace.Core.Models;
++
++namespace DropSpace.Core.Lyrics;
++
++// Executable evidence/answer contract for a future, separately qualified profile.
++// This does not replace the frozen experimental v2 prompt or enable a model.
++public sealed record LyricsRecordingAssessmentInput(string Json, IReadOnlyList<LyricsRecordingEvidenceCitation> Citations);
++public sealed record LyricsRecordingEvidenceCitation(string Id, string CandidateId, string Kind, string? AnchorId);
++
++public static class LyricsRecordingAssessmentContract
++{
++    public const string Version = "recording-assessment-evidence-v1";
++    public const int MaximumInputBytes = 8192;
++    public const int MaximumOutputBytes = 1024;
++
++    public static bool TryBuild(LyricsQuery query, LyricsCandidateSnapshot snapshot, LyricsDocument original,
++        LyricsSettings settings, string target, out LyricsRecordingAssessmentInput? input)
++    {
++        input = null;
++        static bool Scalar(string? value) => value is not null && Encoding.UTF8.GetByteCount(value) <= 256;
++        if (snapshot.Truncated || snapshot.Candidates.Count is 0 or > LyricsCandidateSelectionProtocol.MaximumCandidates ||
++            string.IsNullOrWhiteSpace(query.Artist) || !Scalar(query.Title) || !Scalar(query.Artist) ||
++            !Scalar(query.AlbumArtist) || !Scalar(query.Album) || !Scalar(target) ||
++            snapshot.Candidates.Select(candidate => candidate.Id).Distinct(StringComparer.Ordinal).Count() != snapshot.Candidates.Count)
++            return false;
++        foreach (var candidate in snapshot.Candidates)
++            if (candidate.Id.Length is < 2 or > 4 || candidate.Id[0] != 'c' || candidate.Id.Skip(1).Any(value => value is < '0' or > '9') ||
++                candidate.Document.Match is not { RecordingEvidence: { } evidence } match || !evidence.IsBounded() ||
++                !Scalar(match.Title) || !Scalar(match.Artist) || !Scalar(match.Album) || string.IsNullOrWhiteSpace(match.Artist) ||
++                !double.IsFinite(match.DurationSeconds) || match.DurationSeconds < 0 ||
++                LyricsMatcher.HasVersionConflict(query.Title, evidence.CanonicalTitle) ||
++                evidence.OtherTitles.Any(title => LyricsMatcher.HasVersionConflict(query.Title, title)) ||
++                LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true }, match.Title, match.Artist,
++                    match.Album, match.DurationSeconds, match.ArtistAliases) < 4) return false;
++
++        // A native preview is a corroborated anchor, never a global artist identity.
++        // Legacy cache metadata without references cannot create a cross-source link.
++        var anchor = original.Match is { RecordingEvidence: { } anchorEvidence } anchorMatch &&
++            anchorEvidence.IsBounded() && !string.IsNullOrWhiteSpace(anchorMatch.Artist) &&
++            LyricsMatcher.Score(query, anchorMatch.Title, anchorMatch.Artist, anchorMatch.Album,
++                anchorMatch.DurationSeconds, anchorMatch.ArtistAliases) >= 4 ? anchorMatch : null;
++        var citations = new List<LyricsRecordingEvidenceCitation>();
++        foreach (var candidate in snapshot.Candidates)
++        {
++            var evidence = candidate.Document.Match!.RecordingEvidence!;
++            for (var index = 0; index < evidence.Credits.Count; index++)
++                citations.Add(new($"{candidate.Id}.artist.{index}", candidate.Id, "source-artist-object", null));
++            if (anchor is null) continue;
++            foreach (var reference in evidence.References.OrderBy(reference => reference.Namespace).ThenBy(reference => reference.Id, StringComparer.Ordinal))
++                if (anchor.RecordingEvidence!.References.Any(other => other.Namespace == reference.Namespace && other.Id == reference.Id) &&
++                    IsRecordingNamespace(reference.Namespace))
++                    citations.Add(new($"e{citations.Count}", candidate.Id, "shared-scoped-recording-reference", "a0"));
++        }
++        var json = JsonSerializer.Serialize(new
++        {
++            protocol = Version,
++            query = new { title = query.Title, performer = query.Artist, auxiliaryAlbumArtist = query.AlbumArtist,
++                album = query.Album, durationSeconds = query.Duration.TotalSeconds, target },
++            anchor = anchor is null ? null : new { id = "a0", origin = "native-rules-corroborated", provider = original.Provider.ToString(),
++                title = anchor.Title, artist = anchor.Artist, album = anchor.Album,
++                durationSeconds = anchor.DurationSeconds, evidence = anchor.RecordingEvidence },
++            candidates = snapshot.Candidates.Select(candidate => new
++            {
++                id = candidate.Id, provider = candidate.Document.Provider.ToString(),
++                matchedTitle = candidate.Document.Match!.Title, artist = candidate.Document.Match.Artist,
++                album = candidate.Document.Match.Album, durationSeconds = candidate.Document.Match.DurationSeconds,
++                evidence = candidate.Document.Match.RecordingEvidence,
++                targetTranslation = candidate.HasTargetTranslation,
++                sourcePriority = LyricsCandidateRules.SourceRank(candidate.Document.Provider, settings.Provider, settings.BackupProvider),
++                usableWordTiming = candidate.WordCoverage > 0,
++            }),
++            citations,
++        }, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
++        json = json.Replace("<", "\\u003c", StringComparison.Ordinal);
++        if (Encoding.UTF8.GetByteCount(json) > MaximumInputBytes) return false;
++        input = new(json, citations.ToArray());
++        return true;
++    }
++
++    // Validate whole ordered model output without recovering an ID from prose or
++    // reordering an invalid answer and calling that AI success. Citations prove
++    // that evidence exists; they do not prove that the model understood it.
++    public static bool TryValidate(string output, LyricsRecordingAssessmentInput input, LyricsCandidateSnapshot snapshot,
++        LyricsQuery query, LyricsDocument original, LyricsSettings settings, string target, out IReadOnlyList<string> ids)
++    {
++        ids = [];
++        if (Encoding.UTF8.GetByteCount(output) > MaximumOutputBytes ||
++            !TryBuild(query, snapshot, original, settings, target, out var expected) ||
++            expected!.Json != input.Json || !expected.Citations.SequenceEqual(input.Citations)) return false;
++        try
++        {
++            using var parsed = JsonDocument.Parse(output, new JsonDocumentOptions { MaxDepth = 5 });
++            var root = parsed.RootElement;
++            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 1 ||
++                !root.TryGetProperty("confirmed", out var list) || list.ValueKind != JsonValueKind.Array ||
++                list.GetArrayLength() > snapshot.Candidates.Count) return false;
++            var chosen = new List<string>();
++            LyricsSelectionCandidate? previous = null;
++            foreach (var item in list.EnumerateArray())
++            {
++                if (item.ValueKind != JsonValueKind.Object || item.EnumerateObject().Count() != 2 ||
++                    !item.TryGetProperty("id", out var idField) || idField.ValueKind != JsonValueKind.String ||
++                    !item.TryGetProperty("evidence", out var evidenceField) || evidenceField.ValueKind != JsonValueKind.Array ||
++                    evidenceField.GetArrayLength() is < 1 or > 4) return false;
++                var id = idField.GetString()!;
++                if (chosen.Contains(id, StringComparer.Ordinal) || snapshot.Candidates.FirstOrDefault(candidate => candidate.Id == id) is not { } candidate)
++                    return false;
++                var cited = new HashSet<string>(StringComparer.Ordinal);
++                foreach (var field in evidenceField.EnumerateArray())
++                    if (field.ValueKind != JsonValueKind.String || !cited.Add(field.GetString()!) ||
++                        !input.Citations.Any(citation => citation.Id == field.GetString() && citation.CandidateId == id)) return false;
++                var match = candidate.Document.Match!;
++                if (string.IsNullOrWhiteSpace(query.Artist) || string.IsNullOrWhiteSpace(match.Artist) ||
++                    LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true }, match.Title, match.Artist,
++                        match.Album, match.DurationSeconds, match.ArtistAliases) < 4) return false;
++                // World-knowledge guesses with no query-linked evidence are outside
++                // this grounded profile. A cross-reference remains a fallible assertion.
++                if (LyricsMatcher.Score(query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) < 4 &&
++                    !input.Citations.Any(citation => cited.Contains(citation.Id) && citation.Kind == "shared-scoped-recording-reference")) return false;
++                if (previous is not null && LyricsCandidateRules.ComparePriority(previous, candidate, settings.Provider, settings.BackupProvider) > 0 ||
++                    original.Lines.Count > 0 && LyricsCandidateRules.ComparePriority(candidate,
++                        LyricsCandidateRules.Describe("rules", original, target), settings.Provider, settings.BackupProvider) > 0) return false;
++                chosen.Add(id);
++                previous = candidate;
++            }
++            ids = chosen.ToArray();
++            return true;
++        }
++        catch (JsonException) { return false; }
++    }
++
++    private static bool IsRecordingNamespace(LyricsIdentityNamespace space) => space is
++        LyricsIdentityNamespace.NetEaseSongId or LyricsIdentityNamespace.QqSongMid or LyricsIdentityNamespace.QqSongId or
++        LyricsIdentityNamespace.KugouAudioHash or LyricsIdentityNamespace.AppleMusicId or LyricsIdentityNamespace.SpotifyId;
++}
+diff --git a/src/DropSpace.Infrastructure/Lyrics/LyricsRecordingEvidenceReader.cs b/src/DropSpace.Infrastructure/Lyrics/LyricsRecordingEvidenceReader.cs
+new file mode 100644
+--- /dev/null
++++ b/src/DropSpace.Infrastructure/Lyrics/LyricsRecordingEvidenceReader.cs
+@@ -0,0 +1,82 @@
++using System.Text.Json;
++using DropSpace.Core.Lyrics;
++using static DropSpace.Infrastructure.Lyrics.LyricsHttpClient;
++
++namespace DropSpace.Infrastructure.Lyrics;
++
++// Reads only metadata in responses already fetched by an adapter. No extra requests,
++// artist-name mappings, access keys, contributor names or lyric text enter evidence.
++internal static class LyricsRecordingEvidenceReader
++{
++    internal static LyricsRecordingEvidence? NetEase(JsonElement song)
++    {
++        var artists = Array(song, "artists").Take(LyricsRecordingEvidence.MaximumItems + 1).ToArray();
++        if (artists.Length == 0) artists = Array(song, "ar").Take(LyricsRecordingEvidence.MaximumItems + 1).ToArray();
++        return Capture(() => new(Text(song, "name"), Strings(song, "alias", "alia", "transNames", "tns"),
++            artists.Select(artist => new LyricsArtistCreditEvidence(Text(artist, "name"),
++                Id(artist, "id"), Strings(artist, "alias", "alia", "transNames", "tns"))).ToArray(),
++            [new(LyricsIdentityNamespace.NetEaseSongId, Text(song, "id"), LyricsEvidenceOrigin.SourceCatalogue)],
++            LyricsEvidenceOrigin.SourceCatalogue,
++            Number(song, "duration") > 0 || Number(song, "dt") > 0 ? LyricsDurationOrigin.SourceCatalogue : LyricsDurationOrigin.Missing));
++    }
++
++    internal static LyricsRecordingEvidence? Qq(JsonElement song) => Capture(() => new(Text(song, "songname"), [],
++        Array(song, "singer").Take(LyricsRecordingEvidence.MaximumItems + 1).Select(artist => new LyricsArtistCreditEvidence(Text(artist, "name"),
++            Id(artist, "mid") is { } mid ? "mid:" + mid : Id(artist, "id") is { } id ? "id:" + id : null, [])).ToArray(),
++        QqReferences(song), LyricsEvidenceOrigin.SourceCatalogue,
++        Number(song, "interval") > 0 ? LyricsDurationOrigin.SourceCatalogue : LyricsDurationOrigin.Missing));
++
++    internal static LyricsRecordingEvidence? Amll(JsonElement item) => Capture(() => new(
++        Strings(item, "musicNames").FirstOrDefault() ?? "", Strings(item, "musicNames").Skip(1).ToArray(),
++        Strings(item, "artistNames").Select(name => new LyricsArtistCreditEvidence(name, null, [])).ToArray(),
++        new[] { new LyricsRecordingReference(LyricsIdentityNamespace.AmllDocumentId, Text(item, "id"), LyricsEvidenceOrigin.CommunityCatalogue) }
++            .Concat(References(item, "ncmMusicIds", LyricsIdentityNamespace.NetEaseSongId))
++            // The documented generic QQ platform field is preserved separately.
++            // Do not infer a numeric ID versus songmid namespace from string shape.
++            .Concat(References(item, "qqMusicIds", LyricsIdentityNamespace.AmllQqPlatformId))
++            .Concat(References(item, "appleMusicIds", LyricsIdentityNamespace.AppleMusicId))
++            .Concat(References(item, "spotifyIds", LyricsIdentityNamespace.SpotifyId))
++            .Concat(References(item, "isrcs", LyricsIdentityNamespace.Isrc)).ToArray(),
++        LyricsEvidenceOrigin.CommunityCatalogue, LyricsDurationOrigin.Missing));
++
++    internal static LyricsRecordingEvidence? Lrclib(JsonElement item) => Capture(() => new(Text(item, "trackName"), [],
++        [new(Text(item, "artistName"), null, [])],
++        [new(LyricsIdentityNamespace.LrclibEntryId, Text(item, "id"), LyricsEvidenceOrigin.CommunityCatalogue)],
++        LyricsEvidenceOrigin.CommunityCatalogue,
++        Number(item, "duration") > 0 ? LyricsDurationOrigin.SourceCatalogue : LyricsDurationOrigin.Missing));
++
++    internal static LyricsRecordingEvidence? Kugou(JsonElement item, string? audioHash, bool borrowedDuration) => Capture(() => new(
++        Text(item, "song"), [], [new(Text(item, "singer"), null, [])],
++        new[] { new LyricsRecordingReference(LyricsIdentityNamespace.KugouLyricId, Text(item, "id"), LyricsEvidenceOrigin.SourceCatalogue) }
++            .Concat(audioHash is null ? [] : new[] { new LyricsRecordingReference(LyricsIdentityNamespace.KugouAudioHash,
++                audioHash, LyricsEvidenceOrigin.HashBoundCatalogue) }).ToArray(),
++        LyricsEvidenceOrigin.SourceCatalogue, Number(item, "duration") > 0 ? LyricsDurationOrigin.SourceLyricResponse :
++            borrowedDuration ? LyricsDurationOrigin.HashBoundCatalogue : LyricsDurationOrigin.Missing));
++
++    private static LyricsRecordingEvidence? Capture(Func<LyricsRecordingEvidence> capture)
++    {
++        try { var evidence = capture(); return evidence.IsBounded() ? evidence : null; }
++        catch (InvalidDataException) { return null; }
++    }
++    private static string? Id(JsonElement element, string field) => Text(element, field) is { Length: > 0 } id ? id : null;
++    private static LyricsRecordingReference[] QqReferences(JsonElement item) =>
++        new[] { (LyricsIdentityNamespace.QqSongMid, "songmid"), (LyricsIdentityNamespace.QqSongId, "songid") }
++            .Where(pair => Id(item, pair.Item2) is not null)
++            .Select(pair => new LyricsRecordingReference(pair.Item1, Text(item, pair.Item2), LyricsEvidenceOrigin.SourceCatalogue)).ToArray();
++    private static IEnumerable<LyricsRecordingReference> References(JsonElement item, string field, LyricsIdentityNamespace space) =>
++        Strings(item, field).Select(id => new LyricsRecordingReference(space, id, LyricsEvidenceOrigin.CommunityCatalogue));
++    private static string[] Strings(JsonElement element, params string[] fields)
++    {
++        foreach (var field in fields)
++            if (element.TryGetProperty(field, out var values) && values.ValueKind == JsonValueKind.Array &&
++                values.GetArrayLength() > LyricsRecordingEvidence.MaximumItems)
++                throw new InvalidDataException("Optional recording evidence exceeds its bound.");
++        var result = fields.SelectMany(field => Array(element, field))
++            .Where(value => value.ValueKind == JsonValueKind.String).Select(value => value.GetString()!)
++            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal)
++            .Take(LyricsRecordingEvidence.MaximumItems + 1).ToArray();
++        if (result.Length > LyricsRecordingEvidence.MaximumItems)
++            throw new InvalidDataException("Optional recording evidence exceeds its bound.");
++        return result;
++    }
++}

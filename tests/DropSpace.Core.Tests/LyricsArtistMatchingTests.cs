@@ -7,6 +7,36 @@ namespace DropSpace.Core.Tests;
 public sealed class LyricsArtistMatchingTests
 {
     [TestMethod]
+    public void GeneralTitleOrthographyPreservesRecordingIdentityGuards()
+    {
+        var query = new LyricsQuery("小幸运", "田馥甄", "", TimeSpan.FromSeconds(260));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent(query.Title, "小幸運"));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "小幸運", "田馥甄", "", 260));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent("爱与诚", "愛與誠"));
+        Assert.IsTrue(LyricsMatcher.AreTitlesEquivalent("爱与诚 [国语版]", "愛與誠 [國語版]"));
+        Assert.IsFalse(LyricsMatcher.AreTitlesEquivalent("爱与诚 [国语版]", "愛與誠 [粵語版]"));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "小幸運 (Live)", "田馥甄", "", 260));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "小幸運", "Other Artist", "", 260));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "小幸運", "田馥甄", "", 100));
+        Assert.IsFalse(LyricsMatcher.AreTitlesEquivalent("乾杯", "干杯")); // Ambiguous dictionary mapping stays distinct.
+    }
+
+    [TestMethod]
+    public void GeneralArtistOrthographyAndSourceAliasesPreserveIdentityConflicts()
+    {
+        foreach (var pair in new[] { ("邓紫棋", "鄧紫棋"), ("张学友", "張學友"), ("陈奕迅", "陳奕迅"), ("郑秀文", "鄭秀文") })
+            Assert.IsTrue(LyricsMatcher.AreArtistCreditsCompatible(pair.Item1, pair.Item2));
+        var query = new LyricsQuery("唯一", "邓紫棋", "T.I.M.E.", TimeSpan.FromSeconds(253));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", "G.E.M.邓紫棋", "T.I.M.E.", 253));
+        Assert.IsGreaterThan(4, LyricsMatcher.Score(query, "唯一", "G.E.M.邓紫棋", "T.I.M.E.", 253, ["鄧紫棋"]));
+        foreach (var artist in new[] { "告五人", "邓紫棋乐队", "Other 邓紫棋", "G.E.M.", "AC/DC" })
+            Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", artist, "T.I.M.E.", 253), artist);
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一 (Live)", "G.E.M.", "T.I.M.E.", 253, ["邓紫棋"]));
+        Assert.AreEqual(0d, LyricsMatcher.Score(query, "唯一", "G.E.M.", "T.I.M.E.", 100, ["邓紫棋"]));
+        Assert.IsFalse(LyricsMatcher.AreArtistCreditsCompatible("AC", "AC/DC"));
+    }
+
+    [TestMethod]
     public void FeaturedArtistNameDoesNotBecomeAVersionLabel()
     {
         var query = new LyricsQuery("Night Drive (feat. Oliver)", "Artist", "", TimeSpan.FromSeconds(200));
