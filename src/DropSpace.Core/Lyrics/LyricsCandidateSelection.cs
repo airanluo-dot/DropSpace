@@ -18,7 +18,7 @@ public sealed record LyricsCandidateSnapshot(IReadOnlyList<LyricsSelectionCandid
         TimeSpan.FromSeconds(Math.Max(0, (DeadlineTimestamp - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency));
 }
 
-public enum LyricsSelectionOutcome { Rules, Unambiguous, Unavailable, NoBudget, Invalid, Abstained, Selected, Reused, TimedOut }
+public enum LyricsSelectionOutcome { Rules, Unambiguous, Unavailable, NoBudget, Invalid, Abstained, Selected, Reused, TimedOut, Unqualified }
 public sealed record LyricsSelectionResult(LyricsDocument Document, LyricsSelectionOutcome Outcome)
 {
     // Retain model/cache retirement through the actual dispatcher commit, after inference returns.
@@ -93,9 +93,11 @@ public static class LyricsCandidateRules
 public static class LyricsCandidateSelectionProtocol
 {
     public const string Version = "native-candidate-id-v2-priority";
-    // Separate background ceiling after the provider snapshot freezes; Qwen's observed
-    // admitted case took 9.06s cold. This never consumes the three-second source window.
+    // One background ceiling after the provider snapshot freezes. The caller's
+    // remaining snapshot budget bounds both host and worker; native source time is separate.
+    // A deadline is not model qualification or a guarantee of inference latency.
     public const int MaximumDecisionSeconds = 12;
+    public static TimeSpan MaximumDecisionTime => TimeSpan.FromSeconds(MaximumDecisionSeconds);
     public const int MaximumCandidates = 15;
     public const int MaximumPromptBytes = 8192;
     public const int MaximumOutputBytes = 128;

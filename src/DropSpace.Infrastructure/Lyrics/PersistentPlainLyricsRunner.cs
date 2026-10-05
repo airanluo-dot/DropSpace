@@ -256,7 +256,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             session.Cancellation.Dispose();
             if (!CanSelect(session, modelHash)) return null;
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
-            deadline.CancelAfter(TimeSpan.FromMilliseconds(500));
+            // The host links its remaining snapshot deadline. Keep the same absolute
+            // ceiling here; a second 500ms timer used to defeat the background budget.
+            deadline.CancelAfter(LyricsCandidateSelectionProtocol.MaximumDecisionTime);
             using var registration = deadline.Token.Register(() =>
             { Interlocked.Exchange(ref session.StopRequested, 1); _ = session.Child.TerminateAndWaitForExitAsync(); });
             Volatile.Write(ref _lastExecutionBackend, null);

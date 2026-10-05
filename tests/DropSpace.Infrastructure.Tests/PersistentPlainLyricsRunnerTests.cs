@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 
 namespace DropSpace.Infrastructure.Tests;
@@ -11,6 +12,42 @@ namespace DropSpace.Infrastructure.Tests;
 [DoNotParallelize]
 public sealed class PersistentPlainLyricsRunnerTests
 {
+    [TestMethod]
+    public async Task SelectionUsesSharedBackgroundBudgetAndStillReapsWorkerAtSnapshotDeadline()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(Path.Combine(fixture.Root, "delayed-selection"), string.Empty);
+        var runner = fixture.CreateRunner();
+        var hash = AiLyricsSelectionModelCatalog.Default.Sha256;
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, hash, default));
+        var query = new LyricsQuery("Song", "Artist", "Album", TimeSpan.FromSeconds(30), "deadline:track");
+        var document = new LyricsDocument([new(TimeSpan.Zero, TimeSpan.FromSeconds(4), "The stars shine tonight", null, [])],
+            LyricsProviderKind.NetEase, new("Song", "Artist", "Album", 30, 12, "native"));
+        LyricsCandidateSnapshot Snapshot(TimeSpan budget) => new([LyricsCandidateRules.Describe("c0", document, "zh")],
+            Stopwatch.GetTimestamp() + (long)(budget.TotalSeconds * Stopwatch.Frequency));
+        var settings = new LyricsSettings { SelectionMode = LyricsSelectionMode.AiRanked };
+        var selector = new LyricsCandidateSelector(runner);
+        var started = Stopwatch.GetTimestamp();
+        var result = await selector.SelectAsync(query, settings, "zh", hash, Snapshot(TimeSpan.FromSeconds(3)), document, default);
+        Assert.AreEqual(LyricsSelectionOutcome.Selected, result.Outcome,
+            "A 700ms complete fixture response must pass both host and resident worker timers.");
+        Assert.IsTrue(Stopwatch.GetElapsedTime(started) >= TimeSpan.FromMilliseconds(600));
+        Assert.IsTrue(result.IsCurrent);
+        var pid = fixture.StartedProcesses().Single().Pid;
+        Assert.IsTrue(IsAlive(pid));
+        selector.Clear();
+        File.WriteAllText(Path.Combine(fixture.Root, "block-selection"), string.Empty);
+        var timedOut = await selector.SelectAsync(query, settings, "zh", hash,
+            Snapshot(TimeSpan.FromMilliseconds(300)), document, default);
+        Assert.AreEqual(LyricsSelectionOutcome.TimedOut, timedOut.Outcome);
+        Assert.AreSame(document, timedOut.Document);
+        await runner.DrainCleanupAsync(default).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsFalse(IsAlive(pid), "Snapshot expiry must retain ownership until actual native exit.");
+        Assert.AreEqual(1, LocalInferenceProcess.InferenceGate.CurrentCount);
+        Assert.HasCount(2, fixture.Requests());
+    }
+
     [TestMethod]
     public async Task RoleSwitchPreservesGpuFailurePerProfileUntilGpuPreferenceActuallyChanges()
     {
@@ -677,6 +714,14 @@ public sealed class PersistentPlainLyricsRunnerTests
             for line in sys.stdin:
                 request = json.loads(line)
                 record('requests', dict(request, pid=pid))
+                if request['protocol'] == 2 and os.path.exists(os.path.join(root, 'block-selection')):
+                    open(os.path.join(root, 'blocked'), 'w').close()
+                    time.sleep(60)
+                if request['protocol'] == 2 and os.path.exists(os.path.join(root, 'delayed-selection')):
+                    time.sleep(0.7)
+                    print(json.dumps({'protocol': 2, 'id': request['id'], 'complete': True,
+                                      'text': '{"id":"c0"}'}), flush=True)
+                    continue
                 if request['prompt'] == 'partial-and-block':
                     sys.stdout.write('{"protocol":1,"text":"private incomplete output')
                     sys.stdout.flush()

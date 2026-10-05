@@ -439,7 +439,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
                 ? await _lyrics.QueryDetailedAsync(new(session.TrackTitle, session.Artist, session.AlbumTitle,
-                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, settings.Lyrics, token, refresh,
+                    session.Timeline.Duration, session.LyricsCacheIdentity, session.AlbumArtist) { PreferredTranslationLanguage = targetLanguage }, AiLyrics.SourceSelectionSettings(settings.Lyrics), token, refresh,
                     original => _dispatcher.TryEnqueue(() =>
                     {
                         // Validate freshness after dispatch; a fast skip may retire the callback in the queue.

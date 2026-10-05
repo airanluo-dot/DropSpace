@@ -152,6 +152,7 @@ public sealed class AiLyricsSelectionLifecycleTests
         internal int SelectionCalls, TranslationCalls, CacheCalls, Drains;
         internal Func<CancellationToken, Task<string?>> Infer { get; set; } = _ => Task.FromResult<string?>("{\"id\":\"c0\"}");
         public string Id => "selection-lifecycle-fixture";
+        public bool IsSelectionProfileQualified(string modelHash) => true;
         public bool CanPrepareSelection => true;
         public bool IsSelectionWarm(string hash) => true;
         public Task<bool> PrepareSelectionAsync(string path, string hash, CancellationToken token) => Task.FromResult(true);

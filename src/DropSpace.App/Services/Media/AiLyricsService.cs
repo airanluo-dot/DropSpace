@@ -191,6 +191,14 @@ public sealed class AiLyricsService : IDisposable
         }
     }
 
+    public bool CanSelectCandidates(LyricsSettings settings) => _selector is not null &&
+        settings.Enabled && settings.Mode != LyricsMode.LocalLrc && settings.SelectionMode != LyricsSelectionMode.Rules &&
+        AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId) is { } model &&
+        _backend is ILyricsSelectionRuntime runtime && runtime.IsSelectionProfileQualified(model.Sha256);
+
+    public LyricsSettings SourceSelectionSettings(LyricsSettings settings) => CanSelectCandidates(settings)
+        ? settings : settings with { SelectionMode = LyricsSelectionMode.Rules };
+
     private async Task ConfigureRuntimeAsync(LyricsSettings settings, Func<bool> isCurrent, CancellationToken token, bool onlyIfConfigured = false)
     {
         await _configurationGate.WaitAsync(token).ConfigureAwait(false);
@@ -198,9 +206,10 @@ public sealed class AiLyricsService : IDisposable
         {
             token.ThrowIfCancellationRequested();
             if (!isCurrent() || onlyIfConfigured && _configuredEnabled is null) return;
-            var enabled = settings.Enabled && (settings.AiTranslationEnabled || settings.SelectionMode != LyricsSelectionMode.Rules);
+            var selectionModelId = CanSelectCandidates(settings) ? settings.AiSelectionModelId : null;
+            var enabled = settings.Enabled && (settings.AiTranslationEnabled || selectionModelId is not null);
             if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
-                _configuredSelectionModelId == settings.AiSelectionModelId &&
+                _configuredSelectionModelId == selectionModelId &&
                 _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled) return;
             InvalidateTranslation();
             InvalidateSelectionDecisions();
@@ -212,7 +221,7 @@ public sealed class AiLyricsService : IDisposable
                 if (!isCurrent()) return Task.CompletedTask;
                 _runtimeOptions.GpuEnabled = settings.AiLyricsGpuAccelerationEnabled;
                 _configuredModelId = settings.AiModelId;
-                _configuredSelectionModelId = settings.AiSelectionModelId;
+                _configuredSelectionModelId = selectionModelId;
                 _configuredEnabled = enabled;
                 return Task.CompletedTask;
             }, token).ConfigureAwait(false);
@@ -238,7 +247,7 @@ public sealed class AiLyricsService : IDisposable
         var key = $"{settings.Enabled}/{settings.Mode}/{settings.SelectionMode}/{settings.AiModelId}/{settings.AiSelectionModelId}/{settings.AiLyricsGpuAccelerationEnabled}/{settings.AiTranslationEnabled}";
         lock (_preparationGate)
         {
-            if (_selectionConfiguration == key && !_selectionPreparation.IsCompleted) return;
+            if (_selectionConfiguration == key && (!_selectionPreparation.IsCompleted || !CanSelectCandidates(settings))) return;
             if (_selectionConfiguration == key && settings.SelectionMode != LyricsSelectionMode.Rules && !runtime.CanPrepareSelection) return;
             var selectedModel = AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId);
             if (_selectionConfiguration == key && selectedModel is not null && runtime.IsSelectionWarm(selectedModel.Sha256)) return;
@@ -248,7 +257,7 @@ public sealed class AiLyricsService : IDisposable
                 InvalidateSelectionDecisions();
                 _selectionConfiguration = key;
             }
-            var prepare = settings.Enabled && settings.Mode != LyricsMode.LocalLrc && settings.SelectionMode != LyricsSelectionMode.Rules;
+            var prepare = CanSelectCandidates(settings);
             var stop = CancellationTokenSource.CreateLinkedTokenSource(_selectionLifetime.Token);
             _selectionPreparationStop = stop;
             bool Current() { lock (_preparationGate) return _selectionConfiguration == key && !stop.IsCancellationRequested; }
@@ -279,8 +288,11 @@ public sealed class AiLyricsService : IDisposable
         LyricsSettings settings, string target, CancellationToken token)
     {
         var unavailable = new LyricsSelectionResult(source.Document, LyricsSelectionOutcome.Unavailable);
+        token.ThrowIfCancellationRequested();
         var model = AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId);
         if (_selector is null || model is null) return unavailable;
+        if (_backend is not ILyricsSelectionRuntime runtime || !runtime.IsSelectionProfileQualified(model.Sha256))
+            return new(source.Document, LyricsSelectionOutcome.Unqualified);
         long generation;
         // A new service generation cannot admit a caller until the preceding
         // selector cache retires. No inference or cleanup awaits occur under this gate.

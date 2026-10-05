@@ -53,6 +53,7 @@ public sealed class LyricsSelectionModelRoleRegressionTests
     {
         public string Id => "selection-model-role-fixture";
         public string? SelectedModelHash { get; private set; }
+        public bool IsSelectionProfileQualified(string modelHash) => true;
         public bool CanPrepareSelection => false;
         public bool IsSelectionWarm(string modelHash) => false;
         public Task<bool> PrepareSelectionAsync(string path, string modelHash, CancellationToken token) => Task.FromResult(false);

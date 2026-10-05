@@ -38,6 +38,17 @@ internal static class Program
             var id = packet.GetProperty("id").GetString();
             var prompt = packet.GetProperty("prompt").GetString()!;
             Record(root, "requests", new { protocol, id, prompt, pid });
+            if (protocol == 2 && File.Exists(Path.Combine(root, "block-selection")))
+            {
+                File.WriteAllText(Path.Combine(root, "blocked"), string.Empty);
+                Thread.Sleep(TimeSpan.FromSeconds(60));
+            }
+            if (protocol == 2 && File.Exists(Path.Combine(root, "delayed-selection")))
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(700));
+                WriteFrame(new { protocol = 2, id, complete = true, text = "{\"id\":\"c0\"}" });
+                continue;
+            }
             if (prompt == "partial-and-block")
             {
                 Console.Write("{\"protocol\":1,\"text\":\"private incomplete output");

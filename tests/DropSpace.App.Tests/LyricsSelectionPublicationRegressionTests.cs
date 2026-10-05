@@ -52,6 +52,7 @@ public sealed class LyricsSelectionPublicationRegressionTests
     private sealed class SelectionBackend : IAiLyricsBackend, ILyricsSelectionRuntime
     {
         public string Id => "selection-publication-fixture";
+        public bool IsSelectionProfileQualified(string modelHash) => true;
         public bool CanPrepareSelection => false;
         public bool IsSelectionWarm(string modelHash) => true;
         public Task<bool> PrepareSelectionAsync(string path, string modelHash, CancellationToken token) => Task.FromResult(false);

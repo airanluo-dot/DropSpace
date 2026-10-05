@@ -711,7 +711,7 @@
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>当前无法确认有足够的可用内存进行本地翻译。请释放内存或选择较小模型后重试。</value></data>
   <data name="LyricsSelectionMode" xml:space="preserve"><value>录音选择方式</value></data>
   <data name="LyricsSelectionRules" xml:space="preserve"><value>规则（默认）</value></data>
-  <data name="LyricsSelectionAiAssisted" xml:space="preserve"><value>AI 辅助（实验性）</value></data>
-  <data name="LyricsSelectionAiRanked" xml:space="preserve"><value>AI 选择（实验性）</value></data>
-  <data name="LyricsSelectionDescription" xml:space="preserve"><value>AI 辅助判断规则匹配中的歧义；AI 选择也比较有录音元信息佐证、艺人身份尚不确定的候选。使用已安装的模型并在后台准备；模型未就绪、忙碌、不确定或超时则保留规则结果。录音选择准确率尚未验证。</value></data>
+  <data name="LyricsSelectionAiAssisted" xml:space="preserve"><value>AI 辅助（尚未就绪）</value></data>
+  <data name="LyricsSelectionAiRanked" xml:space="preserve"><value>AI 选择（尚未就绪）</value></data>
+  <data name="LyricsSelectionDescription" xml:space="preserve"><value>目前尚无通过验证的录音筛选模型。两个 AI 档暂使用规则，不加载筛选模型；所选偏好会保留。本地 AI 译文功能仍可单独使用。</value></data>
 </root>

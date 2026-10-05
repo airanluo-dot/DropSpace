@@ -711,7 +711,7 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
   <data name="LyricsSelectionMode" xml:space="preserve"><value>Recording selection</value></data>
   <data name="LyricsSelectionRules" xml:space="preserve"><value>Rules (default)</value></data>
-  <data name="LyricsSelectionAiAssisted" xml:space="preserve"><value>AI assisted (experimental)</value></data>
-  <data name="LyricsSelectionAiRanked" xml:space="preserve"><value>AI selection (experimental)</value></data>
-  <data name="LyricsSelectionDescription" xml:space="preserve"><value>AI assisted compares ambiguous rule matches. AI selection also considers uncertain artist credits with supporting recording metadata. Uses your installed model; prepares it in the background. Cold, busy, uncertain or late results keep rules. Recording-selection accuracy has not yet been validated.</value></data>
+  <data name="LyricsSelectionAiAssisted" xml:space="preserve"><value>AI assisted (not ready)</value></data>
+  <data name="LyricsSelectionAiRanked" xml:space="preserve"><value>AI selection (not ready)</value></data>
+  <data name="LyricsSelectionDescription" xml:space="preserve"><value>A qualified recording-selection model is not yet available. Both AI modes currently use rules and do not load a selection model. Your selection preference is saved. Local AI translation remains available separately.</value></data>
 </root>

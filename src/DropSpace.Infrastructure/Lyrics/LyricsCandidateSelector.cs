@@ -62,7 +62,8 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
         var remaining = snapshot.Remaining;
         if (remaining <= TimeSpan.Zero) return Fallback(LyricsSelectionOutcome.NoBudget);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        deadline.CancelAfter(remaining < TimeSpan.FromMilliseconds(500) ? remaining : TimeSpan.FromMilliseconds(500));
+        deadline.CancelAfter(remaining < LyricsCandidateSelectionProtocol.MaximumDecisionTime
+            ? remaining : LyricsCandidateSelectionProtocol.MaximumDecisionTime);
         Task<string?>? inference = null;
         try
         {
