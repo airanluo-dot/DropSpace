@@ -759,4 +759,6 @@ Downloading does not enable AI or change your selected model or GPU mode.</value
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} download progress</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="DlcOperationFailed" xml:space="preserve"><value>Could not open this action. Try again.</value></data>
+  <data name="DlcCudaPurpose" xml:space="preserve"><value>Offline AI lyrics acceleration on compatible NVIDIA GPUs; reuses installed models.</value></data>
+  <data name="DlcCudaUnsupported" xml:space="preserve"><value>A compatible NVIDIA driver is required.</value></data>
 </root>

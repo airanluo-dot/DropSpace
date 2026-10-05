@@ -175,7 +175,13 @@ public sealed class AiLyricsSettingsCard : UserControl
     private void OnDlcChanged(object? sender, EventArgs args)
     {
         var generation = _generation;
-        try { DispatcherQueue.TryEnqueue(() => { if (IsCurrent(generation)) Refresh(); }); }
+        try { DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!IsCurrent(generation)) return;
+            Refresh();
+            if (!_busy && !_inspecting && !_cudaPromptShown && _editor.Settings.Lyrics.AiTranslationEnabled && ShouldOfferCuda())
+                StartOperation(OfferCudaAsync);
+        }); }
         catch (Exception error) { Debug.WriteLine($"DLC settings dispatcher retired: {error.GetType().Name}"); }
     }
 

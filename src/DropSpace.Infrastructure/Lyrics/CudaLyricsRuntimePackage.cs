@@ -179,18 +179,38 @@ public sealed class CudaLyricsRuntimePackage
         get { using var stream = ReadManifest(); using var json = JsonDocument.Parse(stream); return json.RootElement.GetProperty("files").EnumerateArray().Sum(file => file.GetProperty("bytes").GetInt64()); }
     }
 
+    private IEnumerable<string> OwnedArtifactPaths()
+    {
+        var runtimeRoot = Path.Combine(_root, RuntimeId);
+        if (!Directory.Exists(runtimeRoot)) yield break;
+        runtimeRoot = ReparseSafePathPolicy.ResolveExistingContainedPath(_root, runtimeRoot);
+        foreach (var directory in Directory.EnumerateDirectories(runtimeRoot))
+        {
+            if (!IsHash(Path.GetFileName(directory))) continue;
+            var safe = ReparseSafePathPolicy.ResolveExistingContainedPath(_root, directory);
+            foreach (var file in Directory.EnumerateFiles(safe))
+            {
+                var name = Path.GetFileName(file);
+                var partial = name.EndsWith(".partial", StringComparison.Ordinal) &&
+                    Guid.TryParseExact(name.Split('.')[0], "N", out _) &&
+                    (name.EndsWith(".zip.partial", StringComparison.Ordinal) || name.Length == 40);
+                if (Names.Contains(name, StringComparer.Ordinal) || name is "LICENSE-CUDA.txt" or "LICENSE-llama.cpp" || partial)
+                    yield return ReparseSafePathPolicy.ResolveExistingContainedPath(_root, file);
+            }
+        }
+    }
+
+    public long GetOwnedArtifactBytes() => OwnedArtifactPaths().Sum(path => new FileInfo(path).Length);
+
     public async Task RemoveAsync(CancellationToken token)
     {
         await ExtractionGate.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            var relative = Path.Combine(RuntimeId, GetManifestCacheIdentity());
-            foreach (var name in Names.Concat(new[] { "LICENSE-CUDA.txt", "LICENSE-llama.cpp" }))
+            foreach (var file in OwnedArtifactPaths().ToArray())
             {
                 token.ThrowIfCancellationRequested();
-                if (!Directory.Exists(_root)) break;
-                var path = ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, Path.Combine(relative, name));
-                File.Delete(path);
+                File.Delete(ReparseSafePathPolicy.ResolveOwnedFilePathForDeletion(_root, Path.GetRelativePath(_root, file)));
             }
         }
         finally { ExtractionGate.Release(); }

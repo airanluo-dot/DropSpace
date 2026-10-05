@@ -631,9 +631,9 @@ public partial class App : Application
             provider.GetRequiredService<AiLyricsRuntimePackage>(),
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging"),
             provider.GetRequiredService<CudaLyricsRuntimePackage>()));
-        services.AddSingleton<CudaComponentService>();
         services.AddSingleton<Services.Media.AiLyricsService>();
         services.AddSingleton<IDlcPackageProvider, Services.Dlc.AiModelDlcProvider>();
+        services.AddSingleton<IDlcPackageProvider, Services.Dlc.CudaRuntimeDlcProvider>();
         services.AddSingleton<Services.Dlc.DlcManagerService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();

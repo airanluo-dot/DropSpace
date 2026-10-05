@@ -759,4 +759,6 @@
   <data name="DlcPackageProgress" xml:space="preserve"><value>{0} 下载进度</value></data>
   <data name="DlcPackageAction" xml:space="preserve"><value>{0}：{1}</value></data>
   <data name="DlcOperationFailed" xml:space="preserve"><value>无法打开此操作，请重试。</value></data>
+  <data name="DlcCudaPurpose" xml:space="preserve"><value>在兼容的 NVIDIA 显卡上加速离线 AI 歌词翻译，复用已安装模型。</value></data>
+  <data name="DlcCudaUnsupported" xml:space="preserve"><value>需要兼容的 NVIDIA 驱动。</value></data>
 </root>

@@ -75,3 +75,11 @@ it does not establish full Windows App/XAML or visual behavior.
 The supplied Library screenshot was resolved, but its image bytes could not be
 materialized. Pixel review is therefore unconfirmed. No unit/integration/regression/
 UI tests, CI, inference calls, downloads of models, or uninstall operations were run.
+
+## Local Windows integration update
+
+The local CUDA branch includes both DLC commits, resolves Music/strings conflicts,
+and registers `CudaRuntimeDlcProvider` against the existing runtime downloader.
+`CudaComponentService` was removed so DLC owns all transient state. Model/runtime
+delete retains inference maintenance ownership. Full Windows App Debug x64 compile
+passed with zero warnings/errors; no UI/inference/test run was performed.

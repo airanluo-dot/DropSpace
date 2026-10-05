@@ -27,14 +27,11 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiLyricsCache _cache;
     private readonly AiLyricsWorkLifetime _work;
     private readonly AiLyricsRuntimeOptions _runtimeOptions;
-    private readonly CudaComponentService? _cudaComponents;
+    private readonly CudaLyricsRuntimePackage? _cudaPackage;
     private readonly PersistentPlainLyricsRunner? _residentRunner;
-    private bool _cudaNoticeRaised;
-    public CudaComponentService? CudaComponents => _cudaComponents;
+    public bool IsNvidia => CudaDriverAvailability.IsCompatible();
     public string? ActualBackend => _residentRunner?.LastExecutionBackend;
-    public event EventHandler? CudaDownloadRequired;
-    public event EventHandler? CudaComponentsRequested;
-    public void RequestCudaComponents() => CudaComponentsRequested?.Invoke(this, EventArgs.Empty);
+
     private readonly SemaphoreSlim _configurationGate = new(1, 1);
     private string? _configuredModelId;
     private bool? _configuredEnabled;
@@ -53,10 +50,10 @@ public sealed class AiLyricsService : IDisposable
 
     public AiLyricsService(AppStoragePaths paths, LyricsCache lyricsCache, ILogger<AiLyricsService> logger,
         AiModelPackageService? models, IAiLyricsPackageResolver? packageResolver, IAiLyricsBackend? backend,
-        AiLyricsRuntimeOptions? runtimeOptions = null, CudaComponentService? cudaComponents = null,
+        AiLyricsRuntimeOptions? runtimeOptions = null, CudaLyricsRuntimePackage? cudaPackage = null,
         PersistentPlainLyricsRunner? residentRunner = null)
     {
-        _cudaComponents = cudaComponents; _residentRunner = residentRunner;
+        _cudaPackage = cudaPackage; _residentRunner = residentRunner;
         _applicationRoot = paths.Root;
         var root = Path.Combine(paths.Root, "AiLyrics");
         _ownsModels = models is null;
@@ -116,6 +113,36 @@ public sealed class AiLyricsService : IDisposable
     {
         InvalidateTranslation();
         return _work.MaintainAsync(cancellation => _models.DeleteAsync(modelId, cancellation), token);
+    }
+
+    public Task DownloadCudaComponentsAsync(bool consent, IProgress<double>? progress, CancellationToken token)
+    {
+        if (_cudaPackage is null) throw new InvalidOperationException("CUDA components are unavailable.");
+        return DownloadCoreAsync();
+        async Task DownloadCoreAsync()
+        {
+            // Transfer can coexist with inference. Activation replaces no live worker files.
+            await _cudaPackage.DownloadAsync(consent, progress, token).ConfigureAwait(false);
+            InvalidateTranslation();
+            await _work.MaintainAsync(cancellation =>
+            {
+                cancellation.ThrowIfCancellationRequested();
+                _runtimeOptions.NotifyBackendChanged();
+                return Task.CompletedTask;
+            }, token).ConfigureAwait(false);
+            ModelDownloaded?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public Task DeleteCudaComponentsAsync(CancellationToken token)
+    {
+        if (_cudaPackage is null) throw new InvalidOperationException("CUDA components are unavailable.");
+        InvalidateTranslation();
+        return _work.MaintainAsync(async cancellation =>
+        {
+            await _cudaPackage.RemoveAsync(cancellation).ConfigureAwait(false);
+            _runtimeOptions.NotifyBackendChanged();
+        }, token);
     }
 
     public Task ClearCacheAsync(CancellationToken token)
@@ -216,12 +243,7 @@ public sealed class AiLyricsService : IDisposable
                 _configuredEnabled = enabled;
                 return Task.CompletedTask;
             }, token).ConfigureAwait(false);
-            if (enabled && _cudaComponents is not null)
-            {
-                await _cudaComponents.RefreshAsync(token).ConfigureAwait(false);
-                if (!_cudaNoticeRaised && _cudaComponents.ShouldOffer(settings))
-                { _cudaNoticeRaised = true; CudaDownloadRequired?.Invoke(this, EventArgs.Empty); }
-            }
+
         }
         finally { _configurationGate.Release(); }
     }
