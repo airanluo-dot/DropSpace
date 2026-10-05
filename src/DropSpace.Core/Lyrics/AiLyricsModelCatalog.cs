@@ -39,7 +39,8 @@ public static class AiLyricsModelCatalog
     public static IReadOnlyList<AiLyricsModelDescriptor> Legacy { get; } = Array.AsReadOnly(new[] { Standard, Compact });
 
     // Legacy descriptors remain resolvable for local artifact inspection/removal, never activation.
-    public static AiLyricsModelDescriptor? Find(string id) => FindSelectable(id) ?? Legacy.FirstOrDefault(model => model.Id == id);
+    public static AiLyricsModelDescriptor? Find(string id) => FindSelectable(id) ??
+        AiLyricsSelectionModelCatalog.FindSelectable(id) ?? Legacy.FirstOrDefault(model => model.Id == id);
     public static AiLyricsModelDescriptor? FindSelectable(string id) => All.FirstOrDefault(model => model.Id == id);
     public static AiLyricsModelDescriptor? FindSelectableByHash(string? sha256) =>
         All.FirstOrDefault(model => string.Equals(model.Sha256, sha256, StringComparison.OrdinalIgnoreCase));

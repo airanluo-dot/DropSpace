@@ -23,6 +23,8 @@ public sealed record LyricsSettings
     // AI itself remains opt-in. When enabled, prefer verified GPU acceleration with CPU fallback.
     public bool AiLyricsGpuAccelerationEnabled { get; init; } = true;
     public string AiModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
+    // Independent experimental selection role; never follows the translation choice.
+    public string AiSelectionModelId { get; init; } = "hy-mt2-18-q8-plain-beta";
     public Lyrics.LyricsGlowMode GlowMode { get; init; }
     // Missing in older settings: keep the full surrounding halo.
     public bool SimplifiedGlow { get; init; }

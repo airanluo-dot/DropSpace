@@ -40,7 +40,7 @@ public sealed class LyricsService
         Action<LyricsDocument>? reportOriginal = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        query = query with { CollectSelectionCandidates = settings.SelectionMode == LyricsSelectionMode.AiRanked };
+        query = query with { CollectSelectionCandidates = settings.SelectionMode != LyricsSelectionMode.Rules };
         if (refresh) query = query with { BypassProviderResponseCache = true };
         if (!settings.Enabled || string.IsNullOrWhiteSpace(query.Title)) return new(LyricsDocument.Empty, LyricsQueryStatus.Disabled);
         var kind = settings.Mode == LyricsMode.LocalLrc ? LyricsProviderKind.LocalLrc : settings.Provider;
@@ -59,16 +59,26 @@ public sealed class LyricsService
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
         });
-        var key = target.Length == 0 ? JsonSerializer.Serialize(new
+        string OriginalSourceKey(string version) => JsonSerializer.Serialize(new
         {
-            version = "source-v2", primary = kind, backup, settings.SearchRemainingProviders,
+            version, primary = kind, backup, settings.SearchRemainingProviders,
             query.TrackIdentity, query.Title, query.Artist, query.AlbumArtist, query.Album,
             durationTicks = query.Duration.Ticks,
-        }) : TargetSourceKey("source-v5");
+        });
+        var key = target.Length == 0 ? OriginalSourceKey("source-v3") : TargetSourceKey("source-v6");
         var generation = _cache?.Generation ?? _memory.Generation;
-        if (kind != LyricsProviderKind.LocalLrc && !refresh && !query.CollectSelectionCandidates)
+        LyricsDocument? cachedPreview = null;
+        if (kind != LyricsProviderKind.LocalLrc && !refresh)
         {
             var cached = _cache is null ? _memory.Read(key) : await _cache.ReadDocumentAsync(key, cancellationToken).ConfigureAwait(false);
+            if (cached is null)
+            {
+                var priorKey = target.Length == 0 ? OriginalSourceKey("source-v2") : TargetSourceKey("source-v5");
+                var prior = _cache is null ? _memory.Read(priorKey) : await _cache.ReadDocumentAsync(priorKey, cancellationToken).ConfigureAwait(false);
+                // Source ordering changed. A preferred-provider cache stays usable;
+                // older lower-priority winners must pass the new source stage once.
+                if (prior?.Provider == kind) cached = prior;
+            }
             if (cached is null && target.Length > 0)
             {
                 var legacyKey = TargetSourceKey("source-v4");
@@ -98,13 +108,19 @@ public sealed class LyricsService
                 cached.ProviderDataRevision < KugouLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
             if (validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target))
-                return new(validated, LyricsQueryStatus.Found)
+            {
+                if (!query.CollectSelectionCandidates) return new(validated, LyricsQueryStatus.Found)
                 { SelectionCandidates = new([LyricsCandidateRules.Describe("c0", validated, target)], 0) };
+                // A single source cache is a trusted preview, not a complete AI
+                // snapshot. Continue bounded collection through the same providers.
+                cachedPreview = validated;
+            }
         }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(24));
         using var candidates = new CandidateSearch(query, target, deadline.Token, kind, backup, reportOriginal,
             settings.SelectionMode != LyricsSelectionMode.Rules);
+        if (cachedPreview is not null) candidates.Report(cachedPreview);
         var document = LyricsDocument.Empty;
         var translationIncomplete = false;
         try
@@ -154,10 +170,10 @@ public sealed class LyricsService
                 document = document with { ProviderDataRevision = KugouLyricsProvider.DataRevision };
             translationIncomplete = NeedsTranslationSearch(document, target) && (primary.Failed || fallbackFailed);
             // A lower-priority success must not permanently hide a preferred provider
-            // that failed transiently. Target-aware v5 retires legacy such decisions.
+            // that failed transiently. Target-aware v6 retires legacy such decisions.
             var selectionComplete = document.Provider == kind || !primary.Failed &&
                 (document.Provider == backup || backup is null || !fallbackFailed);
-            if (!query.CollectSelectionCandidates && document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
+            if (document.Lines.Count > 0 && kind != LyricsProviderKind.LocalLrc && !translationIncomplete &&
                 !NeedsTranslationSearch(document, target) && (target.Length == 0 || selectionComplete))
             {
                 try
@@ -287,23 +303,20 @@ public sealed class LyricsService
         document.Lines.Count == 0 || target.Length > 0 && !HasTargetTranslation(document, target) &&
         LyricsTranslationPolicy.NeedsProviderTranslation(document, target);
 
-    private static LyricsDocument PreferTranslation(LyricsDocument current, LyricsDocument candidate, string target) =>
-        candidate.Lines.Count > 0 && (current.Lines.Count == 0 ||
-            !HasTargetTranslation(current, target) && HasTargetTranslation(candidate, target)) ? candidate : current;
-
-    private static int SourcePriority(LyricsProviderKind provider, LyricsProviderKind primary, LyricsProviderKind? backup) =>
-        provider == primary ? 0 : provider == backup ? 1 : 2;
-
     private static LyricsDocument SelectTranslation(LyricsDocument current, LyricsDocument candidate, string target,
         LyricsProviderKind primary, LyricsProviderKind? backup)
     {
-        if (!HasTargetTranslation(current, target) || !HasTargetTranslation(candidate, target))
-            return PreferTranslation(current, candidate, target);
-        var rank = SourcePriority(candidate.Provider, primary, backup).CompareTo(SourcePriority(current.Provider, primary, backup));
+        if (candidate.Lines.Count == 0) return current;
+        if (current.Lines.Count == 0) return candidate;
+        var left = LyricsCandidateRules.Describe("candidate", candidate, target);
+        var right = LyricsCandidateRules.Describe("current", current, target);
+        var rank = LyricsCandidateRules.ComparePriority(left, right, primary, backup);
         if (rank != 0) return rank < 0 ? candidate : current;
+        var words = left.WordCoverage.CompareTo(right.WordCoverage);
+        if (words != 0) return words > 0 ? candidate : current;
         var score = (candidate.Match?.Score ?? 0).CompareTo(current.Match?.Score ?? 0);
         if (score != 0) return score > 0 ? candidate : current;
-        return Array.IndexOf(OnlineProviders, candidate.Provider) < Array.IndexOf(OnlineProviders, current.Provider) ? candidate : current;
+        return StringComparer.Ordinal.Compare(candidate.Match?.CandidateId, current.Match?.CandidateId) < 0 ? candidate : current;
     }
 
     private sealed record ProviderResult(LyricsDocument Document, bool Failed);
@@ -488,14 +501,22 @@ public sealed class LyricsService
                 failed |= result.Failed;
                 if (document.Lines.Count == 0) continue;
                 candidates.Add((document, index));
-                if (!query.CollectSelectionCandidates && (target.Length == 0 || HasTargetTranslation(document, target)) &&
-                    (backup is null || !pending.Any(task => Array.IndexOf(all, task) == Array.IndexOf(providerOrder, backup.Value))))
+                var bestReadyRank = candidates.Where(candidate => target.Length == 0 || HasTargetTranslation(candidate.Document, target))
+                    .Select(candidate => LyricsCandidateRules.SourceRank(candidate.Document.Provider, LyricsProviderKind.LocalLrc, backup))
+                    .DefaultIfEmpty(int.MaxValue).Min();
+                // A fast lower source cannot cut off a higher-priority request
+                // still inside the shared source budget. The short drain window
+                // is useful only once higher-priority work has already settled.
+                if (!query.CollectSelectionCandidates && bestReadyRank < int.MaxValue &&
+                    !pending.Any(task => LyricsCandidateRules.SourceRank(providerOrder[Array.IndexOf(all, task)],
+                        LyricsProviderKind.LocalLrc, backup) < bestReadyRank))
                     qualityWindow ??= Task.Delay(TimeSpan.FromMilliseconds(300));
             }
             return (candidates.OrderByDescending(candidate => HasTargetTranslation(candidate.Document, target))
-                .ThenBy(candidate => candidate.Document.Provider == backup ? 0 : 1)
+                .ThenBy(candidate => LyricsCandidateRules.SourceRank(candidate.Document.Provider, LyricsProviderKind.LocalLrc, backup))
+                .ThenByDescending(candidate => LyricsCandidateRules.WordCoverage(candidate.Document))
                 .ThenByDescending(candidate => candidate.Document.Match?.Score ?? 0)
-                .ThenBy(candidate => candidate.Index).Select(candidate => candidate.Document).FirstOrDefault() ?? LyricsDocument.Empty, failed);
+                .ThenBy(candidate => candidate.Document.Match?.CandidateId, StringComparer.Ordinal).Select(candidate => candidate.Document).FirstOrDefault() ?? LyricsDocument.Empty, failed);
         }
         finally
         {

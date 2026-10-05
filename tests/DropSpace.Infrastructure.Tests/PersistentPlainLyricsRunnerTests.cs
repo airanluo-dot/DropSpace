@@ -12,6 +12,56 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class PersistentPlainLyricsRunnerTests
 {
     [TestMethod]
+    public async Task IndependentSelectionPreparationReapsTranslationResidentBeforeReplacingAndSwitchingBack()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner();
+        using var previousSong = new CancellationTokenSource();
+        Assert.AreEqual("translation", await fixture.RunAsync(runner, "translation", previousSong.Token));
+        var translationPid = fixture.StartedProcesses().Single().Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(translationPid),
+            "The preceding translation resident must exit before selector resolution.");
+        var selectionModel = AiLyricsModelCatalog.ExperimentalLargePlain;
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        var selection = fixture.StartedProcesses()[1];
+        Assert.AreEqual("hy-mt2-7b-q8", selection.ModelProfile);
+        Assert.IsTrue(runner.IsSelectionWarm(selectionModel.Sha256));
+        Assert.IsFalse(runner.IsSelectionWarm(AiLyricsModelCatalog.ExperimentalPlain.Sha256));
+        previousSong.Cancel();
+        Assert.IsTrue(IsAlive(selection.Pid), "A retired translation token cannot kill the replacement selector.");
+        Assert.AreEqual("metadata", await runner.TryRunSelectionAsync(selectionModel.Sha256, "metadata", default));
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        Assert.HasCount(2, fixture.StartedProcesses(), "Preparing the same ready profile reuses its owner.");
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(selection.Pid),
+            "The selector must exit before the next translation resident resolves.");
+        Assert.AreEqual("translation again", await fixture.RunAsync(runner, "translation again"));
+        Assert.HasCount(3, fixture.StartedProcesses());
+        Assert.IsTrue(IsAlive(fixture.StartedProcesses()[2].Pid));
+        Assert.AreEqual(0, LocalInferenceProcess.InferenceGate.CurrentCount,
+            "The replacement retains the single shared gate while resident.");
+    }
+
+    [TestMethod]
+    public async Task IndependentSelectionPreparationCannotReplaceActiveTranslation()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        var runner = fixture.CreateRunner();
+        using var cancellation = new CancellationTokenSource();
+        var translating = fixture.RunAsync(runner, "partial-and-block", cancellation.Token);
+        await WaitUntilAsync(() => File.Exists(fixture.Blocked), translating);
+        var translationPid = fixture.StartedProcesses().Single().Pid;
+        Assert.IsFalse(await runner.PrepareSelectionAsync(fixture.Model,
+            AiLyricsModelCatalog.ExperimentalLargePlain.Sha256, default));
+        Assert.HasCount(1, fixture.StartedProcesses());
+        Assert.IsTrue(IsAlive(translationPid));
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => translating);
+        Assert.IsFalse(IsAlive(translationPid));
+    }
+
+    [TestMethod]
     [DataRow(false, "physical")]
     [DataRow(false, "commit")]
     [DataRow(false, "unknown")]
@@ -576,7 +626,7 @@ public sealed class PersistentPlainLyricsRunnerTests
                 os.close(1)
                 time.sleep(60)
                 sys.exit(27)
-            ready = {'protocol': 1, 'ready': True, 'backend': mode}
+            ready = {'protocol': 1, 'ready': True, 'backend': mode, 'selectionProtocol': 2}
             if not os.path.exists(os.path.join(root, 'omit-model-profile')):
                 ready['modelProfile'] = 'wrong-model' if os.path.exists(os.path.join(root, 'wrong-model-profile')) else model_profile
             print(json.dumps(ready), flush=True)
@@ -590,7 +640,7 @@ public sealed class PersistentPlainLyricsRunnerTests
                     time.sleep(60)
                 else:
                     response_id = 'wrong-host-request-id' if request['prompt'] == 'mismatched-id' else request['id']
-                    protocol = 2 if request['prompt'] == 'wrong-protocol' else 1
+                    protocol = 2 if request['prompt'] == 'wrong-protocol' else request['protocol']
                     complete = request['prompt'] != 'incomplete-response'
                     text = '夜' * 6000 if request['prompt'] == 'oversized-output' else request['prompt'] + ' [end of text]'
                     print(json.dumps({'protocol': protocol, 'id': response_id, 'complete': complete,

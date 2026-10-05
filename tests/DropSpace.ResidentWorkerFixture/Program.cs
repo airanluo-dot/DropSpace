@@ -27,8 +27,8 @@ internal static class Program
             return 27;
         }
         if (File.Exists(Path.Combine(root, "omit-model-profile")))
-            WriteFrame(new { protocol = 1, ready = true, backend = mode });
-        else WriteFrame(new { protocol = 1, ready = true, backend = mode,
+            WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2 });
+        else WriteFrame(new { protocol = 1, ready = true, backend = mode, selectionProtocol = 2,
             modelProfile = File.Exists(Path.Combine(root, "wrong-model-profile")) ? "wrong-model" : modelProfile });
         while (Console.ReadLine() is { } line)
         {
@@ -48,7 +48,7 @@ internal static class Program
             else
             {
                 var responseId = prompt == "mismatched-id" ? "wrong-host-request-id" : id;
-                var responseProtocol = prompt == "wrong-protocol" ? 2 : 1;
+                var responseProtocol = prompt == "wrong-protocol" ? 2 : protocol;
                 var complete = prompt != "incomplete-response";
                 var text = prompt == "oversized-output" ? new string('夜', 6000) : prompt + " [end of text]";
                 WriteFrame(new { protocol = responseProtocol, id = responseId, complete, text });

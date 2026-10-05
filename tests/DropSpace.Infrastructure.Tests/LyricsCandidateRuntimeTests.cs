@@ -20,6 +20,8 @@ public sealed class LyricsCandidateRuntimeTests
     {
         var rules = Doc(LyricsProviderKind.NetEase, "Artist", "rule");
         var uncertain = Doc(LyricsProviderKind.QqMusic, "Unresolved credit", "uncertain");
+        uncertain = uncertain with { Lines = uncertain.Lines.Select(line => line with { Secondary = "夜里满布繁星", TranslationOrigin = LyricsTranslationOrigin.Provider,
+            TranslationLanguage = "zh", TranslationLanguageIsExplicit = true }).ToArray() };
         var runtime = new Runtime();
         var selector = new LyricsCandidateSelector(runtime);
         var settings = new LyricsSettings { Enabled = true, SelectionMode = LyricsSelectionMode.AiRanked };
@@ -55,7 +57,7 @@ public sealed class LyricsCandidateRuntimeTests
         Assert.AreEqual("rule", full.Document.Match!.CandidateId);
         Assert.IsTrue(previews.All(document => document.Match!.CandidateId == "rule"));
         var assisted = await service.QueryDetailedAsync(Query, settings with { SelectionMode = LyricsSelectionMode.AiAssisted }, default);
-        Assert.IsFalse(assisted.SelectionCandidates.Candidates.Any(candidate => candidate.Document.Match!.CandidateId == "uncertain"));
+        Assert.IsTrue(assisted.SelectionCandidates.Candidates.Any(candidate => candidate.Document.Match!.CandidateId == "uncertain"));
         Assert.AreEqual(0d, LyricsMatcher.CandidateScore(Query with { CollectSelectionCandidates = true }, "Song (Live)", "Unresolved credit", "Album", 180));
         Assert.AreEqual(0d, LyricsMatcher.CandidateScore(Query with { CollectSelectionCandidates = true }, "Song", "Unresolved credit", "Album", 300));
     }

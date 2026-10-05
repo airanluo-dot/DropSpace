@@ -18,12 +18,15 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
         string modelHash, LyricsCandidateSnapshot snapshot, LyricsDocument rules, CancellationToken token)
     {
         LyricsSelectionResult Fallback(LyricsSelectionOutcome outcome) => new(rules, outcome);
+        bool AllowedPriority(LyricsSelectionCandidate candidate) => rules.Lines.Count == 0 ||
+            LyricsCandidateRules.ComparePriority(candidate, LyricsCandidateRules.Describe("rules", rules, target),
+                settings.Provider, settings.BackupProvider) <= 0;
         token.ThrowIfCancellationRequested();
         if (!settings.Enabled || settings.Mode == LyricsMode.LocalLrc || settings.SelectionMode == LyricsSelectionMode.Rules)
             return Fallback(LyricsSelectionOutcome.Rules);
-        if (settings.SelectionMode == LyricsSelectionMode.AiAssisted && !LyricsCandidateRules.HasAmbiguity(snapshot))
+        if (settings.SelectionMode == LyricsSelectionMode.AiAssisted && !LyricsCandidateRules.RequiresIdentityDecision(query, snapshot))
             return Fallback(LyricsSelectionOutcome.Unambiguous);
-        if (!LyricsCandidateSelectionProtocol.TryBuild(query, snapshot, target, out var prompt))
+        if (!LyricsCandidateSelectionProtocol.TryBuild(query, snapshot, target, settings, out var prompt))
             return Fallback(LyricsSelectionOutcome.Invalid);
         var key = LyricsCandidateSelectionProtocol.DecisionKey(query, settings, target, modelHash, snapshot, prompt);
         long generation;
@@ -33,7 +36,11 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
             generation = _generation;
             if (_cache.TryGetValue(key, out var entry) && entry.Expires > Stopwatch.GetTimestamp() &&
                 snapshot.Candidates.FirstOrDefault(candidate => candidate.Id == entry.Id) is { } reused)
-                return new(reused.Document, LyricsSelectionOutcome.Reused);
+            {
+                if (AllowedPriority(reused)) return new(reused.Document, LyricsSelectionOutcome.Reused);
+                _cache.Remove(key);
+                return Fallback(LyricsSelectionOutcome.Invalid);
+            }
         }
         var remaining = snapshot.Remaining;
         if (remaining <= TimeSpan.Zero) return Fallback(LyricsSelectionOutcome.NoBudget);
@@ -54,6 +61,8 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
             var match = chosen.Document.Match!;
             if (LyricsMatcher.CandidateScore(query with { CollectSelectionCandidates = true }, match.Title,
                 match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) < 4)
+                return Fallback(LyricsSelectionOutcome.Invalid);
+            if (!AllowedPriority(chosen))
                 return Fallback(LyricsSelectionOutcome.Invalid);
             deadline.Token.ThrowIfCancellationRequested();
             lock (_gate)

@@ -157,7 +157,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
 
     public async Task<bool> PrepareSelectionAsync(string verifiedModelPath, string modelHash, CancellationToken token)
     {
-        var model = AiLyricsModelCatalog.FindSelectableByHash(modelHash);
+        var model = AiLyricsSelectionModelCatalog.FindSelectableByHash(modelHash);
         if (model is null || _disposed || Volatile.Read(ref _translationWaiters) != 0 || !_operation.Wait(0)) return false;
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         stop.CancelAfter(TimeSpan.FromSeconds(60));
@@ -167,9 +167,20 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             if (_disposed || Volatile.Read(ref _translationWaiters) != 0 || !_cleanup.IsCompletedSuccessfully) return false;
             if (_session is { } existing)
             {
-                if (!CanSelect(existing, modelHash) || existing.Model != Path.GetFullPath(verifiedModelPath)) return false;
+                // Replacing the same unsupported profile cannot add selector capability;
+                // retain a usable translation resident instead of restarting it each song.
+                if (!existing.SelectionSupported && existing.ModelSha256 == modelHash &&
+                    existing.Model == Path.GetFullPath(verifiedModelPath)) return false;
+                if (!CanSelect(existing, modelHash) || existing.Model != Path.GetFullPath(verifiedModelPath))
+                {
+                    // Independent roles still share one native owner. A different resident
+                    // must confirm exit and release its resources before replacement starts.
+                    await StopSessionAsync().ConfigureAwait(false);
+                    stop.Token.ThrowIfCancellationRequested();
+                    if (Volatile.Read(ref _translationWaiters) != 0) return false;
+                }
             }
-            else
+            if (_session is null)
             {
                 if (_lastGpuSetting != _options.GpuEnabled || _lastModelSha256 != modelHash) _gpuFailed = false;
                 _lastGpuSetting = _options.GpuEnabled;
@@ -204,7 +215,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
 
     public bool IsSelectionWarm(string modelHash)
     {
-        if (_disposed || Volatile.Read(ref _translationWaiters) != 0 || !_operation.Wait(0)) return false;
+        if (AiLyricsSelectionModelCatalog.FindSelectableByHash(modelHash) is null ||
+            _disposed || Volatile.Read(ref _translationWaiters) != 0 || !_operation.Wait(0)) return false;
         try { return _session is { } session && CanSelect(session, modelHash); }
         finally { _operation.Release(); }
     }
@@ -214,7 +226,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
 
     public async Task<string?> TryRunSelectionAsync(string modelHash, string prompt, CancellationToken token)
     {
-        if (Encoding.UTF8.GetByteCount(prompt) is 0 or > LyricsCandidateSelectionProtocol.MaximumPromptBytes ||
+        if (AiLyricsSelectionModelCatalog.FindSelectableByHash(modelHash) is null ||
+            Encoding.UTF8.GetByteCount(prompt) is 0 or > LyricsCandidateSelectionProtocol.MaximumPromptBytes ||
             _disposed || Volatile.Read(ref _translationWaiters) != 0 || !_operation.Wait(0)) return null;
         try
         {

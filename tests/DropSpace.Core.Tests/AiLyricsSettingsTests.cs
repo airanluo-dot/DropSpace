@@ -7,6 +7,37 @@ namespace DropSpace.Core.Tests;
 public sealed class AiLyricsSettingsTests
 {
     [TestMethod]
+    public void SelectionModelRolePersistsNormalizesAndReloadsIndependentlyOfTranslation()
+    {
+        var settings = new AppSettings { Lyrics = new()
+        {
+            AiModelId = AiLyricsModelCatalog.ExperimentalLargePlain.Id,
+            AiSelectionModelId = AiLyricsSelectionModelCatalog.Default.Id,
+        } };
+        var restored = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
+            System.Text.Json.JsonSerializer.Serialize(settings))!.Validate();
+        Assert.AreEqual(settings.Lyrics.AiModelId, restored.Lyrics.AiModelId);
+        Assert.AreEqual(settings.Lyrics.AiSelectionModelId, restored.Lyrics.AiSelectionModelId);
+        var translationChanged = (restored with { Lyrics = restored.Lyrics with
+            { AiModelId = AiLyricsModelCatalog.ExperimentalPlain.Id } }).Validate();
+        Assert.AreEqual(restored.Lyrics.AiSelectionModelId, translationChanged.Lyrics.AiSelectionModelId);
+        var selectionChanged = (restored with { Lyrics = restored.Lyrics with
+            { AiSelectionModelId = AiLyricsModelCatalog.ExperimentalLargePlain.Id } }).Validate();
+        Assert.AreEqual(restored.Lyrics.AiModelId, selectionChanged.Lyrics.AiModelId);
+        Assert.IsTrue(LyricsReloadPolicy.RequiresReload(restored, selectionChanged));
+        var invalidSelection = (restored with { Lyrics = restored.Lyrics with
+            { AiSelectionModelId = "unqualified-qwen-profile" } }).Validate();
+        Assert.AreEqual(AiLyricsSelectionModelCatalog.Default.Id, invalidSelection.Lyrics.AiSelectionModelId);
+        Assert.AreEqual(restored.Lyrics.AiModelId, invalidSelection.Lyrics.AiModelId);
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
+            "{\"Lyrics\":{\"AiModelId\":\"hy-mt2-7b-q8-plain-beta\"}}")!.Validate();
+        Assert.AreEqual(AiLyricsSelectionModelCatalog.Default.Id, legacy.Lyrics.AiSelectionModelId);
+        CollectionAssert.AreEqual(new[] { AiLyricsModelCatalog.ExperimentalPlain.Id,
+            AiLyricsModelCatalog.ExperimentalLargePlain.Id }, AiLyricsModelCatalog.All.Select(model => model.Id).ToArray());
+        Assert.IsNull(AiLyricsSelectionModelCatalog.FindSelectable("unqualified-qwen-profile"));
+    }
+
+    [TestMethod]
     public void FreshInstallEnablesOnlineLyricsAndRemainingSourcesButNotAi()
     {
         var settings = new AppSettings().Validate().Lyrics;

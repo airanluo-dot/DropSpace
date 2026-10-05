@@ -36,6 +36,7 @@ public sealed class AiLyricsService : IDisposable
     private CancellationTokenSource? _selectionPreparationStop;
     private readonly SemaphoreSlim _configurationGate = new(1, 1);
     private string? _configuredModelId;
+    private string? _configuredSelectionModelId;
     private bool? _configuredEnabled;
     private readonly ILogger<AiLyricsService> _logger;
     private readonly string _applicationRoot;
@@ -99,7 +100,7 @@ public sealed class AiLyricsService : IDisposable
 
     public async Task DownloadAsync(string modelId, bool consent, IProgress<double>? progress, CancellationToken token)
     {
-        if (AiLyricsModelCatalog.FindSelectable(modelId) is null)
+        if (AiLyricsModelCatalog.FindSelectable(modelId) is null && AiLyricsSelectionModelCatalog.FindSelectable(modelId) is null)
             throw new ArgumentException("This legacy model is available only for removal.", nameof(modelId));
         await _models.DownloadAsync(modelId, consent, progress, token, RuntimeExtractionMiB * 1_048_576).ConfigureAwait(false);
         ModelDownloaded?.Invoke(this, EventArgs.Empty);
@@ -198,8 +199,10 @@ public sealed class AiLyricsService : IDisposable
             if (!isCurrent() || onlyIfConfigured && _configuredEnabled is null) return;
             var enabled = settings.Enabled && (settings.AiTranslationEnabled || settings.SelectionMode != LyricsSelectionMode.Rules);
             if (_configuredEnabled == enabled && _configuredModelId == settings.AiModelId &&
+                _configuredSelectionModelId == settings.AiSelectionModelId &&
                 _runtimeOptions.GpuEnabled == settings.AiLyricsGpuAccelerationEnabled) return;
             InvalidateTranslation();
+            InvalidateSelectionDecisions();
             // GPU/model/disable changes release the old resident owner before a new profile
             // becomes visible. Ordinary song changes keep the verified model warm.
             await _work.MaintainAsync(cancellation =>
@@ -208,6 +211,7 @@ public sealed class AiLyricsService : IDisposable
                 if (!isCurrent()) return Task.CompletedTask;
                 _runtimeOptions.GpuEnabled = settings.AiLyricsGpuAccelerationEnabled;
                 _configuredModelId = settings.AiModelId;
+                _configuredSelectionModelId = settings.AiSelectionModelId;
                 _configuredEnabled = enabled;
                 return Task.CompletedTask;
             }, token).ConfigureAwait(false);
@@ -230,12 +234,12 @@ public sealed class AiLyricsService : IDisposable
     public void QueueSelectionPreparation(LyricsSettings settings)
     {
         if (_selector is null || _backend is not ILyricsSelectionRuntime runtime) return;
-        var key = $"{settings.Enabled}/{settings.Mode}/{settings.SelectionMode}/{settings.AiModelId}/{settings.AiLyricsGpuAccelerationEnabled}/{settings.AiTranslationEnabled}";
+        var key = $"{settings.Enabled}/{settings.Mode}/{settings.SelectionMode}/{settings.AiModelId}/{settings.AiSelectionModelId}/{settings.AiLyricsGpuAccelerationEnabled}/{settings.AiTranslationEnabled}";
         lock (_preparationGate)
         {
             if (_selectionConfiguration == key && !_selectionPreparation.IsCompleted) return;
             if (_selectionConfiguration == key && settings.SelectionMode != LyricsSelectionMode.Rules && !runtime.CanPrepareSelection) return;
-            var selectedModel = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+            var selectedModel = AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId);
             if (_selectionConfiguration == key && selectedModel is not null && runtime.IsSelectionWarm(selectedModel.Sha256)) return;
             if (_selectionConfiguration != key)
             {
@@ -256,7 +260,7 @@ public sealed class AiLyricsService : IDisposable
                     await _work.RunAsync(async cancellation =>
                     {
                         if (!runtime.CanPrepareSelection) return false;
-                        var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+                        var model = AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId);
                         if (model is null) return false;
                         var path = await _models.GetInstalledPathAsync(model.Id, cancellation).ConfigureAwait(false);
                         if (path is null || !Current()) return false;
@@ -274,7 +278,7 @@ public sealed class AiLyricsService : IDisposable
         LyricsSettings settings, string target, CancellationToken token)
     {
         var unavailable = new LyricsSelectionResult(source.Document, LyricsSelectionOutcome.Unavailable);
-        var model = AiLyricsModelCatalog.FindSelectable(settings.AiModelId);
+        var model = AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId);
         if (_selector is null || model is null) return unavailable;
         var generation = Interlocked.Read(ref _selectionPublicationGeneration);
         var selected = await _work.RunAsync(cancellation => _selector.SelectAsync(query, settings, target, model.Sha256,

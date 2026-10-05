@@ -38,6 +38,8 @@ public static class NativeIslandSettingsPolicy
             {
                 CacheMaximumBytes = Math.Clamp(lyrics.CacheMaximumBytes, MinimumLyricsCacheBytes, MaximumLyricsCacheBytes),
                 AiModelId = Lyrics.AiLyricsModelCatalog.FindSelectable(modelId)?.Id ?? Lyrics.AiLyricsModelCatalog.ExperimentalPlain.Id,
+                AiSelectionModelId = Lyrics.AiLyricsSelectionModelCatalog.FindSelectable(lyrics.AiSelectionModelId)?.Id ??
+                    Lyrics.AiLyricsSelectionModelCatalog.Default.Id,
                 GlowMode = Enum.IsDefined(lyrics.GlowMode) ? lyrics.GlowMode : Lyrics.LyricsGlowMode.Off,
                 FontSize = double.IsFinite(lyrics.FontSize) ? Math.Clamp(lyrics.FontSize, 12, 28) : 16,
                 Mode = Enum.IsDefined(lyrics.Mode) ? lyrics.Mode : LyricsMode.Online,
