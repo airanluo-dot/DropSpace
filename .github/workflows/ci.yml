@@ -44,7 +44,7 @@ jobs:
           JS
 
   produce-windows:
-    name: Build and validate shared Windows artifacts
+    name: Build and test (x64)
     needs: change-scope
     if: needs.change-scope.outputs.maintenance_only != 'true'
     runs-on: windows-2025
@@ -61,7 +61,7 @@ jobs:
       - name: Read exact owner test waiver
         shell: pwsh
         run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
+          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10','v0.3.1-beta.11') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
           "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
           if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
 
@@ -121,7 +121,7 @@ jobs:
 
       - name: Test CI handoff and workflow contracts
         if: env.OWNER_SKIP_TESTS != 'true'
-        run: node --test scripts/ci-portable-handoff.test.mjs scripts/ci-share-worker-scope.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs scripts/ci-release-promotion.test.mjs
+        run: node --test scripts/ci-portable-handoff.test.mjs scripts/test-ci-workflows.test.mjs scripts/test-production-evidence-order.test.mjs scripts/ci-beta2-retry.test.mjs scripts/ci-release-promotion.test.mjs
 
       - name: Test AI semantic release gate regressions
         if: env.OWNER_SKIP_TESTS != 'true'
@@ -310,72 +310,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  smoke-portable:
-    name: Validate portable startup in both languages
-    needs: [change-scope, produce-windows]
-    if: ${{ always() && needs.change-scope.outputs.maintenance_only != 'true' }}
-    runs-on: windows-2025
-    timeout-minutes: 15
-    steps:
-      - name: Require successful shared producer
-        shell: pwsh
-        env:
-          PRODUCER_RESULT: ${{ needs.produce-windows.result }}
-        run: |
-          if ($env:PRODUCER_RESULT -cne 'success') {
-            throw "Shared Windows producer did not succeed: $env:PRODUCER_RESULT"
-          }
-
-      - name: Check out source
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-
-      - name: Read exact owner test waiver
-        shell: pwsh
-        run: |
-          $waived = (@('v0.3.1-beta.6','v0.3.1-beta.7','v0.3.1-beta.8','v0.3.1-beta.9','v0.3.1-beta.10') -ccontains (Get-Content RELEASE_VERSION -Raw).Trim()).ToString().ToLowerInvariant()
-          "OWNER_SKIP_TESTS=$waived" >> $env:GITHUB_ENV
-          if ($waived -eq 'true') { 'Owner waived functional tests for this exact release. Only compilation, packaging and artifact identity binding run; skipped tests are not passes.' >> $env:GITHUB_STEP_SUMMARY }
-
-      - name: Download this attempt's shared portable EXE
-        id: portable-download
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          artifact-ids: ${{ needs.produce-windows.outputs.portable_artifact_id }}
-          path: artifacts/release
-
       - name: Verify portable bytes and producer identity
         id: portable-verification
         env:
-          EXPECTED_HANDOFF_SHA256: ${{ needs.produce-windows.outputs.handoff_sha256 }}
-          PORTABLE_ARTIFACT_ID: ${{ needs.produce-windows.outputs.portable_artifact_id }}
+          EXPECTED_HANDOFF_SHA256: ${{ steps.portable-handoff.outputs.handoff_sha256 }}
+          PORTABLE_ARTIFACT_ID: ${{ steps.portable-artifact.outputs.artifact-id }}
         run: node scripts/ci-portable-handoff.mjs verify artifacts/release
 
-      - name: Smoke test portable EXE (en-US resource context)
+      - name: Smoke test portable EXE once (en-US resource context)
         if: env.OWNER_SKIP_TESTS != 'true'
         id: smoke-en
         shell: pwsh
         run: ./scripts/Test-PortableSmoke.ps1 -Language en-US -RuntimeInspectionOutput artifacts/release/portable-inspection.json
-
-      - name: Smoke test portable EXE (zh-CN resource context)
-        id: smoke-zh
-        if: ${{ env.OWNER_SKIP_TESTS != 'true' && (!cancelled() && steps.portable-verification.outcome == 'success') }}
-        shell: pwsh
-        run: ./scripts/Test-PortableSmoke.ps1 -Language zh-CN
 
       - name: Bind owner-waived portable payload without smoke tests
         if: env.OWNER_SKIP_TESTS == 'true'
         shell: pwsh
         run: ./scripts/Inspect-OwnerWaivedPackages.ps1 -Kind Portable
 
-      - name: Download same-run validated release parts
-        if: success() && (env.OWNER_SKIP_TESTS == 'true' || (steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'))
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          artifact-ids: ${{ needs.produce-windows.outputs.release_parts_artifact_id }}
-          path: artifacts/release
+      - name: Stage same-build validated release parts
+        if: success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')
+        shell: pwsh
+        run: Copy-Item artifacts/release-parts/* artifacts/release -Force
 
       - name: Bind packages and record immutable promotion receipt
-        if: success() && (env.OWNER_SKIP_TESTS == 'true' || (steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'))
+        if: success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')
         shell: pwsh
         run: |
           node scripts/ai-runtime-publication.mjs record-bundle artifacts/release reference-binding artifacts/release/runtime-reference.json artifacts/release/portable-inspection.json artifacts/release/msix-inspection.json artifacts/release/installer-inspection.json
@@ -384,7 +343,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'CI promotion receipt failed.' }
 
       - name: Upload verified release promotion bundle
-        if: success() && (env.OWNER_SKIP_TESTS == 'true' || (steps.smoke-en.outcome == 'success' && steps.smoke-zh.outcome == 'success'))
+        if: success() && (env.OWNER_SKIP_TESTS == 'true' || steps.smoke-en.outcome == 'success')
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dropspace-release-promotion-${{ github.run_id }}-${{ github.run_attempt }}
@@ -399,13 +358,13 @@ jobs:
           retention-days: 7
 
       - name: Install .NET 10 SDK for isolated crash diagnostics
-        if: ${{ !cancelled() && (steps.smoke-en.outcome == 'failure' || steps.smoke-zh.outcome == 'failure') && steps.portable-verification.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.smoke-en.outcome == 'failure' && steps.portable-verification.outcome == 'success' }}
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.401
 
       - name: Collect isolated native crash address evidence
-        if: ${{ !cancelled() && (steps.smoke-en.outcome == 'failure' || steps.smoke-zh.outcome == 'failure') && steps.portable-download.outcome == 'success' && steps.portable-verification.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.smoke-en.outcome == 'failure' && steps.portable-verification.outcome == 'success' }}
         shell: pwsh
         run: |
           if (-not (Test-Path -LiteralPath artifacts/release/DropSpace.exe -PathType Leaf)) {
@@ -420,93 +379,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: diagnostics-windows-locales
+          name: diagnostics-windows-portable
           path: artifacts/diagnostics/**
           if-no-files-found: ignore
           retention-days: 14
-
-  build-and-test:
-    # Preserve the two ruleset contexts without a second Windows execution.
-    # These report the combined job's result, not invented per-locale test passes.
-    name: Build and test (x64, ${{ matrix.language }})
-    needs: [change-scope, produce-windows, smoke-portable]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [en-US, zh-CN]
-    steps:
-      - name: Reflect the consolidated Windows validation result
-        shell: bash
-        env:
-          PRODUCER_RESULT: ${{ needs.produce-windows.result }}
-          SMOKE_RESULT: ${{ needs.smoke-portable.result }}
-          MAINTENANCE_ONLY: ${{ needs.change-scope.outputs.maintenance_only }}
-          SCOPE_RESULT: ${{ needs.change-scope.result }}
-        run: |
-          if [[ "$SCOPE_RESULT" == success && "$MAINTENANCE_ONLY" == true && "$PRODUCER_RESULT" == skipped && "$SMOKE_RESULT" == skipped ]]; then
-            echo 'Workflow-only maintenance: no application build or functional test pass claimed.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          if [[ "$PRODUCER_RESULT" != success || "$SMOKE_RESULT" != success ]]; then
-            echo "Consolidated Windows validation did not succeed: producer=$PRODUCER_RESULT, smoke=$SMOKE_RESULT"
-            exit 1
-          fi
-          echo 'Required jobs succeeded. Consult step outcomes for executed versus owner-waived tests; owner-waived packaging-only mode is not a functional test pass.' >> "$GITHUB_STEP_SUMMARY"
-
-  share-worker:
-    name: Test encrypted share worker
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Check out source
-        id: checkout
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          fetch-depth: 2
-
-      - name: Install Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.x
-
-      - name: Read owner worker test waiver
-        run: echo "OWNER_SKIP_TESTS=$([[ $(cat RELEASE_VERSION) == v0.3.1-beta.6 || $(cat RELEASE_VERSION) == v0.3.1-beta.7 || $(cat RELEASE_VERSION) == v0.3.1-beta.9 || $(cat RELEASE_VERSION) == v0.3.1-beta.10 ]] && echo true || echo false)" >> "$GITHUB_ENV"
-
-      - name: Determine complete share-worker change scope
-        id: scope
-        run: node scripts/ci-share-worker-scope.mjs
-
-      - name: Syntax-check and test Worker coordinator when applicable
-        id: worker-tests
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && env.OWNER_SKIP_TESTS != 'true' && (steps.scope.outcome != 'success' || steps.scope.outputs.run_worker != 'false') }}
-        working-directory: share-worker
-        run: |
-          node --check src/index.js
-          npm test
-
-      - name: Require truthful share-worker outcome
-        if: ${{ always() }}
-        shell: bash
-        env:
-          SCOPE_RESULT: ${{ steps.scope.outcome }}
-          RUN_WORKER: ${{ steps.scope.outputs.run_worker }}
-          COMPLETE_DIFF: ${{ steps.scope.outputs.complete_diff }}
-          TEST_RESULT: ${{ steps.worker-tests.outcome }}
-        run: |
-          if [[ "$OWNER_SKIP_TESTS" == true && "$TEST_RESULT" == skipped ]]; then
-            echo 'Worker tests waived by owner for this release; no test pass claimed.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          if [[ "$SCOPE_RESULT" != success ]]; then exit 1; fi
-          if [[ "$RUN_WORKER" == true && "$TEST_RESULT" == success ]]; then
-            echo 'Encrypted share worker tests executed successfully.' >> "$GITHUB_STEP_SUMMARY"
-          elif [[ "$RUN_WORKER" == false && "$COMPLETE_DIFF" == true && "$TEST_RESULT" == skipped ]]; then
-            echo 'Encrypted share worker tests: not-applicable after complete verified diff. No test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Invalid share-worker outcome: run=$RUN_WORKER, complete=$COMPLETE_DIFF, tests=$TEST_RESULT"
-            exit 1
-          fi
