@@ -118,7 +118,8 @@ internal static class MusicVisualSmoke
                 captures.Add(await CaptureAsync(host, islandRoot, expanded, media, strings, output, stage, "expanded-island-component", scenario));
 
                 var page = new MusicPage(services.GetRequiredService<NativeSettingsEditor>(), media, sessions,
-                    experience, services.GetRequiredService<MediaApplicationIconService>(), strings, 0, enhancement);
+                    experience, services.GetRequiredService<MediaApplicationIconService>(), strings, 0, enhancement,
+                    services.GetRequiredService<Services.Dlc.DlcManagerService>(), () => { });
                 var pageRoot = CreateRoot(theme, 980, 680);
                 pageRoot.Children.Add(page);
                 stage = $"music-page-{theme}-{scenario}";

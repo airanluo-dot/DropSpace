@@ -709,4 +709,46 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
+  <data name="SettingsPageDlc" xml:space="preserve"><value>DLC</value></data>
+  <data name="DlcTitle" xml:space="preserve"><value>DLC</value></data>
+  <data name="DlcDescription" xml:space="preserve"><value>Manage optional AI models and runtime components. Downloads start only when you choose them.</value></data>
+  <data name="DlcManage" xml:space="preserve"><value>Manage downloads in DLC</value></data>
+  <data name="DlcInstalled" xml:space="preserve"><value>Downloaded</value></data>
+  <data name="DlcAvailable" xml:space="preserve"><value>Not downloaded</value></data>
+  <data name="DlcEmptyInstalled" xml:space="preserve"><value>No downloaded components.</value></data>
+  <data name="DlcEmptyAvailable" xml:space="preserve"><value>All available components are downloaded.</value></data>
+  <data name="DlcRefresh" xml:space="preserve"><value>Refresh installed components</value></data>
+  <data name="DlcModelPurpose" xml:space="preserve"><value>Offline AI lyric translation.</value></data>
+  <data name="DlcLargeModelPurpose" xml:space="preserve"><value>Optional larger model for offline AI lyric translation.</value></data>
+  <data name="DlcLegacyModelPurpose" xml:space="preserve"><value>Previously downloaded model; available for removal only.</value></data>
+  <data name="DlcInstalledSize" xml:space="preserve"><value>On disk: {0}</value></data>
+  <data name="DlcDownloadSize" xml:space="preserve"><value>Download: {0}</value></data>
+  <data name="DlcSizeFormat" xml:space="preserve"><value>{0} GB ({1} bytes)</value></data>
+  <data name="DlcUnknownSize" xml:space="preserve"><value>Unknown</value></data>
+  <data name="DlcDownload" xml:space="preserve"><value>Download</value></data>
+  <data name="DlcResume" xml:space="preserve"><value>Resume download</value></data>
+  <data name="DlcDelete" xml:space="preserve"><value>Uninstall</value></data>
+  <data name="DlcRetry" xml:space="preserve"><value>Retry</value></data>
+  <data name="DlcCancel" xml:space="preserve"><value>Cancel download</value></data>
+  <data name="DlcChecking" xml:space="preserve"><value>Checking local components…</value></data>
+  <data name="DlcNotInstalled" xml:space="preserve"><value>Not downloaded</value></data>
+  <data name="DlcReady" xml:space="preserve"><value>Installed</value></data>
+  <data name="DlcIncomplete" xml:space="preserve"><value>Incomplete download. Resume or remove downloaded files.</value></data>
+  <data name="DlcDownloading" xml:space="preserve"><value>Downloading…</value></data>
+  <data name="DlcVerifying" xml:space="preserve"><value>Verifying and installing…</value></data>
+  <data name="DlcCanceling" xml:space="preserve"><value>Canceling download…</value></data>
+  <data name="DlcCanceled" xml:space="preserve"><value>Download canceled. Choose Download to continue.</value></data>
+  <data name="DlcRemoving" xml:space="preserve"><value>Stopping AI and uninstalling…</value></data>
+  <data name="DlcDownloadFailed" xml:space="preserve"><value>Download failed. Retry to continue.</value></data>
+  <data name="DlcDeleteFailed" xml:space="preserve"><value>Uninstall failed. Retry to release resources and remove the component.</value></data>
+  <data name="DlcInspectFailed" xml:space="preserve"><value>Could not check local components. Retry.</value></data>
+  <data name="DlcDownloadConfirm" xml:space="preserve"><value>Download {0}?
+Download size: {1}
+
+Downloading does not enable AI or change your selected model or GPU mode.</value></data>
+  <data name="DlcDeleteConfirm" xml:space="preserve"><value>Uninstall {0} and its partial downloads? AI using this component will stop and release resources first. If it is the selected model, AI translation will be turned off. Lyrics caches and your files are kept.</value></data>
+  <data name="DlcSource" xml:space="preserve"><value>Source: {0}</value></data>
+  <data name="DlcPackageProgress" xml:space="preserve"><value>{0} download progress</value></data>
+  <data name="DlcPackageAction" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="DlcOperationFailed" xml:space="preserve"><value>Could not open this action. Try again.</value></data>
 </root>

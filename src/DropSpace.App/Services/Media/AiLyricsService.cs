@@ -99,6 +99,9 @@ public sealed class AiLyricsService : IDisposable
 
     public bool HasModelArtifacts(string modelId) => _models.HasArtifacts(modelId);
 
+    public Task<DropSpace.Core.Abstractions.DlcPackageInspection> InspectModelAsync(string modelId, CancellationToken token) =>
+        _models.InspectAsync(modelId, token);
+
     public Task DeleteModelAsync(string modelId, CancellationToken token)
     {
         InvalidateTranslation();
