@@ -32,6 +32,14 @@ cases.Add(originalVersion with {Name="wrong-versions-only",Candidates=originalVe
 var optional=originalVersion.Candidates.Single(x=>x.Id==originalVersion.Expected);
 cases.Add(originalVersion with {Name="optional-metadata-unknown",Query=originalVersion.Query with {Album="",Duration=TimeSpan.Zero},Candidates=[new("c8",optional.Match with {Album="",DurationSeconds=0})],Expected="c8"});
 if(thinking) cases=cases.Where(x=>x.Name is "cross-script-reversed" or "uncertain-abstention-original" or "uncertain-abstention-reversed" or "wrong-versions-only").ToList();
+if(Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-admission") {
+ var q=new LyricsQuery("唯一","Wang Leehom","",TimeSpan.FromSeconds(250),"diagnostic:admitted-cross-script") {CollectSelectionCandidates=true};
+ var c=new[]{new Candidate("c9",new LyricsMatchInfo("唯一","告五人","",250,0)),new Candidate("c10",new LyricsMatchInfo("唯一","王力宏","",250,0))};
+ var admission=c.Select(x=>new{x.Id,strictScore=LyricsMatcher.Score(q,x.Match.Title,x.Match.Artist,x.Match.Album,x.Match.DurationSeconds),candidateScore=LyricsMatcher.CandidateScore(q,x.Match.Title,x.Match.Artist,x.Match.Album,x.Match.DurationSeconds)}).ToArray();
+ if(admission.Any(x=>x.strictScore>=4 || x.candidateScore<4)) throw new InvalidDataException("Declared weak-candidate boundary does not match actual production admission.");
+ Save("admission",new{fixtureOnly=true,note="Duration is a deliberately equal synthetic ambiguity, not a captured recording duration.",query=q,admission});
+ cases=[new("admitted-cross-script-original",q,c,"c10"),new("admitted-cross-script-reversed",q,c.Reverse().ToArray(),"c10")];
+}
 var inferenceBlocked=false;var results=new List<object>();
 foreach(var item in cases) {
  if(inferenceBlocked) throw new InvalidOperationException("Previous owned cleanup unresolved; no overlapping inference.");

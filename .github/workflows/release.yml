@@ -31,6 +31,7 @@ on:
           - refined
           - qwen06
           - qwen06-thinking
+          - qwen06-admission
 
       expected_commit:
         description: Exact reviewed main commit required for publication
@@ -84,7 +85,7 @@ jobs:
         run: |
           $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
           $runtime = "$inputs/runtime"
-          if ($env:DIAGNOSTIC_VARIANT -in @('qwen06','qwen06-thinking')) {
+          if ($env:DIAGNOSTIC_VARIANT -in @('qwen06','qwen06-thinking','qwen06-admission')) {
             ./scripts/selection-qwen-diagnostic/Run-CloudQwenDiagnostic.ps1 -InputsDirectory $inputs -OutputDirectory "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
           } else {
             dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
