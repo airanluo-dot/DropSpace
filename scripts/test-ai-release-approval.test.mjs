@@ -549,6 +549,8 @@ test('all production lyric and media-ingestion files have a code-owned fingerpri
     // The artist dictionary must be embedded in the shipped assembly, and model
     // activation roles must remain bound even when model package hashes agree.
     'src/DropSpace.Core/DropSpace.Core.csproj', 'src/DropSpace.Core/Lyrics/AiLyricsSelectionModelCatalog.cs',
+    'src/DropSpace.App/Services/NativeAsyncLifetime.cs', 'src/DropSpace.App/Services/ImageDecoderPreflight.cs',
+    'src/DropSpace.App/Services/ThumbnailService.cs',
     'src/DropSpace.Core/Policies/AppLanguagePolicy.cs', 'src/DropSpace.Core/Media/MediaModels.cs',
     'src/DropSpace.App/App.xaml.cs', 'src/DropSpace.App/ViewModels/MediaViewModel.cs', 'src/DropSpace.App/Services/AppLanguageService.cs',
     'src/DropSpace.App/Services/ResourceStringLocalizer.cs', 'src/DropSpace.App/Views/Music/MusicPage.cs',

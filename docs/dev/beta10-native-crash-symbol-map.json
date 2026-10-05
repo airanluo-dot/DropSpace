@@ -1,0 +1,34 @@
+{
+  "releaseCommit": "4044baed6b1c393a815b91e1406a83e0995f1f94",
+  "releaseExeSha256": "caaf091ac30a355abf85c90be6f622dc5b26f1fe509b7ee0e913816889b840c7",
+  "runtime": "10.0.12",
+  "pdbSha256": "e6ec59770d2558984b0246cc2a09481f97b0f4b94e8c2d3efd415ea833af0151",
+  "exactHostSymbols": {
+    "PdbGuid": "22b27b3c-5523-4123-b45b-c7cbec2d9ee3",
+    "Timestamp": "0x6a89b77a",
+    "PdbAge": 1,
+    "Addresses": [
+      {
+        "Rva": "0x19c4c8",
+        "Symbol": "ProcessCLRException",
+        "Displacement": "0x178",
+        "SymbolRva": "0x19c350"
+      },
+      {
+        "Rva": "0x5b6e20",
+        "Symbol": "GetCurrentIP",
+        "Displacement": "0x0",
+        "SymbolRva": "0x5b6e20"
+      },
+      {
+        "Rva": "0x1022a0",
+        "Symbol": "EEPolicy::HandleFatalError",
+        "Displacement": "0x0",
+        "SymbolRva": "0x1022a0"
+      }
+    ]
+  },
+  "limitation": "Reported address mapping identifies the runtime reporting site; a matching crash dump is still required to identify the original corrupting operation.",
+  "symbolRun": "https://github.com/airanluo-dot/DropSpace/actions/runs/37284716727",
+  "artifact": "https://github.com/airanluo-dot/DropSpace/actions/runs/37284716727/artifacts/11334137117"
+}

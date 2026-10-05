@@ -574,20 +574,31 @@ public sealed class NeteaseSmtcVerifier : IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         }).AsTask(token);
     }
+    private static readonly Media.BoundedMediaOperation ArtworkReads = new(4, 1);
+
     private static async Task<bool> HasArtworkAsync(IRandomAccessStreamReference? reference, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
         if (reference is null) return false;
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(2));
         try
         {
-            using var stream = await reference.OpenReadAsync().AsTask(deadline.Token);
-            if (stream.Size is 0 or > 4 * 1024 * 1024) return false;
-            using var reader = new DataReader(stream);
-            return await reader.LoadAsync(1).AsTask(deadline.Token) == 1;
+            return await ArtworkReads.RunAsync(reference, nativeToken => ReadArtworkAsync(reference, nativeToken),
+                TimeSpan.FromSeconds(2), token);
         }
-        catch (OperationCanceledException) when (!token.IsCancellationRequested) { return false; }
+        catch (TimeoutException) { return false; }
         catch (Exception exception) when (IsRecoverable(exception)) { return false; }
+    }
+
+    private static async Task<bool> ReadArtworkAsync(IRandomAccessStreamReference reference, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        using var stream = await NativeAsyncLifetime.AwaitAsync(reference.OpenReadAsync(), token);
+        token.ThrowIfCancellationRequested();
+        if (stream.Size is 0 or > 4 * 1024 * 1024) return false;
+        using var reader = new DataReader(stream);
+        var loaded = await NativeAsyncLifetime.AwaitAsync(reader.LoadAsync(1), token);
+        token.ThrowIfCancellationRequested();
+        return loaded == 1;
     }
     private sealed class Subscription(Action remove) : IDisposable
     {
