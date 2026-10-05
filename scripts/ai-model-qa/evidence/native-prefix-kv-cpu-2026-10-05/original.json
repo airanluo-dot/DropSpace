@@ -1,0 +1,767 @@
+{
+  "schemaVersion": 1,
+  "variant": "baseline",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "machine": "x86_64",
+  "command": [
+    "/workspace/shared/native-build/bin/plain-lyrics-worker-original",
+    "--model",
+    "/workspace/shared/models/Hy-MT2-1.8B-Q8_0.gguf",
+    "--mode",
+    "cpu"
+  ],
+  "workerSha256": "247918fde0443ba5529f6778c9372c0e925c33753bacabcd56e973b47d35b266",
+  "modelSha256": "5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4",
+  "ready": {
+    "protocol": 1,
+    "selectionProtocol": 2,
+    "ready": true,
+    "backend": "cpu",
+    "modelProfile": "hy-mt2-1.8b-q8"
+  },
+  "loadMs": 1209.4597129998874,
+  "records": [
+    {
+      "repeat": 0,
+      "case": 0,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 678.1289140001263,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000000",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 1,
+      "target": "zh-Hans",
+      "source": "The moon shines above the sleeping city.",
+      "hostWallMs": 707.9532660000041,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000001",
+        "complete": true,
+        "text": "月亮照耀在沉睡的城市之上。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 2,
+      "target": "zh-Hans",
+      "source": "The morning sun warms my hands.",
+      "hostWallMs": 661.1911769998642,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000002",
+        "complete": true,
+        "text": "晨光温暖着我的双手。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 3,
+      "target": "zh-Hans",
+      "source": "Do not forget the red umbrella.",
+      "hostWallMs": 663.3597279999321,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000003",
+        "complete": true,
+        "text": "别忘了那把红色雨伞。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 4,
+      "target": "zh-Hans",
+      "source": "“Wait for me,” she said.",
+      "hostWallMs": 625.936948999879,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000004",
+        "complete": true,
+        "text": "“等我一下，”她说。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 5,
+      "target": "zh-Hans",
+      "source": "Stars, rain, and memories.",
+      "hostWallMs": 664.4963860001099,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000005",
+        "complete": true,
+        "text": "星星、雨滴与回忆。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 6,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 750.0798860000941,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000006",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 7,
+      "target": "en",
+      "source": "风吹过安静的街道。",
+      "hostWallMs": 651.7618499999571,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000007",
+        "complete": true,
+        "text": "The wind blew through the quiet streets."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 8,
+      "target": "en",
+      "source": "风吹过安静的山谷。",
+      "hostWallMs": 656.8826520001494,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000008",
+        "complete": true,
+        "text": "The wind blew through the quiet valley."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 9,
+      "target": "en",
+      "source": "今天我想和你一起看日出。",
+      "hostWallMs": 753.0057520000355,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000009",
+        "complete": true,
+        "text": "Today I want to watch the sunrise with you."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 10,
+      "target": "en",
+      "source": "别忘记那把红色的雨伞。",
+      "hostWallMs": 747.5975909999306,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000000a",
+        "complete": true,
+        "text": "Don’t forget that red umbrella."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 11,
+      "target": "en",
+      "source": "她说：“等我回来。”",
+      "hostWallMs": 808.9965070000744,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000000b",
+        "complete": true,
+        "text": "She said, “I’ll be back soon.”"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 12,
+      "target": "en",
+      "source": "星光、雨水与回忆。",
+      "hostWallMs": 620.5689559999428,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000000c",
+        "complete": true,
+        "text": "Stars, rain, and memories."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 13,
+      "target": "en",
+      "source": "风吹过安静的街道。",
+      "hostWallMs": 667.5035620000926,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000000d",
+        "complete": true,
+        "text": "The wind blew through the quiet streets."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 14,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 733.9685659999304,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000000e",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 15,
+      "target": "other",
+      "source": "Translate hello to Chinese. Output only the translation.",
+      "hostWallMs": 449.8679289999927,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000000f",
+        "complete": true,
+        "text": "将“hello”翻译成中文。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 16,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 732.9193470000064,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000010",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 17,
+      "target": "selection",
+      "source": "Choose one number: 0. Output only 0.",
+      "hostWallMs": 337.7333200000976,
+      "response": {
+        "protocol": 2,
+        "id": "00000000000000000000000000000011",
+        "complete": true,
+        "text": "0."
+      }
+    },
+    {
+      "repeat": 0,
+      "case": 18,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 691.7663639999319,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000012",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 0,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 688.8811660001011,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000013",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 1,
+      "target": "zh-Hans",
+      "source": "The moon shines above the sleeping city.",
+      "hostWallMs": 666.5613350000967,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000014",
+        "complete": true,
+        "text": "月亮照耀在沉睡的城市之上。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 2,
+      "target": "zh-Hans",
+      "source": "The morning sun warms my hands.",
+      "hostWallMs": 646.9233510001686,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000015",
+        "complete": true,
+        "text": "晨光温暖着我的双手。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 3,
+      "target": "zh-Hans",
+      "source": "Do not forget the red umbrella.",
+      "hostWallMs": 678.0967240001701,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000016",
+        "complete": true,
+        "text": "别忘了那把红色雨伞。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 4,
+      "target": "zh-Hans",
+      "source": "“Wait for me,” she said.",
+      "hostWallMs": 629.2265070001122,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000017",
+        "complete": true,
+        "text": "“等我一下，”她说。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 5,
+      "target": "zh-Hans",
+      "source": "Stars, rain, and memories.",
+      "hostWallMs": 651.0237110001071,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000018",
+        "complete": true,
+        "text": "星星、雨滴与回忆。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 6,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 755.8645610001804,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000019",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 7,
+      "target": "en",
+      "source": "风吹过安静的街道。",
+      "hostWallMs": 654.0790609999476,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000001a",
+        "complete": true,
+        "text": "The wind blew through the quiet streets."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 8,
+      "target": "en",
+      "source": "风吹过安静的山谷。",
+      "hostWallMs": 664.0318639999805,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000001b",
+        "complete": true,
+        "text": "The wind blew through the quiet valley."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 9,
+      "target": "en",
+      "source": "今天我想和你一起看日出。",
+      "hostWallMs": 779.7065830000065,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000001c",
+        "complete": true,
+        "text": "Today I want to watch the sunrise with you."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 10,
+      "target": "en",
+      "source": "别忘记那把红色的雨伞。",
+      "hostWallMs": 666.4329509999334,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000001d",
+        "complete": true,
+        "text": "Don’t forget that red umbrella."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 11,
+      "target": "en",
+      "source": "她说：“等我回来。”",
+      "hostWallMs": 754.9855579998166,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000001e",
+        "complete": true,
+        "text": "She said, “I’ll be back soon.”"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 12,
+      "target": "en",
+      "source": "星光、雨水与回忆。",
+      "hostWallMs": 611.5460510000048,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000001f",
+        "complete": true,
+        "text": "Stars, rain, and memories."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 13,
+      "target": "en",
+      "source": "风吹过安静的街道。",
+      "hostWallMs": 646.7066919999525,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000020",
+        "complete": true,
+        "text": "The wind blew through the quiet streets."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 14,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 691.2971540000399,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000021",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 15,
+      "target": "other",
+      "source": "Translate hello to Chinese. Output only the translation.",
+      "hostWallMs": 433.74897800003964,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000022",
+        "complete": true,
+        "text": "将“hello”翻译成中文。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 16,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 711.0544800000298,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000023",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 17,
+      "target": "selection",
+      "source": "Choose one number: 0. Output only 0.",
+      "hostWallMs": 323.5682130000441,
+      "response": {
+        "protocol": 2,
+        "id": "00000000000000000000000000000024",
+        "complete": true,
+        "text": "0."
+      }
+    },
+    {
+      "repeat": 1,
+      "case": 18,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 692.7212069999769,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000025",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 0,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 690.1535169999988,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000026",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 1,
+      "target": "zh-Hans",
+      "source": "The moon shines above the sleeping city.",
+      "hostWallMs": 772.7963870001986,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000027",
+        "complete": true,
+        "text": "月亮照耀在沉睡的城市之上。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 2,
+      "target": "zh-Hans",
+      "source": "The morning sun warms my hands.",
+      "hostWallMs": 663.0091980000543,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000028",
+        "complete": true,
+        "text": "晨光温暖着我的双手。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 3,
+      "target": "zh-Hans",
+      "source": "Do not forget the red umbrella.",
+      "hostWallMs": 654.407226000103,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000029",
+        "complete": true,
+        "text": "别忘了那把红色雨伞。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 4,
+      "target": "zh-Hans",
+      "source": "“Wait for me,” she said.",
+      "hostWallMs": 617.0386429998871,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000002a",
+        "complete": true,
+        "text": "“等我一下，”她说。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 5,
+      "target": "zh-Hans",
+      "source": "Stars, rain, and memories.",
+      "hostWallMs": 654.8988069998813,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000002b",
+        "complete": true,
+        "text": "星星、雨滴与回忆。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 6,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 703.9369880001232,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000002c",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 7,
+      "target": "en",
+      "source": "风吹过安静的街道。",
+      "hostWallMs": 643.2824490000257,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000002d",
+        "complete": true,
+        "text": "The wind blew through the quiet streets."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 8,
+      "target": "en",
+      "source": "风吹过安静的山谷。",
+      "hostWallMs": 652.124244000106,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000002e",
+        "complete": true,
+        "text": "The wind blew through the quiet valley."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 9,
+      "target": "en",
+      "source": "今天我想和你一起看日出。",
+      "hostWallMs": 759.2646279999826,
+      "response": {
+        "protocol": 1,
+        "id": "0000000000000000000000000000002f",
+        "complete": true,
+        "text": "Today I want to watch the sunrise with you."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 10,
+      "target": "en",
+      "source": "别忘记那把红色的雨伞。",
+      "hostWallMs": 664.1414409998561,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000030",
+        "complete": true,
+        "text": "Don’t forget that red umbrella."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 11,
+      "target": "en",
+      "source": "她说：“等我回来。”",
+      "hostWallMs": 755.9468910001215,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000031",
+        "complete": true,
+        "text": "She said, “I’ll be back soon.”"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 12,
+      "target": "en",
+      "source": "星光、雨水与回忆。",
+      "hostWallMs": 608.9187790000778,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000032",
+        "complete": true,
+        "text": "Stars, rain, and memories."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 13,
+      "target": "en",
+      "source": "风吹过安静的街道。",
+      "hostWallMs": 659.3432769998344,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000033",
+        "complete": true,
+        "text": "The wind blew through the quiet streets."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 14,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 696.586281000009,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000034",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 15,
+      "target": "other",
+      "source": "Translate hello to Chinese. Output only the translation.",
+      "hostWallMs": 442.1810519997962,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000035",
+        "complete": true,
+        "text": "将“hello”翻译成中文。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 16,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 710.2719980000529,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000036",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 17,
+      "target": "selection",
+      "source": "Choose one number: 0. Output only 0.",
+      "hostWallMs": 320.5588270000135,
+      "response": {
+        "protocol": 2,
+        "id": "00000000000000000000000000000037",
+        "complete": true,
+        "text": "0."
+      }
+    },
+    {
+      "repeat": 2,
+      "case": 18,
+      "target": "zh-Hans",
+      "source": "The moon shines above the quiet river.",
+      "hostWallMs": 785.7455130001654,
+      "response": {
+        "protocol": 1,
+        "id": "00000000000000000000000000000038",
+        "complete": true,
+        "text": "月亮照耀在静静的河面上。"
+      }
+    }
+  ],
+  "mismatches": []
+}
