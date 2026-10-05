@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using DropSpace.Core.Lyrics;
@@ -52,13 +53,22 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         if (indices.Length == 0) return null;
         var generation = cache.Generation;
         var key = PlainHyLyricsProtocol.CacheKey(query, source, targetLanguage, identity);
-        if (IsNoUseful(key, generation)) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        if (IsNoUseful(key, generation))
+        {
+            PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.NeutralHit);
+            token.ThrowIfCancellationRequested();
+            return cache.Generation == generation ? new(source, LyricsTranslationOutcome.NoUsefulTranslation) : null;
+        }
         var saved = await cache.ReadAsync(key, token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         if (cache.Generation != generation || saved is null ||
             !TryApplyEligibleOutput(saved, source, indices, targetLanguage, out var result)) return null;
         if (LyricsTranslationOutput.HasUsefulLocalTranslation(result, targetLanguage))
-            return new(result, LyricsTranslationOutcome.Translated);
+        {
+            PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.SongHit);
+            token.ThrowIfCancellationRequested();
+            return cache.Generation == generation ? new(result, LyricsTranslationOutcome.Translated) : null;
+        }
         RememberNoUseful(key, generation);
         return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
     }
@@ -73,6 +83,33 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         string targetLanguage, string identity, long generation, Func<string, CancellationToken, Task<string>> infer,
         CancellationToken token, TimeSpan songBudget, LyricsTranslationProgressContext? progress = null)
     {
+        using var measured = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.Song);
+        try
+        {
+            var result = await TranslateSongAsync(query, source, targetLanguage, identity, generation,
+                infer, token, songBudget, progress).ConfigureAwait(false);
+            measured.Complete(result.Outcome switch
+            {
+                LyricsTranslationOutcome.Translated => PlainLyricsMetrics.Outcome.Success,
+                LyricsTranslationOutcome.NoUsefulTranslation => PlainLyricsMetrics.Outcome.NoUseful,
+                _ => PlainLyricsMetrics.Outcome.Failed,
+            });
+            // Metric listeners are synchronous and may trigger application invalidation. Retire
+            // the timing scope before the final cancellation/generation/request check as well.
+            measured.Dispose();
+            token.ThrowIfCancellationRequested();
+            return cache.Generation == generation && progress?.IsCurrent != false ? result
+                : new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        }
+        catch (OperationCanceledException) { measured.Complete(PlainLyricsMetrics.Outcome.Cancelled); throw; }
+    }
+
+    private async Task<LyricsTranslationResult> TranslateSongAsync(LyricsQuery query, LyricsDocument source,
+        string targetLanguage, string identity, long generation, Func<string, CancellationToken, Task<string>> infer,
+        CancellationToken token, TimeSpan songBudget, LyricsTranslationProgressContext? progress)
+    {
+        var started = Stopwatch.GetTimestamp();
+        var firstUseful = false;
         if (songBudget <= TimeSpan.Zero || songBudget > TimeSpan.FromSeconds(PlainHyLyricsProtocol.WholeSongSeconds))
             throw new ArgumentOutOfRangeException(nameof(songBudget));
         ArgumentNullException.ThrowIfNull(infer);
@@ -87,12 +124,18 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         var key = PlainHyLyricsProtocol.CacheKey(query, source, targetLanguage, identity);
         var cached = await TryGetCachedAsync(query, source, targetLanguage, identity, token).ConfigureAwait(false);
         if (cache.Generation != generation || progress?.IsCurrent == false) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
-        if (cached is not null) return cached;
+        if (cached is not null)
+        {
+            if (cached.Outcome == LyricsTranslationOutcome.Translated)
+                PlainLyricsMetrics.Record(PlainLyricsMetrics.Stage.FirstUseful, started, PlainLyricsMetrics.Outcome.Success);
+            return cached;
+        }
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token);
         budget.CancelAfter(songBudget);
         var result = source;
         var segments = LyricsLanguagePolicy.EligibleSegments(source, targetLanguage);
         var outputs = new Dictionary<int, string>(indices.Length);
+        var acceptedSegments = new PlainLyricsSegmentMemo();
         var pending = indices.ToHashSet();
         var finished = 0;
         bool IsCurrent() => Volatile.Read(ref finished) == 0 && !budget.IsCancellationRequested &&
@@ -109,12 +152,33 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                 var segmentOutputs = new List<string>();
                 foreach (var segment in segments[id])
                 {
+                    budget.Token.ThrowIfCancellationRequested();
+                    if (!IsCurrent()) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
                     var prompt = PlainHyLyricsProtocol.BuildPrompt(segment, targetLanguage);
-                    var segmentOutput = await infer(prompt, budget.Token).ConfigureAwait(false);
+                    var segmentKey = PlainLyricsSegmentMemo.CreateKey(prompt, targetLanguage, identity);
+                    string segmentOutput;
+                    if (acceptedSegments.TryGet(segmentKey, out var reused))
+                    {
+                        segmentOutput = reused;
+                        PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.SegmentHit);
+                    }
+                    else
+                    {
+                        using var call = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.Infer);
+                        try
+                        {
+                            segmentOutput = await infer(prompt, budget.Token).ConfigureAwait(false);
+                            call.Complete();
+                        }
+                        catch (OperationCanceledException) { call.Complete(PlainLyricsMetrics.Outcome.Cancelled); throw; }
+                    }
                     budget.Token.ThrowIfCancellationRequested();
                     if (!IsCurrent()) return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
                     if (!PlainHyLyricsProtocol.IsCompleteLine(segmentOutput)) return new(source, LyricsTranslationOutcome.Failed);
                     segmentOutputs.Add(segmentOutput.Trim());
+                    // Independent segment admission permits reuse even within a multi-segment row.
+                    // A later row/song failure discards this request-local memo without persistence.
+                    acceptedSegments.Remember(segmentKey, segment, segmentOutput.Trim());
                 }
                 var output = string.Join(" ", segmentOutputs);
                 budget.Token.ThrowIfCancellationRequested();
@@ -125,6 +189,12 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
                 var json = JsonSerializer.Serialize(new[] { new { id, text = output } });
                 if (!TryApplyEligibleOutput(json, result, [id], targetLanguage, out var next))
                     return new(source, LyricsTranslationOutcome.Failed);
+                // Hits pass host mapping again with this row's ID, timeline and admission key.
+                if (!firstUseful && next.Lines[id].TranslationOrigin == LyricsTranslationOrigin.LocalAi)
+                {
+                    firstUseful = true;
+                    PlainLyricsMetrics.Record(PlainLyricsMetrics.Stage.FirstUseful, started, PlainLyricsMetrics.Outcome.Success);
+                }
                 result = next;
                 outputs.Add(id, output);
                 pending.Remove(id);
@@ -153,7 +223,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
             return IsCurrent() ? new(result, LyricsTranslationOutcome.Translated)
                 : new(source, LyricsTranslationOutcome.NoUsefulTranslation);
         }
-        finally { Interlocked.Exchange(ref finished, 1); }
+        finally { Interlocked.Exchange(ref finished, 1); acceptedSegments.Clear(); }
     }
 
     private static bool TryApplyEligibleOutput(string json, LyricsDocument source, IReadOnlyList<int> indices,

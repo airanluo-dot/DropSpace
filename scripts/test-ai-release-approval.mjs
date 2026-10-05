@@ -41,6 +41,8 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/Ct2LyricsPipeline.cs',
   'src/DropSpace.Infrastructure/Lyrics/Ct2PackageInstaller.cs',
   'src/DropSpace.Infrastructure/Lyrics/PlainHyLyricsBackend.cs',
+  'src/DropSpace.Infrastructure/Lyrics/PlainLyricsSegmentMemo.cs',
+  'src/DropSpace.Infrastructure/Lyrics/PlainLyricsMetrics.cs',
   'src/DropSpace.Infrastructure/Lyrics/LyricsTranslationProgress.cs',
   'src/DropSpace.Infrastructure/Lyrics/PersistentPlainLyricsRunner.cs',
   'src/DropSpace.App/Services/Media/AiLyricsService.cs',

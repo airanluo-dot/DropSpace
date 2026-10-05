@@ -1,0 +1,355 @@
+{
+  "baseCommit": "64457419ae6fc8af15ab5542a402b7b871cbf9be",
+  "branch": "feat/plain-hy-song-reuse-host-metrics",
+  "platform": "Debian 13 linux-x64",
+  "dotnetSdk": "10.0.401",
+  "experiment": {
+    "baseline": {
+      "experiment": "eight-lines-three-exact-prompts",
+      "calls": 8,
+      "elapsedMilliseconds": 241.7175,
+      "outcome": "Translated",
+      "validIds": true,
+      "nativeModelRun": false,
+      "simulatedCallDelayMs": 20
+    },
+    "reuse": {
+      "experiment": "eight-lines-three-exact-prompts",
+      "calls": 3,
+      "elapsedMilliseconds": 137.0674,
+      "outcome": "Translated",
+      "validIds": true,
+      "nativeModelRun": false,
+      "simulatedCallDelayMs": 20
+    },
+    "interpretation": "8 to 3 actual host inference delegate calls (62.5% fewer). Single synthetic 20ms-delay observations, not native model or GPU speed measurements."
+  },
+  "tests": [
+    {
+      "artifact": "baseline-plain-host.trx",
+      "total": 62,
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "artifact": "reuse-directed.trx",
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "artifact": "release-directed-final.trx",
+      "total": 92,
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "artifact": "release-core.trx",
+      "total": 631,
+      "passed": 631,
+      "failed": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    {
+      "artifact": "release-infrastructure.trx",
+      "total": 822,
+      "passed": 785,
+      "failed": 11,
+      "skipped": 26,
+      "failures": [
+        {
+          "name": "SlowerHigherScoreTranslationWinsOverFirstReportedTranslation",
+          "message": "Assertion failed. Expected values to be equal.\n\nexpected: Kugou\nactual:   QqMusic\n\nAssert.AreEqual(LyricsProviderKind.Kugou, result.Document.Provider)"
+        },
+        {
+          "name": "BodyHashMismatchIsRejectedBeforeEndpoint",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.BodyHashMismatchIsRejectedBeforeEndpoint threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "PendingPairingsAreBoundedPerRemoteAddress",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkPairingAdmissionTests.PendingPairingsAreBoundedPerRemoteAddress threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "SaveRejectsAtCapacityAndKeepsEveryLiveHandle",
+          "message": "Test method DropSpace.Infrastructure.Tests.InternetShareRevokeStoreTests.SaveRejectsAtCapacityAndKeepsEveryLiveHandle threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "SecretWithoutTrustedPeerStateIsRejected",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.SecretWithoutTrustedPeerStateIsRejected threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "ValidBodyHashAndHmacReachEndpointAndRewindBody",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.ValidBodyHashAndHmacReachEndpointAndRewindBody threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "WinningFallbackCancelsAndDrainsOtherRequests",
+          "message": "Test method DropSpace.Infrastructure.Tests.LyricsFallbackTests.WinningFallbackCancelsAndDrainsOtherRequests threw exception:\r\nSystem.TimeoutException: The operation has timed out."
+        },
+        {
+          "name": "LrclibNeverFabricatesIdentityFromRequestedMetadata",
+          "message": "Test method DropSpace.Infrastructure.Tests.LyricsProviderTransportTests.LrclibNeverFabricatesIdentityFromRequestedMetadata threw exception:\r\nSystem.IO.InvalidDataException: Unsupported LRCLIB exact response."
+        },
+        {
+          "name": "RemoteSenderCannotApproveItsOwnOfferAndLocalReceiverCan",
+          "message": "Assertion failed. Expected values to be equal.\n\nexpected: OK\nactual:   BadRequest\n\nAssert.AreEqual(HttpStatusCode.OK, automaticOffer.StatusCode)"
+        },
+        {
+          "name": "EncryptedRevokeHandleSurvivesRestartRoundTrip",
+          "message": "Test method DropSpace.Infrastructure.Tests.InternetShareRevokeStoreTests.EncryptedRevokeHandleSurvivesRestartRoundTrip threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "ReplayedNonceIsRejectedAfterFirstValidRequest",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.ReplayedNonceIsRejectedAfterFirstValidRequest threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        }
+      ]
+    },
+    {
+      "artifact": "baseline-unrelated-failures.trx",
+      "total": 13,
+      "passed": 3,
+      "failed": 9,
+      "skipped": 1,
+      "failures": [
+        {
+          "name": "ValidBodyHashAndHmacReachEndpointAndRewindBody",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.ValidBodyHashAndHmacReachEndpointAndRewindBody threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "SlowerHigherScoreTranslationWinsOverFirstReportedTranslation",
+          "message": "Assertion failed. Expected values to be equal.\n\nexpected: Kugou\nactual:   QqMusic\n\nAssert.AreEqual(LyricsProviderKind.Kugou, result.Document.Provider)"
+        },
+        {
+          "name": "LrclibNeverFabricatesIdentityFromRequestedMetadata",
+          "message": "Test method DropSpace.Infrastructure.Tests.LyricsProviderTransportTests.LrclibNeverFabricatesIdentityFromRequestedMetadata threw exception:\r\nSystem.IO.InvalidDataException: Unsupported LRCLIB exact response."
+        },
+        {
+          "name": "BodyHashMismatchIsRejectedBeforeEndpoint",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.BodyHashMismatchIsRejectedBeforeEndpoint threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "EncryptedRevokeHandleSurvivesRestartRoundTrip",
+          "message": "Test method DropSpace.Infrastructure.Tests.InternetShareRevokeStoreTests.EncryptedRevokeHandleSurvivesRestartRoundTrip threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "SecretWithoutTrustedPeerStateIsRejected",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.SecretWithoutTrustedPeerStateIsRejected threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "WinningFallbackCancelsAndDrainsOtherRequests",
+          "message": "Test method DropSpace.Infrastructure.Tests.LyricsFallbackTests.WinningFallbackCancelsAndDrainsOtherRequests threw exception:\r\nSystem.TimeoutException: The operation has timed out."
+        },
+        {
+          "name": "ReplayedNonceIsRejectedAfterFirstValidRequest",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkAuthenticationMiddlewareTests.ReplayedNonceIsRejectedAfterFirstValidRequest threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "SaveRejectsAtCapacityAndKeepsEveryLiveHandle",
+          "message": "Test method DropSpace.Infrastructure.Tests.InternetShareRevokeStoreTests.SaveRejectsAtCapacityAndKeepsEveryLiveHandle threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        }
+      ]
+    },
+    {
+      "artifact": "baseline-other-platform-failures.trx",
+      "total": 2,
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0,
+      "failures": [
+        {
+          "name": "PendingPairingsAreBoundedPerRemoteAddress",
+          "message": "Test method DropSpace.Infrastructure.Tests.DropLinkPairingAdmissionTests.PendingPairingsAreBoundedPerRemoteAddress threw exception:\r\nSystem.PlatformNotSupportedException: Operation is not supported on this platform."
+        },
+        {
+          "name": "RemoteSenderCannotApproveItsOwnOfferAndLocalReceiverCan",
+          "message": "Assertion failed. Expected values to be equal.\n\nexpected: OK\nactual:   BadRequest\n\nAssert.AreEqual(HttpStatusCode.OK, automaticOffer.StatusCode)"
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "scenario": "gpu-startup-failure-cpu-fallback-and-warm-reuse",
+      "nativeModel": false,
+      "processFixture": "python3 child using production PersistentPlainLyricsRunner",
+      "measurements": [
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0005,
+          "Tags": {
+            "stage": "OperationQueue",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.1344,
+          "Tags": {
+            "stage": "RuntimeResolve",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0003,
+          "Tags": {
+            "stage": "NativeQueue",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 15.0321,
+          "Tags": {
+            "stage": "LoadReady",
+            "outcome": "Failed"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.events",
+          "Value": 1,
+          "Tags": {
+            "event": "FallbackAttempt"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.1458,
+          "Tags": {
+            "stage": "RuntimeResolve",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0003,
+          "Tags": {
+            "stage": "NativeQueue",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 15.0396,
+          "Tags": {
+            "stage": "LoadReady",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.events",
+          "Value": 1,
+          "Tags": {
+            "event": "FallbackUse"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.1947,
+          "Tags": {
+            "stage": "Call",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0005,
+          "Tags": {
+            "stage": "OperationQueue",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.events",
+          "Value": 1,
+          "Tags": {
+            "event": "ResidentReuse"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.events",
+          "Value": 1,
+          "Tags": {
+            "event": "FallbackUse"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.1536,
+          "Tags": {
+            "stage": "Call",
+            "outcome": "Success"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "completed-song-cancellation-reaps-idle-resident",
+      "nativeModel": false,
+      "processFixture": "python3 child using production PersistentPlainLyricsRunner",
+      "measurements": [
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0004,
+          "Tags": {
+            "stage": "OperationQueue",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0008,
+          "Tags": {
+            "stage": "RuntimeResolve",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.0002,
+          "Tags": {
+            "stage": "NativeQueue",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 14.5155,
+          "Tags": {
+            "stage": "LoadReady",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 0.1832,
+          "Tags": {
+            "stage": "Call",
+            "outcome": "Success"
+          }
+        },
+        {
+          "Instrument": "dropspace.plain_lyrics.host.duration",
+          "Value": 186.3204,
+          "Tags": {
+            "stage": "CancellationRelease",
+            "outcome": "Success"
+          }
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    "Windows app build and shipping native process/runtime",
+    "Real Hy-MT2 1.8B/7B Q8 inference speed and translation quality",
+    "GPU wall-time, memory, native prefill/decode performance",
+    "Final full infrastructure suite: full run preceded the final memo-clear, cache-hit FirstUseful and synchronous-metric-listener fence refinements; final affected 92-test Release suite passed."
+  ],
+  "experimentSource": "using System.Diagnostics;\nusing System.Text.Json;\nusing DropSpace.Core.Lyrics;\nusing DropSpace.Core.Models;\nusing DropSpace.Infrastructure.Lyrics;\nvar root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(\"N\"));\nvar cache = new AiLyricsCache(root);\nvar coordinator = new PlainHyLyricsCoordinator(cache);\nvar source = new LyricsDocument(new[] {\"chorus\", \"verse one\", \"chorus\", \"verse two\", \"chorus\", \"verse one\", \"chorus\", \"verse two\"}.Select((text,id) => new LyricsLine(TimeSpan.FromSeconds(id), TimeSpan.FromSeconds(id+1), text, null, [])).ToArray(), LyricsProviderKind.LocalLrc);\nvar query = new LyricsQuery(\"fixture\", \"fixture\", \"fixture\", TimeSpan.FromSeconds(8));\nvar identity = PlainHyLyricsProtocol.InferenceIdentity(new string('a',64));\nvar calls = 0;\nvar start = Stopwatch.GetTimestamp();\nvar result = await coordinator.TranslateAsync(query, source, \"en\", identity, cache.Generation, async (prompt, token) => { calls++; await Task.Delay(20, token); return \"translated \" + prompt[(prompt.IndexOf('\\n') + 1)..]; }, default);\nConsole.WriteLine(JsonSerializer.Serialize(new { experiment = \"eight-lines-three-exact-prompts\", calls, elapsedMilliseconds = Stopwatch.GetElapsedTime(start).TotalMilliseconds, outcome = result.Outcome.ToString(), validIds = result.Document.Lines.Select((line,id) => line.Start == source.Lines[id].Start && line.End == source.Lines[id].End && line.Secondary != null).All(x => x), nativeModelRun = false, simulatedCallDelayMs = 20 }));\nDirectory.Delete(root, true);\n"
+}
