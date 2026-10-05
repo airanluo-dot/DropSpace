@@ -41,3 +41,8 @@ For usable production timing, provider translation collection must retain its th
 * Original model SHA `5c3fe0b1408a5ceb0143184ef247b11b579c525f4b02b060e6c851bb76fef1a4`; actual AVX2 worker SHA `efbd796e9518198fc374dd37aa44928e97f775c9e7a76099d3add95ca7679360`.
 
 ZIP SHA/size were checked after authorized downloads and the original evidence JSON is retained under `artifacts/beta11-refined-selection-37249590704/` and `artifacts/beta11-selection-missing-metadata-37249922967/`. No old tests were rerun; no native build, new model, paid service, local laptop, scope acceptance or publication occurred. Further model approval, meaningful inference and production lifecycle integration remain blockers.
+
+
+## Subsequent authorized Qwen diagnosis
+
+The owner authorized the official Qwen3-0.6B Q8 cloud diagnostic download on 2026-10-05T01:11:06Z. Actual immutable download and fourteen focused calls are now recorded in [Qwen diagnostic readout](beta11-qwen-selection-diagnostic.md). Non-thinking returned 5/8 correct in the initial boundaries and 2/2 correct for genuinely admitted weak cross-script artist candidates, but guessed on insufficient identity and accepted Live outside current admission. Thinking returned no complete decision in four bounded calls. Observed process RSS was about 0.89GiB; the admitted ambiguity took 6.54–9.06 seconds. This gives limited real AI value with guards, not release certification or permission to silently distribute/default the new model. Production remains unchanged; the earlier no-download statements describe the preceding research stage.
