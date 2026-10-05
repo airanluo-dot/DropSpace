@@ -9,10 +9,14 @@ namespace DropSpace.App.Views;
 
 public sealed partial class MainPage
 {
-    private void BuildSettingsPages(NativeSettingsEditor editor)
+    private Action? _openDlcSettings;
+
+    private void OpenDlcSettings() => _openDlcSettings?.Invoke();
+
+    private void BuildSettingsPages(NativeSettingsEditor editor, Services.Dlc.DlcManagerService dlc)
     {
         var groups = new Dictionary<string, StackPanel>();
-        foreach (var key in new[] { "General", "Island", "Widgets", "SystemActivities", "Devices", "Updates", "About" })
+        foreach (var key in new[] { "General", "Island", "Widgets", "DLC", "SystemActivities", "Devices", "Updates", "About" })
             groups[key] = new() { Spacing = 18, MaxWidth = 780, HorizontalAlignment = HorizontalAlignment.Left };
         var sections = LegacySettingsSections.Children.OfType<StackPanel>().ToArray();
         LegacySettingsSections.Children.Clear();
@@ -49,6 +53,7 @@ public sealed partial class MainPage
         island.AddToggle("IslandRightHoldMove", s => s.IslandAppearance.RightClickHoldToMove, (s,v) => s with { IslandAppearance = s.IslandAppearance with { RightClickHoldToMove = v } });
         groups["Island"].Children.Insert(0, island);
         groups["Widgets"].Children.Add(new WidgetEditorView(editor, _strings));
+        groups["DLC"].Children.Add(new DlcPage(dlc, _strings));
         var activities = new SettingsForm(editor, _strings);
         activities.AddToggle("ActivitiesNotifications", s => s.SystemActivities.ShowWindowsNotifications, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowWindowsNotifications = v } }, editor.CheckNotificationAccessAsync);
         activities.AddToggle("ActivitiesVolume", s => s.SystemActivities.ShowVolumeChanges, (s,v) => s with { SystemActivities = s.SystemActivities with { ShowVolumeChanges = v } });
@@ -75,13 +80,18 @@ public sealed partial class MainPage
             var resourceKey = key switch
             {
                 "General" => "SettingsPageGeneral", "Island" => "SettingsPageIsland",
-                "Widgets" => "SettingsPageWidgets", "SystemActivities" => "SettingsPageSystemActivities",
+                "Widgets" => "SettingsPageWidgets", "DLC" => "SettingsPageDlc", "SystemActivities" => "SettingsPageSystemActivities",
                 "Devices" => "SettingsPageDevices", "Updates" => "SettingsPageUpdates", _ => "SettingsPageAbout",
             };
             navigation.MenuItems.Add(new NavigationViewItem { Content = _strings.Get(resourceKey), Tag = key });
         }
         navigation.SelectionChanged += (_, args) => { if (args.SelectedItem is NavigationViewItem { Tag: string key }) pageHost.Content = pages[key]; };
         navigation.SelectedItem = navigation.MenuItems[0]; pageHost.Content = pages["General"];
+        _openDlcSettings = async () =>
+        {
+            await RunAsync(() => SelectSectionAsync("Settings"));
+            navigation.SelectedItem = navigation.MenuItems.OfType<NavigationViewItem>().Single(item => Equals(item.Tag, "DLC"));
+        };
         SettingsPages.Content = navigation;
     }
     private static bool ContainsElement(DependencyObject root, DependencyObject target)
