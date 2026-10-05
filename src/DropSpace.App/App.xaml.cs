@@ -608,16 +608,23 @@ public partial class App : Application
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Models")));
         services.AddSingleton(provider => new AiLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
             Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
+        services.AddSingleton(provider => new CudaLyricsRuntimePackage(Assembly.GetExecutingAssembly(),
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Runtime")));
         services.AddSingleton<IAiLyricsPackageResolver, PlainHyLyricsPackageResolver>();
         services.AddSingleton(provider => new AiLyricsCache(provider.GetRequiredService<LyricsCache>()));
         services.AddSingleton<PlainHyLyricsCoordinator>();
         services.AddSingleton<AiLyricsRuntimeOptions>();
-        services.AddSingleton<PersistentPlainLyricsRunner>();
+        services.AddSingleton(provider => PersistentPlainLyricsRunner.CreateAutomatic(
+            provider.GetRequiredService<AiLyricsRuntimePackage>(),
+            provider.GetRequiredService<CudaLyricsRuntimePackage>(),
+            provider.GetRequiredService<AiLyricsRuntimeOptions>()));
         services.AddSingleton<IAiLyricsBackend>(provider => new PlainHyLyricsBackend(
             provider.GetRequiredService<PlainHyLyricsCoordinator>(),
             provider.GetRequiredService<PersistentPlainLyricsRunner>(),
             provider.GetRequiredService<AiLyricsRuntimePackage>(),
-            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging")));
+            Path.Combine(provider.GetRequiredService<AppStoragePaths>().Root, "AiLyrics", "Staging"),
+            provider.GetRequiredService<CudaLyricsRuntimePackage>()));
+        services.AddSingleton<CudaComponentService>();
         services.AddSingleton<Services.Media.AiLyricsService>();
         services.AddSingleton<Services.Media.MediaExperienceService>();
         services.AddSingleton<DisplayIdentityService>();

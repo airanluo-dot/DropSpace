@@ -709,4 +709,12 @@ This downloads a model to this computer. Your internet connection is used only f
   <data name="IslandForceShowOverFullscreenDescription" xml:space="preserve"><value>Off by default. Overrides fullscreen hiding and keeps the island above fullscreen apps and borderless games without taking focus. Exclusive-fullscreen games may not support overlays; the lock screen and UAC secure desktop are not covered.</value></data>
   <data name="LyricsShowAiLabel" xml:space="preserve"><value>Show AI lyrics label</value></data>
   <data name="AiLyricsResourcesUnavailable" xml:space="preserve"><value>Local translation could not confirm enough available memory. Free memory or choose the smaller model, then retry.</value></data>
+  <data name="AiLyricsGpuBackend" xml:space="preserve"><value>GPU backend</value></data>
+  <data name="AiLyricsGpuAutomatic" xml:space="preserve"><value>Automatic</value></data>
+  <data name="AiLyricsCudaComponents" xml:space="preserve"><value>Open DLC component manager</value></data>
+  <data name="AiLyricsCudaTitle" xml:space="preserve"><value>Download CUDA acceleration components</value></data>
+  <data name="AiLyricsCudaDownloadBody" xml:space="preserve"><value>An NVIDIA GPU was detected. CUDA requires a separate runtime download of about {0} MiB. Your existing AI model will be reused. Download or remove it in DLC; until then Vulkan remains available with CPU fallback.</value></data>
+  <data name="AiLyricsActualBackend" xml:space="preserve"><value>Actual backend: {0}</value></data>
+  <data name="AiLyricsBackendPending" xml:space="preserve"><value>The actual backend appears after inference completes.</value></data>
+  <data name="AiLyricsCudaFallback" xml:space="preserve"><value>CUDA components are not installed; Vulkan / CPU remains available.</value></data>
 </root>

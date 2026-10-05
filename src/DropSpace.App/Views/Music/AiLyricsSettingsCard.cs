@@ -24,6 +24,10 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly IAppStringLocalizer _strings;
     private readonly ToggleSwitch _enabled = new();
     private readonly ToggleSwitch _gpuAcceleration = new();
+    private readonly ComboBox _gpuBackend = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+    private readonly TextBlock _backendStatus = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
+    private readonly Button _cudaComponents = new();
+    private bool _cudaPromptShown;
     private readonly ComboBox _models = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBlock _details = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.72 };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
@@ -71,6 +75,18 @@ public sealed class AiLyricsSettingsCard : UserControl
         AutomationProperties.SetHelpText(_gpuAcceleration, strings.Get("AiLyricsGpuAccelerationHelp"));
         _gpuAcceleration.Toggled += OnGpuAcceleration;
         body.Children.Add(_gpuAcceleration);
+        _gpuBackend.Header = strings.Get("AiLyricsGpuBackend");
+        _gpuBackend.Items.Add(new ComboBoxItem { Content = strings.Get("AiLyricsGpuAutomatic"), Tag = LyricsGpuBackend.Automatic });
+        _gpuBackend.Items.Add(new ComboBoxItem { Content = "Vulkan", Tag = LyricsGpuBackend.Vulkan });
+        _gpuBackend.Items.Add(new ComboBoxItem { Content = "CUDA", Tag = LyricsGpuBackend.Cuda,
+            IsEnabled = _service.CudaComponents?.IsNvidia == true });
+        _gpuBackend.SelectionChanged += OnGpuBackend;
+        AutomationProperties.SetAutomationId(_gpuBackend, "AiLyricsGpuBackend");
+        body.Children.Add(_gpuBackend);
+        body.Children.Add(_backendStatus);
+        _cudaComponents.Content = strings.Get("AiLyricsCudaComponents");
+        _cudaComponents.Click += (_, _) => _service.RequestCudaComponents();
+        body.Children.Add(_cudaComponents);
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsModel"), FontWeight = FontWeights.SemiBold });
         foreach (var model in AiLyricsModelCatalog.All)
             _models.Items.Add(new ComboBoxItem { Content = ModelLabel(model), Tag = model });
@@ -142,11 +158,15 @@ public sealed class AiLyricsSettingsCard : UserControl
         _editor.PropertyChanged += OnSettings;
         _service.ModelDownloaded += OnModelDownloaded;
         _service.TranslationStateChanged += OnTranslationStateChanged;
+        _service.CudaDownloadRequired += OnCudaDownloadRequired;
+        if (_service.CudaComponents is { } component) component.StateChanged += OnCudaState;
         _inspectionTask = InspectAsync(_generation, _lifetime.Token);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
+        _service.CudaDownloadRequired -= OnCudaDownloadRequired;
+        if (_service.CudaComponents is { } component) component.StateChanged -= OnCudaState;
         _editor.PropertyChanged -= OnSettings;
         _service.ModelDownloaded -= OnModelDownloaded;
         _service.TranslationStateChanged -= OnTranslationStateChanged;
@@ -214,6 +234,7 @@ public sealed class AiLyricsSettingsCard : UserControl
         try
         {
             Refresh();
+            if (_service.CudaComponents is { } component) await component.RefreshAsync(token);
             var installed = new HashSet<string>(StringComparer.Ordinal);
             var removable = new HashSet<string>(StringComparer.Ordinal);
             foreach (var model in AiLyricsModelCatalog.All)
@@ -237,7 +258,13 @@ public sealed class AiLyricsSettingsCard : UserControl
         }
         finally
         {
-            if (IsCurrent(generation)) { _inspecting = false; Refresh(); }
+            if (IsCurrent(generation))
+            {
+                _inspecting = false; Refresh();
+                if (!_cudaPromptShown && _editor.Settings.Lyrics.AiTranslationEnabled &&
+                    _service.CudaComponents?.ShouldOffer(_editor.Settings.Lyrics) == true)
+                    StartOperation(OfferCudaAsync);
+            }
         }
     }
 
@@ -260,6 +287,8 @@ public sealed class AiLyricsSettingsCard : UserControl
                 if (await ContentDialogLifetime.ShowAsync(consent, token) != ContentDialogResult.Primary || !IsCurrent(generation)) return;
             }
             if (enable && !await EnsureInstalledAsync(model, generation, token)) return;
+            if (enable && _service.CudaComponents?.ShouldOffer(_editor.Settings.Lyrics) == true)
+                await OfferCudaAsync(generation, token);
             await SaveAsync(generation, settings => settings with
             {
                 Lyrics = settings.Lyrics with { Enabled = enable || settings.Lyrics.Enabled, AiModelId = model.Id, AiTranslationEnabled = enable, SecondaryLyrics = enable || settings.Lyrics.SecondaryLyrics, GlowMode = LyricsGlowPolicy.OnAiEnabledChanged(enable) },
@@ -273,13 +302,54 @@ public sealed class AiLyricsSettingsCard : UserControl
         var preferGpu = _gpuAcceleration.IsOn;
         // This is a persisted preference, not a claim about the runtime's active device.
         // Settings propagation owns cancellation/draining when the execution mode changes.
-        StartOperation(async (generation, _) =>
+        StartOperation(async (generation, token) =>
         {
             await SaveAsync(generation, settings => settings with
             {
                 Lyrics = settings.Lyrics with { AiLyricsGpuAccelerationEnabled = preferGpu },
             });
+            if (preferGpu && _service.CudaComponents?.ShouldOffer(_editor.Settings.Lyrics) == true)
+                await OfferCudaAsync(generation, token);
         });
+    }
+
+    private void OnCudaState(object? sender, EventArgs args) => OnTranslationStateChanged(sender, args);
+
+    private void OnCudaDownloadRequired(object? sender, EventArgs args)
+    {
+        var generation = _generation;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (IsCurrent(generation) && !_busy && !_inspecting && !_cudaPromptShown)
+                StartOperation(OfferCudaAsync);
+        });
+    }
+
+    private void OnGpuBackend(object sender, SelectionChangedEventArgs args)
+    {
+        if (_syncing || _gpuBackend.SelectedItem is not ComboBoxItem { Tag: LyricsGpuBackend backend }) return;
+        if (backend == LyricsGpuBackend.Cuda && _service.CudaComponents?.IsNvidia != true) { Refresh(); return; }
+        StartOperation(async (generation, token) =>
+        {
+            await SaveAsync(generation, settings => settings with { Lyrics = settings.Lyrics with { AiLyricsGpuBackend = backend } });
+            if (_service.CudaComponents?.ShouldOffer(_editor.Settings.Lyrics) == true)
+                await OfferCudaAsync(generation, token);
+        });
+    }
+
+    private async Task OfferCudaAsync(int generation, CancellationToken token)
+    {
+        if (_service.CudaComponents is not { } component || component.IsInstalled || !IsCurrent(generation)) return;
+        _cudaPromptShown = true;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot, Title = _strings.Get("AiLyricsCudaTitle"),
+            Content = _strings.Format("AiLyricsCudaDownloadBody", (component.DownloadBytes / 1_048_576d).ToString("0.0", _strings.Culture)),
+            PrimaryButtonText = _strings.Get("AiLyricsCudaComponents"), CloseButtonText = _strings.Get("AiLyricsNotNow"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await ContentDialogLifetime.ShowAsync(dialog, token) == ContentDialogResult.Primary && IsCurrent(generation))
+            _service.RequestCudaComponents();
     }
 
     private void OnModelSelected(object sender, SelectionChangedEventArgs args)
@@ -533,6 +603,14 @@ public sealed class AiLyricsSettingsCard : UserControl
             var settings = _editor.Settings.Lyrics;
             _enabled.IsOn = settings.AiTranslationEnabled;
             _gpuAcceleration.IsOn = settings.AiLyricsGpuAccelerationEnabled;
+            if (!_busy) _gpuBackend.SelectedItem = _gpuBackend.Items.OfType<ComboBoxItem>().FirstOrDefault(item =>
+                item.Tag is LyricsGpuBackend backend && backend == settings.AiLyricsGpuBackend) ?? _gpuBackend.Items[0];
+            _gpuBackend.IsEnabled = settings.AiLyricsGpuAccelerationEnabled && !_busy && !_inspecting;
+            _backendStatus.Text = _service.ActualBackend is { } actual ? _strings.Format("AiLyricsActualBackend", actual.ToUpperInvariant()) :
+                _strings.Get("AiLyricsBackendPending");
+            if (_service.CudaComponents?.ShouldOffer(settings) == true)
+                _backendStatus.Text += " " + _strings.Get("AiLyricsCudaFallback");
+            _cudaComponents.Visibility = _service.CudaComponents?.IsNvidia == true ? Visibility.Visible : Visibility.Collapsed;
             // Retain the candidate while its confirmation/download is running.
             if (!_busy)
                 _models.SelectedItem = _models.Items.OfType<ComboBoxItem>().FirstOrDefault(item =>

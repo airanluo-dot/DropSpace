@@ -14,7 +14,8 @@ public interface IPlainLyricsRunner : IDisposable
 }
 
 /// <summary>The sole shipping Beta profile. Legacy weights are never silently used by this resolver.</summary>
-public sealed class PlainHyLyricsPackageResolver(AiModelPackageService models, AiLyricsRuntimePackage runtime)
+public sealed class PlainHyLyricsPackageResolver(AiModelPackageService models, AiLyricsRuntimePackage runtime,
+    CudaLyricsRuntimePackage? cuda = null)
     : IAiLyricsPackageResolver
 {
     public async Task<AiLyricsResolvedPackage?> ResolveAsync(string selectionId, LyricsQuery query,
@@ -30,7 +31,7 @@ public sealed class PlainHyLyricsPackageResolver(AiModelPackageService models, A
         if (model is null) return null;
         var executable = await runtime.EnsureExecutableAsync(token).ConfigureAwait(false);
         // Plain generation uses exactly the evaluated template; no JSON or token-count subprocess.
-        return new(PlainHyLyricsBackend.BackendId, PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), descriptor.Sha256),
+        return new(PlainHyLyricsBackend.BackendId, PlainHyRuntimeIdentity.For(runtime, cuda, descriptor.Sha256),
             model, executable, null, ModelId: descriptor.Id, VerifiedModelSha256: descriptor.Sha256);
     }
 }
@@ -277,7 +278,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
 }
 
 public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, IPlainLyricsRunner runner,
-    AiLyricsRuntimePackage runtime, string stagingDirectory) : IAiLyricsBackend
+    AiLyricsRuntimePackage runtime, string stagingDirectory, CudaLyricsRuntimePackage? cuda = null) : IAiLyricsBackend
 {
     public const string BackendId = "hy-q8-plain-beta-v1";
     public string Id => BackendId;
@@ -293,7 +294,7 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
             LyricsLanguagePolicy.EligibleIndices(source, targetLanguage).Length == 0)
             return Task.FromResult<LyricsTranslationResult?>(null);
         string identity;
-        try { identity = PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), model.Sha256); }
+        try { identity = PlainHyRuntimeIdentity.For(runtime, cuda, model.Sha256); }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException)
         { return Task.FromResult<LyricsTranslationResult?>(null); }
         return coordinator.TryGetCachedAsync(query, source, targetLanguage, identity, token);
@@ -319,7 +320,7 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
                 !string.Equals(package.VerifiedModelSha256, model.Sha256, StringComparison.OrdinalIgnoreCase)) ||
             (package.ModelId is not null && package.VerifiedModelSha256 is null) ||
             package.BackendId != Id || package.Ct2Route is not null ||
-            package.CacheIdentity != PlainHyLyricsProtocol.InferenceIdentity(runtime.GetManifestCacheIdentity(), model.Sha256))
+            package.CacheIdentity != PlainHyRuntimeIdentity.For(runtime, cuda, model.Sha256))
             throw new InvalidDataException("Resolved model/runtime does not belong to the plaintext Beta profile.");
         return coordinator.TranslateAsync(query, source, targetLanguage, package.CacheIdentity,
             package.CacheGeneration ?? throw new InvalidDataException("Missing cache generation."),
@@ -328,4 +329,21 @@ public sealed class PlainHyLyricsBackend(PlainHyLyricsCoordinator coordinator, I
     }
     public Task DrainCleanupAsync(CancellationToken token) => runner.DrainCleanupAsync(token);
     public void Dispose() => runner.Dispose();
+}
+
+internal static class PlainHyRuntimeIdentity
+{
+    internal static string For(AiLyricsRuntimePackage runtime, CudaLyricsRuntimePackage? cuda, string modelHash)
+    {
+        var identity = runtime.GetManifestCacheIdentity();
+        if (cuda is not null)
+        {
+            string cudaIdentity;
+            try { cudaIdentity = cuda.GetManifestCacheIdentity(); }
+            catch (FileNotFoundException) { return PlainHyLyricsProtocol.InferenceIdentity(identity, modelHash); }
+            identity = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+                Encoding.UTF8.GetBytes(identity + ":cuda:" + cudaIdentity)));
+        }
+        return PlainHyLyricsProtocol.InferenceIdentity(identity, modelHash);
+    }
 }

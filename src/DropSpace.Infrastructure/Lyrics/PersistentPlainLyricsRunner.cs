@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Encodings.Web;
 using DropSpace.Core.Lyrics;
+using DropSpace.Core.Models;
 
 namespace DropSpace.Infrastructure.Lyrics;
 
@@ -21,6 +22,17 @@ public sealed class AiLyricsRuntimeOptions
                 Interlocked.Increment(ref _gpuSettingGeneration);
         }
     }
+    private int _backend;
+    public LyricsGpuBackend Backend
+    {
+        get => (LyricsGpuBackend)Volatile.Read(ref _backend);
+        set
+        {
+            var selected = Enum.IsDefined(value) ? (int)value : 0;
+            if (Interlocked.Exchange(ref _backend, selected) != selected) NotifyBackendChanged();
+        }
+    }
+    public void NotifyBackendChanged() => Interlocked.Increment(ref _gpuSettingGeneration);
     // Reapplying the same preference during a role/profile switch retains fallback.
     internal long GpuSettingGeneration => Interlocked.Read(ref _gpuSettingGeneration);
 }
@@ -34,7 +46,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     public const int SelectionProtocolVersion = 2;
     private readonly Func<bool, CancellationToken, Task<string>> _resolve;
     private readonly AiLyricsRuntimeOptions _options;
-    private readonly string _gpuBackend;
+    private string _gpuBackend;
+    private CudaLyricsRuntimePackage? _automaticCuda;
+    private readonly Func<CancellationToken, Task<CudaLyricsComponentLease>>? _openCudaLease;
     private readonly SemaphoreSlim _operation = new(1, 1);
     private int _translationWaiters;
     private CancellationTokenSource? _preparation;
@@ -65,11 +79,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         : this((gpu, token) => runtime.EnsureResidentWorkerAsync(gpu, token), options, TimeSpan.FromSeconds(60)) { }
 
     /// <summary>Opt-in CUDA component; fallback resolves only the separately trusted shipping CPU worker.
-    /// Each runner owns its backend/model failure state. Never registered by shipping DI.</summary>
+    /// Each runner owns its backend/model failure state. Selected automatically by shipping DI on compatible NVIDIA drivers.</summary>
     public PersistentPlainLyricsRunner(AiLyricsRuntimePackage runtime, CudaLyricsRuntimePackage cuda,
         AiLyricsRuntimeOptions options)
         : this((gpu, token) => gpu ? cuda.EnsureWorkerAsync(token) : runtime.EnsureResidentWorkerAsync(false, token),
-            options, TimeSpan.FromSeconds(60), gpuBackend: "cuda") { }
+            options, TimeSpan.FromSeconds(60), gpuBackend: "cuda")
+    { _openCudaLease = cuda.OpenWorkerLeaseAsync; }
 
     internal PersistentPlainLyricsRunner(Func<bool, CancellationToken, Task<string>> resolve,
         AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null, string gpuBackend = "vulkan")
@@ -81,6 +96,13 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         if (idleTimeout <= TimeSpan.Zero || idleTimeout > TimeSpan.FromMinutes(2)) throw new ArgumentOutOfRangeException(nameof(idleTimeout));
         _idleTimeout = idleTimeout;
         _readMemorySnapshot = readMemorySnapshot ?? CpuInferenceMemoryPolicy.ReadWindowsSnapshot;
+    }
+
+    public static PersistentPlainLyricsRunner CreateAutomatic(AiLyricsRuntimePackage runtime,
+        CudaLyricsRuntimePackage cuda, AiLyricsRuntimeOptions options)
+    {
+        var runner = new PersistentPlainLyricsRunner(runtime, options) { _automaticCuda = cuda };
+        return runner;
     }
 
     public static IReadOnlyList<string> BuildArguments(string modelPath, bool gpu) =>
@@ -320,15 +342,19 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private async Task StartSessionAsync(string modelPath, AiLyricsModelDescriptor model, bool gpu, CancellationToken token, bool nonblocking = false)
     {
         await _cleanup.WaitAsync(token).ConfigureAwait(false);
+        if (gpu && _automaticCuda is not null)
+            _gpuBackend = _options.Backend != LyricsGpuBackend.Vulkan &&
+                CudaDriverAvailability.IsCompatible() && _automaticCuda.HasInstalledFiles ? "cuda" : "vulkan";
         CudaLyricsComponentLease? componentLease = null;
         try
         {
         string executable;
         using (var resolve = PlainLyricsMetrics.Measure(PlainLyricsMetrics.Stage.RuntimeResolve, token))
         {
-            if (gpu && _openCudaLease is not null)
+            if (gpu && _gpuBackend == "cuda" && (_openCudaLease is not null || _automaticCuda is not null))
             {
-                componentLease = await _openCudaLease(token).ConfigureAwait(false);
+                componentLease = await (_automaticCuda is not null
+                    ? _automaticCuda.OpenWorkerLeaseAsync(token) : _openCudaLease!(token)).ConfigureAwait(false);
                 executable = componentLease.ExecutablePath;
             }
             else executable = await _resolve(gpu, token).ConfigureAwait(false);

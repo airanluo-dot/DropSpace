@@ -90,7 +90,7 @@ def read_manifest(payload):
     for name, entry in zip(COMPONENTS, files):
         require(isinstance(entry, dict) and entry.get("name") == name and
                 isinstance(entry.get("sha256"), str) and HASH.fullmatch(entry["sha256"]) and
-                type(entry.get("bytes")) is int and 0 < entry["bytes"] <= 536_870_912,
+                type(entry.get("bytes")) is int and 0 < entry["bytes"] <= (805_306_368 if name == "cublasLt64_12.dll" else 536_870_912),
                 "Invalid CUDA file integrity record")
         total += entry["bytes"]
     require(total <= 1_073_741_824, "CUDA component payload exceeds its bound")
