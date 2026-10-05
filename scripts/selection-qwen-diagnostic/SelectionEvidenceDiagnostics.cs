@@ -12,7 +12,8 @@ internal static class SelectionEvidenceDiagnostics
     internal static async Task<int> RunAsync(string inputs,string model,string output,
         Func<string,string,IReadOnlyList<string>,int,int,CancellationToken,Task<NativeResult>> probe)
     {
-        var labelled = Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-labelled-control";
+        var nativeIds = Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-native-id-control";
+        var labelled = nativeIds || Environment.GetEnvironmentVariable("DIAGNOSTIC_VARIANT")=="qwen06-labelled-control";
         var json = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         void Save(string name,object value) => File.WriteAllText(Path.Combine(output,name+".json"),JsonSerializer.Serialize(value,json));
         static LyricsQuery Query(string title,string artist,string album,double duration) => new(title,artist,album,TimeSpan.FromSeconds(duration),"diagnostic:identity-evidence-v1") { CollectSelectionCandidates=true };
@@ -32,13 +33,13 @@ internal static class SelectionEvidenceDiagnostics
             new Fixture("explicit-version-positive",Query("Hello (Live)","Adele","25",240),
                 [Row("c111","Hello (Studio)","Adele","25",240),Row("c112","Hello (Live)","Adele","25",240)],"c112",false),
         };
-        Save("evidence-contract",new {diagnosticOnly=true,productionChanged=false,protocol="identity-evidence-v1",Instruction,instructionSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Instruction))),representation=labelled?"named-fields-control":"positional-table",
+        Save("evidence-contract",new {diagnosticOnly=true,productionChanged=false,protocol="identity-evidence-v1",Instruction,instructionSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Instruction))),representation=labelled?"named-fields-control":"positional-table",nativeIds,
             authorizationUtc="2026-10-05T02:21:54Z",authorizationSentinel="fadd56401f7081919b24de527731e5c5",selectorOnly=true,
             inferenceSeconds=60,contextTokens=2048,outputTokens=32,fixtureOnly=true,fixtures});
         var exe=Path.Combine(inputs,"runtime/llama-completion-avx2.exe");
         using var total=new CancellationTokenSource(TimeSpan.FromMinutes(12));
         var results=new List<object>();
-        foreach(var fixture in fixtures.Where(f=>!labelled || f.Name is "admitted-missing-artist" or "known-artist-optional-unknown" or "explicit-version-positive"))
+        foreach(var fixture in fixtures.Where(f=>nativeIds ? f.Name=="explicit-version-positive" : !labelled || f.Name is "admitted-missing-artist" or "known-artist-optional-unknown" or "explicit-version-positive"))
         {
             var admission=fixture.Rows.Select(c=>new {c.Id,
                 strict=LyricsMatcher.Score(fixture.Query,c.Match.Title,c.Match.Artist,c.Match.Album,c.Match.DurationSeconds),
@@ -46,7 +47,8 @@ internal static class SelectionEvidenceDiagnostics
             if(fixture.AllAdmitted && admission.Any(a=>a.collected<4))throw new InvalidDataException("Declared production-admitted fixture differs from current admission.");
             foreach(var reversed in labelled?new[]{false}:new[]{false,true})
             {
-                var rows=reversed?fixture.Rows.Reverse().ToArray():fixture.Rows;
+                var sourceRows=nativeIds?fixture.Rows.Select((row,index)=>row with {Id="c"+index}).ToArray():fixture.Rows;
+                var rows=reversed?sourceRows.Reverse().ToArray():sourceRows;
                 var content=Build(fixture.Query,rows,labelled);
                 var prompt="<|im_start|>user\n"+content+"<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
                 var label=fixture.Name+(reversed?"-reversed":"-original");
@@ -59,9 +61,11 @@ internal static class SelectionEvidenceDiagnostics
                 var complete=native.ExitCode==0&&native.Reason is null&&raw.TrimEnd().EndsWith("[end of text]",StringComparison.Ordinal);
                 var valid=answer=="NONE"||rows.Any(row=>row.Id==answer);
                 var actual=answer=="NONE"?null:answer;
+                // Annotation projection occurs after generation; never influences input or ID assignment.
+                var expected=nativeIds&&fixture.Expected is not null?"c"+Array.FindIndex(fixture.Rows,row=>row.Id==fixture.Expected):fixture.Expected;
                 var result=new {fixture.Name,reversed,fixture.Query,rows,admission,candidateOrder=rows.Select(row=>row.Id),
                     promptBytes=Encoding.UTF8.GetByteCount(prompt),promptSha256=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(prompt))),
-                    raw,answer,complete,syntaxValid=valid,expectedId=fixture.Expected,actualId=actual,correct=complete&&valid&&actual==fixture.Expected,native};
+                    raw,answer,complete,syntaxValid=valid,fixtureExpectedId=fixture.Expected,expectedId=expected,actualId=actual,correct=complete&&valid&&actual==expected,native};
                 Save(label,result);results.Add(result);
             }
         }
