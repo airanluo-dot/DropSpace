@@ -18,6 +18,10 @@ evidence = root/'docs/dev/evidence/beta11-local-cuda'
 report = json.loads((evidence/'cuda13-producer-report.json').read_text(encoding='utf-8'))
 raw = (evidence/'cuda13-runtime-manifest.json').read_bytes()
 manifest_identity = report['manifest']
+# Git normalizes this text evidence on non-Windows checkouts. Restore the
+# producer's exact CRLF bytes before checking its recorded binary identity.
+if hashlib.sha256(raw).hexdigest() != manifest_identity['sha256']:
+    raw = raw.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
 assert len(raw) == manifest_identity['bytes']
 assert hashlib.sha256(raw).hexdigest() == manifest_identity['sha256']
 inner = json.loads(raw)
