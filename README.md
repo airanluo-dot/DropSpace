@@ -237,7 +237,7 @@ The 3.0 Preview adds bounded Quick Preview providers, capability-driven Quick Ac
 
 The current Beta target is `v0.3.1-beta.11` (Beta 11). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.9 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.10 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).
