@@ -60,3 +60,8 @@ Actual checks were one compile of the new diagnostic project (0 warnings/errors)
 ## Subsequent dual-use request
 
 The owner requested evaluation of adding this model to AI lyrics as well, while retaining both existing models. [Actual dual-use readout](beta11-qwen-dual-use-readout.md) records six unchanged JSON source copies and material plaintext translation errors, including reversing “give it to her” into “do not give it to her”. The evaluated Qwen translation routes are not suitable for exposing as an AI lyrics option. No translation model option was added. Its limited selector evidence remains separate and does not authorize or certify the translation role.
+
+
+## Subsequent selection-only qualification
+
+The owner authorized further Qwen selection-only qualification on 2026-10-05T02:21:54Z. [Identity-evidence readout](beta11-qwen-selection-evidence-readout.md) records one frozen conservative contract, twelve reordered decisions and four representation/production-ID controls. All sixteen returned complete NONE, including every positive control. Full host replay confirmed the ambiguity/alias metadata can actually enter collection. This avoids unsupported acceptance in the evaluated contract but provides no positive selector value; Qwen is not enrolled into production on that evidence. The existing two translation models remain unchanged.
