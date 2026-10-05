@@ -8,9 +8,21 @@ namespace DropSpace.Infrastructure.Lyrics;
 
 public sealed class AiLyricsRuntimeOptions
 {
-    private volatile bool _gpuEnabled = true;
+    private int _gpuEnabled = 1;
+    private long _gpuSettingGeneration;
     /// <summary>GPU preference defaults on; AI itself remains opt-in. Cancel and drain before changing.</summary>
-    public bool GpuEnabled { get => _gpuEnabled; set => _gpuEnabled = value; }
+    public bool GpuEnabled
+    {
+        get => Volatile.Read(ref _gpuEnabled) != 0;
+        set
+        {
+            var enabled = value ? 1 : 0;
+            if (Interlocked.Exchange(ref _gpuEnabled, enabled) != enabled)
+                Interlocked.Increment(ref _gpuSettingGeneration);
+        }
+    }
+    // Reapplying the same preference during a role/profile switch retains fallback.
+    internal long GpuSettingGeneration => Interlocked.Read(ref _gpuSettingGeneration);
 }
 
 /// <summary>One bounded private native worker retaining model weights between lyric requests.
@@ -31,9 +43,11 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private Session? _session;
     private Task _cleanup = Task.CompletedTask;
     private long _generation;
-    private bool _gpuFailed;
+    // Accessed only under _operation. Operational role/model switches retain each
+    // verified profile's GPU failure; an actual user preference change clears it.
+    private readonly HashSet<string> _gpuFailedModels = new(StringComparer.OrdinalIgnoreCase);
     private bool _lastGpuSetting;
-    private string? _lastModelSha256;
+    private long _lastGpuSettingGeneration = -1;
     private volatile bool _disposed;
     private string? _lastExecutionBackend;
     private volatile bool _lastExecutionUsedCpuFallback;
@@ -92,15 +106,12 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             deadline.CancelAfter(TimeSpan.FromSeconds(60));
             Volatile.Write(ref _lastExecutionBackend, null);
             _lastExecutionUsedCpuFallback = false;
-            var gpu = _options.GpuEnabled;
-            if (gpu != _lastGpuSetting || model.Sha256 != _lastModelSha256)
+            if (_lastGpuSettingGeneration != _options.GpuSettingGeneration)
             {
                 await StopSessionAsync().ConfigureAwait(false);
-                _gpuFailed = false;
-                _lastGpuSetting = gpu;
-                _lastModelSha256 = model.Sha256;
+                ObserveGpuSetting();
             }
-            gpu &= !_gpuFailed;
+            var gpu = _options.GpuEnabled && !_gpuFailedModels.Contains(model.Sha256);
             for (var attempt = 0; ; attempt++)
             {
                 try
@@ -147,7 +158,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     await StopSessionAsync().ConfigureAwait(false);
                     deadline.Token.ThrowIfCancellationRequested();
                     if (!gpu || attempt != 0 || error is InvalidDataException or JsonException or KeyNotFoundException) throw;
-                    _gpuFailed = true;
+                    _gpuFailedModels.Add(model.Sha256);
                     gpu = false;
                 }
             }
@@ -182,10 +193,8 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             }
             if (_session is null)
             {
-                if (_lastGpuSetting != _options.GpuEnabled || _lastModelSha256 != modelHash) _gpuFailed = false;
-                _lastGpuSetting = _options.GpuEnabled;
-                _lastModelSha256 = modelHash;
-                var gpu = _options.GpuEnabled && !_gpuFailed;
+                ObserveGpuSetting();
+                var gpu = _options.GpuEnabled && !_gpuFailedModels.Contains(model.Sha256);
                 try { await StartSessionAsync(verifiedModelPath, model, gpu, stop.Token, nonblocking: true).ConfigureAwait(false); }
                 catch (Exception error) when (gpu && _session is not null && !stop.IsCancellationRequested &&
                     error is not (OutOfMemoryException or InvalidDataException or JsonException or KeyNotFoundException))
@@ -194,7 +203,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     // Exit/cleanup precedes CPU admission; neither attempt queues for a gate.
                     await StopSessionAsync().ConfigureAwait(false);
                     stop.Token.ThrowIfCancellationRequested();
-                    _gpuFailed = true;
+                    _gpuFailedModels.Add(model.Sha256);
                     await StartSessionAsync(verifiedModelPath, model, false, stop.Token, nonblocking: true).ConfigureAwait(false);
                 }
             }
@@ -209,9 +218,20 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
         finally { Volatile.Write(ref _preparation, null); _operation.Release(); }
     }
 
+    private void ObserveGpuSetting()
+    {
+        var generation = _options.GpuSettingGeneration;
+        if (_lastGpuSettingGeneration == generation) return;
+        _gpuFailedModels.Clear();
+        _lastGpuSetting = _options.GpuEnabled;
+        _lastGpuSettingGeneration = generation;
+    }
+
     private bool CanSelect(Session session, string modelHash) => !_disposed && session.SelectionSupported && _cleanup.IsCompletedSuccessfully &&
         Volatile.Read(ref session.StopRequested) == 0 && !session.Child.Process.HasExited &&
-        session.ModelSha256 == modelHash && _lastGpuSetting == _options.GpuEnabled && session.Gpu == (_options.GpuEnabled && !_gpuFailed);
+        session.ModelSha256 == modelHash && _lastGpuSetting == _options.GpuEnabled &&
+        _lastGpuSettingGeneration == _options.GpuSettingGeneration &&
+        session.Gpu == (_options.GpuEnabled && !_gpuFailedModels.Contains(modelHash));
 
     public bool IsSelectionWarm(string modelHash)
     {

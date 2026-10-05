@@ -12,6 +12,50 @@ namespace DropSpace.Infrastructure.Tests;
 public sealed class PersistentPlainLyricsRunnerTests
 {
     [TestMethod]
+    public async Task RoleSwitchPreservesGpuFailurePerProfileUntilGpuPreferenceActuallyChanges()
+    {
+        RequireFixture();
+        await using var fixture = new Fixture();
+        File.WriteAllText(fixture.FailGpuStartup, string.Empty);
+        var options = new AiLyricsRuntimeOptions { GpuEnabled = true };
+        var runner = fixture.CreateRunner(options);
+        var selectionModel = AiLyricsSelectionModelCatalog.Default;
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        CollectionAssert.AreEqual(new[] { true, false }, fixture.ResolvedModes);
+        var selectionCpu = fixture.StartedProcesses()[1].Pid;
+        Assert.IsFalse(IsAlive(fixture.StartedProcesses()[0].Pid));
+        Assert.IsTrue(IsAlive(selectionCpu));
+
+        // Let the other profile succeed on GPU: one model's failure is not global.
+        File.Delete(fixture.FailGpuStartup);
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(selectionCpu));
+        options.GpuEnabled = true; // Configuration reapplication is not a setting change.
+        Assert.AreEqual("large translation", await fixture.RunAsync(runner, "large translation",
+            model: AiLyricsModelCatalog.ExperimentalLargePlain));
+        Assert.AreEqual("vulkan", runner.LastExecutionBackend);
+        var translationGpu = fixture.StartedProcesses()[2].Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(translationGpu));
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        CollectionAssert.AreEqual(new[] { true, false, true, false }, fixture.ResolvedModes,
+            "Returning to the failed selector profile must not retry GPU after an operational role switch.");
+        Assert.AreEqual("cpu", fixture.StartedProcesses()[3].Mode);
+        Assert.AreEqual("same-profile translation", await fixture.RunAsync(runner, "same-profile translation"));
+        Assert.IsTrue(runner.LastExecutionUsedCpuFallback);
+        Assert.HasCount(4, fixture.StartedProcesses());
+
+        // An explicit off/on change resets profile failures even with no request between changes.
+        var replacementCpu = fixture.StartedProcesses()[3].Pid;
+        fixture.BeforeResolve = _ => Assert.IsFalse(IsAlive(replacementCpu));
+        options.GpuEnabled = false;
+        options.GpuEnabled = true;
+        Assert.IsFalse(runner.IsSelectionWarm(selectionModel.Sha256));
+        Assert.IsTrue(await runner.PrepareSelectionAsync(fixture.Model, selectionModel.Sha256, default));
+        CollectionAssert.AreEqual(new[] { true, false, true, false, true }, fixture.ResolvedModes);
+        Assert.AreEqual("vulkan", fixture.StartedProcesses()[4].Mode);
+        Assert.IsTrue(IsAlive(fixture.StartedProcesses()[4].Pid));
+    }
+
+    [TestMethod]
     public async Task IndependentSelectionPreparationReapsTranslationResidentBeforeReplacingAndSwitchingBack()
     {
         RequireFixture();
