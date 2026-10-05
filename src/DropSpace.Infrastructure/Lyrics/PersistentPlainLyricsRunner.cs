@@ -34,6 +34,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     public const int SelectionProtocolVersion = 2;
     private readonly Func<bool, CancellationToken, Task<string>> _resolve;
     private readonly AiLyricsRuntimeOptions _options;
+    private readonly string _gpuBackend;
     private readonly SemaphoreSlim _operation = new(1, 1);
     private int _translationWaiters;
     private CancellationTokenSource? _preparation;
@@ -53,6 +54,9 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     private volatile bool _lastExecutionUsedCpuFallback;
     // Optional diagnostic notification after the actual pipe write/flush. No prompt or lyric data.
     public event Action? SelectionRequestSent;
+    internal event Action? TranslationRequestSent;
+    internal int? ActiveProcessId => Volatile.Read(ref _session)?.Child.Process.Id;
+    internal JsonElement? ActiveDevice => Volatile.Read(ref _session)?.Device;
     /// <summary>Observed from a completed, protocol-validated response, not a requested preference.</summary>
     public string? LastExecutionBackend => Volatile.Read(ref _lastExecutionBackend);
     public bool LastExecutionUsedCpuFallback => _lastExecutionUsedCpuFallback;
@@ -60,11 +64,20 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
     public PersistentPlainLyricsRunner(AiLyricsRuntimePackage runtime, AiLyricsRuntimeOptions options)
         : this((gpu, token) => runtime.EnsureResidentWorkerAsync(gpu, token), options, TimeSpan.FromSeconds(60)) { }
 
+    /// <summary>Opt-in CUDA component; fallback resolves only the separately trusted shipping CPU worker.
+    /// Each runner owns its backend/model failure state. Never registered by shipping DI.</summary>
+    public PersistentPlainLyricsRunner(AiLyricsRuntimePackage runtime, CudaLyricsRuntimePackage cuda,
+        AiLyricsRuntimeOptions options)
+        : this((gpu, token) => gpu ? cuda.EnsureWorkerAsync(token) : runtime.EnsureResidentWorkerAsync(false, token),
+            options, TimeSpan.FromSeconds(60), gpuBackend: "cuda") { }
+
     internal PersistentPlainLyricsRunner(Func<bool, CancellationToken, Task<string>> resolve,
-        AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null)
+        AiLyricsRuntimeOptions options, TimeSpan idleTimeout, Func<CpuMemorySnapshot?>? readMemorySnapshot = null, string gpuBackend = "vulkan")
     {
         _resolve = resolve ?? throw new ArgumentNullException(nameof(resolve));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        if (gpuBackend is not ("vulkan" or "cuda")) throw new ArgumentOutOfRangeException(nameof(gpuBackend));
+        _gpuBackend = gpuBackend;
         if (idleTimeout <= TimeSpan.Zero || idleTimeout > TimeSpan.FromMinutes(2)) throw new ArgumentOutOfRangeException(nameof(idleTimeout));
         _idleTimeout = idleTimeout;
         _readMemorySnapshot = readMemorySnapshot ?? CpuInferenceMemoryPolicy.ReadWindowsSnapshot;
@@ -75,9 +88,15 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
 
     public static IReadOnlyList<string> BuildArguments(string modelPath, bool gpu, string verifiedModelSha256)
     {
+        return BuildArguments(modelPath, gpu, verifiedModelSha256, "vulkan");
+    }
+
+    internal static IReadOnlyList<string> BuildArguments(string modelPath, bool gpu, string verifiedModelSha256, string gpuBackend)
+    {
+        if (gpuBackend is not ("vulkan" or "cuda")) throw new ArgumentOutOfRangeException(nameof(gpuBackend));
         var model = AiLyricsModelCatalog.FindSelectableByHash(verifiedModelSha256) ??
             throw new InvalidDataException("The resident plaintext runtime requires a pinned model.");
-        var arguments = new List<string> { "--model", Path.GetFullPath(modelPath), "--mode", gpu ? "vulkan" : "cpu" };
+        var arguments = new List<string> { "--model", Path.GetFullPath(modelPath), "--mode", gpu ? gpuBackend : "cpu" };
         if (model == AiLyricsModelCatalog.ExperimentalLargePlain)
             arguments.AddRange(["--model-profile", "hy-mt2-7b-q8"]);
         return arguments.AsReadOnly();
@@ -137,6 +156,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     var request = JsonSerializer.Serialize(new { protocol = 1, id, prompt });
                     await session.Child.StandardInput!.WriteLineAsync(request.AsMemory(), deadline.Token).ConfigureAwait(false);
                     await session.Child.StandardInput.FlushAsync(deadline.Token).ConfigureAwait(false);
+                    TranslationRequestSent?.Invoke();
                     using var response = await ReadFrameAsync(session.Child.StandardOutput, deadline.Token).ConfigureAwait(false);
                     var root = response.RootElement;
                     if (root.GetProperty("protocol").GetInt32() != 1 || root.GetProperty("id").GetString() != id ||
@@ -145,7 +165,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                     if (Encoding.UTF8.GetByteCount(output) > PlainHyLyricsProtocol.MaximumOutputBytes)
                         throw new InvalidDataException("Resident inference output exceeds budget.");
                     deadline.Token.ThrowIfCancellationRequested();
-                    Volatile.Write(ref _lastExecutionBackend, session.Gpu ? "vulkan" : "cpu");
+                    Volatile.Write(ref _lastExecutionBackend, session.Gpu ? _gpuBackend : "cpu");
                     _lastExecutionUsedCpuFallback = _options.GpuEnabled && !session.Gpu;
                     var generation = ++_generation;
                     _ = ReleaseWhenIdleAsync(generation);
@@ -281,7 +301,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                 if (Encoding.UTF8.GetByteCount(output) > LyricsCandidateSelectionProtocol.MaximumOutputBytes)
                     throw new InvalidDataException("Selection output exceeds budget.");
                 deadline.Token.ThrowIfCancellationRequested();
-                Volatile.Write(ref _lastExecutionBackend, session.Gpu ? "vulkan" : "cpu");
+                Volatile.Write(ref _lastExecutionBackend, session.Gpu ? _gpuBackend : "cpu");
                 _lastExecutionUsedCpuFallback = _options.GpuEnabled && !session.Gpu;
                 _ = ReleaseWhenIdleAsync(++_generation);
                 return output;
@@ -311,7 +331,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
                 RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
             };
-            foreach (var argument in BuildArguments(modelPath, gpu, model.Sha256)) start.ArgumentList.Add(argument);
+            foreach (var argument in BuildArguments(modelPath, gpu, model.Sha256, _gpuBackend)) start.ArgumentList.Add(argument);
             foreach (var key in start.Environment.Keys.Where(key =>
                 key.StartsWith("LLAMA_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("GGML_", StringComparison.OrdinalIgnoreCase) ||
                 key.StartsWith("VK_", StringComparison.OrdinalIgnoreCase) || key.StartsWith("VULKAN_", StringComparison.OrdinalIgnoreCase) ||
@@ -334,11 +354,16 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
             { Interlocked.Exchange(ref starting.StopRequested, 1); _ = child.TerminateAndWaitForExitAsync(); });
             using var ready = await ReadFrameAsync(child.StandardOutput, token).ConfigureAwait(false);
             if (ready.RootElement.GetProperty("protocol").GetInt32() != 1 || !ready.RootElement.GetProperty("ready").GetBoolean() ||
-                ready.RootElement.GetProperty("backend").GetString() != (gpu ? "vulkan" : "cpu"))
+                ready.RootElement.GetProperty("backend").GetString() != (gpu ? _gpuBackend : "cpu"))
                 throw new InvalidDataException("Unexpected resident runtime handshake.");
+            if (gpu && _gpuBackend == "cuda" &&
+                (!ready.RootElement.TryGetProperty("componentId", out var component) ||
+                    component.GetString() != CudaLyricsRuntimePackage.RuntimeId))
+                throw new InvalidDataException("Unexpected CUDA component handshake.");
             if (model == AiLyricsModelCatalog.ExperimentalLargePlain &&
                 (!ready.RootElement.TryGetProperty("modelProfile", out var profile) || profile.GetString() != "hy-mt2-7b-q8"))
                 throw new InvalidDataException("The resident worker did not confirm the selected 7B resource profile.");
+            _session.Device = ready.RootElement.TryGetProperty("device", out var device) ? device.Clone() : null;
             _session.SelectionSupported = ready.RootElement.TryGetProperty("selectionProtocol", out var selectionProtocol) &&
                 selectionProtocol.ValueKind == JsonValueKind.Number && selectionProtocol.TryGetInt32(out var selectorVersion) &&
                 selectorVersion == SelectionProtocolVersion;
@@ -421,6 +446,7 @@ public sealed class PersistentPlainLyricsRunner : IPlainLyricsRunner, ILyricsSel
 
     private sealed class Session
     {
+        internal JsonElement? Device { get; set; }
         internal Session(LocalInferenceProcess child, string model, string modelSha256, long memoryBudget, bool gpu)
         {
             Child = child; Model = model; ModelSha256 = modelSha256; Gpu = gpu;
