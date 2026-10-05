@@ -45,6 +45,11 @@ jobs:
 
   produce-windows:
     name: Build and test (x64)
+    # GitHub requires contents:write even to read unpublished draft assets.
+    # The candidate step only reads the pinned draft and verifies immutable bytes.
+    permissions:
+      contents: write
+      actions: read
     needs: change-scope
     if: needs.change-scope.outputs.maintenance_only != 'true'
     runs-on: windows-2025
@@ -114,7 +119,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve actual Beta12 build source.' }
           $changed = @(git diff --name-only $source HEAD)
           if ($LASTEXITCODE -ne 0) { throw 'Cannot compare application inputs.' }
-          $allowed = @('.github/workflows/ci.yml', '.github/workflows/deploy-website.yml')
+          $allowed = @('.github/workflows/ci.yml', '.github/workflows/deploy-website.yml', 'website/_source/scripts/verify-published-release.mjs', 'website/_source/scripts/verify-published-release.test.mjs')
           if ($changed.Count -eq 0 -or @($changed | Where-Object { $_ -cnotin $allowed }).Count -gt 0) { exit 0 }
           $release = gh api repos/airanluo-dot/DropSpace/releases/404007924 | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Cannot read the owner-authorized Beta12 candidate.' }
