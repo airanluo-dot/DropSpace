@@ -4,6 +4,11 @@ on:
   push:
     branches: [fix/beta10-native-crash-lifetime]
   workflow_dispatch:
+    inputs:
+      symbols_only:
+        description: Resolve symbols without repeating successful application tests
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,16 +29,21 @@ jobs:
         shell: pwsh
         run: ./scripts/Map-Beta10NativeCrash.ps1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        if: github.event_name != 'workflow_dispatch' || !inputs.symbols_only
         with:
           dotnet-version: 10.0.401
       - name: Test actual production lifetime helper without WinUI or inference
+        if: github.event_name != 'workflow_dispatch' || !inputs.symbols_only
         run: dotnet test tests/DropSpace.NativeLifetime.Tests/DropSpace.NativeLifetime.Tests.csproj -c Release -p:RestoreLockedMode=true --logger "trx;LogFileName=native-lifetime-windows.trx"
       - name: Restore application tests for Debug validation
+        if: github.event_name != 'workflow_dispatch' || !inputs.symbols_only
         run: dotnet restore tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -p:Configuration=Debug -p:Platform=x64 -p:RestoreLockedMode=true
       - name: Install locked Windows App Runtime
+        if: github.event_name != 'workflow_dispatch' || !inputs.symbols_only
         shell: pwsh
         run: ./scripts/Install-TestWindowsAppRuntime.ps1
       - name: Build actual app and run relevant lifetime and decoder regressions
+        if: github.event_name != 'workflow_dispatch' || !inputs.symbols_only
         run: dotnet test tests/DropSpace.App.Tests/DropSpace.App.Tests.csproj -c Debug --no-restore -p:Platform=x64 -p:WindowsAppSdkDeploymentManagerInitialize=false --filter "FullyQualifiedName~NativeAsyncLifetimeTests|FullyQualifiedName~MediaPublisherTimeoutTests|FullyQualifiedName~MediaOperationLifetimeTests|FullyQualifiedName~Preview16ImageDecoderTests|FullyQualifiedName~NeteaseSmtcVerifierTests" --logger "trx;LogFileName=native-crash-app-windows.trx"
       - name: Retain diagnostic evidence
         if: always()

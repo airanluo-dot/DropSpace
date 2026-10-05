@@ -71,7 +71,8 @@ public static class Beta10SymbolLookup
     public static Result Lookup(string image, string directory)
     {
         var process = GetCurrentProcess();
-        SymSetOptions(0x2 | 0x4 | 0x10 | 0x200 | 0x80000); // Exact symbols; no UI.
+        // Load symbols eagerly: deferred modules have no PDB identity yet.
+        SymSetOptions(0x2 | 0x10 | 0x200 | 0x80000); // Exact symbols; no UI.
         if (!SymInitialize(process, directory, false)) throw new Win32Exception();
         try
         {
@@ -80,7 +81,7 @@ public static class Beta10SymbolLookup
             var info = new ModuleInfo { SizeOfStruct = (uint)Marshal.SizeOf<ModuleInfo>() };
             if (!SymGetModuleInfo64(process, address, ref info)) throw new Win32Exception();
             if (info.PdbUnmatched || info.PdbSig70 != new Guid("22b27b3c-5523-4123-b45b-c7cbec2d9ee3") || info.PdbAge != 1 || info.TimeDateStamp != 0x6a89b77a)
-                throw new InvalidOperationException("Host or PDB does not match Beta10 exactly.");
+                throw new InvalidOperationException($"Host or PDB does not match Beta10 exactly: GUID={info.PdbSig70}, age={info.PdbAge}, timestamp=0x{info.TimeDateStamp:x}, unmatched={info.PdbUnmatched}, type={info.SymType}, path={info.LoadedPdbName}.");
             var rvas = new ulong[] { 0x19c4c8, 0x5b6e20, 0x1022a0 };
             var found = new Address[rvas.Length];
             for (var i = 0; i < rvas.Length; i++)
