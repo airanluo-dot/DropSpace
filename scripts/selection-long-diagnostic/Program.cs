@@ -8,7 +8,10 @@ using DropSpace.Core.Lyrics;
 using DropSpace.Core.Models;
 using DropSpace.Infrastructure.Lyrics;
 
-if (!OperatingSystem.IsWindows() || args.Length != 2) throw new InvalidOperationException("Explicit cloud Windows diagnostic inputs/output required.");
+if (!OperatingSystem.IsWindows() || args.Length is < 2 or > 3) throw new InvalidOperationException("Explicit cloud Windows diagnostic inputs/output required.");
+var refined = args.Length == 3 && args[2] == "refined";
+if (args.Length == 3 && !refined) throw new InvalidDataException("Unknown diagnostic variant.");
+var requestSeconds = refined ? 30 : 10;
 var inputs = Path.GetFullPath(args[0]);
 var output = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(output);
@@ -24,7 +27,7 @@ var executable = await runtime.EnsureResidentWorkerAsync(false, budget.Token);
 using var executableLease = new FileStream(executable, FileMode.Open, FileAccess.Read, FileShare.Read);
 var workerSha = Convert.ToHexStringLower(await SHA256.HashDataAsync(executableLease, budget.Token));
 Save("identity", new {
-    diagnosticOnly = true, productionBudgetChanged = false, diagnosticRequestSeconds = 10,
+    diagnosticOnly = true, productionBudgetChanged = false, diagnosticRequestSeconds = requestSeconds, variant = refined ? "refined-id-only-reordered" : "original",
     observedAtUtc = DateTimeOffset.UtcNow, model.Id, model.Sha256, model.Bytes,
     originalProducerRun = 37235696457L, originalProducerHead = "e81e0d55f248afbc865cf17b3f93041a4e7d12a4",
     originalRuntimeArtifact = 11316610580L, originalArchiveSha256 = "344c7aa9016e2f317b6fb157d8bca2e6103c1b1be1ce88fb450816f46589733b",
@@ -45,6 +48,14 @@ foreach (var name in new[] { "cross-script", "same-title-version", "uncertain-ab
     if (!LyricsCandidateSelectionProtocol.TryBuild(query, snapshot, "zh", out var prompt)) throw new InvalidDataException("Original fixture prompt cannot be rebuilt.");
     var promptSha = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(prompt)));
     if (promptSha != source.GetProperty("promptSha256").GetString()) throw new InvalidDataException("Diagnostic prompt differs from original 500ms experiment.");
+    var originalPromptSha = promptSha;
+    if (refined)
+    {
+        // Candidate ordering deliberately changes before inference; expected IDs never shape the prompt.
+        candidates = candidates.Reverse().ToArray();
+        prompt = BuildConcisePrompt(query, candidates);
+        promptSha = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(prompt)));
+    }
     LocalInferenceProcess? child = null;
     Task<string>? errors = null;
     string? rawFrame = null, error = null, stderr = null;
@@ -74,7 +85,7 @@ foreach (var name in new[] { "cross-script", "same-title-version", "uncertain-ab
         var id = Guid.NewGuid().ToString("N");
         var request = JsonSerializer.Serialize(new { protocol = 2, id, prompt }, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
         using var requestBudget = CancellationTokenSource.CreateLinkedTokenSource(budget.Token);
-        requestBudget.CancelAfter(TimeSpan.FromSeconds(10));
+        requestBudget.CancelAfter(TimeSpan.FromSeconds(requestSeconds));
         using var requestKill = requestBudget.Token.Register(() => _ = child.TerminateAndWaitForExitAsync());
         var timer = Stopwatch.StartNew();
         try
@@ -111,13 +122,20 @@ foreach (var name in new[] { "cross-script", "same-title-version", "uncertain-ab
         nativeComplete = response.RootElement.GetProperty("complete").GetBoolean();
         raw = response.RootElement.GetProperty("text").GetString();
         raw = LlamaCompletionRunner.RemoveRuntimeTerminator(raw ?? "");
-        validAnswer = LyricsCandidateSelectionProtocol.TryParse(raw, candidates, out actualId);
+        if (refined)
+        {
+            var answer = raw.Trim();
+            actualId = answer == "NONE" ? null : answer;
+            validAnswer = answer == "NONE" || candidates.Any(candidate => candidate.Id == answer);
+        }
+        else validAnswer = LyricsCandidateSelectionProtocol.TryParse(raw, candidates, out actualId);
     }
     var expected = source.GetProperty("expectedId").ValueKind == JsonValueKind.Null ? null : source.GetProperty("expectedId").GetString();
     Save(name, new {
-        original500msEvidence = source.Clone(), prompt, promptSha, ready, preparationMilliseconds, requestMilliseconds,
+        original500msEvidence = source.Clone(), originalPromptSha, variant = refined ? "refined-id-only-reordered" : "original",
+        candidateOrder = candidates.Select(candidate => candidate.Id), prompt, promptSha, ready, preparationMilliseconds, requestMilliseconds,
         rawFrame, raw, nativeComplete, validAnswer, expectedId = expected, actualId,
-        rawMatchesAnnotation = validAnswer && expected == actualId, productionBudgetWouldBeMet = nativeComplete == true && requestMilliseconds <= 500,
+        rawMatchesAnnotation = nativeComplete == true && validAnswer && expected == actualId, productionBudgetWouldBeMet = nativeComplete == true && requestMilliseconds <= 500,
         diagnosticOnly = true, error, exitCode, exitedBeforeCleanup, stderr, cleanupCompleted,
         phaseTimingObservable = false, prefillMilliseconds = (double?)null, decodeMilliseconds = (double?)null,
     });
@@ -137,4 +155,17 @@ static async Task<string> ReadErrorsAsync(StreamReader reader)
     var text = new StringBuilder(); var buffer = new char[1024]; int count;
     while ((count = await reader.ReadAsync(buffer)) > 0) if (text.Length < 65536) text.Append(buffer, 0, Math.Min(count, 65536 - text.Length));
     return text.ToString();
+}
+
+static string BuildConcisePrompt(LyricsQuery query, IReadOnlyList<LyricsSelectionCandidate> candidates)
+{
+    var prompt = new StringBuilder("任务：识别同一首歌的同一录音，不是翻译或复述。\n仅根据给定信息选候选编号。歌手必须相同；现场、混音和录音室版本不能混选。信息不足、没有匹配或无法确定就回答 NONE。\n只能回答一个编号或 NONE，禁止解释、复制元信息或输出 JSON。\n");
+    prompt.AppendLine($"待匹配：歌名={query.Title}；歌手={query.Artist}；专辑={query.Album}；时长秒={query.Duration.TotalSeconds}");
+    foreach (var candidate in candidates)
+    {
+        var match = candidate.Document.Match!;
+        prompt.AppendLine($"{candidate.Id}：歌名={match.Title}；歌手={match.Artist}；专辑={match.Album}；时长秒={match.DurationSeconds}");
+    }
+    prompt.Append("答案：");
+    return prompt.ToString();
 }

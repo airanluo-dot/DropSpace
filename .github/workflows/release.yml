@@ -21,6 +21,15 @@ on:
         default: false
         type: boolean
 
+      selection_diagnostic_variant:
+        description: Explicit diagnostic prompt variant; production is unchanged
+        required: false
+        default: original
+        type: choice
+        options:
+          - original
+          - refined
+
       expected_commit:
         description: Exact reviewed main commit required for publication
         required: false
@@ -65,13 +74,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/Get-SelectionDiagnosticInputs.ps1
-      - name: Observe same three prompts at ten seconds without changing production limits
+      - name: Observe three diagnostic scenarios without changing production limits
         timeout-minutes: 15
         shell: pwsh
+        env:
+          DIAGNOSTIC_VARIANT: ${{ inputs.selection_diagnostic_variant }}
         run: |
           $inputs = "$env:GITHUB_WORKSPACE/artifacts/selection-diagnostic-inputs"
           $runtime = "$inputs/runtime"
-          dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic"
+          $variantArgs = if ($env:DIAGNOSTIC_VARIANT -eq 'refined') { @('refined') } else { @() }
+          dotnet run --project scripts/selection-long-diagnostic/SelectionLongDiagnostic.csproj -c Release -p:EvidenceRuntimeDirectory=$runtime -- $inputs "$env:GITHUB_WORKSPACE/artifacts/selection-long-diagnostic" @variantArgs
           if ($LASTEXITCODE -ne 0) { throw 'Diagnostic execution failure; retained observations are not model approval.' }
       - name: Retain observations and original provenance on failure or success
         if: always()
