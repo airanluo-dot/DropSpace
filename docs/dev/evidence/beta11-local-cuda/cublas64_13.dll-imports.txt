@@ -1,0 +1,23 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36257.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file E:\Dev\DropSpace-beta11-cuda\artifacts\cuda-experiment-build-2c9fcb0fa29545e4a8471adffe6336aa\payload\cublas64_13.dll
+
+File Type: DLL
+
+  Image has the following dependencies:
+
+    cublasLt64_13.dll
+    KERNEL32.dll
+
+  Summary
+
+       33000 .data
+        2000 .nvFatBi
+     2F65000 .nv_fatb
+       1A000 .pdata
+       BA000 .rdata
+        3000 .reloc
+        1000 .rsrc
+      421000 .text

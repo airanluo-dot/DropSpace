@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "runtimeId": "llama-cpp-v0.5.0-cuda13-win-x64-v1",
+  "backend": "cuda",
+  "sourceRepository": "https://github.com/ggml-org/llama.cpp",
+  "sourceCommit": "7fe450e19305b828c199d602c23a8337aaa1f03b",
+  "protocol": 1,
+  "profile": "hy-q8-plain-resident-v1",
+  "workerSourceSha256": "2e9917e84ec99614088868b7966e5607b1d2ca262b820c21e1c9917e10261f61",
+  "files": [
+    {
+      "name": "plain-lyrics-worker-cuda.exe",
+      "sha256": "ba0364858c09b5ee0b3309e352bb9c042db52f55f5f32cefe92b196f65c2fe12",
+      "bytes": 134269440
+    },
+    {
+      "name": "cublas64_13.dll",
+      "sha256": "1119dbca0a808e0c8850bb4221e330daf0b5ddb348d62d37b6ac533854723df9",
+      "bytes": 54942320
+    },
+    {
+      "name": "cublasLt64_13.dll",
+      "sha256": "0f5bc315fef706b5626248ebd74e8a48a9e82fa2f0cad38330f5f70984913107",
+      "bytes": 492752496
+    }
+  ],
+  "build": {
+    "architectures": "75;86;120",
+    "toolkitVersion": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Sun_Aug_03_13:24:32_Pacific_Standard_Time_2026\nCuda compilation tools, release 13.4, V13.4.59\nBuild cuda_13.4.r13.4/compiler.38657139_0",
+    "sharedLibraries": false,
+    "dynamicBackends": false,
+    "vulkan": false,
+    "hip": false,
+    "cudaRuntime": "static",
+    "cublas": "bundled-cuda13",
+    "pdl": "pinned-upstream-default",
+    "inputSha256": [
+      "570E33704653F68F21BC26E7D4FBBA898339C5BF7BF13E8B26404A99598FACDD",
+      "D09A05744DF0807A59E03A7FB733BFF6481D08B3700B5D98510F5A7E19A5B04D",
+      "DBBEDF7AB04B8F926860A7504D8B3EF712E1696A8DC51178B284513EDF64C745",
+      "F5C870B8ADFFD1CCD024A5E980B3598AF600FCE53839B59E7F85D950F2173EFD",
+      "1B33A14955364B666910A18B87D21884AD3B68ECA5E4B3B6FD9E9F68CF18853F"
+    ]
+  }
+}

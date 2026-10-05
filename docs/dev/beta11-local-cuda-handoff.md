@@ -3,7 +3,8 @@
 Checkout `E:\Dev\DropSpace-beta11-cuda`, branch `local/beta11-nvidia-cuda`,
 baseline `6788585e16040b4903c6cc534c0780c61079c07e`. User checkouts and models untouched.
 The main task is the sole main-branch integrator and release publisher.
-GPU routing checkpoint65be1cc and unified DLC checkpoint9784aab were pushed.
+GPU routing checkpoint65be1cc, unified DLC checkpoint9784aab, CUDA13 upgrade806f3e3
+and driver handle fix16b9b01 were pushed.
 DLC commits2129381/8cda4d5 are included as b3ffb8e/3915f73; avoid applying patches twice.
 
 ## Final implementation
@@ -59,12 +60,15 @@ that mismatched combination using a supported complete toolchain, with guards en
 
 Windows App Debug x64 after DLC and CUDA13 integration passed: zero warnings/errors.
 Evidence `docs/dev/evidence/beta11-local-cuda/cuda13-windows-compile.txt`.
-CUDA13.4/MSVC19.51 compiler identification/ABI/configuration passed. Native build275steps
-is currently compiling; final worker/link/ZIP are still pending. Do not claim runtime success.
+CUDA13.4/MSVC19.51 compiler identification/ABI/configuration and all275 native build
+steps passed. Worker link and PE dependency inspection completed with exit code0.
+Evidence `docs/dev/evidence/beta11-local-cuda/cuda13-build-completed.txt` and import reports.
+This establishes compilation/packaging; no runtime/model invocation is claimed.
 
 Measured cuBLAS DLLs54,942,320 +492,752,496 =547,694,816 bytes (522.32MiB), about213MiB
 below CUDA12.9's two DLLs. PE inspection: cuBLAS depends only on cuBLASLt/KERNEL32;
-cuBLASLt only KERNEL32. Final EXE and ZIP sizes await actual link/package.
+cuBLASLt only KERNEL32. Worker134,269,440 bytes (128.05MiB). Runtime binaries total681,964,256 bytes
+(650.37MiB). The separate ZIP is540,873,572 bytes (515.82MiB).
 Development headers/compiler archives do not ship. Base App receives only tiny metadata.
 
 The user explicitly canceled real model calls as an extra release gate. No model inference,
@@ -73,9 +77,36 @@ Existing1908528192-byte1.8B and7981928896-byte7B model files were not downloaded
 
 ## Remaining publication integration
 
-Finish worker link/import inspection and package actual components/notices using
-`scripts/package-cuda-runtime.py`. The sole parent integrator must provide the final App
-tag/sourceSHA so its base App embeds the exact matching release descriptor. No guessed
-final sourceSHA or placeholder download asset should be published. Parent owns version
-bump and base App packaging. Reviewed CPU/Vulkan artifact11316610580 not retrieved here.
-Daily installed App is untouched. Actual CUDA invocation remains unverified by user choice.
+Native payload and notices:
+`E:\Dev\DropSpace-beta11-cuda\artifacts\cuda-experiment-build-2c9fcb0fa29545e4a8471adffe6336aa`.
+Ready ZIP and tiny producer records:
+`E:\Dev\DropSpace-beta11-cuda\artifacts\cuda13-producer-806f3e3`.
+Archive `DropSpace-CUDA-win-x64-v0.3.1-beta.11.zip` contains exactly three binaries,
+inner manifest and two complete notice files. Packaging rechecked each extracted entry's
+SHA/size without executing a program. Full fingerprints are in
+`docs/dev/evidence/beta11-local-cuda/cuda13-producer-report.json`.
+The base App inner manifest is1815bytes; final outer descriptor is still to be generated.
+
+Full native component source SHA:806f3e3e40c11a6e7d3d50648a9de8708b16b4ac.
+Subsequent driver handle fix:16b9b0184949e0be41dc71fa39b2ffb055d23033 (no native input change).
+The sole parent integrator owns final App version/sourceSHA, base package and publication.
+No outer download descriptor was generated with a guessed App SHA.
+
+There is no circular source binding: compiled worker, DLLs, inner manifest and ZIP contents
+do not include AppSHA. Only the external outer descriptor contains final App tag/sourceSHA.
+Commit final App code/version first; then generate metadata under ignored `artifacts`,
+embed it and compile the App with that exact source SHA. Do not commit that generated
+outer JSON, which would change its own source binding. Native inputs need no rebuild.
+
+To generate the final outer descriptor with the existing packager (archive bytes are
+deterministic and unchanged by AppSHA):
+
+    python scripts/package-cuda-runtime.py --payload <native-build>/payload --license-directory <native-build> --app-tag v0.3.1-beta.11 --app-commit <final-main-App-SHA> --component-commit 806f3e3e40c11a6e7d3d50648a9de8708b16b4ac --output <fresh-final-package-directory>
+
+Stage only its two JSON files at `artifacts/cuda-runtime/win-x64`; the ZIP stays a separate
+release asset. Do not point runtime download metadata to a missing/publication-placeholder
+asset. App assembly InformationalVersion must match tag plus the exact sourceSHA.
+The base Release build still needs the parent's reviewed CPU/Vulkan artifact11316610580,
+not retrieved here. Final source binding, base Release packaging and asset upload remain
+with the parent task. No release or installed daily App was changed locally.
+Actual CUDA invocation is unverified by the user's explicit choice.

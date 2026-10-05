@@ -1,0 +1,27 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36257.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file E:\Dev\DropSpace-beta11-cuda\artifacts\cuda-experiment-build-2c9fcb0fa29545e4a8471adffe6336aa\payload\plain-lyrics-worker-cuda.exe
+
+File Type: EXECUTABLE IMAGE
+
+  Image has the following dependencies:
+
+    cublas64_13.dll
+    KERNEL32.dll
+    SHELL32.dll
+    ADVAPI32.dll
+    WS2_32.dll
+
+  Summary
+
+      112000 .data
+        1000 .fptable
+        1000 .nvFatBi
+     6A49000 .nv_fatb
+       56000 .pdata
+      570000 .rdata
+        5000 .reloc
+        1000 .rsrc
+      FDA000 .text
