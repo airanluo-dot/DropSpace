@@ -255,7 +255,7 @@ public sealed class AiLyricsSettingsCard : UserControl
             _openDlc();
     }
 
-    private const string CudaId = "llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1";
+    private const string CudaId = "llama-cpp-v0.5.0-cuda13-win-x64-v1";
     private bool ShouldOfferCuda() => _service.IsNvidia && _editor.Settings.Lyrics.AiLyricsGpuAccelerationEnabled &&
         _editor.Settings.Lyrics.AiLyricsGpuBackend != LyricsGpuBackend.Vulkan &&
         _dlc.Packages.Any(item => item.Package.Id == CudaId && item.State == DlcPackageState.Available && item.Package.CanDownload);

@@ -6,7 +6,7 @@ The unchanged request loop automatically follows the separate KV task's main.cpp
 from pathlib import Path
 import argparse
 
-COMPONENT = 'llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1'
+COMPONENT = 'llama-cpp-v0.5.0-cuda13-win-x64-v1'
 
 def replace_once(text, old, new):
     if text.count(old) != 1:

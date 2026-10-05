@@ -12,7 +12,7 @@ public sealed class CudaRuntimeDlcProvider(CudaLyricsRuntimePackage package, AiL
         get
         {
             // Builds without the exact release trust anchor do not advertise a placeholder.
-            try { return [new(CudaLyricsRuntimePackage.RuntimeId, "NVIDIA CUDA 12", "DlcCudaPurpose",
+            try { return [new(CudaLyricsRuntimePackage.RuntimeId, "NVIDIA CUDA 13", "DlcCudaPurpose",
                 package.DownloadBytes, service.IsNvidia, "github.com/airanluo-dot/DropSpace")]; }
             catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
             { return []; }

@@ -8,14 +8,14 @@ namespace DropSpace.Infrastructure.Lyrics;
 /// <summary>Optional trusted CUDA component, validated before automatic NVIDIA execution.</summary>
 public sealed class CudaLyricsRuntimePackage
 {
-    public const string RuntimeId = "llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1";
+    public const string RuntimeId = "llama-cpp-v0.5.0-cuda13-win-x64-v1";
     public const string ResourcePrefix = "DropSpace.CudaLyricsRuntime.";
     public const string ManifestResourceName = ResourcePrefix + "cuda-runtime-manifest.json";
     public const string DownloadResourceName = ResourcePrefix + "cuda-runtime-download.json";
     private string? _appTag;
     private string? _appCommit;
     public const string ExecutableName = "plain-lyrics-worker-cuda.exe";
-    private static readonly string[] Names = [ExecutableName, "cublas64_12.dll", "cublasLt64_12.dll"];
+    private static readonly string[] Names = [ExecutableName, "cublas64_13.dll", "cublasLt64_13.dll"];
     private static readonly SemaphoreSlim ExtractionGate = new(1, 1);
     private readonly Func<string, Stream?> _openResource;
     private readonly string _root;
@@ -125,7 +125,7 @@ public sealed class CudaLyricsRuntimePackage
                 var file = files[i];
                 var bytes = file.GetProperty("bytes").GetInt64();
                 if (file.GetProperty("name").GetString() != Names[i] ||
-                    !IsHash(file.GetProperty("sha256").GetString()) || (bytes <= 0 || bytes > (Names[i] == "cublasLt64_12.dll" ? 805_306_368L : 536_870_912L)))
+                    !IsHash(file.GetProperty("sha256").GetString()) || (bytes <= 0 || bytes > (Names[i] == "cublasLt64_13.dll" ? 805_306_368L : 536_870_912L)))
                     throw new InvalidDataException("Invalid CUDA component integrity metadata.");
                 total += bytes;
             }
@@ -259,7 +259,7 @@ public sealed class CudaLyricsRuntimePackage
             {
                 var bytes = files[i].GetProperty("bytes").GetInt64();
                 if (files[i].GetProperty("name").GetString() != Names[i] || !IsHash(files[i].GetProperty("sha256").GetString()) ||
-                    bytes <= 0 || bytes > (Names[i] == "cublasLt64_12.dll" ? 805_306_368L : 536_870_912L))
+                    bytes <= 0 || bytes > (Names[i] == "cublasLt64_13.dll" ? 805_306_368L : 536_870_912L))
                     throw new InvalidDataException("Invalid CUDA component fingerprint.");
                 expanded += bytes;
             }

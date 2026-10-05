@@ -11,7 +11,7 @@ param(
 # dispatches a paid GPU runner, or writes the shipping runtime directory.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-if (-not $IsWindows) { throw 'CUDA experiment packaging requires Windows x64 and an existing CUDA 12 toolkit.' }
+if (-not $IsWindows) { throw 'CUDA experiment packaging requires Windows x64 and an existing CUDA13 toolkit.' }
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $source = [IO.Path]::GetFullPath($VerifiedSourceDirectory)
 $toolkit = [IO.Path]::GetFullPath($CudaToolkitDirectory)
@@ -31,8 +31,8 @@ if (-not (Test-Path (Join-Path $toolkit 'bin/nvcc.exe'))) { throw 'CUDA toolkit 
 $version = & (Join-Path $toolkit 'bin/nvcc.exe') --version
 $toolkitVersion = [regex]::Match(($version -join "`n"), 'release (?<major>[0-9]+)\.(?<minor>[0-9]+)')
 if ($LASTEXITCODE -ne 0 -or -not $toolkitVersion.Success -or
-    [int]$toolkitVersion.Groups['major'].Value -ne 12 -or [int]$toolkitVersion.Groups['minor'].Value -lt 3) {
-    throw 'Experiment v1 requires CUDA 12.3 or later in the CUDA 12 ABI.'
+    [int]$toolkitVersion.Groups['major'].Value -ne 13 -or [int]$toolkitVersion.Groups['minor'].Value -lt 4) {
+    throw 'CUDA13 component requires CUDA13.4 or later in the CUDA13 ABI.'
 }
 # Fresh isolated paths; preserve all previous builds. No CPU/Vulkan rebuilding or payload overwrite.
 $build = Join-Path $root ('artifacts/cuda-experiment-build-' + [Guid]::NewGuid().ToString('N'))
@@ -50,26 +50,26 @@ Invoke-Checked 'cmake' @('--build', $build, '--config', 'Release', '--target', '
 Copy-Item (Join-Path $build 'bin/Release/plain-lyrics-worker-cuda.exe') $output
 # Pinned ggml links Windows cuBLAS dynamically even with GGML_STATIC=ON.
 # Treat both toolkit DLLs as independently hashed components, never search PATH for them.
-foreach ($name in @('cublas64_12.dll', 'cublasLt64_12.dll')) {
+foreach ($name in @('cublas64_13.dll', 'cublasLt64_13.dll')) {
     Copy-Item (Join-Path $toolkit "bin/$name") (Join-Path $output $name)
 }
 for ($i = 0; $i -lt $inputs.Count; $i++) {
     if ((Get-FileHash (Join-Path $root $inputs[$i]) -Algorithm SHA256).Hash -cne $before[$i]) { throw 'Worker inputs changed during CUDA build.' }
 }
 if (@(& git -C $source status --porcelain --untracked-files=all).Count) { throw 'Engine changed during CUDA build.' }
-$files = @('plain-lyrics-worker-cuda.exe', 'cublas64_12.dll', 'cublasLt64_12.dll') | ForEach-Object {
+$files = @('plain-lyrics-worker-cuda.exe', 'cublas64_13.dll', 'cublasLt64_13.dll') | ForEach-Object {
     $path = Join-Path $output $_
     [ordered]@{ name = $_; sha256 = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant(); bytes = (Get-Item $path).Length }
 }
 $manifest = [ordered]@{
-    schemaVersion = 1; runtimeId = 'llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1'; backend = 'cuda'
+    schemaVersion = 1; runtimeId = 'llama-cpp-v0.5.0-cuda13-win-x64-v1'; backend = 'cuda'
     sourceRepository = 'https://github.com/ggml-org/llama.cpp'; sourceCommit = $commit
     protocol = 1; profile = 'hy-q8-plain-resident-v1'
     workerSourceSha256 = (Get-FileHash (Join-Path $build 'cuda-worker.cpp') -Algorithm SHA256).Hash.ToLowerInvariant()
     files = @($files)
     build = [ordered]@{ architectures = $CudaArchitectures; toolkitVersion = $version -join "`n";
         sharedLibraries = $false; dynamicBackends = $false; vulkan = $false; hip = $false;
-        cudaRuntime = 'static'; cublas = 'bundled-cuda12'; pdl = 'pinned-upstream-default'; inputSha256 = $before }
+        cudaRuntime = 'static'; cublas = 'bundled-cuda13'; pdl = 'pinned-upstream-default'; inputSha256 = $before }
 }
 $manifest | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $output 'cuda-runtime-manifest.json') -Encoding utf8
 & (Join-Path $PSScriptRoot 'Collect-AiRuntimeNotices.ps1') -Source $source -OutputPath (Join-Path $build 'LICENSE-llama.cpp')
@@ -82,7 +82,7 @@ foreach ($component in $files) {
     $imports | Set-Content (Join-Path $build ($component.name + '-imports.txt'))
     $unexpected = @($imports | ForEach-Object {
         if ($_ -match '^\s+(?<dll>[^\s]+\.dll)\s*$') { $Matches.dll }
-    } | Where-Object { $_ -notmatch '^(?i:kernel32|user32|advapi32|shell32|ole32|ws2_32|bcrypt|crypt32|ntdll|version|nvcuda|cublas64_12|cublasLt64_12)\.dll$' -and $_ -notmatch '^(?i:api-ms-win-)' })
+    } | Where-Object { $_ -notmatch '^(?i:kernel32|user32|advapi32|shell32|ole32|ws2_32|bcrypt|crypt32|ntdll|version|nvcuda|cublas64_13|cublasLt64_13)\.dll$' -and $_ -notmatch '^(?i:api-ms-win-)' })
     if ($unexpected.Count) { throw "Unreviewed CUDA dependencies in $($component.name): $($unexpected -join ', ')" }
 }
 if ($ValidateStartup) {

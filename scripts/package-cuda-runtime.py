@@ -17,12 +17,12 @@ import zipfile
 
 
 REPOSITORY = "airanluo-dot/DropSpace"
-RUNTIME_ID = "llama-cpp-v0.5.0-cuda12-win-x64-experiment-v1"
+RUNTIME_ID = "llama-cpp-v0.5.0-cuda13-win-x64-v1"
 ENGINE_COMMIT = "7fe450e19305b828c199d602c23a8337aaa1f03b"
 PROFILE = "hy-q8-plain-resident-v1"
 MANIFEST = "cuda-runtime-manifest.json"
 DESCRIPTOR = "cuda-runtime-download.json"
-COMPONENTS = ("plain-lyrics-worker-cuda.exe", "cublas64_12.dll", "cublasLt64_12.dll")
+COMPONENTS = ("plain-lyrics-worker-cuda.exe", "cublas64_13.dll", "cublasLt64_13.dll")
 NOTICES = ("LICENSE-llama.cpp", "LICENSE-CUDA.txt")
 HASH = re.compile(r"[a-f0-9]{64}\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
@@ -90,7 +90,7 @@ def read_manifest(payload):
     for name, entry in zip(COMPONENTS, files):
         require(isinstance(entry, dict) and entry.get("name") == name and
                 isinstance(entry.get("sha256"), str) and HASH.fullmatch(entry["sha256"]) and
-                type(entry.get("bytes")) is int and 0 < entry["bytes"] <= (805_306_368 if name == "cublasLt64_12.dll" else 536_870_912),
+                type(entry.get("bytes")) is int and 0 < entry["bytes"] <= (805_306_368 if name == "cublasLt64_13.dll" else 536_870_912),
                 "Invalid CUDA file integrity record")
         total += entry["bytes"]
     require(total <= 1_073_741_824, "CUDA component payload exceeds its bound")
@@ -143,7 +143,7 @@ def package(args):
             write_member(archive, payload / MANIFEST, manifest_identity)
             for entry in notice_identities:
                 write_member(archive, notices / entry["name"], entry)
-        archive_identity = identity(archive_path, 1_200_000_000)
+        archive_identity = identity(archive_path, 1_073_741_824)
         download = dict(archive_identity, url="https://github.com/" + REPOSITORY +
                         "/releases/download/" + args.app_tag + "/" + archive_name)
         descriptor = {

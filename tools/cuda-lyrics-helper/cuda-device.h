@@ -18,6 +18,7 @@ static ggml_backend_dev_t choose_gpu(json & selected_device, dropspace::model_pr
         const int ordinal = std::stoi(number);
         cudaDeviceProp cuda_props{};
         if (cudaGetDeviceProperties(&cuda_props, ordinal) != cudaSuccess || cuda_props.integrated ||
+            cuda_props.major < 7 || (cuda_props.major == 7 && cuda_props.minor < 5) ||
             cudaSetDevice(ordinal) != cudaSuccess) continue;
         size_t free = 0, total = 0;
         if (cudaMemGetInfo(&free, &total) != cudaSuccess ||
