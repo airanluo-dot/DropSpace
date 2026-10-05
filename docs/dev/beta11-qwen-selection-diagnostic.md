@@ -65,3 +65,7 @@ The owner requested evaluation of adding this model to AI lyrics as well, while 
 ## Subsequent selection-only qualification
 
 The owner authorized further Qwen selection-only qualification on 2026-10-05T02:21:54Z. [Identity-evidence readout](beta11-qwen-selection-evidence-readout.md) records one frozen conservative contract, twelve reordered decisions and four representation/production-ID controls. All sixteen returned complete NONE, including every positive control. Full host replay confirmed the ambiguity/alias metadata can actually enter collection. This avoids unsupported acceptance in the evaluated contract but provides no positive selector value; Qwen is not enrolled into production on that evidence. The existing two translation models remain unchanged.
+
+## Approved 4B selection-only diagnostic
+
+The owner subsequently approved the pinned Qwen3-4B-Instruct-2507 Q8 cloud download. [Actual 4B readout](beta11-qwen4-selection-readout.md) records successful byte/hash verification and twelve calls against the unchanged identity instruction/fixtures, using named fields and c0/c1. Nine decisions matched expectations; an eligible missing-artist case was incorrectly accepted, alias acceptance changed under candidate reversal, and one output was empty. Fresh calls took 13.532–18.375 seconds, with 11.316–14.729 seconds of prompt evaluation. This profile is not enrolled on those results; the workflow passing does not establish product readiness.

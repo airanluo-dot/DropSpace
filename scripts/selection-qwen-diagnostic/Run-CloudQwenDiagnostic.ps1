@@ -1,4 +1,4 @@
-# Explicit diagnostic download consent: 2026-10-05T01:11:06Z / Sentinel 208dd5c270f48191a5f2ac46576d7c28.
+# Each immutable profile carries its own explicit diagnostic download authorization.
 # Cloud only; no production catalog/default/distribution change, no native rebuild.
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$InputsDirectory,[Parameter(Mandatory)][string]$OutputDirectory)
