@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateLatestChangeApi } from "./release-contract.mjs";
@@ -42,7 +43,11 @@ if (lastError) throw lastError;
 if (release.draft) throw new Error(`${tag} is still a draft.`);
 if (release.prerelease !== /-(?:preview|beta)\./.test(tag)) throw new Error(`${tag} has the wrong prerelease flag.`);
 const assets = new Map(release.assets.map((asset) => [asset.name, asset]));
-if (assets.size !== expectedAssets.length || expectedAssets.some((name) => !assets.has(name))) {
+const cudaAsset = `DropSpace-CUDA-win-x64-${tag}.zip`;
+const optionalAssets = new Set(["runtime-publication.json", cudaAsset]);
+if (assets.size !== release.assets.length || expectedAssets.some((name) => !assets.has(name)) ||
+    [...assets.keys()].some(name => !expectedAssets.includes(name) && !optionalAssets.has(name)) ||
+    (assets.has(cudaAsset) && !assets.has("runtime-publication.json"))) {
   throw new Error(`${tag} does not expose the exact public asset contract.`);
 }
 for (const [name, asset] of assets) {
@@ -58,7 +63,8 @@ if (verificationMode === "release") {
   if (summaryMatches.length !== 1) throw new Error(`${tag} release notes do not have exactly one update summary.`);
   expectedSummary = summaryMatches[0][1].trim();
 }
-const manifest = await (await fetchOk(assets.get("update-manifest.json").browser_download_url)).json();
+const manifestText = await (await fetchOk(assets.get("update-manifest.json").browser_download_url)).text();
+const manifest = JSON.parse(manifestText);
 const semanticVersion = tag.slice(1);
 if (manifest.version !== semanticVersion || manifest.channel !== (tag.includes("-preview.") ? "preview" : release.prerelease ? "beta" : "stable")) {
   throw new Error("Published manifest version/channel does not match the GitHub Release.");
@@ -69,18 +75,27 @@ if (manifest.installer?.assetName !== "DropSpaceSetup.exe" || manifest.portable?
   throw new Error("Published manifest uses unexpected executable asset names.");
 }
 const checksums = await (await fetchOk(assets.get("SHA256SUMS.txt").browser_download_url)).text();
-const expectedChecksumAssets = new Set(["DropSpaceSetup.exe", "DropSpace.exe", "DropSpace-x64.msix"]);
+const expectedChecksumAssets = new Set([...assets.keys()].filter(name => name !== "SHA256SUMS.txt" && name !== "update-manifest.json"));
 const checksumMap = new Map();
 for (const line of checksums.trim().split(/\r?\n/)) {
   const match = line.match(/^([0-9a-f]{64})\s{2}(.+)$/i);
   if (!match) throw new Error("SHA256SUMS.txt contains an invalid line.");
-  if (!expectedChecksumAssets.has(match[2]) || checksumMap.has(match[2])) {
+  if ((!expectedChecksumAssets.has(match[2]) && match[2] !== "update-manifest.json") || checksumMap.has(match[2])) {
     throw new Error("SHA256SUMS.txt contains an unexpected or duplicate download.");
   }
   checksumMap.set(match[2], match[1].toLowerCase());
 }
-if (checksumMap.size !== 3 || checksumMap.get("DropSpaceSetup.exe") !== manifest.installer.sha256 || checksumMap.get("DropSpace.exe") !== manifest.portable.sha256) {
+if ([...expectedChecksumAssets].some(name => !checksumMap.has(name)) ||
+    checksumMap.get("DropSpaceSetup.exe") !== manifest.installer.sha256 || checksumMap.get("DropSpace.exe") !== manifest.portable.sha256) {
   throw new Error("Published checksums and update manifest disagree.");
+}
+for (const [name, digest] of checksumMap) {
+  const apiDigest = assets.get(name)?.digest;
+  if (apiDigest && apiDigest !== `sha256:${digest}`) throw new Error(`Published checksum and uploaded asset digest disagree: ${name}.`);
+}
+if (checksumMap.has("update-manifest.json") &&
+    checksumMap.get("update-manifest.json") !== createHash("sha256").update(manifestText).digest("hex")) {
+  throw new Error("Downloaded update manifest does not match its published checksum.");
 }
 
 let api;
@@ -92,7 +107,7 @@ do {
     if (!item) throw new Error(`${tag} is not in the official website API yet.`);
     if (item.isPrerelease !== release.prerelease || item.htmlUrl !== release.html_url) throw new Error("Website API release identity disagrees with GitHub.");
     const siteAssets = new Map(item.assets.map((asset) => [asset.name, asset]));
-    for (const name of expectedAssets) {
+    for (const name of assets.keys()) {
       if (siteAssets.get(name)?.downloadUrl !== assets.get(name).browser_download_url) throw new Error(`Website API ${name} URL disagrees with GitHub.`);
     }
     latestChangeApi = validateLatestChangeApi(await (await fetchOk(`${siteOrigin}/api/v1/latest-change.json?verify=${Date.now()}`)).json());
@@ -132,4 +147,4 @@ if (!release.prerelease) {
   }
 }
 
-console.log(`Verified ${tag}: GitHub Release, five public assets, manifest, checksums, release API, latest-change API, and live website${release.prerelease ? "" : " Stable state"}.`);
+console.log(`Verified ${tag}: GitHub Release, ${assets.size} public assets, manifest, checksums, release API, latest-change API, and live website${release.prerelease ? "" : " Stable state"}.`);

@@ -13,7 +13,7 @@ public sealed class CudaRuntimeDlcProvider(CudaLyricsRuntimePackage package, AiL
         {
             // Builds without the exact release trust anchor do not advertise a placeholder.
             try { return [new(CudaLyricsRuntimePackage.RuntimeId, "NVIDIA CUDA 13", "DlcCudaPurpose",
-                package.DownloadBytes, service.IsNvidia, "github.com/airanluo-dot/DropSpace")]; }
+                package.DownloadBytes, true, "github.com/airanluo-dot/DropSpace")]; }
             catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException)
             { return []; }
         }
@@ -26,17 +26,17 @@ public sealed class CudaRuntimeDlcProvider(CudaLyricsRuntimePackage package, AiL
     public async Task<DlcPackageInspection> InspectAsync(string id, CancellationToken token)
     {
         RequireId(id);
-        var bytes = package.GetOwnedArtifactBytes();
-        var installed = false;
-        if (package.HasInstalledFiles)
-            try { await package.EnsureWorkerAsync(token).ConfigureAwait(false); installed = true; }
-            catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException) { }
-        return new(installed, bytes > 0, bytes, service.IsNvidia, service.IsNvidia ? null : "DlcCudaUnsupported");
+        var inventory = await package.InspectAsync(token).ConfigureAwait(false);
+        // Driver initialization can be slow. Probe once per inventory refresh, never in a
+        // UI getter/render; the actual inference path performs its own admission checks.
+        var compatible = await Task.Run(() => service.IsNvidia, token).ConfigureAwait(false);
+        return inventory with { CanDownload = compatible, UnavailableReasonResourceKey = compatible ? null : "DlcCudaUnsupported" };
     }
     public async Task DownloadAsync(string id, bool consent, IProgress<double>? progress, CancellationToken token)
     {
         RequireId(id);
-        if (!service.IsNvidia) throw new InvalidOperationException("A compatible NVIDIA driver is required.");
+        if (!await Task.Run(() => service.IsNvidia, token).ConfigureAwait(false))
+            throw new InvalidOperationException("A compatible NVIDIA driver is required.");
         await service.DownloadCudaComponentsAsync(consent, progress, token).ConfigureAwait(false);
         PackagesChanged?.Invoke(this, EventArgs.Empty);
     }

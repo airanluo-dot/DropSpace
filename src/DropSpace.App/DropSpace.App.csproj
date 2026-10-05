@@ -72,6 +72,11 @@
   <Target Name="RequireCudaLyricsRuntimeForRelease" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
     <Error Condition="!Exists('$(CudaLyricsRuntimeRoot)\cuda-runtime-manifest.json') or !Exists('$(CudaLyricsRuntimeRoot)\cuda-runtime-download.json')" Text="Supply the trusted CUDA download manifest before a Release build; CUDA binaries stay outside the base app." />
   </Target>
+  <Target Name="VerifyCudaBuildBinding" BeforeTargets="CoreCompile"
+          DependsOnTargets="AddSourceRevisionToInformationalVersion"
+          Condition="'$(OS)' == 'Windows_NT' and Exists('$(CudaLyricsRuntimeRoot)\cuda-runtime-download.json')">
+    <Exec Command="powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Test-CudaBuildBinding.ps1&quot; -MetadataDirectory &quot;$(CudaLyricsRuntimeRoot)&quot; -InformationalVersion &quot;$(InformationalVersion)&quot;" />
+  </Target>
   <Target Name="RequireAiLyricsRuntimeForRelease" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
     <Error Condition="!Exists('$(AiLyricsRuntimeRoot)\runtime-manifest.json') or !Exists('$(AiLyricsRuntimeRoot)\llama-completion.exe') or !Exists('$(AiLyricsRuntimeRoot)\llama-completion-avx2.exe') or !Exists('$(AiLyricsRuntimeRoot)\llama-tokenize.exe') or !Exists('$(AiLyricsRuntimeRoot)\plain-lyrics-worker.exe') or !Exists('$(AiLyricsRuntimeRoot)\plain-lyrics-worker-avx2.exe') or !Exists('$(AiLyricsRuntimeRoot)\plain-lyrics-worker-vulkan.exe')" Text="Build and verify the pinned local AI runtime with scripts/Build-AiLyricsRuntime.ps1 before a Release build." />
   </Target>

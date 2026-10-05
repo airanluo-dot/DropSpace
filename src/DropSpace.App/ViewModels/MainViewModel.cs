@@ -194,6 +194,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IAsyncDisposa
 
     public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
 
+    private string _settingsRecoveryMessage = string.Empty;
+    public string SettingsRecoveryMessage
+    {
+        get => _settingsRecoveryMessage;
+        set
+        {
+            if (SetProperty(ref _settingsRecoveryMessage, value)) OnPropertyChanged(nameof(HasSettingsRecoveryMessage));
+        }
+    }
+    public bool HasSettingsRecoveryMessage => !string.IsNullOrEmpty(SettingsRecoveryMessage);
+
     public UndoState? UndoState => _undo.State;
 
     public bool HasUndo => UndoState is not null;

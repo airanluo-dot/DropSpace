@@ -66,6 +66,7 @@ public sealed class LyricsService
             durationTicks = query.Duration.Ticks,
         });
         var key = target.Length == 0 ? OriginalSourceKey("source-v3") : TargetSourceKey("source-v6");
+        LyricsRequestTrace.Record("cache-lookup", new { key = LyricsRequestTrace.Key(key), version = target.Length == 0 ? "source-v3" : "source-v6", target, refresh });
         var generation = _cache?.Generation ?? _memory.Generation;
         LyricsDocument? cachedPreview = null;
         if (kind != LyricsProviderKind.LocalLrc && !refresh)
@@ -106,7 +107,10 @@ public sealed class LyricsService
             // LRC-only Kugou cache entries predate native translation/word support.
             if (cached is { Provider: LyricsProviderKind.Kugou } &&
                 cached.ProviderDataRevision < KugouLyricsProvider.DataRevision) cached = null;
+            if (cached is { Provider: LyricsProviderKind.QqMusic } &&
+                cached.ProviderDataRevision < QqMusicLyricsProvider.DataRevision) cached = null;
             var validated = cached is null ? LyricsDocument.Empty : Validate(LyricsLanguagePolicy.IdentifyProviderTranslations(cached), query);
+            LyricsRequestTrace.Record("cache-result", new { usable = validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target), document = LyricsRequestTrace.Describe(validated) });
             if (validated.Lines.Count > 0 && !NeedsTranslationSearch(validated, target))
             {
                 if (!query.CollectSelectionCandidates) return new(validated, LyricsQueryStatus.Found)
@@ -139,6 +143,7 @@ public sealed class LyricsService
             Task<(LyricsDocument Document, bool Failed)>? supplemental = null;
             if ((query.CollectSelectionCandidates || NeedsTranslationSearch(first, target)) && allowed.Count > 0)
             {
+                LyricsRequestTrace.Record("fallback", new { providers = allowed.Select(value => value.ToString()).ToArray(), target });
                 var excluded = OnlineProviders.Where(value => !allowed.Contains(value)).ToHashSet();
                 supplemental = QuerySupplementalSafelyAsync(excluded, query, supplementalStop.Token, candidates.Report, backup, kind);
             }
@@ -168,6 +173,8 @@ public sealed class LyricsService
                 document = document with { ProviderDataRevision = NetEaseLyricsProvider.DataRevision };
             if (document.Provider == LyricsProviderKind.Kugou && document.Lines.Count > 0)
                 document = document with { ProviderDataRevision = KugouLyricsProvider.DataRevision };
+            if (document.Provider == LyricsProviderKind.QqMusic && document.Lines.Count > 0)
+                document = document with { ProviderDataRevision = QqMusicLyricsProvider.DataRevision };
             translationIncomplete = NeedsTranslationSearch(document, target) && (primary.Failed || fallbackFailed);
             // A lower-priority success must not permanently hide a preferred provider
             // that failed transiently. Target-aware v6 retires legacy such decisions.
@@ -180,6 +187,7 @@ public sealed class LyricsService
                 {
                     if (_cache is null) _memory.Write(key, document, generation);
                     else await _cache.WriteDocumentAsync(key, document, generation, cancellationToken).ConfigureAwait(false);
+                    LyricsRequestTrace.Record("cache-write", new { key = LyricsRequestTrace.Key(key), document = LyricsRequestTrace.Describe(document) });
                 }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
@@ -205,7 +213,7 @@ public sealed class LyricsService
         private readonly LyricsProviderKind? _backup;
         private readonly CancellationTokenSource _budget;
         private LyricsDocument _document = LyricsDocument.Empty;
-        private bool _started, _provisionalStarted, _closed, _truncated, _originalReported, _previewReported;
+        private bool _started, _provisionalStarted, _closed, _truncated, _originalReported;
         private readonly Action<LyricsDocument>? _reportOriginal;
         private readonly bool _captureCandidates;
         private readonly Dictionary<string, LyricsDocument> _collected = new(StringComparer.Ordinal);
@@ -251,7 +259,6 @@ public sealed class LyricsService
                 LyricsMatcher.CandidateScore(_query, match.Title, match.Artist, match.Album, match.DurationSeconds, match.ArtistAliases) >= 4
                 ? candidate : valid;
             if (eligible.Lines.Count == 0) return;
-            LyricsDocument? publish = null;
             var releaseSearch = false;
             lock (_gate)
             {
@@ -277,15 +284,18 @@ public sealed class LyricsService
                     else _truncated = true;
                 }
                 if (!_originalReported) { _originalReported = true; releaseSearch = true; }
-                if (!_previewReported && valid.Lines.Count > 0) { _previewReported = true; publish = valid; }
+                var previous = _document;
                 _document = SelectTranslation(_document, valid, _target, _primary, _backup);
+                // A validated translation must not wait behind another provider's timeout.
+                // Publish only improvements under the same ranking used for the final result.
+                // Serialize callbacks so a racing older original cannot overwrite the upgrade.
+                if (!ReferenceEquals(previous, _document))
+                {
+                    try { _reportOriginal?.Invoke(_document); }
+                    catch (Exception error) when (error is not OutOfMemoryException) { }
+                }
                 if (!_query.CollectSelectionCandidates && valid.Provider == _primary && HasTargetTranslation(valid, _target))
                     _preferredTranslationAvailable.TrySetResult();
-            }
-            if (publish is not null)
-            {
-                try { _reportOriginal?.Invoke(publish); }
-                catch (Exception error) when (error is not OutOfMemoryException) { }
             }
             if (releaseSearch) _originalAvailable.TrySetResult();
         }

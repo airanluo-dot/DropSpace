@@ -30,7 +30,7 @@ jobs:
       stable_tag: ${{ steps.release_metadata.outputs.stable_tag }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Read exact Beta11 owner test waiver
+      - name: Read exact release owner test waiver
         id: owner-waiver
         shell: bash
         env:
@@ -38,12 +38,12 @@ jobs:
         run: |
           version="$(tr -d '\r\n' < RELEASE_VERSION)"
           waived=false
-          if [[ "$version" == v0.3.1-beta.11 && ( "${{ github.event_name }}" != release || "$RELEASE_EVENT_TAG" == v0.3.1-beta.11 ) ]]; then
+          if [[ ( "$version" == v0.3.1-beta.11 || "$version" == v0.3.1-beta.12 ) && ( "${{ github.event_name }}" != release || "$RELEASE_EVENT_TAG" == "$version" ) ]]; then
             waived=true
           fi
           echo "skip_tests=$waived" >> "$GITHUB_OUTPUT"
           if [[ "$waived" == true ]]; then
-            echo 'Beta11 owner waiver: website tests are not run. Release synchronization, static build, deployment and published metadata binding remain required; no test pass is claimed.' >> "$GITHUB_STEP_SUMMARY"
+            echo "$version owner waiver: website tests are not run. Release synchronization, static build, deployment and published metadata binding remain required; no test pass is claimed." >> "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:

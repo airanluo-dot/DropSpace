@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Net;
+using DropSpace.Infrastructure.Downloads;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
@@ -7,47 +7,35 @@ using System.Runtime.InteropServices;
 namespace DropSpace.App.Services.NeteaseEnhancement;
 
 /// <summary>Only the Microsoft-signed prerequisite; no third-party installer scripting.</summary>
-public sealed class NeteaseRuntimeInstaller
+public sealed class NeteaseRuntimeInstaller(HttpRangeDownloader downloads)
 {
     private const long MaximumInstallerBytes = 64 * 1024 * 1024;
+    private readonly SemaphoreSlim _operation = new(1, 1);
+    public event EventHandler? Changed;
     public async Task EnsureAsync(Architecture architecture, CancellationToken cancellationToken)
+    {
+        await _operation.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { await EnsureCoreAsync(architecture, cancellationToken).ConfigureAwait(false); }
+        finally { _operation.Release(); Changed?.Invoke(this, EventArgs.Empty); }
+    }
+    private async Task EnsureCoreAsync(Architecture architecture, CancellationToken cancellationToken)
     {
         if (Installed(architecture)) return;
         var suffix = architecture == Architecture.X64 ? "x64" : "x86";
         var directory = Path.Combine(Path.GetTempPath(), "DropSpace-runtime-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, "VC_redist.exe");
+        var staging = path + ".download";
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromMinutes(4));
-            using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
+            using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = Timeout.InfiniteTimeSpan };
             var uri = new Uri($"https://aka.ms/vs/17/release/VC_redist.{suffix}.exe");
-            for (var redirects = 0; ; redirects++)
-            {
-                if (redirects > 5 || !IsOfficial(uri)) throw new EnhancementDeploymentException("RuntimeIntegrity");
-                using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
-                if (response.StatusCode is HttpStatusCode.Moved or HttpStatusCode.Redirect or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect or HttpStatusCode.SeeOther)
-                {
-                    uri = new Uri(uri, response.Headers.Location ?? throw new EnhancementDeploymentException("RuntimeIntegrity"));
-                    continue;
-                }
-                response.EnsureSuccessStatusCode();
-                if (response.Content.Headers.ContentLength > MaximumInstallerBytes) throw new EnhancementDeploymentException("RuntimeIntegrity");
-                await using (var source = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false))
-                await using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
-                {
-                    var buffer = new byte[81920]; long bytes = 0;
-                    int read;
-                    while ((read = await source.ReadAsync(buffer, timeout.Token).ConfigureAwait(false)) > 0)
-                    {
-                        bytes += read;
-                        if (bytes > MaximumInstallerBytes) throw new EnhancementDeploymentException("RuntimeIntegrity");
-                        await output.WriteAsync(buffer.AsMemory(0, read), timeout.Token).ConfigureAwait(false);
-                    }
-                }
-                break;
-            }
+            var policy = new DownloadRequestPolicy(client, IsOfficial);
+            await downloads.DownloadAsync(uri, staging, policy, null, timeout.Token,
+                maximumBytes: MaximumInstallerBytes).ConfigureAwait(false);
+            File.Move(staging, path);
             if (AuthenticodeTrustedUpdateVerifier.VerifyEmbeddedSignature(path) != 0)
                 throw new EnhancementDeploymentException("RuntimeIntegrity");
 #pragma warning disable SYSLIB0057
@@ -65,9 +53,11 @@ public sealed class NeteaseRuntimeInstaller
             if (process.ExitCode is not (0 or 1638 or 3010) || !Installed(architecture))
                 throw new EnhancementDeploymentException("RuntimeInstallFailed");
         }
+        catch (InvalidDataException) { throw new EnhancementDeploymentException("RuntimeIntegrity"); }
         finally
         {
             // Generated, fixed children only: never recursively delete an externally supplied path.
+            HttpRangeDownloader.DeleteStagingFiles(staging);
             if (File.Exists(path)) File.Delete(path);
             if (Directory.Exists(directory)) Directory.Delete(directory);
         }

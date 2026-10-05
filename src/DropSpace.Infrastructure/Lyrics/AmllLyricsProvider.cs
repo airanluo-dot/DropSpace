@@ -36,13 +36,14 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
         // and shared translation deadlines govern both requests.
         if (candidates.Length == 0 && more)
         {
-            var artist = query.ArtistCandidates.FirstOrDefault();
+            var artist = LyricsMatcher.SearchArtists(query).FirstOrDefault();
             if (!string.IsNullOrWhiteSpace(artist))
             {
                 using var narrowed = await http.GetAsync(searchUrl + "&artistName=" + Escape(artist), cancellationToken);
                 candidates = Candidates(Data(narrowed.RootElement), query, cancellationToken).ToArray();
             }
         }
+        LyricsRequestTrace.Record("search-result", new { provider = "Amll", count = Array(data, "items").Count(), eligible = candidates.Length, more });
         var requests = new LyricsCandidateRequests();
         foreach (var best in candidates)
         {
@@ -82,6 +83,7 @@ public sealed class AmllLyricsProvider(LyricsHttpClient http) : IProgressiveLyri
                 return parsed.Bind(query, best.Title, best.Artist, best.Album, 0, best.Score, best.Id);
             });
             if (document.Lines.Count == 0) continue;
+            LyricsRequestTrace.Record("parse", new { provider = "Amll", best.Id, document = LyricsRequestTrace.Describe(document) });
             reportCandidate(document);
             if (!query.CollectSelectionCandidates && (target.Length == 0 || !LyricsTranslationPolicy.NeedsProviderTranslation(document, target) ||
                 LyricsTranslationPolicy.HasMatchingProviderTranslation(document, target))) return document;

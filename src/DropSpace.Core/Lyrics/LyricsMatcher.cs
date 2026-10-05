@@ -68,7 +68,7 @@ public static class LyricsMatcher
     {
         ArgumentNullException.ThrowIfNull(query);
         var title = SearchTitle(query.Title);
-        return query.ArtistCandidates
+        return SearchArtists(query)
             .Take(2)
             .Select(artist => $"{title} {artist}".Trim())
             .Append(title)
@@ -77,6 +77,10 @@ public static class LyricsMatcher
             .Take(3)
             .ToArray();
     }
+
+    public static IEnumerable<string> SearchArtists(LyricsQuery query) => query.ArtistCandidates
+        // Prefer complete performer credits over the publisher's "Artist — Album" display string.
+        .OrderBy(artist => PublisherMetadataSeparator.IsMatch(artist) ? 1 : 0);
 
     public static IReadOnlyList<string> ExpandArtistCandidates(params string[] values)
     {

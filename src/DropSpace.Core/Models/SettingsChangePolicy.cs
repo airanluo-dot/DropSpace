@@ -16,8 +16,12 @@ public static class SettingsChangePolicy
 
     public static AppSettings Merge(AppSettings baseline, AppSettings requested, AppSettings latest) => latest with
     {
+        MaxDownloadConnections = Pick(baseline.MaxDownloadConnections, requested.MaxDownloadConnections, latest.MaxDownloadConnections),
+        MaxConcurrentDownloads = Pick(baseline.MaxConcurrentDownloads, requested.MaxConcurrentDownloads, latest.MaxConcurrentDownloads),
+        DownloadSpeedLimitBytesPerSecond = Pick(baseline.DownloadSpeedLimitBytesPerSecond, requested.DownloadSpeedLimitBytesPerSecond, latest.DownloadSpeedLimitBytesPerSecond),
+        DefaultDownloadDirectory = Pick(baseline.DefaultDownloadDirectory, requested.DefaultDownloadDirectory, latest.DefaultDownloadDirectory),
         IslandActivity = Pick(baseline.IslandActivity, requested.IslandActivity, latest.IslandActivity),
-        Lyrics = Pick(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
+        Lyrics = MergeLyrics(baseline.Lyrics, requested.Lyrics, latest.Lyrics),
         IslandAppearance = Pick(baseline.IslandAppearance, requested.IslandAppearance, latest.IslandAppearance),
         SystemActivities = Pick(baseline.SystemActivities, requested.SystemActivities, latest.SystemActivities),
         Widgets = Pick(baseline.Widgets, requested.Widgets, latest.Widgets),
@@ -56,6 +60,30 @@ public static class SettingsChangePolicy
         EnableNearbySharing = Pick(baseline.EnableNearbySharing, requested.EnableNearbySharing, latest.EnableNearbySharing),
         EnableInternetSharing = Pick(baseline.EnableInternetSharing, requested.EnableInternetSharing, latest.EnableInternetSharing),
         DefaultClipboardSyncMode = Pick(baseline.DefaultClipboardSyncMode, requested.DefaultClipboardSyncMode, latest.DefaultClipboardSyncMode),
+    };
+
+    private static LyricsSettings MergeLyrics(LyricsSettings baseline, LyricsSettings requested, LyricsSettings latest) => latest with
+    {
+        CacheMaximumBytes = Pick(baseline.CacheMaximumBytes, requested.CacheMaximumBytes, latest.CacheMaximumBytes),
+        AiTranslationEnabled = Pick(baseline.AiTranslationEnabled, requested.AiTranslationEnabled, latest.AiTranslationEnabled),
+        AiLyricsGpuAccelerationEnabled = Pick(baseline.AiLyricsGpuAccelerationEnabled, requested.AiLyricsGpuAccelerationEnabled, latest.AiLyricsGpuAccelerationEnabled),
+        AiLyricsGpuBackend = Pick(baseline.AiLyricsGpuBackend, requested.AiLyricsGpuBackend, latest.AiLyricsGpuBackend),
+        AiModelId = Pick(baseline.AiModelId, requested.AiModelId, latest.AiModelId),
+        GlowMode = Pick(baseline.GlowMode, requested.GlowMode, latest.GlowMode),
+        SimplifiedGlow = Pick(baseline.SimplifiedGlow, requested.SimplifiedGlow, latest.SimplifiedGlow),
+        FontSize = Pick(baseline.FontSize, requested.FontSize, latest.FontSize),
+        Enabled = Pick(baseline.Enabled, requested.Enabled, latest.Enabled),
+        Mode = Pick(baseline.Mode, requested.Mode, latest.Mode),
+        Provider = Pick(baseline.Provider, requested.Provider, latest.Provider),
+        BackupProvider = Pick(baseline.BackupProvider, requested.BackupProvider, latest.BackupProvider),
+        SearchRemainingProviders = Pick(baseline.SearchRemainingProviders, requested.SearchRemainingProviders, latest.SearchRemainingProviders),
+        SecondaryLyrics = Pick(baseline.SecondaryLyrics, requested.SecondaryLyrics, latest.SecondaryLyrics),
+        ShowAiLyricsLabel = Pick(baseline.ShowAiLyricsLabel, requested.ShowAiLyricsLabel, latest.ShowAiLyricsLabel),
+        WordSyncedHighlighting = Pick(baseline.WordSyncedHighlighting, requested.WordSyncedHighlighting, latest.WordSyncedHighlighting),
+        DelayMilliseconds = Pick(baseline.DelayMilliseconds, requested.DelayMilliseconds, latest.DelayMilliseconds),
+        Scrolling = Pick(baseline.Scrolling, requested.Scrolling, latest.Scrolling),
+        ScrollingMaxWidth = Pick(baseline.ScrollingMaxWidth, requested.ScrollingMaxWidth, latest.ScrollingMaxWidth),
+        LocalLrcDirectory = Pick(baseline.LocalLrcDirectory, requested.LocalLrcDirectory, latest.LocalLrcDirectory),
     };
 
     private static T Pick<T>(T baseline, T requested, T latest) =>

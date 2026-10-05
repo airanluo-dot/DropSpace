@@ -32,6 +32,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     private long _lyricsDiagnosticWindow = Stopwatch.GetTimestamp();
     private int _lyricsDiagnosticCount, _lyricsDiagnosticsSuppressed;
     public AiLyricsService AiLyrics { get; }
+    public QqMusicLoginService QqMusicLogin { get; }
     private readonly LyricsTimelineEngine _timeline = new();
     private readonly MediaPlaybackClock _clock = new();
     private readonly Channel<bool> _changes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
@@ -59,14 +60,16 @@ public sealed class MediaExperienceService : IAsyncDisposable
     public MediaExperienceService(MainViewModel main, MediaViewModel view, WindowsMediaSessionService media,
         WindowsProcessLoopbackService audio, MediaProcessResolver processes, MediaArtworkService artwork,
         IslandExperienceCoordinator experience, DispatcherQueue dispatcher, ILogger<MediaExperienceService> logger,
-        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics, LyricsCache lyricsCache)
+        SystemVisualPreferenceService visualPreferences, AiLyricsService aiLyrics, LyricsCache lyricsCache, QqMusicLoginService qqMusicLogin)
     {
         _main = main; _view = view; _media = media; _audio = audio; _processes = processes; _artwork = artwork;
         _experience = experience; _dispatcher = dispatcher; _logger = logger;
         _visualPreferences = visualPreferences; AiLyrics = aiLyrics; _lyricsCache = lyricsCache;
+        QqMusicLogin = qqMusicLogin;
+        QqMusicLogin.Session.CredentialsChanged += OnQqCredentialsChanged;
         AiLyrics.ModelDownloaded += OnModelDownloaded;
-        _http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
-        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http, RecordLyricsDiagnostic), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache, RecordLyricsDiagnostic);
+        _http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = Timeout.InfiniteTimeSpan };
+        _lyrics = new LyricsService(new LyricsProviderRegistry(new LyricsHttpClient(_http, RecordLyricsDiagnostic, qqMusicLogin.Session), () => Volatile.Read(ref _settings).Lyrics.LocalLrcDirectory), lyricsCache, RecordLyricsDiagnostic);
         _frames = dispatcher.CreateTimer(); _frames.Interval = TimeSpan.FromMilliseconds(33); _frames.IsRepeating = true;
         _frames.Tick += OnFrame;
         _audioRecovery = new Timer(_ =>
@@ -82,6 +85,39 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _view.PropertyChanged += OnPresentationChanged;
     }
 
+    private void OnQqCredentialsChanged(object? sender, EventArgs args)
+    {
+        if (_disposed) return;
+        _sourceRefresh.Request();
+        Interlocked.Increment(ref _reloadRequest);
+        Interlocked.Increment(ref _generation);
+        _lyricsWork.CancelCurrent();
+        _changes.Writer.TryWrite(true);
+    }
+
+    public async Task VerifyQqMusicAsync(CancellationToken token)
+    {
+        await QqMusicLogin.Session.LoadAsync(token).ConfigureAwait(false);
+        QqMusicLogin.Session.AllowExplicitRetry();
+        var current = Volatile.Read(ref _latest);
+        var query = string.IsNullOrWhiteSpace(current.TrackTitle)
+            ? new LyricsQuery("Happier", "Ed Sheeran", "", TimeSpan.FromSeconds(207))
+            : new LyricsQuery(current.TrackTitle, current.Artist, current.AlbumTitle, current.Timeline.Duration)
+                { AlbumArtist = current.AlbumArtist, TrackIdentity = current.LyricsCacheIdentity };
+        query = query with { PreferredTranslationLanguage = "zh-Hans" };
+        using var trace = LyricsRequestTrace.Begin(new { diagnostic = "qq-login-check", query.Title, query.Artist,
+            query.Album, duration = query.Duration.TotalSeconds });
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(12));
+        var result = await _lyrics.QueryDetailedAsync(query, Volatile.Read(ref _settings).Lyrics with
+        {
+            Enabled = true, Mode = LyricsMode.Online, Provider = LyricsProviderKind.QqMusic,
+            BackupProvider = null, SearchRemainingProviders = false, SelectionMode = LyricsSelectionMode.Rules,
+        }, deadline.Token, refresh: true).ConfigureAwait(false);
+        trace.Write("qq-login-result", new { status = result.Status.ToString(), result.TranslationLookupIncomplete,
+            document = LyricsRequestTrace.Describe(result.Document) });
+    }
+
     public Task InitializeAsync(AppSettings settings)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -91,6 +127,10 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _media.Changed += OnMediaChanged; _audio.Changed += OnSpectrumChanged;
         StartRuntime();
         _changes.Writer.TryWrite(true);
+#if DEBUG
+        _ = LyricsRapidSkipDiagnostic.RunAsync(_media, _stop.Token);
+        _ = LyricsRapidSkipDiagnostic.CheckProvidersAsync(_media, _lyrics, settings.Lyrics, _stop.Token);
+#endif
         return Task.CompletedTask;
     }
 
@@ -255,6 +295,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
     {
         if (args.PropertyName != nameof(MainViewModel.Settings)) return;
         var previous = Interlocked.Exchange(ref _settings, _main.Settings);
+        AiLyrics.ObserveSettingsChange(previous.Lyrics, _main.Settings.Lyrics);
         if (LyricsReloadPolicy.RequiresReload(previous, _main.Settings))
         {
             Interlocked.Increment(ref _generation);
@@ -356,8 +397,17 @@ public sealed class MediaExperienceService : IAsyncDisposable
                         // Never wait here for a cancelled provider or a clear-cache drain.
                         var refreshRequest = _sourceRefresh.Capture();
                         var forceSourceRefresh = _sourceRefresh.IsPending(refreshRequest);
+                        // Publishers update title/credits/timeline separately, in either order.
+                        // Publish the UI immediately, but let a provisional duration-only or
+                        // zero-duration snapshot retire before it can issue duplicate searches.
+                        var admissionDelay = session.Timeline.Duration <= TimeSpan.Zero ||
+                            trackChanged && previousMedia is not null &&
+                            previousMedia.Timeline.Duration > TimeSpan.Zero &&
+                            (previousMedia.TrackIdentity == session.TrackIdentity ||
+                                previousMedia.Timeline.Duration == session.Timeline.Duration)
+                            ? TimeSpan.FromMilliseconds(1500) : TimeSpan.FromMilliseconds(400);
                         lyricsPending = !_lyricsWork.TryStartWhileIdle(_lyricsMaintenance,
-                            workToken => LoadLyricsAsync(session, settings, generation, workToken, forceSourceRefresh), token,
+                            workToken => LoadLyricsAsync(session, settings, generation, workToken, forceSourceRefresh, admissionDelay), token,
                             () => _changes.Writer.TryWrite(true));
                         if (!lyricsPending) _sourceRefresh.MarkStarted(refreshRequest);
                         if (lyricsPending)
@@ -421,8 +471,14 @@ public sealed class MediaExperienceService : IAsyncDisposable
         catch (OperationCanceledException) when (token.IsCancellationRequested) { ready?.TrySetCanceled(token); }
     }
 
-    private async Task LoadLyricsAsync(MediaSessionSnapshot session, AppSettings settings, long generation, CancellationToken token, bool refresh)
+    private async Task LoadLyricsAsync(MediaSessionSnapshot session, AppSettings settings, long generation, CancellationToken token, bool refresh, TimeSpan admissionDelay)
     {
+        using var trace = LyricsRequestTrace.Begin(new { generation, session.TrackTitle, session.Artist, session.AlbumArtist, session.AlbumTitle,
+            duration = session.Timeline.Duration.TotalSeconds, session.SourceAppUserModelId, playback = session.PlaybackState.ToString(),
+            cacheIdentity = LyricsRequestTrace.Key(session.LyricsCacheIdentity), language = settings.Language.ToString(),
+            culture = System.Globalization.CultureInfo.CurrentUICulture.Name, refresh, settings.Lyrics.Enabled,
+            provider = settings.Lyrics.Provider.ToString(), backup = settings.Lyrics.BackupProvider?.ToString(),
+            settings.Lyrics.SearchRemainingProviders, settings.Lyrics.SecondaryLyrics, settings.Lyrics.AiTranslationEnabled });
         LyricsQueryResult? sourceResult = null;
         var previewClosed = 0;
         var started = Stopwatch.GetTimestamp();
@@ -431,7 +487,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             // Coalesce transient SMTC snapshots/rapid skips before sending irreversible
             // public HTTP traffic. Stable tracks incur only this short admission delay.
             if (!refresh)
-                await Task.Delay(TimeSpan.FromMilliseconds(150), token).ConfigureAwait(false);
+                await Task.Delay(admissionDelay, token).ConfigureAwait(false);
             if (!IsLyricsRequestCurrent(session, settings, generation, token)) return;
             var targetLanguage = LyricsTranslationPolicy.ResolveTarget(settings.Language, [System.Globalization.CultureInfo.CurrentUICulture.Name]);
             var result = !string.IsNullOrWhiteSpace(session.TrackTitle)
@@ -445,6 +501,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                             LyricsLanguagePolicy.IdentifyProviderTranslations(original), targetLanguage);
                         _document = cleaned;
                         _view.SetLyricsDocument(cleaned);
+                        trace.Write("ui-preview", LyricsRequestTrace.Describe(cleaned));
                         _view.LyricsStatus = LyricsQueryStatus.Found;
                         RenderFrame();
                     })).ConfigureAwait(false)
@@ -454,6 +511,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
             result = result with { Document = LyricsLanguagePolicy.RemoveIneligibleLocalTranslations(
                 LyricsLanguagePolicy.IdentifyProviderTranslations(result.Document), targetLanguage) };
             sourceResult = result;
+            trace.Write("source-result", new { status = result.Status.ToString(), result.TranslationLookupIncomplete, document = LyricsRequestTrace.Describe(result.Document) });
             RecordLyricsDiagnostic(new(result.Document.Lines.Count > 0 ? result.Document.Provider :
                 settings.Lyrics.Mode == LyricsMode.LocalLrc ? LyricsProviderKind.LocalLrc : settings.Lyrics.Provider,
                 LyricsDiagnosticStage.Source, result.Status switch
@@ -472,6 +530,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                 {
                     _document = result.Document;
                     _view.SetLyricsDocument(result.Document);
+                    trace.Write("ui-source", LyricsRequestTrace.Describe(result.Document));
                     _view.LyricsStatus = result.Status;
                     RenderFrame();
                 }
@@ -526,7 +585,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
                     }).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { Interlocked.Exchange(ref previewClosed, 1); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { trace.Write("cancelled", new { generation }); Interlocked.Exchange(ref previewClosed, 1); }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             Interlocked.Exchange(ref previewClosed, 1);
@@ -631,6 +690,7 @@ public sealed class MediaExperienceService : IAsyncDisposable
         _visualPreferences.Changed -= OnVisualPreferencesChanged;
         _view.PropertyChanged -= OnPresentationChanged;
         AiLyrics.ModelDownloaded -= OnModelDownloaded;
+        QqMusicLogin.Session.CredentialsChanged -= OnQqCredentialsChanged;
         _main.PropertyChanged -= OnSettingsChanged; _media.Changed -= OnMediaChanged; _audio.Changed -= OnSpectrumChanged;
         var restartRetirement = _restart.StopAsync();
         var stopCallbacks = _stop.CancelAsync();

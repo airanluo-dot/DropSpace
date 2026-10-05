@@ -1,12 +1,11 @@
 using DropSpace.App.Services.Media;
-using DropSpace.App.ViewModels;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Lyrics;
 
 namespace DropSpace.App.Services.Dlc;
 
 /// <summary>Adapts the production model services; no second downloader or installation receipt.</summary>
-public sealed class AiModelDlcProvider(AiLyricsService service, NativeSettingsEditor editor) : IDlcPackageProvider
+public sealed class AiModelDlcProvider(AiLyricsService service) : IDlcPackageProvider
 {
     public IReadOnlyList<DlcPackageDescriptor> Packages { get; } = AiLyricsModelCatalog.All
         .Concat(AiLyricsModelCatalog.Legacy).Select(model => new DlcPackageDescriptor(
@@ -32,12 +31,8 @@ public sealed class AiModelDlcProvider(AiLyricsService service, NativeSettingsEd
     public async Task DeleteAsync(string packageId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        // Persist disable before releasing the currently selected model. The existing service
-        // cancels active inference and drains the native resident under maintenance ownership.
-        if (editor.Settings.Lyrics.AiModelId == packageId && editor.Settings.Lyrics.AiTranslationEnabled &&
-            !await editor.UpdateAsync(settings => settings with { Lyrics = settings.Lyrics with { AiTranslationEnabled = false } }))
-            throw new InvalidOperationException("Could not disable the selected model.");
-        token.ThrowIfCancellationRequested();
+        // Availability is separate from user consent. Maintenance cancels and drains the
+        // worker; a missing model cannot be resolved. Failure/cancellation must not change AI preference.
         await service.DeleteModelAsync(packageId, token);
     }
 }

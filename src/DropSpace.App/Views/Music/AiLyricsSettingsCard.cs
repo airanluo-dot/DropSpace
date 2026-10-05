@@ -36,6 +36,7 @@ public sealed class AiLyricsSettingsCard : UserControl
     private readonly TextBlock _error = new() { TextWrapping = TextWrapping.Wrap };
     private readonly Button _download;
     private readonly Button _resume;
+    private readonly Button _retryGpu;
     private readonly Button _clearCache;
     private readonly LyricsGlowModeControl _glow;
     private CancellationTokenSource? _lifetime;
@@ -71,11 +72,12 @@ public sealed class AiLyricsSettingsCard : UserControl
         _gpuBackend.Items.Add(new ComboBoxItem { Content = strings.Get("AiLyricsGpuAutomatic"), Tag = LyricsGpuBackend.Automatic });
         _gpuBackend.Items.Add(new ComboBoxItem { Content = "Vulkan", Tag = LyricsGpuBackend.Vulkan });
         _gpuBackend.Items.Add(new ComboBoxItem { Content = "CUDA", Tag = LyricsGpuBackend.Cuda,
-            IsEnabled = _service.IsNvidia });
+            IsEnabled = CudaAvailable });
         _gpuBackend.SelectionChanged += OnGpuBackend;
         AutomationProperties.SetAutomationId(_gpuBackend, "AiLyricsGpuBackend");
         body.Children.Add(_gpuBackend);
         body.Children.Add(_backendStatus);
+        AutomationProperties.SetLiveSetting(_backendStatus, AutomationLiveSetting.Polite);
         body.Children.Add(new TextBlock { Text = strings.Get("AiLyricsModel"), FontWeight = FontWeights.SemiBold });
         foreach (var model in AiLyricsModelCatalog.All)
             _models.Items.Add(new ComboBoxItem { Content = ModelLabel(model), Tag = model });
@@ -96,10 +98,14 @@ public sealed class AiLyricsSettingsCard : UserControl
         _resume = new Button { Content = strings.Get("AiLyricsResumeTranslation"), Visibility = Visibility.Collapsed };
         AutomationProperties.SetAutomationId(_resume, "AiLyricsResumeTranslation");
         _resume.Click += (_, _) => { _service.ResumeTranslation(); Refresh(); };
+        _retryGpu = new Button { Content = strings.Get("AiLyricsRetryGpu"), Visibility = Visibility.Collapsed };
+        AutomationProperties.SetAutomationId(_retryGpu, "AiLyricsRetryGpu");
+        _retryGpu.Click += (_, _) => StartOperation(async (_, token) => await _service.RetryGpuAsync(token));
         _clearCache = new Button { Content = strings.Get("AiLyricsClearCache") };
         AutomationProperties.SetAutomationId(_clearCache, "AiLyricsClearCache");
         _clearCache.Click += OnClearCache;
         actions.Children.Add(_download); actions.Children.Add(_resume);
+        actions.Children.Add(_retryGpu);
         actions.Children.Add(_clearCache);
         body.Children.Add(actions);
         body.Children.Add(new TextBlock { Text = strings.Get("LyricsGlowTitle"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
@@ -129,6 +135,9 @@ public sealed class AiLyricsSettingsCard : UserControl
         _editor.PropertyChanged += OnSettings;
         _dlc.Changed += OnDlcChanged;
         _service.TranslationStateChanged += OnTranslationStateChanged;
+        // This card can be constructed before startup loads persisted settings, or unloaded
+        // while settings change. Restore controls immediately, before any package inspection.
+        Refresh();
         _ = _dlc.RefreshAsync();
     }
 
@@ -220,22 +229,22 @@ public sealed class AiLyricsSettingsCard : UserControl
         // Settings propagation owns cancellation/draining when the execution mode changes.
         StartOperation(async (generation, token) =>
         {
-            await SaveAsync(generation, settings => settings with
+            var saved = await SaveAsync(generation, settings => settings with
             {
                 Lyrics = settings.Lyrics with { AiLyricsGpuAccelerationEnabled = preferGpu },
             });
-            if (preferGpu && ShouldOfferCuda()) await OfferCudaAsync(generation, token);
+            if (saved && preferGpu && ShouldOfferCuda()) await OfferCudaAsync(generation, token);
         });
     }
 
     private void OnGpuBackend(object sender, SelectionChangedEventArgs args)
     {
         if (_syncing || _gpuBackend.SelectedItem is not ComboBoxItem { Tag: LyricsGpuBackend backend }) return;
-        if (backend == LyricsGpuBackend.Cuda && !_service.IsNvidia) { Refresh(); return; }
+        if (backend == LyricsGpuBackend.Cuda && !CudaAvailable) { Refresh(); return; }
         StartOperation(async (generation, token) =>
         {
-            await SaveAsync(generation, settings => settings with { Lyrics = settings.Lyrics with { AiLyricsGpuBackend = backend } });
-            if (ShouldOfferCuda())
+            var saved = await SaveAsync(generation, settings => settings with { Lyrics = settings.Lyrics with { AiLyricsGpuBackend = backend } });
+            if (saved && ShouldOfferCuda())
                 await OfferCudaAsync(generation, token);
         });
     }
@@ -256,7 +265,8 @@ public sealed class AiLyricsSettingsCard : UserControl
     }
 
     private const string CudaId = "llama-cpp-v0.5.0-cuda13-win-x64-v1";
-    private bool ShouldOfferCuda() => _service.IsNvidia && _editor.Settings.Lyrics.AiLyricsGpuAccelerationEnabled &&
+    private bool CudaAvailable => _dlc.Packages.Any(item => item.Package.Id == CudaId && item.Installation?.CanDownload == true);
+    private bool ShouldOfferCuda() => CudaAvailable && _editor.Settings.Lyrics.AiLyricsGpuAccelerationEnabled &&
         _editor.Settings.Lyrics.AiLyricsGpuBackend != LyricsGpuBackend.Vulkan &&
         _dlc.Packages.Any(item => item.Package.Id == CudaId && item.State == DlcPackageState.Available && item.Package.CanDownload);
 
@@ -406,12 +416,31 @@ public sealed class AiLyricsSettingsCard : UserControl
             var settings = _editor.Settings.Lyrics;
             _enabled.IsOn = settings.AiTranslationEnabled;
             _gpuAcceleration.IsOn = settings.AiLyricsGpuAccelerationEnabled;
+            foreach (var option in _gpuBackend.Items.OfType<ComboBoxItem>().Where(item => item.Tag is LyricsGpuBackend.Cuda))
+                option.IsEnabled = CudaAvailable;
             if (!_busy) _gpuBackend.SelectedItem = _gpuBackend.Items.OfType<ComboBoxItem>().FirstOrDefault(item =>
                 item.Tag is LyricsGpuBackend backend && backend == settings.AiLyricsGpuBackend) ?? _gpuBackend.Items[0];
             _gpuBackend.IsEnabled = settings.AiLyricsGpuAccelerationEnabled && !_busy && !_inspecting;
-            _backendStatus.Text = _service.ActualBackend is { } actual ? _strings.Format("AiLyricsActualBackend", actual.ToUpperInvariant()) :
-                _strings.Get("AiLyricsBackendPending");
+            var execution = _service.GetExecutionStatus(settings);
+            _backendStatus.Text = _strings.Format("AiLyricsSelectedBackend", settings.AiLyricsGpuAccelerationEnabled ? BackendLabel(settings.AiLyricsGpuBackend) : "CPU");
+            _backendStatus.Text += "\n" + (execution.Current is { } current
+                ? current.Phase == DropSpace.Infrastructure.Lyrics.PlainLyricsExecutionPhase.Starting
+                    ? _strings.Get("AiLyricsBackendStarting")
+                    : _strings.Format("AiLyricsBackendExecuting", current.Backend!.ToUpperInvariant())
+                : _strings.Get(execution.FromCache ? "AiLyricsBackendCached" : "AiLyricsBackendPending"));
+            if (execution.Last is { } last)
+                _backendStatus.Text += "\n" + _strings.Format("AiLyricsLastBackend", last.Backend.ToUpperInvariant(),
+                    last.CompletedAt.ToLocalTime().ToString("g", _strings.Culture));
+            if (execution.Failure is { } failure)
+                _backendStatus.Text += "\n" + _strings.Format("AiLyricsRuntimeFailure", failure.GpuEnabled ? BackendLabel(failure.BackendPreference) : "CPU",
+                    failure.AttemptedBackend.ToUpperInvariant(), failure.OccurredAt.ToLocalTime().ToString("g", _strings.Culture),
+                    FailureReason(failure.Reason), failure.ExitCode?.ToString(_strings.Culture) ?? _strings.Get("AiLyricsExitNotObserved")) +
+                    " " + _strings.Get(failure.TerminatedByHost ? "AiLyricsWorkerStopped" : "AiLyricsWorkerExited") +
+                    " " + _strings.Get(failure.CpuFallbackAttempted ? "AiLyricsCpuFallbackAttempted" : "AiLyricsInferenceFailed");
             if (ShouldOfferCuda()) _backendStatus.Text += " " + _strings.Get("AiLyricsCudaFallback");
+            _retryGpu.Visibility = settings.AiTranslationEnabled && settings.AiLyricsGpuAccelerationEnabled && execution.Failure is not null
+                ? Visibility.Visible : Visibility.Collapsed;
+            _retryGpu.IsEnabled = !_busy && !_inspecting;
             // Retain the candidate while a settings operation is running.
             if (!_busy)
                 _models.SelectedItem = _models.Items.OfType<ComboBoxItem>().FirstOrDefault(item =>
@@ -454,4 +483,21 @@ public sealed class AiLyricsSettingsCard : UserControl
         }
         finally { _syncing = false; }
     }
+
+    private string BackendLabel(LyricsGpuBackend backend) => backend == LyricsGpuBackend.Automatic
+        ? _strings.Get("AiLyricsGpuAutomatic") : backend.ToString().ToUpperInvariant();
+
+    private string FailureReason(string category) => _strings.Get(category switch
+    {
+        "DeadlineExceeded" => "AiLyricsFailureTimeout",
+        "OutOfMemory" or "HostMemoryBudgetExceeded" or "InferenceResourcesUnavailableException" => "AiLyricsFailureMemory",
+        "VramBudget" or "GpuAdmission" => "AiLyricsFailureGpuAdmission",
+        "CudaArchitecture" => "AiLyricsFailureArchitecture",
+        "CudaDeviceOrDriver" => "AiLyricsFailureDevice",
+        "DllMissing" or "DllInvalid" or "DllInitialization" or "RuntimeLoad" or "Win32Exception" => "AiLyricsFailureRuntime",
+        "CublasFailure" or "DecodeFailure" => "AiLyricsFailureCompute",
+        "ModelLoadFailure" => "AiLyricsFailureModel",
+        "InvalidDataException" or "JsonException" or "KeyNotFoundException" => "AiLyricsFailureValidation",
+        _ => "AiLyricsFailureUnknown",
+    });
 }

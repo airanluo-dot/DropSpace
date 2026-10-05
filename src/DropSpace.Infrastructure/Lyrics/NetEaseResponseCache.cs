@@ -83,6 +83,7 @@ internal sealed class NetEaseResponseCache(LyricsHttpClient http, TimeProvider? 
                 token.ThrowIfCancellationRequested();
                 if (saved is not null)
                 {
+                    LyricsRequestTrace.Record("response-cache", new { key = LyricsRequestTrace.Key(url), isSearch, target });
                     http.ReportNetEaseReuse();
                     return JsonDocument.Parse(saved);
                 }

@@ -169,7 +169,8 @@ public sealed class NeteaseDeploymentTests
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "DropSpace-NeteaseTests-" + Guid.NewGuid().ToString("N"));
         public string Loader => Path.Combine(Root, "player", "msimg32.dll");
         public Fixture() { Directory.CreateDirectory(Path.Combine(Root, "player")); }
-        public InfLinkDeploymentService Service() => new(Path.Combine(Root, "state"));
+        private readonly DropSpace.Infrastructure.Downloads.HttpRangeDownloader downloads = new();
+        public InfLinkDeploymentService Service() => new(downloads, Path.Combine(Root, "state"));
         public PreparedInfLinkDeployment Prepare(string version)
         {
             string staging = Path.Combine(Root, "staging", version);
@@ -180,6 +181,6 @@ public sealed class NeteaseDeploymentTests
             return new(new NeteaseInstallation(Path.Combine(Root, "player", "cloudmusic.exe"), new Version(3, 1, 40), Architecture.X64), Path.Combine(Root, "profile"), loader, plugin, Hash(loader), Hash(plugin), version);
         }
         private static string Hash(string file) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file)));
-        public void Dispose() { Directory.Delete(Root, true); }
+        public void Dispose() { downloads.Dispose(); Directory.Delete(Root, true); }
     }
 }

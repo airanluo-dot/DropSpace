@@ -67,9 +67,8 @@ public sealed class JsonSettingsService : ISettingsService
                 hadUpdateChannel = document.RootElement.ValueKind == JsonValueKind.Object &&
                     document.RootElement.EnumerateObject().Any(property =>
                         string.Equals(property.Name, nameof(AppSettings.UpdateChannel), StringComparison.OrdinalIgnoreCase));
-                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
-
-                settings ??= CreateDefaults();
+                settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions)
+                    ?? throw new JsonException("Settings must be an object.");
                 var beforePrivacyMigration = settings;
                 settings = MigratePrivacyChoice(document.RootElement, settings);
                 var migratedVersion = document.RootElement.EnumerateObject().Any(property =>
@@ -105,6 +104,9 @@ public sealed class JsonSettingsService : ISettingsService
                     }
                 }
 
+                _logger.LogInformation("Lyrics preferences loaded: aiEnabled={AiEnabled}; gpuEnabled={GpuEnabled}; gpuBackend={Backend}; model={ModelId}; schema={Schema}.",
+                    validated.Lyrics.AiTranslationEnabled, validated.Lyrics.AiLyricsGpuAccelerationEnabled,
+                    validated.Lyrics.AiLyricsGpuBackend, validated.Lyrics.AiModelId, validated.Version);
                 return validated;
             }
             catch (Exception exception) when (IsRecoverableSettingsFailure(exception))
@@ -221,7 +223,7 @@ public sealed class JsonSettingsService : ISettingsService
             .ConfigureAwait(false);
         using var document = JsonDocument.Parse(bytes);
         var settings = document.RootElement.Deserialize<AppSettings>(SerializerOptions);
-        return settings is null ? CreateDefaults() : MigratePrivacyChoice(document.RootElement, settings);
+        return settings is null ? throw new JsonException("Settings must be an object.") : MigratePrivacyChoice(document.RootElement, settings);
     }
 
     private async Task SaveCoreAsync(AppSettings settings, CancellationToken cancellationToken)

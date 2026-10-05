@@ -138,6 +138,11 @@
 
       <StackPanel Grid.Row="1" Margin="{StaticResource DropSpaceStatusMargin}" Spacing="6">
         <InfoBar
+          IsOpen="{Binding HasSettingsRecoveryMessage, Mode=OneWay}"
+          Message="{Binding SettingsRecoveryMessage}"
+          Severity="Warning"
+          IsClosable="False" />
+        <InfoBar
           IsClosable="True"
           IsOpen="{Binding HasStatusMessage, Mode=OneWay}"
           Message="{Binding StatusMessage}"

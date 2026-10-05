@@ -3,6 +3,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
+using DropSpace.Infrastructure.Downloads;
 
 namespace DropSpace.App.Services.NeteaseEnhancement;
 
@@ -15,11 +16,13 @@ public sealed partial class InfLinkDeploymentService : IDisposable
     private const int MaximumAssetBytes = 32 * 1024 * 1024;
     private readonly string stateRoot;
     private readonly HttpClient client;
+    private readonly HttpRangeDownloader downloads;
     private readonly SemaphoreSlim gate = new(1, 1);
-    public InfLinkDeploymentService(string? stateRoot = null, HttpMessageHandler? handler = null)
+    public InfLinkDeploymentService(HttpRangeDownloader downloads, string? stateRoot = null, HttpMessageHandler? handler = null)
     {
+        this.downloads = downloads;
         this.stateRoot = stateRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DropSpace", "NeteaseEnhancement");
-        client = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromMinutes(2) };
+        client = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = Timeout.InfiniteTimeSpan };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("DropSpace-NeteaseEnhancement/1.0");
     }
 
@@ -52,7 +55,7 @@ public sealed partial class InfLinkDeploymentService : IDisposable
         try
         {
         await DownloadVerifiedAsync(new Uri("https://github.com/std-microblock/chromatic/releases/download/1.3.4/" + (x64 ? "BetterNCMII.dll" : "BetterNCMII86.dll")), loader, loaderHash, cancellationToken).ConfigureAwait(false);
-        await DownloadVerifiedAsync(pluginUrl, plugin, pluginHash, cancellationToken).ConfigureAwait(false);
+        await DownloadVerifiedAsync(pluginUrl, plugin, pluginHash, cancellationToken, size).ConfigureAwait(false);
         if (new FileInfo(plugin).Length != size) throw new EnhancementDeploymentException("InvalidAssetSize");
         ValidatePluginArchive(plugin, version);
         return new(installation, existing.ProfilePath, loader, plugin, loaderHash, pluginHash, version);

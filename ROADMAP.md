@@ -1,10 +1,17 @@
 # DropSpace Roadmap
 
-## Release target: v0.3.1-beta.11
+## Release target: v0.3.1-beta.12
 
-Integrate unified DLC management, optional NVIDIA CUDA13 download components, retired AI song selection and bounded same-song translation reuse.
-The explicit no-testing instruction applies. Real CUDA assets and final App packaging remain release inputs.
-See [release notes](.github/release-notes/v0.3.1-beta.11.md).
+Port NovaClip Beta8 ordinary HTTP downloads into the DLC page and share the real
+segmented transfer engine with models, CUDA, App updates and optional components.
+The owner authorized packaging and Beta12 publication after the final code review.
+No broad functional regression or large-file stress tests are requested. The owner
+later authorized a minimal CUDA translation and failure-specific repeats; the 1.8B
+CUDA host-commit limit failure was reproduced and corrected, with actual GPU output.
+Also integrate AI switch refresh/field-level persistence and observable backend,
+cache and CPU-fallback status. Historical preference loss remains unproven; see
+[runtime review and CUDA evidence](docs/dev/beta12-runtime-fixes.md).
+See [release notes](.github/release-notes/v0.3.1-beta.12.md).
 
 ## Delivered slice: v0.3.0-beta.32
 
@@ -93,7 +100,7 @@ have actual desktop playback, pause/resume, switching and lyrics evidence.
 
 ## Current implementation snapshot
 
-The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.11
+The v0.2.1 Stable production slice remains the Stable baseline. v0.3.1-beta.12
 is the current Beta target; published versions remain listed on the official Releases page.
 Hosted Windows checks are
 the build, test, packaging and security gates. Real OS/DPI/OLE/accessibility,
@@ -757,9 +764,9 @@ Implementation and regression coverage now include projection recovery, shared d
 
 ## Beta release naming
 
-The current Beta target is `v0.3.1-beta.11` (Beta 11). All new prereleases use
+The current Beta target is `v0.3.1-beta.12` (Beta 12). All new prereleases use
 `vMAJOR.MINOR.PATCH-beta.N`; the update channel is Beta. Historical Preview
-releases remain immutable. v0.3.1-beta.10 is the immediate upgrade baseline and
+releases remain immutable. v0.3.1-beta.11 is the immediate upgrade baseline and
 preserves data/settings. Subsequent Beta updates are automatic according to
 user settings.
 See [migration contract](docs/dev/beta-migration.md).

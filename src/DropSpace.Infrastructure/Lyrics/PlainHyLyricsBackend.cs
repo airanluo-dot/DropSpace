@@ -58,7 +58,7 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         {
             PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.NeutralHit);
             token.ThrowIfCancellationRequested();
-            return cache.Generation == generation ? new(source, LyricsTranslationOutcome.NoUsefulTranslation) : null;
+            return cache.Generation == generation ? new(source, LyricsTranslationOutcome.NoUsefulTranslation) { FromCache = true } : null;
         }
         var saved = await cache.ReadAsync(key, token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
@@ -68,10 +68,10 @@ public sealed class PlainHyLyricsCoordinator(AiLyricsCache cache)
         {
             PlainLyricsMetrics.Count(PlainLyricsMetrics.Event.SongHit);
             token.ThrowIfCancellationRequested();
-            return cache.Generation == generation ? new(result, LyricsTranslationOutcome.Translated) : null;
+            return cache.Generation == generation ? new(result, LyricsTranslationOutcome.Translated) { FromCache = true } : null;
         }
         RememberNoUseful(key, generation);
-        return new(source, LyricsTranslationOutcome.NoUsefulTranslation);
+        return new(source, LyricsTranslationOutcome.NoUsefulTranslation) { FromCache = true };
     }
 
     public Task<LyricsTranslationResult> TranslateAsync(LyricsQuery query, LyricsDocument source,

@@ -204,6 +204,43 @@ export const sourcePaths = Object.freeze([
   'tools/ct2-helper/build.ps1',
   'tools/ct2-helper/dependencies.schema.json',
   'tools/ct2-helper/private-package-manifest.schema.json',
+  // Beta12 shared downloads, session persistence, and runtime state inputs.
+  'src/DropSpace.App/Services/Dlc/NeteaseComponentsDlcProvider.cs',
+  'src/DropSpace.App/Services/Media/LyricsRapidSkipDiagnostic.cs',
+  'src/DropSpace.App/Services/Media/QqMusicLoginService.cs',
+  'src/DropSpace.App/Services/NativeFolderPickerService.cs',
+  'src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.IO.cs',
+  'src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.Packages.cs',
+  'src/DropSpace.App/Services/NeteaseEnhancement/InfLinkDeploymentService.cs',
+  'src/DropSpace.App/Services/NeteaseEnhancement/NeteaseRuntimeInstaller.cs',
+  'src/DropSpace.App/Views/Music/QqMusicLoginCard.cs',
+  'src/DropSpace.App/Views/Settings/DownloadPanel.cs',
+  'src/DropSpace.Core/Downloads/DownloadModels.cs',
+  'src/DropSpace.Infrastructure/Downloads/AdaptiveDownloadScheduler.cs',
+  'src/DropSpace.Infrastructure/Downloads/DirectFileRequestFactory.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadBandwidthLimiter.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadConnectionBudget.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadManager.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadPersistenceQueue.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadRequestPolicy.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadStorage.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadTaskRepository.cs',
+  'src/DropSpace.Infrastructure/Downloads/DownloadTransferBudget.cs',
+  'src/DropSpace.Infrastructure/Downloads/FileNameSanitizer.cs',
+  'src/DropSpace.Infrastructure/Downloads/HttpByteRangePlanner.cs',
+  'src/DropSpace.Infrastructure/Downloads/HttpRangeDownloader.cs',
+  'src/DropSpace.Infrastructure/Downloads/HttpTransferDeadline.cs',
+  'src/DropSpace.Infrastructure/Downloads/OutputReservationService.cs',
+  'src/DropSpace.Infrastructure/Downloads/ParallelHttpFileDownloader.cs',
+  'src/DropSpace.Infrastructure/Downloads/RetryExecutor.cs',
+  'src/DropSpace.Infrastructure/Lyrics/KugouResponseStatus.cs',
+  'src/DropSpace.Infrastructure/Lyrics/LyricsRequestTrace.cs',
+  'src/DropSpace.Infrastructure/Lyrics/PlainLyricsExecutionStatus.cs',
+  'src/DropSpace.Infrastructure/Lyrics/QqMusicSession.cs',
+  'src/DropSpace.Infrastructure/Lyrics/ResidentInferenceMemoryPolicy.cs',
+  'src/DropSpace.Infrastructure/Updates/HttpUpdateDownloader.cs',
+  'scripts/Test-CudaBuildBinding.ps1',
+  'scripts/ai-runtime-publication.mjs',
   ...residentSourcePaths,
 ]);
 export const productionPromptProfile = 'production-plain-hy';
@@ -211,7 +248,7 @@ export const productionOutputSchema = 'host-mapped-id-text-v1';
 export const productionCaptureMethod = 'PlainHyLyricsBackend+PlainHyLyricsCoordinator+PersistentPlainLyricsRunner.RunPlainAsync';
 export const maximumApprovalAgeMs = 30 * 24 * 60 * 60 * 1000;
 export const experimentalBetaStatus = 'owner-accepted-experimental-beta';
-export const experimentalBetaVersion = 'v0.3.1-beta.11';
+export const experimentalBetaVersion = 'v0.3.1-beta.12';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const hashPattern = /^[a-f0-9]{64}$/;
 const rootDirectory = fileURLToPath(new URL('../', import.meta.url));

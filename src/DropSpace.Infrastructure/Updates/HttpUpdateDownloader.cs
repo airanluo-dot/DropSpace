@@ -1,6 +1,5 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
+using DropSpace.Core.Downloads;
+using DropSpace.Infrastructure.Downloads;
 using DropSpace.Core.Abstractions;
 using DropSpace.Core.Updates;
 using DropSpace.Infrastructure.Storage;
@@ -10,7 +9,8 @@ namespace DropSpace.Infrastructure.Updates;
 public sealed class HttpUpdateDownloader(
     HttpClient client,
     AppStoragePaths paths,
-    UpdateStateStore stateStore) : IUpdateDownloader
+    UpdateStateStore stateStore,
+    HttpRangeDownloader downloads) : IUpdateDownloader, IDisposable
 {
     private readonly UpdateFileVerifier _fileVerifier = new(paths);
 
@@ -54,91 +54,24 @@ public sealed class HttpUpdateDownloader(
             File.Delete(finalPath);
         }
 
-        var resumeOffset = GetResumeOffset(partialPath, descriptor.Size);
-        HttpResponseMessage? response = null;
+        // Every redirect is checked; the initial asset remains bound to the manifest above.
+        var policy = new DownloadRequestPolicy(client, uri =>
+            uri.Scheme == Uri.UriSchemeHttps && uri.IsDefaultPort &&
+            (UpdateManifestParser.IsOfficialDownloadUri(uri, candidate.Release.TagName, descriptor.AssetName) ||
+             uri.Host is "release-assets.githubusercontent.com" or "objects.githubusercontent.com"),
+            request => request.Headers.UserAgent.ParseAdd($"DropSpace/{candidate.Manifest.Version}"));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromMinutes(30));
         try
         {
-            response = await SendDownloadRequestAsync(candidate, resumeOffset, cancellationToken).ConfigureAwait(false);
-            var append = resumeOffset > 0 && response.StatusCode == HttpStatusCode.PartialContent;
-            if (resumeOffset > 0 && response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
-            {
-                response.Dispose();
-                response = null;
-                TryDeletePartial(partialPath);
-                resumeOffset = 0;
-                response = await SendDownloadRequestAsync(candidate, 0, cancellationToken).ConfigureAwait(false);
-                append = false;
-            }
-
-            response.EnsureSuccessStatusCode();
-            if (append)
-            {
-                ValidateResumeResponse(response, resumeOffset, descriptor.Size);
-            }
-            else
-            {
-                if (resumeOffset > 0)
-                {
-                    // The server ignored Range and returned the complete object. Restart the
-                    // local staging file rather than appending duplicate bytes.
-                    TryDeletePartial(partialPath);
-                    resumeOffset = 0;
-                }
-                if (response.Content.Headers.ContentLength is long contentLength && contentLength != descriptor.Size)
-                {
-                    throw new InvalidDataException("The update Content-Length does not match the signed-off manifest size.");
-                }
-            }
-
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            if (append)
-            {
-                await HashExistingPartialAsync(partialPath, hash, cancellationToken).ConfigureAwait(false);
-            }
-
-            await using var input = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            await using var output = new FileStream(
-                partialPath,
-                append ? FileMode.Append : FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                64 * 1024,
-                FileOptions.Asynchronous | FileOptions.WriteThrough);
-            var buffer = new byte[64 * 1024];
-            var total = resumeOffset;
-            if (total > 0) progress?.Report(new UpdateDownloadProgress(total, descriptor.Size));
-            while (true)
-            {
-                var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-                if (read == 0) break;
-                total = checked(total + read);
-                if (total > descriptor.Size)
-                {
-                    throw new InvalidDataException("The update stream exceeded the manifest size.");
-                }
-
-                hash.AppendData(buffer, 0, read);
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                progress?.Report(new UpdateDownloadProgress(total, descriptor.Size));
-            }
-
-            await output.FlushAsync(cancellationToken).ConfigureAwait(false);
-            if (total != descriptor.Size)
-            {
-                throw new EndOfStreamException("The update stream ended before the manifest size was reached.");
-            }
-
-            var actualHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
-            if (!CryptographicOperations.FixedTimeEquals(
-                    Convert.FromHexString(actualHash),
-                    Convert.FromHexString(descriptor.Sha256)))
-            {
-                throw new InvalidDataException("The downloaded update failed SHA-256 verification.");
-            }
-
-            output.Close();
+            await downloads.DownloadAsync(candidate.SelectedAsset.DownloadUri, partialPath, policy,
+                progress is null ? null : new TransferProgress(progress, descriptor.Size),
+                timeout.Token, descriptor.Size, descriptor.Sha256).ConfigureAwait(false);
+            // Legacy length-only partials have no resource validator and safely restart.
+            cancellationToken.ThrowIfCancellationRequested();
             File.Move(partialPath, finalPath, true);
-            var downloaded = new DownloadedUpdate(candidate, finalPath, total, actualHash, logPath);
+            TryDeletePartial(partialPath);
+            var downloaded = new DownloadedUpdate(candidate, finalPath, descriptor.Size, descriptor.Sha256, logPath);
             await stateStore.SaveAsync(downloaded, "ReadyToInstall", cancellationToken).ConfigureAwait(false);
             return downloaded;
         }
@@ -147,127 +80,25 @@ public sealed class HttpUpdateDownloader(
             TryDeletePartial(partialPath);
             throw;
         }
-        catch (EndOfStreamException)
-        {
-            // A cleanly truncated or disconnected response is resumable. The next request
-            // hashes the staged prefix again before appending and the final manifest hash
-            // remains authoritative.
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (HttpRequestException)
-        {
-            throw;
-        }
-        catch (IOException)
-        {
-            // Preserve a bounded, version-scoped prefix for a later retry. Any corrupt or
-            // externally modified prefix can only reach ReadyToInstall after the full SHA-256
-            // matches the signed-off manifest.
-            throw;
-        }
-        catch
-        {
-            TryDeletePartial(partialPath);
-            throw;
-        }
-        finally
-        {
-            response?.Dispose();
-        }
+        // Transport failure retains version-scoped staging for retry. Installation still
+        // re-verifies the assembled final file, independently of the transfer engine.
     }
 
-    private async Task<HttpResponseMessage> SendDownloadRequestAsync(
-        UpdateCandidate candidate,
-        long offset,
-        CancellationToken cancellationToken)
+    private sealed class TransferProgress(IProgress<UpdateDownloadProgress> target, long total) : IProgress<TrackProgress>
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, candidate.SelectedAsset.DownloadUri);
-        request.Headers.UserAgent.ParseAdd($"DropSpace/{candidate.Manifest.Version}");
-        if (offset > 0)
-        {
-            request.Headers.Range = new RangeHeaderValue(offset, null);
-        }
-        return await client.SendAsync(
-            request,
-            HttpCompletionOption.ResponseHeadersRead,
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    private static long GetResumeOffset(string partialPath, long expectedSize)
-    {
-        if (!File.Exists(partialPath)) return 0;
-        var length = new FileInfo(partialPath).Length;
-        if (length <= 0 || length >= expectedSize)
-        {
-            TryDeletePartial(partialPath);
-            return 0;
-        }
-        return length;
-    }
-
-    private static void ValidateResumeResponse(HttpResponseMessage response, long offset, long expectedSize)
-    {
-        var range = response.Content.Headers.ContentRange;
-        if (range is null ||
-            !string.Equals(range.Unit, "bytes", StringComparison.OrdinalIgnoreCase) ||
-            range.From != offset ||
-            range.To != expectedSize - 1 ||
-            range.Length != expectedSize)
-        {
-            throw new InvalidDataException("The update server returned an invalid Content-Range for resume.");
-        }
-        var expectedRemaining = expectedSize - offset;
-        if (response.Content.Headers.ContentLength is long contentLength && contentLength != expectedRemaining)
-        {
-            throw new InvalidDataException("The resumed update Content-Length does not match the manifest remainder.");
-        }
-    }
-
-    private static async Task HashExistingPartialAsync(
-        string partialPath,
-        IncrementalHash hash,
-        CancellationToken cancellationToken)
-    {
-        await using var input = new FileStream(
-            partialPath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            64 * 1024,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        var buffer = new byte[64 * 1024];
-        while (true)
-        {
-            var read = await input.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            hash.AppendData(buffer, 0, read);
-        }
+        public void Report(TrackProgress value) => target.Report(new(value.DownloadedBytes, total));
     }
 
     private static void TryDeletePartial(string path)
     {
-        try
+        try { DownloadStorage.Clean(path); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch (IOException exception)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"Update partial cleanup deferred: {exception.GetType().Name}");
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"Update partial cleanup deferred: {exception.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"Update partial cleanup deferred: {exception.GetType().Name}");
         }
     }
+
+    public void Dispose() => client.Dispose();
 
     private string GetContainedVersionDirectory(ReleaseVersion version) =>
         GetContainedChildPath(paths.Updates, version.ToString());
