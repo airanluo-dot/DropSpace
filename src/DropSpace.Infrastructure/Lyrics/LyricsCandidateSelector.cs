@@ -12,16 +12,22 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
     private readonly Dictionary<string, Entry> _cache = new(StringComparer.Ordinal);
     private long _generation, _order;
     private sealed record Entry(string Id, long Expires, long Order);
-    public void Clear() { lock (_gate) { _cache.Clear(); _generation++; } }
+    public void Clear() { lock (_gate) { _cache.Clear(); Interlocked.Increment(ref _generation); } }
 
     public async Task<LyricsSelectionResult> SelectAsync(LyricsQuery query, LyricsSettings settings, string target,
-        string modelHash, LyricsCandidateSnapshot snapshot, LyricsDocument rules, CancellationToken token)
+        string modelHash, LyricsCandidateSnapshot snapshot, LyricsDocument rules, CancellationToken token,
+        Func<bool>? isCurrent = null)
     {
         LyricsSelectionResult Fallback(LyricsSelectionOutcome outcome) => new(rules, outcome);
+        bool Current() => !token.IsCancellationRequested && (isCurrent?.Invoke() ?? true);
+        LyricsSelectionResult Publish(LyricsDocument document, LyricsSelectionOutcome outcome, long generation) =>
+            new(document, outcome) { PublicationFence = () => Current() &&
+                generation == Interlocked.Read(ref _generation) };
         bool AllowedPriority(LyricsSelectionCandidate candidate) => rules.Lines.Count == 0 ||
             LyricsCandidateRules.ComparePriority(candidate, LyricsCandidateRules.Describe("rules", rules, target),
                 settings.Provider, settings.BackupProvider) <= 0;
         token.ThrowIfCancellationRequested();
+        if (!Current()) return Fallback(LyricsSelectionOutcome.Unavailable);
         if (!settings.Enabled || settings.Mode == LyricsMode.LocalLrc || settings.SelectionMode == LyricsSelectionMode.Rules)
             return Fallback(LyricsSelectionOutcome.Rules);
         if (settings.SelectionMode == LyricsSelectionMode.AiAssisted && !LyricsCandidateRules.RequiresIdentityDecision(query, snapshot))
@@ -33,11 +39,12 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
         lock (_gate)
         {
             token.ThrowIfCancellationRequested();
+            if (!Current()) return Fallback(LyricsSelectionOutcome.Unavailable);
             generation = _generation;
             if (_cache.TryGetValue(key, out var entry) && entry.Expires > Stopwatch.GetTimestamp() &&
                 snapshot.Candidates.FirstOrDefault(candidate => candidate.Id == entry.Id) is { } reused)
             {
-                if (AllowedPriority(reused)) return new(reused.Document, LyricsSelectionOutcome.Reused);
+                if (AllowedPriority(reused)) return Publish(reused.Document, LyricsSelectionOutcome.Reused, generation);
                 _cache.Remove(key);
                 return Fallback(LyricsSelectionOutcome.Invalid);
             }
@@ -49,10 +56,12 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
         Task<string?>? inference = null;
         try
         {
+            if (!Current()) return Fallback(LyricsSelectionOutcome.Unavailable);
             inference = runtime.TryRunSelectionAsync(modelHash, prompt, deadline.Token);
             // Cleanup keeps owning the worker/gate; presentation need not await it.
             var output = await inference.WaitAsync(deadline.Token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
+            if (!Current()) return Fallback(LyricsSelectionOutcome.Unavailable);
             if (output is null) return Fallback(LyricsSelectionOutcome.Unavailable);
             if (!LyricsCandidateSelectionProtocol.TryParse(output, snapshot.Candidates, out var id))
                 return Fallback(LyricsSelectionOutcome.Invalid);
@@ -67,13 +76,13 @@ public sealed class LyricsCandidateSelector(ILyricsSelectionRuntime runtime)
             deadline.Token.ThrowIfCancellationRequested();
             lock (_gate)
             {
-                if (_generation != generation || token.IsCancellationRequested) return Fallback(LyricsSelectionOutcome.Unavailable);
+                if (_generation != generation || !Current()) return Fallback(LyricsSelectionOutcome.Unavailable);
                 if (deadline.IsCancellationRequested || Stopwatch.GetTimestamp() >= snapshot.DeadlineTimestamp)
                     return Fallback(LyricsSelectionOutcome.TimedOut);
                 while (_cache.Count >= 32) _cache.Remove(_cache.MinBy(pair => pair.Value.Order).Key);
                 _cache[key] = new(id, Stopwatch.GetTimestamp() + 600 * Stopwatch.Frequency, ++_order);
             }
-            return new(chosen.Document, LyricsSelectionOutcome.Selected);
+            return Publish(chosen.Document, LyricsSelectionOutcome.Selected, generation);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         { return Fallback(LyricsSelectionOutcome.TimedOut); }

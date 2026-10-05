@@ -28,6 +28,7 @@ public sealed class AiLyricsService : IDisposable
     private readonly AiLyricsWorkLifetime _work;
     private readonly AiLyricsRuntimeOptions _runtimeOptions;
     private readonly LyricsCandidateSelector? _selector;
+    private readonly object _selectionRetirementGate = new();
     private long _selectionPublicationGeneration;
     private readonly CancellationTokenSource _selectionLifetime = new();
     private readonly object _preparationGate = new();
@@ -280,17 +281,26 @@ public sealed class AiLyricsService : IDisposable
         var unavailable = new LyricsSelectionResult(source.Document, LyricsSelectionOutcome.Unavailable);
         var model = AiLyricsSelectionModelCatalog.FindSelectable(settings.AiSelectionModelId);
         if (_selector is null || model is null) return unavailable;
-        var generation = Interlocked.Read(ref _selectionPublicationGeneration);
+        long generation;
+        // A new service generation cannot admit a caller until the preceding
+        // selector cache retires. No inference or cleanup awaits occur under this gate.
+        lock (_selectionRetirementGate) generation = Interlocked.Read(ref _selectionPublicationGeneration);
+        bool Current() => !token.IsCancellationRequested &&
+            generation == Interlocked.Read(ref _selectionPublicationGeneration);
         var selected = await _work.RunAsync(cancellation => _selector.SelectAsync(query, settings, target, model.Sha256,
-            source.SelectionCandidates, source.Document, cancellation), unavailable, token).ConfigureAwait(false);
-        return selected with { PublicationFence = () => !token.IsCancellationRequested &&
-            generation == Interlocked.Read(ref _selectionPublicationGeneration) };
+            source.SelectionCandidates, source.Document, cancellation, Current), unavailable, token).ConfigureAwait(false);
+        // Retain independent selector retirement too: either cache Clear or service
+        // retirement after admission must fence an already returned dispatcher result.
+        return selected with { PublicationFence = () => Current() && selected.IsCurrent };
     }
 
     public void InvalidateSelectionDecisions()
     {
-        Interlocked.Increment(ref _selectionPublicationGeneration);
-        _selector?.Clear();
+        lock (_selectionRetirementGate)
+        {
+            Interlocked.Increment(ref _selectionPublicationGeneration);
+            _selector?.Clear();
+        }
     }
 
     public async Task<LyricsDocument> TranslateCoreAsync(LyricsQuery query, LyricsDocument document,
