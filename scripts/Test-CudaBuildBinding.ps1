@@ -13,11 +13,15 @@ $descriptor = Get-Content -LiteralPath (Join-Path $MetadataDirectory 'cuda-runti
 $manifest = Get-Item -LiteralPath (Join-Path $MetadataDirectory 'cuda-runtime-manifest.json')
 $tag = 'v' + $version[0]
 $asset = 'DropSpace-CUDA-win-x64-' + $tag + '.zip'
+$hashProvider = [System.Security.Cryptography.SHA256]::Create()
+$manifestStream = [System.IO.File]::OpenRead($manifest.FullName)
+try { $manifestHash = [BitConverter]::ToString($hashProvider.ComputeHash($manifestStream)).Replace('-', '').ToLowerInvariant() }
+finally { $manifestStream.Dispose(); $hashProvider.Dispose() }
 if ($descriptor.appRelease.tag -cne $tag -or $descriptor.appRelease.sourceCommit -cne $version[1] -or
     $descriptor.download.name -cne $asset -or
     $descriptor.download.url -cne ('https://github.com/airanluo-dot/DropSpace/releases/download/' + $tag + '/' + $asset) -or
     $descriptor.manifest.bytes -ne $manifest.Length -or
-    $descriptor.manifest.sha256 -cne (Get-FileHash -LiteralPath $manifest.FullName -Algorithm SHA256).Hash.ToLowerInvariant()) {
+    $descriptor.manifest.sha256 -cne $manifestHash) {
     throw 'CUDA metadata does not match this App build. Stage metadata for the current tag and exact source commit; never reuse another release descriptor.'
 }
 Write-Host "CUDA metadata bound to $InformationalVersion."

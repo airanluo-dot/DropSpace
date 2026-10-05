@@ -4,7 +4,7 @@
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
   "reviewedBy": "Local Codex, repository-owner-authorized Beta12 source review",
-  "reviewedAt": "2026-10-05T18:12:39Z",
+  "reviewedAt": "2026-10-05T18:15:32Z",
   "expiresAt": "2026-10-12T18:12:39Z",
   "summary": "Owner-authorized Beta12 shared downloads, update transport, DLC inventory, CUDA host-memory/status, settings and lyric-source fixes. Existing native/model bytes reused; focused evidence only, no general semantic approval.",
   "scope": {
@@ -1018,7 +1018,7 @@
         },
         {
           "path": "scripts/Test-CudaBuildBinding.ps1",
-          "sha256": "973f9e7d869d5d9f95f902bed59a154912fc7fed4a7bcce0e386c6d6f83564ff"
+          "sha256": "7a0f59f4dbba70711a5efe92dc76d78b8a4d75674697c75cb9ac66d08f8c66c9"
         },
         {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
@@ -1033,7 +1033,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "401c6ca3f0442b4a5e10cd0c56ebb65484d108a8b9dab1ae2033736e8e7ed0bc"
+      "sha256": "cf86ba794f6b5aaf3a3d490f939f782b158cf9ab620537908048f0da1c821a34"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",

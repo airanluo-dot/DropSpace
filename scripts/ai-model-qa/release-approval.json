@@ -1013,7 +1013,7 @@
         },
         {
           "path": "scripts/Test-CudaBuildBinding.ps1",
-          "sha256": "973f9e7d869d5d9f95f902bed59a154912fc7fed4a7bcce0e386c6d6f83564ff"
+          "sha256": "7a0f59f4dbba70711a5efe92dc76d78b8a4d75674697c75cb9ac66d08f8c66c9"
         },
         {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
@@ -1028,7 +1028,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "401c6ca3f0442b4a5e10cd0c56ebb65484d108a8b9dab1ae2033736e8e7ed0bc"
+      "sha256": "cf86ba794f6b5aaf3a3d490f939f782b158cf9ab620537908048f0da1c821a34"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
@@ -2513,6 +2513,6 @@
   },
   "review": {
     "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.12-owner-accepted-review.json",
-    "sha256": "707f4946d5be6da36388ab20b7e0f502fc99b8a0a726928e99814c42cf1f2986"
+    "sha256": "961f8109ff5205dad72977283d0fd8ec4cdfc74ee5d01a90728705a62bddd043"
   }
 }
