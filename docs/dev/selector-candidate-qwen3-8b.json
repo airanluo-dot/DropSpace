@@ -1,5 +1,5 @@
 {
-  "status": "authorized cloud diagnostic; no production enrollment",
+  "status": "cloud diagnostic completed; evaluated configuration not qualified; no production enrollment",
   "id": "qwen3-8b-q4km-selection-candidate",
   "file": "Qwen3-8B-Q4_K_M.gguf",
   "repository": "Qwen/Qwen3-8B-GGUF",
@@ -14,5 +14,9 @@
   "hostReserveMiB": 1024,
   "corpus": "identity-validation-v1.json unchanged",
   "activation": "Explicit owner approval and later full-autonomy instruction confirmed by parent delegation; bounded diagnostic only. Production enrollment still requires actual qualification.",
-  "authorizationReference": "2026-10-05T03:18:58Z / 335d29085ba48191953f25ee395d415a; 03:19:22Z / d98b65bb93f8819186605036960cf431"
+  "authorizationReference": "2026-10-05T03:18:58Z / 335d29085ba48191953f25ee395d415a; 03:19:22Z / d98b65bb93f8819186605036960cf431",
+  "diagnosticRun": 37278278637,
+  "evaluatedHead": "caf02486d2e022ad316d4f619ae0a8df1098146c",
+  "result": "15 complete official-EOS calls; 10 full-contract correct, 8 of 12 independent; one unsupported unknown-artist acceptance, one missed known alias, three extra-prefix outputs",
+  "readout": "beta11-qwen8-selection-readout.md"
 }
