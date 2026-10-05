@@ -240,6 +240,7 @@ export const sourcePaths = Object.freeze([
   'src/DropSpace.Infrastructure/Lyrics/ResidentInferenceMemoryPolicy.cs',
   'src/DropSpace.Infrastructure/Updates/HttpUpdateDownloader.cs',
   'scripts/Test-CudaBuildBinding.ps1',
+  'scripts/ai-runtime-publication.mjs',
   ...residentSourcePaths,
 ]);
 export const productionPromptProfile = 'production-plain-hy';

@@ -125,12 +125,13 @@ function packageIdentity(value, name) {
   return { name, sha256: value.sha256, bytes: value.bytes };
 }
 
-// Beta11 records compiler input identity honestly; installer execution was waived.
+// These exact owner-authorized Betas record compiler inputs; installation was not tested.
 function installerPortableIdentity(installer) {
   if(installer.kind === 'installer-payload') return installer.installedPortable;
   assert.equal(installer.kind, 'installer-build-input', 'Unsupported installer verification kind');
   const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  assert.equal(fs.readFileSync(path.join(root,'RELEASE_VERSION'),'utf8').trim(), 'v0.3.1-beta.11', 'Compiler-input inspection is only owner-authorized for Beta11');
+  const release=fs.readFileSync(path.join(root,'RELEASE_VERSION'),'utf8').trim();
+  assert.ok(['v0.3.1-beta.11','v0.3.1-beta.12'].includes(release), 'Compiler-input inspection requires an exact owner-authorized Beta');
   assert.equal(installer.verificationScope, 'compiler-input-bytes-only; installer not executed; tests waived');
   return installer.buildInputPortable;
 }

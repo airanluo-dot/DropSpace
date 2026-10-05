@@ -4,7 +4,7 @@
   "verdict": "owner-accepted-experimental-beta",
   "semanticApproved": false,
   "reviewedBy": "Local Codex, repository-owner-authorized Beta12 source review",
-  "reviewedAt": "2026-10-05T18:15:32Z",
+  "reviewedAt": "2026-10-05T18:20:09Z",
   "expiresAt": "2026-10-12T18:12:39Z",
   "summary": "Owner-authorized Beta12 shared downloads, update transport, DLC inventory, CUDA host-memory/status, settings and lyric-source fixes. Existing native/model bytes reused; focused evidence only, no general semantic approval.",
   "scope": {
@@ -338,7 +338,7 @@
         },
         {
           "path": "scripts/test-ai-release-approval.mjs",
-          "sha256": "29d02e7fa4b6e273fa4609bbf59125ab4e29e0d9754c10834ee354ae92c17fa9"
+          "sha256": "e25df18fea83e2c264486b1efadc38f51ebbf650d5cebe828a053996e9ba28f4"
         },
         {
           "path": "scripts/ai-model-qa/evidence/runtime-37095011004-1/runtime-manifest.json",
@@ -1021,6 +1021,10 @@
           "sha256": "7a0f59f4dbba70711a5efe92dc76d78b8a4d75674697c75cb9ac66d08f8c66c9"
         },
         {
+          "path": "scripts/ai-runtime-publication.mjs",
+          "sha256": "10272156819ea07152461a964bfee2d77aeadba97d5e0f0ac3dcb658b7657d98"
+        },
+        {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
           "sha256": "b4abd81cfb2fe6504c74a3ed8eb3adc91e688e2911bf8d44ef461d860dbbccbe"
         },
@@ -1033,7 +1037,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "cf86ba794f6b5aaf3a3d490f939f782b158cf9ab620537908048f0da1c821a34"
+      "sha256": "f7989c6254e725ad0d767a11439d133ebba93f39898587709316d7697878a759"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v8.json",
