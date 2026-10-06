@@ -51,3 +51,19 @@ from the UI alone. No blanket attribution to NetEase or model prompts is made.
 Topmost guarantees cover normal Windows desktop windows, not protected desktops
 or exclusive full-screen. Real playback/platform availability and model-quality
 coverage require observation beyond the controlled host cases.
+
+## Final local build
+
+App build source: `bf4b97a893476b27d9007aa7ea0a511ae8ac90fe`.
+Portable Release publish and MSIX build passed; Inno Setup 7.0.2 produced the
+installer. The final portable was opened once to inspect the corrected slider
+readouts at the ordinary window size. Its extracted managed assembly and the
+final MSIX embedded runtime inventory match the recorded native bytes. The
+installer evidence binds the compiler input only; it was not installed.
+
+Local evidence: `.codex/beta14/evidence/empty-island-open.png`,
+`.codex/beta14/evidence/slider-readouts-final.png` and build/check logs in the
+same Beta14 directory. This isolated UI fixture changed no real user settings.
+The subsequent CI route only accepts the pinned nine candidate asset hashes and
+App commit; the permitted post-build diff is CI and this verification record.
+It repeats no functional checks and does not turn skipped tests into passes.
