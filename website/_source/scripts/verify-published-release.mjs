@@ -44,10 +44,13 @@ if (release.draft) throw new Error(`${tag} is still a draft.`);
 if (release.prerelease !== /-(?:preview|beta)\./.test(tag)) throw new Error(`${tag} has the wrong prerelease flag.`);
 const assets = new Map(release.assets.map((asset) => [asset.name, asset]));
 const cudaAsset = `DropSpace-CUDA-win-x64-${tag}.zip`;
-const optionalAssets = new Set(["runtime-publication.json", cudaAsset]);
+const cudaMetadata = ["cuda-runtime-download.json", "cuda-runtime-manifest.json"];
+const optionalAssets = new Set(["runtime-publication.json", cudaAsset, ...cudaMetadata]);
 if (assets.size !== release.assets.length || expectedAssets.some((name) => !assets.has(name)) ||
     [...assets.keys()].some(name => !expectedAssets.includes(name) && !optionalAssets.has(name)) ||
-    (assets.has(cudaAsset) && !assets.has("runtime-publication.json"))) {
+    (assets.has(cudaAsset) && !assets.has("runtime-publication.json")) ||
+    (cudaMetadata.some(name => assets.has(name)) &&
+      (!assets.has(cudaAsset) || cudaMetadata.some(name => !assets.has(name))))) {
   throw new Error(`${tag} does not expose the exact public asset contract.`);
 }
 for (const [name, asset] of assets) {
@@ -96,6 +99,28 @@ for (const [name, digest] of checksumMap) {
 if (checksumMap.has("update-manifest.json") &&
     checksumMap.get("update-manifest.json") !== createHash("sha256").update(manifestText).digest("hex")) {
   throw new Error("Downloaded update manifest does not match its published checksum.");
+}
+
+if (assets.has(cudaMetadata[0])) {
+  const metadata = new Map();
+  for (const name of cudaMetadata) {
+    const bytes = Buffer.from(await (await fetchOk(assets.get(name).browser_download_url)).arrayBuffer());
+    if (bytes.length !== assets.get(name).size ||
+        createHash("sha256").update(bytes).digest("hex") !== checksumMap.get(name)) {
+      throw new Error(`Downloaded CUDA metadata does not match its published identity: ${name}.`);
+    }
+    metadata.set(name, bytes);
+  }
+  const descriptor = JSON.parse(metadata.get(cudaMetadata[0]).toString("utf8"));
+  if (descriptor.appRelease?.tag !== tag || descriptor.appRelease?.sourceCommit !== release.target_commitish ||
+      descriptor.download?.name !== cudaAsset || descriptor.download?.bytes !== assets.get(cudaAsset).size ||
+      descriptor.download?.url !== assets.get(cudaAsset).browser_download_url ||
+      descriptor.download?.sha256 !== checksumMap.get(cudaAsset) ||
+      descriptor.manifest?.name !== cudaMetadata[1] ||
+      descriptor.manifest?.bytes !== metadata.get(cudaMetadata[1]).length ||
+      descriptor.manifest?.sha256 !== checksumMap.get(cudaMetadata[1])) {
+    throw new Error("Published CUDA metadata does not bind the release and runtime assets.");
+  }
 }
 
 let api;
