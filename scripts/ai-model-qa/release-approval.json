@@ -1117,7 +1117,7 @@
         },
         {
           "path": "scripts/ai-runtime-publication.mjs",
-          "sha256": "f66c741bb1e9076e86d1debd396090aba3215ee7524863712c0d1dbd801ce123"
+          "sha256": "e7f118da87248db63eaea86931ba76b85c66831076a84e13d2fcce2b7e16bbb5"
         },
         {
           "path": "tools/plain-lyrics-helper/CMakeLists.txt",
@@ -1132,7 +1132,7 @@
           "sha256": "234d351f36b7049ff1f9778fe538e032cbe0337188fbc5020332de28bec2d698"
         }
       ],
-      "sha256": "3cce07b35e3435952c1041d7a873721d7c2ea72b48658ee11e911d2dbf501b6b"
+      "sha256": "7825817f3aa105648e45bc7d4e2106e15df872c4ef271bde689d2b335b6861b6"
     },
     "fixtureAdmission": {
       "path": "scripts/plain-hy-production-evidence/source48-admission-v12.json",
@@ -2575,7 +2575,7 @@
     }
   },
   "review": {
-    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.16-owner-accepted-review.json",
-    "sha256": "53a856c21332a3ad4ad6f829420e24a1e500b7e1693e966effc2def6299db0f6"
+    "path": "scripts/ai-model-qa/evidence/v0.3.1-beta.16-publication-scope-review.json",
+    "sha256": "f40fd942769c2cf219d7396a95c8862758bd804e61c89380f03e2e1dc0a7b3b9"
   }
 }
